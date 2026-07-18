@@ -27,6 +27,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains("CtrlRAM", regionSlot.Title, StringComparison.Ordinal);
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
+        await viewModel.FirmwareInspectionRefreshTask;
         viewModel.SetSlotFile(regionSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, regionSlot.SlotId));
 
         Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
@@ -65,6 +66,7 @@ public sealed partial class ShellViewModelTests
         // The verified FWConfig may choose the base image's branch. This fixture deliberately
         // exercises the owner-selected three-chip branch afterwards.
         viewModel.SelectedNumber = "3";
+        await viewModel.FirmwareInspectionRefreshTask;
         FirmwareSlotViewModel normalRight = viewModel.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
         FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile(normalRight.SlotId, fixtures.ReplacementPathFor(fixtureCase, normalRight.SlotId));
@@ -108,6 +110,7 @@ public sealed partial class ShellViewModelTests
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.SelectedNumber = "3";
+        await viewModel.FirmwareInspectionRefreshTask;
         FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         Assert.Contains("VN_Ctrlram.bin", vn.Description, StringComparison.Ordinal);
         Assert.Contains("VN CtrlRAM (Master): max 5728 bytes", vn.Description, StringComparison.Ordinal);
@@ -146,6 +149,7 @@ public sealed partial class ShellViewModelTests
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.SelectedNumber = "3";
+        await viewModel.FirmwareInspectionRefreshTask;
         FirmwareSlotViewModel vnSlot = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile(vnSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, vnSlot.SlotId));
 

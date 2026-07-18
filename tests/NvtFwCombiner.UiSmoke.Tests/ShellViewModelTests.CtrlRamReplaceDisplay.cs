@@ -7,7 +7,7 @@ public sealed partial class ShellViewModelTests
 {
     /// <summary>Verifies CtrlRAM slots refresh to the FWConfig-selected postbuild category after base load.</summary>
     [Fact]
-    public void CtrlRamBaseFirmwareRefreshesVersionedNt51926Slots()
+    public async Task CtrlRamBaseFirmwareRefreshesVersionedNt51926Slots()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51926";
@@ -21,7 +21,10 @@ public sealed partial class ShellViewModelTests
             slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
             slot.Description.Contains("max 5278 bytes", StringComparison.Ordinal));
 
-        viewModel.SetSlotFile("replace-base", basePath);
+        await viewModel.SetSlotFileAsync(
+            "replace-base",
+            basePath,
+            TestContext.Current.CancellationToken);
 
         Assert.Contains(viewModel.CtrlRamRegions, region =>
             region.Name == "VN CtrlRAM" &&

@@ -45,7 +45,8 @@ public sealed partial class MainWindowViewModel
             shellVersion,
             appVersion,
             language,
-            static (icId, path) => WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path))
+            static (icId, path) => WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path),
+            WorkbenchCompositionService.InspectFirmwareBatch)
     {
     }
 
@@ -55,9 +56,30 @@ public sealed partial class MainWindowViewModel
         string appVersion,
         ShellLanguage language,
         Func<string, string, WorkbenchFirmwareConfigMetadata?> firmwareConfigMetadataReader)
+        : this(
+            shellVersion,
+            appVersion,
+            language,
+            firmwareConfigMetadataReader,
+            WorkbenchCompositionService.InspectFirmwareBatch)
+    {
+    }
+
+    /// <summary>Initializes the shell with deterministic metadata and consolidated inspection readers.</summary>
+    internal MainWindowViewModel(
+        string shellVersion,
+        string appVersion,
+        ShellLanguage language,
+        Func<string, string, WorkbenchFirmwareConfigMetadata?> firmwareConfigMetadataReader,
+        Func<
+            string,
+            IReadOnlyList<WorkbenchFirmwareInspectionInput>,
+            IReadOnlyList<WorkbenchFirmwareInspectionResult>> firmwareInspectionReader)
     {
         ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
+        ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
         _ctrlRamFirmwareVersionMetadataReader = firmwareConfigMetadataReader;
+        _firmwareInspectionReader = firmwareInspectionReader;
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         HexEditorWorkspace = new HexEditorWorkspaceViewModel(Text);

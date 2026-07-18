@@ -262,9 +262,9 @@ public sealed partial class MainWindowViewModel
         string icId,
         string basePath)
     {
-        CtrlRamFirmwareVersionFileIdentity before = CtrlRamFirmwareVersionFileIdentity.Capture(basePath);
+        var before = FirmwareFileIdentity.Capture(basePath);
         WorkbenchFirmwareConfigMetadata? metadata = _ctrlRamFirmwareVersionMetadataReader(icId, basePath);
-        CtrlRamFirmwareVersionFileIdentity after = CtrlRamFirmwareVersionFileIdentity.Capture(basePath);
+        var after = FirmwareFileIdentity.Capture(basePath);
         return new CtrlRamFirmwareVersionMetadataWorkerResult(
             before.Equals(after),
             metadata,
@@ -324,8 +324,8 @@ public sealed partial class MainWindowViewModel
         {
             await Task.Yield();
             cancellationToken.ThrowIfCancellationRequested();
-            CtrlRamFirmwareVersionFileIdentity identity = await Task.Run(
-                () => CtrlRamFirmwareVersionFileIdentity.Capture(lease.Request.BasePath),
+            FirmwareFileIdentity identity = await Task.Run(
+                () => FirmwareFileIdentity.Capture(lease.Request.BasePath),
                 cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return generation == Volatile.Read(ref _ctrlRamFirmwareVersionMetadataGeneration) &&
@@ -407,7 +407,7 @@ public sealed partial class MainWindowViewModel
     private readonly record struct CtrlRamFirmwareVersionMetadataRequest(
         string IcId,
         string BasePath,
-        CtrlRamFirmwareVersionFileIdentity FileIdentity)
+        FirmwareFileIdentity FileIdentity)
     {
         internal bool MatchesContext(string icId, string? basePath)
         {
@@ -416,33 +416,4 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private readonly record struct CtrlRamFirmwareVersionFileIdentity(
-        bool Exists,
-        long Length,
-        DateTime LastWriteTimeUtc)
-    {
-        internal static CtrlRamFirmwareVersionFileIdentity Capture(string? path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return default;
-            }
-
-            try
-            {
-                var file = new FileInfo(path);
-                return file.Exists
-                    ? new CtrlRamFirmwareVersionFileIdentity(true, file.Length, file.LastWriteTimeUtc)
-                    : default;
-            }
-            catch (Exception exception) when (exception is
-                IOException or
-                UnauthorizedAccessException or
-                ArgumentException or
-                NotSupportedException)
-            {
-                return default;
-            }
-        }
-    }
 }

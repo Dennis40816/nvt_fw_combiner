@@ -23,12 +23,14 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(SelectedNumberChoice));
     }
 
-    private void RefreshContextState(bool resetRunResult = false)
+    private void RefreshContextState(
+        bool resetRunResult = false,
+        bool preserveReplaceSlotFiles = false)
     {
         RefreshCtrlRamRegions();
-        RefreshMemoryMapState();
         RefreshMergeSlotRequirements();
-        RefreshReplaceModeState();
+        RefreshReplaceModeState(preserveSlotFiles: preserveReplaceSlotFiles);
+        RefreshMemoryMapState();
         RefreshCommandState();
         NotifyContextTextChanged();
         if (resetRunResult)
@@ -147,7 +149,7 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(MergeReadinessStatus));
             OnPropertyChanged(nameof(MergeMemorySummary));
             ResetRunResultForContextChange();
-            RefreshMemoryMapState();
+            RefreshMergeMemoryMapState();
             RefreshCommandState();
         }
 
@@ -271,34 +273,80 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedReplaceModeChanged(string value)
     {
+        InvalidateFirmwareInspection();
         InvalidateCtrlRamFirmwareVersionContext();
-        RefreshCtrlRamRegions();
-        RefreshReplaceModeState();
-        RefreshMemoryMapState();
-        ResetRunResultForContextChange();
-        NotifyContextTextChanged();
-        RefreshCommandState();
+        RefreshContextState(resetRunResult: true);
+        RefreshCtrlRamDisplayFromInspection();
     }
 
     partial void OnSelectedIcChanged(string value)
     {
+        AcceptedFirmwareMismatchSelection? acceptedMismatch =
+            ConsumeAcceptedFirmwareMismatchSelection();
+        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
         InvalidateCtrlRamFirmwareVersionContext();
-        RefreshNumberChoicesForSelectedIc();
-        GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
-        RefreshContextState(resetRunResult: true);
-        RefreshAllSelectedSlotFirmwareFacts();
+        _isRefreshingFirmwareInspectionContext = true;
+        try
+        {
+            RefreshNumberChoicesForSelectedIc();
+            GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
+        }
+        finally
+        {
+            _isRefreshingFirmwareInspectionContext = false;
+        }
+
+        RefreshContextState(
+            resetRunResult: true,
+            preserveReplaceSlotFiles: acceptedMismatch is not null);
+        string? acceptedMismatchSlotId = null;
+        if (acceptedMismatch is { } selection &&
+            FindSlot(selection.SlotId) is { } acceptedSlot &&
+            string.Equals(acceptedSlot.FilePath, selection.Path, StringComparison.Ordinal))
+        {
+            acceptedMismatchSlotId = selection.SlotId;
+        }
+        else if (acceptedMismatch is { } missingSelection)
+        {
+            SetShellToast(
+                Text.ContextUpdatedToastTitle,
+                Text.FormatFirmwareSelectionNotRetainedToast(Path.GetFileName(missingSelection.Path)));
+        }
+
+        QueueAllSelectedFirmwareInspections(acceptedMismatchSlotId);
     }
 
     partial void OnSelectedNumberChanged(string value)
     {
+        if (_isRefreshingFirmwareInspectionContext)
+        {
+            InvalidateCtrlRamFirmwareVersionContext();
+            OnPropertyChanged(nameof(SelectedNumberChoice));
+            return;
+        }
+
+        if (_isApplyingFirmwareInspectionContext)
+        {
+            InvalidateCtrlRamFirmwareVersionContext();
+            OnPropertyChanged(nameof(SelectedNumberChoice));
+            RefreshContextState(
+                resetRunResult: true,
+                preserveReplaceSlotFiles: true);
+            return;
+        }
+
+        InvalidateFirmwareInspection();
         InvalidateCtrlRamFirmwareVersionContext();
         OnPropertyChanged(nameof(SelectedNumberChoice));
-        RefreshContextState(resetRunResult: true);
+        RefreshContextState(
+            resetRunResult: true,
+            preserveReplaceSlotFiles: true);
+        RefreshCtrlRamDisplayFromInspection();
     }
 
     partial void OnGeneralMergeOutputLengthChanged(string value)
     {
-        RefreshMemoryMapState();
+        RefreshMergeMemoryMapState();
         ResetRunResultForContextChange();
         RefreshCommandState();
     }
