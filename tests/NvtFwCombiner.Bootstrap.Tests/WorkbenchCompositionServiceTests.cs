@@ -248,6 +248,16 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal(0xA5, output[0x100]);
         Assert.Equal(0x5A, output[0x101]);
         Assert.Equal(baseBytes[0x102], output[0x102]);
+        CompositionRunInspectionSnapshot inspection = Assert.IsType<CompositionRunInspectionSnapshot>(
+            result.InspectionSnapshot);
+        Assert.Equal(WorkbenchAddressSpaceIds.ReferenceBase, inspection.ReferenceSpaceId);
+        Assert.Equal(baseBytes, inspection.ReferenceBytes.ToArray());
+        Assert.Equal(output, inspection.OutputBytes.ToArray());
+        Assert.DoesNotContain(nameof(WorkbenchRunResult.InspectionSnapshot), result.ReportJson, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            nameof(WorkbenchRunResult.InspectionSnapshot),
+            JsonSerializer.Serialize(result),
+            StringComparison.Ordinal);
 
         using var document = JsonDocument.Parse(result.ReportJson);
         JsonElement operation = Assert.Single(document.RootElement.GetProperty("Operations").EnumerateArray());
