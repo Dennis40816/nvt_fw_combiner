@@ -9,7 +9,7 @@ public sealed partial class CompositionRunService
         CompositionRunRequest request,
         CompositionExecutionResult execution,
         IReadOnlyDictionary<string, byte[]> inputBytes,
-        byte[] outputBytes)
+        ReadOnlyMemory<byte> outputBytes)
     {
         if (execution.Status != CompositionExecutionStatus.Succeeded ||
             request.CompiledComposition.CompositionKind != CompositionKind.Replace ||
@@ -21,7 +21,7 @@ public sealed partial class CompositionRunService
             return [];
         }
 
-        IReadOnlyList<ByteRange> changedRanges = ByteDiff.FindChangedRanges(referenceBytes, outputBytes);
+        IReadOnlyList<ByteRange> changedRanges = ByteDiff.FindChangedRanges(referenceBytes, outputBytes.Span);
         if (changedRanges.Count == 0)
         {
             return [];
@@ -46,9 +46,9 @@ public sealed partial class CompositionRunService
                     expectation.Explanation,
                     expectation.SectionLabel,
                     ToSliceSha256Hex(referenceBytes, segment),
-                    ToSliceSha256Hex(outputBytes, segment),
+                    ToSliceSha256Hex(outputBytes.Span, segment),
                     ToSliceHexPreview(referenceBytes, segment),
-                    ToSliceHexPreview(outputBytes, segment),
+                    ToSliceHexPreview(outputBytes.Span, segment),
                     checked((int)Math.Min(segment.Length, OutputDifferenceHexPreviewBytes)),
                     segment.Length <= OutputDifferenceHexPreviewBytes,
                     semantic));
