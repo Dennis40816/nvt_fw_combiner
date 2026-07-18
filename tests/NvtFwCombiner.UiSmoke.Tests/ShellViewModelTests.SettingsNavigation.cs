@@ -44,7 +44,8 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.SettingsCapabilityRows, row =>
             row.Title == "已啟用 CtrlRAM Replace 的 IC" &&
             row.Value == "12 ICs" &&
-            row.Status == "已支援");
+            row.Status == "已啟用" &&
+            row.Description.Contains("firmware-owner evidence", StringComparison.Ordinal));
         Assert.Contains(viewModel.SettingsCapabilityRows, row =>
             row.Title == "外部 postbuild tools" &&
             row.Status == "固定");

@@ -102,9 +102,9 @@ public sealed partial class MainWindowViewModel
                 Text.Language == ShellLanguage.ChineseTraditional ? "已啟用 CtrlRAM Replace 的 IC" : "CtrlRAM Replace-enabled ICs",
                 $"{snapshot.CtrlRamReplaceIcCount} ICs",
                 Text.Language == ShellLanguage.ChineseTraditional
-                    ? "支援政策明確開放 CtrlRAM Replace 的 IC 數量。"
-                    : "ICs whose support policy explicitly enables CtrlRAM Replace.",
-                Text.Language == ShellLanguage.ChineseTraditional ? "已支援" : "Supported"),
+                    ? "Catalog 與 policy 已啟用 CtrlRAM Replace；部分 IC 仍需 firmware-owner evidence。"
+                    : "Catalog- and policy-enabled CtrlRAM Replace; some ICs still require firmware-owner evidence.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "已啟用" : "Enabled"),
             new SettingSummaryViewModel(
                 Text.Language == ShellLanguage.ChineseTraditional ? "外部 postbuild tools" : "External postbuild tools",
                 snapshot.ExternalToolBindingCount == 1

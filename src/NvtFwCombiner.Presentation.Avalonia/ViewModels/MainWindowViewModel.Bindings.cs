@@ -179,13 +179,13 @@ public sealed partial class MainWindowViewModel
     public bool IsHexEditorVisible => SelectedPage == ShellPage.HexEditor;
 
     /// <summary>True when CtrlRAM Replace is selected.</summary>
-    public bool IsCtrlRamReplaceModeSelected => IsReplaceAuthoringAvailable && string.Equals(SelectedReplaceMode, CtrlRamReplaceMode, StringComparison.Ordinal);
+    public bool IsCtrlRamReplaceModeSelected => IsSelectedReplaceModeSupported && string.Equals(SelectedReplaceMode, CtrlRamReplaceMode, StringComparison.Ordinal);
 
     /// <summary>True when General Replace is selected.</summary>
-    public bool IsGeneralReplaceModeSelected => IsReplaceAuthoringAvailable && string.Equals(SelectedReplaceMode, GeneralReplaceMode, StringComparison.Ordinal);
+    public bool IsGeneralReplaceModeSelected => IsSelectedReplaceModeSupported && string.Equals(SelectedReplaceMode, GeneralReplaceMode, StringComparison.Ordinal);
 
     /// <summary>True when the selected Replace mode uses the fixed slot-card input layout.</summary>
-    public bool IsStructuredReplaceModeSelected => IsReplaceAuthoringAvailable && !string.Equals(SelectedReplaceMode, GeneralReplaceMode, StringComparison.Ordinal);
+    public bool IsStructuredReplaceModeSelected => IsSelectedReplaceModeSupported && !string.Equals(SelectedReplaceMode, GeneralReplaceMode, StringComparison.Ordinal);
 
     /// <summary>True when the selected Replace mode uses the flat structured slot-card input layout.</summary>
     public bool IsNonCtrlRamStructuredReplaceModeSelected => IsStructuredReplaceModeSelected && !IsCtrlRamReplaceModeSelected;

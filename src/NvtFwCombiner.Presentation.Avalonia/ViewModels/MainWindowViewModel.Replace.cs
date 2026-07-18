@@ -5,7 +5,6 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     private bool IsSelectedReplaceModeSupported => WorkbenchCompositionService.IsReplaceWorkflowSupported(SelectedIc, SelectedReplaceMode);
-    private bool IsReplaceAuthoringAvailable => WorkbenchReplaceModes.All.Any(mode => WorkbenchCompositionService.IsReplaceWorkflowSupported(SelectedIc, mode));
 
     /// <summary>Gets short Replace memory-map summary text.</summary>
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
