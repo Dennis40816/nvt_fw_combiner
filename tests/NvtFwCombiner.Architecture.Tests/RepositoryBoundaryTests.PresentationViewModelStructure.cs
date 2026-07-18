@@ -97,6 +97,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferences.cs");
         string indexedRows = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportIndexedReadOnlyLists.cs");
+        string differenceJson = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferenceJson.cs");
         string differenceGroups = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportDifferenceGroupViewModel.cs");
         string changes = ReadText(
@@ -113,6 +115,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IssuePage", bindings, StringComparison.Ordinal);
         Assert.Contains("MemoizedIndexedReadOnlyList<ReportLineViewModel>", parser, StringComparison.Ordinal);
         Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", indexedRows, StringComparison.Ordinal);
+        Assert.Contains("Utf8JsonReader", differenceJson, StringComparison.Ordinal);
+        Assert.Contains("JsonValueSlice", differenceJson, StringComparison.Ordinal);
+        Assert.Contains("SkipJsonValue", differenceJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("reader.Skip()", differenceJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("differences.Clone()", parser, StringComparison.Ordinal);
         Assert.Contains("loadInitialPage: false", differenceGroups, StringComparison.Ordinal);
         Assert.Contains("IsExpanded=\"{Binding IsExpanded, Mode=TwoWay}\"", changes, StringComparison.Ordinal);
         Assert.DoesNotContain("OrderBy", parser, StringComparison.Ordinal);

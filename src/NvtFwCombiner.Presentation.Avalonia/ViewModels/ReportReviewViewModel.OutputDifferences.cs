@@ -10,6 +10,7 @@ public sealed partial class ReportReviewViewModel
 
     private static OutputDifferenceProjection ParseOutputDifferences(
         JsonElement root,
+        byte[] reportUtf8,
         ShellLanguage language,
         CancellationToken cancellationToken)
     {
@@ -19,20 +20,30 @@ public sealed partial class ReportReviewViewModel
             return OutputDifferenceProjection.Empty;
         }
 
-        JsonElement snapshot = differences.Clone();
-        int count = snapshot.GetArrayLength();
+        int count = differences.GetArrayLength();
+        if (count == 0)
+        {
+            return OutputDifferenceProjection.Empty;
+        }
+
+        JsonValueSlice[] slices = IndexOutputDifferences(reportUtf8, cancellationToken);
+        if (slices.Length != count)
+        {
+            throw new JsonException("OutputDifferences JSON indexing did not preserve every report entry.");
+        }
+
         var rows = new MemoizedIndexedReadOnlyList<ReportLineViewModel>(
             count,
-            index => ParseOutputDifference(snapshot[index], language));
+            index => ParseOutputDifference(reportUtf8, slices[index], language));
         var groupBySection = new Dictionary<string, DifferenceGroupBuilder>(StringComparer.Ordinal);
         var groupOrder = new List<DifferenceGroupBuilder>();
         var summaryBySection = new Dictionary<string, DifferenceSummaryBuilder>(StringComparer.Ordinal);
         var summaryOrder = new List<DifferenceSummaryBuilder>();
         int acceptedCount = 0;
-        for (int index = 0; index < count; index++)
+        int index = 0;
+        foreach (JsonElement difference in differences.EnumerateArray())
         {
             cancellationToken.ThrowIfCancellationRequested();
-            JsonElement difference = snapshot[index];
             string classification = GetString(difference, "Classification");
             string sectionLabel = GetOutputDifferenceSectionLabel(difference, classification, language);
             string groupLabel = string.IsNullOrWhiteSpace(sectionLabel)
@@ -67,6 +78,8 @@ public sealed partial class ReportReviewViewModel
                 group.ReviewCount++;
                 summary.ReviewCount++;
             }
+
+            index++;
         }
 
         var groups = new List<ReportDifferenceGroupViewModel>(groupOrder.Count);
@@ -107,6 +120,15 @@ public sealed partial class ReportReviewViewModel
         }
 
         return new OutputDifferenceProjection(rows, groups, summaryRows, acceptedCount);
+    }
+
+    private static ReportLineViewModel ParseOutputDifference(
+        ReadOnlyMemory<byte> reportUtf8,
+        JsonValueSlice slice,
+        ShellLanguage language)
+    {
+        using JsonDocument document = JsonDocument.Parse(reportUtf8.Slice(slice.Start, slice.Length));
+        return ParseOutputDifference(document.RootElement, language);
     }
 
     private static ReportLineViewModel ParseOutputDifference(JsonElement difference, ShellLanguage language)

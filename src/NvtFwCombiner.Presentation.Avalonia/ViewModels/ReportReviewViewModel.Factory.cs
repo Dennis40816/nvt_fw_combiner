@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -33,7 +34,8 @@ public sealed partial class ReportReviewViewModel
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
         cancellationToken.ThrowIfCancellationRequested();
-        using var document = JsonDocument.Parse(json);
+        byte[] utf8 = Encoding.UTF8.GetBytes(json);
+        using var document = JsonDocument.Parse(utf8.AsMemory());
         JsonElement root = document.RootElement;
 
         string profileId = GetString(root, nameof(ProfileId));
@@ -50,7 +52,11 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root, cancellationToken);
         IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root, language, cancellationToken);
         IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root, cancellationToken);
-        OutputDifferenceProjection outputDifferences = ParseOutputDifferences(root, language, cancellationToken);
+        OutputDifferenceProjection outputDifferences = ParseOutputDifferences(
+            root,
+            utf8,
+            language,
+            cancellationToken);
         IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root, cancellationToken);
         string status = CreateStatus(issues, language);
         cancellationToken.ThrowIfCancellationRequested();

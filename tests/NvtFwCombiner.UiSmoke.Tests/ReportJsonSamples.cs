@@ -148,7 +148,10 @@ internal static class ReportJsonSamples
             ]);
     }
 
-    public static string ReplaceWithManyOutputDifferences(int count, int sectionCount)
+    public static string ReplaceWithManyOutputDifferences(
+        int count,
+        int sectionCount,
+        string sectionPrefix = "Section")
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sectionCount);
@@ -164,7 +167,7 @@ internal static class ReportJsonSamples
                 isAccepted: index != count - 1,
                 $"evidence-{index:D5}",
                 $"difference {index}",
-                $"Section {index % sectionCount:D2}")),
+                $"{sectionPrefix} {index % sectionCount:D2}")),
         ];
         return Create(
             "nt51927-ctrlram-replace",
