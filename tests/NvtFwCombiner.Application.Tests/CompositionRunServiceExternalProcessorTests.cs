@@ -155,8 +155,9 @@ public sealed partial class CompositionRunServiceTests
             writer,
             processor);
 
-        CompositionRunResult result = await service.AutomaticBuildAsync(
+        CompositionRunResult result = await service.PreviewOrBuildAsync(
             CreateFirmwareConfigBackupValidationRequest(),
+            build: true,
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);

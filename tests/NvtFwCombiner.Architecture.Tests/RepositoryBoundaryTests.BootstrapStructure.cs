@@ -7,17 +7,13 @@ public sealed partial class RepositoryBoundaryTests
     public void BootstrapUsesOneAutomaticBuildExecutionGate()
     {
         string bootstrapSource = ReadBootstrapSources();
-        string executionSupport = ReadText(
-            "src/NvtFwCombiner.Bootstrap/CompositionRunExecutionSupport.cs");
 
-        Assert.Contains("CompositionRunExecutionSupport.PreviewOrBuildAsync", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionRunExecutionSupport", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildWithInternalPreviewAsync", bootstrapSource, StringComparison.Ordinal);
-        Assert.Contains("service.PreviewAsync(request, cancellationToken)", executionSupport, StringComparison.Ordinal);
-        Assert.Contains("service.AutomaticBuildAsync(request, cancellationToken)", executionSupport, StringComparison.Ordinal);
-        Assert.DoesNotContain("WithApprovedPreviewToken", executionSupport, StringComparison.Ordinal);
         Assert.Equal(
-            1,
-            CountOccurrences(bootstrapSource, "service.AutomaticBuildAsync(request, cancellationToken)"));
+            2,
+            CountOccurrences(bootstrapSource, ".PreviewOrBuildAsync("));
+        Assert.DoesNotContain("WithApprovedPreviewToken", bootstrapSource, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies Replace CLI routes only through the registered Workbench/V2 paths.</summary>

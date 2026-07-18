@@ -47,9 +47,8 @@ public sealed class CompositionRunExecutionMetricsTests
             clock,
             writer);
 
-        CompositionRunResult result = await CompositionRunExecutionSupport
+        CompositionRunResult result = await service
             .PreviewOrBuildAsync(
-                service,
                 request,
                 build: true,
                 CancellationToken.None);
@@ -81,9 +80,8 @@ public sealed class CompositionRunExecutionMetricsTests
         var clock = new CountingClock();
         var service = new CompositionRunService(reader, clock, writer);
 
-        CompositionRunResult result = await CompositionRunExecutionSupport
+        CompositionRunResult result = await service
             .PreviewOrBuildAsync(
-                service,
                 CreateDpReplaceRequest(outputLength),
                 build: false,
                 CancellationToken.None);
@@ -108,9 +106,8 @@ public sealed class CompositionRunExecutionMetricsTests
         var clock = new CountingClock();
         var service = new CompositionRunService(reader, clock, writer);
 
-        CompositionRunResult result = await CompositionRunExecutionSupport
+        CompositionRunResult result = await service
             .PreviewOrBuildAsync(
-                service,
                 CreateDpReplaceRequest(outputLength),
                 build: true,
                 CancellationToken.None);
@@ -163,9 +160,8 @@ public sealed class CompositionRunExecutionMetricsTests
             writer,
             processor);
 
-        CompositionRunResult result = await CompositionRunExecutionSupport
+        CompositionRunResult result = await service
             .PreviewOrBuildAsync(
-                service,
                 request,
                 build: true,
                 CancellationToken.None);

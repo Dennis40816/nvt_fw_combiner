@@ -75,8 +75,9 @@ public sealed partial class CompositionRunServiceTests
     {
         CompositionRunService service = CreateService(out FakeOutputWriter writer);
 
-        CompositionRunResult result = await service.AutomaticBuildAsync(
+        CompositionRunResult result = await service.PreviewOrBuildAsync(
             CreateRequest(),
+            build: true,
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
