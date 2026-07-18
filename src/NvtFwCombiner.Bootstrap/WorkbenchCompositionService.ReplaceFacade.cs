@@ -126,7 +126,7 @@ public static partial class WorkbenchCompositionService
     }
 
     /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>
-    public static async ValueTask<WorkbenchRunResult> RunReplaceAsync(
+    public static ValueTask<WorkbenchRunResult> RunReplaceAsync(
         string icId,
         string number,
         string replaceMode,
@@ -136,7 +136,7 @@ public static partial class WorkbenchCompositionService
         string? outputPath = null,
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
     {
-        return await RunReplaceAsync(
+        return RunReplaceAsync(
             icId,
             number,
             replaceMode,
@@ -146,11 +146,11 @@ public static partial class WorkbenchCompositionService
             build,
             cancellationToken,
             outputPath,
-            ctrlRamFirmwareVersionEdit: ctrlRamFirmwareVersionEdit).ConfigureAwait(false);
+            ctrlRamFirmwareVersionEdit: ctrlRamFirmwareVersionEdit);
     }
 
     /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>
-    public static async ValueTask<WorkbenchRunResult> RunReplaceAsync(
+    public static ValueTask<WorkbenchRunResult> RunReplaceAsync(
         string icId,
         string number,
         string replaceMode,
@@ -161,7 +161,7 @@ public static partial class WorkbenchCompositionService
         string? outputPath = null,
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
     {
-        return await RunReplaceAsync(
+        return RunReplaceAsync(
             icId,
             number,
             replaceMode,
@@ -171,7 +171,7 @@ public static partial class WorkbenchCompositionService
             build,
             cancellationToken,
             outputPath,
-            ctrlRamFirmwareVersionEdit: ctrlRamFirmwareVersionEdit).ConfigureAwait(false);
+            ctrlRamFirmwareVersionEdit: ctrlRamFirmwareVersionEdit);
     }
 
     /// <summary>Runs Replace preview or build with file-backed and virtual General Replace authoring inputs.</summary>

@@ -218,7 +218,6 @@ public sealed partial class RepositoryBoundaryTests
         string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
         string generalMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.cs");
         string generalMergeV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
-        string generalMergeReport = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Report.cs");
         string replaceDp = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs");
         string replaceCtrlRam = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
         string replaceGeneral = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
@@ -233,8 +232,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static string GetReplaceRunIdPrefix", runner, StringComparison.Ordinal);
         Assert.Contains("StandardMergeRunIdPrefix", standardMerge, StringComparison.Ordinal);
         Assert.Contains("GeneralMergeRunIdPrefix", generalMergeV2, StringComparison.Ordinal);
-        Assert.Contains("CreateBlockedReportRunResult", generalMergeReport, StringComparison.Ordinal);
-        Assert.Contains("GeneralMergeRunIdPrefix", generalMergeReport, StringComparison.Ordinal);
+        Assert.Contains("CreateBlockedReportRunResult", generalMergeV2, StringComparison.Ordinal);
         Assert.Contains("DpReplaceRunIdPrefix", replaceDp, StringComparison.Ordinal);
         Assert.Contains("CtrlRamReplaceRunIdPrefix", replaceCtrlRam, StringComparison.Ordinal);
         Assert.Contains("GeneralReplaceRunIdPrefix", replaceGeneral, StringComparison.Ordinal);
@@ -248,7 +246,6 @@ public sealed partial class RepositoryBoundaryTests
             standardMerge,
             generalMerge,
             generalMergeV2,
-            generalMergeReport,
             replaceDp,
             replaceCtrlRam,
             replaceGeneral,

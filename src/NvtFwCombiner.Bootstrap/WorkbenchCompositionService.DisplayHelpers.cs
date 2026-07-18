@@ -175,6 +175,19 @@ public static partial class WorkbenchCompositionService
         ];
     }
 
+    private static WorkbenchMemoryDisplay CreateMessageDisplay(
+        string rangeLabel,
+        (string Range, string Before, string Action, string After, string Detail) row,
+        (string Range, string Source, string Detail, string Fill)? coverage)
+    {
+        return new(
+            rangeLabel,
+            [new WorkbenchMemoryMapRow(row.Range, row.Before, row.Action, row.After, row.Detail)],
+            coverage is { } item
+                ? [new WorkbenchMemoryCoverageSegment(item.Range, item.Source, item.Detail, item.Fill, 280, false)]
+                : []);
+    }
+
     private static string Sha256File(string path)
     {
         using FileStream stream = File.OpenRead(path);

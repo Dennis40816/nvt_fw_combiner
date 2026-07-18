@@ -9,41 +9,37 @@ public static partial class WorkbenchCompositionService
     {
         if (FindStandardMergeProfileSummaryByIc(icId) is null)
         {
-            return new WorkbenchMemoryDisplay(
+            return CreateMessageDisplay(
                 "No Standard Merge profile",
-                [new WorkbenchMemoryMapRow(
+                (
                     "Profile",
                     "No profile",
                     "Blocked",
                     "No output",
-                    $"Standard Merge is not available for {icId}.")],
-                [new WorkbenchMemoryCoverageSegment(
+                    $"Standard Merge is not available for {icId}."),
+                (
                     "No range",
                     "No profile",
                     "Standard Merge is unavailable.",
-                    "#CBD5E1",
-                    280,
-                    false)]);
+                    "#CBD5E1"));
         }
 
-        bool lengthPending = IsStandardMergeDpLengthPending(icId, dpInputLength);
+        bool lengthPending = dpInputLength is null && IsBuiltInV2StandardMergeMapCapacityPending(icId);
         if (lengthPending)
         {
-            return new WorkbenchMemoryDisplay(
+            return CreateMessageDisplay(
                 "Selected DP BIN length pending",
-                [new WorkbenchMemoryMapRow(
+                (
                     "Selected DP BIN length pending",
                     "No output",
                     "Initialize",
                     "Blank output 0x00",
-                    FormatStandardMergeInitializationDetail(icId, lengthPending: true))],
-                [new WorkbenchMemoryCoverageSegment(
+                    FormatStandardMergeInitializationDetail(icId, lengthPending: true)),
+                (
                     "Selected DP BIN length pending",
                     "DP length pending",
                     $"Select a DP BIN before final ownership is drawn. Supported DP lengths are {FormatStandardMergeSupportedDpLengths(icId)}.",
-                    "#CBD5E1",
-                    280,
-                    false)]);
+                    "#CBD5E1"));
         }
 
         if (!TryCompileStandardMerge(
@@ -57,25 +53,25 @@ public static partial class WorkbenchCompositionService
                 issue.Code,
                 WorkbenchIssueCodes.StandardMergeDpLengthUnsupported,
                 StringComparison.Ordinal));
-            return new WorkbenchMemoryDisplay(
+            return CreateMessageDisplay(
                 detail,
-                [new WorkbenchMemoryMapRow(
+                (
                     "Profile",
                     "Profile",
                     "Blocked",
                     "No output",
-                    detail)],
-                [new WorkbenchMemoryCoverageSegment(
+                    detail),
+                (
                     "Profile",
                     unsupportedLength ? "Invalid DP length" : "Invalid profile",
                     detail,
-                    "#F97316",
-                    280,
-                    false)]);
+                    "#F97316"));
         }
 
         ImageInitialization initialization = composition.Plan.OutputInitialization;
-        string initializedState = FormatStandardMergeInitializationState(initialization);
+        string initializedState = initialization.Kind == ImageInitializationKind.Blank
+            ? $"Blank output 0x{initialization.FillByte:X2}"
+            : $"Reference {initialization.ReferenceSpaceId}";
         List<WorkbenchMemoryMapRow> rows =
         [
             new(
@@ -133,18 +129,6 @@ public static partial class WorkbenchCompositionService
             FormatFullRange(initialization.Capacity),
             rows,
             ToWorkbenchCoverageSegments(coverage, initialization.Capacity));
-    }
-
-    private static bool IsStandardMergeDpLengthPending(string icId, long? dpInputLength)
-    {
-        return dpInputLength is null && IsBuiltInV2StandardMergeMapCapacityPending(icId);
-    }
-
-    private static string FormatStandardMergeInitializationState(ImageInitialization initialization)
-    {
-        return initialization.Kind == ImageInitializationKind.Blank
-            ? $"Blank output 0x{initialization.FillByte:X2}"
-            : $"Reference {initialization.ReferenceSpaceId}";
     }
 
     private static string FormatStandardMergeInitializationDetail(string icId, bool lengthPending)

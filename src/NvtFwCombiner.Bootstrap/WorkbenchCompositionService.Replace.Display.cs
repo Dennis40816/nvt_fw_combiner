@@ -35,17 +35,10 @@ public static partial class WorkbenchCompositionService
         if (GetReplaceWorkflowId(replaceMode) is not null &&
             !IsReplaceWorkflowSupported(icId, replaceMode))
         {
-            return new WorkbenchMemoryDisplay(
+            return CreateMessageDisplay(
                 "Not available",
-                [
-                    new WorkbenchMemoryMapRow(
-                        "Policy",
-                        "Not available",
-                        "Blocked",
-                        "No target",
-                        $"{icId} {replaceMode} Replace is Not available under the current IC workflow policy."),
-                ],
-                []);
+                ("Policy", "Not available", "Blocked", "No target", $"{icId} {replaceMode} Replace is Not available under the current IC workflow policy."),
+                coverage: null);
         }
 
         if (replaceMode == WorkbenchReplaceModes.Dp &&
@@ -65,25 +58,11 @@ public static partial class WorkbenchCompositionService
             postbuildProfile);
         if (regions.Count == 0)
         {
-            return new WorkbenchMemoryDisplay(
+            string detail = $"No TP Overview flash-map profile is available for {icId}.";
+            return CreateMessageDisplay(
                 "No flash-map profile",
-                [
-                    new WorkbenchMemoryMapRow(
-                        "Catalog",
-                        "No flash-map row",
-                        "Blocked",
-                        "No target",
-                        $"No TP Overview flash-map profile is available for {icId}."),
-                ],
-                [
-                    new WorkbenchMemoryCoverageSegment(
-                        "No range",
-                        "No profile",
-                        $"No TP Overview flash-map profile is available for {icId}.",
-                        "#CBD5E1",
-                        280,
-                        false),
-                ]);
+                ("Catalog", "No flash-map row", "Blocked", "No target", detail),
+                ("No range", "No profile", detail, "#CBD5E1"));
         }
 
         IReadOnlyList<WorkbenchMemoryMapRow> rows = replaceMode switch

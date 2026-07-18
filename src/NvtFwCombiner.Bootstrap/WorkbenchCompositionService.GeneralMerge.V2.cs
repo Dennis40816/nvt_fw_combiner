@@ -34,15 +34,19 @@ public static partial class WorkbenchCompositionService
             IReadOnlyList<OperationRunSummary>? operations = null,
             string profileId = GeneralMergeV2CandidateFallbackProfileId)
         {
-            return CreateGeneralMergeReportRunResult(
+            return CreateBlockedReportRunResult(
+                GeneralMergeRunIdPrefix,
+                profileId,
+                GeneralMergeV2CandidateProfileVersion,
                 icId,
+                IcWorkflowIds.GeneralMerge,
+                IcWorkflowIds.GeneralMerge,
+                CompositionKind.Merge,
                 reportSlotPaths,
                 build,
                 operations ?? [],
                 issues,
-                defaultOutputFileName,
-                profileId,
-                GeneralMergeV2CandidateProfileVersion);
+                defaultOutputFileName);
         }
 
         if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(

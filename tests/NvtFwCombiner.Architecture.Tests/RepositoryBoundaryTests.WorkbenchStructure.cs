@@ -9,18 +9,23 @@ public sealed partial class RepositoryBoundaryTests
         string orchestration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.cs");
         string mapping = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Mapping.cs");
         string profile = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
-        string report = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Report.cs");
+        string candidate = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
 
         Assert.Contains("RunGeneralMergeAsync", orchestration, StringComparison.Ordinal);
         Assert.Contains("GetGeneralMergeMemoryDisplay", orchestration, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryCreateGeneralMergeMappings", orchestration, StringComparison.Ordinal);
         Assert.DoesNotContain("private static CompositionProfileDefinition CreateGeneralMergeProfile", orchestration, StringComparison.Ordinal);
         Assert.DoesNotContain("private static WorkbenchRunResult CreateGeneralMergeReportRunResult", orchestration, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "WorkbenchCompositionService.GeneralMerge.Report.cs")));
         Assert.Contains("private static bool TryCreateGeneralMergeMappings", mapping, StringComparison.Ordinal);
         Assert.Contains("public sealed record WorkbenchGeneralMergeMappingInput", mapping, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", profile, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", orchestration, StringComparison.Ordinal);
-        Assert.Contains("private static WorkbenchRunResult CreateGeneralMergeReportRunResult", report, StringComparison.Ordinal);
+        Assert.Contains("CreateBlockedReportRunResult(", candidate, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies General Merge workbench target-region ids stay Bootstrap-owned.</summary>

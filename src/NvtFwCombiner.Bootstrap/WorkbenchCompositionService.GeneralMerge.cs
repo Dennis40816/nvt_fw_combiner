@@ -13,25 +13,10 @@ public static partial class WorkbenchCompositionService
 
         if (!TryParseGeneralMergeCapacity(outputLength, out long capacity, out CompositionIssue? issue))
         {
-            return new WorkbenchMemoryDisplay(
+            return CreateMessageDisplay(
                 "Enter a valid output length",
-                [
-                    new WorkbenchMemoryMapRow(
-                        "Output length",
-                        "No output",
-                        "Blocked",
-                        "No output",
-                        issue!.Message),
-                ],
-                [
-                    new WorkbenchMemoryCoverageSegment(
-                        "Output length",
-                        "Pending",
-                        "Enter a valid General Merge output length.",
-                        "#CBD5E1",
-                        280,
-                        false),
-                ]);
+                ("Output length", "No output", "Blocked", "No output", issue!.Message),
+                ("Output length", "Pending", "Enter a valid General Merge output length.", "#CBD5E1"));
         }
 
         List<WorkbenchMemoryMapRow> rows =
@@ -100,7 +85,7 @@ public static partial class WorkbenchCompositionService
     }
 
     /// <summary>Runs General Merge preview or build through the admitted logical-output V2 profile.</summary>
-    public static async ValueTask<WorkbenchRunResult> RunGeneralMergeAsync(
+    public static ValueTask<WorkbenchRunResult> RunGeneralMergeAsync(
         string icId,
         string outputLength,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs,
@@ -109,17 +94,13 @@ public static partial class WorkbenchCompositionService
         string? outputPath = null,
         bool overwrite = true)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentNullException.ThrowIfNull(mappingInputs);
-
-        return await RunGeneralMergeV2Async(
+        return RunGeneralMergeV2Async(
             icId,
             outputLength,
             mappingInputs,
             build,
             cancellationToken,
             outputPath,
-            overwrite).ConfigureAwait(false);
+            overwrite);
     }
-
 }
