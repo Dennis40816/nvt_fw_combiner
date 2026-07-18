@@ -1,13 +1,12 @@
 # NT51950 CtrlRAM Replace Handoff
 
-No direct product CtrlRAM golden is currently committed. Provide one same-run
-set for each selected mode:
+The owner-approved AUTO_PRJ-676/PID `0x4A06` Common FW 2.0.0 single package is
+committed under `fixtures/20260717/NT51950/replace/ctrlram/single/`. It contains
+the Initial DP, TP, final FlashCode, Normal, VN, and the official short
+2,816-byte NF source with original filenames. The final FlashCode is the
+canonical Standard Merge result for the supplied DP/TP pair.
 
-- `single/`: complete `base.bin`, actual `inputs/normal.bin` (23,552),
-  `inputs/vn.bin` (8,444), `inputs/nf.bin` (10,768), and complete
-  `expected.bin`;
-- `cascade/`: the single files plus actual `inputs/diff.bin` (5,120).
-
-Base and expected output must have the same exact complete-firmware size.
-Record Common FW version and mode. The Postbuild 2.0.0 reference command is
-already tracked; provide a command/log only if the official run differs.
+No additional owner input is requested. Exact Legacy/V2 parity, route closure,
+and independent R3 review are agent-owned. NT51950 cascade has no product case
+and is excluded from the v0.9.9 release scope; do not create a synthetic folder
+or infer cascade support.
