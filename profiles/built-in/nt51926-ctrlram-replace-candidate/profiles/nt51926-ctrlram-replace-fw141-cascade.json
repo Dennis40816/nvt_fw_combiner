@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "2.8",
+  "schemaVersion": "2.9",
   "profileId": "nt51926-ctrlram-replace-fw141-cascade",
   "profileVersion": "0.4.0",
   "promotion": {
@@ -35,7 +35,7 @@
   "mapBinding": {
     "familyId": "nt51926-ctrlram-replace",
     "familyVersion": "0.5.0",
-    "familyContentHash": "ef9d64ccb7fb85fd2b1278885f5861c86c4d90e735d2cfcfff118f92a253b65e",
+    "familyContentHash": "b3d45263d63f9f1c04031d0d1d05044399ad094129e44a8ff4723947881cf2fd",
     "mapIds": [
       "nt51926-ctrlram-fw141-tp-work-240k",
       "nt51926-ctrlram-fw141-full-flash-256k"
@@ -187,11 +187,11 @@
   ],
   "metadataBindings": [],
   "regionAccessRules": [
-    { "regionId": "normal-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete Normal CtrlRAM replacement." },
-    { "regionId": "diff-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete DIFF CtrlRAM replacement." },
-    { "regionId": "mp-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete MP CtrlRAM replacement." },
-    { "regionId": "vn-ctrlram-fw141", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete 0x1660-byte VN CtrlRAM replacement." },
-    { "regionId": "nf-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete NF CtrlRAM replacement." },
+    { "regionId": "normal-ctrlram", "access": "explicit-range", "reason": "The declared 0x2C00-byte region is a maximum; the immutable replacement may populate only its available prefix." },
+    { "regionId": "diff-ctrlram", "access": "explicit-range", "reason": "The declared 0x2800-byte region is a maximum; the immutable replacement may populate only its available prefix." },
+    { "regionId": "mp-ctrlram", "access": "explicit-range", "reason": "The declared 0x2400-byte region is a maximum; the immutable replacement may populate only its available prefix." },
+    { "regionId": "vn-ctrlram-fw141", "access": "explicit-range", "reason": "The declared 0x1660-byte region is a maximum; the immutable replacement may populate only its available prefix." },
+    { "regionId": "nf-ctrlram", "access": "explicit-range", "reason": "The declared 0x2DD0-byte region is a maximum; the immutable replacement may populate only its available prefix." },
     { "regionId": "fw-config-backup", "access": "explicit-range", "reason": "Combiner copies the reviewed firmware-config source block to the backup target; it is not user authoring authority." },
     { "regionId": "header-copy", "access": "explicit-range", "reason": "Combiner owns the reviewed header copy and final header CRC refresh target." },
     { "regionId": "header-crc-1c", "access": "explicit-range", "reason": "Combiner recalculates this reviewed source header integrity field." },

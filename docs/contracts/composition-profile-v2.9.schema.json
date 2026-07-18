@@ -166,17 +166,52 @@
                 }
               }
             ]
+          },
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "experience": {
+                    "properties": {
+                      "experienceId": { "const": "general-replace" },
+                      "layoutPolicy": { "const": "user-defined" },
+                      "inputPolicy": { "const": "extensible" }
+                    }
+                  },
+                  "inputSlots": {
+                    "contains": {
+                      "properties": { "artifactClass": { "const": "auxiliary" } },
+                      "required": [ "artifactClass" ]
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "experience": {
+                    "properties": {
+                      "experienceId": { "const": "ctrlram-replace" },
+                      "layoutPolicy": { "const": "fixed" },
+                      "inputPolicy": { "const": "fixed" }
+                    }
+                  },
+                  "inputSlots": {
+                    "contains": {
+                      "properties": { "artifactClass": { "const": "ctrlram-replacement" } },
+                      "required": [ "artifactClass" ]
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                  }
+                }
+              }
+            ]
           }
         ],
         "properties": {
           "compositionKind": { "const": "replace" },
-          "experience": {
-            "properties": {
-              "experienceId": { "const": "general-replace" },
-              "layoutPolicy": { "const": "user-defined" },
-              "inputPolicy": { "const": "extensible" }
-            }
-          },
           "inputSlots": {
             "minItems": 2,
             "maxItems": 2,
@@ -209,7 +244,7 @@
               {
                 "contains": {
                   "properties": {
-                    "artifactClass": { "const": "auxiliary" },
+                    "artifactClass": { "enum": [ "auxiliary", "ctrlram-replacement" ] },
                     "required": { "const": true },
                     "cardinality": { "const": "one-or-more" },
                     "acceptance": {

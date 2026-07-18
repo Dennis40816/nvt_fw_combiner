@@ -46,7 +46,7 @@
       <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51926-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.8.schema.json</CompositionProfileSchemaFile>
+      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51923-standard-merge" />
     <BuiltInProfileBundle Include="nt51927-standard-merge" />

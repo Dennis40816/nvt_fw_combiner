@@ -12,6 +12,8 @@ internal static class TrustedV2CompositionCompiler
     private const string MapCapacityRequired = "profile.v2.compile.map-capacity-required";
     private const string MapCapacityUnavailable = "profile.v2.compile.map-capacity-unavailable";
     private const string PreparationNotAdmitted = "profile.v2.compile.preparation-not-admitted";
+    private const string RuntimeReferenceResolutionArtifactInvalid =
+        "profile.v2.runtime-reference-replace.resolution-artifact-invalid";
 
     /// <summary>Compiles one trusted logical-output General Merge request without resolving a physical image map.</summary>
     internal static V2CompositionPlanCompileResult CompileLogicalOutput(
@@ -82,6 +84,29 @@ internal static class TrustedV2CompositionCompiler
         TopologySelection? requestedTopology,
         V2RuntimeReferenceReplaceCompileRequest request)
     {
+        return CompileRuntimeReferenceReplace(
+            catalog,
+            profileId,
+            profileVersion,
+            memberId,
+            experienceId,
+            requestedTopology,
+            [],
+            request);
+    }
+
+    /// <summary>Compiles one trusted CtrlRAM request with an optional immutable reference snapshot for map metadata resolution.</summary>
+    internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string experienceId,
+        TopologySelection? requestedTopology,
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
+        V2RuntimeReferenceReplaceCompileRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         ArgumentNullException.ThrowIfNull(request);
         bool allowsTopologyDisambiguation = StringComparer.Ordinal.Equals(
             experienceId,
@@ -132,6 +157,23 @@ internal static class TrustedV2CompositionCompiler
                 "Runtime reference-replace compilation requires exactly one positive-length reference-image binding to select its canonical map.");
         }
 
+        FirmwareArtifactPayload[] artifactSnapshots = [.. resolutionArtifacts];
+        bool artifactsAreValid = allowsTopologyDisambiguation
+            ? artifactSnapshots.Length <= 1 &&
+              (artifactSnapshots.Length == 0 ||
+               (StringComparer.Ordinal.Equals(
+                    artifactSnapshots[0].ArtifactId,
+                    referenceBindings[0].BindingId) &&
+                artifactSnapshots[0].LengthBytes == referenceBindings[0].ExactLengthBytes))
+            : artifactSnapshots.Length == 0;
+        if (!artifactsAreValid)
+        {
+            return Failed(
+                [],
+                RuntimeReferenceResolutionArtifactInvalid,
+                "Only CtrlRAM runtime reference-replace may supply one immutable map-resolution artifact matching the reference binding identity and length.");
+        }
+
         mapCandidates =
         [
             .. mapCandidates.Where(map => map.CapacityBytes == referenceBindings[0].ExactLengthBytes),
@@ -154,7 +196,7 @@ internal static class TrustedV2CompositionCompiler
                     experienceId,
                     referenceBindings[0].ExactLengthBytes,
                     requestedTopology,
-                    [])));
+                    artifactSnapshots)));
         return preparation.IsAdmitted
             ? V2CompositionPlanCompiler.CompileRuntimeReferenceReplace(preparation, request)
             : Failed(

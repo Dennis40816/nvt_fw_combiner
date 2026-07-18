@@ -178,10 +178,10 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         CompiledComposition second = CompileCandidate([.. referenceBase]);
 
         Assert.Equal(
-            "67ae81a778b30b19f31b25ae7b2e5ec619ed2241c87733771807c8d0bcddec8f",
+            "09204deaaf1c0db10ed83cde7d4e55d49a673777414dfa857b13bc953e234439",
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
-            "7c8118b6bff9e79fa5771096f23a03607370e134f51189ccbe63b79e365c800e",
+            "0df2749ee444689fcd2010c5b6768ae69460cb9ef614f1b7798a73977bf2bdba",
             first.CompilationFingerprint);
         Assert.Equal(
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,
@@ -369,6 +369,38 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal(originalVn, evidence.Vn.Bytes);
     }
 
+    /// <summary>Locks the runtime-reference candidate to the same archived Legacy Combiner 1.13 TP-base output.</summary>
+    [Fact]
+    public async Task RuntimeReferenceCandidateMatchesArchivedTpBaseLegacyCombinerGoldenAsync()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        OwnerRegressionCase evidence = ReadOwnerRegressionCase();
+        byte[] referenceBase = evidence.Base.Bytes;
+        byte[] originalReference = [.. referenceBase];
+        byte[] originalVn = [.. evidence.Vn.Bytes];
+        CompiledComposition candidate = CompileRuntimeCandidate(referenceBase, evidence.Vn.Bytes.Length);
+        var inputs = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            ["reference-base"] = referenceBase,
+            ["vn-source"] = evidence.Vn.Bytes,
+        };
+
+        CompositionExecutionResult result = await ExecuteCompiledCandidateWithLegacyCombinerAsync(
+            candidate,
+            inputs,
+            "nt51926-ctrlram-runtime-v2-owner-golden");
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Empty(result.Issues);
+        Assert.Equal(evidence.Expected.Bytes, result.OutputBytes.ToArray());
+        Assert.Equal(originalReference, referenceBase);
+        Assert.Equal(originalVn, evidence.Vn.Bytes);
+    }
+
     /// <summary>Verifies zero or multiple universal markers reject the candidate before a plan can be minted.</summary>
     [Theory]
     [InlineData(0)]
@@ -401,6 +433,14 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         string runId)
     {
         CompiledComposition candidate = CompileCandidate(referenceBase);
+        return await ExecuteCompiledCandidateWithLegacyCombinerAsync(candidate, candidateInputs, runId);
+    }
+
+    private static async Task<CompositionExecutionResult> ExecuteCompiledCandidateWithLegacyCombinerAsync(
+        CompiledComposition candidate,
+        Dictionary<string, byte[]> candidateInputs,
+        string runId)
+    {
         IExternalProcessor processor = Assert.IsType<IExternalProcessor>(
             ExternalProcessorFactory.CreateOrNull(),
             exactMatch: false);
@@ -428,6 +468,43 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                     : CompositionExternalProcessorResult.Failed(result.Issues);
             },
             TestContext.Current.CancellationToken);
+    }
+
+    private static CompiledComposition CompileRuntimeCandidate(byte[] referenceBase, int sourceLength)
+    {
+        V2CompositionPlanCompileResult compilation = BuiltInV2BundleRegistry.All[
+            "nt51926-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
+                "nt51926-ctrlram-replace-fw141-runtime-cascade",
+                "0.1.0",
+                "NT51926",
+                ExperienceIds.CtrlRamReplace,
+                new TopologySelection(
+                    2,
+                    "cascade",
+                    TopologySelectionSource.Requested,
+                    "ic-number"),
+                [new FirmwareArtifactPayload("reference-base", referenceBase)],
+                new V2RuntimeReferenceReplaceCompileRequest(
+                    [
+                        new V2RuntimeReferenceReplaceInputBinding(
+                            "reference-base",
+                            "reference-base",
+                            referenceBase.Length),
+                        new V2RuntimeReferenceReplaceInputBinding("vn-source", "ctrlram-source", sourceLength),
+                    ],
+                    [new ExplicitMapping(
+                        "replace-vn",
+                        sequence: 100,
+                        ExplicitMappingOperationKind.ReplaceRange,
+                        "vn-source",
+                        new ByteRange(0, sourceLength),
+                        CompositionAddressSpaceIds.OutputImage,
+                        new ByteRange(VnCtrlRamRange.Start, sourceLength),
+                        OverlapPolicy.Reject,
+                        alignment: 1,
+                        reason: "NT51926 Common FW 1.4.1 runtime CtrlRAM golden mapping.")]));
+        Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
+        return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
     }
 
     private static Dictionary<string, byte[]> CreateBaseDerivedCandidateInputs(byte[] referenceBase)

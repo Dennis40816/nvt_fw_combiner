@@ -9,6 +9,66 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class TrustedProfileBundleCatalogFactoryTests
 {
+    /// <summary>Verifies General Replace cannot attach private map-resolution artifacts to its length-only request.</summary>
+    [Fact]
+    public void RuntimeReferenceGeneralReplaceRejectsResolutionArtifact()
+    {
+        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor: false),
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.GeneralReplace,
+            requestedTopology: null,
+            [new FirmwareArtifactPayload("base", new byte[16])],
+            RuntimeReferenceReplaceRequest());
+
+        Assert.False(result.IsCompiled);
+        Assert.Equal(
+            "profile.v2.runtime-reference-replace.resolution-artifact-invalid",
+            Assert.Single(result.Issues).Code);
+    }
+
+    /// <summary>Verifies CtrlRAM accepts only one immutable artifact matching the reference binding identity and length.</summary>
+    [Fact]
+    public void RuntimeReferenceCtrlRamValidatesResolutionArtifactIdentity()
+    {
+        TrustedProfileBundleCatalog catalog = CreateConditionalRuntimeReferenceReplaceCatalog(
+            includeProcessor: true,
+            experienceId: ExperienceIds.CtrlRamReplace);
+        V2RuntimeReferenceReplaceCompileRequest request = RuntimeReferenceReplaceRequest(
+            mappings: [RuntimeReferenceReplaceMapping(
+                "replace-tp",
+                10,
+                new ByteRange(0, 2),
+                new ByteRange(8, 2))]);
+
+        V2CompositionPlanCompileResult valid = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            catalog,
+            "runtime-ctrlram-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.CtrlRamReplace,
+            requestedTopology: null,
+            [new FirmwareArtifactPayload("base", new byte[16])],
+            request);
+        V2CompositionPlanCompileResult rejected = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            catalog,
+            "runtime-ctrlram-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.CtrlRamReplace,
+            requestedTopology: null,
+            [new FirmwareArtifactPayload("wrong-base", new byte[16])],
+            request);
+
+        Assert.True(valid.IsCompiled, string.Join(Environment.NewLine, valid.Issues));
+        Assert.False(rejected.IsCompiled);
+        Assert.Equal(
+            "profile.v2.runtime-reference-replace.resolution-artifact-invalid",
+            Assert.Single(rejected.Issues).Code);
+    }
+
     /// <summary>Verifies CtrlRAM runtime mappings select topology, consume only supplied bytes, and append one processor.</summary>
     [Fact]
     public void RuntimeReferenceCtrlRamReplaceCompilesShortSourceForSelectedTopology()

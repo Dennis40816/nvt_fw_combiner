@@ -17,6 +17,38 @@ public sealed partial class ProfileBundleSchemaValidatorTests
             32);
     }
 
+    /// <summary>Verifies schema 2.9 admits the closed CtrlRAM source/experience pair with one final processor.</summary>
+    [Fact]
+    public void ValidateEntriesAcceptsCtrlRamRuntimeReferenceReplaceForV29()
+    {
+        JsonObject profile = RuntimeReferenceReplaceProcessorProfile("2.9");
+        JsonObject experience = Assert.IsType<JsonObject>(profile["experience"]);
+        experience["experienceId"] = "ctrlram-replace";
+        experience["layoutPolicy"] = "fixed";
+        experience["inputPolicy"] = "fixed";
+        JsonObject source = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[1]);
+        source["artifactClass"] = "ctrlram-replacement";
+
+        ProfileBundleSchemaValidator.ValidateEntries(
+            CaptureCompositionProfile(profile.ToJsonString(), "composition-profile-v2.9.schema.json"),
+            32);
+    }
+
+    /// <summary>Verifies schema 2.9 never admits a CtrlRAM experience backed by the General auxiliary source class.</summary>
+    [Fact]
+    public void ValidateEntriesRejectsMismatchedCtrlRamRuntimeReferenceSourceForV29()
+    {
+        JsonObject profile = RuntimeReferenceReplaceProcessorProfile("2.9");
+        JsonObject experience = Assert.IsType<JsonObject>(profile["experience"]);
+        experience["experienceId"] = "ctrlram-replace";
+        experience["layoutPolicy"] = "fixed";
+        experience["inputPolicy"] = "fixed";
+
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleSchemaValidator.ValidateEntries(
+            CaptureCompositionProfile(profile.ToJsonString(), "composition-profile-v2.9.schema.json"),
+            32));
+    }
+
     /// <summary>Verifies only schema 2.9 admits the closed conditional Legacy Combiner pair.</summary>
     [Theory]
     [InlineData("2.8", "composition-profile-v2.8.schema.json", false)]

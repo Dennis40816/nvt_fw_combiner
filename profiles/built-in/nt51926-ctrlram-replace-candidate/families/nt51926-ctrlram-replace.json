@@ -100,7 +100,7 @@
           "owner": "tp",
           "kind": "ctrlram",
           "range": { "start": 141312, "length": 11264 },
-          "writeConstraint": "whole-region",
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
@@ -109,7 +109,7 @@
           "owner": "tp",
           "kind": "ctrlram",
           "range": { "start": 152576, "length": 9216 },
-          "writeConstraint": "whole-region",
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
@@ -118,7 +118,7 @@
           "owner": "tp",
           "kind": "ctrlram",
           "range": { "start": 161792, "length": 10240 },
-          "writeConstraint": "whole-region",
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
@@ -136,7 +136,7 @@
           "owner": "tp",
           "kind": "ctrlram",
           "range": { "start": 182272, "length": 11728 },
-          "writeConstraint": "whole-region",
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
@@ -154,7 +154,7 @@
           "owner": "tp",
           "kind": "ctrlram",
           "range": { "start": 202192, "length": 5728 },
-          "writeConstraint": "whole-region",
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
