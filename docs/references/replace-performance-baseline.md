@@ -65,10 +65,14 @@ On the same local .NET 10 test path, run-through-report current-thread
 allocation changed from `20,162,040` bytes at the initial baseline to
 `11,719,480` bytes after the bounded P1 slices, a reduction of `8,442,560`
 bytes (`41.9%`). The exact output/JSON facts above did not change. The latest
-observed indented JSON serialization allocation was `57,965,264` bytes, so
-serialization remains a separate residual instead of being hidden by the
-report-construction improvement. These allocation numbers are diagnostic local
-evidence, not universal CI thresholds.
+isolated serialization run measured about `58.0` MB for the first call and
+`23,761,648` bytes for an exact repeated call. The repeated allocation is only
+`320,608` bytes (`1.37%`) above the `23,441,040`-byte payload floor of the final
+UTF-16 string. This supports treating recurring serialization as close to its
+unavoidable representation cost and the roughly `34` MB gap as
+first-call-specific overhead. It does not yet attribute that gap among serializer metadata,
+JIT, or cold pooled-buffer effects. These allocation numbers are diagnostic
+local evidence, not universal CI thresholds.
 
 Run the focused evidence from the repository root:
 
