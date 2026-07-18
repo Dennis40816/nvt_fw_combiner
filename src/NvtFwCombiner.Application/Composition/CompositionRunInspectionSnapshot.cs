@@ -14,14 +14,13 @@ public sealed class CompositionRunInspectionSnapshot
         string referenceSpaceId,
         string outputSha256,
         byte[] immutableReferenceBytes,
-        byte[] immutableOutputBytes)
+        ReadOnlyMemory<byte> immutableOutputBytes)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputSpaceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(referenceSpaceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputSha256);
         ArgumentNullException.ThrowIfNull(immutableReferenceBytes);
-        ArgumentNullException.ThrowIfNull(immutableOutputBytes);
         if (immutableReferenceBytes.Length != immutableOutputBytes.Length)
         {
             throw new ArgumentException(
