@@ -1,5 +1,5 @@
 using System.Globalization;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.HexEditor;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -15,14 +15,14 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-limit");
         string sourcePath = workspace.Write(
             "oversized.bin",
-            new byte[WorkbenchRawBinaryEditorSession.MaximumDocumentLength + 1]);
+            new byte[RawBinaryEditorSession.MaximumDocumentLength + 1]);
         MainWindowViewModel shell = ShellViewModelFactory.Create();
 
         await shell.HexEditorWorkspace.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
 
         Assert.False(shell.HexEditorWorkspace.HasDocument);
         Assert.Contains(
-            WorkbenchRawBinaryEditorSession.MaximumDocumentLength.ToString(CultureInfo.InvariantCulture),
+            RawBinaryEditorSession.MaximumDocumentLength.ToString(CultureInfo.InvariantCulture),
             shell.HexEditorWorkspace.EditorStatus,
             StringComparison.Ordinal);
     }

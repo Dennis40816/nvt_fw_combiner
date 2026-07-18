@@ -191,6 +191,16 @@ public sealed partial class RepositoryBoundaryTests
         string viewModel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.cs");
         string rangeEditing = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.RangeEditing.cs");
+        string viewModelDirectory = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "ViewModels");
+        string presentationPartials = string.Concat(
+            Directory
+                .EnumerateFiles(viewModelDirectory, "HexEditorWorkspaceViewModel*.cs")
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
         string panelCodeBehind = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml.cs");
         string hostSession = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchRawBinaryEditorSession.cs");
         string session = ReadText("src/NvtFwCombiner.Application/HexEditor/RawBinaryEditorSession.cs");
@@ -199,26 +209,39 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("InsertZeroBeforeCommand", panelCodeBehind, StringComparison.Ordinal);
         Assert.Contains("DeleteByteCommand", panelCodeBehind, StringComparison.Ordinal);
         Assert.Contains("SetViewportStartRowCommand", panelCodeBehind, StringComparison.Ordinal);
-        Assert.Contains("RawBinaryEditorOperationResult", hostSession, StringComparison.Ordinal);
-        Assert.Contains("RawBinaryEditorViewport", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain("RawBinaryEditorOperationResult", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain("RawBinaryEditorViewport", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain(" State =>", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain(" CreatePage(", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain(" GetChangedRanges(", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain(" OverwriteByte(", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain(" OverwriteRange(", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain(" FillRange(", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain(" InsertZero", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain(" DeleteByte(", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain(" Undo(", hostSession, StringComparison.Ordinal);
+        Assert.DoesNotContain(" Redo(", hostSession, StringComparison.Ordinal);
+        Assert.Contains("TryCopyWorkingBytes", hostSession, StringComparison.Ordinal);
         Assert.DoesNotContain("ToWorkbench", hostSession, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src",
             "NvtFwCombiner.Bootstrap",
             "WorkbenchRawBinaryEditorContracts.cs")));
-        Assert.Contains("WorkbenchRawBinaryEditorSession _session = new();", viewModel, StringComparison.Ordinal);
-        Assert.DoesNotContain("SelectOverwriteModeCommand", viewModel + rangeEditing, StringComparison.Ordinal);
-        Assert.DoesNotContain("SelectFillModeCommand", viewModel + rangeEditing, StringComparison.Ordinal);
+        Assert.Contains("RawBinaryEditorSession _editor = new();", viewModel, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchRawBinaryEditorSession _files;", viewModel, StringComparison.Ordinal);
+        Assert.Contains("new WorkbenchRawBinaryEditorSession(_editor)", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("SelectOverwriteModeCommand", presentationPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("SelectFillModeCommand", presentationPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("IsOverwriteModeSelected", rangeEditing, StringComparison.Ordinal);
-        Assert.DoesNotContain("UiCompositionRunner", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("UiCompositionRunner", presentationPartials, StringComparison.Ordinal);
         Assert.Contains("RawBinaryEditorSession", session, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralReplace", panel, StringComparison.Ordinal);
-        Assert.DoesNotContain("GeneralReplace", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralReplace", presentationPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("profile", panel, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("postbuild", panel, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("File.", panel, StringComparison.Ordinal);
-        Assert.DoesNotContain("File.", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.", presentationPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("Composition", session, StringComparison.Ordinal);
         Assert.DoesNotContain("FlashMap", session, StringComparison.Ordinal);
         Assert.DoesNotContain("ExternalTool", session, StringComparison.Ordinal);

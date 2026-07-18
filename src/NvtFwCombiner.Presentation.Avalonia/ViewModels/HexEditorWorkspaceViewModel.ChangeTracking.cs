@@ -68,7 +68,7 @@ public sealed partial class HexEditorWorkspaceViewModel
 
     private void RefreshChangeTracking()
     {
-        _changedRanges = HasDocument ? _session.GetChangedRanges() : [];
+        _changedRanges = HasDocument ? _editor.GetChangedRanges() : [];
         ChangedBlocks = [.. _changedRanges.Select(CreateChangedBlock)];
         if (_selectedChangedRangeIndex >= _changedRanges.Count)
         {

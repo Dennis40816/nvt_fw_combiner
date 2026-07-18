@@ -11,7 +11,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         FindAsciiCommand.Cancel();
 
-        WorkbenchRawBinaryEditorFileResult result = await _session.LoadAsync(path, cancellationToken);
+        WorkbenchRawBinaryEditorFileResult result = await _files.LoadAsync(path, cancellationToken);
         if (!result.Succeeded || result.State is null || string.IsNullOrWhiteSpace(result.Path))
         {
             EditorStatus = result.ErrorMessage ?? Text.HexEditorFileOperationFailedDetail;
@@ -45,7 +45,7 @@ public sealed partial class HexEditorWorkspaceViewModel
             return;
         }
 
-        WorkbenchRawBinaryEditorFileResult result = await _session.SaveAsAsync(outputPath, cancellationToken);
+        WorkbenchRawBinaryEditorFileResult result = await _files.SaveAsAsync(outputPath, cancellationToken);
         if (!result.Succeeded || result.State is null || string.IsNullOrWhiteSpace(result.Path))
         {
             EditorStatus = result.ErrorMessage ?? Text.HexEditorFileOperationFailedDetail;
