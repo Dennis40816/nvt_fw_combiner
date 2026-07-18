@@ -521,6 +521,7 @@ public sealed partial class XamlControlStyleContractTests
     public void PresentationStartupHasNoImplicitDebugFixtureLoading()
     {
         string startup = ReadPresentationFile("MainWindow.Report.cs");
+        string window = ReadPresentationFile("MainWindow.axaml.cs");
         string presentation = RepositoryPaths.FromRepositoryRoot(
             "src",
             "NvtFwCombiner.Presentation.Avalonia");
@@ -529,6 +530,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.False(File.Exists(Path.Combine(presentation, "MainWindow.DebugDemo.cs")));
         Assert.DoesNotContain("ApplyDebugDemoWhenNoLaunchOptions", startup, StringComparison.Ordinal);
         Assert.DoesNotContain("#if DEBUG", startup, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportHistoryFileStore.LoadInto(viewModel);", window, StringComparison.Ordinal);
+        Assert.Contains("protected override async void OnOpened", window, StringComparison.Ordinal);
+        Assert.Contains("await ApplyDeferredLaunchOptionsAsync(", window, StringComparison.Ordinal);
+        Assert.Contains("ReportHistoryFileStore.LoadAsync", startup, StringComparison.Ordinal);
+        Assert.Contains("return viewModel.LoadReportJsonAsync(", startup, StringComparison.Ordinal);
     }
 
     /// <summary>Prevents repeated shell, panel, row, and text property bundles from drifting back into templates.</summary>

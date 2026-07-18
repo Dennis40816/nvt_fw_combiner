@@ -43,6 +43,12 @@ public static class ReportHistoryFileStore
                 : []);
     }
 
+    /// <summary>Loads the default history on a worker so local storage cannot delay the UI dispatcher.</summary>
+    internal static Task<IReadOnlyList<ReportHistorySnapshot>> LoadAsync(CancellationToken cancellationToken)
+    {
+        return Task.Run(() => Load(DefaultHistoryPath), cancellationToken);
+    }
+
     /// <summary>Saves report history snapshots to a specific path.</summary>
     public static void Save(string path, IEnumerable<ReportHistorySnapshot> snapshots)
     {
