@@ -81,45 +81,22 @@ internal static partial class V2CompositionPlanCompiler
             spaces,
             operations);
         CompositionProfileInputSlot inputSlot = AssertLogicalInputSlot(profile);
-        var provenance = new V2CompilationProvenance(
-            selection.BundleIdentity,
-            selection.ProfileEntryIdentity,
+        return Succeed(
+            profile,
+            selection,
             new LogicalOutputV2CompilationContext(
                 profile.LogicalOutputBinding.FamilyId,
                 profile.LogicalOutputBinding.FamilyVersion,
                 profile.LogicalOutputBinding.FamilyContentHash,
                 memberId),
-            new CompiledProfilePromotion(
-                MapPromotionStage(profile.Promotion.Stage),
-                profile.Promotion.Blockers.Select(MapPromotionBlocker)),
-            profile.EvidenceRefs,
-            [],
-            []);
-        var inputContract = new CompiledInputContract(
+            plan,
             [MapLogicalInputSlot(inputSlot)],
             request.Bindings.Select(binding => new CompiledInputSpaceBinding(
                 binding.BindingId,
                 binding.SlotId,
-                CompiledInputInstancePolicy.PerBinding)));
-        var outputNaming = new CompiledOutputNamingRequirement(
-            profile.Output.FileNameTemplate,
-            profile.Output.AllowOverride,
-            MapOutputPolicy(profile.Output.InvalidCharacterPolicy),
-            profile.Output.RequiredTokenIds);
-        var identity = new V2CompiledCompositionIdentity(
-            profile.ProfileId,
-            profile.ProfileVersion,
-            profile.Experience.ExperienceId,
-            profile.CompositionKind,
-            new V2CompiledCompositionDetails(
-                provenance,
-                inputContract,
-                new CompiledRegionAccessContract([], []),
-                outputNaming));
-        return V2CompositionPlanCompileResult.Succeeded(CompiledComposition.CreateV2(
-            plan,
-            identity,
-            CompiledIcNumberPolicy.NotApplicable));
+                CompiledInputInstancePolicy.PerBinding)),
+            new CompiledRegionAccessContract([], []),
+            CompiledIcNumberPolicy.NotApplicable);
     }
 
     private static bool IsLogicalOutputProfile(CompositionProfileDefinition profile)

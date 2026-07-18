@@ -129,45 +129,24 @@ internal static partial class V2CompositionPlanCompiler
             shape.Output.SpaceId,
             spaces.Values,
             operations);
-        var promotion = new CompiledProfilePromotion(
-            MapPromotionStage(profile.Promotion.Stage),
-            profile.Promotion.Blockers.Select(MapPromotionBlocker));
-        var provenance = new V2CompilationProvenance(
-            preparation.Selection.BundleIdentity,
-            preparation.Selection.ProfileEntryIdentity,
+        return Succeed(
+            profile,
+            preparation.Selection,
             new RuntimeReferenceReplaceV2CompilationContext(
                 resolvedMap,
                 ((RuntimeReferenceReplaceProfileCompilationContext)profile.CompilationContext)
                     .AllowsConditionalProcessor),
-            promotion,
-            profile.EvidenceRefs,
-            [],
-            preparation.Admission.RequiredCapabilities.Select(static capability => new CompiledCapabilityAdmission(
-                capability.RequiredCapabilityId,
-                capability.Binding)));
-        var inputContract = new CompiledInputContract(
+            plan,
             profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap)),
             bindings.Values.Select(binding => new CompiledInputSpaceBinding(
                 binding.BindingId,
                 binding.SlotId,
                 StringComparer.Ordinal.Equals(binding.SlotId, shape.ReferenceSlot.SlotId)
                     ? CompiledInputInstancePolicy.Singleton
-                    : CompiledInputInstancePolicy.PerBinding)));
-        var outputNaming = new CompiledOutputNamingRequirement(
-            profile.Output.FileNameTemplate,
-            profile.Output.AllowOverride,
-            MapOutputPolicy(profile.Output.InvalidCharacterPolicy),
-            profile.Output.RequiredTokenIds);
-        var identity = new V2CompiledCompositionIdentity(
-            profile.ProfileId,
-            profile.ProfileVersion,
-            profile.Experience.ExperienceId,
-            profile.CompositionKind,
-            new V2CompiledCompositionDetails(provenance, inputContract, regionAccess.Contract, outputNaming));
-        return V2CompositionPlanCompileResult.Succeeded(CompiledComposition.CreateV2(
-            plan,
-            identity,
-            CompiledIcNumberPolicies.From(profile.IcNumberInputMode)));
+                    : CompiledInputInstancePolicy.PerBinding)),
+            regionAccess.Contract,
+            CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
+            preparation.Admission);
     }
 
     private static bool IsRuntimeReferenceReplaceProfile(CompositionProfileDefinition profile)

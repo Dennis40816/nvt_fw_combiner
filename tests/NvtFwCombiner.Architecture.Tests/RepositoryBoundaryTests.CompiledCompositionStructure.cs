@@ -19,6 +19,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Profiles/V2/V2CompositionPreparationService.cs");
         string v2Compiler = ReadText(
             "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.cs");
+        string v2ContractLowering = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.ContractLowering.cs");
         string logicalV2Compiler = ReadText(
             "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.LogicalOutput.cs");
         string runtimeReferenceV2Compiler = ReadText(
@@ -83,20 +85,22 @@ public sealed partial class RepositoryBoundaryTests
             "CompositionPlanProvenance.cs")));
         Assert.Contains("CompiledComposition.CreateLegacy(", compiler, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateLegacy("));
-        Assert.Equal(3, CountOccurrences(profileSources, "CompiledComposition.CreateV2("));
+        Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateV2("));
         Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateV2RuntimeExecutable("));
         Assert.Contains("profile.Family.Family.ResolveMap", preparation, StringComparison.Ordinal);
         Assert.Contains("CompositionProfileMapAdmissionValidator.Validate", preparation, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionPlan", preparation, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledComposition.CreateV2", preparation, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Application", preparation, StringComparison.Ordinal);
-        Assert.Contains("CompiledComposition.CreateV2", v2Compiler, StringComparison.Ordinal);
-        Assert.Contains("CompiledComposition.CreateV2RuntimeExecutable", v2Compiler, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledComposition.CreateV2", v2Compiler, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Application", v2Compiler, StringComparison.Ordinal);
-        Assert.Contains("CompiledComposition.CreateV2", logicalV2Compiler, StringComparison.Ordinal);
+        Assert.Contains("CompiledComposition.CreateV2", v2ContractLowering, StringComparison.Ordinal);
+        Assert.Contains("CompiledComposition.CreateV2RuntimeExecutable", v2ContractLowering, StringComparison.Ordinal);
+        Assert.Equal(3, CountOccurrences(profileSources, "return Succeed("));
+        Assert.DoesNotContain("CompiledComposition.CreateV2", logicalV2Compiler, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateV2RuntimeExecutable", logicalV2Compiler, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Application", logicalV2Compiler, StringComparison.Ordinal);
-        Assert.Contains("CompiledComposition.CreateV2", runtimeReferenceV2Compiler, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledComposition.CreateV2", runtimeReferenceV2Compiler, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "CreateV2RuntimeExecutable",
             runtimeReferenceV2Compiler,

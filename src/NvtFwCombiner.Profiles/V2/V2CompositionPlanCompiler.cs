@@ -126,44 +126,17 @@ internal static partial class V2CompositionPlanCompiler
             output.SpaceId,
             spaces.Values,
             operations);
-        var promotion = new CompiledProfilePromotion(
-            MapPromotionStage(profile.Promotion.Stage),
-            profile.Promotion.Blockers.Select(MapPromotionBlocker));
-        var provenance = new V2CompilationProvenance(
-            preparation.Selection.BundleIdentity,
-            preparation.Selection.ProfileEntryIdentity,
+        return Succeed(
+            profile,
+            preparation.Selection,
             new ResolvedMapV2CompilationContext(resolvedMap),
-            promotion,
-            profile.EvidenceRefs,
-            [],
-            preparation.Admission.RequiredCapabilities.Select(static capability => new CompiledCapabilityAdmission(
-                capability.RequiredCapabilityId,
-                capability.Binding)));
-        var inputContract = new CompiledInputContract(
+            plan,
             profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap)),
-            profile.Spaces.OfType<InputArtifactProfileSpace>().Select(MapInputSpaceBinding));
-        var outputNaming = new CompiledOutputNamingRequirement(
-            profile.Output.FileNameTemplate,
-            profile.Output.AllowOverride,
-            MapOutputPolicy(profile.Output.InvalidCharacterPolicy),
-            profile.Output.RequiredTokenIds);
-        var identity = new V2CompiledCompositionIdentity(
-            profile.ProfileId,
-            profile.ProfileVersion,
-            profile.Experience.ExperienceId,
-            profile.CompositionKind,
-            new V2CompiledCompositionDetails(provenance, inputContract, regionAccess.Contract, outputNaming));
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicies.From(profile.IcNumberInputMode);
-        CompiledComposition artifact = profile.Promotion.Stage == CompositionProfilePromotionStage.Supported
-            ? CompiledComposition.CreateV2RuntimeExecutable(
-                plan,
-                identity,
-                icNumberPolicy)
-            : CompiledComposition.CreateV2(
-                plan,
-                identity,
-                icNumberPolicy);
-        return V2CompositionPlanCompileResult.Succeeded(artifact);
+            profile.Spaces.OfType<InputArtifactProfileSpace>().Select(MapInputSpaceBinding),
+            regionAccess.Contract,
+            CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
+            preparation.Admission,
+            runtimeExecutable: profile.Promotion.Stage == CompositionProfilePromotionStage.Supported);
     }
 
     private static Dictionary<string, AddressSpace> LowerAddressSpaces(
