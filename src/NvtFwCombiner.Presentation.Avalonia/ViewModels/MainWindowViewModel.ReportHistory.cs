@@ -306,32 +306,79 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private void RelocalizeLoadedReport()
+    private async Task RelocalizeLoadedReportAsync(CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(LoadedReportJson))
+        while (true)
         {
-            return;
-        }
+            long requestVersion = Volatile.Read(ref _reportRelocalizationRequestVersion);
+            string reportJson = LoadedReportJson;
+            ReportReviewViewModel currentReport = LoadedReport;
+            long generation = Volatile.Read(ref _reportProjectionGeneration);
+            if (string.IsNullOrWhiteSpace(reportJson))
+            {
+                return;
+            }
 
-        ReportReviewViewModel localizedReport;
-        try
-        {
-            localizedReport = ReportReviewViewModel.FromJson(
-                LoadedReportJson,
-                LoadedReport.SourceName,
-                LoadedReport.OutputArtifactPath,
-                Text.Language);
-        }
-        catch (Exception exception) when (IsReportMaterializationException(exception))
-        {
-            return;
-        }
+            using var iterationCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _ = Interlocked.Exchange(
+                ref _reportRelocalizationIterationCancellation,
+                iterationCancellation);
+            ReportReviewViewModel localizedReport;
+            try
+            {
+                localizedReport = await ProjectReportAsync(
+                    reportJson,
+                    currentReport.SourceName,
+                    currentReport.OutputArtifactPath,
+                    iterationCancellation.Token,
+                    materializationErrorsAsReport: false);
+            }
+            catch (OperationCanceledException) when (iterationCancellation.IsCancellationRequested)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
 
+                if (requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion))
+                {
+                    return;
+                }
+
+                continue;
+            }
+            catch (Exception exception) when (IsReportMaterializationException(exception))
+            {
+                return;
+            }
+            finally
+            {
+                _ = Interlocked.CompareExchange(
+                    ref _reportRelocalizationIterationCancellation,
+                    null,
+                    iterationCancellation);
+            }
+
+            if (IsCurrentReportProjection(generation) &&
+                string.Equals(LoadedReportJson, reportJson, StringComparison.Ordinal))
+            {
+                ApplyRelocalizedReport(localizedReport, reportJson);
+            }
+
+            if (requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion))
+            {
+                return;
+            }
+        }
+    }
+
+    private void ApplyRelocalizedReport(ReportReviewViewModel localizedReport, string reportJson)
+    {
         LoadedReport = localizedReport;
         for (int index = 0; index < ReportHistoryEntries.Count; index++)
         {
             ReportHistoryEntryViewModel entry = ReportHistoryEntries[index];
-            if (!string.Equals(entry.ReportJson, LoadedReportJson, StringComparison.Ordinal))
+            if (!string.Equals(entry.ReportJson, reportJson, StringComparison.Ordinal))
             {
                 continue;
             }

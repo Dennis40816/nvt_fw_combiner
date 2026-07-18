@@ -89,6 +89,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs");
         string reportHistory = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReportHistory.cs");
+        string localization = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Localization.cs");
         string reportHistoryTemplate = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml");
         string factory = ReadText(
@@ -141,6 +143,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)", reportHistory, StringComparison.Ordinal);
         Assert.Contains("OpenReportHistoryEntryCommand.NotifyCanExecuteChanged();", reportHistory, StringComparison.Ordinal);
         Assert.Contains("OpenReportHistoryEntryAsyncCommand", reportHistoryTemplate, StringComparison.Ordinal);
+        Assert.Contains("RequestReportRelocalization();", localization, StringComparison.Ordinal);
+        Assert.Contains("if (!_relocalizeLoadedReportCommand.IsRunning)", localization, StringComparison.Ordinal);
+        Assert.Contains("_reportRelocalizationIterationCancellation)?.Cancel();", localization, StringComparison.Ordinal);
+        Assert.Contains("private async Task RelocalizeLoadedReportAsync(", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("await ProjectReportAsync(", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("while (true)", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("CreateLinkedTokenSource(cancellationToken)", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion)", reportHistory, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportReviewViewModel.FromJson(\n                LoadedReportJson", reportHistory, StringComparison.Ordinal);
         Assert.Contains("while (reportLanguage != Text.Language);", ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs"), StringComparison.Ordinal);
     }

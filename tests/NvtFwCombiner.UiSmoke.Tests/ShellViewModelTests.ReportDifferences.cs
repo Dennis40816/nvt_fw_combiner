@@ -6,7 +6,7 @@ public sealed partial class ShellViewModelTests
 {
     /// <summary>Verifies Replace reports surface accepted final-output CRC/header differences.</summary>
     [Fact]
-    public void ReportReviewShowsAcceptedOutputDifferences()
+    public async Task ReportReviewShowsAcceptedOutputDifferences()
     {
         string json = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences();
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
@@ -54,6 +54,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Header", differenceGroup.Title);
         Assert.Equal("1 expected field update", differenceGroup.Detail);
         viewModel.SelectedLanguage = "Traditional Chinese";
+        await Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
 
         Assert.Equal("差異", viewModel.Text.ReportTabChanges);
         Assert.Equal("預期變更", viewModel.LoadedReport.ByteDifferenceTitle);

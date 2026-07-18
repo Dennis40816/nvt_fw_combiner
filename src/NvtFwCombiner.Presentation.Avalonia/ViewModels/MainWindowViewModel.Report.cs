@@ -114,7 +114,8 @@ public sealed partial class MainWindowViewModel
         string json,
         string sourceName,
         string? outputArtifactPath,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool materializationErrorsAsReport = true)
     {
         ShellLanguage language;
         ReportReviewViewModel report;
@@ -133,7 +134,8 @@ public sealed partial class MainWindowViewModel
                     cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
             }
-            catch (Exception exception) when (IsReportMaterializationException(exception))
+            catch (Exception exception) when (
+                materializationErrorsAsReport && IsReportMaterializationException(exception))
             {
                 report = ReportReviewViewModel.Error(sourceName, exception.Message, language: language);
             }
@@ -152,6 +154,8 @@ public sealed partial class MainWindowViewModel
             historyReopen.Cancel();
         }
 
+        CancelReportRelocalization();
+
         return Interlocked.Increment(ref _reportProjectionGeneration);
     }
 
@@ -165,6 +169,7 @@ public sealed partial class MainWindowViewModel
         string json,
         string sourceName)
     {
+        CancelReportRelocalization();
         LoadedReport = report;
         LoadedReportJson = json;
         CaptureLoadedReportInHistory();

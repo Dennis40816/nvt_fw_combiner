@@ -351,6 +351,87 @@ public sealed partial class ShellViewModelTests
         });
     }
 
+    /// <summary>Language selection returns before a large report is atomically relocalized.</summary>
+    [Fact]
+    public async Task ChangeReportRelocalizationRunsOffDispatcherAndPublishesAtomically()
+    {
+        using var uiThread = new UiThreadTestContext();
+        await uiThread.InvokeAsync(async () =>
+        {
+            string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.LoadReportJson(json, "large-language-report.json");
+
+            viewModel.SelectedLanguage = "Traditional Chinese";
+            Task relocalization = Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
+
+            Assert.True(viewModel.IsReportRelocalizationRunning);
+            Assert.Contains(viewModel.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "expected");
+            await relocalization;
+
+            Assert.False(viewModel.IsReportRelocalizationRunning);
+            Assert.Contains(viewModel.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "預期");
+            Assert.Equal("已顯示 8/40 筆", viewModel.LoadedReport.OutputDifferenceGroupPage.PageStatus);
+            Assert.Equal(json, viewModel.LoadedReportJson);
+            Assert.Equal(1, viewModel.ReportHistoryCount);
+        });
+    }
+
+    /// <summary>A newer report cancels relocalization and remains the only published review.</summary>
+    [Fact]
+    public async Task ChangeReportRelocalizationCannotOverwriteNewerReport()
+    {
+        using var uiThread = new UiThreadTestContext();
+        await uiThread.InvokeAsync(async () =>
+        {
+            string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
+            string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-language-report");
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.LoadReportJson(olderJson, "older-language-report.json");
+
+            viewModel.SelectedLanguage = "Traditional Chinese";
+            Task relocalization = Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
+            Assert.True(viewModel.IsReportRelocalizationRunning);
+            viewModel.LoadReportJson(newerJson, "newer-language-report.json");
+            Assert.True(viewModel.IsReportRelocalizationRunning);
+            viewModel.SelectedLanguage = "English";
+            await relocalization;
+
+            Assert.Equal("newer-language-report.json", viewModel.LoadedReport.SourceName);
+            Assert.Equal(newerJson, viewModel.LoadedReportJson);
+            Assert.Contains(viewModel.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "expected");
+            Assert.Equal(2, viewModel.ReportHistoryCount);
+        });
+    }
+
+    /// <summary>Rapid language requests coalesce into one cancellable command execution.</summary>
+    [Fact]
+    public async Task ChangeReportRelocalizationCoalescesRapidLanguageRequests()
+    {
+        using var uiThread = new UiThreadTestContext();
+        await uiThread.InvokeAsync(async () =>
+        {
+            string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.LoadReportJson(json, "rapid-language-report.json");
+
+            viewModel.SelectedLanguage = "Traditional Chinese";
+            Task firstRequest = Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
+            Assert.True(viewModel.IsReportRelocalizationRunning);
+            viewModel.SelectedLanguage = "English";
+            Task latestRequest = Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
+
+            Assert.Same(firstRequest, latestRequest);
+            await latestRequest;
+
+            Assert.False(viewModel.IsReportRelocalizationRunning);
+            Assert.Contains(viewModel.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "expected");
+            Assert.Equal("Showing 8/40", viewModel.LoadedReport.OutputDifferenceGroupPage.PageStatus);
+            Assert.Equal(json, viewModel.LoadedReportJson);
+            Assert.Equal(1, viewModel.ReportHistoryCount);
+        });
+    }
+
     /// <summary>Relocalizing an existing report does not cancel a newer in-flight load.</summary>
     [Fact]
     public async Task LanguageChangeKeepsNewerInFlightReportGeneration()
