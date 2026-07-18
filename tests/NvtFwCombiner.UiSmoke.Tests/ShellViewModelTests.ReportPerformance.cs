@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -88,6 +90,73 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(64, difference.AfterValue.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Equal(json, viewModel.LoadedReportJson);
         Assert.Contains(new string('A', 512), viewModel.LoadedReportJson, StringComparison.Ordinal);
+    }
+
+    /// <summary>Lazy byte slices preserve escaped labels after the summary parser releases its JSON document.</summary>
+    [Fact]
+    public void LazyDifferenceSlicePreservesEscapedSectionText()
+    {
+        const string sectionPrefix = "觸控 / \"CRC\" 欄位";
+        string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(
+            count: 8,
+            sectionCount: 4,
+            sectionPrefix);
+
+        ReportReviewViewModel report = ReportReviewViewModel.FromJson(json, "escaped-section.json");
+
+        Assert.Equal(0, report.MaterializedOutputDifferenceCount);
+        ReportDifferenceGroupViewModel firstGroup = report.OutputDifferenceGroups[0];
+        Assert.Equal($"{sectionPrefix} 00", firstGroup.Title);
+        firstGroup.IsExpanded = true;
+        ReportLineViewModel firstRow = Assert.IsType<ReportLineViewModel>(firstGroup.RowsPage.Items[0]);
+        Assert.Equal($"{sectionPrefix} 00", firstRow.SectionLabel);
+        Assert.Same(firstRow, report.OutputDifferences[0]);
+    }
+
+    /// <summary>The wire index follows root-property semantics and keeps complete nested array entries.</summary>
+    [Fact]
+    public void DifferenceSliceIndexUsesLastTopLevelPropertyAndExactEntryBounds()
+    {
+        const string firstEntry = "{\"DifferenceId\":\"first\",\"Classification\":\"DeclaredReplacement\",\"IsAccepted\":true,\"SectionLabel\":\"First\"}";
+        const string lastEntryOne = "{\"DifferenceId\":\"last-1\",\"Classification\":\"DeclaredReplacement\",\"IsAccepted\":true,\"SectionLabel\":\"Last\",\"Nested\":{\"Values\":[1,{\"Value\":2}]}}";
+        const string lastEntryTwo = "{\"DifferenceId\":\"last-2\",\"Classification\":\"Unexpected\",\"IsAccepted\":false,\"SectionLabel\":\"Review\",\"Nested\":[{\"Values\":[3,4]},5]}";
+        string json = $$"""
+            {
+              "Container": { "OutputDifferences": [{{firstEntry}}] },
+              "OutputDifferences": [{{firstEntry}}],
+              "OutputDifferences": [{{lastEntryOne}},{{lastEntryTwo}}]
+            }
+            """;
+        byte[] utf8 = Encoding.UTF8.GetBytes(json);
+
+        ReportReviewViewModel.JsonValueSlice[] slices =
+            ReportReviewViewModel.IndexOutputDifferences(utf8, CancellationToken.None);
+        ReportReviewViewModel report = ReportReviewViewModel.FromJson(json, "wire-contract.json");
+
+        Assert.Equal(2, slices.Length);
+        Assert.Equal(lastEntryOne, Encoding.UTF8.GetString(utf8, slices[0].Start, slices[0].Length));
+        Assert.Equal(lastEntryTwo, Encoding.UTF8.GetString(utf8, slices[1].Start, slices[1].Length));
+        Assert.Equal(["last-1", "last-2"], report.OutputDifferences.Select(row => row.Title));
+        Assert.Equal(["Last", "Review"], report.OutputDifferenceGroups.Select(group => group.Title));
+    }
+
+    /// <summary>A compound value cannot bypass cancellation after its opening token was consumed.</summary>
+    [Fact]
+    public void DifferenceSliceCompoundValueSkipObservesCancellationAfterEntry()
+    {
+        _ = Assert.ThrowsAny<OperationCanceledException>(SkipEnteredCompoundValueWithCancellation);
+    }
+
+    private static void SkipEnteredCompoundValueWithCancellation()
+    {
+        byte[] utf8 = Encoding.UTF8.GetBytes("{\"Nested\":[{\"Values\":[0,1,2]}]}");
+        var reader = new Utf8JsonReader(utf8);
+        Assert.True(reader.Read());
+        Assert.Equal(JsonTokenType.StartObject, reader.TokenType);
+        using var cancellationSource = new CancellationTokenSource();
+        cancellationSource.Cancel();
+
+        ReportReviewViewModel.SkipJsonValue(ref reader, cancellationSource.Token);
     }
 
     /// <summary>Cancelled background projection does not publish a partial report or history entry.</summary>
