@@ -121,6 +121,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 return ExternalProcessorResult.Failed([stagedArtifactIssue]);
             }
 
+            StagingTreePolicy stagingTreePolicy = CreateStagingTreePolicy(profile, resolvedManifest, commandPlan);
             foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
             {
                 byte[] commandInputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
@@ -192,25 +193,20 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     return ExternalProcessorResult.Failed([lengthIssue], executedCommands);
                 }
 
-                CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, profile, resolvedManifest, commandPlan);
+                CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, stagingTreePolicy);
                 if (perCommandUnexpectedFileIssue is not null)
                 {
                     return ExternalProcessorResult.Failed([perCommandUnexpectedFileIssue], executedCommands);
                 }
             }
 
+            // Plans are nonempty, and the last per-command check follows every staging mutation.
             if (!File.Exists(firmwarePath))
             {
                 return Fail(
                     "external-tool.output.missing",
                     "External processor did not leave the staged firmware file.",
                     executedCommands);
-            }
-
-            CompositionIssue? unexpectedFileIssue = ValidateStagingTree(runDirectory, profile, resolvedManifest, commandPlan);
-            if (unexpectedFileIssue is not null)
-            {
-                return ExternalProcessorResult.Failed([unexpectedFileIssue], executedCommands);
             }
 
             byte[] outputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);

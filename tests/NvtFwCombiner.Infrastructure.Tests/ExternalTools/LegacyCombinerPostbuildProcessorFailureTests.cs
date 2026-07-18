@@ -113,6 +113,37 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(1, runner.RunCount);
     }
 
+    /// <summary>Rejects an unexpected entry before a later command can execute.</summary>
+    [Fact]
+    public async Task TransformRejectsUnexpectedStagingFileBeforeNextCommand()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = [0x10, 0x20, 0x30, 0x40, 0x99, 0x60];
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            File.WriteAllText(Path.Combine(startInfo.WorkingDirectory, "output", "unexpected.log"), "unexpected");
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProfile profile = CreateCopyThenRestoreProfile();
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-unexpected-file-before-next-command",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("external-tool.staging.unexpected-file", issue.Code);
+        Assert.Equal(1, runner.RunCount);
+        _ = Assert.Single(result.ExecutedCommands);
+    }
+
     /// <summary>Rejects postbuild runs that leave undeclared directories in the staging tree.</summary>
     [Fact]
     public async Task TransformRejectsUnexpectedStagingDirectory()
