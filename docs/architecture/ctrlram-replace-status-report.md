@@ -25,9 +25,10 @@ The owner-confirmed base contract accepts either a TP BIN work image or a full
 Flash BIN. Both forms execute the same TP-relative replacement and postbuild
 semantics. The current Workbench runs the processor against a host-created
 base clone and enforces declared write ranges, preserving the full-Flash tail.
-The non-routed schema 2.8 candidate narrows this further by staging only the TP
-prefix and reinserting it into the full clone. Undeclared candidate container
-lengths fail closed.
+The schema 2.9 NT51926 executable candidate narrows this further by staging
+only the TP prefix and reinserting it into the full clone. Common FW 1.4.1
+cascade without a version edit now uses that route; undeclared container
+lengths and every other version/count/edit stay outside it.
 
 Highlighted conclusion:
 
@@ -384,5 +385,5 @@ Each update should record:
 As of this report:
 
 ```text
-CtrlRAM Replace execution is traceable and the product contract requires both TP BIN and declared full Flash BIN with the same TP-relative semantics. The current Workbench admits both forms but does not yet enforce an explicit TP prefix for every IC; only the non-routed NT51926 V2 candidate proves prefix/reinsert behavior. The 2026-07-17 owner snapshot closes several completely-missing sample gaps. NT51930/NT51932 composition gaps remain, NT51931 Replace stays Not Supported, and every migrated family still needs owner R3 review before runtime promotion.
+CtrlRAM Replace execution is traceable and the product contract requires both TP BIN and declared full Flash BIN with the same TP-relative semantics. The current Workbench admits both forms but does not yet enforce an explicit TP prefix for every IC; NT51926 Common FW 1.4.1 cascade without a version edit now routes through the exact-shape V2 prefix/reinsert contract. The 2026-07-17 owner snapshot closes several completely-missing sample gaps. NT51930/NT51932 composition gaps remain, NT51931 Replace stays Not Supported, and every migrated family still needs owner R3 review before runtime promotion.
 ```

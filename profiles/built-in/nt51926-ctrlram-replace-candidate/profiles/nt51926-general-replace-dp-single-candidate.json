@@ -6,12 +6,6 @@
     "stage": "executable-candidate",
     "blockers": [
       {
-        "blockerId": "full-route-parity",
-        "kind": "golden",
-        "reason": "Byte, report, naming, CLI, and UI parity with the current General Replace route must be reviewed before production routing.",
-        "evidenceRefs": [ "general-replace-v2-candidate-parity" ]
-      },
-      {
         "blockerId": "tp-postbuild-deferred",
         "kind": "processor",
         "reason": "This candidate admits only DP mappings. TP and CtrlRAM mappings remain on the constrained Legacy Combiner route until processor parity is declared and reviewed.",

@@ -6,6 +6,50 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
+    /// <summary>Locks NT51926 single full-Flash DP-only General Replace to the reviewed V2 candidate.</summary>
+    [Fact]
+    public async Task Nt51926GeneralReplaceDpOnlyBuildUsesV2Candidate()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] baseBytes = await File.ReadAllBytesAsync(
+            GoldenPath("expected/51926/flash.bin"),
+            TestContext.Current.CancellationToken);
+        string reference = workspace.Write("reference.bin", baseBytes);
+        string source = workspace.Write("dp-source.bin", [0xA5, 0x5A]);
+        string output = workspace.PathFor("general-replace.bin");
+        string report = workspace.PathFor("general-replace-report.json");
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "build",
+            "--profile",
+            "NT51926",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--mapping",
+            $"0x3E020+0x2={source}",
+            "--output",
+            output,
+            "--report",
+            report,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
+        byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        Assert.Equal([0xA5, 0x5A], outputBytes[0x3E020..0x3E022]);
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+            report,
+            TestContext.Current.CancellationToken));
+        JsonElement root = document.RootElement;
+        Assert.Equal("nt51926-general-replace-dp-single-candidate", root.GetProperty("ProfileId").GetString());
+        JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
+        Assert.Equal("ReplaceRange", operation.GetProperty("Kind").GetString());
+        Assert.Equal(JsonValueKind.Null, operation.GetProperty("ProcessorId").ValueKind);
+    }
+
     /// <summary>Verifies real IC General Replace CLI accepts repeated workbench mapping rows.</summary>
     [Fact]
     public async Task GeneralReplaceBuildAcceptsRepeatedWorkbenchMappings()

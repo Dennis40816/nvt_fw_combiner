@@ -32,7 +32,7 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 | NT51919 | `SM-GENFLASH-V2-ALIAS`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor; map-bound alias of NT51929. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51929/NT51932. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | `AB-51919-CANDIDATE`: fixed `0x80000` V2 plan aliases NT51929; no UI/CLI route or runtime promotion. |
 | NT51920 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
 | NT51923 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`, cascade split DiffDLM. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
-| NT51926 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: validated product path handles TP-work/full-Flash artifacts; non-routed V2 candidate selects exact `0x3C000`/`0x40000` maps and processes one TP prefix. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes. CtrlRAM prefix/tail contract exists, but direct full-Flash parity and owner review remain before promotion. |
+| NT51926 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-V2-141-CASCADE`: Common FW 1.4.1 cascade without a version edit selects exact `0x3C000`/`0x40000` maps and processes one TP prefix; other cases retain the existing path. | `R-GENERAL-V2-DP-SLICE`: single/full-Flash/file-backed DP-only mappings use V2; TP/CtrlRAM, patches/fills, other counts and shapes retain protected legacy planning/postbuild. | Both V2 slices preserve forced-V1 bytes and do not promote support; exact range and firmware-owner review remain. |
 | NT51927 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: numeric single/2/3 IC and cascade. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
 | NT51928 | `SM-GENFLASH-LD-V2`: hash-anchored V2 route includes TP, DP, and typed auxiliary LD. | `R-DP-GENERIC`: DP/LD profile wiring pending. | `R-CTRLRAM-927`: follows NT51927 for non-NB only. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | NT51928 NB is not covered and must be a separate IC if approved later. |
 | NT51929 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51932. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | `AB-51929-CANDIDATE`: fixed `0x80000` full DP -> TPA -> relocated TPB V2 plan; no UI/CLI route or runtime promotion. |
@@ -188,10 +188,11 @@ flowchart TD
 All CtrlRAM Replace flows require post-replace legacy Combiner 1.13.0 processing before the result can be treated as a finished TDDI firmware image. Command sequences are stored as structured command data, then converted to argv arrays.
 
 The validated NT51926 product flow accepts TP-work and full-Flash artifacts.
-Its non-routed schema 2.8 V2 candidate selects either exact `0x3C000` TP work
-or exact `0x40000` full Flash, runs one TP-prefix processor contract, and keeps
-the full-Flash tail unchanged. Runtime promotion still requires direct golden
-parity and firmware-owner R3 review.
+Common FW 1.4.1 cascade without a TP firmware-version edit now selects either
+exact `0x3C000` TP work or exact `0x40000` full Flash through V2, runs one
+TP-prefix processor contract, and keeps the full-Flash tail unchanged. The TP
+case matches its archived Legacy Combiner output and full Flash matches forced
+V1 bytes; support promotion still requires firmware-owner R3 review.
 
 ### R-CTRLRAM-927
 
@@ -219,10 +220,11 @@ flowchart TD
 
 Used by NT51920, NT51923, and NT51926.
 
-For NT51926 only, the repository V2 candidate is a non-routed exact-shape
-specialization of this product flow for both `0x3C000` TP and `0x40000` Flash.
-The diagram below remains the validated product path; candidate compilation is
-not a runtime support claim.
+For NT51926 only, the V2 executable candidate is the exact-shape runtime
+specialization for Common FW 1.4.1 cascade without a version edit, accepting
+both `0x3C000` TP and `0x40000` Flash. The diagram below remains the residual
+path for other versions/counts and version edits; routing the candidate is not
+a runtime support promotion.
 
 ```mermaid
 flowchart TD

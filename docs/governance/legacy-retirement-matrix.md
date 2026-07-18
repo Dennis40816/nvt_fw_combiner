@@ -26,7 +26,7 @@ Each row marked `retire` must link or name:
 | Synthetic `BuiltInReplaceProfiles` production catalog and generic Replace CLI adapter | None. DP routes through trusted V2 registrations; CtrlRAM and General Replace route through the shared Workbench planners. Equivalent synthetic definitions remain test-only compiler/application fixtures | Direct real-route CLI tests for DP, CtrlRAM, and General Replace; architecture exclusion guard; no firmware/profile/processor fact change | `v0.9.8` | retired; production no longer exposes `NT-SYNTHETIC`, fixed-profile range options, or a second profile compile/binding/IC-number route |
 | `WorkbenchRawBinaryEditorContracts` mirror DTOs and projection conversions | None. The Bootstrap host session returns the Application-owned raw editor contracts directly while retaining file load and atomic Save As authority | Application editor tests, UI smoke, architecture exclusion of Presentation file I/O and firmware catalogs | `v0.9.8` | retired; no Hex Editor behavior, layout, input, output, or firmware support change |
 | Dynamic General Merge C# profile construction | None. Default General Merge, CLI, and UI route through the registered logical-output V2 profiles for all built-in ICs; persisted saved rules retain only a profile-id compatibility alias | Direct legacy/V2 byte parity for every built-in IC; default-route byte/report/UI/saved-rule regression; no physical-map, processor, CRC, or firmware-support claim | `v0.9.5` | retired in `a9a65b49` (`refactor(general-merge): route default workflow through V2`) |
-| `CompositionProfileCompiler` legacy authority | CtrlRAM and General Replace Workbench profile adapters | Each applicable profile compiles and executes through trusted V2 authority with equivalent report/output behavior | after per-workflow R2/R3 evidence | retain as runtime dependency; the generic Replace CLI compiler adapter is retired |
+| `CompositionProfileCompiler` legacy authority | Residual CtrlRAM and General Replace Workbench adapters. NT51926 Common FW 1.4.1 cascade CtrlRAM without a version edit, and NT51926 single/full-Flash/file-backed DP-only General Replace, now route through their trusted V2 executable candidates | Each remaining IC/version/count/base/mapping shape compiles and executes through trusted V2 authority with equivalent report/output behavior | after per-workflow R2/R3 evidence | retain for residual consumers; two NT51926 slices are retired from V1 routing without support promotion |
 | Static `TpFlashMapCatalog` facts and `IcMetadataFacade` compatibility projection | Static facts and the forwarding facade have no consumers. `BuiltInTpFlashMapCatalog` still loads/queries hash-pinned `flash-map.json` for CtrlRAM/General Replace | Resolved V2 map/profile facts supply every remaining map-query caller without copied firmware semantics | after per-workflow evidence | static C# region/base-shape authority and `IcMetadataFacade` retired in v0.9.9; retain only the config query adapter until CtrlRAM/General V2 cutover |
 | Static `LegacyCombinerPostbuildCatalog` declarations | None. Bootstrap loads the same typed runtime profiles from the SHA-256-pinned `profiles/built-in/ctrlram-postbuild-v2/catalog.json` data authority | Exact profile/branch/command/block parity, strict unknown-field and argument validation, unchanged staged runner tests | `v0.9.9` | retired; the Legacy Combiner 1.13.0 EXE, typed runtime model, planner, and constrained runner remain approved exceptions. R3 golden/owner gaps still gate support promotion, not this support-neutral data move |
 
@@ -35,12 +35,15 @@ Each row marked `retire` must link or name:
 The 2026-07-17 production-caller audit retired the static TP flash-map C# facts
 without changing runtime routes. Architecture exclusions still prove that
 every row already marked retired is absent from production.
-`CompositionProfileCompiler` remains called by the CtrlRAM and General Replace
-Workbench adapters. NT51926 now has a hash-pinned, non-routed single-selector
-DP-only runtime-reference candidate with complete V1/V2 output-byte parity;
-TP/CtrlRAM targets fail closed and remain outside that candidate. This closes
-one General Replace migration slice but not the all-IC/number/report/postbuild
-replacement condition. The forwarding `IcMetadataFacade` is now absent;
+`CompositionProfileCompiler` remains called by the residual CtrlRAM and General
+Replace Workbench adapters. NT51926 Common FW 1.4.1 cascade CtrlRAM without a
+version edit now routes through its V2 executable candidate, as does the
+NT51926 single/full-Flash/file-backed DP-only General Replace slice. Forced-V1,
+CLI, UI, report, naming, and full-byte tests lock both cutovers; neither change
+promotes support. TP/CtrlRAM General targets, patches/fills, other counts and
+other ICs remain outside the DP candidate. This closes two migration slices,
+not the all-IC/number/postbuild replacement condition. The forwarding
+`IcMetadataFacade` is now absent;
 number selection and version-based postbuild choice converge at the existing
 Workbench catalog projection without a second model. The config-backed map
 query still serves CtrlRAM/General Replace planning and UI projections until

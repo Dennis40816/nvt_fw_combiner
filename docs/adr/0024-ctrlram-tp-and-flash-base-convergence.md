@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-17
+- Amended: 2026-07-18 for the reviewed NT51926 1.4.1 cascade runtime slice
 - Owners: Architecture owner + firmware owner
 - Supersedes: ADR 0023
 - Amends: ADR 0015 and ADR 0020
@@ -46,8 +47,9 @@ the profile retains only the closed invocation profile id and processor authorit
 - TP BIN and full Flash share one compiled workflow rather than two byte paths.
 - Full-Flash DP/gap bytes never enter the Legacy Combiner staging image and are
   preserved by the engine-owned reference clone.
-- The candidate remains non-routed and `executable-candidate`; this change does
-  not promote runtime support.
+- NT51926 Common FW 1.4.1 cascade without a TP firmware-version edit now uses
+  this V2 route for Preview/Build. The profile remains `executable-candidate`;
+  this does not promote runtime support, other versions/counts, or version edits.
 - Legacy Combiner EXE/runner, staging isolation, host diff enforcement, and
   owner review remain mandatory.
 - NT51926 Common FW 2.0.0, other IC/count branches, and optional CtrlRAM slots
@@ -61,5 +63,7 @@ the profile retains only the closed invocation profile id and processor authorit
 - NT51926 candidate tests select both exact capacities, pass only `0x3C000` to
   the processor, preserve the `0x4000` Flash tail, reject neighboring lengths,
   and execute against the hash-pinned Postbuild profile selected by id.
-- Owner-supplied 1.4.1 cascade inputs still require full output parity through
-  Legacy Combiner 1.13; runtime/support promotion remains an R3 owner gate.
+- The routed TP-base case matches the archived Legacy Combiner 1.13 full output;
+  the full-Flash case matches a forced V1 run byte-for-byte and preserves its
+  tail. Runtime/support promotion and exact write-range approval remain an R3
+  owner gate.

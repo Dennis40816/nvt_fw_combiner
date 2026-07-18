@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
@@ -5,7 +6,7 @@ using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Non-routed V2 migration evidence for the processor-free NT51926 General Replace DP subset.</summary>
+/// <summary>V2 migration evidence for the routed processor-free NT51926 General Replace DP subset.</summary>
 public sealed class Nt51926GeneralReplaceCandidateProfileTests
 {
     private const int FullFlashCapacity = 0x40000;
@@ -28,7 +29,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         Assert.Equal("nt51926-general-replace-dp-single-candidate", composition.ProfileId);
         Assert.Equal("0.1.0", composition.ProfileVersion);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details!.Provenance.Promotion.Stage);
-        Assert.Equal(3, composition.V2Details.Provenance.Promotion.Blockers.Count);
+        Assert.Equal(2, composition.V2Details.Provenance.Promotion.Blockers.Count);
         Assert.Equal(
             "nt51926-general-replace-full-flash-256k",
             composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
@@ -55,7 +56,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         Assert.Contains(result.Issues, issue => issue.Code == issueCode);
     }
 
-    /// <summary>The candidate and current V1 compiler produce identical DP-only output bytes from the same immutable inputs.</summary>
+    /// <summary>The routed candidate and forced V1 fallback produce identical DP-only bytes from immutable inputs.</summary>
     [Fact]
     public async Task CandidateMatchesCurrentGeneralReplaceDpOnlyOutputBytesAsync()
     {
@@ -70,7 +71,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
 
         WorkbenchRunResult legacy = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51926",
-            "single",
+            "cascade",
             "General",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -86,6 +87,13 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
             legacyOutputPath);
 
         Assert.True(legacy.Succeeded, legacy.ReportJson);
+        using (var legacyReport = JsonDocument.Parse(legacy.ReportJson))
+        {
+            Assert.Equal(
+                "nt51926-general-replace-workbench",
+                legacyReport.RootElement.GetProperty("ProfileId").GetString());
+        }
+
         V2CompositionPlanCompileResult candidate = CompileCandidate(
             FullFlashCapacity,
             replacement.Length,
@@ -109,6 +117,65 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
             execution.OutputBytes.ToArray());
         Assert.Equal(originalBase, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
         Assert.Equal(originalBase, baseBytes);
+
+        string routedOutputPath = workspace.PathFor("routed.bin");
+        WorkbenchRunResult routed = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51926",
+            "single",
+            "General",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [WorkbenchSlotIds.ReplaceBase] = basePath,
+            },
+            [new WorkbenchGeneralReplaceMappingInput(
+                "dp-map",
+                sourcePath,
+                $"0x{targetStart:X}",
+                $"0x{targetStart + replacement.Length - 1:X}")],
+            build: true,
+            TestContext.Current.CancellationToken,
+            routedOutputPath);
+
+        Assert.True(routed.Succeeded, routed.ReportJson);
+        Assert.Equal(execution.OutputBytes.ToArray(), await File.ReadAllBytesAsync(
+            routedOutputPath,
+            TestContext.Current.CancellationToken));
+        using var routedReport = JsonDocument.Parse(routed.ReportJson);
+        Assert.Equal(
+            "nt51926-general-replace-dp-single-candidate",
+            routedReport.RootElement.GetProperty("ProfileId").GetString());
+    }
+
+    /// <summary>Single-selector virtual patches remain on V1 until their separate contract is migrated.</summary>
+    [Fact]
+    public async Task DpVirtualPatchRetainsLegacyFallbackAsync()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-replace-patch-fallback");
+        string basePath = workspace.Write("base.bin", CreatePattern(FullFlashCapacity, 0x26));
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51926",
+            "single",
+            "General",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [WorkbenchSlotIds.ReplaceBase] = basePath,
+            },
+            [],
+            [new WorkbenchGeneralReplacePatchInput(
+                "dp-patch",
+                "0x3E020",
+                "0x3E021",
+                WorkbenchGeneralReplacePatchKind.Overwrite,
+                "A5 5A")],
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Equal(
+            "nt51926-general-replace-workbench",
+            report.RootElement.GetProperty("ProfileId").GetString());
     }
 
     private static V2CompositionPlanCompileResult CompileCandidate(

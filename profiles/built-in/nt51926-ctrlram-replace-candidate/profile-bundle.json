@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51926-ctrlram-replace-candidate",
-  "bundleVersion": "0.9.9-candidate.8",
+  "bundleVersion": "0.9.9-candidate.9",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "8ad88a9878b72b7782e740b50999e1f5e108ba8d1cc9df97ec02de82a2526d34",
+  "contentHash": "33d8919e2587ebd18359aeb02ea0d284b2292e442a7cc5b3b606da38a9aa9b5e",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -39,7 +39,7 @@
       "kind": "composition-profile",
       "path": "profiles/nt51926-general-replace-dp-single-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "6aa905ce8c82555ce133a8b07d6a562f5acb7f88a74e0cf0bebe08d8b9729fce"
+      "contentHash": "cd0b6d014572e131297d5f8f348ec370fa8de2f84974096250c75ab21c388f44"
     },
     {
       "entryId": "nt51926-ctrlram-replace-fw141-runtime-cascade-profile",

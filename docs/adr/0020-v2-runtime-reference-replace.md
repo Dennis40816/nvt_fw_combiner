@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-15
+- Amended: 2026-07-18 for the NT51926 processor-free DP runtime slice
 - Owners: Architecture owner + firmware owner
 - Amends: ADR 0015 and ADR 0019
 
@@ -180,5 +181,23 @@ Direct regression runs the current Workbench/V1 compiler and this V2
 candidate from the same immutable base and DP source and requires complete
 output-byte equality. Separate tests reject the `0x3C000` TP-only base and
 every TP/CtrlRAM target. This closes only the processor-free NT51926/single/DP
-candidate slice. It does not register a production route or close report,
-naming, CLI, UI, cascade, TP postbuild, or firmware-owner review gates.
+candidate slice.
+
+## v0.9.9 NT51926 DP Runtime Amendment
+
+The owner-directed v0.9.9 convergence routes exactly the already-proven
+NT51926 `single`, `0x40000` full-Flash, file-backed DP mapping slice through
+the executable-candidate V2 profile. The route predicate requires every
+mapping target to be wholly contained by the canonical DP region
+`[0x3E000,0x40000)`. It does not select V2 for patches/fills, cascade, TP,
+CtrlRAM, protected ranges, other capacities, or other ICs; those requests
+retain their existing behavior while their independent evidence remains open.
+
+Direct tests force the former V1 path with the cascade selector and require
+full output-byte parity with the routed single-selector result. CLI and UI
+tests lock profile identity, report operations, output naming, immutable base
+handling, and the absence of a processor stage. This closes the former
+`full-route-parity` blocker only for that exact processor-free slice. The
+profile remains `executable-candidate`; TP postbuild evidence and firmware-
+owner review still block support promotion and retirement of the residual
+General Replace V1 consumer.

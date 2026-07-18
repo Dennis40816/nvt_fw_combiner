@@ -103,6 +103,36 @@ public sealed partial class ShellViewModelTests
             operation.Title.Contains("general-map-1", StringComparison.Ordinal));
     }
 
+    /// <summary>Verifies the shared UI reaches the NT51926 single full-Flash DP-only V2 route.</summary>
+    [Fact]
+    public async Task GeneralReplaceNt51926DpOnlyBuildUsesV2Candidate()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace-51926-v2");
+        byte[] baseBytes = CreatePattern(0x40000, 0x26);
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
+        string outputPath = workspace.PathFor("general-replace.bin");
+
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        OpenReplace(viewModel, "General");
+        viewModel.SetSlotFile("replace-base", basePath);
+        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
+        mapping.StartAddress = "0x3E020";
+        mapping.EndAddress = "0x3E021";
+        viewModel.SetSlotFile(mapping.MappingId, replacementPath);
+
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.Equal("nt51926-general-replace-dp-single-candidate", viewModel.LoadedReport.ProfileId);
+
+        await viewModel.BuildReplaceAsync(outputPath);
+
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.Equal([0xA5, 0x5A], File.ReadAllBytes(outputPath)[0x3E020..0x3E022]);
+        Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
+    }
+
     /// <summary>Verifies General Replace UI routes TP-touching explicit mappings through postbuild.</summary>
     [Fact]
     public async Task GeneralReplacePreviewRunsPostbuildForTpMapping()
