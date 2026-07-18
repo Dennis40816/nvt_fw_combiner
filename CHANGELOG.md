@@ -24,13 +24,24 @@ before/after parity.
   firmware or support change.
 - The `v0.9.10` roadmap now records why Replace performance work is needed: automatic Build currently executes Preview and Build separately, CtrlRAM postbuild repeatedly reads the full staging image, UI inspection rereads selected firmware, and owned byte buffers cross redundant copy boundaries.
 - The same roadmap clarifies that `DeclaredReplacement` means an accepted output difference inside a declared Replace write range, not a firmware version change. Any TP FW version-edit explanation must be projected as an Application-owned semantic while preserving or explicitly versioning the stable machine classification.
-- These entries authorize measurement and reviewed optimization work only. They do not change output bytes, ranges, processor commands, profile promotion, or firmware support state.
+- The roadmap entries authorize only the measured optimization scope. They do
+  not authorize changes to output bytes, ranges, processor commands, profile
+  promotion, or firmware support state.
 - Added deterministic test instrumentation and synthetic automatic-Build
   baseline coverage for DP lengths `0x40000`, `0x80000`, and `0x100000`, plus
   two-command and 13-command CtrlRAM plans. The baseline records two current
   runs, two CtrlRAM processor sessions, and 4/26 process invocations without a
   new production metrics surface or changes to output bytes, report contracts,
   processor authority, or support state.
+- Added the provisional `0.9.10` Application-owned automatic-Build process
+  prototype. It commits the accepted output from one authoritative execution
+  while keeping explicit Preview-token Build unchanged. Against node A, DP
+  drops from two runs/four reads to one/two; CtrlRAM drops from two processor
+  sessions and `2C` launches to one session and `C` launches. Complete output,
+  SHA-256, mutation summaries, command argv, failed-validation atomicity,
+  public DP evidence, and the NT51926 cascade TP-base full-output golden remain
+  equal. Final B/C timing and allocation evidence still waits for final
+  `0.9.9`.
 - Defined three comparison nodes: pre-rebase historical A, final-`0.9.9`
   unoptimized B, and the same reconciled source with the `0.9.10` prototype C.
   Only B/C may support a performance decision. Deterministic counters and

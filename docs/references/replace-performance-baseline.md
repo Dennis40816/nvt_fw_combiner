@@ -1,10 +1,12 @@
 # Replace Performance Baseline
 
-Status: node A deterministic synthetic baseline; not the reconciled before
-value, a firmware support claim, or a timing claim.
+Status: node A deterministic baseline plus a provisional node C process
+prototype; neither is the reconciled B/C timing result or a firmware support
+claim.
 
 Captured: 2026-07-18 on
-`feature/0.9.10/replace-performance-baseline` at `0dafe1ef`.
+`feature/0.9.10/replace-performance-baseline`; node A is retained at
+`74fb1028` and the provisional process prototype is `315272b3`.
 
 ## Purpose and boundary
 
@@ -66,6 +68,35 @@ All successful cases compare the complete final bytes. Automatic Build commits
 once; Preview-only and failed Preview commit nothing. The counters are stable
 behavior ratchets, not approval to reuse Preview bytes as Build authority.
 
+## Provisional node C process result
+
+The first process prototype moves automatic Build ownership into Application.
+It executes current inputs once, runs final-output validation, and atomically
+commits exactly that execution's accepted bytes. The explicit `BuildAsync`
+path still requires a matching approved Preview token; standalone Preview
+remains non-committing.
+
+| Synthetic case | Node A runs / reads / sessions / launches | Provisional C runs / reads / sessions / launches | Commit |
+| --- | --- | --- | ---: |
+| Automatic DP Replace, each declared capacity | `2 / 4 / 0 / 0` | `1 / 2 / 0 / 0` | 1 |
+| Automatic CtrlRAM Replace, 2-command plan | `2 / 4 / 2 / 4` | `1 / 2 / 1 / 2` | 1 |
+| Automatic CtrlRAM Replace, 13-command plan | `2 / 4 / 2 / 26` | `1 / 2 / 1 / 13` | 1 |
+| Standalone Preview | `1 / 2 / 0 / 0` | `1 / 2 / 0 / 0` | 0 |
+| Automatic Build with an unreadable required input | `1 / 2 attempted / 0 / 0` | `1 / 2 attempted / 0 / 0` | 0 |
+
+The comparison test executes both the retained two-run sequence and the
+single-run path. It compares complete output bytes, output SHA-256, every
+mutation summary, and processor command argv. Additional regression evidence
+confirms that a failed final-output validation commits nothing, and that the
+NT51926 cascade TP-base full-output golden retains its expected bytes, SHA-256,
+changed ranges, mutation hashes, and two-command processor trace. The public
+NT51950/NT51951 DP oracle and DP CLI Build cases also pass.
+
+These are deterministic count and parity results on the provisional
+`7e18cfa0` predecessor. No elapsed-time, allocation, working-set, or UI-thread
+improvement is claimed until final `0.9.9` supplies node B and the same source
+is used to rebuild node C.
+
 ## Before/after comparison
 
 | Node | Source | Interpretation |
@@ -111,8 +142,8 @@ Bootstrap baseline.
 
 | Command count (`C`) | Reads per current session | Current automatic-Build sessions | Derived current reads |
 | ---: | ---: | ---: | ---: |
-| 2 | 5 | 2 | 10 |
-| 13 | 27 | 2 | 54 |
+| 2 | 5 | 2 | 10 (provisional C: 5) |
+| 13 | 27 | 2 | 54 (provisional C: 27) |
 
 Staged immutable-artifact verification reads are separate and must not be
 hidden in future evidence. Any R3 adapter prototype remains limited to an
@@ -136,10 +167,11 @@ content changes. Build still performs its own authoritative read and hash.
 
 ## Follow-up gates
 
-- `v0.9.10` may prototype reducing a valid automatic Build from two
-  composition runs and two processor sessions to one, while retaining an
-  authoritative Build read, validation, preview-token/fingerprint policy, and
-  atomic promotion.
+- The provisional `v0.9.10` process prototype reduces a valid automatic Build
+  from two composition runs and two processor sessions to one while retaining
+  an authoritative Build read, validation, the explicit Build
+  preview-token/fingerprint path, and atomic promotion. It must be replayed
+  against final `0.9.9` before acceptance.
 - UI inspection begins only after the `0.9.9` typed workflow contracts freeze.
   One immutable asynchronous snapshot may serve display projections for one
   file identity/hash, but never Build authority.
