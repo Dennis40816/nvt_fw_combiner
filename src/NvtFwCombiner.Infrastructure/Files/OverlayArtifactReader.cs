@@ -35,7 +35,7 @@ public sealed class OverlayArtifactReader : IArtifactReader
         cancellationToken.ThrowIfCancellationRequested();
 
         return _artifacts.TryGetValue(artifactId, out byte[]? bytes)
-            ? ValueTask.FromResult(new ReadOnlyMemory<byte>([.. bytes]))
+            ? ValueTask.FromResult(new ReadOnlyMemory<byte>(bytes))
             : _fallback is null
             ? ValueTask.FromException<ReadOnlyMemory<byte>>(new FileNotFoundException(
                 $"No in-memory artifact is registered for '{artifactId}'."))
