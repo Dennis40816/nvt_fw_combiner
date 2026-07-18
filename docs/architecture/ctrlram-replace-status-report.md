@@ -62,9 +62,10 @@ Known stable conclusions:
 - Keep the CRC-changing postbuild behavior for production. It is acceptable only when the diff is constrained to declared CRC/header words or documented header-copy windows for the selected category.
 - NT51926 and NT51930 postbuild-category selection is implemented in Preview/Build and in workbench/UI slot/range display after a base BIN is loaded. NT51926 2.0.0 current/V2/expected parity is closed for exact single/cascade cases; NT51930 still requires exact parity and independent R3 byte review.
 - NT51930 Common FW 1.x keeps numeric `2..29` on the approved cascade command shape with `DiffDLM` length `0xFE00`. The earlier `0x23000` section is archived evidence only and must not execute without new owner approval.
-- NT51931 now has a direct exact-case intake and is an exact-case parity
-  candidate. InsertSID remains outside the retirement parity boundary; runtime
-  stays fail-closed until full-byte parity and review pass.
+- NT51931 now has a direct exact-case intake and a closed diagnostic record.
+  InsertSID remains outside the retirement parity boundary, but registered
+  Combiner 1.13 still access-violates on the official command; runtime remains
+  Not available.
 - The 2026-07-18 final owner-approved intake adds exact NT51926 2.0.0
   single/cascade, NT51930 INX cascade, NT51931 cascade, NT51932 cascade, and
   NT51951 single inputs/expected outputs. The NT51951 Phase B experiment closes
@@ -79,7 +80,7 @@ All IC CtrlRAM self-replacement differences are known-good header CRC drift.
 Use this narrower conclusion instead:
 
 ```text
-All currently classified CtrlRAM self-replacement differences are either known header/CRC drift or explicitly documented exceptions. NT51926 2.0.0 single/cascade, NT51930 INX 1.3.0 cascade 3, NT51932 2.0.0 cascade 3, and NT51951 2.0.0 single exact-case V1/V2 parity are closed without support promotion. Only NT51931 remains an exact-case engineering parity/tool gate for a blanket CtrlRAM Replace OK claim; it requires no additional owner input.
+All currently classified CtrlRAM self-replacement differences are either known header/CRC drift or explicitly documented exceptions. NT51926 2.0.0 single/cascade, NT51930 INX 1.3.0 cascade 3, NT51932 2.0.0 cascade 3, and NT51951 2.0.0 single exact-case V1/V2 parity are closed without support promotion. NT51931 has zero expected-derived replacement-payload drift and 108 classified header/header-copy CRC bytes, but registered Combiner 1.13 access-violates on the official command. It remains evidence-only and Not available without any additional owner-input gate.
 ```
 
 ## Evidence Sources
@@ -135,7 +136,7 @@ The base may be the Combiner TP work image or a declared full-Flash container. T
 | NT51928 non-NB | NT51927 alias flow | owner alias confirmation | Non-NB only; NB is not covered. |
 | NT51929 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT + 2026-07-17 owner snapshot | A true non-AB single expected output now exists; its NF/Normal/VN target bytes match. The AB half is not the single golden. |
 | NT51930 | `NT51930BASED_NORMAL_MODE CRC8` | inspected BAT + final 2026-07-18 direct INX intake | Earlier DiffDLM mismatch is historical diagnostic evidence. The exact AUTO_PRJ-302 case now proceeds through command/NF reconstruction and three-way parity. |
-| NT51931 | owner BAT: `NT51931BASED_NORMAL_MODE CRC8` | final 2026-07-18 direct AUTO_PRJ-158 intake | Existing inputs/expected/BAT/argv/Combiner hash form an exact-case parity candidate. Missing InsertSID is a nonblocking out-of-scope pre-step. |
+| NT51931 | owner BAT: `NT51930BASED_NORMAL_MODE CRC8` | final 2026-07-18 direct AUTO_PRJ-158 intake | The expected-derived control has zero payload drift and 108 header/header-copy CRC bytes. Hash-only Combiner self-reports 1.2.0.4 and runs only as a diagnostic; registered 1.13 access-violates. InsertSID is a nonblocking out-of-scope pre-step. |
 | NT51932 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT + final 2026-07-18 direct AUTO_PRJ-525 intake | Exact PID `0x5601`/Common FW 2.0.0/cascade 3 routes through V2 with V1/V2 full-byte parity. The direct NF composite is the route input; it equals `NF_Diff_0.bin`, so no DiffNFMerge derivation is claimed. |
 | NT51950 | `NT51950BASED_NORMAL_MODE CRC8` | inspected BAT | Catalog and 16-byte drift understood. |
 | NT51951 | NT51950 alias flow | final 2026-07-18 direct single intake | Exact AUTO_PRJ-695/PID `0x5901`/Common FW 2.0.0/single routes through V2 with V1/V2 full-byte parity. The 1.11-produced expected versus registered 1.13 differs only at four CRC words; cascade is excluded from v0.9.9 scope. |
@@ -157,7 +158,7 @@ Result summary:
 | NT51928 | 0 diff bytes after host-like normalization | Expected no-op with merge normalization. |
 | NT51929 | 0 diff bytes | Expected no-op. |
 | NT51930 | 2853 diff bytes | Postbuild-version mismatch candidate: current `2.0.0` catalog uses a longer header-copy/second-command shape than the 1.4.0-like golden. |
-| NT51931 | access violation with official BAT-shaped family | Investigation blocker. |
+| NT51931 | registered 1.13 access violation with official BAT-shaped family | Hash-only 1.2.0.4 diagnostic succeeds with empty `output/map.txt`; it is not registered or redistributable. |
 | NT51932 | 0 diff bytes | Expected no-op. |
 | NT51950 | 0 diff bytes | Expected no-op. |
 | NT51951 | 0 diff bytes | Expected no-op. |
@@ -177,7 +178,7 @@ Purpose: run the full single-branch postbuild sequence on an already-final golde
 | NT51928 | 64 | Expected CRC/header-word drift | 4-byte words near `0x23C`, `0x24C`, `0x1E24C..0x1E2B0`, `0x32FDC..0x33040` |
 | NT51929 | 16 | Expected CRC-generation drift | `0x7100..0x7104`, `0x7118..0x711C`, `0x27FF0..0x27FF4`, `0x28008..0x2800C` |
 | NT51930 | 2901 | Postbuild-version mismatch candidate | `2.0.0` run includes `0x7100`, `0x7118`, `0x28FB0` header area, and extensive `0x32000` changes; 51930 golden header-copy target matches `1.4.0` length `0x100` much more closely than `2.0.0` length `0x200` |
-| NT51931 | no output diff | Official command crashes | exit `0xC0000005` with no stdout/stderr |
+| NT51931 | 108 / 8 ranges in expected-derived control | Header/header-copy CRC only; replacement payload 0 diff | Registered 1.13 exits `0xC0000005` without mutation, so this is not production parity. |
 | NT51932 | 16 | Expected CRC-generation drift | `0x7100..0x7104`, `0x7118..0x711C`, `0x27FF0..0x27FF4`, `0x28008..0x2800C` |
 | NT51950 | 16 | Expected CRC-generation drift | `0xA11C..0xA120`, `0xA130..0xA134`, `0x2D428..0x2D42C`, `0x2D43C..0x2D440` |
 | NT51951 | 16 | Expected CRC-generation drift | same as NT51950 |
@@ -213,7 +214,7 @@ No-overlay/header-copy size cross-check:
 | NT51926 | `PostbuildSetup_51926_1.4.1.bat` and `PostbuildSetup_51926_2.0.0.bat` | Size remains `0x100`; mismatch is target address/codebase, not size. |
 | NT51929 / NT51932 | `PostbuildSetup_51932_2.0.0.bat` | `0x200`; this is the 2.0.0 NT-based header size. |
 | NT51930 | `PostbuildSetup_51930_1.4.0.bat`; `PostbuildSetup_51930_2.0.0.bat` evidence-only | Runtime accepts only 1.x through the 1.4.0 shape (`0x100`). The inspected 2.0.0 shape (`0x200`) is retained for traceability and cannot be selected. |
-| NT51931 | `PostbuildSetup_51931_1.3.0.bat` | `0x100` in official reference, but official execution still crashes with Combiner 1.13.0. |
+| NT51931 | `PostbuildSetup_51931_1.3.0.bat` | `0x100`; official execution still access-violates with registered Combiner 1.13.0. The diagnostic 1.2.0.4 executable is hash-only and cannot be packaged or routed. |
 | NT51950 / NT51951 | `PostbuildSetup_51950_2.0.0.bat` | `0x200`; this is the 2.0.0 NT-based header size. |
 
 Current conclusion: for normal/NT-based no-overlay postbuild, the size data is consistent when matched to the correct codebase family. Auto mode may use FWConfig Common FW version to choose the postbuild category and may keep the empty `map.txt` staging model for this no-overlay category. It must still fail closed for overlay-enabled or unclassified firmware.
@@ -369,7 +370,7 @@ agent-owned parity, tool, route, and review work.
 | --- | --- | --- |
 | NT51926 2.0.0 exact cases | Direct single/cascade DP, TP, physical CtrlRAM, DiffDLM where applicable, and full expected outputs are committed. Standard Merge decodes Common FW 2.0.0, PID `0x1309`, and chip counts 1/3. One-session/two-command V1 and V2 outputs are full-byte identical; each differs from owner expected at exactly four approved CRC words (16 bytes), with zero CtrlRAM payload drift. | Closed for the exact route. The D01/D02 naming discrepancy is not a byte-route discriminator; retain it as provenance. Support promotion remains false. |
 | NT51930 exact INX case | AUTO_PRJ-302/PID `0x110D`/Common FW 1.3.0/cascade 3 routes only the exact selector/metadata shape to `nt51930-ctrlram-replace-fw130-cascade3`. The retained V1 and V2 outputs are byte-identical at SHA `6725c501...ff48f`; one report session runs the one BAT-ordered `NT51930BASED_NORMAL_MODE CRC8` command through registered Combiner 1.13.0 SHA `ed6b5828...c76bf`. Wrong PID/version/count/numeric-selector shapes retain V1. | Engineering parity is closed for this exact route. The owner supplied final expected is an immutable reference sentinel, not an independent pre-replacement base: owner-to-current differences are 8 CRC bytes, 1 header-copy byte, and 4,388 bytes inside the declared DiffDLM range. The 29 ordered NF_Diff files and direct 577-byte NF composite are hash-pinned, but no DiffNFMerge derivation is claimed. Independent R3 review and support promotion remain separate. |
-| NT51931 exact cascade case | AUTO_PRJ-158/PID `0x131B`/cascade 6 has direct FlashCode, TP, physical inputs, BAT, Combiner hash, and full expected output. InsertSID is an out-of-scope pre-step and does not downgrade the case. | Treat it as `exact-case-parity-candidate`; lock the supplied hash/BAT/argv boundary and run full-byte parity. Do not keep Replace unsupported merely because `InsertSID.py` is absent. |
+| NT51931 exact cascade case | AUTO_PRJ-158/PID `0x131B`/cascade 6 has TP, physical inputs, BAT, owner expected, and hash-only Combiner evidence. The supplied D8DfT82 FlashCode differs from the D8DT83 expected in 73,645 bytes and is retained as historical non-same-build input. Expected-derived self-replacement has zero payload drift and 108 bytes in eight header/header-copy CRC ranges. | Evidence engineering is closed without production parity: owner tool SHA `778f6dce...af58` self-reports 1.2.0.4 and succeeds only as an unregistered diagnostic; registered 1.13 SHA `ed6b5828...c76bf` access-violates on the official argv. Keep NotAvailable until a redistributable compatible package or corrected registered tool exists. InsertSID remains out of scope and nonblocking. |
 | NT51932 exact cascade case | AUTO_PRJ-525/PID `0x5601`/Common FW 2.0.0/cascade 3 is materialized as `nt51932-ctrlram-replace-fw200-cascade3`. Admission additionally requires the exact owner/Standard-Merge reference SHA `3eb556e0...08fd`, so a different base with the same metadata tuple retains V1. V1 and V2 are byte-identical at SHA `0e59a2fb...2566`; their only 16 differences from the owner expected are the four approved CRC words. One session runs the two BAT-ordered registered Combiner 1.13 commands. | Engineering parity is closed. Direct `NF_Ctrlram.bin` is separately hash-pinned and byte-identical to `NF_Diff_0.bin`; DiffNFMerge is neither executed nor claimed as its derivation. Wrong base/PID/version/count/numeric-selector shapes retain V1, and the exact V2 candidate remains support-neutral/no-promotion. |
 | NT51951 exact single case | AUTO_PRJ-695/PID `0x5901`/Common FW 2.0.0/single is materialized as `nt51951-ctrlram-replace-fw200-single`. Standard Merge reconstructs the owner expected SHA `c1cd54d9...b6b69`; admission additionally requires that exact reference SHA. V1 and V2 are byte-identical at SHA `64ffa21a...d1ea`, with zero replacement-payload drift. | The owner-authorized 1.11→1.13 hypothesis is resolved as CRC-only, not full-byte equivalence: the four 4-byte ranges are `0xA11C..0xA120`, `0xA130..0xA134`, `0x2D428..0x2D42C`, and `0x2D43C..0x2D440`. Wrong base/PID/version/count/numeric-selector shapes retain V1; the exact candidate remains support-neutral/no-promotion. |
 | TP/full-Flash base parity | Hash-pinned config records reviewed/candidate TP prefixes and full-Flash capacities; NT51926 1.4.1 already proves exact TP and full-Flash execution shapes. | Close each release-exposed exact route with its direct expected output and independent R3 byte review before promotion. |
@@ -420,5 +421,5 @@ Each update should record:
 As of this report:
 
 ```text
-CtrlRAM Replace execution is traceable and the product contract requires both TP BIN and declared full Flash BIN with the same TP-relative semantics. The current Workbench admits both forms but does not yet enforce an explicit TP prefix for every IC; NT51926 Common FW 1.4.1 cascade and 2.0.0 single/cascade without a version edit route through exact V2 prefix/reinsert contracts. NT51926 2.0.0 V1/V2 parity is closed with only owner-approved CRC-word differences to the direct expected output. NT51930 AUTO_PRJ-302/PID 0x110D/Common FW 1.3.0/cascade 3 now has an exact support-neutral V2 route with V1/V2 full-byte equality; owner-final deltas remain explicitly classified because no independent pre-replacement base exists. The 2026-07-18 final intake closes all remaining owner-input gates for the other exact cases. InsertSID is outside the retirement parity boundary, NT51950/NT51951 cascade are release-scope exclusions, and every remaining parity/tool/route/review gate is agent-owned. No support promotion is claimed.
+CtrlRAM Replace execution is traceable and the product contract requires both TP BIN and declared full Flash BIN with the same TP-relative semantics. The current Workbench admits both forms but does not yet enforce an explicit TP prefix for every IC; NT51926 Common FW 1.4.1 cascade and 2.0.0 single/cascade without a version edit route through exact V2 prefix/reinsert contracts. NT51926 2.0.0 V1/V2 parity is closed with only owner-approved CRC-word differences to the direct expected output. NT51930 AUTO_PRJ-302/PID 0x110D/Common FW 1.3.0/cascade 3 now has an exact support-neutral V2 route with V1/V2 full-byte equality; owner-final deltas remain explicitly classified because no independent pre-replacement base exists. The 2026-07-18 final intake closes all owner-input gates. NT51931 remains NotAvailable only because registered 1.13 access-violates and the compatible diagnostic 1.2.0.4 executable is not approved for registration or redistribution. InsertSID is outside the retirement parity boundary, NT51950/NT51951 cascade are release-scope exclusions, and every remaining tool/route/review gate is agent-owned. No support promotion is claimed.
 ```

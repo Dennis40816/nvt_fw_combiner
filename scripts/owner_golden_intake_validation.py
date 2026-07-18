@@ -9,10 +9,12 @@ from typing import Any
 
 if __package__:
     from .owner_golden_nt51930_phase_b import nt51930_phase_b_result
+    from .owner_golden_nt51931_phase_b import nt51931_phase_b_result
     from .owner_golden_nt51932_phase_b import nt51932_phase_b_result
     from .owner_golden_nt51951_phase_b import nt51951_phase_b_result
 else:
     from owner_golden_nt51930_phase_b import nt51930_phase_b_result
+    from owner_golden_nt51931_phase_b import nt51931_phase_b_result
     from owner_golden_nt51932_phase_b import nt51932_phase_b_result
     from owner_golden_nt51951_phase_b import nt51951_phase_b_result
 
@@ -175,6 +177,7 @@ EXPECTED_20260718_NT51926_PHASE_B_RESULTS = {
 EXPECTED_20260718_PHASE_B_RESULTS = {
     **EXPECTED_20260718_NT51926_PHASE_B_RESULTS,
     "nt51930-fw130-cascade3-auto-prj-302-inx-20260718": nt51930_phase_b_result(),
+    "nt51931-fw130-cascade6-auto-prj-158-20260718": nt51931_phase_b_result(),
     "nt51932-fw200-cascade3-auto-prj-525-20260718": nt51932_phase_b_result(),
     "nt51951-fw200-single-auto-prj-695-20260718": nt51951_phase_b_result(),
 }
@@ -268,15 +271,17 @@ EXPECTED_20260718_CASES: dict[str, dict[str, Any]] = {
         "currentProfile": {
             "profileId": "nt51931-ctrlram-replace-workbench",
             "profileVersion": "0.5.0",
-            "route": "legacy-workbench-v1-not-available",
+            "route": "support-catalog-not-available",
         },
         "targetV2": {
-            "status": "exact-case-parity-candidate",
+            "status": "evidence-only-registered-tool-incompatible",
             "runtimePromotion": False,
         },
-        "baseKind": "direct-reference-flashcode",
+        "baseKind": "expected-derived-self-replacement-control",
         "engineeringGateIds": [
-            "combiner-hash-only",
+            "registered-1.13-access-violation",
+            "redistributable-compatible-tool-not-approved",
+            "provided-flashcode-not-same-build",
             "insertsid-out-of-scope-prestep",
         ],
         "expectedOutput": "fixtures/20260718/NT51931/replace/ctrlram/1.3.0/cascade/case-01/expected_output/NT51931_FlashCode_D8DT83_20260718.bin",
@@ -356,7 +361,10 @@ EXPECTED_20260718_TOOL_OBSERVATIONS = [
         "versionMetadata": "absent",
         "repositoryRegistration": "none",
         "includedInGolden": False,
-        "executionAuthorized": False,
+        "diagnosticExecution": "host-created-staging-only",
+        "selfReportedVersion": "1.2.0.4",
+        "runtimeRegistrationAuthorized": False,
+        "redistributionAuthorized": False,
     },
     {
         "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
