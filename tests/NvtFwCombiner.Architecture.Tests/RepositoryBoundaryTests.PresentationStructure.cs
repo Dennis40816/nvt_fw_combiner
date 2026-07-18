@@ -32,9 +32,12 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunProgressViewModel.cs");
         string progressResources = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.RunProgress.cs");
+        string progressConsumer = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs");
         string presentationSource = ReadPresentationSources(
             "CompositionRunProgressViewModel.cs",
-            "ShellTextResources.RunProgress.cs");
+            "ShellTextResources.RunProgress.cs",
+            "MainWindowViewModel.RunLifecycle.cs");
         string[] forbiddenTokens =
         [
             "NvtFwCombiner.Application.Composition",
@@ -61,6 +64,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("NvtFwCombiner.Application.HexEditor", presentationSource, StringComparison.Ordinal);
         Assert.Contains("NvtFwCombiner.Application.Composition", progressProjection, StringComparison.Ordinal);
         Assert.Contains("NvtFwCombiner.Application.Composition", progressResources, StringComparison.Ordinal);
+        Assert.Contains("NvtFwCombiner.Application.Composition", progressConsumer, StringComparison.Ordinal);
         foreach (string token in forbiddenTokens)
         {
             Assert.DoesNotContain(token, presentationSource, StringComparison.Ordinal);
@@ -68,6 +72,7 @@ public sealed partial class RepositoryBoundaryTests
             {
                 Assert.DoesNotContain(token, progressProjection, StringComparison.Ordinal);
                 Assert.DoesNotContain(token, progressResources, StringComparison.Ordinal);
+                Assert.DoesNotContain(token, progressConsumer, StringComparison.Ordinal);
             }
         }
     }

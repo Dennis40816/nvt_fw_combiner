@@ -13,7 +13,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-shell-preferences");
         string preferencesPath = workspace.PathFor(Path.Combine("state", "preferences.v1.json"));
-        var preferences = new ShellPreferenceSnapshot("Dark", "Traditional Chinese");
+        var preferences = new ShellPreferenceSnapshot("Dark", "Traditional Chinese", true);
 
         Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
 
@@ -43,6 +43,9 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("Dark", restoredViewModel.SelectedTheme);
         Assert.Equal("Traditional Chinese", restoredViewModel.SelectedLanguage);
+        Assert.True(restoredViewModel.IsReducedMotionEnabled);
+        Assert.True(restoredViewModel.CompositionProgress.IsReducedMotionEnabled);
+        Assert.False(restoredViewModel.CompositionProgress.ShouldAnimateActiveStep);
         Assert.Equal("設定", restoredViewModel.SettingsPreview.Title);
         Assert.Equal(preferences, restoredViewModel.ExportShellPreferences());
 
@@ -69,5 +72,6 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("System", defaultViewModel.SelectedTheme);
         Assert.Equal("English", defaultViewModel.SelectedLanguage);
+        Assert.False(defaultViewModel.IsReducedMotionEnabled);
     }
 }

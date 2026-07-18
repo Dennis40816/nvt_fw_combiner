@@ -185,7 +185,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         string dpPath = workspace.Write("nt51929-dp.bin", dp);
         string tpPath = workspace.Write("nt51929-tp.bin", tp);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+        var progress = new Application.Composition.CompositionRunProgressFeed();
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeWithProgressAsync(
             "NT51929",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -193,9 +194,26 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 ["tp-input"] = tpPath,
             },
             build: false,
+            progress,
             TestContext.Current.CancellationToken);
+        List<Application.Composition.CompositionRunProgressSnapshot> snapshots = [];
+        await foreach (Application.Composition.CompositionRunProgressSnapshot snapshot in
+            progress.ReadAllAsync(TestContext.Current.CancellationToken))
+        {
+            snapshots.Add(snapshot);
+        }
 
         Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(progress.IsAttached);
+        Assert.Equal(
+            [
+                Application.Composition.CompositionRunPhase.Preparing,
+                Application.Composition.CompositionRunPhase.ReadingInputs,
+                Application.Composition.CompositionRunPhase.ExecutingComposition,
+                Application.Composition.CompositionRunPhase.ValidatingOutput,
+                Application.Composition.CompositionRunPhase.PreparingReport,
+            ],
+            snapshots.Select(static snapshot => snapshot.CurrentPhase));
         Assert.Equal(0x40000, result.OutputSize);
         using var report = JsonDocument.Parse(result.ReportJson);
         Assert.Equal("nt51929-standard-merge-gen-flash", report.RootElement.GetProperty("ProfileId").GetString());

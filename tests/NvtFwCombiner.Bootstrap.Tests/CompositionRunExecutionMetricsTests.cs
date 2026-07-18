@@ -330,7 +330,7 @@ public sealed class CompositionRunExecutionMetricsTests
                     processorDependencyIds: ["synthetic-postbuild"],
                     classificationTags: ["tp-ctrlram"]),
             ],
-            [new RegionAccessRule("ctrlram", RegionAccessKind.Whole, "Synthetic CtrlRAM performance baseline.")],
+            [new RegionAccessRule("ctrlram", RegionAccessKind.Whole)],
             IcNumberInputMode.SingleSelector);
         return CreateRequest(
             profile,
@@ -352,11 +352,23 @@ public sealed class CompositionRunExecutionMetricsTests
         IReadOnlyList<InputArtifactBinding> bindings,
         IcNumberSelection selection)
     {
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        Assert.True(
-            compile.IsSuccess,
-            string.Join(Environment.NewLine, compile.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));
-        return CreateRequest(compile.CompiledComposition!, bindings, selection);
+        var plan = new CompositionPlan(
+            profile.Initialization,
+            profile.AddressSpaces,
+            profile.Operations);
+        CompiledComposition composition = CompiledComposition.CreateLegacy(
+            plan,
+            new LegacyCompiledCompositionIdentity(
+                profile.ProfileId,
+                profile.ProfileVersion,
+                profile.IcId,
+                profile.ModeId,
+                profile.ExperienceId,
+                profile.CompositionKind),
+            profile.DefaultOutputFileName,
+            CompiledIcNumberPolicy.SingleSelector,
+            profile.ValidationRequirements);
+        return CreateRequest(composition, bindings, selection);
     }
 
     private static CompositionRunRequest CreateRequest(

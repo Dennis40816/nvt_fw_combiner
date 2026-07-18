@@ -32,8 +32,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetReplaceMemoryDisplay", replace, StringComparison.Ordinal);
         Assert.DoesNotContain("RunReplaceAsync", replace, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.GetSupportedIcIds", bindings, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunStandardMergeAsync", mergeViewModel, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", replaceViewModel, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunStandardMergeWithProgressAsync", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunReplaceWithProgressAsync", replaceViewModel, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies all composition commands share one UI-owned run lifecycle.</summary>
@@ -49,9 +49,9 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Equal(2, CountOccurrences(merge, "return RunCompositionAsync("));
         Assert.Equal(1, CountOccurrences(replace, "return RunCompositionAsync("));
-        Assert.Contains("WorkbenchCompositionService.RunStandardMergeAsync", merge, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunGeneralMergeAsync", merge, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", replace, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunStandardMergeWithProgressAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunGeneralMergeWithProgressAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunReplaceWithProgressAsync", replace, StringComparison.Ordinal);
         Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("await Task.Run(", lifecycle, StringComparison.Ordinal);
         Assert.Contains("ApplyRunResult(result, build);", lifecycle, StringComparison.Ordinal);

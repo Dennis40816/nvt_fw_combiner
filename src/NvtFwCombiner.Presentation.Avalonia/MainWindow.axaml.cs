@@ -118,7 +118,8 @@ public sealed partial class MainWindow : Window
     {
         return propertyName is
             nameof(MainWindowViewModel.SelectedTheme) or
-            nameof(MainWindowViewModel.SelectedLanguage);
+            nameof(MainWindowViewModel.SelectedLanguage) or
+            nameof(MainWindowViewModel.IsReducedMotionEnabled);
     }
 
     private void ApplyThemePreference(string selectedTheme)

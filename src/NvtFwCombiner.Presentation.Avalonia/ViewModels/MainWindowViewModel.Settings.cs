@@ -35,10 +35,14 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     public partial string SelectedLanguage { get; set; } = "English";
 
+    /// <summary>Gets or sets whether non-essential progress motion is replaced with static emphasis.</summary>
+    [ObservableProperty]
+    public partial bool IsReducedMotionEnabled { get; set; }
+
     /// <summary>Exports local shell preferences for best-effort UI persistence.</summary>
     public ShellPreferenceSnapshot ExportShellPreferences()
     {
-        return new ShellPreferenceSnapshot(SelectedTheme, SelectedLanguage);
+        return new ShellPreferenceSnapshot(SelectedTheme, SelectedLanguage, IsReducedMotionEnabled);
     }
 
     /// <summary>Loads local shell preferences, ignoring values that are no longer valid choices.</summary>
@@ -48,6 +52,7 @@ public sealed partial class MainWindowViewModel
 
         SelectedTheme = NormalizePreference(preferences.Theme, ThemeChoices, SelectedTheme);
         SelectedLanguage = NormalizePreference(preferences.Language, LanguageChoices, SelectedLanguage);
+        IsReducedMotionEnabled = preferences.IsReducedMotionEnabled;
         RefreshSettingsState();
     }
 
@@ -114,5 +119,10 @@ public sealed partial class MainWindowViewModel
     partial void OnSelectedLanguageChanged(string value)
     {
         ApplyTextResources(ShellTextResources.LanguageFromPreference(value));
+    }
+
+    partial void OnIsReducedMotionEnabledChanged(bool value)
+    {
+        CompositionProgress.SetReducedMotion(value);
     }
 }

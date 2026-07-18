@@ -16,6 +16,7 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<WorkbenchGeneralReplacePatchInput> patchInputs,
         bool build,
         string? outputPath,
+        CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken)
     {
         if (!TryCreateGeneralReplaceRunContext(
@@ -190,7 +191,8 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: context.Selection,
             overwrite: true,
             cancellationToken,
-            patchVirtualArtifacts).ConfigureAwait(false);
+            patchVirtualArtifacts,
+            progress).ConfigureAwait(false);
     }
 
     private static bool GeneralReplaceTouchesTpRegion(

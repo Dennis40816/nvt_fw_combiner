@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -344,20 +345,33 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("0x", modal, StringComparison.Ordinal);
     }
 
-    /// <summary>Every composition run exposes one truthful indeterminate progress surface.</summary>
+    /// <summary>Every composition run exposes typed steps plus a reduced-motion-safe activity indicator.</summary>
     [Fact]
     public void CompositionRunShowsGlobalWorkflowProgress()
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
         string contextPanel = ReadPresentationFile("Resources/MainWindowShellPanels.axaml");
+        var contextDocument = XDocument.Parse(contextPanel);
+        XElement progressBar = Assert.Single(
+            contextDocument.Descendants(),
+            static element => element.Name.LocalName == "ProgressBar");
 
-        Assert.Contains("<ProgressBar", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("IsIndeterminate=\"True\"", shell, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding RunProgressAccessibleLabel}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("<ProgressBar", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding CompositionProgress.Steps}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleLabel}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ActiveRunIc}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ActiveRunNumber}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ActiveRunContextLabel}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsDeviceContextSelectionVisible}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Equal("True", progressBar.Attribute("IsIndeterminate")?.Value);
+        Assert.Equal("{Binding ShouldAnimateRunProgress}", progressBar.Attribute("IsVisible")?.Value);
+        Assert.Equal(
+            "{Binding RunProgressStatusLabel}",
+            progressBar.Attribute("AutomationProperties.Name")?.Value);
         Assert.DoesNotContain("AutomationProperties.Name=\"{Binding DeviceContextStatus}\"", shell, StringComparison.Ordinal);
-        Assert.DoesNotContain("<ProgressBar", contextPanel, StringComparison.Ordinal);
-        Assert.DoesNotContain("Value=\"{Binding RunProgress", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Value=\"{Binding RunProgress", contextPanel, StringComparison.Ordinal);
     }
 
     /// <summary>Keeps each byte value centered on the calculated 16-column viewport geometry.</summary>
