@@ -134,20 +134,22 @@ public sealed partial class ReportReviewViewModel
                     : T(language, "contains a difference that needs review", "包含需要審查的差異")));
         }
 
-        var hexDiffRows = new MemoizedIndexedReadOnlyList<ReportHexDiffRangeViewModel>(
-            count,
-            sourceIndex => ParseHexDiffRange(
+        ReportHexDiffRangeViewModel hexDiffRowFactory(int sourceIndex)
+        {
+            return ParseHexDiffRange(
                 reportUtf8,
                 slices[sourceIndex],
                 hexDiffDescriptors[sourceIndex],
                 outputSpaceId,
-                language));
+                language);
+        }
+
         return new OutputDifferenceProjection(
             rows,
             groups,
             summaryRows,
             acceptedCount,
-            new ReportHexDiffSource(hexDiffDescriptors, hexDiffRows));
+            new ReportHexDiffSource(hexDiffDescriptors, hexDiffRowFactory));
     }
 
     private static ReportLineViewModel ParseOutputDifference(

@@ -21,6 +21,7 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
 
         Assert.True(report.HexDiff.IsAvailable);
+        Assert.True(report.HexDiff.HasCompleteDifferenceWorkspace);
         Assert.Equal("Complete Hex Diff", report.HexDiff.AvailabilityTitle);
         Assert.Equal(WorkbenchAddressSpaceIds.OutputImage, report.HexDiff.OutputSpaceId);
         Assert.Equal(WorkbenchAddressSpaceIds.ReferenceBase, report.HexDiff.ReferenceSpaceId);
@@ -28,15 +29,24 @@ public sealed partial class ShellViewModelTests
         Assert.InRange(report.HexDiff.VisibleRows.Count, 1, 48);
         ReportHexDiffRangeViewModel selected = Assert.IsType<ReportHexDiffRangeViewModel>(report.HexDiff.SelectedRange);
         Assert.Equal(0x100, selected.Start);
+        Assert.True(selected.IsSelected);
         Assert.Contains("output-image", selected.AccessibleRange, StringComparison.Ordinal);
         Assert.Contains("half-open", selected.AccessibleRange, StringComparison.Ordinal);
+        Assert.Contains(selected.Title, selected.AccessibleLabel, StringComparison.Ordinal);
+        Assert.Contains(selected.Status, selected.AccessibleLabel, StringComparison.Ordinal);
+        Assert.Contains(selected.ChangedSummary, selected.AccessibleLabel, StringComparison.Ordinal);
         ReportHexDiffViewportRowViewModel changedRow = Assert.Single(
             report.HexDiff.VisibleRows,
             row => row.Start == 0x100);
         Assert.Equal(0b11, changedRow.ChangedMask);
         Assert.Contains("A5 5A", changedRow.OutputHex, StringComparison.Ordinal);
         Assert.False(changedRow.IsOriginalVisible);
+        Assert.Contains("changed", changedRow.AccessibleLabel, StringComparison.Ordinal);
         Assert.Contains("output", changedRow.AccessibleLabel, StringComparison.Ordinal);
+        ReportHexDiffViewportRowViewModel unchangedRow = Assert.Single(
+            report.HexDiff.VisibleRows,
+            row => row.Start == 0x110);
+        Assert.Contains("unchanged", unchangedRow.AccessibleLabel, StringComparison.Ordinal);
 
         report.HexDiff.ShowOriginalRows = true;
         Assert.True(changedRow.IsOriginalVisible);
@@ -49,15 +59,24 @@ public sealed partial class ShellViewModelTests
         report.HexDiff.JumpAddressCommand.Execute(null);
         Assert.Equal(0, report.HexDiff.FirstVisibleOffset);
         Assert.Null(report.HexDiff.SelectedRange);
+        Assert.True(report.HexDiff.HasNoSelectedRange);
+        Assert.False(selected.IsSelected);
         report.HexDiff.JumpAddress = "0x101";
         report.HexDiff.JumpAddressCommand.Execute(null);
         Assert.Equal(0x100, report.HexDiff.FirstVisibleOffset);
         Assert.Equal(0x100, report.HexDiff.SelectedRange?.Start);
+        Assert.False(report.HexDiff.HasNoSelectedRange);
+        Assert.True(selected.IsSelected);
         Assert.Contains("address", report.HexDiff.JumpStatus, StringComparison.Ordinal);
         report.HexDiff.JumpAddress = "0x102";
         report.HexDiff.JumpAddressCommand.Execute(null);
         Assert.Equal(0x100, report.HexDiff.FirstVisibleOffset);
         Assert.Null(report.HexDiff.SelectedRange);
+        Assert.False(selected.IsSelected);
+        report.HexDiff.SelectRangeCommand.Execute(selected);
+        Assert.Equal(selected, report.HexDiff.SelectedRange);
+        Assert.True(selected.IsSelected);
+        Assert.Equal(0x100, report.HexDiff.FirstVisibleOffset);
         report.HexDiff.JumpAddress = "0x200";
         report.HexDiff.JumpAddressCommand.Execute(null);
         Assert.Equal(0x200, report.HexDiff.FirstVisibleOffset);
@@ -77,9 +96,26 @@ public sealed partial class ShellViewModelTests
 
         var reopened = ReportReviewViewModel.FromJson(result.ReportJson, "persisted report");
         Assert.False(reopened.HexDiff.IsAvailable);
+        Assert.False(reopened.HexDiff.HasCompleteDifferenceWorkspace);
         Assert.True(reopened.HexDiff.HasPreviewFallback);
         Assert.Contains("not attached", reopened.HexDiff.AvailabilityDetail, StringComparison.Ordinal);
         Assert.DoesNotContain("InspectionSnapshot", result.ReportJson, StringComparison.Ordinal);
+
+        string noDifferenceJson = ReportJsonSamples.Succeeded(
+            runId: result.InspectionSnapshot!.RunId,
+            outputSize: result.OutputSize,
+            outputSha256: result.OutputSha256,
+            compositionKind: "Replace");
+        var noDifferenceReport = ReportReviewViewModel.FromJsonCancellable(
+            noDifferenceJson,
+            "no difference report",
+            outputArtifactPath: null,
+            result.InspectionSnapshot,
+            ShellLanguage.English,
+            TestContext.Current.CancellationToken);
+        Assert.True(noDifferenceReport.HexDiff.IsAvailable);
+        Assert.False(noDifferenceReport.HexDiff.HasCompleteDifferenceWorkspace);
+        Assert.False(noDifferenceReport.HexDiff.HasPreviewFallback);
     }
 
     /// <summary>Full-byte inspection fails closed for every report/snapshot identity and range invariant.</summary>
@@ -191,6 +227,74 @@ public sealed partial class ShellViewModelTests
         Assert.True(first.IsReviewRequired);
         Assert.Equal(39_996, first.Start);
 
+        string fragmentedJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(
+            count: 10_000,
+            sectionCount: 8,
+            runId: runId,
+            outputSize: result.OutputSize,
+            outputSha256: result.OutputSha256,
+            reviewEvery: 100);
+        var fragmented = ReportReviewViewModel.FromJsonCancellable(
+            fragmentedJson,
+            "fragmented preview report",
+            outputArtifactPath: null,
+            result.InspectionSnapshot,
+            ShellLanguage.English,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(64, fragmented.HexDiff.NavigatorPage.VisibleCount);
+
+        fragmented.HexDiff.JumpAddress = "0x9AB0";
+        fragmented.HexDiff.JumpAddressCommand.Execute(null);
+        ReportHexDiffRangeViewModel reviewSelection = Assert.IsType<ReportHexDiffRangeViewModel>(
+            fragmented.HexDiff.PinnedSelectedRange);
+        Assert.Same(fragmented.HexDiff.SelectedRange, reviewSelection);
+        Assert.True(reviewSelection.IsReviewRequired);
+        Assert.True(reviewSelection.IsSelected);
+        Assert.DoesNotContain(reviewSelection, fragmented.HexDiff.NavigatorPage.Items);
+        Assert.Equal(65, fragmented.HexDiff.VisibleNavigatorRowCount);
+        Assert.Equal(1, CountSelectedNavigatorRows(fragmented.HexDiff));
+        Assert.Equal(65, fragmented.HexDiff.MaterializedRangeCount);
+
+        fragmented.HexDiff.JumpAddress = "0x8CA4";
+        fragmented.HexDiff.JumpAddressCommand.Execute(null);
+        ReportHexDiffRangeViewModel acceptedSelection = Assert.IsType<ReportHexDiffRangeViewModel>(
+            fragmented.HexDiff.PinnedSelectedRange);
+        Assert.Same(fragmented.HexDiff.SelectedRange, acceptedSelection);
+        Assert.False(acceptedSelection.IsReviewRequired);
+        Assert.True(acceptedSelection.IsSelected);
+        Assert.False(reviewSelection.IsSelected);
+        Assert.DoesNotContain(acceptedSelection, fragmented.HexDiff.NavigatorPage.Items);
+        Assert.Equal(65, fragmented.HexDiff.VisibleNavigatorRowCount);
+        Assert.Equal(1, CountSelectedNavigatorRows(fragmented.HexDiff));
+        Assert.Equal(65, fragmented.HexDiff.MaterializedRangeCount);
+
+        fragmented.HexDiff.NavigatorPage.NextPageCommand.Execute(null);
+        Assert.Equal(1, fragmented.HexDiff.NavigatorPage.PageIndex);
+        Assert.Equal(64, fragmented.HexDiff.NavigatorPage.VisibleCount);
+        Assert.Same(acceptedSelection, fragmented.HexDiff.PinnedSelectedRange);
+        Assert.Equal(65, fragmented.HexDiff.VisibleNavigatorRowCount);
+        Assert.Equal(65, fragmented.HexDiff.MaterializedRangeCount);
+        Assert.Equal(1, CountSelectedNavigatorRows(fragmented.HexDiff));
+
+        ReportHexDiffRangeViewModel visiblePageSelection = Assert.IsType<ReportHexDiffRangeViewModel>(
+            fragmented.HexDiff.NavigatorPage.Items[0]);
+        fragmented.HexDiff.SelectRangeCommand.Execute(visiblePageSelection);
+        Assert.Same(visiblePageSelection, fragmented.HexDiff.SelectedRange);
+        Assert.Null(fragmented.HexDiff.PinnedSelectedRange);
+        Assert.False(acceptedSelection.IsSelected);
+        Assert.True(visiblePageSelection.IsSelected);
+        Assert.Equal(64, fragmented.HexDiff.VisibleNavigatorRowCount);
+        Assert.Equal(64, fragmented.HexDiff.MaterializedRangeCount);
+        Assert.Equal(1, CountSelectedNavigatorRows(fragmented.HexDiff));
+
+        fragmented.HexDiff.NavigatorPage.PreviousPageCommand.Execute(null);
+        Assert.Equal(0, fragmented.HexDiff.NavigatorPage.PageIndex);
+        Assert.Equal(64, fragmented.HexDiff.NavigatorPage.VisibleCount);
+        Assert.Same(visiblePageSelection, fragmented.HexDiff.PinnedSelectedRange);
+        Assert.Equal(65, fragmented.HexDiff.VisibleNavigatorRowCount);
+        Assert.Equal(65, fragmented.HexDiff.MaterializedRangeCount);
+        Assert.Equal(1, CountSelectedNavigatorRows(fragmented.HexDiff));
+
         string mismatchedJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(
             count: 1,
             sectionCount: 1,
@@ -207,6 +311,14 @@ public sealed partial class ShellViewModelTests
         Assert.False(mismatch.HexDiff.IsAvailable);
         Assert.Contains("do not match", mismatch.HexDiff.AvailabilityDetail, StringComparison.Ordinal);
 
+    }
+
+    private static int CountSelectedNavigatorRows(ReportHexDiffViewModel hexDiff)
+    {
+        int pageSelectionCount = hexDiff.NavigatorPage.Items
+            .OfType<ReportHexDiffRangeViewModel>()
+            .Count(static range => range.IsSelected);
+        return pageSelectionCount + (hexDiff.PinnedSelectedRange?.IsSelected == true ? 1 : 0);
     }
 
     private static async Task<WorkbenchRunResult> CreateGeneralReplaceInspectionResultAsync()
