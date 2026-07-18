@@ -9,8 +9,13 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 /// <summary>Main desktop window for the firmware combiner UI.</summary>
 public sealed partial class MainWindow : Window
 {
+    private static readonly TimeSpan ReportHistoryCloseFlushTimeout = TimeSpan.FromSeconds(5);
     private readonly DispatcherTimer _reportToastHoldTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer _reportToastFadeTimer = new() { Interval = TimeSpan.FromMilliseconds(40) };
+    private readonly ReportHistoryPersistenceCoordinator _reportHistoryPersistence =
+        new(ReportHistoryFileStore.SaveAsync);
+    private bool _isReportHistoryClosePending;
+    private bool _isReportHistoryPersistenceComplete;
 
     /// <summary>Initializes the main window controls.</summary>
     public MainWindow()
@@ -41,14 +46,54 @@ public sealed partial class MainWindow : Window
     }
 
     /// <inheritdoc />
-    protected override void OnClosing(WindowClosingEventArgs e)
+    protected override async void OnClosing(WindowClosingEventArgs e)
     {
+        ArgumentNullException.ThrowIfNull(e);
+
+        if (_isReportHistoryPersistenceComplete)
+        {
+            if (DataContext is MainWindowViewModel finalViewModel)
+            {
+                finalViewModel.CancelActiveRun();
+            }
+
+            base.OnClosing(e);
+            return;
+        }
+
+        e.Cancel = true;
+        if (_isReportHistoryClosePending)
+        {
+            base.OnClosing(e);
+            return;
+        }
+
+        _isReportHistoryClosePending = true;
+        IsEnabled = false;
         if (DataContext is MainWindowViewModel viewModel)
         {
             viewModel.CancelActiveRun();
         }
 
+        if (DataContext is INotifyPropertyChanged notifier)
+        {
+            notifier.PropertyChanged -= ViewModel_OnPropertyChanged;
+        }
+
+        Task completion = _reportHistoryPersistence.CompleteAsync();
         base.OnClosing(e);
+        try
+        {
+            await completion.WaitAsync(ReportHistoryCloseFlushTimeout);
+        }
+        catch (TimeoutException)
+        {
+            // Report history is best-effort local state; a stalled save must not trap the application open.
+        }
+
+        _isReportHistoryPersistenceComplete = true;
+        _isReportHistoryClosePending = false;
+        Dispatcher.UIThread.Post(Close);
     }
 
     /// <inheritdoc />
@@ -92,7 +137,7 @@ public sealed partial class MainWindow : Window
 
         if (e.PropertyName == nameof(MainWindowViewModel.ReportHistoryCount))
         {
-            ReportHistoryFileStore.Save(viewModel);
+            _reportHistoryPersistence.Queue(viewModel.ExportReportHistory());
         }
 
         if (e.PropertyName != nameof(MainWindowViewModel.HasReportToast))
