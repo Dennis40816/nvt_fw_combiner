@@ -270,6 +270,36 @@ thousands of difference rows. Node C keeps complete saved/exported JSON while
 moving parsing/projection off the dispatcher and bounding initial materialized
 detail through lazy tabs plus virtualization or paging.
 
+### Local performance probe
+
+`tools/NvtFwCombiner.PerformanceProbe` provides the repeatable, non-verifying
+measurement entry point for the timing values that must not become CI
+thresholds. It records source SHA and dirty state, OS/runtime/CPU/GC settings,
+the Legacy Combiner manifest hash, cold plus warm p50/p95, current-thread report
+allocation, working-set deltas, bounded report row counts, Build
+click-to-active latency, and maximum dispatcher-heartbeat gap. The report cases
+contain 24, 1,000, and 10,000 synthetic output differences; saved JSON includes
+each generated payload hash. The UI scheduling case uses the tracked NT51926
+Standard Merge golden because it requires no external executable and validates
+its output SHA before retaining a measurement. It measures only the shared UI
+run lifecycle and does not make a Replace support or performance-parity claim.
+
+Run it from the repository root in Release configuration. Output files are
+create-new so an earlier B/C record is never silently overwritten:
+
+```text
+.\.dotnet\dotnet.exe run --project tools\NvtFwCombiner.PerformanceProbe\NvtFwCombiner.PerformanceProbe.csproj -c Release -- --warmup 2 --iterations 10 --output <new-evidence-path>.json
+```
+
+The probe is a local evidence producer, not another repository verifier.
+`python scripts/verify.py --all` remains the only canonical final gate, while
+deterministic composition, artifact-read, processor-session, process-launch,
+staging-read, output-commit, progress-event, and byte/report-parity assertions
+remain in their focused tests. After final `0.9.9` reconciliation, nodes B and C
+must run this command under identical options and machine/runtime conditions;
+the resulting JSON remains untracked review evidence unless the owner approves
+an explicit sanitized evidence record.
+
 ## Typed run-progress core
 
 The first provisional ADR 0024 Application slice now owns seven stable phases:

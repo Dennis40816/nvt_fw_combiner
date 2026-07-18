@@ -76,9 +76,8 @@ REQUIRED_FILES = {
     "refcode/REFERENCE_MANIFEST.json",
     "refcode/gen_flash_bin_v2/SOURCE_MANIFEST.json",
     "refcode/ab_code_combiner/SOURCE_MANIFEST.json",
-    "tools/crc-worker/pyproject.toml",
+    "tools/crc-worker/pyproject.toml", "tools/NvtFwCombiner.PerformanceProbe/NvtFwCombiner.PerformanceProbe.csproj",
 }
-
 EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj", "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
     "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj", "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
@@ -88,9 +87,8 @@ EXPECTED_PROJECTS = {
     "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj", "tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj",
     "tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj", "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj", "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
-    "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
+    "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj", "tools/NvtFwCombiner.PerformanceProbe/NvtFwCombiner.PerformanceProbe.csproj",
 }
-
 EXPECTED_PROJECT_REFERENCES = {
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj": set(),
     "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj": set(),
@@ -138,6 +136,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
+    "tools/NvtFwCombiner.PerformanceProbe/NvtFwCombiner.PerformanceProbe.csproj": {"src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj"},
 }
 EXPECTED_SKILLS = {
     "nfc-architecture-change",

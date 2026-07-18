@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Presentation.Avalonia\NvtFwCombiner.Presentation.Avalonia.csproj" />
+  </ItemGroup>
+</Project>
