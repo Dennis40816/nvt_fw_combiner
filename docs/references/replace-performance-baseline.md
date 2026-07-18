@@ -97,6 +97,36 @@ Run the focused evidence from the repository root:
 dotnet test tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj --filter "FullyQualifiedName~CompositionReportPerformanceBaselineTests" --logger "console;verbosity=detailed"
 ```
 
+## Hex Diff projection microbaseline
+
+`ReportHexDiffEmitsColdWarmProjectionAndJumpObservations` uses the verified
+in-session Replace snapshot and a synthetic 10,000-range report. One isolated
+test process records cold and repeated projection-to-first-bounded-page time,
+current-thread allocation, GC deltas, testhost working set, and one off-page
+address jump. The assertions retain exact report/snapshot output identity,
+64-row navigator pages, at most 65 materialized navigator rows after a pinned
+selection, and the selected range semantics. The repeated projection
+intentionally keeps the cold model alive while the successor is built,
+matching the transient publication
+handoff in which the previous report remains current until its replacement is
+complete; `workingSetAfterWarm` is therefore a handoff snapshot, not a claim
+about steady retained state. It is sampled immediately after the successor
+projection and before the measured jump. `testhostLifetimePeakWorkingSet` is
+the testhost process high-water since startup, including fixture composition
+and JSON setup; it is not an isolated projection-interval peak.
+
+Run the focused observation from the repository root:
+
+```text
+dotnet test tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj --filter "FullyQualifiedName~ReportHexDiffEmitsColdWarmProjectionAndJumpObservations" --logger "console;verbosity=detailed"
+```
+
+The `HEX_DIFF_BASELINE` line is non-gating local evidence. Final Node B/C p50
+and p95 values require the same isolated-process run count, machine/runtime,
+input hashes, power mode, and monitoring setup at both nodes. A single warm
+repeat is not a percentile claim, and testhost working set does not replace the
+packaged Windows first-frame/manual acceptance record.
+
 ## Firmware evidence scope
 
 The synthetic counter cases are process-contract evidence, not firmware
