@@ -41,17 +41,21 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         TotalByteCount = isAvailable ? snapshot!.OutputBytes.Length : 0;
         TotalRowCount = isAvailable ? checked((TotalByteCount + BytesPerRow - 1) / BytesPerRow) : 0;
         HasPreviewFallback = !isAvailable && source.Count > 0;
-        NavigatorPage = ReportPagedListViewModel.Create(
+        HasCompleteDifferenceWorkspace = isAvailable && source.Count > 0;
+        NavigatorPage = ReportWindowedListViewModel.Create(
             source.NavigatorRows,
             pageSize: 64,
             language,
             loadInitialPage: isAvailable);
+        NavigatorPage.PropertyChanged += NavigatorPage_OnPropertyChanged;
         _selectRangeCommand = new RelayCommand<ReportHexDiffRangeViewModel>(SelectRange, CanSelectRange);
         _jumpAddressCommand = new RelayCommand(JumpToAddress, () => IsAvailable);
 
         if (isAvailable)
         {
-            SelectedRange = source.NavigatorRows.Count > 0 ? source.NavigatorRows[0] : null;
+            SelectedRange = NavigatorPage.Items.Count > 0
+                ? (ReportHexDiffRangeViewModel)NavigatorPage.Items[0]
+                : null;
             long initialOffset = SelectedRange?.Start ?? 0;
             JumpAddress = FormatAddress(initialOffset);
             ShowRowsAtOffset(initialOffset, InitialVisibleRowCount);
@@ -70,6 +74,9 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
     /// <summary>True when stored report ranges and bounded previews remain available without full bytes.</summary>
     public bool HasPreviewFallback { get; }
 
+    /// <summary>True when complete bytes and at least one reported difference can populate the workspace.</summary>
+    public bool HasCompleteDifferenceWorkspace { get; }
+
     /// <summary>Application-owned compiled output address space.</summary>
     public string OutputSpaceId { get; }
 
@@ -86,18 +93,34 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
     public ReportHexDiffViewportRowCollection VisibleRows { get; } = [];
 
     /// <summary>Review-first, bounded range navigator.</summary>
-    public ReportPagedListViewModel NavigatorPage { get; }
+    public ReportWindowedListViewModel NavigatorPage { get; }
 
-    /// <summary>Number of range-detail models materialized from report JSON.</summary>
-    internal int MaterializedRangeCount => _source.MaterializedCount;
+    /// <summary>Selected page-external range kept visible without materializing preceding pages.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPinnedSelectedRange))]
+    [NotifyPropertyChangedFor(nameof(VisibleNavigatorRowCount))]
+    public partial ReportHexDiffRangeViewModel? PinnedSelectedRange { get; private set; }
+
+    /// <summary>True when the selected range is outside the currently materialized navigator page.</summary>
+    public bool HasPinnedSelectedRange => PinnedSelectedRange is not null;
+
+    /// <summary>Bounded navigator control count, including at most one pinned selected range.</summary>
+    public int VisibleNavigatorRowCount => NavigatorPage.VisibleCount + (HasPinnedSelectedRange ? 1 : 0);
+
+    /// <summary>Number of navigator range-detail models retained from report JSON.</summary>
+    internal int MaterializedRangeCount => VisibleNavigatorRowCount;
 
     /// <summary>Selected report-owned range.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelectedRange))]
+    [NotifyPropertyChangedFor(nameof(HasNoSelectedRange))]
     public partial ReportHexDiffRangeViewModel? SelectedRange { get; private set; }
 
     /// <summary>True when the information panel has one report-owned selection.</summary>
     public bool HasSelectedRange => SelectedRange is not null;
+
+    /// <summary>True when the current output address is outside every reported difference.</summary>
+    public bool HasNoSelectedRange => SelectedRange is null;
 
     /// <summary>First output-space offset currently materialized.</summary>
     [ObservableProperty]
@@ -317,6 +340,62 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         return language == ShellLanguage.ChineseTraditional ? traditionalChinese : english;
     }
 
+    partial void OnSelectedRangeChanging(ReportHexDiffRangeViewModel? value)
+    {
+        if (SelectedRange is not null)
+        {
+            SelectedRange.IsSelected = false;
+        }
+    }
+
+    partial void OnSelectedRangeChanged(ReportHexDiffRangeViewModel? value)
+    {
+        if (value is not null)
+        {
+            value.IsSelected = true;
+        }
+
+        UpdatePinnedSelectedRange();
+    }
+
+    private void NavigatorPage_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (string.Equals(e.PropertyName, nameof(ReportWindowedListViewModel.VisibleCount), StringComparison.Ordinal))
+        {
+            UpdatePinnedSelectedRange();
+            OnPropertyChanged(nameof(VisibleNavigatorRowCount));
+        }
+    }
+
+    private void UpdatePinnedSelectedRange()
+    {
+        if (SelectedRange is null)
+        {
+            PinnedSelectedRange = null;
+            return;
+        }
+
+        foreach (object item in NavigatorPage.Items)
+        {
+            if (item is not ReportHexDiffRangeViewModel visibleRange ||
+                visibleRange.SourceIndex != SelectedRange.SourceIndex)
+            {
+                continue;
+            }
+
+            if (!ReferenceEquals(visibleRange, SelectedRange))
+            {
+                SelectedRange = visibleRange;
+                return;
+            }
+
+            PinnedSelectedRange = null;
+            return;
+        }
+
+        PinnedSelectedRange = SelectedRange;
+    }
+
     partial void OnShowOriginalRowsChanged(bool value)
     {
         foreach (ReportHexDiffViewportRowViewModel row in VisibleRows)
@@ -349,6 +428,9 @@ public sealed partial class ReportHexDiffViewportRowViewModel : ObservableObject
         ChangedMask = changedMask;
         OutputAccessibleLabel = language == ShellLanguage.ChineseTraditional ? "輸出" : "output";
         OriginalAccessibleLabel = language == ShellLanguage.ChineseTraditional ? "原始" : "original";
+        ChangeAccessibleLabel = language == ShellLanguage.ChineseTraditional
+            ? HasChanges ? "已變更" : "未變更"
+            : HasChanges ? "changed" : "unchanged";
         IsOriginalVisible = isOriginalVisible && HasChanges;
     }
 
@@ -380,14 +462,16 @@ public sealed partial class ReportHexDiffViewportRowViewModel : ObservableObject
 
     private string OriginalAccessibleLabel { get; }
 
+    private string ChangeAccessibleLabel { get; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AccessibleLabel))]
     public partial bool IsOriginalVisible { get; set; }
 
     /// <summary>Address-space-qualified row content for assistive review.</summary>
     public string AccessibleLabel => IsOriginalVisible
-        ? $"{Address}, {OutputAccessibleLabel} {OutputHex}, {OriginalAccessibleLabel} {OriginalHex}"
-        : $"{Address}, {OutputAccessibleLabel} {OutputHex}";
+        ? $"{Address}, {ChangeAccessibleLabel}, {OutputAccessibleLabel} {OutputHex}, {OriginalAccessibleLabel} {OriginalHex}"
+        : $"{Address}, {ChangeAccessibleLabel}, {OutputAccessibleLabel} {OutputHex}";
 }
 
 /// <summary>Bounded row window that publishes one collection reset per viewport change.</summary>

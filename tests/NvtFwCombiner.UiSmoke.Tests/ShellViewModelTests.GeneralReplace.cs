@@ -111,6 +111,11 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SelectedLanguage = "Traditional Chinese";
         await Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
+        Assert.Equal("唯讀 Hex Diff", viewModel.Text.HexDiffViewportTitle);
+        Assert.Equal("在變更列下方顯示原始內容", viewModel.Text.HexDiffShowOriginalRowsLabel);
+        Assert.Equal("變更資訊", viewModel.Text.HexDiffChangeInformationTitle);
+        Assert.Equal("變更前 SHA-256", viewModel.Text.HexDiffBeforeSha256Label);
+        Assert.Equal("變更後 SHA-256", viewModel.Text.HexDiffAfterSha256Label);
         ReportHexDiffViewModel chineseHexDiff = viewModel.LoadedReport.HexDiff;
         Assert.True(chineseHexDiff.IsAvailable);
         Assert.Equal("完整 Hex Diff", chineseHexDiff.AvailabilityTitle);
@@ -118,10 +123,12 @@ public sealed partial class ShellViewModelTests
             chineseHexDiff.SelectedRange);
         Assert.Contains("半開區間", chineseRange.AccessibleRange, StringComparison.Ordinal);
         Assert.Equal("預期", chineseRange.Status);
+        Assert.Contains("預期", chineseRange.AccessibleLabel, StringComparison.Ordinal);
         ReportHexDiffViewportRowViewModel chineseChangedRow = Assert.Single(
             chineseHexDiff.VisibleRows,
             static row => row.Start == 0x100);
         Assert.Contains("輸出", chineseChangedRow.AccessibleLabel, StringComparison.Ordinal);
+        Assert.Contains("已變更", chineseChangedRow.AccessibleLabel, StringComparison.Ordinal);
         chineseHexDiff.ShowOriginalRows = true;
         Assert.Contains("原始", chineseChangedRow.AccessibleLabel, StringComparison.Ordinal);
         chineseHexDiff.JumpAddress = "0x101";
