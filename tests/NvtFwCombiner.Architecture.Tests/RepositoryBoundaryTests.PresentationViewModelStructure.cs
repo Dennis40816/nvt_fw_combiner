@@ -163,6 +163,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("if (IsCurrentReportProjection(generation))", report, StringComparison.Ordinal);
         Assert.Contains("Interlocked.Increment(ref _reportProjectionGeneration)", report, StringComparison.Ordinal);
         Assert.Contains("private async Task OpenReportHistoryEntryAsync(", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("PreparedReportHistory prepared = await Task.Run(", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("if (!IsCurrentReportProjection(generation))", reportHistory, StringComparison.Ordinal);
         Assert.Contains("await ProjectReportAsync(", reportHistory, StringComparison.Ordinal);
         Assert.Contains("if (!IsCurrentReportProjection(generation))", reportHistory, StringComparison.Ordinal);
         Assert.Contains("BeginReportProjection(preserveHistoryReopen: true)", reportHistory, StringComparison.Ordinal);
@@ -318,7 +320,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private readonly ReportHistorySnapshot snapshot;", entry, StringComparison.Ordinal);
         Assert.Contains("public long StoredByteCount", entry, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportReviewViewModel", entry, StringComparison.Ordinal);
-        Assert.Contains("LoadReportHistoryEntry(latest);", history, StringComparison.Ordinal);
+        Assert.Contains("bool materializeAsCurrent = entries.Count == 0;", history, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport = prepared.LoadedReport;", history, StringComparison.Ordinal);
+        Assert.DoesNotContain("LoadReportHistoryEntry(", history, StringComparison.Ordinal);
         Assert.Contains("private async Task OpenReportHistoryEntryAsync(", history, StringComparison.Ordinal);
         Assert.Contains("report = await ProjectReportAsync(", history, StringComparison.Ordinal);
         Assert.DoesNotContain("LoadReportHistoryEntry(entry);", history, StringComparison.Ordinal);

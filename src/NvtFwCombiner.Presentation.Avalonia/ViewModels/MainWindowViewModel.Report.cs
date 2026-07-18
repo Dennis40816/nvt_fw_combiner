@@ -114,6 +114,63 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    /// <summary>Loads an external report source away from the dispatcher unless a newer report wins.</summary>
+    internal async Task<bool> LoadReportJsonAsync(
+        Func<CancellationToken, Task<string>> loadJson,
+        string sourceName,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(loadJson);
+        ArgumentNullException.ThrowIfNull(sourceName);
+        long generation = BeginReportProjection();
+        string json;
+        ReportReviewViewModel report;
+        bool sourceFailed = false;
+        try
+        {
+            json = await loadJson(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsCurrentReportProjection(generation))
+            {
+                return false;
+            }
+
+            report = await ProjectReportAsync(
+                json,
+                sourceName,
+                outputArtifactPath: null,
+                cancellationToken);
+        }
+        catch (Exception exception) when (IsReportSourceException(exception))
+        {
+            json = string.Empty;
+            sourceFailed = true;
+            report = ReportReviewViewModel.Error(
+                sourceName,
+                exception.Message,
+                "Load error",
+                "Load failed",
+                Text.Language);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsCurrentReportProjection(generation))
+        {
+            return false;
+        }
+
+        if (sourceFailed)
+        {
+            ApplyReportError(report, sourceName);
+        }
+        else
+        {
+            ApplyLoadedReport(report, json, sourceName);
+        }
+
+        return true;
+    }
+
     private async Task<ReportReviewViewModel> ProjectReportAsync(
         string json,
         string sourceName,
@@ -190,7 +247,14 @@ public sealed partial class MainWindowViewModel
         ArgumentNullException.ThrowIfNull(message);
 
         _ = BeginReportProjection();
-        LoadedReport = ReportReviewViewModel.Error(sourceName, message, "Load error", "Load failed", Text.Language);
+        ApplyReportError(
+            ReportReviewViewModel.Error(sourceName, message, "Load error", "Load failed", Text.Language),
+            sourceName);
+    }
+
+    private void ApplyReportError(ReportReviewViewModel report, string sourceName)
+    {
+        LoadedReport = report;
         LoadedReportJson = string.Empty;
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportIssueToast(sourceName));
@@ -401,5 +465,10 @@ public sealed partial class MainWindowViewModel
             ArgumentException or
             FormatException or
             OverflowException;
+    }
+
+    private static bool IsReportSourceException(Exception exception)
+    {
+        return exception is ArgumentException or IOException or NotSupportedException or UnauthorizedAccessException;
     }
 }

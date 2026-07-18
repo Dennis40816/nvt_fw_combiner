@@ -7,15 +7,19 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 namespace NvtFwCombiner.Presentation.Avalonia;
 
 /// <summary>Main desktop window for the firmware combiner UI.</summary>
-public sealed partial class MainWindow : Window
+public sealed partial class MainWindow : Window, IDisposable
 {
     private static readonly TimeSpan ReportHistoryCloseFlushTimeout = TimeSpan.FromSeconds(5);
     private readonly DispatcherTimer _reportToastHoldTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer _reportToastFadeTimer = new() { Interval = TimeSpan.FromMilliseconds(40) };
     private readonly ReportHistoryPersistenceCoordinator _reportHistoryPersistence =
         new(ReportHistoryFileStore.SaveAsync);
+    private readonly CancellationTokenSource _startupLoadCancellation = new();
+    private readonly UiLaunchOptions _launchOptions;
     private bool _isReportHistoryClosePending;
     private bool _isReportHistoryPersistenceComplete;
+    private bool _isDisposed;
+    private bool _isStartupLoadStarted;
 
     /// <summary>Initializes the main window controls.</summary>
     public MainWindow()
@@ -27,12 +31,12 @@ public sealed partial class MainWindow : Window
     public MainWindow(UiLaunchOptions launchOptions)
     {
         ArgumentNullException.ThrowIfNull(launchOptions);
+        _launchOptions = launchOptions;
 
         InitializeComponent();
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        ReportHistoryFileStore.LoadInto(viewModel);
         ShellPreferenceFileStore.LoadInto(viewModel);
         DataContext = viewModel;
         ApplyThemePreference(viewModel.SelectedTheme);
@@ -42,13 +46,17 @@ public sealed partial class MainWindow : Window
             notifier.PropertyChanged += ViewModel_OnPropertyChanged;
         }
 
-        ApplyLaunchOptions(viewModel, launchOptions);
+        ApplyInitialLaunchOptions(viewModel, launchOptions);
     }
 
     /// <inheritdoc />
     protected override async void OnClosing(WindowClosingEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
+        if (!_isDisposed)
+        {
+            _startupLoadCancellation.Cancel();
+        }
 
         if (_isReportHistoryPersistenceComplete)
         {
@@ -109,13 +117,42 @@ public sealed partial class MainWindow : Window
         _reportToastHoldTimer.Tick -= ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick -= ReportToastFadeTimer_OnTick;
         base.OnClosed(e);
+        Dispose();
     }
 
     /// <inheritdoc />
-    protected override void OnOpened(EventArgs e)
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+        _startupLoadCancellation.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    /// <inheritdoc />
+    protected override async void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
         WindowState = WindowState.Maximized;
+        if (_isStartupLoadStarted || DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        _isStartupLoadStarted = true;
+        CancellationToken startupCancellation = _startupLoadCancellation.Token;
+        await Task.Yield();
+        try
+        {
+            await ApplyDeferredLaunchOptionsAsync(viewModel, _launchOptions, startupCancellation);
+        }
+        catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
+        {
+        }
     }
 
     private void ViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
