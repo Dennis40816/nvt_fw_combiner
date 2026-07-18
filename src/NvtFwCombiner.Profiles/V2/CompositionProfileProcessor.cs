@@ -208,7 +208,7 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         }
 
         ValidatePurposeIntegrity(purpose, integrityDisposition);
-        _stagedSourceBindings = NvtFwCombiner.Domain.Composition.ImmutableReferenceSnapshot.Create(
+        _stagedSourceBindings = Domain.Composition.ImmutableReferenceSnapshot.Create(
             stagedSourceBindings,
             "Staged source bindings cannot contain null.");
 
@@ -218,7 +218,7 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         }
 
         Array.Sort(_stagedSourceBindings, CompareBindings);
-        _stagedArtifactBindings = NvtFwCombiner.Domain.Composition.ImmutableReferenceSnapshot.Create(
+        _stagedArtifactBindings = Domain.Composition.ImmutableReferenceSnapshot.Create(
             stagedArtifactBindings,
             "Staged artifact bindings must be non-null with unique artifact ids.");
         if (_stagedArtifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=

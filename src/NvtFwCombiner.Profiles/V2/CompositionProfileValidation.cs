@@ -164,7 +164,7 @@ internal sealed record MetadataValueProfileValidation : CompositionProfileValida
             throw new ArgumentOutOfRangeException(nameof(comparison), comparison, "Unknown metadata comparison.");
         }
 
-        _expectedValues = NvtFwCombiner.Domain.Composition.ImmutableReferenceSnapshot.Create(
+        _expectedValues = Domain.Composition.ImmutableReferenceSnapshot.Create(
             expectedValues,
             "Metadata comparisons require non-null expected values.",
             requireValue: true);
