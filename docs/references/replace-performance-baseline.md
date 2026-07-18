@@ -127,6 +127,19 @@ input hashes, power mode, and monitoring setup at both nodes. A single warm
 repeat is not a percentile claim, and testhost working set does not replace the
 packaged Windows first-frame/manual acceptance record.
 
+Using the same local .NET 10 exact-filter command in isolated test processes,
+the retained `aaa9edca` observation allocated
+`10,883,824`/`10,869,728` bytes for cold/repeated projection. Commit `65da6758`
+creates each per-index `Lazy<T>` only when that report row is requested; the
+same observation allocates
+`9,203,800`/`9,189,704` bytes. Each path removes exactly `1,680,024` bytes
+(`15.4%`) while preserving output SHA, `6,163,125` JSON characters, the
+10,000-range identity/bounds assertions, 64/65 navigator materialization, and
+the `51,952`-byte jump allocation. The corresponding one-sample elapsed values
+were `131.124`/`102.023` ms before and `140.850`/`119.596` ms after, so this
+slice makes no latency-improvement claim. Repeated same-source p50/p95 and
+packaged first-page evidence remain open.
+
 ## Firmware evidence scope
 
 The synthetic counter cases are process-contract evidence, not firmware
