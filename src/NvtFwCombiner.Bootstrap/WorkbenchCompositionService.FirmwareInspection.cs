@@ -20,6 +20,65 @@ public static partial class WorkbenchCompositionService
         return InspectFirmware(icId, path, tpPath, ctrlRamRequest, TryReadFirmwareImage);
     }
 
+    /// <summary>Reads every distinct selected path once and returns named immutable projections.</summary>
+    public static IReadOnlyList<WorkbenchFirmwareInspectionResult> InspectFirmwareBatch(
+        string icId,
+        IReadOnlyList<WorkbenchFirmwareInspectionInput> inputs)
+    {
+        return InspectFirmwareBatch(icId, inputs, TryReadFirmwareImage);
+    }
+
+    internal static IReadOnlyList<WorkbenchFirmwareInspectionResult> InspectFirmwareBatch(
+        string icId,
+        IReadOnlyList<WorkbenchFirmwareInspectionInput> inputs,
+        Func<string, byte[]?> readFirmwareImage)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(inputs);
+        ArgumentNullException.ThrowIfNull(readFirmwareImage);
+
+        var inspectionIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (WorkbenchFirmwareInspectionInput? input in inputs)
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            ArgumentException.ThrowIfNullOrWhiteSpace(input.InspectionId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(input.Path);
+            if (!inspectionIds.Add(input.InspectionId))
+            {
+                throw new ArgumentException(
+                    $"Duplicate firmware inspection id '{input.InspectionId}'.",
+                    nameof(inputs));
+            }
+        }
+
+        var images = new Dictionary<string, byte[]?>(StringComparer.Ordinal);
+        byte[]? ReadOnce(string path)
+        {
+            if (!images.TryGetValue(path, out byte[]? image))
+            {
+                image = readFirmwareImage(path);
+                images.Add(path, image);
+            }
+
+            return image;
+        }
+
+        List<WorkbenchFirmwareInspectionResult> results = [];
+        foreach (WorkbenchFirmwareInspectionInput input in inputs)
+        {
+            results.Add(new WorkbenchFirmwareInspectionResult(
+                input.InspectionId,
+                InspectFirmware(
+                    icId,
+                    input.Path,
+                    input.TpPath,
+                    input.CtrlRamRequest,
+                    ReadOnce)));
+        }
+
+        return results;
+    }
+
     internal static WorkbenchFirmwareInspection InspectFirmware(
         string icId,
         string path,
@@ -63,6 +122,25 @@ public static partial class WorkbenchCompositionService
             ReadCmiDpCodeMetadata(icId, image, tpFirmwareConfig?.ChipNumber),
             ReadFirmwareContextSuggestion(icId, firmwareConfig),
             ctrlRamDisplay);
+    }
+
+    /// <summary>Reprojects CtrlRAM display state from an existing immutable firmware inspection.</summary>
+    public static WorkbenchCtrlRamInspectionDisplay ProjectCtrlRamInspectionDisplay(
+        string icId,
+        string number,
+        WorkbenchFirmwareConfigMetadata? firmwareConfig)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(number);
+
+        LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
+            icId,
+            firmwareConfig?.CommonFwVersion,
+            firmwareConfig?.IsFirmwareVersionBarValid == true,
+            out LegacyCombinerPostbuildProfile? resolvedProfile)
+                ? resolvedProfile
+                : null;
+        return CreateCtrlRamInspectionDisplay(icId, number, postbuildProfile);
     }
 
     private static WorkbenchDpVersionMetadata? ReadDpVersionMetadata(string icId, ReadOnlySpan<byte> image)
@@ -182,6 +260,19 @@ public static partial class WorkbenchCompositionService
         FirmwareConfigMetadata? metadata,
         out LegacyCombinerPostbuildProfile? postbuildProfile)
     {
+        return TryResolvePostbuildProfileForDisplay(
+            icId,
+            metadata?.CommonFwVersion,
+            metadata?.IsFirmwareVersionBarValid == true,
+            out postbuildProfile);
+    }
+
+    private static bool TryResolvePostbuildProfileForDisplay(
+        string icId,
+        string? commonFwVersion,
+        bool isFirmwareVersionBarValid,
+        out LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
         IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
         postbuildProfile = null;
         if (profiles.Count == 0)
@@ -195,10 +286,11 @@ public static partial class WorkbenchCompositionService
             return true;
         }
 
-        return metadata is { IsFirmwareVersionBarValid: true } firmwareConfig &&
+        return isFirmwareVersionBarValid &&
+            !string.IsNullOrWhiteSpace(commonFwVersion) &&
             TrySelectPostbuildProfileByCommonFwVersion(
                 icId,
-                firmwareConfig.CommonFwVersion,
+                commonFwVersion,
                 out postbuildProfile,
                 out _);
     }

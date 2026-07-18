@@ -129,6 +129,18 @@ public sealed record WorkbenchCtrlRamInspectionDisplay(
     IReadOnlyList<WorkbenchReplaceInputSlot> InputSlots,
     WorkbenchMemoryDisplay MemoryDisplay);
 
+/// <summary>One named firmware projection requested from a shared distinct-path read batch.</summary>
+public sealed record WorkbenchFirmwareInspectionInput(
+    string InspectionId,
+    string Path,
+    string? TpPath = null,
+    WorkbenchCtrlRamInspectionRequest? CtrlRamRequest = null);
+
+/// <summary>One named materialized result from a shared distinct-path read batch.</summary>
+public sealed record WorkbenchFirmwareInspectionResult(
+    string InspectionId,
+    WorkbenchFirmwareInspection Inspection);
+
 /// <summary>One selected firmware path candidate used by output naming metadata policy.</summary>
 public sealed record WorkbenchOutputNameCandidate(
     WorkbenchOutputNameCandidateKind Kind,
