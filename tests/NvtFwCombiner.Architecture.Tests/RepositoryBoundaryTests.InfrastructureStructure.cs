@@ -13,6 +13,27 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerToolResolver.cs");
         string legacyRoot = ReadText(
             "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs");
+        string legacyStaging = ReadText(
+            "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.Staging.cs");
+        string normalizedLegacyRoot = legacyRoot.ReplaceLineEndings("\n");
+        int legacyCommandLoopStart = legacyRoot.IndexOf(
+            "foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)",
+            StringComparison.Ordinal);
+        int legacyCommandLoopEnd = legacyRoot.IndexOf(
+            "// Plans are nonempty, and the last per-command check follows every staging mutation.",
+            legacyCommandLoopStart,
+            StringComparison.Ordinal);
+        int legacyStagingValidation = legacyRoot.IndexOf(
+            "CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, stagingTreePolicy);",
+            StringComparison.Ordinal);
+        int legacyArtifactVerification = legacyRoot.IndexOf(
+            "CompositionIssue? artifactMutationIssue = await VerifyStagedArtifactsUnchangedAsync(",
+            legacyCommandLoopStart,
+            StringComparison.Ordinal);
+        int legacyShortOutputNormalization = legacyRoot.IndexOf(
+            "CompositionIssue? lengthIssue = await NormalizeShortenedFirmwareAsync(",
+            legacyCommandLoopStart,
+            StringComparison.Ordinal);
 
         Assert.Contains("public sealed partial class ExternalCombinerProcessor", root, StringComparison.Ordinal);
         Assert.Contains("TransformAsync", root, StringComparison.Ordinal);
@@ -34,6 +55,28 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("_toolResolver.TryResolve", legacyRoot, StringComparison.Ordinal);
         Assert.Contains("ReadOnlyMemory<byte> inputBytes = request.InputBytes;", legacyRoot, StringComparison.Ordinal);
         Assert.DoesNotContain("request.InputBytes.ToArray()", legacyRoot, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(legacyRoot, "CreateStagingTreePolicy("));
+        Assert.Equal(1, CountOccurrences(legacyRoot, "ValidateStagingTree("));
+        Assert.Contains(
+            "StagingTreePolicy stagingTreePolicy = CreateStagingTreePolicy(profile, resolvedManifest, commandPlan);\n"
+                + "            foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)",
+            normalizedLegacyRoot,
+            StringComparison.Ordinal);
+        Assert.True(legacyCommandLoopStart >= 0);
+        Assert.True(legacyCommandLoopEnd > legacyCommandLoopStart);
+        Assert.InRange(legacyArtifactVerification, legacyCommandLoopStart, legacyCommandLoopEnd);
+        Assert.InRange(legacyShortOutputNormalization, legacyArtifactVerification, legacyCommandLoopEnd);
+        Assert.InRange(legacyStagingValidation, legacyCommandLoopStart, legacyCommandLoopEnd);
+        Assert.True(legacyStagingValidation > legacyShortOutputNormalization);
+        Assert.Contains(
+            "StagingTreePolicy stagingTreePolicy = CreateStagingTreePolicy(profile, resolvedManifest, commandPlan);",
+            legacyRoot,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, stagingTreePolicy);",
+            legacyRoot,
+            StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(legacyStaging, "private static StagingTreePolicy CreateStagingTreePolicy("));
         Assert.DoesNotContain("SHA256", legacyRoot, StringComparison.Ordinal);
         Assert.Contains("GetLowerSha256", toolResolution, StringComparison.Ordinal);
         Assert.Contains("SHA256.HashData", toolResolution, StringComparison.Ordinal);

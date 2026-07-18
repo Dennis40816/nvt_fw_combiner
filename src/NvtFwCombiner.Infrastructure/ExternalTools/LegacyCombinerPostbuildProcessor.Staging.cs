@@ -377,8 +377,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         return bytes;
     }
 
-    private static CompositionIssue? ValidateStagingTree(
-        string runDirectory,
+    private static StagingTreePolicy CreateStagingTreePolicy(
         LegacyCombinerPostbuildProfile profile,
         ExternalCombinerToolManifest manifest,
         LegacyCombinerPostbuildCommandPlan commandPlan)
@@ -406,10 +405,17 @@ public sealed partial class LegacyCombinerPostbuildProcessor
             OutputDirectoryName,
             BinDirectoryName,
         };
+        return new StagingTreePolicy(allowedRelativePaths, allowedRelativeDirectories);
+    }
+
+    private static CompositionIssue? ValidateStagingTree(
+        string runDirectory,
+        StagingTreePolicy policy)
+    {
         foreach (string directoryPath in Directory.EnumerateDirectories(runDirectory, "*", SearchOption.AllDirectories))
         {
             string relativePath = Path.GetRelativePath(runDirectory, directoryPath);
-            if (!allowedRelativeDirectories.Contains(relativePath))
+            if (!policy.AllowsDirectory(relativePath))
             {
                 return new CompositionIssue(
                     "external-tool.staging.unexpected-directory",
@@ -420,7 +426,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         foreach (string filePath in Directory.EnumerateFiles(runDirectory, "*", SearchOption.AllDirectories))
         {
             string relativePath = Path.GetRelativePath(runDirectory, filePath);
-            if (!allowedRelativePaths.Contains(relativePath))
+            if (!policy.AllowsFile(relativePath))
             {
                 return new CompositionIssue(
                     "external-tool.staging.unexpected-file",
@@ -429,5 +435,23 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         }
 
         return null;
+    }
+
+    private sealed class StagingTreePolicy(
+        HashSet<string> allowedRelativePaths,
+        HashSet<string> allowedRelativeDirectories)
+    {
+        private readonly HashSet<string> _allowedRelativePaths = allowedRelativePaths;
+        private readonly HashSet<string> _allowedRelativeDirectories = allowedRelativeDirectories;
+
+        internal bool AllowsFile(string relativePath)
+        {
+            return _allowedRelativePaths.Contains(relativePath);
+        }
+
+        internal bool AllowsDirectory(string relativePath)
+        {
+            return _allowedRelativeDirectories.Contains(relativePath);
+        }
     }
 }
