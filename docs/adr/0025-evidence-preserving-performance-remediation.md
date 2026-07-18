@@ -97,6 +97,14 @@ full-output golden parity and firmware-owner review.
   evidence records click-to-progress and maximum UI-thread blocked intervals;
   wall-clock numbers are evidence, not universal CI thresholds.
 
+The first implementation slice captures all mutable Merge/Replace ViewModel
+inputs before the yield, publishes active state, explicitly yields once, and
+runs the existing Workbench/Application delegate through a background worker
+with its original cancellation token. Only result application returns to the
+captured UI context. Report JSON parsing and detail projection are deliberately
+left for the separate large-report slice below, so their dispatcher cost stays
+visible and independently reviewable.
+
 ### Large change-report scalability
 
 - Canonical report JSON, hashes, classifications, ranges, mutations, processor

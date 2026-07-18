@@ -63,6 +63,13 @@ measured before/after parity.
   output is actually short. NT51926 full-output golden parity passes; final
   `0.9.9` replay, canonical full verification, and firmware-owner review remain
   open gates.
+- Added the first ADR 0025 Build-responsiveness slice. Merge and Replace now
+  capture IC, IC number, mode, slot paths, mappings, and output options before
+  yielding the dispatcher; the existing Workbench/Application run then starts
+  on a background worker with the same cancellation token. Deterministic UI
+  smoke coverage locks progress-before-work, off-caller-thread execution, and
+  captured-input ownership. Large-report parsing/projection remains a separate
+  pending phase rather than being hidden inside this scheduling change.
 - Defined three comparison nodes: pre-rebase historical A, final-`0.9.9`
   unoptimized B, and the same reconciled source as optimized `0.9.10` node C.
   Only B/C may support a performance decision. Deterministic counters and

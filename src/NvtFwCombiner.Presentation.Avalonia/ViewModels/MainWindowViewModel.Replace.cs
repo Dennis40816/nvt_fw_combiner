@@ -50,28 +50,33 @@ public sealed partial class MainWindowViewModel
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit)
     {
         CloseReplaceSelectionForRun();
+        string icId = SelectedIc;
+        string number = SelectedNumber;
+        string replaceMode = SelectedReplaceMode;
+        IReadOnlyDictionary<string, string> slotPaths = CreateReplaceSlotPaths();
+        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs = CreateGeneralReplaceMappingInputs();
         return RunCompositionAsync(
             build,
             cancellationToken => WorkbenchCompositionService.RunReplaceAsync(
-                SelectedIc,
-                SelectedNumber,
-                SelectedReplaceMode,
-                CreateReplaceSlotPaths(),
-                CreateGeneralReplaceMappingInputs(),
+                icId,
+                number,
+                replaceMode,
+                slotPaths,
+                mappingInputs,
                 build,
                 cancellationToken,
                 outputPath,
                 ctrlRamFirmwareVersionEdit),
             (action, errorMessage) => LoadRunErrorReport(
                 action,
-                $"{SelectedIc.ToLowerInvariant()}-{SelectedReplaceMode.ToLowerInvariant()}-replace",
-                SelectedIc,
-                SelectedNumber,
+                $"{icId.ToLowerInvariant()}-{replaceMode.ToLowerInvariant()}-replace",
+                icId,
+                number,
                 errorMessage,
-                CreateReplaceSlotPaths(),
+                slotPaths,
                 compositionKind: "Replace",
-                modeId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace",
-                experienceId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace"));
+                modeId: $"{replaceMode.ToLowerInvariant()}-replace",
+                experienceId: $"{replaceMode.ToLowerInvariant()}-replace"));
     }
     private Dictionary<string, string> CreateReplaceSlotPaths()
     {

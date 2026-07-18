@@ -170,8 +170,9 @@ SHA-256.
 
 The owner clarified on 2026-07-18 that code size is measured but is not a
 `v0.9.10` optimization priority. The maintainable I/O seam and deterministic
-counters update the exact production ratchet from `56,720` to `56,821`; no
-safety check or evidence was removed to offset the change.
+counters first updated the exact production ratchet from `56,720` to `56,821`.
+The isolated Build scheduling slice then records `56,838`; no safety check or
+evidence was removed to offset either change.
 
 Staged immutable-artifact verification reads are separate and must not be
 hidden in future evidence. During the conservative phase, the first canonical
@@ -198,13 +199,24 @@ The optimized C target is at most one full-file read for one immutable display
 snapshot identity/hash, with cancellation and invalidation when identity or
 content changes. Build still performs its own authoritative read and hash.
 
-## Current Build responsiveness and report scale
+## Build responsiveness and report scale
 
-The current ViewModel establishes run ownership, then invokes the workbench
-delegate directly. Synchronous planning before the delegate reaches its first
-incomplete await can delay the initial progress repaint. After the run returns,
-`ApplyRunResult` synchronously parses `ReportJson`, constructs the complete
-`ReportReviewViewModel`, captures history, and publishes every report binding.
+Before the first scheduling slice, the ViewModel established run ownership and
+then invoked the workbench delegate directly. Synchronous planning before the
+delegate reached its first incomplete await could delay the initial progress
+repaint. The provisional C slice now captures the selected IC, IC number, mode,
+slot paths, mappings, and output options before any yield; it publishes active
+state, explicitly yields the dispatcher, and invokes the unchanged
+Workbench/Application run on a background worker with the existing
+cancellation token. A deterministic blocking fake records progress event order
+before worker entry and confirms the worker is not the caller thread. A second
+smoke changes the live IC immediately after scheduling and confirms that the
+run report retains the captured IC and file bindings.
+
+After the background run returns, `ApplyRunResult` still synchronously parses
+`ReportJson`, constructs the complete `ReportReviewViewModel`, captures history,
+and publishes every report binding on the UI context. That remaining cost is
+not claimed as solved by the scheduling slice.
 
 `ReportReviewViewModel.FromJson` currently enumerates every output difference
 and constructs all rows, facts, groups, summary rows, mutations, operations,

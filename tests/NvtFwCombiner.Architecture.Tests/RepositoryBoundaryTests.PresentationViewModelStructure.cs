@@ -51,6 +51,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WorkbenchCompositionService.RunStandardMergeAsync", merge, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.RunGeneralMergeAsync", merge, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", replace, StringComparison.Ordinal);
+        Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("await Task.Run(", lifecycle, StringComparison.Ordinal);
         Assert.Contains("ApplyRunResult(result, build);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("loadErrorReport(action, exception.Message);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("CompleteRun(cancellationSource);", lifecycle, StringComparison.Ordinal);

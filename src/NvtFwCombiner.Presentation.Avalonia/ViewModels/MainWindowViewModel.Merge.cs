@@ -102,41 +102,52 @@ public sealed partial class MainWindowViewModel
 
     private Task RunStandardMergeAsync(bool build, string? outputPath)
     {
+        string icId = SelectedIc;
+        string number = SelectedNumber;
+        IReadOnlyDictionary<string, string> slotPaths = CreateStandardMergeSlotPaths();
+        string profileId =
+            WorkbenchCompositionService.GetStandardMergeProfileId(icId) ?? WorkbenchWorkflowIds.StandardMerge;
         return RunCompositionAsync(
             build,
             cancellationToken => WorkbenchCompositionService.RunStandardMergeAsync(
-                SelectedIc,
-                CreateStandardMergeSlotPaths(),
+                icId,
+                slotPaths,
                 build,
                 cancellationToken,
                 outputPath),
             (action, errorMessage) => LoadRunErrorReport(
                 action,
-                WorkbenchCompositionService.GetStandardMergeProfileId(SelectedIc) ?? WorkbenchWorkflowIds.StandardMerge,
-                SelectedIc,
-                SelectedNumber,
+                profileId,
+                icId,
+                number,
                 errorMessage,
-                CreateStandardMergeSlotPaths()));
+                slotPaths));
     }
 
     private Task RunGeneralMergeAsync(bool build, string? outputPath)
     {
+        string icId = SelectedIc;
+        string number = SelectedNumber;
+        string outputLength = GeneralMergeOutputLength;
+        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs = CreateGeneralMergeMappingInputs();
+        IReadOnlyDictionary<string, string> slotPaths = CreateGeneralMergeSlotPaths();
+        string outputFileName = WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId);
         return RunCompositionAsync(
             build,
             cancellationToken => WorkbenchCompositionService.RunGeneralMergeAsync(
-                SelectedIc,
-                GeneralMergeOutputLength,
-                CreateGeneralMergeMappingInputs(),
+                icId,
+                outputLength,
+                mappingInputs,
                 build,
                 cancellationToken,
                 outputPath),
             (action, errorMessage) => LoadRunErrorReport(
                 action,
-                WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(SelectedIc),
-                SelectedIc,
-                SelectedNumber,
+                outputFileName,
+                icId,
+                number,
                 errorMessage,
-                CreateGeneralMergeSlotPaths(),
+                slotPaths,
                 compositionKind: "Merge",
                 modeId: WorkbenchWorkflowIds.GeneralMerge,
                 experienceId: WorkbenchWorkflowIds.GeneralMerge));

@@ -47,7 +47,7 @@ public sealed partial class MainWindowViewModel
         cancellationSource.Dispose();
     }
 
-    private async Task RunCompositionAsync(
+    internal async Task RunCompositionAsync(
         bool build,
         Func<CancellationToken, ValueTask<WorkbenchRunResult>> run,
         Action<string, string> loadErrorReport)
@@ -56,17 +56,18 @@ public sealed partial class MainWindowViewModel
         try
         {
             cancellationSource = BeginRun(build);
-            WorkbenchRunResult result = await run(cancellationSource.Token);
+            await Task.Yield();
+            WorkbenchRunResult result = await Task.Run(
+                () => run(cancellationSource.Token).AsTask(),
+                cancellationSource.Token);
             ApplyRunResult(result, build);
-            RefreshCommandState();
         }
         catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
         {
-            RefreshCommandState();
+            return;
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
-            RefreshCommandState();
             string action = build ? "Build" : "Preview";
             LastRunResult = new UiRunResultViewModel(
                 $"{action} failed",
