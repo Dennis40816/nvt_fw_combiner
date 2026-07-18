@@ -147,8 +147,8 @@ public static partial class CliApplication
             bindings,
             outputTarget.FileName);
 
-        CompositionRunResult result = await CompositionRunExecutionSupport
-            .PreviewOrBuildAsync(service, request, action == "build", cancellationToken)
+        CompositionRunResult result = await service
+            .PreviewOrBuildAsync(request, action == "build", cancellationToken)
             .ConfigureAwait(false);
         await CliCompositionRunSupport.WriteReportFileIfRequestedAsync(
                 result,
