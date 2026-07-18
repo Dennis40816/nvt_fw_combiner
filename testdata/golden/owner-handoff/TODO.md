@@ -1,14 +1,13 @@
-# Current Golden Evidence Request
+# Current Golden Evidence Status
 
-請只使用
-[`0718-missing-owner-evidence/README_請先看.md`](0718-missing-owner-evidence/README_請先看.md)。
+最後一批 owner golden 已在 2026-07-18 完成收件。現在沒有待 owner 補資料或
+補決策的 input gate。
 
-新版已完成以下修正：
+目前唯一有效的收件與工程 gate 清單是：
 
-- 移除所有 `base.bin` 要求；
-- 移除已存在的 NT51929／NT51950 AB 與核准 alias 的重複要求；
-- 移除已收齊 case 的空資料夾要求；
-- 只保留 NT51930、NT51931、NT51932、NT51950 cascade、NT51951、
-  NT51930 DP Replace，以及兩項需 owner 決策的 migration gap。
+- `../ctrlram-replace/manifest.20260718.json`
+- `../../../docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md`
 
-舊 per-IC `CASE.md` 是歷史記錄，不是 0718 的有效收件清單。
+`0718-missing-owner-evidence/` 與舊 per-IC `CASE.md` 只保留歷史追蹤用途，不能再
+當成收件清單。剩餘 hash/manifest、V1/V2/expected parity、tool experiment、route
+收斂、code-size、R2/R3 review 與 release verification 都是 agent-owned gate。

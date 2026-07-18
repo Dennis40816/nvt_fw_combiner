@@ -19,7 +19,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from owner_golden_intake_validation import verify_owner_golden_intake_20260717
+from owner_golden_intake_validation import (
+    verify_owner_golden_intake_20260717,
+    verify_owner_golden_intake_20260718,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -129,7 +132,7 @@ def main() -> int:
     verify_fixture_manifest(manifest_path)
     print("CtrlRAM fixture manifest and payload hashes are valid.")
     print(
-        "CtrlRAM workbench output runner is enabled; golden byte parity still requires owner outputs/sign-off."
+        "CtrlRAM workbench output runner is enabled; remaining byte parity and review gates are repository-owned."
     )
     return 0
 
@@ -210,6 +213,7 @@ def verify_fixture_manifest(manifest_path: Path) -> None:
         require(isinstance(item, dict), f"case[{index}] must be an object")
         verify_case(root, item, index)
     verify_owner_golden_intake_20260717(root)
+    verify_owner_golden_intake_20260718(root)
 
 
 def verify_case(root: Path, item: dict[str, Any], index: int) -> None:

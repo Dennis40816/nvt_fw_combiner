@@ -1,8 +1,9 @@
 # CtrlRAM Replace Status Report
 
 Status: living investigation report, not a production support claim.
-Owner gate: firmware-owner confirmation is still required before CtrlRAM Replace is declared OK for release.
-Last updated: 2026-07-17.
+Owner input gate: closed by the final 2026-07-18 intake; remaining parity,
+tool, route, and R2/R3 review gates are agent-owned.
+Last updated: 2026-07-18.
 
 This file is the current single place to update CtrlRAM Replace experiment results and conclusions until the workflow is formally accepted. Lower-level notes may keep raw details, but status, blockers, and final interpretation should be reflected here.
 
@@ -58,12 +59,15 @@ Known stable conclusions:
 - For NT51920, NT51923, NT51929, NT51932, NT51950, and NT51951, the Standard Merge sample matrix has the expected 16-byte CRC/header-word self-replacement pattern. The same-product NT51929 AB first half separately produces 15 changed bytes because one byte in the second CRC word already matches; both observations remain valid for their own fixture.
 - For NT51927 and NT51928, drift is still CRC/header-word based, but more than 16 bytes because the flow updates multiple header/copy/backup windows.
 - Keep the CRC-changing postbuild behavior for production. It is acceptable only when the diff is constrained to declared CRC/header words or documented header-copy windows for the selected category.
-- NT51926 and NT51930 postbuild-category selection is implemented in Preview/Build and in workbench/UI slot/range display after a base BIN is loaded, but not production-closed until matching expected golden outputs and firmware-owner parity review are complete.
+- NT51926 and NT51930 postbuild-category selection is implemented in Preview/Build and in workbench/UI slot/range display after a base BIN is loaded. Their final direct expected outputs are now committed; production closure still requires exact current/V2/expected parity and independent R3 byte review.
 - NT51930 Common FW 1.x keeps numeric `2..29` on the approved cascade command shape with `DiffDLM` length `0xFE00`. The earlier `0x23000` section is archived evidence only and must not execute without new owner approval.
-- NT51931 is not closed.
-- The 2026-07-17 owner-approved snapshot supplies single/cascade evidence for
-  NT51920/NT51923 and 1.4.1 NT51926, single evidence for NT51927/NT51929, and
-  diagnostic inputs for NT51930/NT51931/NT51932. It does not promote support.
+- NT51931 now has a direct exact-case intake and is an exact-case parity
+  candidate. InsertSID remains outside the retirement parity boundary; runtime
+  stays fail-closed until full-byte parity and review pass.
+- The 2026-07-18 final owner-approved intake adds exact NT51926 2.0.0
+  single/cascade, NT51930 INX cascade, NT51931 cascade, NT51932 cascade, and
+  NT51951 single inputs/expected outputs. It closes owner input, not parity or
+  runtime promotion.
 
 Do not use this stronger conclusion:
 
@@ -74,7 +78,7 @@ All IC CtrlRAM self-replacement differences are known-good header CRC drift.
 Use this narrower conclusion instead:
 
 ```text
-All currently classified CtrlRAM self-replacement differences are either known header/CRC drift or explicitly documented exceptions. NT51926, NT51930, and NT51931 remain blockers for a blanket CtrlRAM Replace OK claim.
+All currently classified CtrlRAM self-replacement differences are either known header/CRC drift or explicitly documented exceptions. Exact-case parity/tool gates for NT51926, NT51930, NT51931, NT51932, and NT51951 remain blockers for a blanket CtrlRAM Replace OK claim; none requires additional owner input.
 ```
 
 ## Evidence Sources
@@ -125,15 +129,15 @@ The base may be the Combiner TP work image or a declared full-Flash container. T
 | NT51919 | NT51929/NT51932 alias: `NT51932BASED_NORMAL_MODE CRC8` | owner alias confirmation | Alias only; direct CtrlRAM Replace golden still optional evidence. |
 | NT51920 | `CRC_Enable` | inspected BAT + 2026-07-17 owner snapshot | Single/cascade formal payload bytes match their declared targets; owner command/range review remains. |
 | NT51923 | `CRC_Enable` | inspected BAT + 2026-07-17 owner snapshot | Single/cascade formal payload bytes match their declared targets; owner command/range review remains. |
-| NT51926 | `CRC_Enable` | inspected 1.4.1/2.0.0 BAT + owner snapshots | Workbench selects from TP FWConfig. The 1.4.1 single/cascade payloads match; 2.0.0 evidence remains separate. |
+| NT51926 | `CRC_Enable` | inspected 1.4.1/2.0.0 BAT + owner snapshots | Workbench selects from TP FWConfig. The 1.4.1 cases and final 2.0.0 single/cascade direct intakes remain distinct exact parity scopes. |
 | NT51927 | `MERGE_MODE` + `NT51927BASED_GEN_CRC_MODE CRC32` | inspected BAT + owner snapshots | Single has direct real-tool evidence and TP-only product replay; two/three-chip residuals remain confined to header/CRC ranges. |
 | NT51928 non-NB | NT51927 alias flow | owner alias confirmation | Non-NB only; NB is not covered. |
 | NT51929 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT + 2026-07-17 owner snapshot | A true non-AB single expected output now exists; its NF/Normal/VN target bytes match. The AB half is not the single golden. |
-| NT51930 | `NT51930BASED_NORMAL_MODE CRC8` | inspected BAT + 2026-07-17 owner snapshot | NF/Normal/MP/VN match, but one DiffDLM 4 KiB slot has 4,090 mismatches; not closed. |
-| NT51931 | owner BAT: `NT51931BASED_NORMAL_MODE CRC8` | 2026-07-17 owner BAT | BAT consumes only `0xC800` DiffDLM bytes and calls missing `InsertSID.py`; prior run still has 108 unexplained bytes. Replace stays Not Supported. |
-| NT51932 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT + 2026-07-17 owner snapshot | Normal/VN/NF prefix match, but DiffDLM has a 4,095-byte mismatch and the completed DiffNFMerge NF is not proven. |
+| NT51930 | `NT51930BASED_NORMAL_MODE CRC8` | inspected BAT + final 2026-07-18 direct INX intake | Earlier DiffDLM mismatch is historical diagnostic evidence. The exact AUTO_PRJ-302 case now proceeds through command/NF reconstruction and three-way parity. |
+| NT51931 | owner BAT: `NT51931BASED_NORMAL_MODE CRC8` | final 2026-07-18 direct AUTO_PRJ-158 intake | Existing inputs/expected/BAT/argv/Combiner hash form an exact-case parity candidate. Missing InsertSID is a nonblocking out-of-scope pre-step. |
+| NT51932 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT + final 2026-07-18 direct AUTO_PRJ-525 intake | Direct expected and hash-identical DiffNFMerge package are present; ordered NF command and composite status remain agent-owned gates. |
 | NT51950 | `NT51950BASED_NORMAL_MODE CRC8` | inspected BAT | Catalog and 16-byte drift understood. |
-| NT51951 | NT51950 alias flow | owner alias confirmation | Catalog and 16-byte drift understood through alias. |
+| NT51951 | NT51950 alias flow | final 2026-07-18 direct single intake | Run owner-authorized 1.11 expected versus registered 1.13 full-byte experiment; cascade is excluded from v0.9.9 scope. |
 
 ## Experiment Log
 
@@ -185,9 +189,9 @@ Owner supplied NT51926/NT51927 CtrlRAM Replace fixtures on 2026-07-05. The paylo
 
 | Case | Workbench result | Diff classification | Current conclusion |
 | --- | --- | --- | --- |
-| NT51926 cascade | Build succeeds; FWConfig reads Common FW `1.4.1` and report trace uses the `1.4.1` `0x32F50` header-copy target | postbuild-category now matches the fixture codebase; final expected output still absent | Postbuild execution and version selection work. The committed self-replacement VN input is sliced to the archived `1.4.1` length `0x1660`; parity promotion still needs owner expected output. |
-| NT51927 2-chip | Build succeeds; 100 changed bytes across 25 ranges | all observed ranges are header/integrity words in main/header-copy/final-backup areas | CtrlRAM payload placement looks correct; final byte parity needs matching owner expected output for the 2-chip branch. |
-| NT51927 3-chip | Build succeeds; 105 changed bytes across 30 ranges | all observed ranges are header/integrity words in master/right/left header-copy and final-backup areas | CtrlRAM payload placement looks correct; final byte parity needs matching owner expected output for the 3-chip branch. |
+| NT51926 cascade | Build succeeds; FWConfig reads Common FW `1.4.1` and report trace uses the `1.4.1` `0x32F50` header-copy target | postbuild-category now matches the fixture codebase; later 2026-07-17 intake contains the expected output | Postbuild execution and version selection work. The committed self-replacement VN input is sliced to the archived `1.4.1` length `0x1660`; remaining parity/R3 closure is agent-owned. |
+| NT51927 2-chip | Build succeeds; 100 changed bytes across 25 ranges | all observed ranges are header/integrity words in main/header-copy/final-backup areas | CtrlRAM payload placement and expected-derived evidence are present. No new owner output is requested; exact classification/R3 closure remains agent-owned. |
+| NT51927 3-chip | Build succeeds; 105 changed bytes across 30 ranges | all observed ranges are header/integrity words in master/right/left header-copy and final-backup areas | CtrlRAM payload placement and expected-derived evidence are present. No new owner output is requested; exact classification/R3 closure remains agent-owned. |
 
 Report verification gate: committed golden-backed self-replacement tests now inspect the generated Replace report, not only the final output bytes. DP self-replacement must leave `OutputDifferences` empty. CtrlRAM postbuild self-replacement may emit only accepted `PostbuildCrcHeader` rows, with no `report.output-difference.unexpected` issue; a second self-replacement from the postbuild-clean output must return to an empty difference table.
 
@@ -251,10 +255,9 @@ TP Overview evidence notes:
   | NT51950 / NT51951 | FW Information for Host | `[0x36000,0x36FFC)` | `fw-information-host`, protected traceability row; not backup |
 
 - Allowed-write ranges must follow the selected postbuild command's full declared CRC/header/header-copy blocks. Do not carve a PID byte out of a declared header-copy block; CtrlRAM Replace does not run a separate Insert PID stage, and any PID-byte drift inside a wrong-version header-copy target is part of the postbuild-version mismatch evidence.
-- NT51931 remains fail-closed. The newest owner BAT corrects the intended mode
-  to `NT51931BASED_NORMAL_MODE` and the DiffDLM consumption to `0xC800`, but
-  also depends on a missing `InsertSID.py`; the existing 108-byte drift is not
-  resolved.
+- NT51931 runtime remains fail-closed until exact three-way parity and review.
+  The final owner intake fixes the case inputs/expected/BAT/Combiner hash;
+  `InsertSID.py` is an out-of-scope pre-step and no longer blocks this parity.
 
 NT51927 flash-header cross-check:
 
@@ -263,7 +266,7 @@ NT51927 flash-header cross-check:
 - Observed changed words align with 16-byte descriptor CRC positions (`descriptor + 0x0C`), including split 3-chip diff ranges where one byte in a 4-byte word happened to match.
 - Synthetic sentinel replacement confirmed the real Combiner 1.13.0 path can update additional 3-chip main-header CRC words that self-replacement did not necessarily surface.
 
-### 4. NT51931 corrected command evidence, incomplete toolchain
+### 4. NT51931 corrected command evidence and exact-case candidate
 
 Current repo reference for NT51931 is `1.3.0`, not `2.0.0`:
 
@@ -318,11 +321,15 @@ Interpretation:
 - `NT51931BASED_NORMAL_MODE` avoids the crash with Combiner 1.13.0.
 - The owner BAT consumes `0xC800` bytes from DiffDLM rather than the previously
   modeled `0x17C00` and calls `InsertSID.py` before Combiner.
-- `InsertSID.py` and its produced input state are absent from the evidence.
+- `InsertSID.py` and its produced input state were absent from this historical
+  diagnostic, but the owner has classified that script as an out-of-scope
+  pre-step for the retirement parity boundary.
 - The 108-byte drift is in main header / `0x1DA30` header-copy area, but it is not CRC-only.
-- This resembles a header-copy target state issue, not a finished proof that production should use `NT51931BASED_NORMAL_MODE`.
-- Correcting diagnostic facts does not unlock runtime support. NT51931
-  CtrlRAM Replace remains Not Supported.
+- This resembles a header-copy target state issue in the historical diagnostic;
+  it must not replace the final direct expected-output comparison.
+- Correcting diagnostic facts does not itself unlock runtime support. The final
+  AUTO_PRJ-158 intake is now an exact-case parity candidate; runtime remains
+  fail-closed until its full-byte comparison and independent R3 review pass.
 
 ### 5. Header-copy `0xFF` prefill mode assessment
 
@@ -349,16 +356,43 @@ Allowed future use:
 
 If owner later insists on production behavior, treat it as R3 firmware behavior: add an ADR/contract, declare the prefill as an ordered profile operation over a half-open range, require matching owner golden expected outputs for each postbuild version, and prove wrong-version cases fail closed.
 
-## Current Blockers Before "CtrlRAM Replace OK"
+## Current Engineering Gates Before "CtrlRAM Replace OK"
 
-| Blocker | Impact | Needed evidence/decision |
+The final owner intake is pinned by
+`testdata/golden/ctrlram-replace/manifest.20260718.json`; its current execution
+matrix is `docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md`.
+There is no remaining owner-input or owner-decision gate. The rows below are
+agent-owned parity, tool, route, and review work.
+
+| Gate | Current evidence | Agent-owned closure |
 | --- | --- | --- |
-| NT51926 2.0.0 | 1.4.1 single/cascade expected outputs and inputs are present. | 2.0.0 single/cascade evidence or explicit v0.9.9 scope exclusion. |
-| NT51930 DiffDLM | One 4 KiB target slot has 4,090 mismatching bytes. | Same-run DiffDLM or command/log explaining the supplied variants. |
-| NT51931 incomplete toolchain | Corrected owner BAT depends on missing `InsertSID.py`; existing output has 108 unexplained bytes. | Keep Replace Not Supported. |
-| NT51932 DiffDLM/DiffNFMerge | One 4 KiB target slot has 4,095 mismatching bytes; NF composite is not proven. | Same-run DiffDLM and completed NF output or equivalent log/hash proof. |
-| TP/full-Flash base parity | Hash-pinned config records reviewed/candidate TP prefixes and full-Flash capacities for all catalog ICs. The schema 2.8 prefix/reinsert contract and NT51926 candidate alone prove exact `0x3C000` TP and `0x40000` Flash execution shapes. | Each additional IC/version/count still needs a closed V2 map, direct expected-output parity for both forms, and firmware-owner R3 review before runtime promotion. |
-| Remaining release-scope cases | NT51950 cascade and NT51951 corrected single/cascade remain missing or invalid. | Matching owner inputs/final, command/tool authority, and R3 review. |
+| NT51926 2.0.0 exact cases | Direct single/cascade DP, TP, physical CtrlRAM, DiffDLM where applicable, and full expected outputs are committed. The technical note says D01 while the DP/expected filenames say D02. | Resolve `variant-d01-d02-conflict` from repository and byte facts, reconstruct the catalog command, and run current/V2/expected full-byte parity. Do not request another owner package. |
+| NT51930 exact INX case | AUTO_PRJ-302/PID `0x110D`/cascade 3 has direct inputs, expected, BAT, NF_Diff set, NF composite, and hash-only Combiner evidence. InsertSID is an out-of-scope pre-step, not a retirement blocker. | Close `combiner-hash-only` and `nf-composite-command-reconstruction`, then run the exact three-way parity and independent R3 review. |
+| NT51931 exact cascade case | AUTO_PRJ-158/PID `0x131B`/cascade 6 has direct FlashCode, TP, physical inputs, BAT, Combiner hash, and full expected output. InsertSID is an out-of-scope pre-step and does not downgrade the case. | Treat it as `exact-case-parity-candidate`; lock the supplied hash/BAT/argv boundary and run full-byte parity. Do not keep Replace unsupported merely because `InsertSID.py` is absent. |
+| NT51932 DiffDLM/DiffNFMerge | AUTO_PRJ-525/PID `0x5601`/cascade 3 has direct inputs/expected; the incoming DiffNFMerge package is byte-identical to the repository package. `NF_Ctrlram.bin` is currently byte-identical to `NF_Diff_0.bin`. | Reconstruct the ordered DiffNFMerge command and classify whether the NF composite is proven; then run current/V2/expected parity without changing the expected output. |
+| NT51951 1.11→1.13 experiment | Direct AUTO_PRJ-695/PID `0x5901` single evidence is committed; its expected was produced with Combiner 1.11. | Run the registered 1.13 command against the exact inputs and compare full bytes/SHA/argv/mutations. Exact equality closes the fact-scoped version gate; otherwise retain the 1.11 expected and report precise differing ranges. |
+| TP/full-Flash base parity | Hash-pinned config records reviewed/candidate TP prefixes and full-Flash capacities; NT51926 1.4.1 already proves exact TP and full-Flash execution shapes. | Close each release-exposed exact route with its direct expected output and independent R3 byte review before promotion. |
+| Cascade scope exclusions | NT51950 has no cascade product case; NT51951 has no cascade project. | Exclude both cascade shapes from v0.9.9 release scope. They are not missing-evidence cases and cannot be inferred as direct support. |
+
+## V1 Retirement State
+
+Final evidence intake does not mean V1 retirement is complete. The current
+source audit still finds:
+
+- two production callers of `CompositionProfileCompiler`:
+  `WorkbenchCompositionService.Replace.CtrlRam.cs` and
+  `WorkbenchCompositionService.Replace.General.cs`;
+- nonzero `BuiltInTpFlashMapCatalog` production callers across CtrlRAM/General
+  planning, display, coverage, context, and profile construction;
+- `LegacyProfileCompilationAuthority`, `LegacyRuntimeExecutable`, and
+  `CreateLegacy` on the Domain/Application/Profiles runtime boundary.
+
+V1 retirement is complete only after exact golden parity, every release-exposed
+CtrlRAM/General route moves to V2, each production caller set above reaches zero,
+the legacy compiler/map adapter/authority is deleted, and Architecture
+exclusions, structure, `verify --all`, and independent R2/R3 review all pass.
+Each route batch must report its remaining caller count and newly deletable
+files. Evidence receipt alone must never be reported as retirement completion.
 
 ## Update Rules
 
@@ -367,7 +401,7 @@ Update this report whenever any of these change:
 - a postbuild command family, argument order, command count, or IC alias;
 - a flash-map, mmap, header-copy, CRC/header, or allowed-write range;
 - a real-tool crash, timeout, or stdout/stderr diagnostic;
-- a new owner CtrlRAM Replace golden fixture or expected output;
+- a new approved CtrlRAM Replace golden fixture or expected output;
 - a decision about NT51926, NT51930, NT51931, or another IC's TP/full-Flash shape;
 - a support claim moves from investigation to release scope.
 
@@ -378,12 +412,12 @@ Each update should record:
 - exact combiner mode and version/hash;
 - input/output sizes and hashes when available;
 - changed ranges and classification;
-- whether firmware-owner review is still required.
+- which independent R2/R3 review gates remain open.
 
 ## Current Release Statement
 
 As of this report:
 
 ```text
-CtrlRAM Replace execution is traceable and the product contract requires both TP BIN and declared full Flash BIN with the same TP-relative semantics. The current Workbench admits both forms but does not yet enforce an explicit TP prefix for every IC; NT51926 Common FW 1.4.1 cascade without a version edit now routes through the exact-shape V2 prefix/reinsert contract. The 2026-07-17 owner snapshot closes several completely-missing sample gaps. NT51930/NT51932 composition gaps remain, NT51931 Replace stays Not Supported, and every migrated family still needs owner R3 review before runtime promotion.
+CtrlRAM Replace execution is traceable and the product contract requires both TP BIN and declared full Flash BIN with the same TP-relative semantics. The current Workbench admits both forms but does not yet enforce an explicit TP prefix for every IC; NT51926 Common FW 1.4.1 cascade without a version edit now routes through the exact-shape V2 prefix/reinsert contract. The 2026-07-18 final intake closes all remaining owner-input gates for the exact NT51926, NT51930, NT51931, NT51932, and NT51951 cases. InsertSID is outside the retirement parity boundary, NT51950/NT51951 cascade are release-scope exclusions, and every remaining parity/tool/route/review gate is agent-owned. No runtime promotion is claimed until those exact gates pass.
 ```

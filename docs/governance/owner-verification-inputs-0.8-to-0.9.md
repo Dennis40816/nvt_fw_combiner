@@ -1,6 +1,17 @@
 # Owner Verification Inputs: v0.8.x to v0.9.x
 
-Status: active owner checklist.
+Status: superseded historical checklist for the stable v0.9.9 final intake.
+
+Do not use this document to request more v0.9.9 owner data. The current,
+owner-complete authority is:
+
+- `testdata/golden/ctrlram-replace/manifest.20260718.json`;
+- `docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md`.
+
+The final intake has no remaining owner-input or owner-decision gate. Any older
+"missing" language below is retained only to explain the pre-intake workflow;
+remaining parity, tool experiments, route convergence, retirement, code-size,
+review, and release verification are agent-owned.
 
 This checklist identifies data the owner may provide for verification. It does
 not ask for secrets, and it does not authorize a profile, an IC, or a release
@@ -156,14 +167,13 @@ calculates output SHA-256 values. `expected-preserve.bin` and
 must prove that the source image remains immutable, the staged source changes
 before postbuild, and the final version is read through the NVT Backup.
 
-Current high-priority missing CtrlRAM cases include NT51927 single and the
-selected NT51919/NT51929/NT51932 branches. NT51927 2-chip/3-chip and NT51950
-single now have conditional expected-derived range-parity candidates, pending
-the exact owner decisions listed in the audit. The supplied NT51951 single set
-is rejected because 3,773 Normal payload bytes do not match its final output.
-NT51950 cascade and NT51951 cascade still need their own final output and
-physical input set. A real expected output is required; a successful Combiner
-exit code is not parity.
+Historical pre-final-intake requests in this section are superseded. The final
+manifest accepts the corrected NT51951 single and the exact NT51930 INX,
+NT51931, NT51932, and NT51926 2.0.0 cases. NT51950 cascade has no product case
+and NT51951 cascade has no project, so both are v0.9.9 release-scope exclusions,
+not missing owner evidence. Existing approved aliases and NT51927 evidence also
+must not be re-requested. A successful Combiner exit code still is not parity;
+the repository must now prove the supplied expected bytes.
 
 ### DP and General Replace
 
@@ -219,17 +229,13 @@ Before a support or release claim, provide:
   report/history, and Combiner readiness; and
 - PR/review/CI evidence or the documented local-verification exception.
 
-## Current Highest-Priority Owner Inputs
+## Current Owner Input Status
 
-1. AB product evidence for NT51919, NT51929, NT51932, NT51950, and NT51951 as
-   specified above. NT51950/NT51951 reuse their pinned candidate Combiner
-   binding unless the submitted owner case changes it.
-2. Real CtrlRAM Replace Preserve/Edit expected outputs and postbuild evidence
-   for the release-selected IC/count branches.
-3. General Replace safety envelopes and TP/CtrlRAM expected-output cases if
-   those workflows are selected for support.
-4. A signed-off release support matrix before `v0.9.6`; package/signing data
-   is needed only when a release is prepared.
+There are no remaining owner inputs for stable v0.9.9. Do not request another
+golden package, corrected single/cascade output, InsertSID script, Combiner 1.13
+output, or DiffNFMerge package. Use the final manifest and close the remaining
+hash/command/full-byte parity, exact V2 route, caller-zero retirement, code-size,
+R2/R3 review, structure, and `verify --all` gates in the repository.
 
 ## Do Not Send
 
