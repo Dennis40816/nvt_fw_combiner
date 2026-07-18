@@ -68,6 +68,25 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal([1, 2, 3, 4, 9, 8, 7, 6], writer.OutputBytes);
     }
 
+    /// <summary>Verifies automatic build commits the exact output from one authoritative execution.</summary>
+    [Fact]
+    public async Task AutomaticBuildCommitsSyntheticStandardMergeOutputFromOneRun()
+    {
+        CompositionRunService service = CreateService(out FakeOutputWriter writer);
+
+        CompositionRunResult result = await service.PreviewOrBuildAsync(
+            CreateRequest(),
+            build: true,
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal("committed:synthetic-standard-merge.bin", result.CommittedOutputId);
+        Assert.Null(result.PreviewToken);
+        Assert.True(result.Report.Output.Committed);
+        Assert.Equal("synthetic-standard-merge.bin", writer.FileName);
+        Assert.Equal([1, 2, 3, 4, 9, 8, 7, 6], writer.OutputBytes);
+    }
+
     /// <summary>Verifies build fails before reading or committing when no preview token is approved.</summary>
     [Fact]
     public async Task BuildRequiresApprovedPreviewTokenBeforeCommit()

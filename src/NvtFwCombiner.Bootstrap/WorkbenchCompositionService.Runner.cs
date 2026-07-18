@@ -64,8 +64,7 @@ public static partial class WorkbenchCompositionService
             outputFileName,
             icNumberSelection: icNumberSelection);
 
-        CompositionRunResult result = await CompositionRunExecutionSupport.PreviewOrBuildAsync(
-                service,
+        CompositionRunResult result = await service.PreviewOrBuildAsync(
                 request,
                 build,
                 cancellationToken)

@@ -24,6 +24,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public sealed partial class CompositionRunService", root, StringComparison.Ordinal);
         Assert.Contains("PreviewAsync", root, StringComparison.Ordinal);
         Assert.Contains("BuildAsync", root, StringComparison.Ordinal);
+        Assert.Contains("PreviewOrBuildAsync", root, StringComparison.Ordinal);
         Assert.Contains("RunAsync", root, StringComparison.Ordinal);
         Assert.DoesNotContain("TransformExternalProcessorAsync", root, StringComparison.Ordinal);
         Assert.DoesNotContain("ExternalProcessorRequest", root, StringComparison.Ordinal);

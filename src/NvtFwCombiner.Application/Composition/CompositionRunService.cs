@@ -44,32 +44,47 @@ public sealed partial class CompositionRunService
     }
 
     /// <summary>Executes the request without committing output.</summary>
-    public async ValueTask<CompositionRunResult> PreviewAsync(
+    public ValueTask<CompositionRunResult> PreviewAsync(
         CompositionRunRequest request,
         CancellationToken cancellationToken)
     {
-        return await RunAsync(request, commitOutput: false, cancellationToken).ConfigureAwait(false);
+        return RunAsync(request, commitOutput: false, requireApprovedPreviewToken: false, cancellationToken);
     }
 
     /// <summary>Executes the request and commits output when execution succeeds.</summary>
-    public async ValueTask<CompositionRunResult> BuildAsync(
+    public ValueTask<CompositionRunResult> BuildAsync(
         CompositionRunRequest request,
         CancellationToken cancellationToken)
     {
         _ = _outputWriter ?? throw new InvalidOperationException("Build requires an output writer.");
 
-        return await RunAsync(request, commitOutput: true, cancellationToken).ConfigureAwait(false);
+        return RunAsync(request, commitOutput: true, requireApprovedPreviewToken: true, cancellationToken);
+    }
+
+    /// <summary>Executes once and commits that same validated output when automatic Build is requested.</summary>
+    public ValueTask<CompositionRunResult> PreviewOrBuildAsync(
+        CompositionRunRequest request,
+        bool build,
+        CancellationToken cancellationToken)
+    {
+        if (build)
+        {
+            _ = _outputWriter ?? throw new InvalidOperationException("Build requires an output writer.");
+        }
+
+        return RunAsync(request, commitOutput: build, requireApprovedPreviewToken: false, cancellationToken);
     }
 
     private async ValueTask<CompositionRunResult> RunAsync(
         CompositionRunRequest request,
         bool commitOutput,
+        bool requireApprovedPreviewToken,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         DateTimeOffset startedAtUtc = _clock.UtcNow;
-        if (commitOutput && request.ApprovedPreviewToken is null)
+        if (requireApprovedPreviewToken && request.ApprovedPreviewToken is null)
         {
             var previewRequired = CompositionExecutionResult.Failed([
                 new CompositionIssue(
@@ -121,7 +136,8 @@ public sealed partial class CompositionRunService
         string? committedOutputId = null;
         if (commitOutput && runStatus == CompositionExecutionStatus.Succeeded)
         {
-            if (!string.Equals(request.ApprovedPreviewToken, previewToken, StringComparison.Ordinal))
+            if (requireApprovedPreviewToken &&
+                !string.Equals(request.ApprovedPreviewToken, previewToken, StringComparison.Ordinal))
             {
                 runIssues.Add(new CompositionIssue(
                     "build.preview-token.mismatch",
