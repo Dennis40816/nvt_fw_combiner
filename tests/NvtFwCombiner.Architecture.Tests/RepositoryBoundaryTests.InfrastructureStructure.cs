@@ -25,9 +25,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ExpandArguments", staging, StringComparison.Ordinal);
         Assert.Contains("FindUnexpectedStagingFileIssue", staging, StringComparison.Ordinal);
         Assert.Contains("TryDeleteDirectory", staging, StringComparison.Ordinal);
+        Assert.Contains("File.WriteAllBytesAsync(workBin, request.InputBytes,", root, StringComparison.Ordinal);
+        Assert.Contains("File.WriteAllBytesAsync(path, artifact.Bytes,", staging, StringComparison.Ordinal);
+        Assert.DoesNotContain("InputBytes.ToArray()", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("artifact.Bytes.ToArray()", staging, StringComparison.Ordinal);
         Assert.Contains("internal sealed class ExternalCombinerToolResolver", toolResolution, StringComparison.Ordinal);
         Assert.Contains("_toolResolver.TryResolve", root, StringComparison.Ordinal);
         Assert.Contains("_toolResolver.TryResolve", legacyRoot, StringComparison.Ordinal);
+        Assert.Contains("ReadOnlyMemory<byte> inputBytes = request.InputBytes;", legacyRoot, StringComparison.Ordinal);
+        Assert.DoesNotContain("request.InputBytes.ToArray()", legacyRoot, StringComparison.Ordinal);
         Assert.DoesNotContain("SHA256", legacyRoot, StringComparison.Ordinal);
         Assert.Contains("GetLowerSha256", toolResolution, StringComparison.Ordinal);
         Assert.Contains("SHA256.HashData", toolResolution, StringComparison.Ordinal);
