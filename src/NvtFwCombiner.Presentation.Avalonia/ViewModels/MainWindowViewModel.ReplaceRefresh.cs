@@ -45,18 +45,18 @@ public sealed partial class MainWindowViewModel
             ReplaceRows(MergeCoverageSegments, coverageSegments);
         }
 
-        ReplaceRows(ReplaceMemoryRows, UiCompositionRunner.GetReplaceMemoryMapRows(
+        (
+            string replaceRangeLabel,
+            IReadOnlyList<MemoryMapRowViewModel> replaceRows,
+            IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverageSegments) = UiCompositionRunner.GetReplaceMemoryDisplay(
             SelectedIc,
             SelectedNumber,
             SelectedReplaceMode,
             GetSelectedReplaceBaseLength(),
-            GetSelectedCtrlRamBasePath()));
-        ReplaceRows(ReplaceCoverageSegments, UiCompositionRunner.GetReplaceCoverageSegments(
-            SelectedIc,
-            SelectedNumber,
-            SelectedReplaceMode,
-            GetSelectedReplaceBaseLength(),
-            GetSelectedCtrlRamBasePath()));
+            GetSelectedCtrlRamBasePath());
+        ReplaceMemoryRangeLabel = replaceRangeLabel;
+        ReplaceRows(ReplaceMemoryRows, replaceRows);
+        ReplaceRows(ReplaceCoverageSegments, replaceCoverageSegments);
         RefreshReplaceCoverageGroups();
 
         OnPropertyChanged(nameof(MergeMemoryRangeLabel));

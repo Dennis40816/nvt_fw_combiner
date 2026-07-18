@@ -42,15 +42,16 @@ public sealed class WorkbenchReplaceSupportPolicyTests
     {
         Assert.False(WorkbenchCompositionService.IsReplaceWorkflowSupported("NT51931", replaceMode));
         Assert.Empty(WorkbenchCompositionService.GetReplaceInputSlots("NT51931", "single", replaceMode));
-        Assert.Equal(
-            "Not available",
-            WorkbenchCompositionService.GetReplaceMemoryRangeLabel("NT51931", "single", replaceMode));
-        WorkbenchMemoryMapRow row = Assert.Single(
-            WorkbenchCompositionService.GetReplaceMemoryMapRows("NT51931", "single", replaceMode));
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+            "NT51931",
+            "single",
+            replaceMode);
+        Assert.Equal("Not available", display.RangeLabel);
+        WorkbenchMemoryMapRow row = Assert.Single(display.MemoryMapRows);
         Assert.Equal("Blocked", row.ActionLabel);
         Assert.Equal("No target", row.AfterSource);
         Assert.Contains("Not available", row.Detail, StringComparison.Ordinal);
-        Assert.Empty(WorkbenchCompositionService.GetReplaceCoverageSegments("NT51931", "single", replaceMode));
+        Assert.Empty(display.CoverageSegments);
     }
 
     /// <summary>The NT51931 gate does not remove established Replace exposure from other ICs.</summary>

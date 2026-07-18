@@ -144,11 +144,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetCtrlRamRegions", ctrlRamDisplay, StringComparison.Ordinal);
         Assert.Contains("BuiltInTpFlashMapCatalog.GetRegions", ctrlRamDisplay, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", ctrlRamDisplay, StringComparison.Ordinal);
-        Assert.Contains("GetReplaceMemoryMapRows", replaceDisplay, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(replaceDisplay, "public static string GetReplaceMemoryRangeLabel("));
-        Assert.Contains("GetReplaceMemoryRangeLabel", replaceDisplay, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetReplaceCoverageSegments", replaceDisplay, StringComparison.Ordinal);
-        Assert.Contains("GetReplaceCoverageSegments", replaceCoverage, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(replaceDisplay, "public static WorkbenchMemoryDisplay GetReplaceMemoryDisplay("));
+        Assert.Contains("CreateReplaceCoverageSegments", replaceDisplay, StringComparison.Ordinal);
+        Assert.Contains("CreateReplaceCoverageSegments", replaceCoverage, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", replacePostbuild, StringComparison.Ordinal);
     }
 

@@ -4,47 +4,78 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static bool TryCreateV2DpReplaceMemoryMapRows(
-        string icId,
-        long? baseCapacity,
-        out IReadOnlyList<WorkbenchMemoryMapRow> rows)
+    private static WorkbenchMemoryDisplay? CreateV2DpReplaceMemoryDisplay(string icId, long? baseCapacity)
     {
         if (!TryResolveBuiltInV2DpReplaceDisplay(icId, baseCapacity, out BuiltInV2DpReplaceDisplay? display))
         {
-            rows = [];
-            return false;
+            return null;
         }
 
         if (display.IsLengthPending)
         {
-            rows =
-            [
-                new WorkbenchMemoryMapRow(
-                    $"Reference FlashCode length: {FormatV2DpReplaceCapacities(display)}",
-                    "Reference FlashCode",
-                    "Select",
-                    "DP replacement",
-                    $"Select a complete Standard/Normal Merge FlashCode for {icId} to compile the V2 DP Replace plan."),
-            ];
-            return true;
+            string capacities = FormatV2DpReplaceCapacities(display);
+            return new WorkbenchMemoryDisplay(
+                $"Reference FlashCode length: {capacities}",
+                [
+                    new WorkbenchMemoryMapRow(
+                        $"Reference FlashCode length: {capacities}",
+                        "Reference FlashCode",
+                        "Select",
+                        "DP replacement",
+                        $"Select a complete Standard/Normal Merge FlashCode for {icId} to compile the V2 DP Replace plan."),
+                ],
+                [
+                    new WorkbenchMemoryCoverageSegment(
+                        "Reference length pending",
+                        "Reference FlashCode required",
+                        $"Select a complete Standard/Normal Merge FlashCode to resolve the actual DP Replace length ({capacities}).",
+                        "#CBD5E1",
+                        280,
+                        false),
+                ]);
         }
 
         if (display.Composition is not { } composition)
         {
             bool unsupportedLength = IsV2DpReplaceUnsupportedLength(display);
-            rows =
-            [
-                new WorkbenchMemoryMapRow(
-                    FormatV2DpReplaceFailureLabel(display),
-                    unsupportedLength ? "Base flash" : "Profile",
-                    unsupportedLength ? "Replace" : "Blocked",
-                    unsupportedLength ? "DP replacement" : "No output",
-                    FormatV2DpReplaceIssues(display)),
-            ];
-            return true;
+            string failureLabel = FormatV2DpReplaceFailureLabel(display);
+            string issues = FormatV2DpReplaceIssues(display);
+            IReadOnlyList<WorkbenchMemoryCoverageSegment> failureCoverage = unsupportedLength &&
+                display.RequestedBaseCapacity is long requestedCapacity
+                    ?
+                    [
+                        new WorkbenchMemoryCoverageSegment(
+                            $"Unsupported {FormatHexLength(requestedCapacity)}",
+                            "Unsupported reference",
+                            $"This Reference FlashCode length is not approved for {icId} DP Replace; use {FormatV2DpReplaceCapacities(display)}.",
+                            "#FCA5A5",
+                            280,
+                            false),
+                    ]
+                    :
+                    [
+                        new WorkbenchMemoryCoverageSegment(
+                            failureLabel,
+                            "Invalid profile",
+                            issues,
+                            "#FCA5A5",
+                            280,
+                            false),
+                    ];
+            return new WorkbenchMemoryDisplay(
+                failureLabel,
+                [
+                    new WorkbenchMemoryMapRow(
+                        failureLabel,
+                        unsupportedLength ? "Base flash" : "Profile",
+                        unsupportedLength ? "Replace" : "Blocked",
+                        unsupportedLength ? "DP replacement" : "No output",
+                        issues),
+                ],
+                failureCoverage);
         }
 
-        rows =
+        IReadOnlyList<WorkbenchMemoryMapRow> rows =
         [
             .. composition.Plan.OrderedOperations.Select(operation => new WorkbenchMemoryMapRow(
                 FormatDisplayRange(operation.TargetRange),
@@ -53,85 +84,6 @@ public static partial class WorkbenchCompositionService
                 V2DpReplaceAfterSource(operation),
                 FormatV2DpReplaceOperationDetail(operation))),
         ];
-        return true;
-    }
-
-    private static bool TryGetV2DpReplaceMemoryRangeLabel(
-        string icId,
-        long? baseCapacity,
-        out string rangeLabel)
-    {
-        if (!TryResolveBuiltInV2DpReplaceDisplay(icId, baseCapacity, out BuiltInV2DpReplaceDisplay? display))
-        {
-            rangeLabel = string.Empty;
-            return false;
-        }
-
-        rangeLabel = display.IsLengthPending
-            ? $"Reference FlashCode length: {FormatV2DpReplaceCapacities(display)}"
-            : display.Composition is { } composition
-            ? FormatFullRange(composition.Plan.OutputInitialization.Capacity)
-            : FormatV2DpReplaceFailureLabel(display);
-        return true;
-    }
-
-    private static bool TryCreateV2DpReplaceCoverageSegments(
-        string icId,
-        long? baseCapacity,
-        out IReadOnlyList<WorkbenchMemoryCoverageSegment> segments)
-    {
-        if (!TryResolveBuiltInV2DpReplaceDisplay(icId, baseCapacity, out BuiltInV2DpReplaceDisplay? display))
-        {
-            segments = [];
-            return false;
-        }
-
-        if (display.IsLengthPending)
-        {
-            segments =
-            [
-                new WorkbenchMemoryCoverageSegment(
-                    "Reference length pending",
-                    "Reference FlashCode required",
-                    $"Select a complete Standard/Normal Merge FlashCode to resolve the actual DP Replace length ({FormatV2DpReplaceCapacities(display)}).",
-                    "#CBD5E1",
-                    280,
-                    false),
-            ];
-            return true;
-        }
-
-        if (display.Composition is not { } composition)
-        {
-            bool unsupportedLength = IsV2DpReplaceUnsupportedLength(display);
-            if (unsupportedLength && display.RequestedBaseCapacity is long requestedCapacity)
-            {
-                segments =
-                [
-                    new WorkbenchMemoryCoverageSegment(
-                        $"Unsupported {FormatHexLength(requestedCapacity)}",
-                        "Unsupported reference",
-                        $"This Reference FlashCode length is not approved for {icId} DP Replace; use {FormatV2DpReplaceCapacities(display)}.",
-                        "#FCA5A5",
-                        280,
-                        false),
-                ];
-                return true;
-            }
-
-            segments =
-            [
-                new WorkbenchMemoryCoverageSegment(
-                    FormatV2DpReplaceFailureLabel(display),
-                    "Invalid profile",
-                    FormatV2DpReplaceIssues(display),
-                    "#FCA5A5",
-                    280,
-                    false),
-            ];
-            return true;
-        }
-
         long capacity = composition.Plan.OutputInitialization.Capacity;
         CoverageSegment[] coverage =
         [
@@ -155,8 +107,10 @@ public static partial class WorkbenchCompositionService
                     !string.Equals(sourceLabel, "Base flash", StringComparison.Ordinal)));
         }
 
-        segments = ToWorkbenchCoverageSegments(coverage, capacity);
-        return true;
+        return new WorkbenchMemoryDisplay(
+            FormatFullRange(capacity),
+            rows,
+            ToWorkbenchCoverageSegments(coverage, capacity));
     }
 
     private static bool TryGetV2DpReplaceInputDescription(string icId, out string description)

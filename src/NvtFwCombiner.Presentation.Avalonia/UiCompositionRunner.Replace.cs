@@ -47,44 +47,27 @@ public static partial class UiCompositionRunner
         ];
     }
 
-    /// <summary>Gets readable memory-map rows for the selected Replace mode.</summary>
-    public static IReadOnlyList<MemoryMapRowViewModel> GetReplaceMemoryMapRows(
+    /// <summary>Projects one Replace memory display snapshot.</summary>
+    public static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetReplaceMemoryDisplay(
         string icId,
         string number,
         string replaceMode,
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
-        return
-        [
-            .. WorkbenchCompositionService.GetReplaceMemoryMapRows(
-                    icId,
-                    number,
-                    replaceMode,
-                    dpBaseLength,
-                    ctrlRamBasePath)
-                .Select(ToMemoryMapRow),
-        ];
-    }
-
-    /// <summary>Gets visual coverage segments for the selected Replace mode.</summary>
-    public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetReplaceCoverageSegments(
-        string icId,
-        string number,
-        string replaceMode,
-        long? dpBaseLength = null,
-        string? ctrlRamBasePath = null)
-    {
-        return
-        [
-            .. WorkbenchCompositionService.GetReplaceCoverageSegments(
-                    icId,
-                    number,
-                    replaceMode,
-                    dpBaseLength,
-                    ctrlRamBasePath)
-                .Select(ToMemoryCoverageSegment),
-        ];
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+            icId,
+            number,
+            replaceMode,
+            dpBaseLength,
+            ctrlRamBasePath);
+        return (
+            display.RangeLabel,
+            [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
+            [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
     }
 
 }

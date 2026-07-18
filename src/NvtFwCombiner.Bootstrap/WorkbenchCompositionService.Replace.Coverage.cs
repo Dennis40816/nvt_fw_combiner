@@ -7,49 +7,13 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    /// <summary>Gets final visual coverage segments for the selected Replace view.</summary>
-    public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetReplaceCoverageSegments(
+    private static IReadOnlyList<WorkbenchMemoryCoverageSegment> CreateReplaceCoverageSegments(
         string icId,
-        string number,
         string replaceMode,
-        long? dpBaseLength = null,
-        string? ctrlRamBasePath = null)
+        IcNumberSelection selection,
+        LegacyCombinerPostbuildProfile? postbuildProfile,
+        IReadOnlyList<TpFlashMapRegion> regions)
     {
-        if (GetReplaceWorkflowId(replaceMode) is not null &&
-            !IsReplaceWorkflowSupported(icId, replaceMode))
-        {
-            return [];
-        }
-
-        if (replaceMode == WorkbenchReplaceModes.Dp &&
-            TryCreateV2DpReplaceCoverageSegments(icId, dpBaseLength, out IReadOnlyList<WorkbenchMemoryCoverageSegment> v2Segments))
-        {
-            return v2Segments;
-        }
-
-        IcNumberSelection selection = ToIcNumberSelection(number);
-        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
-            TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
-                ? profile
-                : null;
-        IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
-            icId,
-            selection,
-            postbuildProfile);
-        if (regions.Count == 0)
-        {
-            return
-            [
-                new WorkbenchMemoryCoverageSegment(
-                    "No range",
-                    "No profile",
-                    $"No TP Overview flash-map profile is available for {icId}.",
-                    "#CBD5E1",
-                    280,
-                    false),
-            ];
-        }
-
         long capacity = regions.Max(region => region.Range.EndExclusive);
         CoverageSegment[] segments =
         [

@@ -29,7 +29,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetStandardMergeMemoryDisplay", merge, StringComparison.Ordinal);
         Assert.Contains("GetGeneralMergeMemoryDisplay", merge, StringComparison.Ordinal);
         Assert.DoesNotContain("RunGeneralMergeAsync", merge, StringComparison.Ordinal);
-        Assert.Contains("GetReplaceMemoryMapRows", replace, StringComparison.Ordinal);
+        Assert.Contains("GetReplaceMemoryDisplay", replace, StringComparison.Ordinal);
         Assert.DoesNotContain("RunReplaceAsync", replace, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.GetSupportedIcIds", bindings, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.RunStandardMergeAsync", mergeViewModel, StringComparison.Ordinal);

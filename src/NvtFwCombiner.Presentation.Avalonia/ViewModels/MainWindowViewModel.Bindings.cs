@@ -115,12 +115,7 @@ public sealed partial class MainWindowViewModel
         : StandardMergeOutputFileName;
 
     /// <summary>Gets Replace memory coverage text for the selected IC and Number.</summary>
-    public string ReplaceMemoryRangeLabel => WorkbenchCompositionService.GetReplaceMemoryRangeLabel(
-        SelectedIc,
-        SelectedNumber,
-        SelectedReplaceMode,
-        GetSelectedReplaceBaseLength(),
-        GetSelectedCtrlRamBasePath());
+    public string ReplaceMemoryRangeLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the default Replace output file name for the active mode.</summary>
     public string ReplaceOutputFileName => CreateFlashCodeOutputFileName(ReplaceSlots.Concat([ReplaceBaseSlot]));

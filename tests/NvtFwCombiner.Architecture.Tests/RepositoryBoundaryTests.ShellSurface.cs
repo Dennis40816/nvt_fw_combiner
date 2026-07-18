@@ -288,7 +288,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("UiCompositionRunner.GetNumberSelectionChoices", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("public partial IReadOnlyList<string> NumberChoices", viewModel, StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetStandardMergeMemoryDisplay", viewModel, StringComparison.Ordinal);
-        Assert.Contains("UiCompositionRunner.GetReplaceMemoryMapRows", viewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetReplaceMemoryDisplay", viewModel, StringComparison.Ordinal);
         Assert.Contains("ReplaceModeChoices", viewModel, StringComparison.Ordinal);
         Assert.Contains("GeneralReplaceMappings", viewModel, StringComparison.Ordinal);
         Assert.Contains("ReplaceBaseSlot", viewModel, StringComparison.Ordinal);

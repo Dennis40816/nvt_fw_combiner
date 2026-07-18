@@ -139,31 +139,26 @@ public sealed class BuiltInV2DpReplaceRoutingTests
             artifact.Plan.OrderedOperations,
             operation => string.Equals(operation.SourceSpaceId, CompositionAddressSpaceIds.ReferenceBase, StringComparison.Ordinal));
 
-        IReadOnlyList<WorkbenchMemoryMapRow> rows = WorkbenchCompositionService.GetReplaceMemoryMapRows(
-            icId,
-            "single",
-            WorkbenchReplaceModes.Dp,
-            baseCapacity);
-        IReadOnlyList<WorkbenchMemoryCoverageSegment> coverage = WorkbenchCompositionService.GetReplaceCoverageSegments(
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
             icId,
             "single",
             WorkbenchReplaceModes.Dp,
             baseCapacity);
 
-        WorkbenchMemoryMapRow replacementRow = Assert.Single(rows, row => row.ActionLabel == "Replace");
+        WorkbenchMemoryMapRow replacementRow = Assert.Single(display.MemoryMapRows, row => row.ActionLabel == "Replace");
         Assert.Equal(FormatRange(replacement.TargetRange), replacementRow.RangeLabel);
         Assert.Equal("Base flash", replacementRow.BeforeSource);
         Assert.Equal("DP replacement", replacementRow.AfterSource);
-        WorkbenchMemoryMapRow restoreRow = Assert.Single(rows, row => row.ActionLabel == "Restore");
+        WorkbenchMemoryMapRow restoreRow = Assert.Single(display.MemoryMapRows, row => row.ActionLabel == "Restore");
         Assert.Equal(FormatRange(restore.TargetRange), restoreRow.RangeLabel);
         Assert.Equal("DP replacement", restoreRow.BeforeSource);
         Assert.Equal("Base TP", restoreRow.AfterSource);
         Assert.Equal(
             FormatRange(new ByteRange(0, artifact.Plan.OutputInitialization.Capacity)),
-            WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, "single", WorkbenchReplaceModes.Dp, baseCapacity));
-        Assert.Contains(coverage, segment =>
+            display.RangeLabel);
+        Assert.Contains(display.CoverageSegments, segment =>
             segment.SourceLabel == "Base flash" && segment.RangeLabel == FormatRange(restore.TargetRange));
-        Assert.Contains(coverage, segment => segment.SourceLabel == "Changed DP BIN");
+        Assert.Contains(display.CoverageSegments, segment => segment.SourceLabel == "Changed DP BIN");
     }
 
     /// <summary>Verifies pending DP Replace display uses V2 map capacities without selecting an arbitrary output range.</summary>
@@ -172,24 +167,20 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [InlineData("NT51951")]
     public void DpReplaceDisplayPendingBaseUsesV2MapCapacities(string icId)
     {
-        IReadOnlyList<WorkbenchMemoryMapRow> rows = WorkbenchCompositionService.GetReplaceMemoryMapRows(
-            icId,
-            "single",
-            WorkbenchReplaceModes.Dp);
-        IReadOnlyList<WorkbenchMemoryCoverageSegment> coverage = WorkbenchCompositionService.GetReplaceCoverageSegments(
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
             icId,
             "single",
             WorkbenchReplaceModes.Dp);
 
-        WorkbenchMemoryMapRow row = Assert.Single(rows);
+        WorkbenchMemoryMapRow row = Assert.Single(display.MemoryMapRows);
         Assert.Equal("Reference FlashCode length: 0x40000 / 0x80000 / 0x100000", row.RangeLabel);
         Assert.Equal("Select", row.ActionLabel);
-        WorkbenchMemoryCoverageSegment segment = Assert.Single(coverage);
+        WorkbenchMemoryCoverageSegment segment = Assert.Single(display.CoverageSegments);
         Assert.Equal("Reference length pending", segment.RangeLabel);
         Assert.Contains("0x40000 / 0x80000 / 0x100000", segment.Detail, StringComparison.Ordinal);
         Assert.Equal(
             "Reference FlashCode length: 0x40000 / 0x80000 / 0x100000",
-            WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, "single", WorkbenchReplaceModes.Dp));
+            display.RangeLabel);
     }
 
     private static byte[] CreatePattern(int length, byte salt)
