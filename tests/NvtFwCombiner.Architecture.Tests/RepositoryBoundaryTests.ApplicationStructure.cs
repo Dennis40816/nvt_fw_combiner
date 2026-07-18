@@ -27,6 +27,23 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompositionRunProgressSnapshot", domainSources, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies Presentation projects typed lifecycle state instead of inferring firmware progress.</summary>
+    [Fact]
+    public void CompositionProgressPresentationConsumesOnlyTypedSnapshots()
+    {
+        string projection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunProgressViewModel.cs");
+
+        Assert.Contains("TryApply(CompositionRunProgressSnapshot snapshot)", projection, StringComparison.Ordinal);
+        Assert.Contains("snapshot.ApplicablePhases", projection, StringComparison.Ordinal);
+        Assert.Contains("snapshot.CompletedPhases", projection, StringComparison.Ordinal);
+        Assert.Contains("IsReducedMotionEnabled", projection, StringComparison.Ordinal);
+        Assert.DoesNotContain("OperationId", projection, StringComparison.Ordinal);
+        Assert.DoesNotContain("FileName", projection, StringComparison.Ordinal);
+        Assert.DoesNotContain("Reason", projection, StringComparison.Ordinal);
+        Assert.DoesNotContain("Elapsed", projection, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the Application run service root stays split from processor, report, and hash helpers.</summary>
     [Fact]
     public void CompositionRunServiceConcernsStaySplit()
