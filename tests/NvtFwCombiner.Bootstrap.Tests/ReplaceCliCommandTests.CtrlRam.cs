@@ -278,20 +278,24 @@ public sealed partial class ReplaceCliCommandTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Profile: nt51927-ctrlram-replace-workbench (NT51927)", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Profile: nt51927-ctrlram-replace-fw132-twochip (NT51927)", result.Output, StringComparison.Ordinal);
         Assert.Contains("postbuild-twochip", result.Output, StringComparison.Ordinal);
         Assert.True(File.Exists(report), report);
         using var reportDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
             report,
             TestContext.Current.CancellationToken));
         JsonElement root = reportDocument.RootElement;
-        Assert.Equal("nt51927-ctrlram-replace-workbench", root.GetProperty("ProfileId").GetString());
+        Assert.Equal("nt51927-ctrlram-replace-fw132-twochip", root.GetProperty("ProfileId").GetString());
         Assert.Equal(3, root.GetProperty("Inputs").GetArrayLength());
         Assert.Contains(root.GetProperty("Inputs").EnumerateArray(), input =>
             input.GetProperty("AddressSpaceId").GetString() == "replace-ctrlram-normal-master");
         Assert.Contains(root.GetProperty("Inputs").EnumerateArray(), input =>
             input.GetProperty("AddressSpaceId").GetString() == "replace-ctrlram-vn");
-        JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
+        JsonElement[] operations = [.. root.GetProperty("Operations").EnumerateArray()];
+        Assert.Equal(3, operations.Count(operation => operation.GetProperty("Kind").GetString() == "ReplaceRange"));
+        JsonElement operation = Assert.Single(
+            operations,
+            operation => operation.GetProperty("Kind").GetString() == "RunExternalProcessor");
         Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
     }
 

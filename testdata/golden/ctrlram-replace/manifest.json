@@ -272,7 +272,59 @@
           }
         }
       ],
-      "notes": "Committed owner-approved base with repository-derived replay inputs. The six inputs now match the six physical BIN filenames consumed by the pinned Postbuild; NF and VN each feed multiple logical destinations. They are not independently owner-supplied replacement files. Postbuild output parity remains pending because no independent expected output is committed."
+      "phaseBResult": {
+        "status": "v1-v2-full-byte-parity-routed-expected-derived-crc-classified",
+        "project": "JIRA-0251",
+        "pid": "0x1615",
+        "routeProfileId": "nt51927-ctrlram-replace-fw132-twochip",
+        "baseKind": "owner-approved-base-with-repository-derived-self-replacement-inputs",
+        "baseSha256": "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae",
+        "legacyOutputSha256": "6f0bbde7662dc6701cfe0a242d4cc363cd24c7056a52611fbba965c7d7fb5f58",
+        "v2OutputSha256": "6f0bbde7662dc6701cfe0a242d4cc363cd24c7056a52611fbba965c7d7fb5f58",
+        "differenceCounts": {
+          "legacyToV2": 0,
+          "baseToLegacy": 100,
+          "baseToV2": 100,
+          "headerAndCrc": 100,
+          "replacementPayload": 0,
+          "ranges": 25
+        },
+        "expectedDerivedDifferenceRanges": [
+          "[0x23C,0x240)",
+          "[0x24C,0x250)",
+          "[0x26C,0x270)",
+          "[0x27C,0x280)",
+          "[0x1E24C,0x1E250)",
+          "[0x1E25C,0x1E260)",
+          "[0x1E26C,0x1E270)",
+          "[0x1E27C,0x1E280)",
+          "[0x1E28C,0x1E290)",
+          "[0x1E29C,0x1E2A0)",
+          "[0x1E2AC,0x1E2B0)",
+          "[0x2724C,0x27250)",
+          "[0x2725C,0x27260)",
+          "[0x2726C,0x27270)",
+          "[0x2727C,0x27280)",
+          "[0x2728C,0x27290)",
+          "[0x2729C,0x272A0)",
+          "[0x272AC,0x272B0)",
+          "[0x32FDC,0x32FE0)",
+          "[0x32FEC,0x32FF0)",
+          "[0x32FFC,0x33000)",
+          "[0x3300C,0x33010)",
+          "[0x3301C,0x33020)",
+          "[0x3302C,0x33030)",
+          "[0x3303C,0x33040)"
+        ],
+        "toolBindingId": "legacy-combiner-1.13.0",
+        "sessionCount": 1,
+        "commandCount": 10,
+        "inputArtifactsUnchanged": true,
+        "reportIdentityParity": true,
+        "runtimeSupportPromotion": false,
+        "parityTest": "Nt51927CtrlRamFw132TwoChipEvidenceTests.ExactExpectedDerivedCaseRunsThroughV2WithLegacyProcessParityAsync"
+      },
+      "notes": "Committed owner-approved base with repository-derived replay inputs. The six inputs match the six physical BIN filenames consumed by the pinned Postbuild; NF and VN each feed multiple logical destinations. Exact V1/V2 full-byte and process parity is now closed for this full-reference-SHA route. Because no independent owner expected output exists, the 100-byte self-replacement delta is classified only as expected-derived header/CRC evidence and does not promote public support."
     },
     {
       "id": "nt51927-3chip-self-20260705",

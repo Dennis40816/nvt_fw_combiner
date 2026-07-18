@@ -12,6 +12,7 @@ public static partial class WorkbenchCompositionService
     private const string Nt51923Fw141SingleBaseSha256 = "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f";
     private const string Nt51923Fw141Cascade3BaseSha256 = "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18";
     private const string Nt51927Fw141SingleBaseSha256 = "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a";
+    private const string Nt51927Fw132TwoChipBaseSha256 = "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae";
     private const string Nt51931Fw130ExactBaseSha256 = "2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3";
     private const string Nt51932Fw200ExactBaseSha256 = "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd";
     private const string Nt51951Fw200ExactBaseSha256 = "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69";

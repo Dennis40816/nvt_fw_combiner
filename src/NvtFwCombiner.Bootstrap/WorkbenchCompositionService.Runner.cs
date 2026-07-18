@@ -84,11 +84,6 @@ public static partial class WorkbenchCompositionService
         return $"{prefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}-{suffix}";
     }
 
-    private static string CreateWorkbenchReportRunId(string prefix, bool build, DateTimeOffset timestamp)
-    {
-        return $"{prefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}";
-    }
-
     private static string GetReplaceRunIdPrefix(string replaceMode)
     {
         return replaceMode switch

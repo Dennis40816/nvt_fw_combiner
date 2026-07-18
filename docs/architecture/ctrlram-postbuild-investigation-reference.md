@@ -197,7 +197,7 @@ Current interpretation:
 
 - NT51927 single self-pasteback mostly reduces to header-word drift.
 - The current NT51927 golden is SINGLE and matches the current investigation scope.
-- NT51927 2-chip/3-chip testing would require matching owner golden outputs for those branches if those branches become in-scope.
+- NT51927 2-chip now has exact full-reference-SHA V1/V2 parity using the owner-approved base and repository-derived replay inputs. The 3-chip route follows the same expected-derived engineering policy; no new owner output is requested, and neither route may be described as direct owner-output parity.
 - Running a single-branch golden through a multi-chip branch is not a valid first-run-identity test.
 
 ### NT51928
@@ -279,7 +279,7 @@ The short answer to preserve:
 - NT51930 now has two inspected postbuild versions. The current Standard Merge golden aligns with `PostbuildSetup_51930_1.4.0.bat` header-copy length `0x100`, not the current `2.0.0` catalog length `0x200` plus second header-only command.
 - Current postbuild catalog matches inspected `2.0.0` BAT evidence, but not necessarily the version of every golden sample.
 - NT51926 is no longer just a copy-header initialization question; it is a postbuild-version selection/evidence question.
-- NT51927 currently has SINGLE golden; 2-chip/3-chip golden outputs are only needed for future multi-chip branch parity because the BAT explicitly copies master windows into slave windows.
+- NT51927 single has direct owner-output evidence. The 2-chip exact route is closed through full-reference-SHA V1/V2 and expected-derived CRC/header classification; 3-chip remains agent-owned engineering work under the same no-new-owner-input policy.
 - NT51928 LDC is Display/DP-side data.
 - NT51930 hidden DiffDLM-like mutation should be treated as `2.0.0` catalog versus `1.4.0` golden mismatch until matching `2.0.0` evidence exists.
 - NT51931 is a version/mode pairing conflict between the two supplied BATs. The selected resolved catalog rule is registered Combiner 1.13.0 with `NT51931BASED_NORMAL_MODE CRC8`; the 1.2.0.4 binary is no longer needed for runtime packaging.

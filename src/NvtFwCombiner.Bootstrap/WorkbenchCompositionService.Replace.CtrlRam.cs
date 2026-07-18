@@ -80,6 +80,9 @@ public static partial class WorkbenchCompositionService
             ("NT51927", "nfc.nt51927.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.4.1", 1, 0x5709)
                 when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51927Fw141SingleBaseSha256) =>
                 "nt51927-ctrlram-replace-fw141-single",
+            ("NT51927", "nfc.nt51927.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.TwoChip, IcNumberInputMode.NumericSelector, "1.3.2", 2, 0x1615)
+                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51927Fw132TwoChipBaseSha256) =>
+                "nt51927-ctrlram-replace-fw132-twochip",
             ("NT51926", "nfc.nt51926.ctrlram-postbuild-fw1.4.1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, _, > 1, _) =>
                 "nt51926-ctrlram-replace-fw141-runtime-cascade",
             ("NT51926", Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x1309) =>

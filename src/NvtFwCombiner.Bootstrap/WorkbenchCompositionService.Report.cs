@@ -96,7 +96,7 @@ public static partial class WorkbenchCompositionService
     {
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         var report = new CompositionRunReport(
-            CreateWorkbenchReportRunId(runIdPrefix, build, timestamp),
+            $"{runIdPrefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}",
             profileId,
             profileVersion,
             icId,
