@@ -49,6 +49,29 @@ public static class ShellPreferenceFileStore
                 ShellPreferenceFileEntry.FromSnapshot(preferences)));
     }
 
+    /// <summary>Saves a default-path snapshot without blocking the UI dispatcher.</summary>
+    internal static Task SaveAsync(
+        ShellPreferenceSnapshot preferences,
+        CancellationToken cancellationToken)
+    {
+        return SaveAsync(DefaultPreferencesPath, preferences, cancellationToken);
+    }
+
+    internal static Task SaveAsync(
+        string path,
+        ShellPreferenceSnapshot preferences,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(preferences);
+        return BestEffortLocalJsonFileStore.SaveAsync(
+            path,
+            new ShellPreferenceFile(
+                SchemaVersion,
+                ShellPreferenceFileEntry.FromSnapshot(preferences)),
+            cancellationToken);
+    }
+
     private sealed class ShellPreferenceFile
     {
         public ShellPreferenceFile(int schemaVersion, ShellPreferenceFileEntry preferences)

@@ -45,4 +45,30 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("English", defaultViewModel.SelectedLanguage);
         Assert.False(defaultViewModel.IsReducedMotionEnabled);
     }
+
+    /// <summary>Async preference persistence keeps the previous file when cancelled and atomically publishes the latest snapshot.</summary>
+    [Fact]
+    public async Task ShellPreferenceFileStoreAsyncSavePreservesLastCompleteSnapshot()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-shell-preferences-async");
+        string preferencesPath = workspace.PathFor(Path.Combine("state", "preferences.v1.json"));
+        var original = new ShellPreferenceSnapshot("Dark", "English");
+        var cancelled = new ShellPreferenceSnapshot("Light", "Traditional Chinese", true);
+        var latest = new ShellPreferenceSnapshot("System", "Traditional Chinese", true);
+        ShellPreferenceFileStore.Save(preferencesPath, original);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await ShellPreferenceFileStore.SaveAsync(preferencesPath, cancelled, cancellation.Token);
+
+        Assert.Equal(original, ShellPreferenceFileStore.Load(preferencesPath));
+
+        await ShellPreferenceFileStore.SaveAsync(
+            preferencesPath,
+            latest,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(latest, ShellPreferenceFileStore.Load(preferencesPath));
+        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(preferencesPath)!, "*.tmp"));
+    }
 }

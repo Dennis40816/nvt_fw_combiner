@@ -9,11 +9,13 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 /// <summary>Main desktop window for the firmware combiner UI.</summary>
 public sealed partial class MainWindow : Window, IDisposable
 {
-    private static readonly TimeSpan ReportHistoryCloseFlushTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan LocalStateCloseFlushTimeout = TimeSpan.FromSeconds(5);
     private readonly DispatcherTimer _reportToastHoldTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer _reportToastFadeTimer = new() { Interval = TimeSpan.FromMilliseconds(40) };
-    private readonly ReportHistoryPersistenceCoordinator _reportHistoryPersistence =
-        new(ReportHistoryFileStore.SaveAsync);
+    private readonly LatestSnapshotPersistenceCoordinator<IReadOnlyList<ReportHistorySnapshot>>
+        _reportHistoryPersistence = new(ReportHistoryFileStore.SaveAsync, snapshots => [.. snapshots]);
+    private readonly LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot>
+        _shellPreferencePersistence = new(ShellPreferenceFileStore.SaveAsync, static snapshot => snapshot);
     private readonly CancellationTokenSource _startupLoadCancellation = new();
     private readonly UiLaunchOptions _launchOptions;
     private bool _isReportHistoryClosePending;
@@ -88,11 +90,13 @@ public sealed partial class MainWindow : Window, IDisposable
             notifier.PropertyChanged -= ViewModel_OnPropertyChanged;
         }
 
-        Task completion = _reportHistoryPersistence.CompleteAsync();
+        var completion = Task.WhenAll(
+            _reportHistoryPersistence.CompleteAsync(),
+            _shellPreferencePersistence.CompleteAsync());
         base.OnClosing(e);
         try
         {
-            await completion.WaitAsync(ReportHistoryCloseFlushTimeout);
+            await completion.WaitAsync(LocalStateCloseFlushTimeout);
         }
         catch (TimeoutException)
         {
@@ -169,7 +173,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
         if (IsShellPreferenceProperty(e.PropertyName))
         {
-            ShellPreferenceFileStore.Save(viewModel);
+            _shellPreferencePersistence.Queue(viewModel.ExportShellPreferences());
         }
 
         if (e.PropertyName == nameof(MainWindowViewModel.ReportHistoryCount))
