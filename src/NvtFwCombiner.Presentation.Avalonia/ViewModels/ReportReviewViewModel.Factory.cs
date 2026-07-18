@@ -6,6 +6,10 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportReviewViewModel
 {
+    private static readonly Encoding StrictUtf8 = new UTF8Encoding(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true);
+
     /// <summary>Loads a readable report model from run report JSON.</summary>
     public static ReportReviewViewModel FromJson(
         string json,
@@ -65,7 +69,7 @@ public sealed partial class ReportReviewViewModel
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] utf8 = Encoding.UTF8.GetBytes(json);
+        byte[] utf8 = StrictUtf8.GetBytes(json);
         using var document = JsonDocument.Parse(utf8.AsMemory());
         JsonElement root = document.RootElement;
 
@@ -85,6 +89,7 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root, cancellationToken);
         OutputDifferenceProjection outputDifferences = ParseOutputDifferences(
             root,
+            json,
             utf8,
             inspectionSnapshot?.OutputSpaceId ?? "reported-output",
             language,
