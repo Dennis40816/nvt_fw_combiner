@@ -42,7 +42,8 @@ public sealed class ReportHistoryPersistenceTests
         TaskCompletionSource firstStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
         TaskCompletionSource releaseFirst = new(TaskCreationOptions.RunContinuationsAsynchronously);
         List<string> savedSources = [];
-        var coordinator = new ReportHistoryPersistenceCoordinator(async (snapshots, _) =>
+        LatestSnapshotPersistenceCoordinator<IReadOnlyList<ReportHistorySnapshot>> coordinator =
+            CreateCoordinator(async (snapshots, _) =>
         {
             string source = Assert.Single(snapshots).SourceName;
             lock (savedSources)
@@ -76,7 +77,8 @@ public sealed class ReportHistoryPersistenceTests
         string historyPath = workspace.PathFor(Path.Combine("state", "report-history.v1.json"));
         TaskCompletionSource saveStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
         TaskCompletionSource releaseSave = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        var coordinator = new ReportHistoryPersistenceCoordinator(async (snapshots, cancellationToken) =>
+        LatestSnapshotPersistenceCoordinator<IReadOnlyList<ReportHistorySnapshot>> coordinator =
+            CreateCoordinator(async (snapshots, cancellationToken) =>
         {
             saveStarted.SetResult();
             await releaseSave.Task;
@@ -102,7 +104,8 @@ public sealed class ReportHistoryPersistenceTests
     public async Task CoordinatorRecoversAfterSaveFault()
     {
         List<string> attemptedSources = [];
-        var coordinator = new ReportHistoryPersistenceCoordinator((snapshots, _) =>
+        LatestSnapshotPersistenceCoordinator<IReadOnlyList<ReportHistorySnapshot>> coordinator =
+            CreateCoordinator((snapshots, _) =>
         {
             string source = Assert.Single(snapshots).SourceName;
             attemptedSources.Add(source);
@@ -127,5 +130,13 @@ public sealed class ReportHistoryPersistenceTests
             sourceName,
             ReportJsonSamples.Succeeded(runId: Path.GetFileNameWithoutExtension(sourceName)),
             string.Empty);
+    }
+
+    private static LatestSnapshotPersistenceCoordinator<IReadOnlyList<ReportHistorySnapshot>> CreateCoordinator(
+        Func<IReadOnlyList<ReportHistorySnapshot>, CancellationToken, Task> saveAsync)
+    {
+        return new LatestSnapshotPersistenceCoordinator<IReadOnlyList<ReportHistorySnapshot>>(
+            saveAsync,
+            snapshots => [.. snapshots]);
     }
 }

@@ -1,40 +1,43 @@
-using NvtFwCombiner.Presentation.Avalonia.ViewModels;
-
 namespace NvtFwCombiner.Presentation.Avalonia;
 
-/// <summary>Serializes report-history saves and lets a newer immutable snapshot supersede queued work.</summary>
-internal sealed class ReportHistoryPersistenceCoordinator
+/// <summary>Serializes local-state saves and lets a newer immutable snapshot supersede queued work.</summary>
+internal sealed class LatestSnapshotPersistenceCoordinator<TSnapshot>
 {
     private readonly Lock _gate = new();
-    private readonly Func<IReadOnlyList<ReportHistorySnapshot>, CancellationToken, Task> _saveAsync;
+    private readonly Func<TSnapshot, TSnapshot> _capture;
+    private readonly Func<TSnapshot, CancellationToken, Task> _saveAsync;
     private CancellationTokenSource? _latestCancellation;
     private Task _tail = Task.CompletedTask;
     private bool _isCompleted;
 
-    internal ReportHistoryPersistenceCoordinator(
-        Func<IReadOnlyList<ReportHistorySnapshot>, CancellationToken, Task> saveAsync)
+    internal LatestSnapshotPersistenceCoordinator(
+        Func<TSnapshot, CancellationToken, Task> saveAsync,
+        Func<TSnapshot, TSnapshot> capture)
     {
         ArgumentNullException.ThrowIfNull(saveAsync);
+        ArgumentNullException.ThrowIfNull(capture);
         _saveAsync = saveAsync;
+        _capture = capture;
     }
 
-    internal void Queue(IReadOnlyList<ReportHistorySnapshot> snapshots)
+    internal void Queue(TSnapshot snapshot)
     {
-        ArgumentNullException.ThrowIfNull(snapshots);
-        ReportHistorySnapshot[] capturedSnapshots = [.. snapshots];
+        ArgumentNullException.ThrowIfNull(snapshot);
+        TSnapshot capturedSnapshot = _capture(snapshot);
+        ArgumentNullException.ThrowIfNull(capturedSnapshot);
 
         lock (_gate)
         {
             if (_isCompleted)
             {
-                throw new InvalidOperationException("Report history persistence is already completing.");
+                throw new InvalidOperationException("Local-state persistence is already completing.");
             }
 
             var cancellation = new CancellationTokenSource();
             _latestCancellation?.Cancel();
             _latestCancellation = cancellation;
             Task predecessor = _tail;
-            _tail = Task.Run(() => PersistAfterAsync(predecessor, capturedSnapshots, cancellation));
+            _tail = Task.Run(() => PersistAfterAsync(predecessor, capturedSnapshot, cancellation));
         }
     }
 
@@ -70,14 +73,14 @@ internal sealed class ReportHistoryPersistenceCoordinator
 
     private async Task PersistAfterAsync(
         Task predecessor,
-        IReadOnlyList<ReportHistorySnapshot> snapshots,
+        TSnapshot snapshot,
         CancellationTokenSource cancellation)
     {
         try
         {
             await ObserveCompletionAsync(predecessor).ConfigureAwait(false);
             cancellation.Token.ThrowIfCancellationRequested();
-            await _saveAsync(snapshots, cancellation.Token).ConfigureAwait(false);
+            await _saveAsync(snapshot, cancellation.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
