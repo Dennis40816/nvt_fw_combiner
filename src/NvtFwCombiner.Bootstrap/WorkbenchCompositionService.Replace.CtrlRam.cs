@@ -10,26 +10,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static async ValueTask<WorkbenchRunResult> RunCtrlRamReplaceAsync(
-        string icId,
-        string number,
-        IReadOnlyDictionary<string, string> slotPaths,
-        bool build,
-        string? outputPath,
-        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
-        CancellationToken cancellationToken)
-    {
-        return await RunCtrlRamReplaceWithProcessorAsync(
-            icId,
-            number,
-            slotPaths,
-            build,
-            outputPath,
-            firmwareVersionEdit,
-            ExternalProcessorFactory.CreateOrNull(),
-            cancellationToken).ConfigureAwait(false);
-    }
-
     internal static async ValueTask<WorkbenchRunResult> RunCtrlRamReplaceWithProcessorAsync(
         string icId,
         string number,
@@ -93,6 +73,9 @@ public static partial class WorkbenchCompositionService
                 "nt51926-ctrlram-replace-fw200-runtime-cascade",
             ("NT51930", "nfc.nt51930.ctrlram-postbuild-fw1.x", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.3.0", 3, 0x110D) =>
                 "nt51930-ctrlram-replace-fw130-cascade3",
+            ("NT51932", "nfc.nt51932.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "2.0.0", 3, 0x5601)
+                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51932Fw200ExactBaseSha256) =>
+                "nt51932-ctrlram-replace-fw200-cascade3",
             _ => null,
         };
         if (v2ProfileId is not null)

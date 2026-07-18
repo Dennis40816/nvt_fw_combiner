@@ -227,13 +227,14 @@ public static partial class WorkbenchCompositionService
                     build,
                     WorkbenchIssueCodes.ReplaceDpProfilePending,
                     $"DP Replace output is enabled only for {FormatBuiltInV2DpReplaceIcIds()} until per-IC DP source mapping and golden evidence are approved."),
-                WorkbenchReplaceModes.CtrlRam => await RunCtrlRamReplaceAsync(
+                WorkbenchReplaceModes.CtrlRam => await RunCtrlRamReplaceWithProcessorAsync(
                     icId,
                     number,
                     slotPaths,
                     build,
                     outputPath,
                     ctrlRamFirmwareVersionEdit,
+                    ExternalProcessorFactory.CreateOrNull(),
                     cancellationToken).ConfigureAwait(false),
                 WorkbenchReplaceModes.General => await RunGeneralReplaceAsync(
                     icId,

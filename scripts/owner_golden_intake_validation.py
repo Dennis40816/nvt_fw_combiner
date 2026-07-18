@@ -9,8 +9,10 @@ from typing import Any
 
 if __package__:
     from .owner_golden_nt51930_phase_b import nt51930_phase_b_result
+    from .owner_golden_nt51932_phase_b import nt51932_phase_b_result
 else:
     from owner_golden_nt51930_phase_b import nt51930_phase_b_result
+    from owner_golden_nt51932_phase_b import nt51932_phase_b_result
 
 
 EXPECTED_20260718_SOURCE_ARCHIVE = {
@@ -171,6 +173,7 @@ EXPECTED_20260718_NT51926_PHASE_B_RESULTS = {
 EXPECTED_20260718_PHASE_B_RESULTS = {
     **EXPECTED_20260718_NT51926_PHASE_B_RESULTS,
     "nt51930-fw130-cascade3-auto-prj-302-inx-20260718": nt51930_phase_b_result(),
+    "nt51932-fw200-cascade3-auto-prj-525-20260718": nt51932_phase_b_result(),
 }
 EXPECTED_20260718_CASES: dict[str, dict[str, Any]] = {
     "nt51926-fw200-single-auto-prj-597-20260718": {
@@ -291,7 +294,10 @@ EXPECTED_20260718_CASES: dict[str, dict[str, Any]] = {
             "profileVersion": "0.5.0",
             "route": "legacy-workbench-v1",
         },
-        "targetV2": {"status": "not-materialized", "runtimePromotion": False},
+        "targetV2": {
+            "status": "exact-route-materialized",
+            "runtimePromotion": False,
+        },
         "baseKind": "standard-merge-dp-and-tp-inputs",
         "engineeringGateIds": [
             "diff-nf-merge-command-reconstruction",

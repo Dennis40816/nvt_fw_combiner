@@ -105,24 +105,18 @@ public static partial class WorkbenchCompositionService
 
     private static ReadOnlyCollection<WorkbenchProfileSummary> CreateStandardMergeProfileSummaries()
     {
-        WorkbenchProfileSummary[] summaries =
-        [
-            .. BuiltInV2StandardMergeRegistrations.Select(static registration => registration.CreateProfileSummary()),
-        ];
         return Array.AsReadOnly(
-            summaries
+            BuiltInV2StandardMergeRegistrations
+                .Select(static registration => registration.CreateProfileSummary())
                 .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
                 .ToArray());
     }
 
     private static ReadOnlyCollection<WorkbenchProfileSummary> CreateReplaceProfileSummaries()
     {
-        WorkbenchProfileSummary[] summaries =
-        [
-            .. BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values.Select(static registration => registration.CreateProfileSummary()),
-        ];
         return Array.AsReadOnly(
-            summaries
+            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values
+                .Select(static registration => registration.CreateProfileSummary())
                 .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal)
                 .ToArray());
     }

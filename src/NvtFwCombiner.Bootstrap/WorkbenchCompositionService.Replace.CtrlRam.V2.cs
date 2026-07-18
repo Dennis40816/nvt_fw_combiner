@@ -7,6 +7,7 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private const string Nt51926Fw200ProcessorId = "nfc.nt51926.ctrlram-postbuild-v1";
+    private const string Nt51932Fw200ExactBaseSha256 = "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd";
 
     private static V2CompositionPlanCompileResult CompileCtrlRamV2(
         CtrlRamReplaceRunContext context,
