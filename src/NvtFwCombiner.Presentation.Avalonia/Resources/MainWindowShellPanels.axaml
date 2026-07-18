@@ -174,7 +174,13 @@
                     Classes.active="{Binding IsActive}"
                     Classes.completed="{Binding IsCompleted}"
                     Classes="runProgressNode"
-                    ToolTip.Tip="{Binding AccessibleLabel}" />
+                    ToolTip.Tip="{Binding AccessibleLabel}">
+                  <TextBlock
+                      AutomationProperties.AccessibilityView="Raw"
+                      Classes="runProgressMarker"
+                      IsHitTestVisible="False"
+                      Text="{Binding StateMarker}" />
+                </Border>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>

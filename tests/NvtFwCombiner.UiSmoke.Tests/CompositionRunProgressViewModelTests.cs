@@ -51,6 +51,7 @@ public sealed class CompositionRunProgressViewModelTests
             ],
             progress.Steps.Select(static step => step.State));
         Assert.Equal("Executing composition: in progress", progress.Steps[2].AccessibleLabel);
+        Assert.Equal(["✓", "✓", "▶", "○", "○", "○", "○"], progress.Steps.Select(static step => step.StateMarker));
     }
 
     /// <summary>Preview renders only phases Application declared applicable to that run.</summary>
@@ -125,6 +126,28 @@ public sealed class CompositionRunProgressViewModelTests
         Assert.True(progress.ShouldAnimateActiveStep);
         Assert.Equal(accessibleStatus, progress.AccessibleStatus);
         Assert.Equal(states, progress.Steps.Select(static step => step.State));
+    }
+
+    /// <summary>Step meaning remains visible without relying on color, animation, or one language.</summary>
+    [Fact]
+    public void StateMarkersStayDistinctAcrossMotionAndLanguageChanges()
+    {
+        var progress = new CompositionRunProgressViewModel(isReducedMotionEnabled: true);
+        _ = progress.TryApply(
+            "run-high-contrast",
+            CompositionRunPhase.ReadingInputs,
+            FullBuildPhases,
+            [CompositionRunPhase.Preparing]);
+        string[] markers = [.. progress.Steps.Select(static step => step.StateMarker)];
+
+        progress.SetReducedMotion(enabled: false);
+        progress.ApplyLanguage(ShellLanguage.ChineseTraditional);
+
+        Assert.Equal(["✓", "▶", "○", "○", "○", "○", "○"], markers);
+        Assert.Equal(3, markers.Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(markers, progress.Steps.Select(static step => step.StateMarker));
+        Assert.Equal("準備執行: 已完成", progress.Steps[0].AccessibleLabel);
+        Assert.Equal("讀取輸入檔案: 執行中", progress.Steps[1].AccessibleLabel);
     }
 
     /// <summary>Changing language relocalizes the retained phase state without altering its lifecycle position.</summary>
