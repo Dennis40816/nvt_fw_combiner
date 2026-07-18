@@ -44,11 +44,13 @@ public sealed class AbMergeGoldenRegressionTests
     }
 
     /// <summary>
-    /// Verifies the owner-confirmed NT51919 fact-scoped alias preserves the direct NT51929 golden bytes.
-    /// This is alias parity and does not present the NT51929 output as a direct NT51919 product golden.
+    /// Verifies the owner-confirmed NT51919/NT51932 fact-scoped aliases preserve the direct NT51929 golden bytes.
+    /// This is alias parity and does not present the NT51929 output as a direct alias product golden.
     /// </summary>
-    [Fact]
-    public void Nt51919FactScopedAliasMatchesNt51929AbGolden()
+    [Theory]
+    [InlineData("NT51919", "nt51919-ab-merge-alias")]
+    [InlineData("NT51932", "nt51932-ab-merge")]
+    public void Nt51919AndNt51932FactScopedAliasesMatchNt51929AbGolden(string icId, string profileId)
     {
         JsonElement goldenCase = ReadGoldenCase("nt51929-ab-t05-d06");
         JsonElement applicability = goldenCase.GetProperty("evidenceApplicability");
@@ -56,16 +58,14 @@ public sealed class AbMergeGoldenRegressionTests
             ["NT51929"],
             applicability.GetProperty("directMemberIds").EnumerateArray().Select(static item => item.GetString()));
         Assert.Equal(
-            ["NT51919"],
+            ["NT51919", "NT51932"],
             applicability.GetProperty("factScopedAliasMemberIds").EnumerateArray().Select(static item => item.GetString()));
-        Assert.Equal(
-            ["NT51932"],
-            applicability.GetProperty("notEstablishedMemberIds").EnumerateArray().Select(static item => item.GetString()));
+        Assert.Empty(applicability.GetProperty("notEstablishedMemberIds").EnumerateArray());
         CompiledComposition composition = CompileCandidate(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(Nt51929BundleDirectory, Nt51929BundleContentHash),
             goldenCase,
-            "NT51919",
-            "nt51919-ab-merge-alias");
+            icId,
+            profileId);
         Dictionary<string, byte[]> inputs = ReadInputs(goldenCase.GetProperty("inputs"));
         byte[] expected = ReadFixture(goldenCase.GetProperty("expectedOutput"));
 
@@ -144,6 +144,11 @@ public sealed class AbMergeGoldenRegressionTests
         }
 
         JsonElement goldenCase = ReadGoldenCase(caseId);
+        JsonElement applicability = goldenCase.GetProperty("evidenceApplicability");
+        Assert.Equal(
+            ["NT51951"],
+            applicability.GetProperty("factScopedAliasMemberIds").EnumerateArray().Select(static item => item.GetString()));
+        Assert.Empty(applicability.GetProperty("notEstablishedMemberIds").EnumerateArray());
         using var workspace = TempWorkspace.Create($"nfc-{caseId}");
         CompiledComposition composition = CompileCandidate(
             AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(

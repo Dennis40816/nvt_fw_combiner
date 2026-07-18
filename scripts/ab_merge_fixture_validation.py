@@ -12,8 +12,8 @@ EXPECTED_CASES: dict[str, dict[str, Any]] = {
         "profileVersion": "0.1.0",
         "mapCapacity": 524288,
         "directMemberIds": ["NT51929"],
-        "factScopedAliasMemberIds": ["NT51919"],
-        "notEstablishedMemberIds": ["NT51932"],
+        "factScopedAliasMemberIds": ["NT51919", "NT51932"],
+        "notEstablishedMemberIds": [],
         "referenceStatus": "full-byte-match",
         "referenceConfiguration": "51929",
         "promotion": "executable-candidate only; firmware-owner review remains required",
@@ -24,8 +24,8 @@ EXPECTED_CASES: dict[str, dict[str, Any]] = {
         "profileVersion": "0.1.1",
         "mapCapacity": 524288,
         "directMemberIds": ["NT51950"],
-        "factScopedAliasMemberIds": [],
-        "notEstablishedMemberIds": ["NT51951"],
+        "factScopedAliasMemberIds": ["NT51951"],
+        "notEstablishedMemberIds": [],
         "referenceStatus": (
             "full-byte-match-to-uploaded-python-reference-and-legacy-combiner-1.13.0"
         ),
@@ -41,8 +41,8 @@ EXPECTED_CASES: dict[str, dict[str, Any]] = {
         "profileVersion": "0.1.1",
         "mapCapacity": 524288,
         "directMemberIds": ["NT51950"],
-        "factScopedAliasMemberIds": [],
-        "notEstablishedMemberIds": ["NT51951"],
+        "factScopedAliasMemberIds": ["NT51951"],
+        "notEstablishedMemberIds": [],
         "referenceStatus": (
             "full-byte-match-to-uploaded-python-reference-and-legacy-combiner-1.13.0"
         ),
@@ -215,6 +215,7 @@ def validate_ab_merge_golden_fixtures(
             "transfer",
             "sourceClassification",
             "approval",
+            "evidenceApplicabilityApproval",
         ):
             if (
                 not isinstance(source.get(property_name), str)

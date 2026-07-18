@@ -59,14 +59,29 @@ class AbMergeFixtureValidationTests(unittest.TestCase):
     def test_accepts_the_closed_owner_approved_fixture_inventory(self) -> None:
         self.assertEqual([], self.validate(self.manifest))
 
-    def test_rejects_nt51929_evidence_reused_as_nt51932_golden(self) -> None:
+    def test_rejects_nt51932_fact_scoped_alias_removal(self) -> None:
         manifest = deepcopy(self.manifest)
-        manifest["cases"][0]["evidenceApplicability"]["notEstablishedMemberIds"] = []
+        manifest["cases"][0]["evidenceApplicability"][
+            "factScopedAliasMemberIds"
+        ].remove("NT51932")
 
         errors = self.validate(manifest)
 
         self.assertTrue(
-            any("notEstablishedMemberIds" in error for error in errors),
+            any("factScopedAliasMemberIds" in error for error in errors),
+            errors,
+        )
+
+    def test_rejects_nt51951_fact_scoped_alias_removal(self) -> None:
+        manifest = deepcopy(self.manifest)
+        manifest["cases"][1]["evidenceApplicability"][
+            "factScopedAliasMemberIds"
+        ].clear()
+
+        errors = self.validate(manifest)
+
+        self.assertTrue(
+            any("factScopedAliasMemberIds" in error for error in errors),
             errors,
         )
 

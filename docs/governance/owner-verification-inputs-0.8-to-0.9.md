@@ -115,9 +115,9 @@ firmware-owner review requirements below.
 
 | AB group | Additional required evidence |
 | --- | --- |
-| NT51919 / NT51929 / NT51932 | An owner-approved fact-scoped AB alias/parity matrix. It must identify each effective member/map/capacity and provide direct output hashes for every reused member. A shared source payload is acceptable only when the matrix and member-specific expected results prove parity. |
+| NT51919 / NT51929 / NT51932 | Closed for duplicate-product intake by the 2026-07-18 owner-approved NT51929 fact scope. Keep the member/map/capacity declaration and independent NT51932 named-configuration test; firmware-owner promotion review remains. |
 | NT51950 | The tracked candidate already pins the source-verified `Combiner.exe` 1.13.0 binding, command, tool hash, and declared writes. Supply direct inputs, expected output, provenance, and owner approval for each release case; no `map.txt` is used. Submit command/tool sidecars only when the owner case differs from the pinned binding. Combiner, not C#, owns AB header CRC mutation. |
-| NT51951 | The candidate pins the same command family with the verified final `0x80000` argument and full Python/Combiner synthetic parity. Supply direct inputs, expected output, provenance, and owner approval for its own case; do not copy NT51950's output. No `map.txt` or duplicate command/tool sidecar is needed unless the owner case differs from the pinned binding, version, hash, or staging order. |
+| NT51951 | Closed for duplicate-product AB intake by the 2026-07-18 owner-approved NT51950 workflow-logic scope. Keep the distinct `0x80000` Python/Combiner synthetic test. No `map.txt` is used, C# does not write header CRC, and firmware-owner promotion review remains. |
 
 The existing 256 KiB NT51929 `initial code` / `TPFW` / `FlashCode` archive is a
 Normal case, not this AB evidence. Existing V2 candidate profiles and reference

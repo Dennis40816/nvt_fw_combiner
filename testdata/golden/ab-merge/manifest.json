@@ -7,7 +7,8 @@
     "archiveSha256": "cb7cdc563d2ba9400774bf73b0a64dea71e285d16f88f54e47c44e6fe581b9c9",
     "transfer": "HackMD CJK14 numbered-note transfer",
     "sourceClassification": "private-owner-approved-golden",
-    "approval": "Repository owner supplied the archive and directed AB golden BIN fixtures to be tracked on 2026-07-14."
+    "approval": "Repository owner supplied the archive and directed AB golden BIN fixtures to be tracked on 2026-07-14.",
+    "evidenceApplicabilityApproval": "On 2026-07-18 the repository owner approved NT51929 AB evidence as a fact-scoped NT51932 family alias and NT51950 AB evidence as a fact-scoped NT51951 workflow-logic alias; neither decision promotes runtime support."
   },
   "cases": [
     {
@@ -57,11 +58,10 @@
           "NT51929"
         ],
         "factScopedAliasMemberIds": [
-          "NT51919"
-        ],
-        "notEstablishedMemberIds": [
+          "NT51919",
           "NT51932"
-        ]
+        ],
+        "notEstablishedMemberIds": []
       },
       "ctrlRamFirstHalfSelfReplacementEvidence": {
         "status": "fact-scoped-allowed-diff-parity",
@@ -178,10 +178,10 @@
         "directMemberIds": [
           "NT51950"
         ],
-        "factScopedAliasMemberIds": [],
-        "notEstablishedMemberIds": [
+        "factScopedAliasMemberIds": [
           "NT51951"
-        ]
+        ],
+        "notEstablishedMemberIds": []
       },
       "promotion": "executable candidate only; full-byte Python/Combiner parity is tracked, but firmware-owner review remains required before runtime exposure"
     },
@@ -231,10 +231,10 @@
         "directMemberIds": [
           "NT51950"
         ],
-        "factScopedAliasMemberIds": [],
-        "notEstablishedMemberIds": [
+        "factScopedAliasMemberIds": [
           "NT51951"
-        ]
+        ],
+        "notEstablishedMemberIds": []
       },
       "promotion": "executable candidate only; full-byte Python/Combiner parity is tracked, but firmware-owner review remains required before runtime exposure"
     }
