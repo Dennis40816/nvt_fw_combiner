@@ -17,9 +17,12 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.Equal(13, icIds.Count);
         Assert.Equal(IcSupportCatalog.IcIds, icIds);
         Assert.Equal("NT51950", WorkbenchCompositionService.GetDefaultIcId());
+        Assert.Equal(
+            WorkbenchCompositionService.GetNumberSelectionChoices("NT51926"),
+            WorkbenchCompositionService.GetNumberSelectionChoices("51926"));
         foreach (string icId in icIds)
         {
-            IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
+            IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
             Assert.Equal(
                 IcNumberChoicePolicy.GetNumberSelectionChoices(profiles).Select(static choice => (
                     choice.Token,

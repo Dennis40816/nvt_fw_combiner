@@ -10,7 +10,7 @@ public sealed partial class RepositoryBoundaryTests
         string[] consumers =
         [
             ReadText("src/NvtFwCombiner.Profiles/DpReplaceAuthoringCatalog.cs"),
-            ReadText("src/NvtFwCombiner.Bootstrap/IcMetadataFacade.cs"),
+            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs"),
             ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.OutputNaming.cs"),
             ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs"),
         ];

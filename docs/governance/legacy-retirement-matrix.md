@@ -27,7 +27,7 @@ Each row marked `retire` must link or name:
 | `WorkbenchRawBinaryEditorContracts` mirror DTOs and projection conversions | None. The Bootstrap host session returns the Application-owned raw editor contracts directly while retaining file load and atomic Save As authority | Application editor tests, UI smoke, architecture exclusion of Presentation file I/O and firmware catalogs | `v0.9.8` | retired; no Hex Editor behavior, layout, input, output, or firmware support change |
 | Dynamic General Merge C# profile construction | None. Default General Merge, CLI, and UI route through the registered logical-output V2 profiles for all built-in ICs; persisted saved rules retain only a profile-id compatibility alias | Direct legacy/V2 byte parity for every built-in IC; default-route byte/report/UI/saved-rule regression; no physical-map, processor, CRC, or firmware-support claim | `v0.9.5` | retired in `a9a65b49` (`refactor(general-merge): route default workflow through V2`) |
 | `CompositionProfileCompiler` legacy authority | CtrlRAM and General Replace Workbench profile adapters | Each applicable profile compiles and executes through trusted V2 authority with equivalent report/output behavior | after per-workflow R2/R3 evidence | retain as runtime dependency; the generic Replace CLI compiler adapter is retired |
-| Static `TpFlashMapCatalog` facts and `IcMetadataFacade` compatibility projection | Static facts are retired. `BuiltInTpFlashMapCatalog` loads/queries hash-pinned `flash-map.json`; `IcMetadataFacade` still serves CtrlRAM/General Replace metadata and number selection | Resolved V2 map/profile facts supply every current caller without copied firmware semantics | after per-workflow evidence | static C# region/base-shape authority retired in v0.9.9; retain the config query adapter and facade until CtrlRAM/General V2 cutover |
+| Static `TpFlashMapCatalog` facts and `IcMetadataFacade` compatibility projection | Static facts and the forwarding facade have no consumers. `BuiltInTpFlashMapCatalog` still loads/queries hash-pinned `flash-map.json` for CtrlRAM/General Replace | Resolved V2 map/profile facts supply every remaining map-query caller without copied firmware semantics | after per-workflow evidence | static C# region/base-shape authority and `IcMetadataFacade` retired in v0.9.9; retain only the config query adapter until CtrlRAM/General V2 cutover |
 | Static `LegacyCombinerPostbuildCatalog` declarations | None. Bootstrap loads the same typed runtime profiles from the SHA-256-pinned `profiles/built-in/ctrlram-postbuild-v2/catalog.json` data authority | Exact profile/branch/command/block parity, strict unknown-field and argument validation, unchanged staged runner tests | `v0.9.9` | retired; the Legacy Combiner 1.13.0 EXE, typed runtime model, planner, and constrained runner remain approved exceptions. R3 golden/owner gaps still gate support promotion, not this support-neutral data move |
 
 ## v0.9.8 inventory result
@@ -40,14 +40,16 @@ Workbench adapters. NT51926 now has a hash-pinned, non-routed single-selector
 DP-only runtime-reference candidate with complete V1/V2 output-byte parity;
 TP/CtrlRAM targets fail closed and remain outside that candidate. This closes
 one General Replace migration slice but not the all-IC/number/report/postbuild
-replacement condition. The config-backed map query and `IcMetadataFacade`
-still serve CtrlRAM/General Replace planning, number selection, metadata, and
-UI projections. Those adapters remain open until their listed direct V2 parity
-evidence exists.
+replacement condition. The forwarding `IcMetadataFacade` is now absent;
+number selection and version-based postbuild choice converge at the existing
+Workbench catalog projection without a second model. The config-backed map
+query still serves CtrlRAM/General Replace planning and UI projections until
+its listed direct V2 parity evidence exists.
 
 `RemainingCompatibilityAuthoritiesHaveClosedProductionCallerSets` now locks
-the complete production caller allowlist at 2 `CompositionProfileCompiler`,
-8 `BuiltInTpFlashMapCatalog` and 6 `IcMetadataFacade` caller files. Static
+the complete production caller allowlist at 2 `CompositionProfileCompiler`
+and 8 `BuiltInTpFlashMapCatalog` caller files, while forbidding any
+`IcMetadataFacade` reintroduction. Static
 `LegacyCombinerPostbuildCatalog` production callers are forbidden. Any new compatibility caller is an architecture
 failure; each removal must update the allowlist in the same reviewed migration.
 The v0.9.9 ADR 0013 amendment also retired the unbound TP binary root/category

@@ -11,7 +11,7 @@ public static partial class WorkbenchCompositionService
         out LegacyCombinerPostbuildProfile? postbuildProfile,
         out CompositionIssue? issue)
     {
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
         if (profiles.Count == 0)
         {
             postbuildProfile = null;
@@ -34,7 +34,7 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        if (!IcMetadataFacade.TrySelectPostbuildProfile(
+        if (!TrySelectPostbuildProfileByCommonFwVersion(
                 icId,
                 commonFwVersion,
                 out postbuildProfile,

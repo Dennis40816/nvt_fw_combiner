@@ -29,24 +29,14 @@ public sealed partial class RepositoryBoundaryTests
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Profile.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.cs",
             ]);
-        AssertProductionCallers(
-            "IcMetadataFacade",
-            "src/NvtFwCombiner.Bootstrap/IcMetadataFacade",
-            [
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Context.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Planning.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Context.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Postbuild.cs",
-            ]);
+        AssertNoProductionText("IcMetadataFacade");
         AssertNoProductionText("LegacyCombinerPostbuildCatalog");
         AssertProductionCallers(
             "BuiltInPostbuildProfileCatalog",
             "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog",
             [
                 "src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs",
-                "src/NvtFwCombiner.Bootstrap/IcMetadataFacade.cs",
+                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs",
             ]);
     }
 

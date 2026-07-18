@@ -1,5 +1,8 @@
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -36,9 +39,38 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets concise grouped IC-number choices for workbench selection controls.</summary>
     public static IReadOnlyList<WorkbenchIcNumberChoice> GetNumberSelectionChoices(string icId)
     {
-        return Array.AsReadOnly(IcMetadataFacade.GetNumberSelectionChoices(icId)
+        return Array.AsReadOnly(IcNumberChoicePolicy.GetNumberSelectionChoices(GetPostbuildProfiles(icId))
             .Select(static choice => new WorkbenchIcNumberChoice(choice.Token, choice.DisplayLabel))
             .ToArray());
+    }
+
+    private static IReadOnlyList<LegacyCombinerPostbuildProfile> GetPostbuildProfiles(string icId)
+    {
+        return IcSupportCatalog.TryFind(icId, out _)
+            ? BuiltInPostbuildProfileCatalog.GetProfiles(IcSupportCatalog.NormalizeIcId(icId))
+            : [];
+    }
+
+    private static bool TryGetDefaultPostbuildProfile(
+        string icId,
+        out LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
+        postbuildProfile = profiles.Count == 0 ? null : profiles[0];
+        return postbuildProfile is not null;
+    }
+
+    private static bool TrySelectPostbuildProfileByCommonFwVersion(
+        string icId,
+        string? commonFwVersion,
+        out LegacyCombinerPostbuildProfile? postbuildProfile,
+        out string? issue)
+    {
+        return BuiltInPostbuildProfileCatalog.TrySelectProfileForCommonFwVersion(
+            IcSupportCatalog.NormalizeIcId(icId),
+            commonFwVersion,
+            out postbuildProfile,
+            out issue);
     }
 
     /// <summary>Gets compiled Standard Merge profile summaries in stable CLI/display order.</summary>

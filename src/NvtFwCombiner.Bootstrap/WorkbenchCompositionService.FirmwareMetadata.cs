@@ -132,7 +132,7 @@ public static partial class WorkbenchCompositionService
         out string? numberToken)
     {
         numberToken = null;
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
         if (profiles.Count == 0)
         {
             return false;
@@ -161,7 +161,7 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        foreach (IcNumberChoice choice in IcMetadataFacade.GetNumberSelectionChoices(icId))
+        foreach (IcNumberChoice choice in IcNumberChoicePolicy.GetNumberSelectionChoices(profiles))
         {
             bool matchesEveryProfile = profiles.All(profile =>
                 profile.BranchRules.TryGetValue(choice.Token, out LegacyCombinerPostbuildBranch candidate) &&
@@ -233,7 +233,7 @@ public static partial class WorkbenchCompositionService
         out LegacyCombinerPostbuildProfile? postbuildProfile)
     {
         postbuildProfile = null;
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
         if (profiles.Count == 0)
         {
             return false;
@@ -248,13 +248,13 @@ public static partial class WorkbenchCompositionService
         bool hasReadableBase = !string.IsNullOrWhiteSpace(basePath) && File.Exists(basePath);
         bool matchedBaseProfile = hasReadableBase &&
             TryReadBaseCommonFwVersion(icId, basePath!, out string? commonFwVersion) &&
-            IcMetadataFacade.TrySelectPostbuildProfile(
+            TrySelectPostbuildProfileByCommonFwVersion(
                 icId,
                 commonFwVersion,
                 out postbuildProfile,
                 out _);
 
         return matchedBaseProfile ||
-            (!hasReadableBase && IcMetadataFacade.TryGetDefaultPostbuildProfile(icId, out postbuildProfile));
+            (!hasReadableBase && TryGetDefaultPostbuildProfile(icId, out postbuildProfile));
     }
 }

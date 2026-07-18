@@ -45,7 +45,7 @@ public static partial class WorkbenchCompositionService
                 }
             }
         }
-        else if (IcMetadataFacade.GetPostbuildProfiles(icId).Count == 0)
+        else if (GetPostbuildProfiles(icId).Count == 0)
         {
             validationIssues.Add(new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamPostbuildProfileMissing,
