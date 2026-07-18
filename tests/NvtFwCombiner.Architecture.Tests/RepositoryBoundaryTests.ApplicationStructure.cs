@@ -49,6 +49,8 @@ public sealed partial class RepositoryBoundaryTests
     public void CompositionRunServiceConcernsStaySplit()
     {
         string root = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.cs");
+        string runResult = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunResult.cs");
+        string domainResult = ReadText("src/NvtFwCombiner.Domain/Composition/CompositionExecutionResult.cs");
         string externalProcessors = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionRunService.ExternalProcessors.cs");
         string reports = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs");
@@ -68,6 +70,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("BuildAsync", root, StringComparison.Ordinal);
         Assert.Contains("PreviewOrBuildAsync", root, StringComparison.Ordinal);
         Assert.Contains("RunAsync", root, StringComparison.Ordinal);
+        Assert.Contains("_outputBytes = [.. outputBytes];", domainResult, StringComparison.Ordinal);
+        Assert.Contains("ClonePublicOutputBytes(outputBytes)", runResult, StringComparison.Ordinal);
+        Assert.Contains("OutputBytes = immutableOutputBytes;", runResult, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutputBytes = outputBytes.ToArray();", runResult, StringComparison.Ordinal);
         Assert.DoesNotContain("TransformExternalProcessorAsync", root, StringComparison.Ordinal);
         Assert.DoesNotContain("ExternalProcessorRequest", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static CompositionRunReport CreateReport", root, StringComparison.Ordinal);

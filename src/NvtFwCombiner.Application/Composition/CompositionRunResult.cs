@@ -5,7 +5,6 @@ namespace NvtFwCombiner.Application.Composition;
 /// <summary>Application-level preview or build result with report summary.</summary>
 public sealed class CompositionRunResult
 {
-    private readonly byte[] _outputBytes;
 
     /// <summary>Creates a run result.</summary>
     public CompositionRunResult(
@@ -16,7 +15,7 @@ public sealed class CompositionRunResult
         string? previewToken = null)
         : this(
             status,
-            outputBytes ?? throw new ArgumentNullException(nameof(outputBytes)),
+            ClonePublicOutputBytes(outputBytes),
             report,
             committedOutputId,
             previewToken,
@@ -28,7 +27,7 @@ public sealed class CompositionRunResult
 
     internal CompositionRunResult(
         CompositionExecutionStatus status,
-        ReadOnlyMemory<byte> outputBytes,
+        ReadOnlyMemory<byte> immutableOutputBytes,
         CompositionRunReport report,
         string? committedOutputId,
         string? previewToken,
@@ -51,7 +50,7 @@ public sealed class CompositionRunResult
         }
 
         Status = status;
-        _outputBytes = outputBytes.ToArray();
+        OutputBytes = immutableOutputBytes;
         Report = report;
         CommittedOutputId = string.IsNullOrWhiteSpace(committedOutputId) ? null : committedOutputId;
         PreviewToken = string.IsNullOrWhiteSpace(previewToken) ? null : previewToken;
@@ -62,7 +61,7 @@ public sealed class CompositionRunResult
                 inspectionReferenceSpaceId!,
                 report.Output.Sha256,
                 referenceBytes,
-                _outputBytes)
+                OutputBytes)
             : null;
     }
 
@@ -70,7 +69,7 @@ public sealed class CompositionRunResult
     public CompositionExecutionStatus Status { get; }
 
     /// <summary>Output bytes for preview/build when execution succeeded.</summary>
-    public ReadOnlyMemory<byte> OutputBytes => _outputBytes;
+    public ReadOnlyMemory<byte> OutputBytes { get; }
 
     /// <summary>
     /// In-memory reference/output bytes for successful Replace inspection, or <see langword="null"/> when unavailable.
@@ -85,4 +84,10 @@ public sealed class CompositionRunResult
 
     /// <summary>Deterministic token returned by preview and required before build commit.</summary>
     public string? PreviewToken { get; }
+
+    private static ReadOnlyMemory<byte> ClonePublicOutputBytes(byte[] outputBytes)
+    {
+        ArgumentNullException.ThrowIfNull(outputBytes);
+        return outputBytes.ToArray();
+    }
 }
