@@ -20,6 +20,7 @@ public sealed class CompositionRunResult
             report,
             committedOutputId,
             previewToken,
+            inspectionOutputSpaceId: null,
             inspectionReferenceSpaceId: null,
             inspectionReferenceBytes: null)
     {
@@ -31,13 +32,17 @@ public sealed class CompositionRunResult
         CompositionRunReport report,
         string? committedOutputId,
         string? previewToken,
+        string? inspectionOutputSpaceId,
         string? inspectionReferenceSpaceId,
         byte[]? inspectionReferenceBytes)
     {
         ArgumentNullException.ThrowIfNull(report);
-        if ((inspectionReferenceSpaceId is null) != (inspectionReferenceBytes is null))
+        bool hasInspection = inspectionReferenceBytes is not null;
+        if ((inspectionOutputSpaceId is not null) != hasInspection ||
+            (inspectionReferenceSpaceId is not null) != hasInspection)
         {
-            throw new ArgumentException("Replace inspection requires both a reference space id and reference bytes.");
+            throw new ArgumentException(
+                "Replace inspection requires output/reference space ids and reference bytes together.");
         }
 
         if (status != CompositionExecutionStatus.Succeeded && inspectionReferenceBytes is not null)
@@ -51,7 +56,13 @@ public sealed class CompositionRunResult
         CommittedOutputId = string.IsNullOrWhiteSpace(committedOutputId) ? null : committedOutputId;
         PreviewToken = string.IsNullOrWhiteSpace(previewToken) ? null : previewToken;
         InspectionSnapshot = inspectionReferenceBytes is { } referenceBytes
-            ? new CompositionRunInspectionSnapshot(inspectionReferenceSpaceId!, referenceBytes, _outputBytes)
+            ? new CompositionRunInspectionSnapshot(
+                report.RunId,
+                inspectionOutputSpaceId!,
+                inspectionReferenceSpaceId!,
+                report.Output.Sha256,
+                referenceBytes,
+                _outputBytes)
             : null;
     }
 

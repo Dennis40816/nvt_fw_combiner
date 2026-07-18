@@ -27,7 +27,10 @@ public sealed partial class CompositionRunServiceTests
 
         CompositionRunInspectionSnapshot snapshot = Assert.IsType<CompositionRunInspectionSnapshot>(
             result.InspectionSnapshot);
+        Assert.Equal("run-multi-reference-replace", snapshot.RunId);
+        Assert.Equal("output-image", snapshot.OutputSpaceId);
         Assert.Equal("output-reference", snapshot.ReferenceSpaceId);
+        Assert.Equal(result.Report.Output.Sha256, snapshot.OutputSha256);
         Assert.Equal([0x10, 0x20, 0x30, 0x40], snapshot.ReferenceBytes.ToArray());
         Assert.Equal([0x10, 0x99, 0x30, 0x40], snapshot.OutputBytes.ToArray());
         Assert.Equal(result.OutputBytes.ToArray(), snapshot.OutputBytes.ToArray());
