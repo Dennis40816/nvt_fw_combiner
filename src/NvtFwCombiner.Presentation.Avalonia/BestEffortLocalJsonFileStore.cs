@@ -75,4 +75,82 @@ internal static class BestEffortLocalJsonFileStore
         {
         }
     }
+
+    public static async Task SaveAsync<TDocument>(
+        string path,
+        TDocument document,
+        CancellationToken cancellationToken)
+        where TDocument : class
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(document);
+
+        string? tempPath = null;
+        try
+        {
+            string? directory = Path.GetDirectoryName(Path.GetFullPath(path));
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                _ = Directory.CreateDirectory(directory);
+            }
+
+            tempPath = $"{path}.{Guid.NewGuid():N}.tmp";
+            await using (var stream = new FileStream(
+                             tempPath,
+                             new FileStreamOptions
+                             {
+                                 Mode = FileMode.CreateNew,
+                                 Access = FileAccess.Write,
+                                 Share = FileShare.None,
+                                 Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+                             }))
+            {
+                await JsonSerializer.SerializeAsync(
+                        stream,
+                        document,
+                        JsonOptions,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (File.Exists(path))
+            {
+                File.Replace(tempPath, path, destinationBackupFileName: null);
+            }
+            else
+            {
+                File.Move(tempPath, path);
+            }
+
+            tempPath = null;
+        }
+        // Local UI convenience state must not block firmware workflows or publish a cancelled snapshot.
+        catch (Exception exception) when (exception is
+            ArgumentException or IOException or NotSupportedException or
+            OperationCanceledException or UnauthorizedAccessException)
+        {
+        }
+        finally
+        {
+            DeleteTemporaryFileBestEffort(tempPath);
+        }
+    }
+
+    private static void DeleteTemporaryFileBestEffort(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
 }
