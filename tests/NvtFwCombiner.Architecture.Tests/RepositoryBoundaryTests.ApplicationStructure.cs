@@ -2,6 +2,31 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Verifies typed run progress stays Application-owned and cannot invoke host callbacks inline.</summary>
+    [Fact]
+    public void CompositionRunProgressStaysApplicationOwnedAndAsynchronous()
+    {
+        string progress = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunProgress.cs");
+        string root = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.cs");
+        string externalProcessors = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionRunService.ExternalProcessors.cs");
+        string domainSources = ReadDomainSources();
+
+        Assert.Contains("public enum CompositionRunPhase", progress, StringComparison.Ordinal);
+        Assert.Contains("public sealed class CompositionRunProgressSnapshot", progress, StringComparison.Ordinal);
+        Assert.Contains("public sealed class CompositionRunProgressFeed", progress, StringComparison.Ordinal);
+        Assert.Contains("Channel.CreateBounded<CompositionRunProgressSnapshot>", progress, StringComparison.Ordinal);
+        Assert.Contains("_feed?.Publish", progress, StringComparison.Ordinal);
+        Assert.DoesNotContain("IProgress<", progress, StringComparison.Ordinal);
+        Assert.Contains("progress.Complete()", root, StringComparison.Ordinal);
+        Assert.Contains(
+            "progressPublisher.Report(CompositionRunPhase.RunningExternalProcessor)",
+            externalProcessors,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionRunPhase", domainSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionRunProgressSnapshot", domainSources, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the Application run service root stays split from processor, report, and hash helpers.</summary>
     [Fact]
     public void CompositionRunServiceConcernsStaySplit()
