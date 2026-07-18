@@ -141,32 +141,47 @@ shortened-output normalization, followed by one final read. This is the
 source-audited `2C + 1` predecessor model, not a runtime counter from the
 Bootstrap baseline.
 
-The provisional slice at `67bc5a4e` retains the last accepted full firmware
-bytes. There is now one `ReadAllBytesAsync(firmwarePath, ...)` in the command
-loop and no final firmware read. Approved shortened output restores its tail
-from the preceding accepted command state and writes the normalized full image
-back only when required.
+The conservative slice at `67bc5a4e` reduced that model to `C` full reads but
+is superseded by the selective-read phase. Evidence says only `MERGE_MODE` may
+shorten output. Normal, NT-based, and CRC-only commands now run consecutively
+with one length-metadata check after each command and one complete firmware read
+after the whole session.
 
-| Command count (`C`) | Pre-optimization reads/session | Historical A, two sessions | Single-run before readback change | `67bc5a4e`, one session |
+Before each `MERGE_MODE`, the host preserves only `[maximum declared write end,
+expected EOF)`. If the output is short but still covers declared writes, the
+host appends the missing suffix from that tail. This retains changes from prior
+commands without a pre-command full read. Other short output fails closed.
+
+| Command count (`C`) | Pre-optimization full reads/session | `67bc5a4e` full reads | Selective phase, non-merge full reads | Metadata checks |
 | ---: | ---: | ---: | ---: | ---: |
-| 2 | 5 | 10 | 5 | 2 |
-| 13 | 27 | 54 | 27 | 13 |
+| 2 | 5 | 2 | 1 final | 2 |
+| 13 | 27 | 13 | 1 final | 13 |
 
-Infrastructure tests pass `185` with `2` platform skips and cover two-command
-NT51926 behavior, a synthetic 13-command plan, one-command shortened output,
-and a two-command case proving normalization retains the first command's
-accepted tail. The NT51926 Common FW 1.4.1 cascade TP-base CLI golden passes
-complete bytes and SHA-256. Production C#/AXAML decreases from `56,721` to the
-new exact `56,720` ratchet.
+A plan with `M` merge-mode commands adds `M` partial tail reads and appends only
+when a command actually shortens; it still has one final full read. Tail byte
+counts remain separate from staged immutable-artifact reads.
+
+Infrastructure tests pass `186` with `2` platform skips and cover two-command
+NT51926 final-only behavior, a synthetic 13-command final-only plan,
+merge-mode shortening at a non-boundary output length, restoration of a tail
+changed by a prior command, and rejection of shortened CRC-only output. The
+NT51926 Common FW 1.4.1 cascade TP-base CLI golden passes complete bytes and
+SHA-256.
+
+The owner clarified on 2026-07-18 that code size is measured but is not a
+`v0.9.10` optimization priority. The maintainable I/O seam and deterministic
+counters update the exact production ratchet from `56,720` to `56,821`; no
+safety check or evidence was removed to offset the change.
 
 Staged immutable-artifact verification reads are separate and must not be
-hidden in future evidence. The first canonical full attempt exposed the stale
-size ratchet. After the code was reduced, the structure validator accepted the
-exact lower design; the canonical post-change retry exceeded the local
-60-second command budget before returning a verdict. Final-`0.9.9` replay,
-canonical full verification, independent review, and firmware-owner approval
-therefore remain required. The 13-command case has count/sequence evidence, not
-independent full-output golden parity, and cannot be used to broaden support.
+hidden in future evidence. During the conservative phase, the first canonical
+full attempt exposed a stale size ratchet and its post-change retry exceeded the
+local 60-second command budget before returning a verdict. The selective phase
+passes the structure validator at the owner-authorized measured ratchet; the
+same full command is not retried again inside that retry budget. Final-`0.9.9`
+replay, canonical full verification, independent review, and firmware-owner
+approval therefore remain required. The 13-command case has count/sequence
+evidence, not independent full-output golden parity, and cannot broaden support.
 
 ## Current UI inspection fan-out
 
@@ -219,10 +234,11 @@ detail through lazy tabs plus virtualization or paging.
   localizes and animates the active step, honors reduced motion, and never
   fabricates byte percentage or infers phases from firmware-facing text.
 - ADR 0025 makes Combiner, Build responsiveness, and large-report scalability
-  first-class gates. Exact sequential commands remain `C` launches; the R3
-  adapter target is `C` authoritative firmware readbacks, while UI work moves
-  off the dispatcher and complete report evidence is presented through bounded
-  lazy projections rather than eager control creation.
+  first-class gates. Exact sequential commands remain `C` launches; non-merge
+  plans use metadata plus one final full read, and merge-mode plans add only
+  selective tail preservation. UI work moves off the dispatcher and complete
+  report evidence is presented through bounded lazy projections rather than
+  eager control creation.
 - Infrastructure read-model changes remain separate R3 work and are limited to
   exact full-output golden scope plus firmware-owner review. Exact output
   bytes, hashes, command argv/order, mutations, differences, warnings, and

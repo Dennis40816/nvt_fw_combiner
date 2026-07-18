@@ -16,6 +16,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
     private readonly Dictionary<string, LegacyCombinerPostbuildProfile> _profilesByProcessorId;
     private readonly string _stagingRoot;
     private readonly IExternalProcessRunner _processRunner;
+    private readonly ILegacyCombinerFirmwareIo _firmwareIo;
 
     /// <summary>Creates a staged postbuild processor with approved tool and IC command profiles.</summary>
     public LegacyCombinerPostbuildProcessor(
@@ -24,17 +25,36 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         string toolRoot,
         string stagingRoot,
         IExternalProcessRunner processRunner)
+        : this(
+            registry,
+            postbuildProfiles,
+            toolRoot,
+            stagingRoot,
+            processRunner,
+            PhysicalLegacyCombinerFirmwareIo.Instance)
+    {
+    }
+
+    internal LegacyCombinerPostbuildProcessor(
+        ExternalCombinerToolRegistry registry,
+        IEnumerable<LegacyCombinerPostbuildProfile> postbuildProfiles,
+        string toolRoot,
+        string stagingRoot,
+        IExternalProcessRunner processRunner,
+        ILegacyCombinerFirmwareIo firmwareIo)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(postbuildProfiles);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(stagingRoot);
         ArgumentNullException.ThrowIfNull(processRunner);
+        ArgumentNullException.ThrowIfNull(firmwareIo);
 
         _toolResolver = new ExternalCombinerToolResolver(registry, toolRoot);
         _profilesByProcessorId = BuildProfileIndex(postbuildProfiles);
         _stagingRoot = Path.GetFullPath(stagingRoot);
         _processRunner = processRunner;
+        _firmwareIo = firmwareIo;
     }
 
     /// <inheritdoc />
@@ -121,7 +141,6 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 return ExternalProcessorResult.Failed([stagedArtifactIssue]);
             }
 
-            byte[] acceptedFirmwareBytes = inputBytes;
             foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
             {
                 ResetDirectory(binDirectory);
@@ -134,6 +153,17 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 {
                     return ExternalProcessorResult.Failed([stagingIssue], executedCommands);
                 }
+
+                long minimumOutputLength = GetMinimumCommandOutputLength(command, inputBytes.LongLength);
+                byte[]? preservedTail = command.Family == LegacyCombinerCommandFamily.MergeMode
+                    ? await _firmwareIo
+                        .ReadTailAsync(
+                            firmwarePath,
+                            minimumOutputLength,
+                            inputBytes.LongLength - minimumOutputLength,
+                            cancellationToken)
+                        .ConfigureAwait(false)
+                    : null;
 
                 IReadOnlyList<string> arguments = LegacyCombinerPostbuildCommandLineBuilder.CreateArguments(
                     command,
@@ -173,27 +203,20 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     return ExternalProcessorResult.Failed([artifactMutationIssue], executedCommands);
                 }
 
-                byte[] commandOutputBytes = await File
-                    .ReadAllBytesAsync(firmwarePath, cancellationToken)
-                    .ConfigureAwait(false);
-                CompositionIssue? lengthIssue = NormalizeShortenedFirmware(
-                        acceptedFirmwareBytes,
-                        commandOutputBytes,
+                long commandOutputLength = _firmwareIo.GetLength(firmwarePath);
+                CompositionIssue? lengthIssue = await NormalizeShortenedFirmwareAsync(
+                        firmwarePath,
+                        inputBytes.LongLength,
+                        commandOutputLength,
+                        minimumOutputLength,
+                        preservedTail,
                         command,
-                        out byte[] normalizedFirmwareBytes);
+                        cancellationToken)
+                    .ConfigureAwait(false);
                 if (lengthIssue is not null)
                 {
                     return ExternalProcessorResult.Failed([lengthIssue], executedCommands);
                 }
-
-                if (normalizedFirmwareBytes.LongLength != commandOutputBytes.LongLength)
-                {
-                    await File
-                        .WriteAllBytesAsync(firmwarePath, normalizedFirmwareBytes, cancellationToken)
-                        .ConfigureAwait(false);
-                }
-
-                acceptedFirmwareBytes = normalizedFirmwareBytes;
 
                 CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, profile, resolvedManifest, commandPlan);
                 if (perCommandUnexpectedFileIssue is not null)
@@ -211,15 +234,18 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
             }
 
             CompositionIssue? unexpectedFileIssue = ValidateStagingTree(runDirectory, profile, resolvedManifest, commandPlan);
-            return unexpectedFileIssue switch
+            if (unexpectedFileIssue is not null)
             {
-                not null => ExternalProcessorResult.Failed([unexpectedFileIssue], executedCommands),
-                null when acceptedFirmwareBytes.LongLength != inputBytes.LongLength => Fail(
+                return ExternalProcessorResult.Failed([unexpectedFileIssue], executedCommands);
+            }
+
+            byte[] outputBytes = await _firmwareIo.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
+            return outputBytes.LongLength != inputBytes.LongLength
+                ? Fail(
                     "external-tool.output-length.changed",
                     "External processor changed the firmware image length.",
-                    executedCommands),
-                _ => CreateCheckedSuccess(inputBytes, acceptedFirmwareBytes, request.AllowedWriteRanges, executedCommands),
-            };
+                    executedCommands)
+                : CreateCheckedSuccess(inputBytes, outputBytes, request.AllowedWriteRanges, executedCommands);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

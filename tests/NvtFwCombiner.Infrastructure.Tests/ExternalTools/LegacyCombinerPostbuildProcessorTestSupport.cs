@@ -311,6 +311,53 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         }
     }
 
+    private sealed class CountingFirmwareIo : ILegacyCombinerFirmwareIo
+    {
+        internal int LengthCheckCount { get; private set; }
+
+        internal int FullReadCount { get; private set; }
+
+        internal int TailReadCount { get; private set; }
+
+        internal int TailAppendCount { get; private set; }
+
+        public long GetLength(string path)
+        {
+            LengthCheckCount++;
+            return PhysicalLegacyCombinerFirmwareIo.Instance.GetLength(path);
+        }
+
+        public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken)
+        {
+            FullReadCount++;
+            return PhysicalLegacyCombinerFirmwareIo.Instance.ReadAllBytesAsync(path, cancellationToken);
+        }
+
+        public Task<byte[]> ReadTailAsync(
+            string path,
+            long start,
+            long length,
+            CancellationToken cancellationToken)
+        {
+            TailReadCount++;
+            return PhysicalLegacyCombinerFirmwareIo.Instance.ReadTailAsync(path, start, length, cancellationToken);
+        }
+
+        public Task AppendTailAsync(
+            string path,
+            long expectedCurrentLength,
+            ReadOnlyMemory<byte> bytes,
+            CancellationToken cancellationToken)
+        {
+            TailAppendCount++;
+            return PhysicalLegacyCombinerFirmwareIo.Instance.AppendTailAsync(
+                path,
+                expectedCurrentLength,
+                bytes,
+                cancellationToken);
+        }
+    }
+
     private sealed class TempWorkspace : IDisposable
     {
         private const string ToolId = "legacy-combiner";
@@ -351,7 +398,8 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         internal LegacyCombinerPostbuildProcessor CreateProcessor(
             string executableSha256,
             IExternalProcessRunner runner,
-            IEnumerable<LegacyCombinerPostbuildProfile>? profiles = null)
+            IEnumerable<LegacyCombinerPostbuildProfile>? profiles = null,
+            ILegacyCombinerFirmwareIo? firmwareIo = null)
         {
             var registry = new ExternalCombinerToolRegistry([Manifest(executableSha256)]);
             return new LegacyCombinerPostbuildProcessor(
@@ -359,7 +407,8 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
                 profiles ?? LegacyCombinerPostbuildCatalog.All,
                 ToolRoot,
                 StagingRoot,
-                runner);
+                runner,
+                firmwareIo ?? PhysicalLegacyCombinerFirmwareIo.Instance);
         }
 
         public void Dispose()

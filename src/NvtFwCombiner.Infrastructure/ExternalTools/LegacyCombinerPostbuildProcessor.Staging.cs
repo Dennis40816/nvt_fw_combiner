@@ -237,19 +237,22 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         }
     }
 
-    private static CompositionIssue? NormalizeShortenedFirmware(
-        byte[] commandInputBytes,
-        byte[] commandOutputBytes,
+    private async ValueTask<CompositionIssue?> NormalizeShortenedFirmwareAsync(
+        string firmwarePath,
+        long expectedLength,
+        long commandOutputLength,
+        long minimumOutputLength,
+        byte[]? preservedTail,
         LegacyCombinerPostbuildCommand command,
-        out byte[] normalizedBytes)
+        CancellationToken cancellationToken)
     {
-        normalizedBytes = commandOutputBytes;
-        if (commandOutputBytes.LongLength == commandInputBytes.LongLength)
+        if (commandOutputLength == expectedLength)
         {
             return null;
         }
 
-        if (commandOutputBytes.LongLength > commandInputBytes.LongLength)
+        if (commandOutputLength > expectedLength ||
+            command.Family != LegacyCombinerCommandFamily.MergeMode)
         {
             return new CompositionIssue(
                 "external-tool.output-length.changed",
@@ -257,8 +260,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
                 command.CommandId);
         }
 
-        long minimumLength = GetMinimumCommandOutputLength(command, commandInputBytes.LongLength);
-        if (commandOutputBytes.LongLength < minimumLength)
+        if (commandOutputLength < minimumOutputLength)
         {
             return new CompositionIssue(
                 "external-tool.output-length.changed",
@@ -266,8 +268,13 @@ public sealed partial class LegacyCombinerPostbuildProcessor
                 command.CommandId);
         }
 
-        normalizedBytes = [.. commandInputBytes];
-        commandOutputBytes.CopyTo(normalizedBytes, 0);
+        int preservedOffset = checked((int)(commandOutputLength - minimumOutputLength));
+        await _firmwareIo.AppendTailAsync(
+                firmwarePath,
+                commandOutputLength,
+                preservedTail.AsMemory(preservedOffset),
+                cancellationToken)
+            .ConfigureAwait(false);
         return null;
     }
 

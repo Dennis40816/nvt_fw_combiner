@@ -60,14 +60,21 @@ Select option 4 as a staged `v0.9.10` program.
   command exactly once, sequentially, with unchanged argv/order.
 - One host-owned staging directory and evolving firmware file remain the
   authority for the complete ordered postbuild plan.
-- The adapter retains the last accepted full firmware bytes in memory. After
-  each command it performs one authoritative firmware readback, verifies
-  length/coverage, normalizes an approved shortened output in memory when
-  necessary, writes the normalized full image back only when required, and
-  carries those bytes to the next command.
-- The target is `C` firmware readbacks per session rather than `2C + 1`.
-  Staged-artifact immutability reads, executable verification, tree validation,
-  and any normalization write are counted separately and never hidden.
+- After each command the adapter checks firmware existence and length metadata;
+  normal, NT-based, and CRC-only commands must retain the full expected length.
+  They run consecutively without an intermediate full firmware read.
+- `MERGE_MODE` is the only command family with documented short-output
+  behavior. Immediately before that family runs, the host preserves only the
+  bytes after its maximum declared write coverage. If the command returns a
+  shorter file that still covers every declared write, the host appends the
+  corresponding preserved tail. Overlong output, short output from another
+  family, or output below declared coverage fails closed.
+- After all `C` commands, the adapter performs one authoritative full firmware
+  read for final length, host diff, and allowed-write-range validation. A plan
+  with `M` merge-mode commands therefore uses one full read plus `M` selective
+  tail reads, not `C` full reads. Metadata checks, tail bytes, normalization
+  writes, staged-artifact reads, executable verification, and tree validation
+  are counted separately and never hidden.
 - Timeout, exit-code, unexpected-file, length, cancellation, and command-level
   audit evidence remain attributable to the exact command. The host still
   performs the independent final before/after diff and rejects every write
@@ -110,8 +117,9 @@ full-output golden parity and firmware-owner review.
 
 Node B and C use identical source inputs, expected hashes, tool manifest hash,
 machine/runtime settings, warm-up, and run counts. Deterministic tests lock
-engine runs, artifact reads, processor sessions, launches, firmware readbacks,
-progress events, report rows initially materialized, and output commits. Local
+engine runs, artifact reads, processor sessions, launches, length checks, full
+firmware reads, selective tail reads/appends, progress events, report rows
+initially materialized, and output commits. Local
 evidence records cold/warm p50/p95, allocations, peak working set,
 click-to-progress, UI heartbeat, report-open time, and cancellation latency.
 
@@ -139,8 +147,9 @@ attributed and reverted without changing firmware behavior.
 
 ### Risks and mitigations
 
-- In-memory staging state could drift from disk -> one authoritative readback
-  after every command and exact next-command/normalization tests.
+- A shortened merge output could lose bytes changed by an earlier command ->
+  preserve the pre-command tail from declared coverage to expected EOF, append
+  only the missing suffix, and test a prior-command tail mutation explicitly.
 - Background work could update a stale screen -> bind progress and report
   projection to run id and discard cancelled/replaced results.
 - Paging could hide review-required evidence -> summary counts remain global,
@@ -158,8 +167,10 @@ Domain operations or profiles.
 
 ## Verification
 
-- Synthetic 2-command and 13-command tests lock one session, `C` launches, and
-  `C` firmware readbacks, including shortened-output normalization.
+- Synthetic 2-command and 13-command tests lock one session, `C` launches, `C`
+  metadata checks, one final full firmware read, and no intermediate full read
+  for non-merge families. Merge-mode tests lock selective tail preservation,
+  offset restoration, and rejection of short output from other families.
 - NT51926 Common FW 1.4.1 cascade TP-base remains the minimum public full-output
   CtrlRAM parity anchor; full bytes, SHA-256, mutations, changed ranges, command
   trace, and atomic failure are compared.

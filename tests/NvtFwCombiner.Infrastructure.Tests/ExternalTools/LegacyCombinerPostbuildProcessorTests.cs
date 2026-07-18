@@ -17,6 +17,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         byte[] firmware = CreateFirmwareImage();
         bool inspectedNormalCtrlRam = false;
         bool mutated = false;
+        var firmwareIo = new CountingFirmwareIo();
         FakeProcessRunner runner = new(startInfo =>
         {
             Assert.Equal("CRC_Enable", startInfo.Arguments[0]);
@@ -46,7 +47,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
             return new ExternalProcessResult(0, false, string.Empty, string.Empty);
         });
-        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner);
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            firmwareIo: firmwareIo);
         ExternalProcessorRequest request = new(
             "run-nt51926",
             LegacyCombinerPostbuildCatalog.Nt51926.ProcessorId,
@@ -60,6 +64,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.True(result.Succeeded);
         Assert.True(inspectedNormalCtrlRam);
         Assert.Equal(2, runner.RunCount);
+        Assert.Equal(2, firmwareIo.LengthCheckCount);
+        Assert.Equal(1, firmwareIo.FullReadCount);
+        Assert.Equal(0, firmwareIo.TailReadCount);
+        Assert.Equal(0, firmwareIo.TailAppendCount);
         Assert.Equal((byte)(firmware[0x32A70] ^ 0x5A), result.OutputBytes.Span[0x32A70]);
         Assert.Equal(new ByteRange(0x32A70, 1), Assert.Single(result.ChangedRanges));
     }
@@ -299,6 +307,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         using var workspace = TempWorkspace.Create();
         string sha256 = workspace.CreateToolExecutable();
         byte[] firmware = CreateFirmwareImage();
+        var firmwareIo = new CountingFirmwareIo();
         bool inspected = false;
         FakeProcessRunner runner = new(startInfo =>
         {
@@ -433,17 +442,22 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         using var workspace = TempWorkspace.Create();
         string sha256 = workspace.CreateToolExecutable();
         byte[] firmware = CreateFirmwareImage();
+        var firmwareIo = new CountingFirmwareIo();
         FakeProcessRunner runner = new(startInfo =>
         {
             string firmwarePath = startInfo.Arguments.First(argument =>
                 argument.EndsWith("shortened_fw.bin", StringComparison.Ordinal));
-            byte[] shortened = File.ReadAllBytes(firmwarePath)[..0x20];
+            byte[] shortened = File.ReadAllBytes(firmwarePath)[..0x28];
             shortened[0x12] ^= 0x33;
             File.WriteAllBytes(firmwarePath, shortened);
             return new ExternalProcessResult(0, false, string.Empty, string.Empty);
         });
         LegacyCombinerPostbuildProfile profile = CreateShortenedOutputProfile();
-        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            [profile],
+            firmwareIo);
         ExternalProcessorRequest request = new(
             "run-shortened",
             profile.ProcessorId,
@@ -457,18 +471,23 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
         Assert.Equal(firmware.Length, result.OutputBytes.Length);
         Assert.Equal((byte)(firmware[0x12] ^ 0x33), result.OutputBytes.Span[0x12]);
-        Assert.Equal(firmware[0x20], result.OutputBytes.Span[0x20]);
+        Assert.Equal(firmware[0x28], result.OutputBytes.Span[0x28]);
         Assert.Equal(new ByteRange(0x12, 1), Assert.Single(result.ChangedRanges));
+        Assert.Equal(1, firmwareIo.LengthCheckCount);
+        Assert.Equal(1, firmwareIo.FullReadCount);
+        Assert.Equal(1, firmwareIo.TailReadCount);
+        Assert.Equal(1, firmwareIo.TailAppendCount);
     }
 
-    /// <summary>Verifies shortened output restores its tail from the preceding accepted command, not the original input.</summary>
+    /// <summary>Verifies shortened output restores the tail captured after the preceding command.</summary>
     [Fact]
-    public async Task TransformCarriesAcceptedFirmwareIntoLaterShortenedOutputNormalization()
+    public async Task TransformRestoresLaterShortenedOutputFromPreCommandTail()
     {
         using var workspace = TempWorkspace.Create();
         string sha256 = workspace.CreateToolExecutable();
         byte[] firmware = CreateFirmwareImage();
         int call = 0;
+        var firmwareIo = new CountingFirmwareIo();
         FakeProcessRunner runner = new(startInfo =>
         {
             call++;
@@ -489,7 +508,11 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             return new ExternalProcessResult(0, false, string.Empty, string.Empty);
         });
         LegacyCombinerPostbuildProfile profile = CreateShortenedOutputAfterCrcProfile();
-        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            [profile],
+            firmwareIo);
         ExternalProcessorRequest request = new(
             "run-shortened-after-crc",
             profile.ProcessorId,
@@ -504,6 +527,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.Equal((byte)(firmware[0x12] ^ 0x33), result.OutputBytes.Span[0x12]);
         Assert.Equal((byte)(firmware[0x30] ^ 0x44), result.OutputBytes.Span[0x30]);
         Assert.Equal(2, runner.RunCount);
+        Assert.Equal(2, firmwareIo.LengthCheckCount);
+        Assert.Equal(1, firmwareIo.FullReadCount);
+        Assert.Equal(1, firmwareIo.TailReadCount);
+        Assert.Equal(1, firmwareIo.TailAppendCount);
     }
 
     /// <summary>Verifies a long postbuild plan preserves all sequential commands and output bytes.</summary>
@@ -514,8 +541,13 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         string sha256 = workspace.CreateToolExecutable();
         byte[] firmware = [0x10, 0x20, 0x30, 0x40];
         LegacyCombinerPostbuildProfile profile = CreateRepeatedCrcProfile(commandCount: 13);
+        var firmwareIo = new CountingFirmwareIo();
         FakeProcessRunner runner = new(_ => new ExternalProcessResult(0, false, string.Empty, string.Empty));
-        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            [profile],
+            firmwareIo);
         ExternalProcessorRequest request = new(
             "run-thirteen-command-readback",
             profile.ProcessorId,
@@ -529,6 +561,51 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
         Assert.Equal(firmware, result.OutputBytes.ToArray());
         Assert.Equal(13, runner.RunCount);
+        Assert.Equal(13, firmwareIo.LengthCheckCount);
+        Assert.Equal(1, firmwareIo.FullReadCount);
+        Assert.Equal(0, firmwareIo.TailReadCount);
+        Assert.Equal(0, firmwareIo.TailAppendCount);
+    }
+
+    /// <summary>Verifies command families without short-output evidence reject a truncated staging image.</summary>
+    [Fact]
+    public async Task TransformRejectsShortenedCrcOnlyOutput()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = [0x10, 0x20, 0x30, 0x40];
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile(
+            "nfc.test.shortened-crc-v1",
+            "shortened_crc_fw.bin");
+        var firmwareIo = new CountingFirmwareIo();
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            string firmwarePath = startInfo.Arguments.First(argument =>
+                argument.EndsWith("shortened_crc_fw.bin", StringComparison.Ordinal));
+            File.WriteAllBytes(firmwarePath, File.ReadAllBytes(firmwarePath)[..2]);
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            [profile],
+            firmwareIo);
+        ExternalProcessorRequest request = new(
+            "run-shortened-crc",
+            profile.ProcessorId,
+            profile.ToolBindingId,
+            firmware,
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.output-length.changed", Assert.Single(result.Issues).Code);
+        Assert.Equal(1, firmwareIo.LengthCheckCount);
+        Assert.Equal(0, firmwareIo.FullReadCount);
+        Assert.Equal(0, firmwareIo.TailReadCount);
+        Assert.Equal(0, firmwareIo.TailAppendCount);
     }
 
 }
