@@ -8,7 +8,8 @@ public sealed class ReportDifferenceGroupViewModel(
     string detail,
     string status,
     IReadOnlyList<ReportLineViewModel> rows,
-    bool isAccepted)
+    bool isAccepted,
+    ShellLanguage language = ShellLanguage.English)
 {
     /// <summary>Human-readable section title.</summary>
     public string Title { get; } = title ?? string.Empty;
@@ -34,4 +35,11 @@ public sealed class ReportDifferenceGroupViewModel(
     /// <summary>Difference rows in this section.</summary>
     public IReadOnlyList<ReportLineViewModel> Rows { get; } =
         rows ?? throw new ArgumentNullException(nameof(rows));
+
+    /// <summary>Bounded difference rows rendered inside this expanded section.</summary>
+    public ReportPagedListViewModel RowsPage { get; } =
+        ReportPagedListViewModel.Create(
+            rows ?? throw new ArgumentNullException(nameof(rows)),
+            pageSize: 24,
+            language);
 }

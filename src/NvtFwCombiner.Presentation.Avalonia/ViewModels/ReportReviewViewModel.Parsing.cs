@@ -5,7 +5,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportReviewViewModel
 {
-    private static IReadOnlyList<ReportLineViewModel> ParseInputs(JsonElement root)
+    private static IReadOnlyList<ReportLineViewModel> ParseInputs(
+        JsonElement root,
+        CancellationToken cancellationToken)
     {
         return !root.TryGetProperty(nameof(Inputs), out JsonElement inputs) || inputs.ValueKind != JsonValueKind.Array
             ? []
@@ -13,6 +15,7 @@ public sealed partial class ReportReviewViewModel
             [
                 .. inputs.EnumerateArray().Select(input =>
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string addressSpaceId = GetString(input, "AddressSpaceId");
                     string artifactId = GetString(input, "ArtifactId");
                     long size = GetLong(input, "Size");
@@ -29,21 +32,29 @@ public sealed partial class ReportReviewViewModel
             ];
     }
 
-    private static IReadOnlyList<ReportLineViewModel> ParseMutations(JsonElement root)
+    private static IReadOnlyList<ReportLineViewModel> ParseMutations(
+        JsonElement root,
+        CancellationToken cancellationToken)
     {
         return !root.TryGetProperty(nameof(Mutations), out JsonElement mutations) ||
                mutations.ValueKind != JsonValueKind.Array
             ? []
             :
             [
-                .. mutations.EnumerateArray().Select(mutation => new ReportLineViewModel(
-                GetString(mutation, "OperationId"),
-                $"{GetString(mutation, "TargetSpaceId")} {GetRangeOrNull(mutation, "TargetRange")} changed={GetLong(mutation, "ChangedByteCount")}",
-                $"{GetString(mutation, "BeforeSha256")} -> {GetString(mutation, "AfterSha256")}")),
+                .. mutations.EnumerateArray().Select(mutation =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return new ReportLineViewModel(
+                        GetString(mutation, "OperationId"),
+                        $"{GetString(mutation, "TargetSpaceId")} {GetRangeOrNull(mutation, "TargetRange")} changed={GetLong(mutation, "ChangedByteCount")}",
+                        $"{GetString(mutation, "BeforeSha256")} -> {GetString(mutation, "AfterSha256")}");
+                }),
             ];
     }
 
-    private static IReadOnlyList<ReportLineViewModel> ParseIssues(JsonElement root)
+    private static IReadOnlyList<ReportLineViewModel> ParseIssues(
+        JsonElement root,
+        CancellationToken cancellationToken)
     {
         return !root.TryGetProperty(nameof(Issues), out JsonElement issues) || issues.ValueKind != JsonValueKind.Array
             ? []
@@ -51,6 +62,7 @@ public sealed partial class ReportReviewViewModel
             [
                 .. issues.EnumerateArray().Select(issue =>
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string code = GetString(issue, "Code");
                     string severity = GetStringOrNull(issue, "Severity") ??
                         GetStringOrNull(issue, "severity") ??

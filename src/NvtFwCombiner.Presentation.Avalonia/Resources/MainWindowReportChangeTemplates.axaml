@@ -53,11 +53,14 @@
         </Grid>
       </Border>
     </Expander.Header>
-    <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding Rows}">
-      <ItemsControl.ItemTemplate>
-        <StaticResource ResourceKey="ReportOutputDifferenceRowTemplate" />
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
+    <StackPanel>
+      <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding RowsPage.Items}">
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportOutputDifferenceRowTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <ContentControl Content="{Binding RowsPage}" ContentTemplate="{StaticResource ReportPagerTemplate}" />
+    </StackPanel>
   </Expander>
 </DataTemplate>
 

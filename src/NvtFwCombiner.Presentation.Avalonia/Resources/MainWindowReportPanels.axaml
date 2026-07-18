@@ -145,11 +145,14 @@
             </Grid>
             <StackPanel Grid.Row="1" Spacing="{DynamicResource NfcSpace8}">
               <TextBlock Classes="detailText" Text="{Binding LoadedReport.ByteDifferenceDetail}" TextWrapping="Wrap" />
-              <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferenceSummaryRows}">
+              <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferenceSummaryPage.Items}">
                 <ItemsControl.ItemTemplate>
                   <StaticResource ResourceKey="ReportDifferenceSummaryRowTemplate" />
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
+              <ContentControl
+                  Content="{Binding LoadedReport.OutputDifferenceSummaryPage}"
+                  ContentTemplate="{StaticResource ReportPagerTemplate}" />
             </StackPanel>
           </Grid>
         </Border>

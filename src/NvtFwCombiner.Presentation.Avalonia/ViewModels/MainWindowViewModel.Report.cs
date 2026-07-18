@@ -7,6 +7,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     private static readonly JsonSerializerOptions RunErrorReportJsonOptions = new() { WriteIndented = true };
+    private long _reportProjectionGeneration;
 
     /// <summary>Gets the loaded run report summary.</summary>
     public ReportReviewViewModel LoadedReport { get; private set; } = ReportReviewViewModel.Empty;
@@ -73,15 +74,78 @@ public sealed partial class MainWindowViewModel
     /// <summary>Loads a CLI/application run report JSON into the readable report modal.</summary>
     public void LoadReportJson(string json, string sourceName)
     {
+        long generation = BeginReportProjection();
+        ReportReviewViewModel report;
         try
         {
-            LoadedReport = ReportReviewViewModel.FromJson(json, sourceName, language: Text.Language);
+            report = ReportReviewViewModel.FromJson(json, sourceName, language: Text.Language);
         }
         catch (Exception exception) when (IsReportMaterializationException(exception))
         {
-            LoadedReport = ReportReviewViewModel.Error(sourceName, exception.Message, language: Text.Language);
+            report = ReportReviewViewModel.Error(sourceName, exception.Message, language: Text.Language);
         }
 
+        if (IsCurrentReportProjection(generation))
+        {
+            ApplyLoadedReport(report, json, sourceName);
+        }
+    }
+
+    /// <summary>Projects a loaded report outside the UI dispatcher before publishing bounded state.</summary>
+    public async Task LoadReportJsonAsync(
+        string json,
+        string sourceName,
+        CancellationToken cancellationToken = default)
+    {
+        long generation = BeginReportProjection();
+        ShellLanguage language;
+        ReportReviewViewModel report;
+        do
+        {
+            language = Text.Language;
+            try
+            {
+                report = await Task.Run(
+                    () => ReportReviewViewModel.FromJsonCancellable(
+                        json,
+                        sourceName,
+                        outputArtifactPath: null,
+                        language: language,
+                        cancellationToken: cancellationToken),
+                    cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            catch (Exception exception) when (IsReportMaterializationException(exception))
+            {
+                report = ReportReviewViewModel.Error(sourceName, exception.Message, language: language);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+        while (language != Text.Language);
+
+        if (IsCurrentReportProjection(generation))
+        {
+            ApplyLoadedReport(report, json, sourceName);
+        }
+    }
+
+    private long BeginReportProjection()
+    {
+        return Interlocked.Increment(ref _reportProjectionGeneration);
+    }
+
+    private bool IsCurrentReportProjection(long generation)
+    {
+        return Volatile.Read(ref _reportProjectionGeneration) == generation;
+    }
+
+    private void ApplyLoadedReport(
+        ReportReviewViewModel report,
+        string json,
+        string sourceName)
+    {
+        LoadedReport = report;
         LoadedReportJson = json;
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportLoadedToast(sourceName));
@@ -94,6 +158,7 @@ public sealed partial class MainWindowViewModel
         ArgumentNullException.ThrowIfNull(sourceName);
         ArgumentNullException.ThrowIfNull(message);
 
+        _ = BeginReportProjection();
         LoadedReport = ReportReviewViewModel.Error(sourceName, message, "Load error", "Load failed", Text.Language);
         LoadedReportJson = string.Empty;
         CaptureLoadedReportInHistory();
@@ -128,6 +193,7 @@ public sealed partial class MainWindowViewModel
         ArgumentNullException.ThrowIfNull(slotPaths);
         ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
 
+        _ = BeginReportProjection();
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         var report = new
         {

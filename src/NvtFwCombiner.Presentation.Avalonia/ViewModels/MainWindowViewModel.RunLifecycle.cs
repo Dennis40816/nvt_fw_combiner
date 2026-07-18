@@ -142,7 +142,24 @@ public sealed partial class MainWindowViewModel
             WorkbenchRunResult result = await Task.Run(
                 () => run(progress, cancellationSource.Token).AsTask(),
                 cancellationSource.Token);
-            ApplyRunResult(result, build);
+            long reportProjectionGeneration = BeginReportProjection();
+            ShellLanguage reportLanguage;
+            ReportReviewViewModel report;
+            do
+            {
+                reportLanguage = Text.Language;
+                report = await Task.Run(
+                    () => ProjectRunReport(result, build, reportLanguage, cancellationSource.Token),
+                    cancellationSource.Token);
+                cancellationSource.Token.ThrowIfCancellationRequested();
+            }
+            while (reportLanguage != Text.Language);
+
+            ApplyRunResult(
+                result,
+                build,
+                report,
+                publishReport: IsCurrentReportProjection(reportProjectionGeneration));
         }
         catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
         {

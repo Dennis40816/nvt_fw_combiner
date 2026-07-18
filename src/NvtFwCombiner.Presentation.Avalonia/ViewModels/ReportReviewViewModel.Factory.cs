@@ -11,7 +11,28 @@ public sealed partial class ReportReviewViewModel
         string? outputArtifactPath = null,
         ShellLanguage language = ShellLanguage.English)
     {
+        return FromJsonCore(json, sourceName, outputArtifactPath, language, CancellationToken.None);
+    }
+
+    internal static ReportReviewViewModel FromJsonCancellable(
+        string json,
+        string sourceName,
+        string? outputArtifactPath,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
+    {
+        return FromJsonCore(json, sourceName, outputArtifactPath, language, cancellationToken);
+    }
+
+    private static ReportReviewViewModel FromJsonCore(
+        string json,
+        string sourceName,
+        string? outputArtifactPath,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
+        cancellationToken.ThrowIfCancellationRequested();
         using var document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;
 
@@ -26,12 +47,13 @@ public sealed partial class ReportReviewViewModel
         long outputSize = GetOutputLong(root, "Size");
         bool? outputCommitted = GetOutputCommitted(root);
         string outputSha256 = GetOutputString(root, "Sha256");
-        IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root);
-        IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root, language);
-        IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root);
-        IReadOnlyList<ReportLineViewModel> outputDifferences = ParseOutputDifferences(root, language);
-        IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root);
+        IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root, cancellationToken);
+        IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root, language, cancellationToken);
+        IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root, cancellationToken);
+        IReadOnlyList<ReportLineViewModel> outputDifferences = ParseOutputDifferences(root, language, cancellationToken);
+        IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root, cancellationToken);
         string status = CreateStatus(issues, language);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new ReportReviewViewModel(
             false,
