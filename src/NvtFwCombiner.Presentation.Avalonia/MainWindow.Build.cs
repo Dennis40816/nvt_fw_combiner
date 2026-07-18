@@ -30,8 +30,9 @@ public sealed partial class MainWindow
             return;
         }
 
-        if (viewModel.TryOpenCtrlRamFirmwareVersionModal())
+        if (viewModel.IsCtrlRamReplaceModeSelected)
         {
+            _ = await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync();
             return;
         }
 
