@@ -251,15 +251,30 @@ public sealed partial class RepositoryBoundaryTests
     {
         string helper = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/BestEffortLocalJsonFileStore.cs");
+        string mainWindow = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
+        string historyCoordinator = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryPersistenceCoordinator.cs");
         string stores = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs") +
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ShellPreferenceFileStore.cs");
 
-        Assert.Equal(6, CountOccurrences(stores, "BestEffortLocalJsonFileStore."));
+        Assert.Equal(7, CountOccurrences(stores, "BestEffortLocalJsonFileStore."));
         Assert.DoesNotContain("JsonSerializerOptions", stores, StringComparison.Ordinal);
         Assert.DoesNotContain("File.Replace", stores, StringComparison.Ordinal);
         Assert.Contains("JsonSerializerOptions", helper, StringComparison.Ordinal);
+        Assert.Contains("JsonSerializer.SerializeAsync", helper, StringComparison.Ordinal);
         Assert.Contains("File.Replace", helper, StringComparison.Ordinal);
         Assert.Contains("UnauthorizedAccessException", helper, StringComparison.Ordinal);
+        Assert.Contains("_reportHistoryPersistence.Queue", mainWindow, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportHistoryFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("e.Cancel = true", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled = false", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("viewModel.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("finalViewModel.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("completion.WaitAsync(ReportHistoryCloseFlushTimeout)", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("_reportHistoryPersistence.CompleteAsync()", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("Task.Run", historyCoordinator, StringComparison.Ordinal);
+        Assert.Contains("_latestCancellation?.Cancel()", historyCoordinator, StringComparison.Ordinal);
+        Assert.Contains("RecordFailure(exception)", historyCoordinator, StringComparison.Ordinal);
     }
 
     /// <summary>Report history retains compact immutable snapshots instead of every fully parsed review graph.</summary>
