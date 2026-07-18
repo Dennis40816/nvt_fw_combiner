@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using System.Xml.Linq;
 
 namespace NvtFwCombiner.Architecture.Tests;
@@ -202,6 +204,70 @@ public sealed partial class RepositoryBoundaryTests
             Directory.EnumerateFiles(retiredSchemaSource, "*", SearchOption.AllDirectories).Any());
         Assert.DoesNotContain("<SourceRoot>", project, StringComparison.Ordinal);
         Assert.DoesNotContain("**\\profile-bundle.json", project, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies canonical firmware-family reuse is explicit, closed-root, and limited to NT51930.</summary>
+    [Fact]
+    public void Nt51930CandidateMaterializesOneCanonicalFirmwareFamily()
+    {
+        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        var document = XDocument.Parse(project);
+        XElement candidate = Assert.Single(document.Descendants("BuiltInProfileBundle"), static bundle =>
+            StringComparer.Ordinal.Equals(
+                bundle.Attribute("Include")?.Value,
+                "nt51930-general-merge-logical-candidate"));
+
+        Assert.Equal(
+            "nt51930-standard-merge\\families\\nt51930.json",
+            candidate.Element("CanonicalFirmwareFamilySource")?.Value);
+        Assert.Equal(
+            "families\\nt51930.json",
+            candidate.Element("CanonicalFirmwareFamilyDestination")?.Value);
+        _ = Assert.Single(document.Descendants("CanonicalFirmwareFamilySource"), static element =>
+            !string.IsNullOrWhiteSpace(element.Value));
+        _ = Assert.Single(document.Descendants("CanonicalFirmwareFamilyDestination"), static element =>
+            !string.IsNullOrWhiteSpace(element.Value));
+
+        string canonicalFamilyPath = Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51930-standard-merge",
+            "families",
+            "nt51930.json");
+        string candidateFamilyPath = Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51930-general-merge-logical-candidate",
+            "families",
+            "nt51930.json");
+        Assert.True(File.Exists(canonicalFamilyPath));
+        Assert.False(File.Exists(candidateFamilyPath));
+
+        using var manifest = JsonDocument.Parse(ReadText(
+            "profiles/built-in/nt51930-general-merge-logical-candidate/profile-bundle.json"));
+        JsonElement familyEntry = Assert.Single(
+            manifest.RootElement.GetProperty("entries").EnumerateArray(),
+            static entry => StringComparer.Ordinal.Equals(
+                entry.GetProperty("kind").GetString(),
+                "firmware-family"));
+        Assert.Equal("families/nt51930.json", familyEntry.GetProperty("path").GetString());
+        Assert.Equal(
+            familyEntry.GetProperty("contentHash").GetString(),
+            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(canonicalFamilyPath))).ToLowerInvariant());
+
+        Assert.Contains("Built-in profile canonical firmware-family metadata must declare both source and destination", project, StringComparison.Ordinal);
+        Assert.Contains("Built-in profile canonical firmware-family source escapes the approved source root", project, StringComparison.Ordinal);
+        Assert.Contains("Built-in profile canonical firmware-family destination escapes the bundle families root", project, StringComparison.Ordinal);
+        Assert.Contains("Built-in profile canonical firmware-family source is missing", project, StringComparison.Ordinal);
+        Assert.Contains("Built-in profile canonical firmware-family destination collides", project, StringComparison.Ordinal);
+        Assert.Contains("@(_BuiltInProfileCanonicalFamily->'%(SourceFile)')", project, StringComparison.Ordinal);
+        Assert.Contains("@(_BuiltInProfileCanonicalFamily->'%(DestinationFile)')", project, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CanonicalFirmwareFamily",
+            ReadText("src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleLoader.cs"),
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies retired DP Perspective C# facts cannot become a second oracle beside trusted V2 plans.</summary>

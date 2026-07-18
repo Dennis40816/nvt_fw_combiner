@@ -131,7 +131,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         ArgumentNullException.ThrowIfNull(profileId);
 
         using var workspace = TempWorkspace.Create();
-        TrustedProfileBundleCatalog catalog = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
+        TrustedProfileBundleCatalog catalog = BuiltInProfileMaterializationTestSupport.LoadSourceCandidateCatalog(
             workspace,
             bundleDirectory,
             bundleContentHash);
@@ -174,11 +174,6 @@ public sealed class GeneralMergeV2CandidateProfileTests
                 sourceBundleDirectory,
                 "families",
                 familyFileName)),
-            File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
-                "profiles",
-                "built-in",
-                bundleDirectory,
-                "families",
-                familyFileName)));
+            File.ReadAllBytes(Path.Combine(workspace.Root, "families", familyFileName)));
     }
 }

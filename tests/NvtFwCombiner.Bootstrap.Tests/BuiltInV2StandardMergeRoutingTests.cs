@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Xml.Linq;
 using NvtFwCombiner.Domain.Composition;
@@ -96,6 +97,16 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     {
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string builtInRoot = Path.Combine(repositoryRoot, "profiles", "built-in");
+        var testOutput = new DirectoryInfo(AppContext.BaseDirectory);
+        string materializedBuiltInRoot = Path.Combine(
+            repositoryRoot,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "obj",
+            testOutput.Parent!.Name,
+            testOutput.Name,
+            "materialized-profiles",
+            "built-in");
         string deployedBuiltInRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in");
         string projectFile = RepositoryPaths.FromRepositoryRoot(
             "src",
@@ -116,9 +127,12 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         {
             string sourceBundleRoot = Path.Combine(builtInRoot, bundleDirectory);
             Assert.True(Directory.Exists(sourceBundleRoot), $"Production bundle has no repository source: {bundleDirectory}");
+            string materializedRoot = Path.Combine(materializedBuiltInRoot, bundleDirectory);
             string deployedRoot = Path.Combine(deployedBuiltInRoot, bundleDirectory);
             string sourceManifestPath = Path.Combine(sourceBundleRoot, "profile-bundle.json");
+            string materializedManifestPath = Path.Combine(materializedRoot, "profile-bundle.json");
             string deployedManifestPath = Path.Combine(deployedRoot, "profile-bundle.json");
+            Assert.Equal(File.ReadAllBytes(sourceManifestPath), File.ReadAllBytes(materializedManifestPath));
             Assert.Equal(File.ReadAllBytes(sourceManifestPath), File.ReadAllBytes(deployedManifestPath));
 
             using var manifest = JsonDocument.Parse(File.ReadAllText(sourceManifestPath));
@@ -134,15 +148,24 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             {
                 string relativePath = entry.GetProperty("path").GetString()!;
                 string contentHash = entry.GetProperty("contentHash").GetString()!;
-                string sourcePath = StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema")
-                    ? V2StandardMergeGoldenTestSupport.ResolveContractSchemaPath(relativePath, contentHash)
-                    : Path.Combine(sourceBundleRoot, relativePath);
+                string sourcePath = BuiltInProfileMaterializationTestSupport.ResolveManifestEntrySource(
+                    bundleDirectory,
+                    entry);
+                string materializedPath = Path.Combine(materializedRoot, relativePath);
                 string deployedPath = Path.Combine(deployedRoot, relativePath);
 
                 Assert.True(File.Exists(sourcePath), $"Materialization source is missing: {sourcePath}");
+                Assert.True(File.Exists(materializedPath), $"Materialized bundle entry is missing: {materializedPath}");
                 Assert.True(File.Exists(deployedPath), $"Deployed bundle entry is missing: {deployedPath}");
-                Assert.Equal(File.ReadAllBytes(sourcePath), File.ReadAllBytes(deployedPath));
+                byte[] sourceBytes = File.ReadAllBytes(sourcePath);
+                Assert.Equal(contentHash, Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant());
+                Assert.Equal(sourceBytes, File.ReadAllBytes(materializedPath));
+                Assert.Equal(sourceBytes, File.ReadAllBytes(deployedPath));
             }
+
+            _ = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+                bundleDirectory,
+                manifest.RootElement.GetProperty("contentHash").GetString()!);
 
             V2StandardMergeGoldenTestSupport.AssertSourceCatalogIsRejected(
                 bundleDirectory,
