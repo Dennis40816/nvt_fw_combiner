@@ -183,7 +183,7 @@ VN-only means the combiner command includes only the VN block needed for self-pa
 | NT51928 | `0` diff bytes after host-like normalization | Expected no-op with merge normalization. |
 | NT51929 | `0` diff bytes | Expected no-op. |
 | NT51930 | `2853` diff bytes | Unexpected for a VN-only no-op; 1.13.0 NT51930 mode mutates additional data near `0x32000`. |
-| NT51931 | combiner crash, exit `0xC0000005` | Unexpected real-tool failure on standard golden input. |
+| NT51931 | historical 1.13.0/51930-based pairing crash, exit `0xC0000005` | Later resolved by selecting 1.13.0/51931-based after full-byte control parity. |
 | NT51932 | `0` diff bytes | Expected no-op. |
 | NT51950 | `0` diff bytes | Expected no-op. |
 | NT51951 | `0` diff bytes | Expected no-op. |
@@ -208,7 +208,7 @@ Full single means current catalog single-branch command sequence is run on a fin
 | NT51928 | `64` | Expected CRC/header-word drift, not exactly 16 | multiple 4-byte CRC/header words near `0x23C`, `0x24C`, `0x1E24C..0x1E2B0`, and `0x32FDC..0x33040` |
 | NT51929 | `16` | Expected CRC-generation drift | `0x7100..0x7104`, `0x7118..0x711C`, `0x27FF0..0x27FF4`, `0x28008..0x2800C` |
 | NT51930 | `2901` | Postbuild-version mismatch candidate | `2.0.0` run changes `0x7100`, `0x7118`, copy/header area near `0x28FB0`, and extensive `0x32000`; current golden aligns with `1.4.0` header-copy length `0x100` |
-| NT51931 | combiner crash, exit `0xC0000005` | Unexpected real-tool failure | no output diff available |
+| NT51931 | historical 1.13.0/51930-based pairing crash, exit `0xC0000005` | Resolved pairing is 1.13.0/51931-based | no output diff was available for the rejected pairing |
 | NT51932 | `16` | Expected CRC-generation drift | `0x7100..0x7104`, `0x7118..0x711C`, `0x27FF0..0x27FF4`, `0x28008..0x2800C` |
 | NT51950 | `16` | Expected CRC-generation drift | `0xA11C..0xA120`, `0xA130..0xA134`, `0x2D428..0x2D42C`, `0x2D43C..0x2D440` |
 | NT51951 | `16` | Expected CRC-generation drift | same ranges as NT51950 |
@@ -323,7 +323,7 @@ Reasons:
 - NT51920/NT51923/NT51926 use legacy normal mode.
 - NT51930/NT51931/NT51932/NT51950/NT51951 use NT-based modes.
 - NT51927/NT51928 use merge + CRC-only sequences and require output-length normalization.
-- NT51931 currently crashes with the tested standard golden input.
+- NT51931's historical 1.13.0/51930-based pairing crashes; the selected 1.13.0/51931-based pairing exits 0 and matches the 1.2.0.4/51930-based control byte-for-byte on the final staged case.
 
 ## Current Recommendations
 
@@ -341,6 +341,6 @@ Reasons:
 - Should NT51926 CtrlRAM Replace select `1.4.1`, `2.0.0`, or a version-detected postbuild profile? The current 2026-07-05 base aligns with the `1.4.1` header-copy target.
 - Should NT51930 CtrlRAM Replace select `1.4.0`, `2.0.0`, or a version-detected postbuild profile? The current 51930 golden aligns with the `1.4.0` header-copy length.
 - What exact `map.txt` content is required for overlay-enabled firmware?
-- Is NT51931 expected to run `NT51930BASED_NORMAL_MODE CRC8` against the current standard-merge golden, or does it require a different source image/header state?
+- Resolved 2026-07-19: NT51931 selects registered 1.13.0 `NT51931BASED_NORMAL_MODE CRC8`; the 1.13.0/51930-based combination is rejected.
 - Should the real-tool host adapter always stage an empty `map.txt` for no-overlay normal/NT-based commands, or should profiles declare map authority explicitly?
 - Which per-IC CRC/header diff ranges should be accepted for full postbuild no-op diagnostics, if any?

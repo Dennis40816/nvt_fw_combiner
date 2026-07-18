@@ -76,7 +76,7 @@ Not currently required for NT51928 just to classify LDC:
 Useful for NT51931 closure:
 
 - The combiner executable version that originally ran `PostbuildSetup_51931_1.3.0.bat`, if different from committed `Combiner.exe` 1.13.0.
-- A known-good NT51931 postbuild output plus the exact tool hash would let us decide whether the current crash is a combiner-version mismatch.
+- NT51931 is now resolved by exact tool hashes and a common-base experiment: 1.13.0/51931-based equals the 1.2.0.4/51930-based control byte-for-byte; only the 1.13.0/51930-based pairing crashes.
 
 ## Postbuild BAT Consistency
 
@@ -90,14 +90,14 @@ Confirmed consistent:
 - NT51927: `MERGE_MODE` plus `NT51927BASED_GEN_CRC_MODE CRC32`; single, 2-chip, and 3-chip branches match BAT.
 - NT51928: owner-approved alias of NT51927 non-NB postbuild flow.
 - NT51930: both inspected versions use `NT51930BASED_NORMAL_MODE CRC8`, but their command shapes differ. `1.4.0` uses one command and header-copy length `0x100`; `2.0.0` uses `HEADER_SZ = 0x200` and a second header-only command.
-- NT51931: BAT explicitly uses `NT51930BASED_NORMAL_MODE CRC8`; catalog matches BAT.
+- NT51931 has conflicting BAT provenance: 2026-07-17 uses `NT51931BASED_NORMAL_MODE CRC8`, while 2026-07-18 uses `NT51930BASED_NORMAL_MODE CRC8`.
 - NT51932: `NT51932BASED_NORMAL_MODE CRC8`; single/cascade match BAT.
 - NT51950: `NT51950BASED_NORMAL_MODE CRC8`; single/cascade match BAT.
 - NT51919/NT51929/NT51951 aliases match the current owner-confirmed alias model.
 
 Important correction:
 
-- NT51931 should not be changed to `NT51931BASED_NORMAL_MODE` based only on diagnostics. The official inspected BAT uses `NT51930BASED_NORMAL_MODE CRC8`. The current issue is that committed Combiner 1.13.0 crashes on the NT51931 golden when run with the official BAT-shaped command.
+- NT51931 was changed to `NT51931BASED_NORMAL_MODE` only after the owner-selected 2026-07-19 controlled experiment: registered 1.13.0/51931-based and owner 1.2.0.4/51930-based produced byte-identical output on the same final inputs. Registered 1.13.0/51930-based remains a rejected crash pairing.
 
 ## Current Adapter Pasteback Model
 
@@ -244,19 +244,22 @@ The original BAT confirms NT51931 official postbuild uses:
 NT51930BASED_NORMAL_MODE CRC8
 ```
 
-The current catalog matches that BAT.
+The archived 2026-07-18 catalog matched that BAT. The selected catalog now follows the
+registered-tool parity result below rather than the crashing final-BAT pairing.
 
 Observed behavior with committed Combiner 1.13.0:
 
 - no-block diagnostic exits nonzero without useful output;
-- any official block-bearing NT51931 command crashes with access violation `0xC0000005`;
-- `NT51931BASED_NORMAL_MODE` exists in the executable and can run diagnostic commands, but it is not the inspected official BAT flow.
+- registered 1.13.0 with the final 2026-07-18 `NT51930BASED_NORMAL_MODE` pairing crashes with access violation `0xC0000005`;
+- registered 1.13.0 `NT51931BASED_NORMAL_MODE` exits 0 and matches the owner 1.2.0.4/51930-based control byte-for-byte.
 
-Current interpretation:
+Resolved interpretation (2026-07-19):
 
-- NT51931 is the main "catalog matches postbuild but tool behavior may be wrong version" case.
-- Most likely investigation direction: combiner executable version drift or source/header-state compatibility mismatch.
-- Do not change the production catalog to `NT51931BASED_NORMAL_MODE` without owner postbuild evidence.
+- The failure belongs to the 1.13.0/51930-based pairing, not to the NT51931 payload.
+- The owner-authorized common-base experiment proves 1.13.0/51931-based and
+  1.2.0.4/51930-based produce identical output and leave all physical inputs unchanged.
+- The catalog therefore selects registered 1.13.0 `NT51931BASED_NORMAL_MODE CRC8`;
+  the 1.2.0.4 executable remains evidence-only and is not packaged.
 
 ## Future Query Guidance
 
@@ -279,4 +282,4 @@ The short answer to preserve:
 - NT51927 currently has SINGLE golden; 2-chip/3-chip golden outputs are only needed for future multi-chip branch parity because the BAT explicitly copies master windows into slave windows.
 - NT51928 LDC is Display/DP-side data.
 - NT51930 hidden DiffDLM-like mutation should be treated as `2.0.0` catalog versus `1.4.0` golden mismatch until matching `2.0.0` evidence exists.
-- NT51931 is not a catalog transcription error; it is likely a combiner-version or compatible-input issue because official BAT uses `NT51930BASED_NORMAL_MODE` and committed Combiner 1.13.0 crashes.
+- NT51931 is a version/mode pairing conflict between the two supplied BATs. The selected resolved catalog rule is registered Combiner 1.13.0 with `NT51931BASED_NORMAL_MODE CRC8`; the 1.2.0.4 binary is no longer needed for runtime packaging.

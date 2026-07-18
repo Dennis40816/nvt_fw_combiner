@@ -257,7 +257,7 @@ public static class IcSupportCatalog
         Entry(
             "NT51931",
             workflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.GeneralMerge],
-            notes: "Replace is Not available: the official NT51930BASED_NORMAL_MODE command crashes Combiner 1.13, while the alternate NT51931BASED_NORMAL_MODE path has unexplained 108-byte drift."),
+            notes: "Replace is Not available until the exact V2 route is materialized. Registered Combiner 1.13.0 NT51931BASED_NORMAL_MODE matches the reviewed 1.2.0.4 NT51930-based control byte-for-byte; the shared output differs from the owner expected only in 108 classified header/header-copy CRC bytes."),
         Entry(
             "NT51932",
             familyId: "nt51929-nt51932-family",

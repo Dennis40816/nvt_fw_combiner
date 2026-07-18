@@ -45,6 +45,7 @@ EXPECTED_20260718_OWNER_DECISIONS = [
     "General Replace must apply every replacement first and then run one complete postbuild in the same terminal/session.",
     "TP firmware version editing must occur before postbuild so CRC is calculated from the staged value.",
     "NT51931 InsertSID is an out-of-scope pre-step for this V1 retirement and does not block exact CtrlRAM/Postbuild full-byte parity.",
+    "NT51931 selects registered Combiner 1.13.0 NT51931BASED_NORMAL_MODE after its output matched the owner 1.2.0.4 NT51930BASED_NORMAL_MODE control byte-for-byte on 2026-07-19.",
     "NT51951 Combiner 1.11 and 1.13 equivalence is an owner-authorized compatibility hypothesis that must be resolved by direct 1.11-expected versus registered-1.13 parity.",
 ]
 
@@ -274,13 +275,12 @@ EXPECTED_20260718_CASES: dict[str, dict[str, Any]] = {
             "route": "support-catalog-not-available",
         },
         "targetV2": {
-            "status": "evidence-only-registered-tool-incompatible",
+            "status": "registered-tool-mode-parity-validated",
             "runtimePromotion": False,
         },
         "baseKind": "expected-derived-self-replacement-control",
         "engineeringGateIds": [
-            "registered-1.13-access-violation",
-            "redistributable-compatible-tool-not-approved",
+            "v2-exact-route-not-materialized",
             "provided-flashcode-not-same-build",
             "insertsid-out-of-scope-prestep",
         ],

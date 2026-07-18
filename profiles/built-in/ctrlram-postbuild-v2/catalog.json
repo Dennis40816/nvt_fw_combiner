@@ -5452,7 +5452,7 @@
         {
           "commandId": "nt51931-single-merge-crc",
           "family": "ntbased-normal-mode",
-          "modeArgument": "NT51930BASED_NORMAL_MODE",
+          "modeArgument": "NT51931BASED_NORMAL_MODE",
           "crcArgument": "CRC8",
           "blocks": [
             {
@@ -5514,7 +5514,7 @@
         {
           "commandId": "nt51931-cascade-merge-crc",
           "family": "ntbased-normal-mode",
-          "modeArgument": "NT51930BASED_NORMAL_MODE",
+          "modeArgument": "NT51931BASED_NORMAL_MODE",
           "crcArgument": "CRC8",
           "blocks": [
             {
@@ -5672,7 +5672,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
-      "evidence": "IC FlashMap postbuild/PostbuildSetup_51931_1.3.0.bat"
+      "evidence": "Owner 2026-07-17 NT51931-based BAT plus 2026-07-19 full-byte parity: Combiner 1.13.0 NT51931-based equals Combiner 1.2.0.4 NT51930-based"
     },
     {
       "processorId": "nfc.nt51932.ctrlram-postbuild-v1",

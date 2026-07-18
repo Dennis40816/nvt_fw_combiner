@@ -100,6 +100,6 @@ Current remaining production gates:
 - declared allowed write ranges for every real postbuild parity claim;
 - private CtrlRAM Replace golden outputs and firmware-owner review;
 - clean-package smoke for any release payload that includes `external-tools/` and `reference/`;
-- NT51931 remains an agent-owned packaging/compatibility gate: registered 1.13 access-violates on official argv, while the compatible hash-only self-reported 1.2.0.4 diagnostic is not approved for registration or redistribution. No owner input is pending.
+- NT51931's tool gate is closed by the 2026-07-19 cross-mode experiment: registered 1.13.0 `NT51931BASED_NORMAL_MODE CRC8` is byte-identical to the owner 1.2.0.4 `NT51930BASED_NORMAL_MODE CRC8` control on the same staged case. The 1.2.0.4 binary remains evidence-only and is not packaged; the rejected 1.13.0/51930-based pairing still access-violates. Exact V2 route materialization and review remain agent-owned.
 
 Legacy Combiner `MERGE_MODE` may shorten the staging work file to the command coverage. The postbuild adapter can overlay that command output onto the previous full-length staging image only when it still covers the command's declared write ranges. The imported output remains full length and remains subject to independent allowed-write-range diff verification.

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Globalization;
 using System.Text.Json;
 using NvtFwCombiner.Profiles;
 using NvtFwCombiner.TestSupport;
@@ -34,7 +35,7 @@ public sealed class Nt51931CtrlRamEvidenceTests
         JsonElement ownerCase = ReadCase(manifest);
         Assert.Equal("expected-derived-self-replacement-control", ownerCase.GetProperty("baseKind").GetString());
         Assert.Equal("support-catalog-not-available", ownerCase.GetProperty("currentProfile").GetProperty("route").GetString());
-        Assert.Equal("evidence-only-registered-tool-incompatible", ownerCase.GetProperty("targetV2").GetProperty("status").GetString());
+        Assert.Equal("registered-tool-mode-parity-validated", ownerCase.GetProperty("targetV2").GetProperty("status").GetString());
 
         foreach (JsonElement entry in manifest.RootElement.GetProperty("payloads").EnumerateArray()
                      .Where(IsOwnerCaseEntry))
@@ -51,8 +52,8 @@ public sealed class Nt51931CtrlRamEvidenceTests
         Assert.Equal("1.2.0.4", tool.GetProperty("selfReportedVersion").GetString());
         Assert.False(tool.GetProperty("runtimeRegistrationAuthorized").GetBoolean());
         Assert.False(tool.GetProperty("redistributionAuthorized").GetBoolean());
-        Assert.False(Directory.Exists(RepositoryPaths.FromRepositoryRoot(
-            "external-tools", "legacy-combiner", "1.2.0.4")));
+        Assert.False(File.Exists(RepositoryPaths.FromRepositoryRoot(
+            "external-tools", "legacy-combiner", "1.2.0.4", "Combiner.exe")));
     }
 
     /// <summary>The supplied D8DfT82 FlashCode is not misrepresented as the D8DT83 parity base.</summary>
@@ -92,36 +93,71 @@ public sealed class Nt51931CtrlRamEvidenceTests
         Assert.Equal(source.AsSpan(0, consumedBytes), expected.AsSpan(targetStart, consumedBytes));
     }
 
-    /// <summary>The owner BAT command remains exact and no alternate mode is promoted.</summary>
+    /// <summary>The conflicting owner BATs and selected registered-tool pairing remain explicit.</summary>
     [Fact]
-    public void OfficialBatAndToolFailureStayEvidenceOnly()
+    public void BatConflictIsResolvedByRegisteredToolModeParity()
     {
         using JsonDocument manifest = ReadManifest();
         JsonElement ownerCase = ReadCase(manifest);
         JsonElement phaseB = ownerCase.GetProperty("phaseBResult");
-        string batPath = RepositoryPaths.ManifestPath(
+        string finalBatPath = RepositoryPaths.ManifestPath(
             GoldenRoot,
             manifest.RootElement.GetProperty("supportingFiles").EnumerateArray().Single(IsOwnerCaseEntry));
-        string command = File.ReadLines(batPath).Single(line =>
+        string finalCommand = File.ReadLines(finalBatPath).Single(line =>
             line.StartsWith("@output\\Combiner.exe ", StringComparison.Ordinal) &&
             line.Contains("BIN\\DiffDLM.bin", StringComparison.Ordinal));
-        string[] actualArguments = command["@output\\Combiner.exe ".Length..]
+        string[] finalArguments = finalCommand["@output\\Combiner.exe ".Length..]
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        string[] expectedArguments =
+        string historicalBatPath = RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "ctrlram-replace",
+            "fixtures",
+            "20260717",
+            "NT51931",
+            "51931_1.3.0_PostbuildSetup.bat");
+        string historicalCommand = File.ReadLines(historicalBatPath).Single(line =>
+            line.StartsWith("@output\\Combiner.exe ", StringComparison.Ordinal) &&
+            line.Contains("BIN\\DiffDLM.bin", StringComparison.Ordinal));
+        string[] historicalArguments = historicalCommand["@output\\Combiner.exe ".Length..]
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        string[] selectedArguments =
         [
-            .. phaseB.GetProperty("officialCommand").GetProperty("orderedArguments").EnumerateArray()
+            .. phaseB.GetProperty("selectedCommand").GetProperty("orderedArguments").EnumerateArray()
                 .Select(argument => argument.GetString()!.Replace('/', '\\')),
         ];
 
-        Assert.Equal(expectedArguments, actualArguments);
-        JsonElement registered = phaseB.GetProperty("registeredTool");
-        Assert.Equal(RegisteredToolSha256, registered.GetProperty("sha256").GetString());
-        Assert.Equal("0xC0000005", registered.GetProperty("exitCodeHex").GetString());
-        Assert.True(registered.GetProperty("outputUnchanged").GetBoolean());
-        Assert.False(phaseB.GetProperty("expectedDerivedControl").GetProperty("productionParityClaimed").GetBoolean());
+        Assert.Equal("NT51930BASED_NORMAL_MODE", finalArguments[0]);
+        Assert.Equal("NT51931BASED_NORMAL_MODE", historicalArguments[0]);
+        Assert.Equal("NT51931BASED_NORMAL_MODE", selectedArguments[0]);
+        Assert.Equal(selectedArguments[1..], finalArguments[1..]);
+        JsonElement sourceConflict = phaseB.GetProperty("sourceBatConflict");
+        Assert.Equal("NT51931BASED_NORMAL_MODE", sourceConflict.GetProperty("20260717").GetProperty("mode").GetString());
+        Assert.Equal("NT51930BASED_NORMAL_MODE", sourceConflict.GetProperty("20260718").GetProperty("mode").GetString());
+        Assert.Equal(sourceConflict.GetProperty("20260717").GetProperty("sha256").GetString(), Hash(File.ReadAllBytes(historicalBatPath)));
+        Assert.Equal(sourceConflict.GetProperty("20260718").GetProperty("sha256").GetString(), Hash(File.ReadAllBytes(finalBatPath)));
+        Assert.Equal(sourceConflict.GetProperty("20260717").GetProperty("diffDlmBytes").GetInt32().ToString(CultureInfo.InvariantCulture), historicalArguments[^1]);
+        Assert.Equal(sourceConflict.GetProperty("20260718").GetProperty("diffDlmBytes").GetInt32().ToString(CultureInfo.InvariantCulture), finalArguments[^1]);
+
+        JsonElement selected = phaseB.GetProperty("selectedCommand");
+        Assert.Equal(RegisteredToolSha256, selected.GetProperty("toolSha256").GetString());
+        JsonElement rejected = phaseB.GetProperty("rejectedPairing");
+        Assert.Equal("NT51930BASED_NORMAL_MODE", rejected.GetProperty("mode").GetString());
+        Assert.Equal("0xC0000005", rejected.GetProperty("exitCodeHex").GetString());
+        Assert.True(rejected.GetProperty("outputUnchanged").GetBoolean());
+
+        JsonElement parity = phaseB.GetProperty("modeParityExperiment");
+        Assert.Equal(0, parity.GetProperty("fullByteDifferenceBytes").GetInt32());
+        Assert.Equal(
+            parity.GetProperty("registered113").GetProperty("outputSha256").GetString(),
+            parity.GetProperty("owner1204Control").GetProperty("outputSha256").GetString());
+        Assert.Equal(
+            "legacy-combiner-1.13.0/NT51931BASED_NORMAL_MODE/CRC8",
+            parity.GetProperty("selectedRuntimePairing").GetString());
+        Assert.False(phaseB.GetProperty("expectedDerivedControl").GetProperty("fullByteParityToOwnerExpected").GetBoolean());
+        Assert.True(phaseB.GetProperty("expectedDerivedControl").GetProperty("toolModeFullByteParityClaimed").GetBoolean());
         Assert.Equal(108, phaseB.GetProperty("expectedDerivedControl").GetProperty("differenceBytes").GetInt32());
         Assert.Equal(0, phaseB.GetProperty("expectedDerivedControl").GetProperty("replacementPayloadDifferenceBytes").GetInt32());
-        Assert.False(phaseB.GetProperty("alternateMode").GetProperty("officialAuthority").GetBoolean());
         Assert.Equal("out-of-scope-pre-step-nonblocking", phaseB.GetProperty("insertSidScope").GetString());
         Assert.False(IcSupportCatalog.SupportsWorkflow("NT51931", IcWorkflowIds.CtrlRamReplace));
     }

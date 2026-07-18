@@ -163,7 +163,7 @@ public sealed class IcSupportCatalogTests
             Assert.True(IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.StandardMerge), icId));
     }
 
-    /// <summary>NT51931 keeps Merge support while unresolved Combiner evidence blocks every Replace workflow.</summary>
+    /// <summary>NT51931 keeps Merge support while the exact V2 Replace route is materialized.</summary>
     [Fact]
     public void Nt51931ReplaceIsNotSupportedWhileMergeRemainsAvailable()
     {
@@ -173,7 +173,8 @@ public sealed class IcSupportCatalogTests
         Assert.False(entry.SupportsWorkflow(IcWorkflowIds.DpReplace));
         Assert.False(entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace));
         Assert.False(entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace));
-        Assert.Contains("108-byte drift", entry.Notes, StringComparison.Ordinal);
+        Assert.Contains("matches", entry.Notes, StringComparison.Ordinal);
+        Assert.Contains("108 classified", entry.Notes, StringComparison.Ordinal);
         Assert.Contains("Not available", entry.Notes, StringComparison.Ordinal);
     }
 

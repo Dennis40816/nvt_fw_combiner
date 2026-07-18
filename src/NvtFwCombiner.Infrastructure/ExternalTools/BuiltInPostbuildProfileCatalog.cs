@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Infrastructure.ExternalTools;
 internal static class BuiltInPostbuildProfileCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/catalog.json";
-    private const string ExpectedSha256 = "08c73483acab41e9c87d38064dd52186668fe9f89606be145c161f34aa171e65";
+    private const string ExpectedSha256 = "736fb7fe989b3a9eaba203ec1deac8645efde2fbf45ab6ba650d860545079b51";
     private static readonly Lazy<IReadOnlyList<LegacyCombinerPostbuildProfile>> Profiles = new(Load);
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> All => Profiles.Value;
@@ -208,7 +208,7 @@ internal static class BuiltInPostbuildProfileCatalog
             LegacyCombinerCommandFamily.MergeMode => mode == "MERGE_MODE" && crc is null,
             LegacyCombinerCommandFamily.CrcOnlyMode => mode == "NT51927BASED_GEN_CRC_MODE" && crc == "CRC32",
             LegacyCombinerCommandFamily.NtBasedNormalMode =>
-                mode is "NT51930BASED_NORMAL_MODE" or "NT51932BASED_NORMAL_MODE" or "NT51950BASED_NORMAL_MODE" && crc == "CRC8",
+                mode is "NT51930BASED_NORMAL_MODE" or "NT51931BASED_NORMAL_MODE" or "NT51932BASED_NORMAL_MODE" or "NT51950BASED_NORMAL_MODE" && crc == "CRC8",
             _ => false,
         };
         if (!approved)

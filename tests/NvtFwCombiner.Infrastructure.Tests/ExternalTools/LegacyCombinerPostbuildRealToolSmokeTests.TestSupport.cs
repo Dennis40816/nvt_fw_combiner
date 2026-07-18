@@ -60,7 +60,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         var request = new ExternalProcessorRequest(
             runId,
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            profile.ToolBindingId,
             postReplacementBytes,
             expectedChangedRanges,
             selection,

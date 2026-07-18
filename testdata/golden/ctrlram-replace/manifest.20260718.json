@@ -22,6 +22,7 @@
     "General Replace must apply every replacement first and then run one complete postbuild in the same terminal/session.",
     "TP firmware version editing must occur before postbuild so CRC is calculated from the staged value.",
     "NT51931 InsertSID is an out-of-scope pre-step for this V1 retirement and does not block exact CtrlRAM/Postbuild full-byte parity.",
+    "NT51931 selects registered Combiner 1.13.0 NT51931BASED_NORMAL_MODE after its output matched the owner 1.2.0.4 NT51930BASED_NORMAL_MODE control byte-for-byte on 2026-07-19.",
     "NT51951 Combiner 1.11 and 1.13 equivalence is an owner-authorized compatibility hypothesis that must be resolved by direct 1.11-expected versus registered-1.13 parity."
   ],
   "externalToolObservations": [
@@ -425,7 +426,7 @@
         "route": "support-catalog-not-available"
       },
       "targetV2": {
-        "status": "evidence-only-registered-tool-incompatible",
+        "status": "registered-tool-mode-parity-validated",
         "runtimePromotion": false
       },
       "baseKind": "expected-derived-self-replacement-control",
@@ -441,13 +442,12 @@
         "fixtures/20260718/NT51931/replace/ctrlram/1.3.0/cascade/case-01/postbuild_inputs/VN_Ctrlram.bin"
       ],
       "provenanceGaps": [
-        "The supplied hash-only Combiner has no package metadata; diagnostic stdout self-reports version 1.2.0.4, but redistribution and runtime registration are not approved.",
+        "The 2026-07-17 BAT uses NT51931BASED_NORMAL_MODE while the 2026-07-18 BAT uses NT51930BASED_NORMAL_MODE; the owner-selected 2026-07-19 cross-version/mode experiment resolved the runtime choice in favor of registered 1.13.0 NT51931-based.",
         "The supplied D8DfT82 FlashCode is not the same build as the D8DT83 expected output, so it is retained as historical evidence rather than a production parity base.",
         "Owner classifies InsertSID as an out-of-scope pre-step, so its absent script is not a V1-retirement or exact CtrlRAM/Postbuild parity blocker."
       ],
       "engineeringGateIds": [
-        "registered-1.13-access-violation",
-        "redistributable-compatible-tool-not-approved",
+        "v2-exact-route-not-materialized",
         "provided-flashcode-not-same-build",
         "insertsid-out-of-scope-prestep"
       ],
@@ -458,7 +458,7 @@
         "runtimeSupportPromotion": false
       },
       "phaseBResult": {
-        "status": "evidence-only-registered-tool-incompatible",
+        "status": "registered-tool-mode-parity-validated",
         "routeProfileId": null,
         "ownerExpectedSha256": "2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3",
         "providedFlashCode": {
@@ -469,14 +469,29 @@
           "differenceBytesOutsideControlRanges": 73637,
           "classification": "historical-non-same-build-flashcode"
         },
-        "officialCommand": {
-          "mode": "NT51930BASED_NORMAL_MODE",
+        "sourceBatConflict": {
+          "20260717": {
+            "sha256": "2dfa158ca80d39dd2441e548c7786febe027f9f1aaf055490a655e08751a7abd",
+            "mode": "NT51931BASED_NORMAL_MODE",
+            "diffDlmBytes": 51200
+          },
+          "20260718": {
+            "sha256": "ff6122efbc109b45540947a93176f7d292b19731bf1b5336c3d7deb0fad6a5eb",
+            "mode": "NT51930BASED_NORMAL_MODE",
+            "diffDlmBytes": 97280
+          },
+          "resolution": "owner-selected-cross-version-mode-full-byte-experiment-20260719"
+        },
+        "selectedCommand": {
+          "toolBindingId": "legacy-combiner-1.13.0",
+          "toolSha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf",
+          "mode": "NT51931BASED_NORMAL_MODE",
           "crc": "CRC8",
           "emptyOutputMapRequired": true,
           "sessionCount": 1,
           "commandCount": 1,
           "orderedArguments": [
-            "NT51930BASED_NORMAL_MODE",
+            "NT51931BASED_NORMAL_MODE",
             "CRC8",
             "output/nt51931_fw.bin",
             "output/nt51931_fw.bin",
@@ -522,16 +537,18 @@
           "providedFlashCodeRunDifferenceBytesToExpected": 73412,
           "providedFlashCodeRunDifferenceRangesToExpected": 2488
         },
-        "registeredTool": {
-          "bindingId": "legacy-combiner-1.13.0",
+        "rejectedPairing": {
+          "toolBindingId": "legacy-combiner-1.13.0",
           "sha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf",
+          "mode": "NT51930BASED_NORMAL_MODE",
           "exitCodeSigned": -1073741819,
           "exitCodeHex": "0xC0000005",
           "classification": "access-violation-before-output-mutation",
           "outputUnchanged": true
         },
         "expectedDerivedControl": {
-          "productionParityClaimed": false,
+          "fullByteParityToOwnerExpected": false,
+          "toolModeFullByteParityClaimed": true,
           "differenceBytes": 108,
           "differenceRanges": 8,
           "replacementPayloadDifferenceBytes": 0,
@@ -554,18 +571,37 @@
           "vn": { "sourceBytes": 5728, "consumedBytes": 5728, "outputDifferenceBytes": 0 },
           "diffDlm": { "sourceBytes": 97280, "consumedBytes": 97280, "outputDifferenceBytes": 0 }
         },
-        "alternateMode": {
-          "mode": "NT51931BASED_NORMAL_MODE",
-          "officialAuthority": false,
-          "productionParityClaimed": false
+        "modeParityExperiment": {
+          "dateTaipei": "2026-07-19",
+          "commonBaseKind": "owner-expected-derived-self-replacement-control",
+          "commonBaseSha256": "2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3",
+          "registered113": {
+            "sha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf",
+            "mode": "NT51931BASED_NORMAL_MODE",
+            "exitCode": 0,
+            "outputSha256": "f38fdecd95092d9bacabd8ca59c442cbdb601edd280c23efa088693cb256c594",
+            "inputArtifactsUnchanged": true
+          },
+          "owner1204Control": {
+            "sha256": "778f6dcec718e809d41c118ca40ce056ac428bc932ed36d851bd842fd612af58",
+            "selfReportedVersion": "1.2.0.4",
+            "mode": "NT51930BASED_NORMAL_MODE",
+            "exitCode": 0,
+            "outputSha256": "f38fdecd95092d9bacabd8ca59c442cbdb601edd280c23efa088693cb256c594",
+            "inputArtifactsUnchanged": true
+          },
+          "fullByteDifferenceBytes": 0,
+          "differenceRanges": 0,
+          "selectedRuntimePairing": "legacy-combiner-1.13.0/NT51931BASED_NORMAL_MODE/CRC8"
         },
         "insertSidScope": "out-of-scope-pre-step-nonblocking",
         "inputArtifactsUnchanged": true,
-        "supportState": "not-available",
+        "supportState": "v2-route-pending",
         "reviewEvidence": {
           "ownerInputGate": "closed-by-existing-owner-decision",
+          "ownerModeSelection": "registered-1.13.0-nt51931-based",
           "independentR3Findings": { "p0": 0, "p1": 0, "p2": 0, "p3": 0 },
-          "promotionPolicy": "support-neutral-no-promotion"
+          "promotionPolicy": "support-neutral-until-v2-route-review"
         },
         "runtimeSupportPromotion": false
       }
