@@ -303,6 +303,28 @@ must run this command under identical options and machine/runtime conditions;
 the resulting JSON remains untracked review evidence unless the owner approves
 an explicit sanitized evidence record.
 
+The first clean provisional C comparison used Windows `10.0.26200`, .NET
+`10.0.9`, workstation GC, 2 warm-ups, and 10 measured runs. Both commits used
+the same generated 10,000-difference/200-section payload hash
+`2eacf537bed7aca2124aa0b0f3af0165399fb4a07eff2e61a0b52cd70ee78cf5d`.
+The `b2757a2b` probe baseline still cloned the complete difference subtree and
+used indexed `JsonElement` access; `86058674` retains one UTF-8 payload with
+lazy byte slices and scans the summary sequentially.
+
+| Clean commit | Summary p50 | Summary p95 | Current-thread allocation p50 | Initial / first-expanded detail rows |
+| --- | ---: | ---: | ---: | ---: |
+| `b2757a2b` | 405.094 ms | 416.072 ms | 10,598,464 bytes | `0 / 24` |
+| `86058674` | 35.212 ms | 46.910 ms | 6,501,600 bytes | `0 / 24` |
+
+This provisional slice reduces p50 by 91.3%, p95 by 88.7%, and allocation by
+38.7%. On `86058674`, the 1,000-row summary records p50/p95
+`7.740/24.211 ms` with 675,512-byte median allocation; the 10,000-row first
+detail page records 0.255 ms p50 and 47,296-byte median allocation. The same
+run records shared NT51926 UI Build p50 14.522 ms, click-to-active p50 4.336 ms,
+and dispatcher-heartbeat-gap p95 14.967 ms with the tracked output SHA intact.
+These values diagnose the provisional branch only and are not the authoritative
+node B/C result before final `0.9.9` reconciliation.
+
 ## Typed run-progress core
 
 The first provisional ADR 0024 Application slice now owns seven stable phases:
