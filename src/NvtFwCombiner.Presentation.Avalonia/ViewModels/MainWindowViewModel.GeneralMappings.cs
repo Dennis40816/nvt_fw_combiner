@@ -33,7 +33,7 @@ public sealed partial class MainWindowViewModel
 
         if (mapping is GeneralMergeMappingViewModel)
         {
-            RefreshMemoryMapState();
+            RefreshMergeMemoryMapState();
         }
         RefreshCommandState();
     }
@@ -52,7 +52,7 @@ public sealed partial class MainWindowViewModel
         mapping.FilePath = path;
         if (mapping is GeneralMergeMappingViewModel)
         {
-            RefreshMemoryMapState();
+            RefreshMergeMemoryMapState();
         }
         RefreshCommandState();
         return true;

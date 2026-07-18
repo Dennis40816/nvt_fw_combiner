@@ -66,6 +66,7 @@ public sealed partial class MainWindowViewModel
         RequestReportRelocalization();
         RefreshSettingsState();
         RefreshReplaceModeState(preserveSlotFiles: true);
+        RefreshCtrlRamDisplayFromInspection();
         RefreshReplaceSelectionState();
     }
 

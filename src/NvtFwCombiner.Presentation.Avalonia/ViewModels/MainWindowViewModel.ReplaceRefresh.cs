@@ -9,14 +9,47 @@ public sealed partial class MainWindowViewModel
         CtrlRamRegions.Clear();
         foreach (CtrlRamRegionViewModel region in UiCompositionRunner.GetCtrlRamRegions(
             SelectedIc,
-            SelectedNumber,
-            GetSelectedCtrlRamBasePath()))
+            SelectedNumber))
         {
             CtrlRamRegions.Add(region);
         }
     }
 
+    private void ClearCtrlRamInspectionDisplay()
+    {
+        CtrlRamRegions.Clear();
+        ReplaceMemoryRangeLabel = string.Empty;
+        ReplaceMemoryRows.Clear();
+        ReplaceCoverageSegments.Clear();
+        ReplaceCoverageGroups.Clear();
+        OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
+        OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
+        OnPropertyChanged(nameof(IsReplaceCoverageFlat));
+    }
+
+    private void ApplyCtrlRamInspectionDisplay(WorkbenchCtrlRamInspectionDisplay display)
+    {
+        ArgumentNullException.ThrowIfNull(display);
+
+        ReplaceRows(CtrlRamRegions, UiCompositionRunner.GetCtrlRamRegions(display.Regions));
+        RefreshReplaceModeState(
+            preserveSlotFiles: true,
+            ctrlRamInputSlots: UiCompositionRunner.GetCtrlRamReplaceInputSlots(display.InputSlots));
+        (
+            string rangeLabel,
+            IReadOnlyList<MemoryMapRowViewModel> rows,
+            IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
+            UiCompositionRunner.GetReplaceMemoryDisplay(display.MemoryDisplay);
+        ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
+    }
+
     private void RefreshMemoryMapState()
+    {
+        RefreshMergeMemoryMapState();
+        RefreshReplaceMemoryMapState();
+    }
+
+    private void RefreshMergeMemoryMapState()
     {
         long? selectedMergeDpInputLength = GetSelectedMergeDpInputLength();
         (
@@ -33,6 +66,27 @@ public sealed partial class MainWindowViewModel
         ReplaceRows(MergeMemoryRows, rows);
         ReplaceRows(MergeCoverageSegments, coverageSegments);
 
+        OnPropertyChanged(nameof(MergeMemoryRangeLabel));
+        OnPropertyChanged(nameof(MergeMemorySummary));
+    }
+
+    private void RefreshReplaceMemoryMapState()
+    {
+        if (IsCtrlRamReplaceModeSelected && ReplaceBaseSlot.HasFile)
+        {
+            if (_baseFirmwareInspectionCache is { } cache &&
+                cache.MatchesContext(SelectedIc, ReplaceBaseSlot.FilePath))
+            {
+                ApplyCtrlRamDisplayFromInspection(cache.Inspection);
+            }
+            else
+            {
+                ClearCtrlRamInspectionDisplay();
+            }
+
+            return;
+        }
+
         (
             string replaceRangeLabel,
             IReadOnlyList<MemoryMapRowViewModel> replaceRows,
@@ -40,17 +94,22 @@ public sealed partial class MainWindowViewModel
             SelectedIc,
             SelectedNumber,
             SelectedReplaceMode,
-            GetSelectedReplaceBaseLength(),
-            GetSelectedCtrlRamBasePath());
-        ReplaceMemoryRangeLabel = replaceRangeLabel;
-        ReplaceRows(ReplaceMemoryRows, replaceRows);
-        ReplaceRows(ReplaceCoverageSegments, replaceCoverageSegments);
-        RefreshReplaceCoverageGroups();
+            GetSelectedReplaceBaseLength());
+        ApplyReplaceMemoryDisplay(replaceRangeLabel, replaceRows, replaceCoverageSegments);
 
-        OnPropertyChanged(nameof(MergeMemoryRangeLabel));
-        OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
-        OnPropertyChanged(nameof(MergeMemorySummary));
+    }
+
+    private void ApplyReplaceMemoryDisplay(
+        string rangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments)
+    {
+        ReplaceMemoryRangeLabel = rangeLabel;
+        ReplaceRows(ReplaceMemoryRows, rows);
+        ReplaceRows(ReplaceCoverageSegments, coverageSegments);
+        RefreshReplaceCoverageGroups();
+        OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
@@ -59,9 +118,8 @@ public sealed partial class MainWindowViewModel
     private long? GetSelectedMergeDpInputLength()
     {
         return WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
-            !string.IsNullOrWhiteSpace(_mergeDpSlot.FilePath) &&
-            File.Exists(_mergeDpSlot.FilePath)
-                ? new FileInfo(_mergeDpSlot.FilePath).Length
+            TryGetInspectedFileLength(_mergeDpSlot, out long length)
+                ? length
                 : null;
     }
 
@@ -69,22 +127,14 @@ public sealed partial class MainWindowViewModel
     {
         return SelectedReplaceMode == DpReplaceMode &&
             WorkbenchCompositionService.HasBuiltInV2DpReplace(SelectedIc) &&
-            !string.IsNullOrWhiteSpace(ReplaceBaseSlot.FilePath) &&
-            File.Exists(ReplaceBaseSlot.FilePath)
-                ? new FileInfo(ReplaceBaseSlot.FilePath).Length
+            TryGetInspectedFileLength(ReplaceBaseSlot, out long length)
+                ? length
                 : null;
     }
 
-    private string? GetSelectedCtrlRamBasePath()
-    {
-        return SelectedReplaceMode == CtrlRamReplaceMode &&
-            !string.IsNullOrWhiteSpace(ReplaceBaseSlot.FilePath) &&
-            File.Exists(ReplaceBaseSlot.FilePath)
-                ? ReplaceBaseSlot.FilePath
-                : null;
-    }
-
-    private void RefreshReplaceModeState(bool preserveSlotFiles = false)
+    private void RefreshReplaceModeState(
+        bool preserveSlotFiles = false,
+        IReadOnlyList<FirmwareSlotViewModel>? ctrlRamInputSlots = null)
     {
         Dictionary<string, string?> preservedSlotFiles = preserveSlotFiles
             ? ReplaceSlots
@@ -96,11 +146,14 @@ public sealed partial class MainWindowViewModel
             SelectedReplaceMode is DpReplaceMode or CtrlRamReplaceMode)
         {
             ReplaceSlots.Add(ReplaceBaseSlot);
-            foreach (FirmwareSlotViewModel slot in UiCompositionRunner.GetReplaceInputSlots(
-                SelectedIc,
-                SelectedNumber,
-                SelectedReplaceMode,
-                GetSelectedCtrlRamBasePath()))
+            IReadOnlyList<FirmwareSlotViewModel> inputSlots =
+                SelectedReplaceMode == CtrlRamReplaceMode && ctrlRamInputSlots is not null
+                    ? ctrlRamInputSlots
+                    : UiCompositionRunner.GetReplaceInputSlots(
+                        SelectedIc,
+                        SelectedNumber,
+                        SelectedReplaceMode);
+            foreach (FirmwareSlotViewModel slot in inputSlots)
             {
                 RestorePreservedSlotFile(slot, preservedSlotFiles);
                 ReplaceSlots.Add(slot);
@@ -124,7 +177,7 @@ public sealed partial class MainWindowViewModel
         RefreshCommandState();
     }
 
-    private void RestorePreservedSlotFile(
+    private static void RestorePreservedSlotFile(
         FirmwareSlotViewModel slot,
         Dictionary<string, string?> preservedSlotFiles)
     {
@@ -135,6 +188,5 @@ public sealed partial class MainWindowViewModel
         }
 
         slot.FilePath = filePath;
-        RefreshFirmwareFacts(slot);
     }
 }

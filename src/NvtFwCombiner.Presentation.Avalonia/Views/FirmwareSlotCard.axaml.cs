@@ -39,7 +39,7 @@ public sealed partial class FirmwareSlotCard : UserControl
         DropZoneDragState.SetActive(sender, isActive: false);
     }
 
-    private void SlotDrop_OnDrop(object? sender, DragEventArgs e)
+    private async void SlotDrop_OnDrop(object? sender, DragEventArgs e)
     {
         DropZoneDragState.SetActive(sender, isActive: false);
 
@@ -52,7 +52,7 @@ public sealed partial class FirmwareSlotCard : UserControl
         string? path = DropZoneDragState.GetFirstLocalFilePath(e);
         if (!string.IsNullOrWhiteSpace(path))
         {
-            viewModel.SetSlotFile(slotId, path);
+            await viewModel.SetSlotFileAsync(slotId, path);
         }
     }
 
@@ -75,7 +75,7 @@ public sealed partial class FirmwareSlotCard : UserControl
             "Select BIN file");
         if (!string.IsNullOrWhiteSpace(path))
         {
-            viewModel.SetSlotFile(slotId, path);
+            await viewModel.SetSlotFileAsync(slotId, path);
         }
     }
 }

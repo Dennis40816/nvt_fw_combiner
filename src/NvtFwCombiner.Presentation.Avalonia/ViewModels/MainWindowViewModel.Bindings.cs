@@ -246,12 +246,14 @@ public sealed partial class MainWindowViewModel
     public bool HasSelectedIcFamily => SelectedIcFamilySummary.FamilyId is not null;
 
     /// <summary>Status shown in the merge inspector.</summary>
-    public string MergeReadinessStatus => Text.GetMergeReadinessStatus(
-        SelectedMergeMode,
-        SelectedIc,
-        GetRequiredStandardMergeSlotLabels(),
-        IsStandardMergeSupported,
-        GeneralMergeMappings.Count(mapping => mapping.HasFile));
+    public string MergeReadinessStatus => IsFirmwareInspectionLoading
+        ? Text.FirmwareInspectionLoadingStatus
+        : Text.GetMergeReadinessStatus(
+            SelectedMergeMode,
+            SelectedIc,
+            GetRequiredStandardMergeSlotLabels(),
+            IsStandardMergeSupported,
+            GeneralMergeMappings.Count(mapping => mapping.HasFile));
 
     /// <summary>One-line Build action hint for Merge.</summary>
     public string MergeBuildActionTip => CreateBuildActionTip(MergeReadinessStatus, CanRunMerge());

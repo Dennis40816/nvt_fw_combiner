@@ -10,7 +10,9 @@ public sealed partial class MainWindowViewModel
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
     /// <summary>Status shown in the replace inspector.</summary>
-    public string ReplaceReadinessStatus => IsSelectedReplaceModeSupported
+    public string ReplaceReadinessStatus => IsFirmwareInspectionLoading
+        ? Text.FirmwareInspectionLoadingStatus
+        : IsSelectedReplaceModeSupported
             ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
             : Text.GetReplaceNotSupportedStatus(SelectedIc);
 
@@ -25,7 +27,7 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunReplace()
     {
-        return !IsRunInProgress && IsSelectedReplaceModeSupported &&
+        return !IsRunInProgress && !IsFirmwareInspectionLoading && IsSelectedReplaceModeSupported &&
             (SelectedReplaceMode switch
             {
                 DpReplaceMode => ReplaceSlots.Count > 0 &&

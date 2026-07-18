@@ -93,7 +93,10 @@
               MinHeight="112"
               Padding="12">
             <StackPanel Spacing="{DynamicResource NfcSpace4}">
-              <TextBlock Classes="readinessText" Text="{Binding ReplaceReadinessStatus}" TextWrapping="Wrap" />
+              <TextBlock Classes="readinessText"
+                         AutomationProperties.LiveSetting="Polite"
+                         Text="{Binding ReplaceReadinessStatus}"
+                         TextWrapping="Wrap" />
               <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceValidationDetail}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
@@ -154,7 +157,10 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
         <Border Classes="subtleSurface" Padding="10,8">
-          <TextBlock Classes="readinessText" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
+          <TextBlock Classes="readinessText"
+                     AutomationProperties.LiveSetting="Polite"
+                     Text="{Binding MergeReadinessStatus}"
+                     TextWrapping="Wrap" />
         </Border>
       </StackPanel>
     </Border>
@@ -211,7 +217,10 @@
         </StackPanel>
 
         <Border Classes="subtleSurface" Padding="10,8">
-          <TextBlock Classes="readinessText" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
+          <TextBlock Classes="readinessText"
+                     AutomationProperties.LiveSetting="Polite"
+                     Text="{Binding MergeReadinessStatus}"
+                     TextWrapping="Wrap" />
         </Border>
       </StackPanel>
     </Border>

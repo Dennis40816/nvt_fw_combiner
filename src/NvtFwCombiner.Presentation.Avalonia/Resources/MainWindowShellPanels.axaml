@@ -192,6 +192,8 @@
 <DataTemplate x:Key="ReportToastPanelTemplate" DataType="vm:MainWindowViewModel">
   <Border
       Classes="toastSurface"
+      AutomationProperties.LiveSetting="Polite"
+      AutomationProperties.Name="{Binding ShellToastAccessibleLabel}"
       MaxWidth="460"
       Margin="0,12,0,0"
       Padding="12,10"
