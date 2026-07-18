@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -14,7 +15,21 @@ public sealed partial class ShellViewModelTests
         string preferencesPath = workspace.PathFor(Path.Combine("state", "preferences.v1.json"));
         var preferences = new ShellPreferenceSnapshot("Dark", "Traditional Chinese");
 
+        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+
         ShellPreferenceFileStore.Save(preferencesPath, preferences);
+
+        using (var document = JsonDocument.Parse(File.ReadAllText(preferencesPath)))
+        {
+            JsonElement root = document.RootElement;
+            Assert.Equal(1, root.GetProperty("SchemaVersion").GetInt32());
+            Assert.Equal(2, root.EnumerateObject().Count());
+            JsonElement entry = root.GetProperty("Preferences");
+            Assert.Equal("Dark", entry.GetProperty("Theme").GetString());
+            Assert.Equal("Strict", entry.GetProperty("Strictness").GetString());
+            Assert.Equal("Traditional Chinese", entry.GetProperty("Language").GetString());
+            Assert.Equal(3, entry.EnumerateObject().Count());
+        }
 
         ShellPreferenceSnapshot loaded = ShellPreferenceFileStore.Load(preferencesPath);
         Assert.Equal(preferences, loaded);
@@ -32,6 +47,20 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(preferences, restoredViewModel.ExportShellPreferences());
 
         File.WriteAllText(preferencesPath, "{not valid json");
+
+        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+
+        File.WriteAllText(preferencesPath, /*lang=json,strict*/ """{"SchemaVersion":1,"Preferences":null}""");
+
+        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+
+        File.WriteAllText(preferencesPath, /*lang=json,strict*/ """{"SchemaVersion":1}""");
+
+        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+
+        File.WriteAllText(
+            preferencesPath,
+            /*lang=json,strict*/ """{"SchemaVersion":2,"Preferences":{"Theme":"Dark","Strictness":"Strict","Language":"Traditional Chinese"}}""");
 
         Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
 

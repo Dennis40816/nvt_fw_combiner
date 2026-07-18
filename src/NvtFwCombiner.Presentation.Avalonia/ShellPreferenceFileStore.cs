@@ -31,8 +31,8 @@ public static class ShellPreferenceFileStore
         return BestEffortLocalJsonFileStore.Load(
             path,
             ShellPreferenceSnapshot.Default,
-            (ShellPreferenceFile? file) => file?.SchemaVersion == SchemaVersion
-                ? file.Preferences.ToSnapshot()
+            (ShellPreferenceFile? file) => file is { SchemaVersion: SchemaVersion, Preferences: { } entry }
+                ? new ShellPreferenceSnapshot(entry.Theme ?? string.Empty, entry.Language ?? string.Empty)
                 : ShellPreferenceSnapshot.Default);
     }
 
@@ -46,50 +46,15 @@ public static class ShellPreferenceFileStore
             path,
             new ShellPreferenceFile(
                 SchemaVersion,
-                ShellPreferenceFileEntry.FromSnapshot(preferences)));
+                new ShellPreferenceFileEntry(preferences.Theme, "Strict", preferences.Language)));
     }
 
-    private sealed class ShellPreferenceFile
-    {
-        public ShellPreferenceFile(int schemaVersion, ShellPreferenceFileEntry preferences)
-        {
-            SchemaVersion = schemaVersion;
-            Preferences = preferences ?? ShellPreferenceFileEntry.FromSnapshot(ShellPreferenceSnapshot.Default);
-        }
+    private sealed record ShellPreferenceFile(
+        int SchemaVersion,
+        ShellPreferenceFileEntry? Preferences);
 
-        public int SchemaVersion { get; }
-
-        public ShellPreferenceFileEntry Preferences { get; }
-    }
-
-    private sealed class ShellPreferenceFileEntry
-    {
-        public ShellPreferenceFileEntry(string theme, string strictness, string language)
-        {
-            Theme = theme ?? string.Empty;
-            Strictness = strictness ?? string.Empty;
-            Language = language ?? string.Empty;
-        }
-
-        public string Theme { get; }
-
-        public string Strictness { get; }
-
-        public string Language { get; }
-
-        public static ShellPreferenceFileEntry FromSnapshot(ShellPreferenceSnapshot snapshot)
-        {
-            return new ShellPreferenceFileEntry(
-                snapshot.Theme,
-                "Strict",
-                snapshot.Language);
-        }
-
-        public ShellPreferenceSnapshot ToSnapshot()
-        {
-            return new ShellPreferenceSnapshot(
-                Theme ?? string.Empty,
-                Language ?? string.Empty);
-        }
-    }
+    private sealed record ShellPreferenceFileEntry(
+        string? Theme,
+        string? Strictness,
+        string? Language);
 }
