@@ -284,7 +284,7 @@ public sealed partial class CompositionRunService
             validations: [.. finalOutputValidations.Select(static evaluation => evaluation.Summary)],
             executedCommandsByOperationId: executedCommandsByOperationId);
 
-        (string? inspectionReferenceSpaceId, byte[]? inspectionReferenceBytes) = GetInspectionReference(
+        (string? inspectionOutputSpaceId, string? inspectionReferenceSpaceId, byte[]? inspectionReferenceBytes) = GetInspectionReference(
             request,
             runStatus,
             boundInputs.InputBytes,
@@ -295,6 +295,7 @@ public sealed partial class CompositionRunService
             report,
             committedOutputId,
             commitOutput ? null : previewToken,
+            inspectionOutputSpaceId,
             inspectionReferenceSpaceId,
             inspectionReferenceBytes);
     }

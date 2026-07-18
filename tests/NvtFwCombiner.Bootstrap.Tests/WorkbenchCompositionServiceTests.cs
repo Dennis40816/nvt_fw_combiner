@@ -250,7 +250,9 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal(baseBytes[0x102], output[0x102]);
         CompositionRunInspectionSnapshot inspection = Assert.IsType<CompositionRunInspectionSnapshot>(
             result.InspectionSnapshot);
+        Assert.Equal(WorkbenchAddressSpaceIds.OutputImage, inspection.OutputSpaceId);
         Assert.Equal(WorkbenchAddressSpaceIds.ReferenceBase, inspection.ReferenceSpaceId);
+        Assert.Equal(result.OutputSha256, inspection.OutputSha256);
         Assert.Equal(baseBytes, inspection.ReferenceBytes.ToArray());
         Assert.Equal(output, inspection.OutputBytes.ToArray());
         Assert.DoesNotContain(nameof(WorkbenchRunResult.InspectionSnapshot), result.ReportJson, StringComparison.Ordinal);
