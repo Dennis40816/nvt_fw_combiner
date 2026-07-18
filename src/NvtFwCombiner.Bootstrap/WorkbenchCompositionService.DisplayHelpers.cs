@@ -133,12 +133,6 @@ public static partial class WorkbenchCompositionService
         };
     }
 
-    private static double WidthForRange(ByteRange range, long capacity)
-    {
-        const double maxWidth = 300;
-        return Math.Max(8, Math.Round(maxWidth * range.Length / capacity, 1));
-    }
-
     private static string FormatFullRange(long capacity)
     {
         return capacity <= 0 ? "No range" : FormatDisplayRange(new ByteRange(0, capacity));
@@ -160,7 +154,7 @@ public static partial class WorkbenchCompositionService
                 segment.SourceLabel,
                 segment.Detail,
                 segment.Fill,
-                WidthForRange(segment.Range, capacity),
+                Math.Max(8, Math.Round(300d * segment.Range.Length / capacity, 1)),
                 segment.IsChanged)),
         ];
     }
