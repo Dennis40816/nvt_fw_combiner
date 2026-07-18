@@ -142,6 +142,31 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("replace.ctrlram.fw-version-output-invalid", validation.IssueCode);
     }
 
+    /// <summary>Verifies automatic Build never commits bytes rejected by final-output validation.</summary>
+    [Fact]
+    public async Task AutomaticBuildDoesNotCommitOutputThatFailsFinalValidation()
+    {
+        var processor = new FakeExternalProcessor(request =>
+            ExternalProcessorResult.Success(request.InputBytes, []));
+        var writer = new FakeOutputWriter();
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            writer,
+            processor);
+
+        CompositionRunResult result = await service.PreviewOrBuildAsync(
+            CreateFirmwareConfigBackupValidationRequest(),
+            build: true,
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Null(result.CommittedOutputId);
+        Assert.False(writer.WasCalled);
+        Assert.Equal("replace.ctrlram.fw-version-output-invalid", Assert.Single(result.Report.Issues).Code);
+        Assert.Equal(ValidationRunStatus.Failed, Assert.Single(result.Report.Validations).Status);
+    }
+
     /// <summary>Verifies final-output validation is skipped when the processor does not produce an image.</summary>
     [Fact]
     public async Task FirmwareConfigBackupFinalOutputValidationIsSkippedAfterProcessorFailure()

@@ -2,21 +2,18 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies CLI and Workbench share the same preview-before-build execution gate.</summary>
+    /// <summary>Verifies CLI and Workbench share the Application-owned single-run automatic Build gate.</summary>
     [Fact]
-    public void BootstrapUsesOnePreviewBeforeBuildGate()
+    public void BootstrapUsesOneAutomaticBuildExecutionGate()
     {
         string bootstrapSource = ReadBootstrapSources();
-        string executionSupport = ReadText(
-            "src/NvtFwCombiner.Bootstrap/CompositionRunExecutionSupport.cs");
 
-        Assert.Contains("CompositionRunExecutionSupport.PreviewOrBuildAsync", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionRunExecutionSupport", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildWithInternalPreviewAsync", bootstrapSource, StringComparison.Ordinal);
-        Assert.Contains("service.PreviewAsync(request, cancellationToken)", executionSupport, StringComparison.Ordinal);
-        Assert.Contains("service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!)", executionSupport, StringComparison.Ordinal);
         Assert.Equal(
-            1,
-            CountOccurrences(bootstrapSource, "request.WithApprovedPreviewToken(preview.PreviewToken!)"));
+            2,
+            CountOccurrences(bootstrapSource, ".PreviewOrBuildAsync("));
+        Assert.DoesNotContain("WithApprovedPreviewToken", bootstrapSource, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies Replace CLI routes only through the registered Workbench/V2 paths.</summary>
