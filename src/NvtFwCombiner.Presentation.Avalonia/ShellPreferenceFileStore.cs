@@ -56,6 +56,33 @@ public static class ShellPreferenceFileStore
                     preferences.IsReducedMotionEnabled)));
     }
 
+    /// <summary>Saves a default-path snapshot without blocking the UI dispatcher.</summary>
+    internal static Task SaveAsync(
+        ShellPreferenceSnapshot preferences,
+        CancellationToken cancellationToken)
+    {
+        return SaveAsync(DefaultPreferencesPath, preferences, cancellationToken);
+    }
+
+    internal static Task SaveAsync(
+        string path,
+        ShellPreferenceSnapshot preferences,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(preferences);
+        return BestEffortLocalJsonFileStore.SaveAsync(
+            path,
+            new ShellPreferenceFile(
+                SchemaVersion,
+                new ShellPreferenceFileEntry(
+                    preferences.Theme,
+                    "Strict",
+                    preferences.Language,
+                    preferences.IsReducedMotionEnabled)),
+            cancellationToken);
+    }
+
     private sealed record ShellPreferenceFile(
         int SchemaVersion,
         ShellPreferenceFileEntry? Preferences);
