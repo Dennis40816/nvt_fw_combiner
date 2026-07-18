@@ -6,20 +6,35 @@ using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Locks deterministic automatic-Build counters before Replace orchestration optimization.</summary>
+/// <summary>Compares deterministic automatic-Build counters and parity before and after orchestration optimization.</summary>
 public sealed class CompositionRunExecutionMetricsTests
 {
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 18, 0, 0, 0, TimeSpan.Zero);
 
-    /// <summary>Locks the current automatic-Build run and input-read counts for each DP container capacity.</summary>
+    /// <summary>Verifies automatic DP Build preserves the approved two-run result with one run and one input pass.</summary>
     [Theory]
     [InlineData(0x40000)]
     [InlineData(0x80000)]
     [InlineData(0x100000)]
-    public async Task AutomaticReferenceReplaceBaselineCountsPreviewAndBuildForEachDpCapacity(int outputLength)
+    public async Task AutomaticReferenceReplaceMatchesBaselineWithOneRunForEachDpCapacity(int outputLength)
     {
         byte[] referenceBytes = CreateFilledBytes(outputLength, 0x11);
         byte[] replacementBytes = CreateFilledBytes(outputLength, 0x22);
+        var baselineReader = new CountingArtifactReader(new Dictionary<string, byte[]>
+        {
+            ["reference-artifact"] = referenceBytes,
+            ["replacement-artifact"] = replacementBytes,
+        });
+        var baselineWriter = new CountingOutputWriter();
+        var baselineClock = new CountingClock();
+        var baselineService = new CompositionRunService(
+            baselineReader,
+            baselineClock,
+            baselineWriter);
+        CompositionRunRequest request = CreateDpReplaceRequest(outputLength);
+
+        CompositionRunResult baseline = await PreviewThenBuildAsync(baselineService, request);
+
         var reader = new CountingArtifactReader(new Dictionary<string, byte[]>
         {
             ["reference-artifact"] = referenceBytes,
@@ -35,15 +50,20 @@ public sealed class CompositionRunExecutionMetricsTests
         CompositionRunResult result = await CompositionRunExecutionSupport
             .PreviewOrBuildAsync(
                 service,
-                CreateDpReplaceRequest(outputLength),
+                request,
                 build: true,
                 CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(replacementBytes, result.OutputBytes.ToArray());
-        Assert.Equal(2, clock.RunCount);
-        Assert.Equal(4, reader.CallCount);
-        Assert.Equal(4, reader.SuccessfulReadCount);
+        AssertRunParity(baseline, result);
+        Assert.Equal(2, baselineClock.RunCount);
+        Assert.Equal(4, baselineReader.CallCount);
+        Assert.Equal(4, baselineReader.SuccessfulReadCount);
+        Assert.Equal(1, baselineWriter.CallCount);
+        Assert.Equal(1, clock.RunCount);
+        Assert.Equal(2, reader.CallCount);
+        Assert.Equal(2, reader.SuccessfulReadCount);
         Assert.Equal(1, writer.CallCount);
     }
 
@@ -102,16 +122,33 @@ public sealed class CompositionRunExecutionMetricsTests
         Assert.Equal(0, writer.CallCount);
     }
 
-    /// <summary>Locks the current automatic-Build processor-session and command counts for CtrlRAM plans.</summary>
+    /// <summary>Verifies automatic CtrlRAM Build preserves report/output parity with one processor session.</summary>
     [Theory]
     [InlineData(2)]
     [InlineData(13)]
-    public async Task AutomaticCtrlRamBaselineCountsDuplicateProcessorSessionsAndCommands(int commandCount)
+    public async Task AutomaticCtrlRamMatchesBaselineWithOneProcessorSession(int commandCount)
     {
         const int outputLength = 64;
         const int ctrlRamLength = 8;
         byte[] referenceBytes = CreateFilledBytes(outputLength, 0x11);
         byte[] replacementBytes = CreateFilledBytes(ctrlRamLength, 0x22);
+        var baselineReader = new CountingArtifactReader(new Dictionary<string, byte[]>
+        {
+            ["reference-artifact"] = referenceBytes,
+            ["ctrlram-artifact"] = replacementBytes,
+        });
+        var baselineWriter = new CountingOutputWriter();
+        var baselineProcessor = new CountingExternalProcessor(commandCount);
+        var baselineClock = new CountingClock();
+        var baselineService = new CompositionRunService(
+            baselineReader,
+            baselineClock,
+            baselineWriter,
+            baselineProcessor);
+        CompositionRunRequest request = CreateCtrlRamReplaceRequest(outputLength, ctrlRamLength);
+
+        CompositionRunResult baseline = await PreviewThenBuildAsync(baselineService, request);
+
         var reader = new CountingArtifactReader(new Dictionary<string, byte[]>
         {
             ["reference-artifact"] = referenceBytes,
@@ -129,19 +166,69 @@ public sealed class CompositionRunExecutionMetricsTests
         CompositionRunResult result = await CompositionRunExecutionSupport
             .PreviewOrBuildAsync(
                 service,
-                CreateCtrlRamReplaceRequest(outputLength, ctrlRamLength),
+                request,
                 build: true,
                 CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(replacementBytes, result.OutputBytes[..ctrlRamLength].ToArray());
-        Assert.Equal(2, clock.RunCount);
-        Assert.Equal(4, reader.CallCount);
-        Assert.Equal(4, reader.SuccessfulReadCount);
-        Assert.Equal(2, processor.CallCount);
-        Assert.Equal(checked(commandCount * 2), processor.InvocationCount);
+        AssertRunParity(baseline, result);
+        Assert.Equal(2, baselineClock.RunCount);
+        Assert.Equal(4, baselineReader.CallCount);
+        Assert.Equal(4, baselineReader.SuccessfulReadCount);
+        Assert.Equal(2, baselineProcessor.CallCount);
+        Assert.Equal(checked(commandCount * 2), baselineProcessor.InvocationCount);
+        Assert.Equal(1, baselineWriter.CallCount);
+        Assert.Equal(1, clock.RunCount);
+        Assert.Equal(2, reader.CallCount);
+        Assert.Equal(2, reader.SuccessfulReadCount);
+        Assert.Equal(1, processor.CallCount);
+        Assert.Equal(commandCount, processor.InvocationCount);
         Assert.Equal(commandCount, Assert.Single(result.Report.Operations).ExecutedCommands.Count);
         Assert.Equal(1, writer.CallCount);
+    }
+
+    private static async ValueTask<CompositionRunResult> PreviewThenBuildAsync(
+        CompositionRunService service,
+        CompositionRunRequest request)
+    {
+        CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
+        return await service.BuildAsync(
+            request.WithApprovedPreviewToken(Assert.IsType<string>(preview.PreviewToken)),
+            CancellationToken.None);
+    }
+
+    private static void AssertRunParity(CompositionRunResult baseline, CompositionRunResult optimized)
+    {
+        Assert.Equal(baseline.Status, optimized.Status);
+        Assert.Equal(baseline.OutputBytes.ToArray(), optimized.OutputBytes.ToArray());
+        Assert.Equal(baseline.Report.Output.Size, optimized.Report.Output.Size);
+        Assert.Equal(baseline.Report.Output.Sha256, optimized.Report.Output.Sha256);
+        Assert.Equal(
+            baseline.Report.Mutations.Select(static mutation => (
+                mutation.OperationId,
+                mutation.Kind,
+                mutation.TargetSpaceId,
+                mutation.TargetRange,
+                mutation.ChangedByteCount,
+                mutation.BeforeSha256,
+                mutation.AfterSha256,
+                mutation.Reason)),
+            optimized.Report.Mutations.Select(static mutation => (
+                mutation.OperationId,
+                mutation.Kind,
+                mutation.TargetSpaceId,
+                mutation.TargetRange,
+                mutation.ChangedByteCount,
+                mutation.BeforeSha256,
+                mutation.AfterSha256,
+                mutation.Reason)));
+        Assert.Equal(
+            baseline.Report.Operations.SelectMany(static operation =>
+                operation.ExecutedCommands.SelectMany(static command => command.Arguments)),
+            optimized.Report.Operations.SelectMany(static operation =>
+                operation.ExecutedCommands.SelectMany(static command => command.Arguments)));
     }
 
     private static CompositionRunRequest CreateDpReplaceRequest(int outputLength)
