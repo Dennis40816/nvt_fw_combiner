@@ -120,10 +120,14 @@ feed. The current generic progress bar remains the fallback until the
 stepper is wired and verified after the final `0.9.9` UI-contract rebase.
 
 The first provisional Application-only slice implements the enum, snapshot,
-single-run bounded feed, and exact service transitions. It deliberately does
-not change Bootstrap or Presentation while the final `0.9.9` workflow and UI
-contracts are still moving. That wiring, localization, accessibility styling,
-and reduced-motion animation remain an integration gate after rebase.
+single-run bounded feed, and exact service transitions. A second provisional
+Presentation slice projects only the snapshot's applicable/completed phases,
+localizes every phase and assistive label, rejects stale run ids, and exposes a
+static active state when reduced motion is requested. It deliberately remains
+independent of the moving `0.9.9` Bootstrap/XAML workflow surface. Feed wiring,
+the accessible live region, high-contrast styling, platform reduced-motion
+detection, and the restrained active-step animation remain an integration gate
+after the final rebase.
 
 ## Verification
 

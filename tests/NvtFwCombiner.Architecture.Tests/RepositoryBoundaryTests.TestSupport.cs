@@ -55,7 +55,7 @@ public sealed partial class RepositoryBoundaryTests
                 .Select(File.ReadAllText));
     }
 
-    private static string ReadPresentationSources()
+    private static string ReadPresentationSources(params string[] excludedFileNames)
     {
         string directory = Path.Combine(
             Root.FullName,
@@ -66,6 +66,7 @@ public sealed partial class RepositoryBoundaryTests
             Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories)
                 .Where(path => path.EndsWith(".cs", StringComparison.Ordinal) ||
                                path.EndsWith(".axaml", StringComparison.Ordinal))
+                .Where(path => !excludedFileNames.Contains(Path.GetFileName(path), StringComparer.Ordinal))
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
     }
