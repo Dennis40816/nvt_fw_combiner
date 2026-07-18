@@ -50,7 +50,7 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root, cancellationToken);
         IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root, language, cancellationToken);
         IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root, cancellationToken);
-        IReadOnlyList<ReportLineViewModel> outputDifferences = ParseOutputDifferences(root, language, cancellationToken);
+        OutputDifferenceProjection outputDifferences = ParseOutputDifferences(root, language, cancellationToken);
         IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root, cancellationToken);
         string status = CreateStatus(issues, language);
         cancellationToken.ThrowIfCancellationRequested();
@@ -112,7 +112,7 @@ public sealed partial class ReportReviewViewModel
             [],
             [],
             [],
-            [],
+            OutputDifferenceProjection.Empty,
             [new ReportLineViewModel(issueTitle, message, "report-json")],
             language);
     }

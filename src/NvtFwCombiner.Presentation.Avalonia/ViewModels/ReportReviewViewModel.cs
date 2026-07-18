@@ -4,6 +4,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class ReportReviewViewModel
 {
     private readonly bool? outputCommitted;
+    private readonly OutputDifferenceProjection _outputDifferenceProjection;
 
     private ReportReviewViewModel(
         bool isEmpty,
@@ -27,7 +28,7 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> inputs,
         IReadOnlyList<ReportLineViewModel> operations,
         IReadOnlyList<ReportLineViewModel> mutations,
-        IReadOnlyList<ReportLineViewModel> outputDifferences,
+        OutputDifferenceProjection outputDifferences,
         IReadOnlyList<ReportLineViewModel> issues,
         ShellLanguage language = ShellLanguage.English)
     {
@@ -59,8 +60,9 @@ public sealed partial class ReportReviewViewModel
         StepOperations = [.. operations.Where(operation => !operation.HasCodeBlock && !operation.HasRuntimeCommands)];
         PostbuildInvocations = CreatePostbuildInvocations(operations, language);
         Mutations = mutations;
-        OutputDifferences = outputDifferences;
-        OutputDifferenceGroups = CreateOutputDifferenceGroups(outputDifferences, language);
+        _outputDifferenceProjection = outputDifferences;
+        OutputDifferences = outputDifferences.Rows;
+        OutputDifferenceGroups = outputDifferences.Groups;
         Issues = issues;
         PrimaryIssue = issues.FirstOrDefault(issue => !IsWarning(issue)) ?? ReportLineViewModel.Empty;
         InputGroups = CreateInputGroups(inputs, language);
@@ -87,8 +89,8 @@ public sealed partial class ReportReviewViewModel
         ByteDifferenceTitle = CreateByteDifferenceTitle(compositionKind, outputDifferences, language);
         ByteDifferenceDetail = CreateByteDifferenceDetail(compositionKind, outputDifferences, language);
         ByteDifferenceMeta = CreateByteDifferenceMeta(outputDifferences, language);
-        OutputDifferenceSummaryRows = CreateOutputDifferenceSummaryRows(outputDifferences, language);
-        AuditSummary = CreateAuditSummary(inputs, operations, mutations, outputDifferences, issues, language);
+        OutputDifferenceSummaryRows = outputDifferences.SummaryRows;
+        AuditSummary = CreateAuditSummary(inputs, operations, mutations, outputDifferences.Count, issues, language);
         OutputDifferenceSummaryPage = ReportPagedListViewModel.Create(OutputDifferenceSummaryRows, 8, language);
         OutputDifferenceGroupPage = ReportPagedListViewModel.Create(OutputDifferenceGroups, 8, language);
         MutationPage = ReportPagedListViewModel.Create(Mutations, 40, language);
@@ -121,6 +123,6 @@ public sealed partial class ReportReviewViewModel
         [],
         [],
         [],
-        [],
+        OutputDifferenceProjection.Empty,
         []);
 }

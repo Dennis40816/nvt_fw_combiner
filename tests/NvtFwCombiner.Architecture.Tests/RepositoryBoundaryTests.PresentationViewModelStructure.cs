@@ -93,6 +93,14 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPagedListViewModel.cs");
         string bindings = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Bindings.cs");
+        string parser = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferences.cs");
+        string indexedRows = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportIndexedReadOnlyLists.cs");
+        string differenceGroups = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportDifferenceGroupViewModel.cs");
+        string changes = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml");
 
         Assert.Contains("await Task.Run(", report, StringComparison.Ordinal);
         Assert.Contains("FromJsonCancellable(", report, StringComparison.Ordinal);
@@ -103,6 +111,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("OutputDifferenceGroupPage", bindings, StringComparison.Ordinal);
         Assert.Contains("MutationPage", bindings, StringComparison.Ordinal);
         Assert.Contains("IssuePage", bindings, StringComparison.Ordinal);
+        Assert.Contains("MemoizedIndexedReadOnlyList<ReportLineViewModel>", parser, StringComparison.Ordinal);
+        Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", indexedRows, StringComparison.Ordinal);
+        Assert.Contains("loadInitialPage: false", differenceGroups, StringComparison.Ordinal);
+        Assert.Contains("IsExpanded=\"{Binding IsExpanded, Mode=TwoWay}\"", changes, StringComparison.Ordinal);
+        Assert.DoesNotContain("OrderBy", parser, StringComparison.Ordinal);
         Assert.Contains("while (language != Text.Language);", report, StringComparison.Ordinal);
         Assert.Contains("long generation = BeginReportProjection();", report, StringComparison.Ordinal);
         Assert.Contains("if (IsCurrentReportProjection(generation))", report, StringComparison.Ordinal);
