@@ -4,15 +4,17 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.9.8` development targets verified legacy convergence, patch closure, firmware-owner evidence, the UI-driven IC intake toolchain, and a bounded measurement-first Replace optimization lane.
+Post-`0.9.8` development targets `0.9.9` legacy/contract/support convergence
+and a separate `0.9.10` process/UI performance prototype with measured
+before/after parity.
 
 ### Changed
 
-- Added an evidence-backed full-codebase readiness audit and assigned every
-  confirmed P0/P1 item to `v0.9.10` through `v0.9.16`, covering predecessor
-  reconciliation, Replace reliability, Application/report boundaries, V2
-  Replace convergence, firmware evidence, operability/performance, and final
-  release/security closure.
+- Reassigned legacy/V2 retirement, public contract convergence, IC
+  family/evidence semantics, support matrix, and workflow exposure to `v0.9.9`.
+  `v0.9.10` now owns only the reconciled process/UI performance baseline and
+  prototype; candidate IC intake and the `v0.9.11+` route are unassigned until
+  reviewed `v0.9.9` and `v0.9.10` merge.
 - Recorded that the audited `0.9.10` lineage was not based on `0.9.9`, and that
   its canonical full gate remained red after one load-sensitive process-tree
   timeout test failed while the isolated test passed. On 2026-07-18 the local
@@ -29,6 +31,11 @@ Post-`0.9.8` development targets verified legacy convergence, patch closure, fir
   runs, two CtrlRAM processor sessions, and 4/26 process invocations without a
   new production metrics surface or changes to output bytes, report contracts,
   processor authority, or support state.
+- Defined three comparison nodes: pre-rebase historical A, final-`0.9.9`
+  unoptimized B, and the same reconciled source with the `0.9.10` prototype C.
+  Only B/C may support a performance decision. Deterministic counters and
+  golden byte/report parity are gates; p50/p95, allocation, working-set, and
+  UI-thread timing remain recorded local evidence rather than CI thresholds.
 
 ## [0.9.8] - 2026-07-16
 
