@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
@@ -97,6 +98,9 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         int sourceLength)
     {
         byte[] reference = new byte[referenceLength];
+        reference[0x3B000 + FirmwareConfigLayout.CommonFwMajorVersionOffset] = 1;
+        reference[0x3B000 + FirmwareConfigLayout.CommonFwMinorVersionOffset] = 4;
+        reference[0x3B000 + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = 1;
         new byte[] { 0x00, 0x4E, 0x56, 0x54 }.CopyTo(reference, 0x3BFFC);
         return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
             profileId,

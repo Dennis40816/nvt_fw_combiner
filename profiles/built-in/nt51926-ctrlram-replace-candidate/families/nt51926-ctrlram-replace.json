@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51926-ctrlram-replace",
-  "familyVersion": "0.5.0",
+  "familyVersion": "0.6.0",
   "members": [
     {
       "memberId": "NT51926",
@@ -208,6 +208,203 @@
       ]
     },
     {
+      "regionSetId": "nt51926-ctrlram-fw200-tp-work",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "flash-image",
+          "owner": "system",
+          "kind": "image",
+          "range": { "start": 0, "length": 245760 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-prefix-00",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 0, "length": 28 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-1c",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 28, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-prefix-20",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 32, "length": 28 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-3c",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 60, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-prefix-40",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 64, "length": 188 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-fc",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 252, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-prefix-100",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 256, "length": 139008 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-source",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "firmware-config",
+          "range": { "start": 139264, "length": 2048 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "normal-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 141312, "length": 11264 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "mp-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 152576, "length": 9216 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "diff-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 161792, "length": 10240 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-2a000",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 172032, "length": 10240 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "nf-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 182272, "length": 11728 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-2f5d0",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 194000, "length": 8192 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "vn-ctrlram-fw200",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 202192, "length": 5278 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-32a6e",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 207470, "length": 2 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-copy",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 207472, "length": 256 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-32b70",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 207728, "length": 33936 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-backup",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "firmware-config",
+          "range": { "start": 241664, "length": 1920 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-3b780",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 243584, "length": 2176 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "nt51926-fw200-owner-golden-20260718"
+      ]
+    },
+    {
       "regionSetId": "nt51926-full-flash-tail",
       "addressSpaceId": "flash",
       "regions": [
@@ -275,7 +472,29 @@
             "resultOffset": -4092,
             "allowedResultRegionId": "flash-image"
           },
-          "fields": [],
+          "fields": [
+            {
+              "fieldId": "common-fw-major",
+              "offset": 26,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "common-fw-minor",
+              "offset": 27,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "common-fw-additional",
+              "offset": 28,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            }
+          ],
           "assertions": [
             { "offset": 4092, "expectedHex": "004e5654" }
           ]
@@ -294,7 +513,12 @@
         "memberIds": [ "NT51926" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "none" },
-        "capacityBytes": 245760
+        "capacityBytes": 245760,
+        "metadataPredicates": [
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-major", "operator": "equals", "expectedValues": [ 1 ] },
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-minor", "operator": "equals", "expectedValues": [ 4 ] },
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-additional", "operator": "equals", "expectedValues": [ 1 ] }
+        ]
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51926-ctrlram-fw141-tp-work" ],
@@ -311,7 +535,12 @@
         "memberIds": [ "NT51926" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "none" },
-        "capacityBytes": 262144
+        "capacityBytes": 262144,
+        "metadataPredicates": [
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-major", "operator": "equals", "expectedValues": [ 1 ] },
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-minor", "operator": "equals", "expectedValues": [ 4 ] },
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-additional", "operator": "equals", "expectedValues": [ 1 ] }
+        ]
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [
@@ -321,6 +550,54 @@
       "metadataSetIds": [ "nt51926-fwconfig-backup-locator" ],
       "evidenceRefs": [
         "nt51926-common-fw141-postbuild",
+        "nt51926-fwconfig-backup-golden",
+        "gen-flash-bin-v2-51926-golden"
+      ]
+    },
+    {
+      "mapId": "nt51926-ctrlram-fw200-tp-work-240k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51926" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 245760,
+        "metadataPredicates": [
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-major", "operator": "equals", "expectedValues": [ 2 ] },
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-minor", "operator": "equals", "expectedValues": [ 0 ] },
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-additional", "operator": "equals", "expectedValues": [ 0 ] }
+        ]
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51926-ctrlram-fw200-tp-work" ],
+      "metadataSetIds": [ "nt51926-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51926-fw200-owner-golden-20260718",
+        "nt51926-fwconfig-backup-golden"
+      ]
+    },
+    {
+      "mapId": "nt51926-ctrlram-fw200-full-flash-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51926" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 262144,
+        "metadataPredicates": [
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-major", "operator": "equals", "expectedValues": [ 2 ] },
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-minor", "operator": "equals", "expectedValues": [ 0 ] },
+          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-additional", "operator": "equals", "expectedValues": [ 0 ] }
+        ]
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51926-ctrlram-fw200-tp-work",
+        "nt51926-full-flash-tail"
+      ],
+      "metadataSetIds": [ "nt51926-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51926-fw200-owner-golden-20260718",
         "nt51926-fwconfig-backup-golden",
         "gen-flash-bin-v2-51926-golden"
       ]
@@ -349,6 +626,7 @@
   "factAliases": [],
   "evidenceRefs": [
     "nt51926-common-fw141-postbuild",
+    "nt51926-fw200-owner-golden-20260718",
     "nt51926-fwconfig-backup-golden",
     "gen-flash-bin-v2-51926-golden"
   ]

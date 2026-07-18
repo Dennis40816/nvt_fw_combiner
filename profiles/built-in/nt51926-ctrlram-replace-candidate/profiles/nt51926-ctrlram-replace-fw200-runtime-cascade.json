@@ -1,15 +1,15 @@
 {
   "schemaVersion": "2.9",
-  "profileId": "nt51926-ctrlram-replace-fw141-runtime-cascade",
+  "profileId": "nt51926-ctrlram-replace-fw200-runtime-cascade",
   "profileVersion": "0.1.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
       {
-        "blockerId": "firmware-owner-review",
+        "blockerId": "release-support-review",
         "kind": "human-review",
-        "reason": "Firmware owner must approve short-source prefix authority and the exact Legacy Combiner write ranges before support promotion.",
-        "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
+        "reason": "The exact owner-golden route remains support-neutral until independent release review approves a support claim.",
+        "evidenceRefs": [ "nt51926-fw200-cascade-owner-golden-20260718" ]
       }
     ]
   },
@@ -21,7 +21,7 @@
     "layoutPolicy": "fixed",
     "inputPolicy": "fixed",
     "topologyAuthoring": "hidden",
-    "displayNameKey": "profile.nt51926.ctrlram-replace.fw141.runtime.cascade"
+    "displayNameKey": "profile.nt51926.ctrlram-replace.fw200.runtime.cascade"
   },
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
@@ -29,15 +29,15 @@
     "familyVersion": "0.6.0",
     "familyContentHash": "824fc501bb111803f82e5cd33a4f541be183cfab6986734445f87819fe4914e3",
     "mapIds": [
-      "nt51926-ctrlram-fw141-tp-work-240k",
-      "nt51926-ctrlram-fw141-full-flash-256k"
+      "nt51926-ctrlram-fw200-tp-work-240k",
+      "nt51926-ctrlram-fw200-full-flash-256k"
     ],
     "requiredRegionIds": [
       "flash-image",
       "normal-ctrlram",
       "diff-ctrlram",
       "mp-ctrlram",
-      "vn-ctrlram-fw141",
+      "vn-ctrlram-fw200",
       "nf-ctrlram",
       "fw-config-backup",
       "header-copy",
@@ -73,7 +73,7 @@
         "normalization": {
           "kind": "truncate-ctrlram",
           "warningIssueCode": "CTRLRAM_SIZE_WARNING",
-          "evidenceRef": "nt51926-common-fw141-postbuild"
+          "evidenceRef": "nt51926-fw200-cascade-owner-golden-20260718"
         }
       }
     }
@@ -93,7 +93,7 @@
     { "viewId": "normal-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "normal-ctrlram" } },
     { "viewId": "diff-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "diff-ctrlram" } },
     { "viewId": "mp-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "mp-ctrlram" } },
-    { "viewId": "vn-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-ctrlram-fw141" } },
+    { "viewId": "vn-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-ctrlram-fw200" } },
     { "viewId": "nf-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "nf-ctrlram" } },
     { "viewId": "fw-config-backup-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "fw-config-backup" } },
     { "viewId": "header-copy-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy" } },
@@ -106,7 +106,7 @@
     { "regionId": "normal-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x2C00 bytes and preserve the reference tail when the immutable source is shorter." },
     { "regionId": "diff-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x2800 bytes and preserve the reference tail when the immutable source is shorter." },
     { "regionId": "mp-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x2400 bytes and preserve the reference tail when the immutable source is shorter." },
-    { "regionId": "vn-ctrlram-fw141", "access": "explicit-range", "reason": "Copy at most 0x1660 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "vn-ctrlram-fw200", "access": "explicit-range", "reason": "Copy at most 0x149E bytes and preserve the reference tail when the immutable source is shorter." },
     { "regionId": "nf-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x2DD0 bytes and preserve the reference tail when the immutable source is shorter." },
     { "regionId": "fw-config-backup", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the firmware-config backup." },
     { "regionId": "header-copy", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the TP header copy." },
@@ -119,18 +119,18 @@
       "operationId": "postbuild-cascade",
       "sequence": 2147483647,
       "overlapPolicy": "replace-existing",
-      "reason": "Refresh the approved NT51926 Common FW 1.4.1 header and integrity fields after all runtime CtrlRAM mappings.",
+      "reason": "Refresh the exact NT51926 Common FW 2.0.0 cascade header and integrity fields after all runtime CtrlRAM mappings.",
       "kind": "run-processor",
-      "processorStageId": "nt51926-fw141-runtime-combiner"
+      "processorStageId": "nt51926-fw200-cascade-runtime-combiner"
     }
   ],
   "validations": [],
   "processorStages": [
     {
-      "processorStageId": "nt51926-fw141-runtime-combiner",
+      "processorStageId": "nt51926-fw200-cascade-runtime-combiner",
       "kind": "legacy-combiner-v1",
       "toolBindingId": "legacy-combiner-1.13.0",
-      "invocationProfileId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
+      "invocationProfileId": "nfc.nt51926.ctrlram-postbuild-v1",
       "targetSpaceId": "output-image",
       "targetViewId": "processor-image",
       "authority": "transform",
@@ -151,7 +151,7 @@
       ],
       "stagedSourceBindings": [],
       "stagedArtifactBindings": [],
-      "evidenceRef": "nt51926-common-fw141-postbuild",
+      "evidenceRef": "nt51926-fw200-cascade-owner-golden-20260718",
       "failurePolicy": "fail-closed"
     }
   ],
@@ -162,8 +162,7 @@
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "nt51926-common-fw141-postbuild",
-    "nt51926-fwconfig-backup-golden",
-    "nt51926-cascade-tp-base-self-regression-20260717"
+    "nt51926-fw200-cascade-owner-golden-20260718",
+    "nt51926-fwconfig-backup-golden"
   ]
 }

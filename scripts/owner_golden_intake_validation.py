@@ -36,6 +36,133 @@ EXPECTED_20260718_OWNER_DECISIONS = [
     "NT51931 InsertSID is an out-of-scope pre-step for this V1 retirement and does not block exact CtrlRAM/Postbuild full-byte parity.",
     "NT51951 Combiner 1.11 and 1.13 equivalence is an owner-authorized compatibility hypothesis that must be resolved by direct 1.11-expected versus registered-1.13 parity.",
 ]
+
+
+def nt51926_phase_b_result(
+    topology: str,
+    chip_count: int,
+    route_profile_id: str,
+    owner_expected_sha256: str,
+    output_sha256: str,
+) -> dict[str, Any]:
+    """Return the exact reviewed NT51926 Phase B parity record."""
+    first_arguments = [
+        "CRC_Enable",
+        "output/nt51926_fw.bin",
+        "BIN/Normal_Ctrlram.bin",
+        "0x0",
+        "0x22800",
+        "11264",
+    ]
+    if topology == "cascade":
+        first_arguments.extend(
+            ["BIN/DiffDLM.bin", "0x0", "0x27800", "10240"]
+        )
+    first_arguments.extend(
+        [
+            "BIN/MP_Ctrlram.bin",
+            "0x0",
+            "0x25400",
+            "9216",
+            "BIN/VN_Ctrlram.bin",
+            "0x0",
+            "0x315D0",
+            "5278",
+            "BIN/NF_Ctrlram.bin",
+            "0x0",
+            "0x2C800",
+            "11728",
+            "output/nt51926_fw.bin",
+            "0x22000",
+            "0x3B000",
+            "1920",
+            "output/nt51926_fw.bin",
+            "0x0",
+            "0x32A70",
+            "256",
+        ]
+    )
+    return {
+        "status": "allowed-diff-parity-routed",
+        "routeProfileId": route_profile_id,
+        "routeProfileVersion": "0.1.0",
+        "ownerExpectedSha256": owner_expected_sha256,
+        "legacyOutputSha256": output_sha256,
+        "v2OutputSha256": output_sha256,
+        "differenceCounts": {
+            "legacyToV2": 0,
+            "ownerToLegacy": 16,
+            "ownerToV2": 16,
+            "ctrlRamPayload": 0,
+        },
+        "allowedDifferenceRanges": [
+            {
+                "start": "0x1C",
+                "endExclusive": "0x20",
+                "classification": "header-crc-word",
+            },
+            {
+                "start": "0xFC",
+                "endExclusive": "0x100",
+                "classification": "header-copy-crc-word",
+            },
+            {
+                "start": "0x32A8C",
+                "endExclusive": "0x32A90",
+                "classification": "copied-header-crc-word",
+            },
+            {
+                "start": "0x32B6C",
+                "endExclusive": "0x32B70",
+                "classification": "copied-header-copy-crc-word",
+            },
+        ],
+        "processorId": "nfc.nt51926.ctrlram-postbuild-v1",
+        "toolBindingId": "legacy-combiner-1.13.0",
+        "sessionCount": 1,
+        "commandCount": 2,
+        "orderedArguments": [
+            first_arguments,
+            [
+                "CRC_Enable",
+                "output/nt51926_fw.bin",
+                "output/nt51926_fw.bin",
+                "0x0",
+                "0x32A70",
+                "256",
+            ],
+        ],
+        "legacyReadAuthority": [{"start": "0x0", "endExclusive": "0x40000"}],
+        "v2ReadAuthority": [{"start": "0x0", "endExclusive": "0x3C000"}],
+        "baseMetadata": {
+            "commonFwVersion": "2.0.0",
+            "chipCount": chip_count,
+            "pid": "0x1309",
+            "topology": topology,
+        },
+        "inputArtifactsUnchanged": True,
+        "fullFlashTailUnchanged": True,
+        "reportIdentityParity": True,
+        "runtimeSupportPromotion": False,
+    }
+
+
+EXPECTED_20260718_NT51926_PHASE_B_RESULTS = {
+    "nt51926-fw200-single-auto-prj-597-20260718": nt51926_phase_b_result(
+        "single",
+        1,
+        "nt51926-ctrlram-replace-fw200-runtime-single",
+        "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c",
+        "5f8913e48784bf0cdb15e64f3f6376dfe741f261ca6465242ec2956bbfe6c450",
+    ),
+    "nt51926-fw200-cascade3-auto-prj-597-20260718": nt51926_phase_b_result(
+        "cascade",
+        3,
+        "nt51926-ctrlram-replace-fw200-runtime-cascade",
+        "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825",
+        "b4336e3d935466feb98695eb9f5fe8b10c91c632fc835ffcfa1ed7ffefe0495a",
+    ),
+}
 EXPECTED_20260718_CASES: dict[str, dict[str, Any]] = {
     "nt51926-fw200-single-auto-prj-597-20260718": {
         "ic": "NT51926",
@@ -254,6 +381,7 @@ def verify_owner_golden_intake_20260718(golden_root: Path) -> None:
         "20260718",
         EXPECTED_20260718_CASES,
     )
+    verify_20260718_phase_b_results(document)
 
 
 def verify_20260718_provenance(document: dict[str, Any]) -> None:
@@ -278,6 +406,23 @@ def verify_20260718_provenance(document: dict[str, Any]) -> None:
         document.get("externalToolObservations") == EXPECTED_20260718_TOOL_OBSERVATIONS,
         "20260718 external tool observations drifted",
     )
+
+
+def verify_20260718_phase_b_results(document: dict[str, Any]) -> None:
+    """Lock exact routed parity without rewriting the immutable intake claims."""
+    cases = document.get("cases")
+    require(isinstance(cases, list), "20260718 intake cases are required")
+    indexed_cases = {
+        case.get("caseId"): case
+        for case in cases
+        if isinstance(case, dict) and isinstance(case.get("caseId"), str)
+    }
+    for case_id, expected in EXPECTED_20260718_NT51926_PHASE_B_RESULTS.items():
+        require(case_id in indexed_cases, f"20260718 Phase B case is missing: {case_id}")
+        require(
+            indexed_cases[case_id].get("phaseBResult") == expected,
+            f"20260718 Phase B result drifted: {case_id}",
+        )
 
 
 def verify_owner_golden_intake(

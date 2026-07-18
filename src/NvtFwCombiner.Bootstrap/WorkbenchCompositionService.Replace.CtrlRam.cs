@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles;
 using V2CompositionPlanCompileResult = NvtFwCombiner.Profiles.V2.V2CompositionPlanCompileResult;
 
@@ -64,20 +65,52 @@ public static partial class WorkbenchCompositionService
                 outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam));
         }
 
-        if (!context.CanRun)
+        if (context.ValidationIssues.Count != 0 ||
+            context.BasePath is null ||
+            context.PostbuildProfile is null ||
+            context.CommandPlan is null)
         {
             return Blocked(context.ValidationIssues);
         }
 
-        if (firmwareVersionEdit is null && IsNt51926Fw141CascadeV2Route(context))
+        WorkbenchFirmwareContextSuggestion? nt51926Firmware = firmwareVersionEdit is null
+            ? TryReadFirmwareContextSuggestion("NT51926", context.BasePath!)
+            : null;
+        string? nt51926V2ProfileId = (
+            context.PostbuildProfile!.ProcessorId,
+            context.CommandPlan!.Branch,
+            context.Selection.Mode,
+            nt51926Firmware?.ChipNumber,
+            nt51926Firmware?.ProjectId) switch
         {
-            V2CompositionPlanCompileResult v2Compile = CompileNt51926Fw141CascadeV2(context);
+            ("nfc.nt51926.ctrlram-postbuild-fw1.4.1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, > 1, _) =>
+                "nt51926-ctrlram-replace-fw141-runtime-cascade",
+            (Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, 1, 0x1309) =>
+                "nt51926-ctrlram-replace-fw200-runtime-single",
+            (Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, 3, 0x1309) =>
+                "nt51926-ctrlram-replace-fw200-runtime-cascade",
+            _ => null,
+        };
+        if (nt51926V2ProfileId is not null)
+        {
+            var nt51926Topology = new TopologySelection(
+                nt51926Firmware!.ChipNumber,
+                nt51926Firmware.NumberToken,
+                TopologySelectionSource.Requested,
+                "ic-number");
+            V2CompositionPlanCompileResult v2Compile = CompileNt51926CtrlRamV2(
+                context,
+                nt51926V2ProfileId,
+                nt51926Topology);
             return !v2Compile.IsCompiled
                 ? Blocked(v2Compile.Issues, "nt51926-ctrlram-replace.bin")
                 : await RunCompiledCompositionAsync(
                     CtrlRamReplaceRunIdPrefix,
                     v2Compile.CompiledComposition!,
-                    CreateNt51926Fw141CascadeV2Bindings(context, slotPaths),
+                    CreateCtrlRamReplaceBindings(
+                        v2Compile.CompiledComposition!,
+                        context,
+                        slotPaths),
                     context.BasePath!,
                     build,
                     outputPath,
@@ -125,7 +158,10 @@ public static partial class WorkbenchCompositionService
             return Blocked(compile.Issues, profile.DefaultOutputFileName);
         }
 
-        InputArtifactBinding[] bindings = CreateCtrlRamReplaceBindings(context, slotPaths);
+        InputArtifactBinding[] bindings = CreateCtrlRamReplaceBindings(
+            compile.CompiledComposition!,
+            context,
+            slotPaths);
 
         return await RunCompiledCompositionAsync(
             CtrlRamReplaceRunIdPrefix,

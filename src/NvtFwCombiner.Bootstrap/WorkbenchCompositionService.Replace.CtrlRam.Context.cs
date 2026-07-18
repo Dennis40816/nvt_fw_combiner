@@ -72,7 +72,8 @@ public static partial class WorkbenchCompositionService
         List<TpCtrlRamPostbuildSource> selectedSources =
         [
             .. sources
-                .Where(source => IsSlotSupplied(slotPaths, CtrlRamSlotId(source.SourceId))),
+                .Where(source => slotPaths.TryGetValue(CtrlRamSlotId(source.SourceId), out string? path) &&
+                    !string.IsNullOrWhiteSpace(path)),
         ];
         if (selectedSources.Count == 0)
         {
@@ -198,25 +199,23 @@ public static partial class WorkbenchCompositionService
         return (basePath, baseLength);
     }
 
-    private static bool IsSlotSupplied(
-        IReadOnlyDictionary<string, string> slotPaths,
-        string slotId)
-    {
-        return slotPaths.TryGetValue(slotId, out string? path) &&
-            !string.IsNullOrWhiteSpace(path);
-    }
-
     private static InputArtifactBinding[] CreateCtrlRamReplaceBindings(
+        CompiledComposition compiledComposition,
         CtrlRamReplaceRunContext context,
         IReadOnlyDictionary<string, string> slotPaths)
     {
         return [
-            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, context.BasePath!),
-            .. context.SelectedSources.Select(source =>
-            {
-                string slotId = CtrlRamSlotId(source.SourceId);
-                return new InputArtifactBinding(slotId, slotId, Path.GetFullPath(slotPaths[slotId]));
-            }),
+            CompiledCompositionInputBindingFactory.Create(
+                compiledComposition,
+                CompositionAddressSpaceIds.ReferenceBase,
+                context.BasePath!,
+                WorkbenchSlotIds.ReplaceBase),
+            .. context.SelectedSources
+                .Select(source => CtrlRamSlotId(source.SourceId))
+                .Select(sourceSpaceId => CompiledCompositionInputBindingFactory.Create(
+                    compiledComposition,
+                    sourceSpaceId,
+                    Path.GetFullPath(slotPaths[sourceSpaceId]))),
         ];
     }
 
@@ -231,12 +230,5 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpCtrlRamPostbuildSource> Sources,
         IReadOnlyList<TpCtrlRamPostbuildSource> SelectedSources,
         IReadOnlyDictionary<string, long> SelectedSourceLengths,
-        IReadOnlyList<CompositionIssue> ValidationIssues)
-    {
-        public bool CanRun =>
-            ValidationIssues.Count == 0 &&
-            BasePath is not null &&
-            PostbuildProfile is not null &&
-            CommandPlan is not null;
-    }
+        IReadOnlyList<CompositionIssue> ValidationIssues);
 }

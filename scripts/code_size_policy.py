@@ -67,7 +67,7 @@ DEFAULT_LIMITS = CodeSizeLimits(
     duplicate_json_nonblank=1_055,
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={
-        "NvtFwCombiner.Bootstrap.WorkbenchCompositionService": 4_455,
+        "NvtFwCombiner.Bootstrap.WorkbenchCompositionService": 4_452,
         "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 2_700,
     },
 )

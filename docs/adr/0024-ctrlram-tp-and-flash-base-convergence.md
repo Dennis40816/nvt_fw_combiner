@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-17
-- Amended: 2026-07-18 for the reviewed NT51926 1.4.1 cascade runtime slice
+- Amended: 2026-07-18 for reviewed NT51926 1.4.1 cascade and 2.0.0 single/cascade runtime slices
 - Owners: Architecture owner + firmware owner
 - Supersedes: ADR 0023
 - Amends: ADR 0015 and ADR 0020
@@ -26,15 +26,17 @@ executor already stages an operation target range and imports the returned
 bytes into that same range; the Domain contract now admits a zero-based prefix
 while continuing to reject nonzero subranges.
 
-NT51926 Common FW 1.4.1 cascade therefore binds two canonical maps:
+Each routed NT51926 Common FW category therefore binds two canonical maps:
 
 - `0x3C000` TP work: clone and process the complete image.
 - `0x40000` full Flash: clone the complete container, process only
   `[0,0x3C000)`, and preserve `[0x3C000,0x40000)` byte-for-byte.
 
 Both map shapes resolve the same TP regions, staged CtrlRAM sources, selected
-Combiner 1.13 invocation profile, read authority, and write authority. Input length alone
-selects the canonical map. Every other length fails closed.
+Combiner 1.13 invocation profile, read authority, and write authority. The
+FWConfig Backup Common FW version first selects the exact 1.4.1 or 2.0.0 map;
+input length then selects its TP-work or full-Flash shape. An absent or
+ambiguous version predicate and every undeclared length fail closed.
 
 The exact command family, ordered blocks, arguments, source filenames/offsets,
 and target ranges are loaded from `profiles/built-in/ctrlram-postbuild-v2/catalog.json`.
@@ -47,13 +49,15 @@ the profile retains only the closed invocation profile id and processor authorit
 - TP BIN and full Flash share one compiled workflow rather than two byte paths.
 - Full-Flash DP/gap bytes never enter the Legacy Combiner staging image and are
   preserved by the engine-owned reference clone.
-- NT51926 Common FW 1.4.1 cascade without a TP firmware-version edit now uses
-  this V2 route for Preview/Build. The profile remains `executable-candidate`;
-  this does not promote runtime support, other versions/counts, or version edits.
+- NT51926 Common FW 1.4.1 cascade and Common FW 2.0.0 PID `0x1309` with chip
+  count 1 or 3, all without a TP firmware-version edit, now use exact V2
+  routes for Preview/Build. The
+  profiles remain `executable-candidate`; this does not promote runtime support,
+  other versions/counts, or version edits.
 - Legacy Combiner EXE/runner, staging isolation, host diff enforcement, and
   owner review remain mandatory.
-- NT51926 Common FW 2.0.0, other IC/count branches, and optional CtrlRAM slots
-  remain separate evidence/migration work.
+- Other IC/count branches and firmware-version edits remain separate
+  evidence/migration work.
 
 ## Verification
 
@@ -63,7 +67,15 @@ the profile retains only the closed invocation profile id and processor authorit
 - NT51926 candidate tests select both exact capacities, pass only `0x3C000` to
   the processor, preserve the `0x4000` Flash tail, reject neighboring lengths,
   and execute against the hash-pinned Postbuild profile selected by id.
-- The routed TP-base case matches the archived Legacy Combiner 1.13 full output;
-  the full-Flash case matches a forced V1 run byte-for-byte and preserves its
-  tail. Runtime/support promotion and exact write-range approval remain an R3
-  owner gate.
+- The routed 1.4.1 TP-base case matches the archived Legacy Combiner 1.13 full
+  output, and its full-Flash case matches a forced V1 run byte-for-byte.
+- The final owner 2.0.0 single/cascade cases build their reference from the
+  exact DP+TP inputs. Forced V1 and V2 outputs have identical full bytes and
+  SHA-256. Each differs from the owner expected by exactly 16 bytes at
+  `[0x1C,0x20)`, `[0xFC,0x100)`, `[0x32A8C,0x32A90)`, and
+  `[0x32B6C,0x32B70)`: the owner-approved Header CRC/Header Copy CRC words;
+  CtrlRAM payload difference is zero.
+- Tests lock one processor session, two ordered commands, immutable inputs,
+  the V1 full-Flash read authority, the V2 `[0,0x3C000)` read authority, exact
+  write ranges, report identity, and full-Flash tail preservation. Runtime
+  support promotion remains outside this amendment.

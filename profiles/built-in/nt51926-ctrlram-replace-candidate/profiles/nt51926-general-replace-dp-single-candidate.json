@@ -34,8 +34,8 @@
   },
   "mapBinding": {
     "familyId": "nt51926-ctrlram-replace",
-    "familyVersion": "0.5.0",
-    "familyContentHash": "b3d45263d63f9f1c04031d0d1d05044399ad094129e44a8ff4723947881cf2fd",
+    "familyVersion": "0.6.0",
+    "familyContentHash": "824fc501bb111803f82e5cd33a4f541be183cfab6986734445f87819fe4914e3",
     "mapIds": [ "nt51926-general-replace-full-flash-256k" ],
     "requiredRegionIds": [ "flash-image", "general-replace-full-flash-dp-code" ],
     "requiredMetadataStructureIds": [],

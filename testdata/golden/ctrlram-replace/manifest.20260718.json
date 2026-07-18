@@ -117,6 +117,46 @@
         "intakeComplete": true,
         "fullByteParity": false,
         "runtimeSupportPromotion": false
+      },
+      "phaseBResult": {
+        "status": "allowed-diff-parity-routed",
+        "routeProfileId": "nt51926-ctrlram-replace-fw200-runtime-single",
+        "routeProfileVersion": "0.1.0",
+        "ownerExpectedSha256": "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c",
+        "legacyOutputSha256": "5f8913e48784bf0cdb15e64f3f6376dfe741f261ca6465242ec2956bbfe6c450",
+        "v2OutputSha256": "5f8913e48784bf0cdb15e64f3f6376dfe741f261ca6465242ec2956bbfe6c450",
+        "differenceCounts": {
+          "legacyToV2": 0,
+          "ownerToLegacy": 16,
+          "ownerToV2": 16,
+          "ctrlRamPayload": 0
+        },
+        "allowedDifferenceRanges": [
+          { "start": "0x1C", "endExclusive": "0x20", "classification": "header-crc-word" },
+          { "start": "0xFC", "endExclusive": "0x100", "classification": "header-copy-crc-word" },
+          { "start": "0x32A8C", "endExclusive": "0x32A90", "classification": "copied-header-crc-word" },
+          { "start": "0x32B6C", "endExclusive": "0x32B70", "classification": "copied-header-copy-crc-word" }
+        ],
+        "processorId": "nfc.nt51926.ctrlram-postbuild-v1",
+        "toolBindingId": "legacy-combiner-1.13.0",
+        "sessionCount": 1,
+        "commandCount": 2,
+        "orderedArguments": [
+          ["CRC_Enable", "output/nt51926_fw.bin", "BIN/Normal_Ctrlram.bin", "0x0", "0x22800", "11264", "BIN/MP_Ctrlram.bin", "0x0", "0x25400", "9216", "BIN/VN_Ctrlram.bin", "0x0", "0x315D0", "5278", "BIN/NF_Ctrlram.bin", "0x0", "0x2C800", "11728", "output/nt51926_fw.bin", "0x22000", "0x3B000", "1920", "output/nt51926_fw.bin", "0x0", "0x32A70", "256"],
+          ["CRC_Enable", "output/nt51926_fw.bin", "output/nt51926_fw.bin", "0x0", "0x32A70", "256"]
+        ],
+        "legacyReadAuthority": [{ "start": "0x0", "endExclusive": "0x40000" }],
+        "v2ReadAuthority": [{ "start": "0x0", "endExclusive": "0x3C000" }],
+        "baseMetadata": {
+          "commonFwVersion": "2.0.0",
+          "chipCount": 1,
+          "pid": "0x1309",
+          "topology": "single"
+        },
+        "inputArtifactsUnchanged": true,
+        "fullFlashTailUnchanged": true,
+        "reportIdentityParity": true,
+        "runtimeSupportPromotion": false
       }
     },
     {
@@ -162,6 +202,46 @@
       "claims": {
         "intakeComplete": true,
         "fullByteParity": false,
+        "runtimeSupportPromotion": false
+      },
+      "phaseBResult": {
+        "status": "allowed-diff-parity-routed",
+        "routeProfileId": "nt51926-ctrlram-replace-fw200-runtime-cascade",
+        "routeProfileVersion": "0.1.0",
+        "ownerExpectedSha256": "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825",
+        "legacyOutputSha256": "b4336e3d935466feb98695eb9f5fe8b10c91c632fc835ffcfa1ed7ffefe0495a",
+        "v2OutputSha256": "b4336e3d935466feb98695eb9f5fe8b10c91c632fc835ffcfa1ed7ffefe0495a",
+        "differenceCounts": {
+          "legacyToV2": 0,
+          "ownerToLegacy": 16,
+          "ownerToV2": 16,
+          "ctrlRamPayload": 0
+        },
+        "allowedDifferenceRanges": [
+          { "start": "0x1C", "endExclusive": "0x20", "classification": "header-crc-word" },
+          { "start": "0xFC", "endExclusive": "0x100", "classification": "header-copy-crc-word" },
+          { "start": "0x32A8C", "endExclusive": "0x32A90", "classification": "copied-header-crc-word" },
+          { "start": "0x32B6C", "endExclusive": "0x32B70", "classification": "copied-header-copy-crc-word" }
+        ],
+        "processorId": "nfc.nt51926.ctrlram-postbuild-v1",
+        "toolBindingId": "legacy-combiner-1.13.0",
+        "sessionCount": 1,
+        "commandCount": 2,
+        "orderedArguments": [
+          ["CRC_Enable", "output/nt51926_fw.bin", "BIN/Normal_Ctrlram.bin", "0x0", "0x22800", "11264", "BIN/DiffDLM.bin", "0x0", "0x27800", "10240", "BIN/MP_Ctrlram.bin", "0x0", "0x25400", "9216", "BIN/VN_Ctrlram.bin", "0x0", "0x315D0", "5278", "BIN/NF_Ctrlram.bin", "0x0", "0x2C800", "11728", "output/nt51926_fw.bin", "0x22000", "0x3B000", "1920", "output/nt51926_fw.bin", "0x0", "0x32A70", "256"],
+          ["CRC_Enable", "output/nt51926_fw.bin", "output/nt51926_fw.bin", "0x0", "0x32A70", "256"]
+        ],
+        "legacyReadAuthority": [{ "start": "0x0", "endExclusive": "0x40000" }],
+        "v2ReadAuthority": [{ "start": "0x0", "endExclusive": "0x3C000" }],
+        "baseMetadata": {
+          "commonFwVersion": "2.0.0",
+          "chipCount": 3,
+          "pid": "0x1309",
+          "topology": "cascade"
+        },
+        "inputArtifactsUnchanged": true,
+        "fullFlashTailUnchanged": true,
+        "reportIdentityParity": true,
         "runtimeSupportPromotion": false
       }
     },

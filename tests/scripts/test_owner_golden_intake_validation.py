@@ -11,6 +11,7 @@ from typing import Any, Callable
 from scripts.owner_golden_intake_validation import (
     EXPECTED_20260718_CASES,
     verify_20260718_provenance,
+    verify_20260718_phase_b_results,
     verify_exact_cases,
     verify_owner_golden_intake_20260718,
 )
@@ -85,6 +86,12 @@ class OwnerGoldenIntakeValidationTests(unittest.TestCase):
         candidate["externalToolObservations"][2]["files"][0]["sha256"] = "0" * 64
         with self.assertRaisesRegex(ValueError, "external tool observations drifted"):
             verify_20260718_provenance(candidate)
+
+    def test_nt51926_phase_b_result_mutation_is_rejected(self) -> None:
+        candidate = copy.deepcopy(self.document)
+        candidate["cases"][0]["phaseBResult"]["differenceCounts"]["ownerToV2"] = 0
+        with self.assertRaisesRegex(ValueError, "Phase B result drifted"):
+            verify_20260718_phase_b_results(candidate)
 
     def verify_cases(self, document: dict[str, Any]) -> None:
         verify_exact_cases(

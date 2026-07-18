@@ -179,10 +179,10 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         CompiledComposition second = CompileCandidate([.. referenceBase]);
 
         Assert.Equal(
-            "09204deaaf1c0db10ed83cde7d4e55d49a673777414dfa857b13bc953e234439",
+            "da290270c2b8c0261ae6272c740e22c614ee90d3279312cf8ac5ee79a3953400",
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
-            "baaf7d9d535d5e1d038401c991746bae41eedd2b4108f39f3035ca47f224a601",
+            "2ed59af1970deba750b205b1bf674df25fe5f57b44a00fac321a1e2f45ab7df8",
             first.CompilationFingerprint);
         Assert.Equal(
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,
@@ -574,6 +574,9 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     private static byte[] CreateReferenceImage(int length = Capacity)
     {
         byte[] referenceBase = new byte[length];
+        referenceBase[FirmwareConfigBackupStart + FirmwareConfigLayout.CommonFwMajorVersionOffset] = 1;
+        referenceBase[FirmwareConfigBackupStart + FirmwareConfigLayout.CommonFwMinorVersionOffset] = 4;
+        referenceBase[FirmwareConfigBackupStart + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = 1;
         WriteNvtMarker(referenceBase, NvtMarkerStart);
         return referenceBase;
     }
