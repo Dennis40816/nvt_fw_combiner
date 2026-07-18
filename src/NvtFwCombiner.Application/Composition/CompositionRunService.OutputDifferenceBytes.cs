@@ -74,15 +74,15 @@ public sealed partial class CompositionRunService
         }
     }
 
-    private static string ToSliceSha256Hex(byte[] bytes, ByteRange range)
+    private static string ToSliceSha256Hex(ReadOnlySpan<byte> bytes, ByteRange range)
     {
-        return ToSha256Hex(bytes.AsSpan(checked((int)range.Start), checked((int)range.Length)));
+        return ToSha256Hex(bytes.Slice(checked((int)range.Start), checked((int)range.Length)));
     }
 
-    private static string ToSliceHexPreview(byte[] bytes, ByteRange range)
+    private static string ToSliceHexPreview(ReadOnlySpan<byte> bytes, ByteRange range)
     {
         int length = checked((int)Math.Min(range.Length, OutputDifferenceHexPreviewBytes));
-        return ToHex(bytes.AsSpan(checked((int)range.Start), length));
+        return ToHex(bytes.Slice(checked((int)range.Start), length));
     }
 
     private static string ToHex(ReadOnlySpan<byte> bytes)

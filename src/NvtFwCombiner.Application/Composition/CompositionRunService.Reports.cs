@@ -37,11 +37,11 @@ public sealed partial class CompositionRunService
             }),
         ];
 
-        byte[] outputBytes = execution.OutputBytes.ToArray();
+        ReadOnlyMemory<byte> outputBytes = execution.OutputBytes;
         var output = new OutputArtifactSummary(
             request.OutputFileName,
-            outputBytes.LongLength,
-            outputBytes.Length == 0 ? EmptySha256 : ToSha256Hex(outputBytes),
+            outputBytes.Length,
+            outputBytes.Length == 0 ? EmptySha256 : ToSha256Hex(outputBytes.Span),
             committed);
 
         MutationRunSummary[] mutations = [

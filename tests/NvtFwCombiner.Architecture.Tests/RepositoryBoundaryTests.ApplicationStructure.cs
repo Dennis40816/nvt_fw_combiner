@@ -85,6 +85,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ToSha256Hex(execution.OutputBytes.Span)", previewTokens, StringComparison.Ordinal);
         Assert.Contains("CreateOutputDifferences", outputDifferences, StringComparison.Ordinal);
         Assert.DoesNotContain("private static IEnumerable<OutputDifferenceExpectation> CreateOutputDifferenceExpectations", outputDifferences, StringComparison.Ordinal);
+        Assert.DoesNotContain("execution.OutputBytes.ToArray()", reports, StringComparison.Ordinal);
         Assert.DoesNotContain("private static string ToSliceSha256Hex", outputDifferences, StringComparison.Ordinal);
         Assert.Contains("ToSliceSha256Hex", outputDifferenceBytes, StringComparison.Ordinal);
         Assert.Contains("ToSliceHexPreview", outputDifferenceBytes, StringComparison.Ordinal);
