@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using NvtFwCombiner.Application.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -12,7 +13,13 @@ public sealed partial class ReportReviewViewModel
         string? outputArtifactPath = null,
         ShellLanguage language = ShellLanguage.English)
     {
-        return FromJsonCore(json, sourceName, outputArtifactPath, language, CancellationToken.None);
+        return FromJsonCore(
+            json,
+            sourceName,
+            outputArtifactPath,
+            inspectionSnapshot: null,
+            language,
+            CancellationToken.None);
     }
 
     internal static ReportReviewViewModel FromJsonCancellable(
@@ -22,13 +29,37 @@ public sealed partial class ReportReviewViewModel
         ShellLanguage language,
         CancellationToken cancellationToken)
     {
-        return FromJsonCore(json, sourceName, outputArtifactPath, language, cancellationToken);
+        return FromJsonCore(
+            json,
+            sourceName,
+            outputArtifactPath,
+            inspectionSnapshot: null,
+            language,
+            cancellationToken);
+    }
+
+    internal static ReportReviewViewModel FromJsonCancellable(
+        string json,
+        string sourceName,
+        string? outputArtifactPath,
+        CompositionRunInspectionSnapshot? inspectionSnapshot,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
+    {
+        return FromJsonCore(
+            json,
+            sourceName,
+            outputArtifactPath,
+            inspectionSnapshot,
+            language,
+            cancellationToken);
     }
 
     private static ReportReviewViewModel FromJsonCore(
         string json,
         string sourceName,
         string? outputArtifactPath,
+        CompositionRunInspectionSnapshot? inspectionSnapshot,
         ShellLanguage language,
         CancellationToken cancellationToken)
     {
@@ -55,6 +86,7 @@ public sealed partial class ReportReviewViewModel
         OutputDifferenceProjection outputDifferences = ParseOutputDifferences(
             root,
             utf8,
+            inspectionSnapshot?.OutputSpaceId ?? "reported-output",
             language,
             cancellationToken);
         IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root, cancellationToken);
@@ -80,6 +112,7 @@ public sealed partial class ReportReviewViewModel
             outputCommitted,
             outputSha256,
             outputArtifactPath ?? string.Empty,
+            inspectionSnapshot,
             inputs,
             operations,
             mutations,
@@ -115,6 +148,7 @@ public sealed partial class ReportReviewViewModel
             null,
             string.Empty,
             string.Empty,
+            null,
             [],
             [],
             [],

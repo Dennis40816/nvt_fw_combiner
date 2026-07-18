@@ -262,7 +262,7 @@ public sealed partial class MainWindowViewModel
             }
             else
             {
-                using JsonDocument _ = JsonDocument.Parse(snapshot.ReportJson);
+                using var _ = JsonDocument.Parse(snapshot.ReportJson);
             }
         }
         catch (Exception exception) when (IsReportMaterializationException(exception))
@@ -331,7 +331,8 @@ public sealed partial class MainWindowViewModel
                     currentReport.SourceName,
                     currentReport.OutputArtifactPath,
                     iterationCancellation.Token,
-                    materializationErrorsAsReport: false);
+                    materializationErrorsAsReport: false,
+                    inspectionSnapshot: currentReport.InspectionSnapshot);
             }
             catch (OperationCanceledException) when (iterationCancellation.IsCancellationRequested)
             {

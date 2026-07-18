@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Composition;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportReviewViewModel
@@ -70,6 +72,9 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>Host-side output artifact path for the current UI session, not persisted in report JSON.</summary>
     public string OutputArtifactPath { get; }
+
+    /// <summary>Non-serialized bytes attached only to the current verified UI session.</summary>
+    internal CompositionRunInspectionSnapshot? InspectionSnapshot { get; }
 
     /// <summary>True when the current UI session knows the committed output artifact path.</summary>
     public bool HasOutputArtifactPath => !string.IsNullOrWhiteSpace(OutputArtifactPath);
@@ -169,6 +174,9 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>True when output difference details are available.</summary>
     public bool HasOutputDifferences => _outputDifferenceProjection.Count > 0;
+
+    /// <summary>Bounded complete or fallback Hex Diff review state.</summary>
+    public ReportHexDiffViewModel HexDiff { get; }
 
     /// <summary>True when no output differences or changed ranges are available.</summary>
     public bool HasNoByteChanges => !HasOutputDifferences && !HasMutations;

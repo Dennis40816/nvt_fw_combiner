@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Composition;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Readable UI projection of a CLI/application run report JSON file.</summary>
@@ -25,6 +27,7 @@ public sealed partial class ReportReviewViewModel
         bool? outputCommitted,
         string outputSha256,
         string outputArtifactPath,
+        CompositionRunInspectionSnapshot? inspectionSnapshot,
         IReadOnlyList<ReportLineViewModel> inputs,
         IReadOnlyList<ReportLineViewModel> operations,
         IReadOnlyList<ReportLineViewModel> mutations,
@@ -55,12 +58,20 @@ public sealed partial class ReportReviewViewModel
             ? T(language, "No output hash", "無輸出雜湊")
             : Shorten(outputSha256, 16);
         OutputArtifactPath = string.IsNullOrWhiteSpace(outputArtifactPath) ? string.Empty : outputArtifactPath;
+        InspectionSnapshot = inspectionSnapshot;
         Inputs = inputs;
         Operations = operations;
         StepOperations = [.. operations.Where(operation => !operation.HasCodeBlock && !operation.HasRuntimeCommands)];
         PostbuildInvocations = CreatePostbuildInvocations(operations, language);
         Mutations = mutations;
         _outputDifferenceProjection = outputDifferences;
+        HexDiff = ReportHexDiffViewModel.Create(
+            inspectionSnapshot,
+            outputDifferences.HexDiffSource,
+            runId,
+            outputSize,
+            outputSha256,
+            language);
         OutputDifferences = outputDifferences.Rows;
         OutputDifferenceGroups = outputDifferences.Groups;
         Issues = issues;
@@ -120,6 +131,7 @@ public sealed partial class ReportReviewViewModel
         null,
         string.Empty,
         string.Empty,
+        null,
         [],
         [],
         [],
