@@ -112,25 +112,4 @@ public sealed class ReportPagedListViewModel : ObservableObject
         _loadMoreCommand.NotifyCanExecuteChanged();
     }
 
-    private sealed class ObjectReadOnlyList<T>(IReadOnlyList<T> items) : IReadOnlyList<object>
-    {
-        private readonly IReadOnlyList<T> _items = items ?? throw new ArgumentNullException(nameof(items));
-
-        public int Count => _items.Count;
-
-        public object this[int index] => _items[index]!;
-
-        public IEnumerator<object> GetEnumerator()
-        {
-            for (int index = 0; index < Count; index++)
-            {
-                yield return this[index];
-            }
-        }
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-    }
 }

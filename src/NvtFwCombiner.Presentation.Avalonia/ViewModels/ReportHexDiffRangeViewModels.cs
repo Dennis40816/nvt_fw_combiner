@@ -1,4 +1,5 @@
 using System.Globalization;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -14,7 +15,7 @@ internal readonly record struct ReportHexDiffRangeDescriptor(
 }
 
 /// <summary>One report-owned difference range in the compiled output address space.</summary>
-public sealed class ReportHexDiffRangeViewModel
+public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
 {
     internal ReportHexDiffRangeViewModel(
         ReportHexDiffRangeDescriptor descriptor,
@@ -37,12 +38,15 @@ public sealed class ReportHexDiffRangeViewModel
             : string.Create(
                 CultureInfo.InvariantCulture,
                 $"{OutputSpaceId} 0x{Start:X}-0x{EndExclusive:X} half-open range");
+        AccessibleLabel = string.Join("; ", Status, Title, AccessibleRange, ChangedSummary);
         Evidence = evidence ?? string.Empty;
         BeforeSha256 = beforeSha256 ?? string.Empty;
         AfterSha256 = afterSha256 ?? string.Empty;
     }
 
     internal ReportHexDiffRangeDescriptor Descriptor { get; }
+
+    internal int SourceIndex => Descriptor.SourceIndex;
 
     /// <summary>Underlying report detail without Presentation-derived firmware meaning.</summary>
     public ReportLineViewModel Detail { get; }
@@ -100,33 +104,34 @@ public sealed class ReportHexDiffRangeViewModel
 
     /// <summary>Address-space-qualified accessible range label.</summary>
     public string AccessibleRange { get; }
+
+    /// <summary>Composite subject, verdict, range, and changed-count label for assistive navigation.</summary>
+    public string AccessibleLabel { get; }
+
+    /// <summary>True when this range is synchronized with the viewport and information panel.</summary>
+    [ObservableProperty]
+    public partial bool IsSelected { get; internal set; }
 }
 
 internal sealed class ReportHexDiffSource
 {
     private readonly ReportHexDiffRangeDescriptor[] _descriptors;
     private readonly int[] _addressOrder;
-    private readonly MemoizedIndexedReadOnlyList<ReportHexDiffRangeViewModel> _sourceRows;
+    private readonly Func<int, ReportHexDiffRangeViewModel> _rowFactory;
 
     internal static ReportHexDiffSource Empty { get; } = new(
         [],
-        new MemoizedIndexedReadOnlyList<ReportHexDiffRangeViewModel>(
-            0,
-            static _ => throw new InvalidOperationException("An empty Hex Diff has no ranges.")));
+        static _ => throw new InvalidOperationException("An empty Hex Diff has no ranges."));
 
     internal ReportHexDiffSource(
         IReadOnlyList<ReportHexDiffRangeDescriptor> descriptors,
-        MemoizedIndexedReadOnlyList<ReportHexDiffRangeViewModel> sourceRows)
+        Func<int, ReportHexDiffRangeViewModel> rowFactory)
     {
         ArgumentNullException.ThrowIfNull(descriptors);
-        ArgumentNullException.ThrowIfNull(sourceRows);
-        if (descriptors.Count != sourceRows.Count)
-        {
-            throw new ArgumentException("Hex Diff descriptor and row counts must match.", nameof(descriptors));
-        }
+        ArgumentNullException.ThrowIfNull(rowFactory);
 
         _descriptors = [.. descriptors];
-        _sourceRows = sourceRows;
+        _rowFactory = rowFactory;
         if (_descriptors.Where((descriptor, index) => descriptor.SourceIndex != index).Any())
         {
             throw new ArgumentException("Hex Diff descriptors must preserve report source order.", nameof(descriptors));
@@ -134,7 +139,9 @@ internal sealed class ReportHexDiffSource
 
         int[] reviewOrder = [.. Enumerable.Range(0, _descriptors.Length)];
         Array.Sort(reviewOrder, CompareReviewOrder);
-        NavigatorRows = new IndexedReadOnlyList<ReportHexDiffRangeViewModel>(_sourceRows, reviewOrder);
+        NavigatorRows = new IndexedReadOnlyList<ReportHexDiffRangeViewModel>(
+            new FactoryReadOnlyList<ReportHexDiffRangeViewModel>(_descriptors.Length, _rowFactory),
+            reviewOrder);
 
         _addressOrder = [.. Enumerable.Range(0, _descriptors.Length)];
         Array.Sort(_addressOrder, CompareAddressOrder);
@@ -143,8 +150,6 @@ internal sealed class ReportHexDiffSource
     internal IReadOnlyList<ReportHexDiffRangeViewModel> NavigatorRows { get; }
 
     internal int Count => _descriptors.Length;
-
-    internal int MaterializedCount => _sourceRows.MaterializedCount;
 
     internal bool IsWithin(long byteLength)
     {
@@ -207,7 +212,7 @@ internal sealed class ReportHexDiffSource
             ReportHexDiffRangeDescriptor candidate = _descriptors[_addressOrder[prior]];
             if (offset < candidate.EndExclusive)
             {
-                return _sourceRows[candidate.SourceIndex];
+                return _rowFactory(candidate.SourceIndex);
             }
         }
 

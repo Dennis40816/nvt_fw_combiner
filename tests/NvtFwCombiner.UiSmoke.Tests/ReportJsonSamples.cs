@@ -154,23 +154,35 @@ internal static class ReportJsonSamples
         string sectionPrefix = "Section",
         string runId = "large-difference-report",
         long? outputSize = null,
-        string outputSha256 = "0123456789abcdef012345")
+        string outputSha256 = "0123456789abcdef012345",
+        int? reviewEvery = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sectionCount);
+        if (reviewEvery is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(reviewEvery));
+        }
+
         object[] differences =
         [
-            .. Enumerable.Range(0, count).Select(index => OutputDifference(
-                $"diff-{index:D5}",
-                Range(index * 4L, (index * 4L) + 4),
-                4,
-                index == count - 1
-                    ? OutputDifferenceClassifications.Unexpected
-                    : OutputDifferenceClassifications.DeclaredReplacement,
-                isAccepted: index != count - 1,
-                $"evidence-{index:D5}",
-                $"difference {index}",
-                $"{sectionPrefix} {index % sectionCount:D2}")),
+            .. Enumerable.Range(0, count).Select(index =>
+            {
+                bool needsReview = reviewEvery is int interval
+                    ? index % interval == 0
+                    : index == count - 1;
+                return OutputDifference(
+                    $"diff-{index:D5}",
+                    Range(index * 4L, (index * 4L) + 4),
+                    4,
+                    needsReview
+                        ? OutputDifferenceClassifications.Unexpected
+                        : OutputDifferenceClassifications.DeclaredReplacement,
+                    isAccepted: !needsReview,
+                    $"evidence-{index:D5}",
+                    $"difference {index}",
+                    $"{sectionPrefix} {index % sectionCount:D2}");
+            }),
         ];
         return Create(
             "nt51927-ctrlram-replace",

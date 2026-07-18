@@ -387,6 +387,51 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
+  <Style Selector="Border.reportHexDiffViewport">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Border.reportHexDiffRow">
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="Border.reportHexDiffRow.changed">
+    <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderBrush}" />
+  </Style>
+  <Style Selector="Border.reportHexDiffReferenceRow">
+    <Setter Property="Margin" Value="0,4,0,0" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="Background" Value="{DynamicResource NfcInfoSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcInfoBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="RadioButton.reportHexDiffRange">
+    <Setter Property="MinHeight" Value="54" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+  <Style Selector="RadioButton.reportHexDiffRange:pointerover">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+  </Style>
+  <Style Selector="RadioButton.reportHexDiffRange:checked">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="ToggleSwitch.reportHexDiffOriginalToggle">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
   <Style Selector="Border.hexInspectorHint">
     <Setter Property="Padding" Value="8,6" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
