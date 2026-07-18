@@ -79,7 +79,14 @@ public static partial class WorkbenchCompositionService
             ? new WorkbenchIcFamilySummary(
                 entry.FamilyId,
                 entry.FamilySourceIcId,
-                MapFamilyRelationship(entry.FamilyRelationship),
+                entry.FamilyRelationship switch
+                {
+                    IcFamilyRelationship.Standalone => WorkbenchIcFamilyRelationship.Standalone,
+                    IcFamilyRelationship.Canonical => WorkbenchIcFamilyRelationship.Canonical,
+                    IcFamilyRelationship.PerfectAlias => WorkbenchIcFamilyRelationship.PerfectAlias,
+                    IcFamilyRelationship.PartialAlias => WorkbenchIcFamilyRelationship.PartialAlias,
+                    _ => throw new InvalidOperationException($"Unknown IC family relationship '{entry.FamilyRelationship}'."),
+                },
                 entry.FamilyScope)
             : new WorkbenchIcFamilySummary(null, null, WorkbenchIcFamilyRelationship.Standalone, null);
     }
@@ -92,18 +99,6 @@ public static partial class WorkbenchCompositionService
             display.Issues.Count == 0
                 ? FormatV2DpReplaceCapacities(display)
                 : null;
-    }
-
-    private static WorkbenchIcFamilyRelationship MapFamilyRelationship(IcFamilyRelationship relationship)
-    {
-        return relationship switch
-        {
-            IcFamilyRelationship.Standalone => WorkbenchIcFamilyRelationship.Standalone,
-            IcFamilyRelationship.Canonical => WorkbenchIcFamilyRelationship.Canonical,
-            IcFamilyRelationship.PerfectAlias => WorkbenchIcFamilyRelationship.PerfectAlias,
-            IcFamilyRelationship.PartialAlias => WorkbenchIcFamilyRelationship.PartialAlias,
-            _ => throw new InvalidOperationException($"Unknown IC family relationship '{relationship}'."),
-        };
     }
 
     private static string GetUnsupportedReplaceReason(string replaceMode)

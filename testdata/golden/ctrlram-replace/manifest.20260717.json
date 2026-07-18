@@ -10,7 +10,7 @@
     "recoveredAtTaipei": "2026-07-17T17:18:00+08:00"
   },
   "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
-  "evidenceScope": "Owner-approved intake plus exact NT51920 Phase B route evidence. The NT51920 single/cascade controls now lock V1/V2 full-byte and process parity with explicit CRC-only owner differences; no support promotion is authorized.",
+  "evidenceScope": "Owner-approved intake plus exact NT51920 and NT51923 Phase B route evidence. Their single/cascade controls lock canonical-base reconstruction, V1/V2 full-byte and process parity, and explicit CRC-only owner differences; no support promotion is authorized.",
   "phaseBResults": [
     {
       "caseId": "nt51920-fw120-single-auto-prj-72-20260717",
@@ -68,6 +68,64 @@
       "commandCount": 2,
       "inputArtifactsUnchanged": true,
       "reportAndOrderedArgvParityTest": "Nt51920CtrlRamFw120EvidenceTests.ExactOwnerCasesRunThroughV2WithLegacyProcessParityAsync",
+      "runtimeSupportPromotion": false
+    },
+    {
+      "caseId": "nt51923-fw141-single-auto-prj-662-20260717",
+      "ic": "NT51923",
+      "workflow": "ctrlram-replace",
+      "variant": "Common FW 1.4.1",
+      "project": "AUTO_PRJ-662",
+      "pid": "0x6005",
+      "topology": "single",
+      "chipCount": 1,
+      "baseKind": "canonical-standard-merge-owner-output",
+      "ownerExpectedSha256": "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f",
+      "legacyOutputSha256": "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38",
+      "v2OutputSha256": "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38",
+      "differenceCounts": { "legacyToV2": 0, "ownerToLegacy": 16, "ownerToV2": 16, "ctrlRamPayload": 0 },
+      "allowedDifferenceRanges": [
+        { "start": "0x1C", "endExclusive": "0x20", "classification": "header-crc-word" },
+        { "start": "0xFC", "endExclusive": "0x100", "classification": "header-crc-word" },
+        { "start": "0x3032C", "endExclusive": "0x30330", "classification": "header-copy-crc-word" },
+        { "start": "0x3040C", "endExclusive": "0x30410", "classification": "header-copy-crc-word" }
+      ],
+      "routeProfileId": "nt51923-ctrlram-replace-fw141-single",
+      "processorId": "nfc.nt51923.ctrlram-postbuild-v1",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "sessionCount": 1,
+      "commandCount": 2,
+      "inputArtifactsUnchanged": true,
+      "reportAndOrderedArgvParityTest": "Nt51923CtrlRamFw141EvidenceTests.ExactOwnerCasesRunThroughV2WithLegacyProcessParityAsync",
+      "runtimeSupportPromotion": false
+    },
+    {
+      "caseId": "nt51923-fw141-cascade3-auto-prj-734-20260717",
+      "ic": "NT51923",
+      "workflow": "ctrlram-replace",
+      "variant": "Common FW 1.4.1",
+      "project": "AUTO_PRJ-734",
+      "pid": "0x4C03",
+      "topology": "cascade",
+      "chipCount": 3,
+      "baseKind": "canonical-standard-merge-owner-output",
+      "ownerExpectedSha256": "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18",
+      "legacyOutputSha256": "017a157ba2419ff29cfb00c14a88da75a64cfeac9b4dabeecf54d523b1ad115c",
+      "v2OutputSha256": "017a157ba2419ff29cfb00c14a88da75a64cfeac9b4dabeecf54d523b1ad115c",
+      "differenceCounts": { "legacyToV2": 0, "ownerToLegacy": 16, "ownerToV2": 16, "ctrlRamPayload": 0 },
+      "allowedDifferenceRanges": [
+        { "start": "0x1C", "endExclusive": "0x20", "classification": "header-crc-word" },
+        { "start": "0xFC", "endExclusive": "0x100", "classification": "header-crc-word" },
+        { "start": "0x3032C", "endExclusive": "0x30330", "classification": "header-copy-crc-word" },
+        { "start": "0x3040C", "endExclusive": "0x30410", "classification": "header-copy-crc-word" }
+      ],
+      "routeProfileId": "nt51923-ctrlram-replace-fw141-cascade3",
+      "processorId": "nfc.nt51923.ctrlram-postbuild-v1",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "sessionCount": 1,
+      "commandCount": 2,
+      "inputArtifactsUnchanged": true,
+      "reportAndOrderedArgvParityTest": "Nt51923CtrlRamFw141EvidenceTests.ExactOwnerCasesRunThroughV2WithLegacyProcessParityAsync",
       "runtimeSupportPromotion": false
     }
   ],

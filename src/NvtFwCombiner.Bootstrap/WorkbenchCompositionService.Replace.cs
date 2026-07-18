@@ -7,21 +7,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static IReadOnlyList<WorkbenchMemoryMapRow> CreateCtrlRamReplaceRows(
-        IReadOnlyList<TpFlashMapRegion> postbuildMappedRegions)
-    {
-        return [
-            .. postbuildMappedRegions
-                .OrderBy(region => region.Range.Start)
-                .Select(region => new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(region.Range),
-                    "Base firmware",
-                    "Replace + CRC",
-                    region.PostbuildFileName ?? "CtrlRAM BIN",
-                    $"{region.DisplayName} at {FormatDisplayRange(region.Range)} can use its own replacement BIN; the report shows the CRC/header refresh command.")),
-        ];
-    }
-
     private static IReadOnlyList<WorkbenchReplaceInputSlot> GetCtrlRamReplaceInputSlots(
         string icId,
         string number,

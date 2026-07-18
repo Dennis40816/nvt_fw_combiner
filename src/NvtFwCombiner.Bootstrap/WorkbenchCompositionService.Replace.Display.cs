@@ -70,8 +70,17 @@ public static partial class WorkbenchCompositionService
 
         IReadOnlyList<WorkbenchMemoryMapRow> rows = replaceMode switch
         {
-            WorkbenchReplaceModes.CtrlRam => CreateCtrlRamReplaceRows(
-                BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)),
+            WorkbenchReplaceModes.CtrlRam =>
+            [
+                .. BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)
+                    .OrderBy(region => region.Range.Start)
+                    .Select(region => new WorkbenchMemoryMapRow(
+                        FormatDisplayRange(region.Range),
+                        "Base firmware",
+                        "Replace + CRC",
+                        region.PostbuildFileName ?? "CtrlRAM BIN",
+                        $"{region.DisplayName} at {FormatDisplayRange(region.Range)} can use its own replacement BIN; the report shows the CRC/header refresh command.")),
+            ],
             WorkbenchReplaceModes.General =>
             [
                 new WorkbenchMemoryMapRow(

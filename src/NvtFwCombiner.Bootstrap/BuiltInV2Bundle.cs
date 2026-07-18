@@ -17,6 +17,7 @@ internal static class BuiltInV2BundleRegistry
             ("nt51920-general-merge-logical-candidate", "d2f87973576f54b80439f30ef1790f47df2994a6811673f0ceb8ecd5cacdbdc7"),
             ("nt51920-standard-merge", "3bb76d56656642af553ff012a619ca8fc38fb7cdabf8ac674e5433998357f9f2"),
             ("nt51923-nt51926-general-merge-logical-candidate", "26f12851f81d55bb88a0a0e18ab4f10f451747369e797efbc69fdbf05cdf5a96"),
+            ("nt51923-ctrlram-replace-candidate", "edea10a83bdd802670c3e8694459a4f447d1296f4c410c35698a1a7fa68bd504"),
             ("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96"),
             ("nt51926-ctrlram-replace-candidate", "795aaa0fb75593dcdb9e67abdd6c8912223e72ecc038428b3aa3554681f31a47"),
             ("nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1"),

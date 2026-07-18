@@ -71,6 +71,12 @@ public static partial class WorkbenchCompositionService
             ("NT51920", "nfc.nt51920.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.2.0", 2, 0x1403)
                 when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51920Fw120Cascade2BaseSha256) =>
                 "nt51920-ctrlram-replace-fw120-cascade2",
+            ("NT51923", "nfc.nt51923.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.4.1", 1, 0x6005)
+                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51923Fw141SingleBaseSha256) =>
+                "nt51923-ctrlram-replace-fw141-single",
+            ("NT51923", "nfc.nt51923.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.4.1", 3, 0x4C03)
+                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51923Fw141Cascade3BaseSha256) =>
+                "nt51923-ctrlram-replace-fw141-cascade3",
             ("NT51926", "nfc.nt51926.ctrlram-postbuild-fw1.4.1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, _, > 1, _) =>
                 "nt51926-ctrlram-replace-fw141-runtime-cascade",
             ("NT51926", Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x1309) =>
