@@ -77,11 +77,49 @@ public sealed class CompositionReportPerformanceBaselineTests
             $"serializationMs={serializationTimer.Elapsed.TotalMilliseconds:F3} serializationAllocated={serializationAllocated}");
     }
 
-    private static (byte[] ReferenceBytes, byte[] ReplacementBytes) CreateFragmentedInputs()
+    /// <summary>Verifies immutable semantic metadata is reused only within one report-generation run.</summary>
+    [Fact]
+    public async Task FragmentedReplaceReportSharesStableSemanticsOnlyWithinOneRun()
     {
-        byte[] referenceBytes = new byte[DifferenceCount * 2];
+        const int differenceCount = 2;
+        (byte[] referenceBytes, byte[] replacementBytes) = CreateFragmentedInputs(differenceCount);
+        var artifacts = new Dictionary<string, byte[]>
+        {
+            ["reference-artifact"] = referenceBytes,
+            ["replacement-artifact"] = replacementBytes,
+        };
+        var firstService = new CompositionRunService(
+            new FakeArtifactReader(artifacts),
+            new FakeClock([StartedAtUtc, CompletedAtUtc]));
+        var secondService = new CompositionRunService(
+            new FakeArtifactReader(artifacts),
+            new FakeClock([StartedAtUtc, CompletedAtUtc]));
+
+        CompositionRunResult first = await firstService.PreviewAsync(
+            CreateFragmentedReplaceRequest(referenceBytes.Length),
+            TestContext.Current.CancellationToken);
+        CompositionRunResult second = await secondService.PreviewAsync(
+            CreateFragmentedReplaceRequest(referenceBytes.Length),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(differenceCount, first.Report.OutputDifferences.Count);
+        Assert.Equal(differenceCount, second.Report.OutputDifferences.Count);
+        OutputDifferenceSemantic firstSemantic = Assert.IsType<OutputDifferenceSemantic>(
+            first.Report.OutputDifferences[0].Semantic);
+        OutputDifferenceSemantic secondFragmentSemantic = Assert.IsType<OutputDifferenceSemantic>(
+            first.Report.OutputDifferences[1].Semantic);
+        OutputDifferenceSemantic secondRunSemantic = Assert.IsType<OutputDifferenceSemantic>(
+            second.Report.OutputDifferences[0].Semantic);
+        Assert.Same(firstSemantic, secondFragmentSemantic);
+        Assert.NotSame(firstSemantic, secondRunSemantic);
+    }
+
+    private static (byte[] ReferenceBytes, byte[] ReplacementBytes) CreateFragmentedInputs(
+        int differenceCount = DifferenceCount)
+    {
+        byte[] referenceBytes = new byte[differenceCount * 2];
         byte[] replacementBytes = new byte[referenceBytes.Length];
-        for (int index = 0; index < DifferenceCount; index++)
+        for (int index = 0; index < differenceCount; index++)
         {
             replacementBytes[index * 2] = checked((byte)((index % byte.MaxValue) + 1));
         }
