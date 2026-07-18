@@ -167,7 +167,7 @@ public sealed partial class RepositoryBoundaryTests
                          StringComparison.Ordinal))
             {
                 Assert.Equal(
-                    "composition-profile-v2.8.schema.json",
+                    "composition-profile-v2.9.schema.json",
                     Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
             else
@@ -202,7 +202,7 @@ public sealed partial class RepositoryBoundaryTests
         string retiredSchemaSource = Path.Combine(Root.FullName, "profiles", "schema-source");
         Assert.False(Directory.Exists(retiredSchemaSource) &&
             Directory.EnumerateFiles(retiredSchemaSource, "*", SearchOption.AllDirectories).Any());
-        Assert.DoesNotContain("<SourceRoot>", project, StringComparison.Ordinal);
+        Assert.DoesNotContain(bundles, static bundle => bundle.Element("SourceRoot") is not null);
         Assert.DoesNotContain("**\\profile-bundle.json", project, StringComparison.Ordinal);
     }
 
