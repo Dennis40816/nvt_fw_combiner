@@ -23,7 +23,7 @@ public static partial class WorkbenchCompositionService
         }
 
         string? commonFwVersion = null;
-        if (profiles.Count > 1 &&
+        if (profiles.Any(static profile => profile.CommonFwVersionRule is not null) &&
             !TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion))
         {
             postbuildProfile = null;

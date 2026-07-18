@@ -239,7 +239,7 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        if (profiles.Count == 1)
+        if (profiles.Count == 1 && profiles[0].CommonFwVersionRule is null)
         {
             postbuildProfile = profiles[0];
             return true;

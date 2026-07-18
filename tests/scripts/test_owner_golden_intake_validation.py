@@ -93,6 +93,17 @@ class OwnerGoldenIntakeValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Phase B result drifted"):
             verify_20260718_phase_b_results(candidate)
 
+    def test_nt51930_phase_b_result_mutation_is_rejected(self) -> None:
+        candidate = copy.deepcopy(self.document)
+        nt51930 = next(
+            case
+            for case in candidate["cases"]
+            if case["caseId"] == "nt51930-fw130-cascade3-auto-prj-302-inx-20260718"
+        )
+        nt51930["phaseBResult"]["selectedTool"]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "Phase B result drifted"):
+            verify_20260718_phase_b_results(candidate)
+
     def verify_cases(self, document: dict[str, Any]) -> None:
         verify_exact_cases(
             document,

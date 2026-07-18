@@ -73,37 +73,36 @@ public static partial class WorkbenchCompositionService
             return Blocked(context.ValidationIssues);
         }
 
-        WorkbenchFirmwareContextSuggestion? nt51926Firmware = firmwareVersionEdit is null
-            ? TryReadFirmwareContextSuggestion("NT51926", context.BasePath!)
+        WorkbenchFirmwareContextSuggestion? firmware = firmwareVersionEdit is null
+            ? TryReadFirmwareContextSuggestion(icId, context.BasePath!)
             : null;
-        string? nt51926V2ProfileId = (
+        string? v2ProfileId = (
+            context.PostbuildProfile!.IcId,
             context.PostbuildProfile!.ProcessorId,
             context.CommandPlan!.Branch,
             context.Selection.Mode,
-            nt51926Firmware?.ChipNumber,
-            nt51926Firmware?.ProjectId) switch
+            firmware?.CommonFwVersion,
+            firmware?.ChipNumber,
+            firmware?.ProjectId) switch
         {
-            ("nfc.nt51926.ctrlram-postbuild-fw1.4.1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, > 1, _) =>
+            ("NT51926", "nfc.nt51926.ctrlram-postbuild-fw1.4.1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, _, > 1, _) =>
                 "nt51926-ctrlram-replace-fw141-runtime-cascade",
-            (Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, 1, 0x1309) =>
+            ("NT51926", Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x1309) =>
                 "nt51926-ctrlram-replace-fw200-runtime-single",
-            (Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, 3, 0x1309) =>
+            ("NT51926", Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "2.0.0", 3, 0x1309) =>
                 "nt51926-ctrlram-replace-fw200-runtime-cascade",
+            ("NT51930", "nfc.nt51930.ctrlram-postbuild-fw1.x", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.3.0", 3, 0x110D) =>
+                "nt51930-ctrlram-replace-fw130-cascade3",
             _ => null,
         };
-        if (nt51926V2ProfileId is not null)
+        if (v2ProfileId is not null)
         {
-            var nt51926Topology = new TopologySelection(
-                nt51926Firmware!.ChipNumber,
-                nt51926Firmware.NumberToken,
-                TopologySelectionSource.Requested,
-                "ic-number");
-            V2CompositionPlanCompileResult v2Compile = CompileNt51926CtrlRamV2(
+            V2CompositionPlanCompileResult v2Compile = CompileCtrlRamV2(
                 context,
-                nt51926V2ProfileId,
-                nt51926Topology);
+                v2ProfileId,
+                new(firmware!.ChipNumber, firmware.NumberToken, TopologySelectionSource.Requested, "ic-number"));
             return !v2Compile.IsCompiled
-                ? Blocked(v2Compile.Issues, "nt51926-ctrlram-replace.bin")
+                ? Blocked(v2Compile.Issues, $"{icId.ToLowerInvariant()}-ctrlram-replace.bin")
                 : await RunCompiledCompositionAsync(
                     CtrlRamReplaceRunIdPrefix,
                     v2Compile.CompiledComposition!,

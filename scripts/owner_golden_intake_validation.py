@@ -7,6 +7,11 @@ import json
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+if __package__:
+    from .owner_golden_nt51930_phase_b import nt51930_phase_b_result
+else:
+    from owner_golden_nt51930_phase_b import nt51930_phase_b_result
+
 
 EXPECTED_20260718_SOURCE_ARCHIVE = {
     "fileName": "Golden_最後一次_20260718_Reply.7z",
@@ -55,9 +60,7 @@ def nt51926_phase_b_result(
         "11264",
     ]
     if topology == "cascade":
-        first_arguments.extend(
-            ["BIN/DiffDLM.bin", "0x0", "0x27800", "10240"]
-        )
+        first_arguments.extend(["BIN/DiffDLM.bin", "0x0", "0x27800", "10240"])
     first_arguments.extend(
         [
             "BIN/MP_Ctrlram.bin",
@@ -163,6 +166,12 @@ EXPECTED_20260718_NT51926_PHASE_B_RESULTS = {
         "b4336e3d935466feb98695eb9f5fe8b10c91c632fc835ffcfa1ed7ffefe0495a",
     ),
 }
+
+
+EXPECTED_20260718_PHASE_B_RESULTS = {
+    **EXPECTED_20260718_NT51926_PHASE_B_RESULTS,
+    "nt51930-fw130-cascade3-auto-prj-302-inx-20260718": nt51930_phase_b_result(),
+}
 EXPECTED_20260718_CASES: dict[str, dict[str, Any]] = {
     "nt51926-fw200-single-auto-prj-597-20260718": {
         "ic": "NT51926",
@@ -227,7 +236,10 @@ EXPECTED_20260718_CASES: dict[str, dict[str, Any]] = {
             "profileVersion": "0.5.0",
             "route": "legacy-workbench-v1",
         },
-        "targetV2": {"status": "not-materialized", "runtimePromotion": False},
+        "targetV2": {
+            "status": "exact-route-materialized",
+            "runtimePromotion": False,
+        },
         "baseKind": "standard-merge-dp-and-tp-inputs",
         "engineeringGateIds": [
             "insertsid-out-of-scope-prestep",
@@ -417,8 +429,10 @@ def verify_20260718_phase_b_results(document: dict[str, Any]) -> None:
         for case in cases
         if isinstance(case, dict) and isinstance(case.get("caseId"), str)
     }
-    for case_id, expected in EXPECTED_20260718_NT51926_PHASE_B_RESULTS.items():
-        require(case_id in indexed_cases, f"20260718 Phase B case is missing: {case_id}")
+    for case_id, expected in EXPECTED_20260718_PHASE_B_RESULTS.items():
+        require(
+            case_id in indexed_cases, f"20260718 Phase B case is missing: {case_id}"
+        )
         require(
             indexed_cases[case_id].get("phaseBResult") == expected,
             f"20260718 Phase B result drifted: {case_id}",

@@ -1,7 +1,9 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -214,6 +216,39 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             StringComparer.Ordinal.Equals(
                 input.GetProperty("ArtifactId").GetString(),
                 WorkbenchSlotIds.ReplaceBase));
+    }
+
+    /// <summary>Proves every accepted NT51926 identifier form retains the reviewed FW2 V2 route.</summary>
+    [Theory]
+    [InlineData("51926")]
+    [InlineData("nt51926")]
+    [InlineData(" NT51926 ")]
+    public async Task Fw200RouteCanonicalizesAcceptedIcIdentifiersAsync(string icId)
+    {
+        OwnerCase evidence = ReadOwnerCase(CascadeCaseId);
+        using var workspace = TempWorkspace.Create("nfc-nt51926-fw200-canonical-id");
+        var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [WorkbenchSlotIds.ReplaceBase] = evidence.Expected.Path,
+            ["replace-ctrlram-normal"] = evidence.Require("Normal_Ctrlram.bin").Path,
+            ["replace-ctrlram-diff"] = evidence.Require("DiffDLM.bin").Path,
+            ["replace-ctrlram-mp"] = evidence.Require("MP_Ctrlram.bin").Path,
+            ["replace-ctrlram-vn"] = evidence.Require("VN_Ctrlram.bin").Path,
+            ["replace-ctrlram-nf"] = evidence.Require("NF_Ctrlram.bin").Path,
+        };
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            icId,
+            "cascade",
+            slotPaths,
+            build: true,
+            workspace.PathFor("canonical-output.bin"),
+            firmwareVersionEdit: null,
+            new PassThroughProcessor(),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        AssertReportIdentity(report.RootElement, "nt51926-ctrlram-replace-fw200-runtime-cascade");
     }
 
     private static OwnerCase ReadOwnerCase(string caseId)
@@ -447,6 +482,16 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
     private static string Hash(ReadOnlySpan<byte> bytes)
     {
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+    }
+
+    private sealed class PassThroughProcessor : IExternalProcessor
+    {
+        public ValueTask<ExternalProcessorResult> TransformAsync(
+            ExternalProcessorRequest request,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
+        }
     }
 
     private sealed record OwnerArtifact(

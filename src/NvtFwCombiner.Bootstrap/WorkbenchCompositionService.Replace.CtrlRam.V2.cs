@@ -8,7 +8,7 @@ public static partial class WorkbenchCompositionService
 {
     private const string Nt51926Fw200ProcessorId = "nfc.nt51926.ctrlram-postbuild-v1";
 
-    private static V2CompositionPlanCompileResult CompileNt51926CtrlRamV2(
+    private static V2CompositionPlanCompileResult CompileCtrlRamV2(
         CtrlRamReplaceRunContext context,
         string profileId,
         TopologySelection topology)
@@ -47,14 +47,14 @@ public static partial class WorkbenchCompositionService
                     new ByteRange(entry.Block.FirmwareRange.Start, effectiveLength),
                     OverlapPolicy.Reject,
                     alignment: 1,
-                    reason: "Copy the selected CtrlRAM source prefix into the exact NT51926 physical range selected from the reference firmware.");
+                    reason: "Copy the selected CtrlRAM source prefix into the exact physical range selected from the reference firmware.");
                 }),
         ];
 
-        return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
+        return BuiltInV2BundleRegistry.All[$"{context.PostbuildProfile!.IcId.ToLowerInvariant()}-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
             profileId,
             "0.1.0",
-            "NT51926",
+            context.PostbuildProfile.IcId,
             ExperienceIds.CtrlRamReplace,
             topology,
             [new FirmwareArtifactPayload(
