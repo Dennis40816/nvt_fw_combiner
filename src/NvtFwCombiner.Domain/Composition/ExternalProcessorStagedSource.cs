@@ -7,14 +7,22 @@ public sealed class ExternalProcessorStagedSource
 
     /// <summary>Creates staged source bytes for a firmware image range.</summary>
     public ExternalProcessorStagedSource(ByteRange firmwareRange, ReadOnlyMemory<byte> bytes)
+        : this(firmwareRange, ClonePublicBytes(firmwareRange, bytes))
     {
-        if (bytes.Length != firmwareRange.Length)
+    }
+
+    private ExternalProcessorStagedSource(ByteRange firmwareRange, byte[] ownedBytes)
+    {
+        ArgumentNullException.ThrowIfNull(ownedBytes);
+        if (ownedBytes.Length != firmwareRange.Length)
         {
-            throw new ArgumentException("Staged source byte count must match the firmware range length.", nameof(bytes));
+            throw new ArgumentException(
+                "Staged source byte count must match the firmware range length.",
+                nameof(ownedBytes));
         }
 
         FirmwareRange = firmwareRange;
-        _bytes = bytes.ToArray();
+        _bytes = ownedBytes;
     }
 
     /// <summary>Firmware image range these source bytes correspond to.</summary>
@@ -22,4 +30,16 @@ public sealed class ExternalProcessorStagedSource
 
     /// <summary>Cloned staged source bytes.</summary>
     public ReadOnlyMemory<byte> Bytes => _bytes;
+
+    internal static ExternalProcessorStagedSource FromOwnedBytes(ByteRange firmwareRange, byte[] ownedBytes)
+    {
+        return new ExternalProcessorStagedSource(firmwareRange, ownedBytes);
+    }
+
+    private static byte[] ClonePublicBytes(ByteRange firmwareRange, ReadOnlyMemory<byte> bytes)
+    {
+        return bytes.Length != firmwareRange.Length
+            ? throw new ArgumentException("Staged source byte count must match the firmware range length.", nameof(bytes))
+            : bytes.ToArray();
+    }
 }

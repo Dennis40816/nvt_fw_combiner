@@ -18,6 +18,36 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("bytes.ToArray()", normalization, StringComparison.Ordinal);
     }
 
+    /// <summary>Engine-created staging ranges avoid a second copy without weakening public isolation.</summary>
+    [Fact]
+    public void ExternalProcessorStagingRetainsOnlyEngineOwnedRanges()
+    {
+        string engine = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/CompositionEngine.ExternalProcessors.cs");
+        string artifact = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/ExternalProcessorStagedArtifact.cs");
+        string source = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/ExternalProcessorStagedSource.cs");
+        string normalizedEngine = engine.ReplaceLineEndings("\n");
+
+        Assert.Contains(
+            "byte[] sourceBytes = ReadSlice(sourceBuffer, binding.SourceRange);\n"
+                + "            stagedSources.Add(ExternalProcessorStagedSource.FromOwnedBytes("
+                + "binding.FirmwareRange, sourceBytes));",
+            normalizedEngine,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "stagedArtifacts.Add(ExternalProcessorStagedArtifact.FromOwnedBytes(\n"
+                + "                binding.ArtifactId,\n"
+                + "                ReadSlice(sourceBuffer, binding.SourceRange)));",
+            normalizedEngine,
+            StringComparison.Ordinal);
+        Assert.Contains(": this(artifactId, ClonePublicBytes(artifactId, bytes))", artifact, StringComparison.Ordinal);
+        Assert.Contains(": this(firmwareRange, ClonePublicBytes(firmwareRange, bytes))", source, StringComparison.Ordinal);
+        Assert.Contains(": bytes.ToArray();", artifact, StringComparison.Ordinal);
+        Assert.Contains(": bytes.ToArray();", source, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies only the profile compiler can mint executable legacy artifacts in production code.</summary>
     [Fact]
     public void ProductionCompiledCompositionCreationStaysProfileCompilerOwned()
