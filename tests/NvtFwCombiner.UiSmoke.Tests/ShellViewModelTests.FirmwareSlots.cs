@@ -183,6 +183,83 @@ public sealed partial class ShellViewModelTests
             !fact.IsWarning);
     }
 
+    /// <summary>File, context, date, and slot identity control output-name cache reuse.</summary>
+    [Fact]
+    public void OutputFileNameProjectionCacheReusesOnlyAnUnchangedIdentity()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-cache");
+        string dpPath = workspace.Write("dp.bin", [0x00]);
+        var slots = new List<FirmwareSlotViewModel>
+        {
+            new("merge-dp", "DP BIN", "Display payload", FirmwareSlotKind.Dp)
+            {
+                FilePath = dpPath,
+            },
+        };
+        var cache = new OutputFileNameProjectionCache();
+        var date = new DateOnly(2026, 7, 18);
+        int invocationCount = 0;
+        string Create(string icId, DateOnly snapshotDate, IReadOnlyList<FirmwareSlotViewModel> snapshotSlots)
+        {
+            return $"projection-{++invocationCount}";
+        }
+
+        string first = cache.GetOrCreate("NT51950", date, slots, Create);
+        string repeated = cache.GetOrCreate("NT51950", date, slots, Create);
+
+        Assert.Equal(1, invocationCount);
+        Assert.Same(first, repeated);
+
+        File.SetLastWriteTimeUtc(dpPath, File.GetLastWriteTimeUtc(dpPath).AddMinutes(1));
+        _ = cache.GetOrCreate("NT51950", date, slots, Create);
+        _ = cache.GetOrCreate("NT51951", date, slots, Create);
+        _ = cache.GetOrCreate("NT51951", date.AddDays(1), slots, Create);
+        slots.Add(new FirmwareSlotViewModel("merge-tp", "TP BIN", "Touch payload", FirmwareSlotKind.Tp));
+        _ = cache.GetOrCreate("NT51951", date.AddDays(1), slots, Create);
+
+        Assert.Equal(5, invocationCount);
+    }
+
+    /// <summary>A file changed during naming cannot publish a result under the later stamp.</summary>
+    [Fact]
+    public void OutputFileNameProjectionCacheRejectsStampChangeDuringCreation()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-cache-race");
+        string dpPath = workspace.Write("dp.bin", [0x00]);
+        var slots = new List<FirmwareSlotViewModel>
+        {
+            new("merge-dp", "DP BIN", "Display payload", FirmwareSlotKind.Dp)
+            {
+                FilePath = dpPath,
+            },
+        };
+        var cache = new OutputFileNameProjectionCache();
+        var date = new DateOnly(2026, 7, 18);
+        int invocationCount = 0;
+
+        string changedDuringRead = cache.GetOrCreate("NT51950", date, slots, (_, _, _) =>
+        {
+            invocationCount++;
+            File.SetLastWriteTimeUtc(dpPath, File.GetLastWriteTimeUtc(dpPath).AddMinutes(1));
+            return "changed-during-read";
+        });
+        string stable = cache.GetOrCreate("NT51950", date, slots, (_, _, _) =>
+        {
+            invocationCount++;
+            return "stable";
+        });
+        string repeated = cache.GetOrCreate("NT51950", date, slots, (_, _, _) =>
+        {
+            invocationCount++;
+            return "unexpected";
+        });
+
+        Assert.Equal("changed-during-read", changedDuringRead);
+        Assert.Equal("stable", stable);
+        Assert.Same(stable, repeated);
+        Assert.Equal(2, invocationCount);
+    }
+
     /// <summary>Verifies an unobserved DP size keeps the concise DP/Jira slot badge set.</summary>
     [Fact]
     public void DpFirmwareSlotKeepsCmiSizeDiagnosticsOutOfBadges()

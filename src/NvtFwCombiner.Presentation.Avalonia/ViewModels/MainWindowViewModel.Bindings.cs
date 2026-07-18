@@ -104,10 +104,14 @@ public sealed partial class MainWindowViewModel
     public string MergeMemoryRangeLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the profile-owned default Standard Merge output file name.</summary>
-    public string StandardMergeOutputFileName => CreateFlashCodeOutputFileName(MergeSlots);
+    public string StandardMergeOutputFileName => CreateFlashCodeOutputFileName(
+        MergeSlots,
+        _mergeOutputFileNameCache);
 
     /// <summary>Gets the default General Merge output file name.</summary>
-    public string GeneralMergeOutputFileName => CreateFlashCodeOutputFileName(MergeSlots);
+    public string GeneralMergeOutputFileName => CreateFlashCodeOutputFileName(
+        MergeSlots,
+        _mergeOutputFileNameCache);
 
     /// <summary>Gets the active Merge output file name.</summary>
     public string MergeOutputFileName => IsGeneralMergeModeSelected
@@ -118,7 +122,9 @@ public sealed partial class MainWindowViewModel
     public string ReplaceMemoryRangeLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the default Replace output file name for the active mode.</summary>
-    public string ReplaceOutputFileName => CreateFlashCodeOutputFileName(ReplaceSlots.Concat([ReplaceBaseSlot]));
+    public string ReplaceOutputFileName => CreateFlashCodeOutputFileName(
+        ReplaceSlots.Concat([ReplaceBaseSlot]),
+        _replaceOutputFileNameCache);
 
     /// <summary>Gets short Merge memory-map summary text.</summary>
     public string MergeMemorySummary => Text.GetMergeMemorySummary(
