@@ -11,6 +11,7 @@ public sealed partial class ReportReviewViewModel
     private static OutputDifferenceProjection ParseOutputDifferences(
         JsonElement root,
         byte[] reportUtf8,
+        string outputSpaceId,
         ShellLanguage language,
         CancellationToken cancellationToken)
     {
@@ -39,6 +40,7 @@ public sealed partial class ReportReviewViewModel
         var groupOrder = new List<DifferenceGroupBuilder>();
         var summaryBySection = new Dictionary<string, DifferenceSummaryBuilder>(StringComparer.Ordinal);
         var summaryOrder = new List<DifferenceSummaryBuilder>();
+        var hexDiffDescriptors = new ReportHexDiffRangeDescriptor[count];
         int acceptedCount = 0;
         int index = 0;
         foreach (JsonElement difference in differences.EnumerateArray())
@@ -67,7 +69,20 @@ public sealed partial class ReportReviewViewModel
             }
 
             group.SourceIndices.Add(index);
-            if (IsAcceptedOutputDifference(difference, classification))
+            bool isAccepted = IsAcceptedOutputDifference(difference, classification);
+            bool hasTypedRange = TryGetHexDiffRange(
+                difference,
+                out long rangeStart,
+                out long rangeLength,
+                out long rangeEndExclusive);
+            hexDiffDescriptors[index] = new ReportHexDiffRangeDescriptor(
+                index,
+                hasTypedRange ? rangeStart : -1,
+                hasTypedRange ? rangeLength : 0,
+                hasTypedRange ? rangeEndExclusive : -1,
+                GetLong(difference, "ChangedByteCount"),
+                isAccepted);
+            if (isAccepted)
             {
                 group.AcceptedCount++;
                 summary.AcceptedCount++;
@@ -119,7 +134,20 @@ public sealed partial class ReportReviewViewModel
                     : T(language, "contains a difference that needs review", "包含需要審查的差異")));
         }
 
-        return new OutputDifferenceProjection(rows, groups, summaryRows, acceptedCount);
+        var hexDiffRows = new MemoizedIndexedReadOnlyList<ReportHexDiffRangeViewModel>(
+            count,
+            sourceIndex => ParseHexDiffRange(
+                reportUtf8,
+                slices[sourceIndex],
+                hexDiffDescriptors[sourceIndex],
+                outputSpaceId,
+                language));
+        return new OutputDifferenceProjection(
+            rows,
+            groups,
+            summaryRows,
+            acceptedCount,
+            new ReportHexDiffSource(hexDiffDescriptors, hexDiffRows));
     }
 
     private static ReportLineViewModel ParseOutputDifference(
@@ -127,14 +155,14 @@ public sealed partial class ReportReviewViewModel
         JsonValueSlice slice,
         ShellLanguage language)
     {
-        using JsonDocument document = JsonDocument.Parse(reportUtf8.Slice(slice.Start, slice.Length));
+        using var document = JsonDocument.Parse(reportUtf8.Slice(slice.Start, slice.Length));
         return ParseOutputDifference(document.RootElement, language);
     }
 
     private static ReportLineViewModel ParseOutputDifference(JsonElement difference, ShellLanguage language)
     {
         string classification = GetString(difference, "Classification");
-        bool accepted = GetBool(difference, "IsAccepted");
+        bool accepted = IsAcceptedOutputDifference(difference, classification);
         string beforeFullHex = GetStringOrNull(difference, "BeforeHex") ?? string.Empty;
         string afterFullHex = GetStringOrNull(difference, "AfterHex") ?? string.Empty;
         string beforePreviewHex = GetStringOrNull(difference, "BeforeHexPreview") ?? string.Empty;
@@ -205,6 +233,26 @@ public sealed partial class ReportReviewViewModel
             afterValue: after);
     }
 
+    private static ReportHexDiffRangeViewModel ParseHexDiffRange(
+        ReadOnlyMemory<byte> reportUtf8,
+        JsonValueSlice slice,
+        ReportHexDiffRangeDescriptor descriptor,
+        string outputSpaceId,
+        ShellLanguage language)
+    {
+        using var document = JsonDocument.Parse(reportUtf8.Slice(slice.Start, slice.Length));
+        JsonElement difference = document.RootElement;
+        ReportLineViewModel detail = ParseOutputDifference(difference, language);
+        return new ReportHexDiffRangeViewModel(
+            descriptor,
+            detail,
+            outputSpaceId,
+            language,
+            GetString(difference, "Evidence"),
+            GetString(difference, "BeforeSha256"),
+            GetString(difference, "AfterSha256"));
+    }
+
     private static string FormatDifferenceClassification(string classification, ShellLanguage language)
     {
         return classification switch
@@ -253,6 +301,21 @@ public sealed partial class ReportReviewViewModel
             (!string.IsNullOrWhiteSpace(semanticCategoryLabel)
                 ? semanticCategoryLabel
                 : FormatDifferenceSectionLabel(classification, language));
+    }
+
+    private static bool TryGetHexDiffRange(
+        JsonElement difference,
+        out long start,
+        out long length,
+        out long endExclusive)
+    {
+        start = 0;
+        length = 0;
+        endExclusive = 0;
+        return TryGetRange(difference, "Range") is { } range &&
+            range.TryGetProperty("Start", out JsonElement startValue) && startValue.TryGetInt64(out start) &&
+            range.TryGetProperty("Length", out JsonElement lengthValue) && lengthValue.TryGetInt64(out length) &&
+            range.TryGetProperty("EndExclusive", out JsonElement endValue) && endValue.TryGetInt64(out endExclusive);
     }
 
     private static bool IsAcceptedOutputDifference(JsonElement difference, string classification)
@@ -410,17 +473,20 @@ public sealed partial class ReportReviewViewModel
                 static _ => throw new InvalidOperationException("An empty projection has no report rows.")),
             [],
             [],
-            acceptedCount: 0);
+            acceptedCount: 0,
+            ReportHexDiffSource.Empty);
 
         internal OutputDifferenceProjection(
             MemoizedIndexedReadOnlyList<ReportLineViewModel> rows,
             IReadOnlyList<ReportDifferenceGroupViewModel> groups,
             IReadOnlyList<ReportDifferenceSummaryRowViewModel> summaryRows,
-            int acceptedCount)
+            int acceptedCount,
+            ReportHexDiffSource hexDiffSource)
         {
             ArgumentNullException.ThrowIfNull(rows);
             ArgumentNullException.ThrowIfNull(groups);
             ArgumentNullException.ThrowIfNull(summaryRows);
+            ArgumentNullException.ThrowIfNull(hexDiffSource);
             ArgumentOutOfRangeException.ThrowIfNegative(acceptedCount);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(acceptedCount, rows.Count);
 
@@ -428,6 +494,7 @@ public sealed partial class ReportReviewViewModel
             Groups = groups;
             SummaryRows = summaryRows;
             AcceptedCount = acceptedCount;
+            HexDiffSource = hexDiffSource;
         }
 
         internal MemoizedIndexedReadOnlyList<ReportLineViewModel> Rows { get; }
@@ -443,6 +510,8 @@ public sealed partial class ReportReviewViewModel
         internal bool HasReviewRequired => AcceptedCount != Count;
 
         internal int MaterializedCount => Rows.MaterializedCount;
+
+        internal ReportHexDiffSource HexDiffSource { get; }
     }
 
     private sealed class DifferenceGroupBuilder(string sectionLabel)

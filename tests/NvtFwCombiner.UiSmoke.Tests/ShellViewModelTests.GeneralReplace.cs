@@ -104,6 +104,32 @@ public sealed partial class ShellViewModelTests
             viewModel.CompositionProgress.CurrentPhase);
         Assert.Contains(viewModel.LoadedReport.Operations, operation =>
             operation.Title.Contains("general-map-1", StringComparison.Ordinal));
+        Assert.True(viewModel.LoadedReport.HexDiff.IsAvailable);
+        Assert.Equal("output-image", viewModel.LoadedReport.HexDiff.OutputSpaceId);
+        Assert.Contains(viewModel.LoadedReport.HexDiff.VisibleRows, row =>
+            row.Start == 0x100 && row.ChangedMask == 0b11);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+        await Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
+        ReportHexDiffViewModel chineseHexDiff = viewModel.LoadedReport.HexDiff;
+        Assert.True(chineseHexDiff.IsAvailable);
+        Assert.Equal("完整 Hex Diff", chineseHexDiff.AvailabilityTitle);
+        ReportHexDiffRangeViewModel chineseRange = Assert.IsType<ReportHexDiffRangeViewModel>(
+            chineseHexDiff.SelectedRange);
+        Assert.Contains("半開區間", chineseRange.AccessibleRange, StringComparison.Ordinal);
+        Assert.Equal("預期", chineseRange.Status);
+        ReportHexDiffViewportRowViewModel chineseChangedRow = Assert.Single(
+            chineseHexDiff.VisibleRows,
+            static row => row.Start == 0x100);
+        Assert.Contains("輸出", chineseChangedRow.AccessibleLabel, StringComparison.Ordinal);
+        chineseHexDiff.ShowOriginalRows = true;
+        Assert.Contains("原始", chineseChangedRow.AccessibleLabel, StringComparison.Ordinal);
+        chineseHexDiff.JumpAddress = "0x101";
+        chineseHexDiff.JumpAddressCommand.Execute(null);
+        Assert.Contains("位址", chineseHexDiff.JumpStatus, StringComparison.Ordinal);
+        chineseHexDiff.JumpAddress = "0x40000";
+        chineseHexDiff.JumpAddressCommand.Execute(null);
+        Assert.Contains("請輸入", chineseHexDiff.JumpStatus, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies the shared UI reaches the NT51926 single full-Flash DP-only V2 route.</summary>
