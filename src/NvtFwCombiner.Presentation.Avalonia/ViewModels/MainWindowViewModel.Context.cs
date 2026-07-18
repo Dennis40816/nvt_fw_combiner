@@ -103,7 +103,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
-        OnPropertyChanged(nameof(DeviceContextStatus));
+        NotifyActiveRunContextChanged();
     }
 
     private void ResetRunResultForContextChange()
@@ -252,6 +252,14 @@ public sealed partial class MainWindowViewModel
         BuildReplaceCommand.NotifyCanExecuteChanged();
         ShowReportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsRunInProgress));
+        OnPropertyChanged(nameof(IsDeviceContextVisible));
+        OnPropertyChanged(nameof(IsNumberSelectorVisible));
+        OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
+        OnPropertyChanged(nameof(DeviceContextStatus));
+        OnPropertyChanged(nameof(HasTypedRunProgress));
+        OnPropertyChanged(nameof(RunProgressStatusLabel));
+        OnPropertyChanged(nameof(RunProgressDisplayLabel));
+        OnPropertyChanged(nameof(ShouldAnimateRunProgress));
         OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(MergeBuildActionTip));

@@ -16,6 +16,7 @@ public sealed partial class MainWindowViewModel
         ApplyFirmwareSlotText();
         ApplyInitialRunResultText();
         HexEditorWorkspace.ApplyTextResources(Text);
+        CompositionProgress.ApplyLanguage(language);
 
         if (!notify)
         {

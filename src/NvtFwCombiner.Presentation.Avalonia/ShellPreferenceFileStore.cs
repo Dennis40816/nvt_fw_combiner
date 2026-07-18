@@ -32,7 +32,10 @@ public static class ShellPreferenceFileStore
             path,
             ShellPreferenceSnapshot.Default,
             (ShellPreferenceFile? file) => file is { SchemaVersion: SchemaVersion, Preferences: { } entry }
-                ? new ShellPreferenceSnapshot(entry.Theme ?? string.Empty, entry.Language ?? string.Empty)
+                ? new ShellPreferenceSnapshot(
+                    entry.Theme ?? string.Empty,
+                    entry.Language ?? string.Empty,
+                    entry.IsReducedMotionEnabled)
                 : ShellPreferenceSnapshot.Default);
     }
 
@@ -46,7 +49,11 @@ public static class ShellPreferenceFileStore
             path,
             new ShellPreferenceFile(
                 SchemaVersion,
-                new ShellPreferenceFileEntry(preferences.Theme, "Strict", preferences.Language)));
+                new ShellPreferenceFileEntry(
+                    preferences.Theme,
+                    "Strict",
+                    preferences.Language,
+                    preferences.IsReducedMotionEnabled)));
     }
 
     private sealed record ShellPreferenceFile(
@@ -56,5 +63,6 @@ public static class ShellPreferenceFileStore
     private sealed record ShellPreferenceFileEntry(
         string? Theme,
         string? Strictness,
-        string? Language);
+        string? Language,
+        bool IsReducedMotionEnabled = false);
 }

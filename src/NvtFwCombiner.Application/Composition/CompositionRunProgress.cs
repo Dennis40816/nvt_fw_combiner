@@ -88,6 +88,9 @@ public sealed class CompositionRunProgressFeed
         });
     private string? _runId;
 
+    /// <summary>True after Application has attached this feed to a concrete run.</summary>
+    public bool IsAttached => Volatile.Read(ref _runId) is not null;
+
     /// <summary>Reads lifecycle snapshots until the attached composition run completes.</summary>
     public IAsyncEnumerable<CompositionRunProgressSnapshot> ReadAllAsync(
         CancellationToken cancellationToken = default)

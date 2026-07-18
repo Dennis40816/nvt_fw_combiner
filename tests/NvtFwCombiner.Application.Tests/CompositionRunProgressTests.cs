@@ -15,6 +15,8 @@ public sealed partial class CompositionRunServiceTests
         CompositionRunService service = CreateService(out _);
         var progress = new CompositionRunProgressFeed();
 
+        Assert.False(progress.IsAttached);
+
         CompositionRunResult result = await service.PreviewAsync(
             CreateRequest(),
             progress,
@@ -22,6 +24,7 @@ public sealed partial class CompositionRunServiceTests
         List<CompositionRunProgressSnapshot> snapshots = await ReadProgressAsync(progress);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.True(progress.IsAttached);
         AssertLinearProgress(
             snapshots,
             [

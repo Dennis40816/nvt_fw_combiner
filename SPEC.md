@@ -684,11 +684,13 @@ Build automatically runs the same validation path as Preview before committing o
 
 Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings. The initial default language is English.
 
-While Preview or Build is active, the shell shows one accessible, indeterminate progress bar beside
-the selected IC/mode context. It must not invent percentage completion when the
-composition/external-tool contracts do not expose byte-level progress. CtrlRAM Replace remains one
-logical run across validation, replacement, and the approved Postbuild sequence; approved external
-processes execute headlessly and never open user-visible console windows.
+While Preview or Build is active, the shell shows one accessible typed lifecycle stepper and a
+restrained indeterminate activity bar beside the selected IC/mode context. The current Application-
+owned step and lifecycle ordinal are visible; it must not invent percentage completion when the
+composition/external-tool contracts do not expose byte-level progress. A reduced-motion preference
+keeps the same static step and accessible live status while removing the indeterminate animation.
+CtrlRAM Replace remains one logical run across validation, replacement, and the approved Postbuild
+sequence; approved external processes execute headlessly and never open user-visible console windows.
 
 ### 11.5 Typography and localization defaults
 

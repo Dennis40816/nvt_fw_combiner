@@ -13,6 +13,7 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
         string? outputPath,
+        CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken)
     {
         if (!TryCreateBuiltInV2DpReplaceRunContext(
@@ -81,7 +82,8 @@ public static partial class WorkbenchCompositionService
             externalProcessor: null,
             icNumberSelection: context.Selection,
             overwrite: true,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            progress: progress).ConfigureAwait(false);
     }
 
     private static List<WorkbenchReplaceInputSlot> GetDpReplaceInputSlots(string icId)

@@ -45,6 +45,8 @@ public sealed partial class MainWindowViewModel
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         HexEditorWorkspace = new HexEditorWorkspaceViewModel(Text);
+        CompositionProgress = new CompositionRunProgressViewModel(language);
+        CompositionProgress.PropertyChanged += CompositionProgress_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
         ShowHomeCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Home));
         ShowSettingsCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Settings));

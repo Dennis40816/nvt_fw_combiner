@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -94,8 +95,9 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         using var workspace = TempWorkspace.Create($"nfc-v2-dp-replace-{icId}-{baseCapacity:X}");
         string basePath = workspace.Write("base.bin", CreatePattern(baseCapacity, 0x31));
         string replacementPath = workspace.Write("replacement-dp.bin", CreatePattern(baseCapacity - 0x1000, 0xA7));
+        var progress = new CompositionRunProgressFeed();
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceWithProgressAsync(
             icId,
             "single",
             "DP",
@@ -104,10 +106,29 @@ public sealed class BuiltInV2DpReplaceRoutingTests
                 ["replace-base"] = basePath,
                 ["replace-dp"] = replacementPath,
             },
+            [],
+            [],
             build: false,
+            progress,
             TestContext.Current.CancellationToken);
+        List<CompositionRunProgressSnapshot> snapshots = [];
+        await foreach (CompositionRunProgressSnapshot snapshot in
+            progress.ReadAllAsync(TestContext.Current.CancellationToken))
+        {
+            snapshots.Add(snapshot);
+        }
 
         Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(progress.IsAttached);
+        Assert.Equal(
+            [
+                CompositionRunPhase.Preparing,
+                CompositionRunPhase.ReadingInputs,
+                CompositionRunPhase.ExecutingComposition,
+                CompositionRunPhase.ValidatingOutput,
+                CompositionRunPhase.PreparingReport,
+            ],
+            snapshots.Select(static snapshot => snapshot.CurrentPhase));
         Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", result.ProfileId);
         using var report = JsonDocument.Parse(result.ReportJson);
         Assert.Equal(
