@@ -1,8 +1,9 @@
 # v0.9.10 Replace Performance Baseline
 
 Status: deterministic orchestration/count baseline on the reviewed `v0.9.9`
-source line; wall-clock, allocation, Infrastructure staging-read, and final
-same-source node B/C evidence remain open.
+source line plus local fragmented-report allocation evidence; wall-clock,
+Infrastructure staging-read, and final same-source node B/C evidence remain
+open.
 
 Captured: 2026-07-18. Executable owner:
 `tests/NvtFwCombiner.Bootstrap.Tests/CompositionRunExecutionMetricsTests.cs`.
@@ -46,6 +47,33 @@ Run the executable baseline from the repository root:
 
 ```text
 dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj --filter "FullyQualifiedName~CompositionRunExecutionMetricsTests"
+```
+
+## Fragmented report microbaseline
+
+`CompositionReportPerformanceBaselineTests` executes one real Application
+Preview over a 20,000-byte Replace image with 10,000 disjoint one-byte
+differences. It locks the complete output and report representation:
+
+- output SHA-256
+  `e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4`;
+- indented JSON length `11,720,520` characters; and
+- JSON SHA-256
+  `16d46159b46bcb3acdd27783321b21504a721f01e4dddef43f10fc336a49c937`.
+
+On the same local .NET 10 test path, run-through-report current-thread
+allocation changed from `20,162,040` bytes at the initial baseline to
+`11,719,480` bytes after the bounded P1 slices, a reduction of `8,442,560`
+bytes (`41.9%`). The exact output/JSON facts above did not change. The latest
+observed indented JSON serialization allocation was `57,965,264` bytes, so
+serialization remains a separate residual instead of being hidden by the
+report-construction improvement. These allocation numbers are diagnostic local
+evidence, not universal CI thresholds.
+
+Run the focused evidence from the repository root:
+
+```text
+dotnet test tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj --filter "FullyQualifiedName~CompositionReportPerformanceBaselineTests" --logger "console;verbosity=detailed"
 ```
 
 ## Firmware evidence scope
