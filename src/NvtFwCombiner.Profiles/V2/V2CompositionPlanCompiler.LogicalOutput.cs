@@ -4,8 +4,8 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class V2CompositionPlanCompiler
 {
-    private const string LogicalPreparationNotAdmitted = "profile.v2.logical.preparation-not-admitted";
     private const string LogicalProfileShapeInvalid = "profile.v2.logical.profile-shape-invalid";
+    private const string LogicalMemberNotAdmitted = "profile.v2.logical.member-not-admitted";
     private const string LogicalOutputCapacityInvalid = "profile.v2.logical.output-capacity-invalid";
     private const string LogicalBindingInvalid = "profile.v2.logical.binding-invalid";
     private const string LogicalMappingInvalid = "profile.v2.logical.mapping-invalid";
@@ -14,29 +14,33 @@ internal static partial class V2CompositionPlanCompiler
 
     /// <summary>Lowers one admitted logical-output General Merge request through the shared plan algebra.</summary>
     internal static V2CompositionPlanCompileResult CompileLogicalOutput(
-        V2LogicalOutputPreparationResult preparation,
+        TrustedProfileBundleCatalog.ProfileSelection selection,
+        TrustedCompositionProfileCatalogEntry profileEntry,
+        string memberId,
         V2LogicalOutputCompileRequest request)
     {
-        ArgumentNullException.ThrowIfNull(preparation);
+        ArgumentNullException.ThrowIfNull(selection);
+        ArgumentNullException.ThrowIfNull(profileEntry);
         ArgumentNullException.ThrowIfNull(request);
-        if (!preparation.IsAdmitted || preparation.Selection is null || preparation.Admission is null)
+        CompositionProfileDefinition profile = profileEntry.Profile;
+        if (!IsLogicalOutputProfile(profile))
         {
             return V2CompositionPlanCompileResult.Failed([
                 new CompositionIssue(
-                    LogicalPreparationNotAdmitted,
-                    "Logical-output plan lowering requires an admitted trusted preparation.")]);
+                    LogicalProfileShapeInvalid,
+                    "The selected trusted V2 profile is not a logical-output General Merge declaration.")]);
         }
 
-        CompositionProfileDefinition profile = preparation.Admission.ProfileEntry.Profile;
-        var issues = new List<CompositionIssue>();
-        if (!IsLogicalOutputProfile(profile))
+        if (string.IsNullOrWhiteSpace(memberId) ||
+            !profile.LogicalOutputBinding.MemberIds.Contains(memberId, StringComparer.Ordinal))
         {
-            issues.Add(new CompositionIssue(
-                LogicalProfileShapeInvalid,
-                "The admitted profile is not the closed logical-output General Merge shape."));
-            return V2CompositionPlanCompileResult.Failed(issues);
+            return V2CompositionPlanCompileResult.Failed([
+                new CompositionIssue(
+                    LogicalMemberNotAdmitted,
+                    "The requested member is not admitted by the selected logical-output profile.")]);
         }
 
+        var issues = new List<CompositionIssue>();
         ValidateLogicalRequest(profile, request, issues);
         if (issues.Count != 0)
         {
@@ -78,13 +82,13 @@ internal static partial class V2CompositionPlanCompiler
             operations);
         CompositionProfileInputSlot inputSlot = AssertLogicalInputSlot(profile);
         var provenance = new V2CompilationProvenance(
-            preparation.Selection.BundleIdentity,
-            preparation.Selection.ProfileEntryIdentity,
+            selection.BundleIdentity,
+            selection.ProfileEntryIdentity,
             new LogicalOutputV2CompilationContext(
                 profile.LogicalOutputBinding.FamilyId,
                 profile.LogicalOutputBinding.FamilyVersion,
                 profile.LogicalOutputBinding.FamilyContentHash,
-                preparation.Admission.MemberId),
+                memberId),
             new CompiledProfilePromotion(
                 MapPromotionStage(profile.Promotion.Stage),
                 profile.Promotion.Blockers.Select(MapPromotionBlocker)),

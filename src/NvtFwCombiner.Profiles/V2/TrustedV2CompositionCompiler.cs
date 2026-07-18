@@ -36,22 +36,19 @@ internal static class TrustedV2CompositionCompiler
         }
 
         TrustedProfileBundleCatalog.ProfileSelectionResult selectionResult = catalog.SelectProfile(profileId, profileVersion);
-        if (selectionResult.Selection is not { } selection)
-        {
-            return Failed(
+        return selectionResult.Selection is not { } selection
+            ? Failed(
                 selectionResult.Issues,
                 "profile.v2.logical.selection-unresolved",
-                "The selected trusted logical-output profile could not be resolved from its catalog.");
-        }
-
-        V2LogicalOutputPreparationResult preparation = V2LogicalOutputPreparationService.Prepare(
-            catalog,
-            selection,
-            memberId);
-        return preparation.IsAdmitted
-            ? V2CompositionPlanCompiler.CompileLogicalOutput(preparation, request)
+                "The selected trusted logical-output profile could not be resolved from its catalog.")
+            : catalog.TryResolveSelection(selection, out TrustedCompositionProfileCatalogEntry? profileEntry)
+            ? V2CompositionPlanCompiler.CompileLogicalOutput(
+                selection,
+                profileEntry,
+                memberId,
+                request)
             : Failed(
-                preparation.Issues,
+                [],
                 "profile.v2.logical.preparation-not-admitted",
                 "The selected trusted V2 profile was not admitted for logical-output lowering.");
     }
