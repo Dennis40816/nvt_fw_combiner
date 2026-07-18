@@ -263,7 +263,7 @@ public sealed partial class MainWindowViewModel
     public bool CanBuildMerge => CanRunMerge();
 
     /// <summary>True when Replace build can run for the active mode.</summary>
-    public bool CanBuildReplace => CanRunReplace();
+    public bool CanBuildReplace => CanRunReplace() && !IsCtrlRamFirmwareVersionMetadataLoading;
 
     /// <summary>Command that returns to the clean home view.</summary>
     public IRelayCommand ShowHomeCommand { get; }

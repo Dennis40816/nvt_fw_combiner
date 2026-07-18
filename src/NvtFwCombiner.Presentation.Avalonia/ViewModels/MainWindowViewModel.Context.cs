@@ -271,6 +271,7 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedReplaceModeChanged(string value)
     {
+        InvalidateCtrlRamFirmwareVersionContext();
         RefreshCtrlRamRegions();
         RefreshReplaceModeState();
         RefreshMemoryMapState();
@@ -281,6 +282,7 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedIcChanged(string value)
     {
+        InvalidateCtrlRamFirmwareVersionContext();
         RefreshNumberChoicesForSelectedIc();
         GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
         RefreshContextState(resetRunResult: true);
@@ -289,6 +291,7 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedNumberChanged(string value)
     {
+        InvalidateCtrlRamFirmwareVersionContext();
         OnPropertyChanged(nameof(SelectedNumberChoice));
         RefreshContextState(resetRunResult: true);
     }
