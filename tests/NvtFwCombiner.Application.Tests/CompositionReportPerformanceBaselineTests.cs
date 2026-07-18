@@ -55,6 +55,12 @@ public sealed class CompositionReportPerformanceBaselineTests
         serializationTimer.Stop();
         long serializationAllocated = GC.GetAllocatedBytesForCurrentThread() - serializationAllocatedBefore;
         string reportJsonSha256 = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(reportJson)));
+        long repeatedSerializationAllocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var repeatedSerializationTimer = Stopwatch.StartNew();
+        string repeatedReportJson = JsonSerializer.Serialize(result.Report, ReportJsonOptions);
+        repeatedSerializationTimer.Stop();
+        long repeatedSerializationAllocated =
+            GC.GetAllocatedBytesForCurrentThread() - repeatedSerializationAllocatedBefore;
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(DifferenceCount, ByteDiff.FindChangedRanges(referenceBytes, result.OutputBytes.Span).Count);
@@ -67,6 +73,9 @@ public sealed class CompositionReportPerformanceBaselineTests
         Assert.Equal(BaselineOutputSha256, result.Report.Output.Sha256);
         Assert.Equal(BaselineJsonCharacterCount, reportJson.Length);
         Assert.Equal(BaselineReportJsonSha256, reportJsonSha256);
+        Assert.True(
+            reportJson.AsSpan().SequenceEqual(repeatedReportJson),
+            "Repeated report serialization must preserve the exact JSON text.");
         Assert.Contains("\"OutputDifferences\": [", reportJson, StringComparison.Ordinal);
 
         TestContext.Current.TestOutputHelper?.WriteLine(
@@ -74,7 +83,9 @@ public sealed class CompositionReportPerformanceBaselineTests
             $"jsonChars={reportJson.Length} jsonSha256={reportJsonSha256} " +
             $"runThroughReportMs={runThroughReportTimer.Elapsed.TotalMilliseconds:F3} " +
             $"runThroughReportAllocated={runThroughReportAllocated} " +
-            $"serializationMs={serializationTimer.Elapsed.TotalMilliseconds:F3} serializationAllocated={serializationAllocated}");
+            $"serializationMs={serializationTimer.Elapsed.TotalMilliseconds:F3} serializationAllocated={serializationAllocated} " +
+            $"repeatedSerializationMs={repeatedSerializationTimer.Elapsed.TotalMilliseconds:F3} " +
+            $"repeatedSerializationAllocated={repeatedSerializationAllocated}");
     }
 
     /// <summary>Verifies immutable semantic metadata is reused only within one report-generation run.</summary>
