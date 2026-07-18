@@ -246,10 +246,11 @@ public sealed record CompiledMetadataValueValidation : CompiledValidationRequire
             throw new ArgumentOutOfRangeException(nameof(comparison), comparison, "Unknown metadata comparison.");
         }
 
-        ArgumentNullException.ThrowIfNull(expectedValues);
-        _expectedValues = [.. expectedValues];
-        if (_expectedValues.Length == 0 || _expectedValues.Any(static value => value is null) ||
-            _expectedValues.Distinct().Count() != _expectedValues.Length ||
+        _expectedValues = ImmutableReferenceSnapshot.Create(
+            expectedValues,
+            "Metadata validation expected values are invalid.",
+            requireValue: true);
+        if (_expectedValues.Distinct().Count() != _expectedValues.Length ||
             (comparison is CompiledValidationMetadataComparison.Equal or CompiledValidationMetadataComparison.NotEqual &&
              _expectedValues.Length != 1))
         {

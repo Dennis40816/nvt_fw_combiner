@@ -164,13 +164,10 @@ internal sealed record MetadataValueProfileValidation : CompositionProfileValida
             throw new ArgumentOutOfRangeException(nameof(comparison), comparison, "Unknown metadata comparison.");
         }
 
-        ArgumentNullException.ThrowIfNull(expectedValues);
-        _expectedValues = [.. expectedValues];
-        if (_expectedValues.Length == 0 || _expectedValues.Any(static value => value is null))
-        {
-            throw new ArgumentException("Metadata comparisons require non-null expected values.", nameof(expectedValues));
-        }
-
+        _expectedValues = NvtFwCombiner.Domain.Composition.ImmutableReferenceSnapshot.Create(
+            expectedValues,
+            "Metadata comparisons require non-null expected values.",
+            requireValue: true);
         if (_expectedValues.Distinct().Count() != _expectedValues.Length)
         {
             throw new ArgumentException("Metadata comparison values must be unique.", nameof(expectedValues));

@@ -72,8 +72,12 @@ internal sealed partial class TrustedProfileBundleCatalog
     {
         ArgumentNullException.ThrowIfNull(bundleIdentity);
         ProfileBundleIdentity.ValidateSha256(manifestSha256, nameof(manifestSha256));
-        _families = Snapshot(families, nameof(families));
-        _profiles = Snapshot(profiles, nameof(profiles));
+        _families = ImmutableReferenceSnapshot.Create(
+            families,
+            "Trusted catalog entries cannot contain null values.");
+        _profiles = ImmutableReferenceSnapshot.Create(
+            profiles,
+            "Trusted catalog entries cannot contain null values.");
         Array.Sort(_families, static (left, right) => CompareFamily(left, right));
         Array.Sort(_profiles, static (left, right) => CompareProfile(left, right));
 
@@ -90,16 +94,6 @@ internal sealed partial class TrustedProfileBundleCatalog
     internal IReadOnlyList<TrustedFirmwareFamilyCatalogEntry> Families { get; }
 
     internal IReadOnlyList<TrustedCompositionProfileCatalogEntry> Profiles { get; }
-
-    private static T[] Snapshot<T>(IEnumerable<T> values, string parameterName)
-        where T : class
-    {
-        ArgumentNullException.ThrowIfNull(values);
-        T[] snapshot = [.. values];
-        return snapshot.Any(static value => value is null)
-            ? throw new ArgumentException("Trusted catalog entries cannot contain null values.", parameterName)
-            : snapshot;
-    }
 
     private static int CompareFamily(
         TrustedFirmwareFamilyCatalogEntry left,

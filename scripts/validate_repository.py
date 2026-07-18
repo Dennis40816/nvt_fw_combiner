@@ -380,12 +380,6 @@ def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
             errors.append(f"unlisted reference source file: {candidate.relative_to(ROOT)}")
 
 
-def validate_golden_fixtures(errors: list[str]) -> None:
-    validate_ab_merge_golden_fixtures(ROOT, load_json, validate_golden_manifest_entry, errors)
-    validate_standard_merge_golden_fixtures(errors)
-    validate_ctrlram_replace_golden_fixtures(errors)
-
-
 def validate_standard_merge_golden_fixtures(errors: list[str]) -> None:
     manifest_path = ROOT / "testdata/golden/standard-merge-gen-flash/manifest.json"
     manifest = load_json(manifest_path, errors)
@@ -774,7 +768,9 @@ def validate() -> list[str]:
     validate_structured_files(files, errors)
     validate_python_syntax(files, errors)
     validate_markdown_links(files, errors)
-    validate_golden_fixtures(errors)
+    validate_ab_merge_golden_fixtures(ROOT, load_json, validate_golden_manifest_entry, errors)
+    validate_standard_merge_golden_fixtures(errors)
+    validate_ctrlram_replace_golden_fixtures(errors)
     validate_skills(errors)
     validate_refcode(errors)
     validate_version_license_and_sdk(errors)

@@ -65,11 +65,11 @@ public sealed class CompiledResolvedPhysicalView
         ArgumentException.ThrowIfNullOrWhiteSpace(viewId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(range.Length);
-        ArgumentNullException.ThrowIfNull(governingRegionChain);
-        _governingRegionChain = [.. governingRegionChain];
-        if (_governingRegionChain.Length == 0 ||
-            _governingRegionChain.Any(static region => region is null) ||
-            _governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
+        _governingRegionChain = ImmutableReferenceSnapshot.Create(
+            governingRegionChain,
+            "Resolved physical views require one non-empty, non-repeating region ancestor chain.",
+            requireValue: true);
+        if (_governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
             _governingRegionChain.Length)
         {
             throw new ArgumentException(
@@ -127,11 +127,11 @@ public sealed class CompiledRegionAccessRequirement
             throw new ArgumentException("Only parts access can declare allowed subregions.", nameof(allowedSubregionIds));
         }
 
-        ArgumentNullException.ThrowIfNull(governingRegionChain);
-        _governingRegionChain = [.. governingRegionChain];
-        if (_governingRegionChain.Length == 0 ||
-            _governingRegionChain.Any(static region => region is null) ||
-            _governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
+        _governingRegionChain = ImmutableReferenceSnapshot.Create(
+            governingRegionChain,
+            "Compiled region access requires one non-empty, non-repeating ancestor chain ending at the target region.",
+            requireValue: true);
+        if (_governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
             _governingRegionChain.Length ||
             !StringComparer.Ordinal.Equals(_governingRegionChain[^1].RegionId, regionId))
         {
@@ -173,27 +173,18 @@ public sealed class CompiledRegionAccessContract
         IEnumerable<CompiledRegionAccessRequirement> requirements,
         IEnumerable<CompiledResolvedPhysicalView> resolvedViews)
     {
-        ArgumentNullException.ThrowIfNull(requirements);
-        ArgumentNullException.ThrowIfNull(resolvedViews);
-        _requirements = [.. requirements];
-        _resolvedViews = [.. resolvedViews];
-        if (_requirements.Any(static requirement => requirement is null) ||
-            _requirements.Select(static requirement => requirement.RegionId).Distinct(StringComparer.Ordinal).Count() !=
-            _requirements.Length)
-        {
-            throw new ArgumentException(
-                "Compiled region access requirements must be non-null with ordinally unique region ids.",
-                nameof(requirements));
-        }
-
-        if (_resolvedViews.Any(static view => view is null) ||
-            _resolvedViews.Select(static view => view.ViewId).Distinct(StringComparer.Ordinal).Count() !=
-            _resolvedViews.Length)
-        {
-            throw new ArgumentException(
-                "Compiled resolved views must be non-null with ordinally unique view ids.",
-                nameof(resolvedViews));
-        }
+        _requirements = ImmutableReferenceSnapshot.CreateUnique(
+            requirements,
+            static requirement => requirement.RegionId,
+            "Compiled region access requirements must be non-null with ordinally unique region ids.",
+            "Compiled region access requirements must be non-null with ordinally unique region ids.",
+            StringComparer.Ordinal);
+        _resolvedViews = ImmutableReferenceSnapshot.CreateUnique(
+            resolvedViews,
+            static view => view.ViewId,
+            "Compiled resolved views must be non-null with ordinally unique view ids.",
+            "Compiled resolved views must be non-null with ordinally unique view ids.",
+            StringComparer.Ordinal);
 
         Array.Sort(_requirements, static (left, right) => StringComparer.Ordinal.Compare(left.RegionId, right.RegionId));
         Array.Sort(_resolvedViews, static (left, right) => StringComparer.Ordinal.Compare(left.ViewId, right.ViewId));

@@ -461,26 +461,20 @@ public sealed class CompiledInputContract
         IEnumerable<CompiledInputSlotRequirement> slots,
         IEnumerable<CompiledInputSpaceBinding> spaceBindings)
     {
-        ArgumentNullException.ThrowIfNull(slots);
-        ArgumentNullException.ThrowIfNull(spaceBindings);
-        _slots = [.. slots];
-        _spaceBindings = [.. spaceBindings];
-        if (_slots.Any(static slot => slot is null) ||
-            _slots.Length == 0 ||
-            _slots.Select(static slot => slot.SlotId).Distinct(StringComparer.Ordinal).Count() != _slots.Length)
-        {
-            throw new ArgumentException("Input slots must be non-null, non-empty, and ordinally unique.", nameof(slots));
-        }
-
-        if (_spaceBindings.Any(static binding => binding is null) ||
-            _spaceBindings.Length == 0 ||
-            _spaceBindings.Select(static binding => binding.AddressSpaceId)
-                .Distinct(StringComparer.Ordinal).Count() != _spaceBindings.Length)
-        {
-            throw new ArgumentException(
-                "Input space bindings must be non-null, non-empty, and unique by address space.",
-                nameof(spaceBindings));
-        }
+        _slots = ImmutableReferenceSnapshot.CreateUnique(
+            slots,
+            static slot => slot.SlotId,
+            "Input slots must be non-null, non-empty, and ordinally unique.",
+            "Input slots must be non-null, non-empty, and ordinally unique.",
+            StringComparer.Ordinal,
+            requireValue: true);
+        _spaceBindings = ImmutableReferenceSnapshot.CreateUnique(
+            spaceBindings,
+            static binding => binding.AddressSpaceId,
+            "Input space bindings must be non-null, non-empty, and ordinally unique by space.",
+            "Input space bindings must be non-null, non-empty, and unique by address space.",
+            StringComparer.Ordinal,
+            requireValue: true);
 
         var slotIds = _slots.Select(static slot => slot.SlotId).ToHashSet(StringComparer.Ordinal);
         if (_spaceBindings.Any(binding => !slotIds.Contains(binding.SlotId)) ||

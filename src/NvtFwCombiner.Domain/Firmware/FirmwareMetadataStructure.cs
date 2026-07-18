@@ -22,12 +22,9 @@ public sealed class FirmwareMetadataStructure
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lengthBytes);
         ArgumentNullException.ThrowIfNull(locator);
 
-        ArgumentNullException.ThrowIfNull(fields);
-        _fields = [.. fields];
-        if (_fields.Any(static field => field is null))
-        {
-            throw new ArgumentException("Metadata structures cannot contain null fields.", nameof(fields));
-        }
+        _fields = Composition.ImmutableReferenceSnapshot.Create(
+            fields,
+            "Metadata structures cannot contain null fields.");
 
         if (_fields.Select(static field => field.FieldId).Distinct(StringComparer.Ordinal).Count() !=
             _fields.Length)
@@ -47,12 +44,9 @@ public sealed class FirmwareMetadataStructure
 
         Array.Sort(_fields, CompareFields);
 
-        ArgumentNullException.ThrowIfNull(assertions);
-        _assertions = [.. assertions];
-        if (_assertions.Any(static assertion => assertion is null))
-        {
-            throw new ArgumentException("Metadata structures cannot contain null assertions.", nameof(assertions));
-        }
+        _assertions = Composition.ImmutableReferenceSnapshot.Create(
+            assertions,
+            "Metadata structures cannot contain null assertions.");
 
         foreach (FirmwareMetadataByteAssertion assertion in _assertions)
         {

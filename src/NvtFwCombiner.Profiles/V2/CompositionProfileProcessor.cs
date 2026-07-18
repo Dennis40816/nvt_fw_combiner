@@ -208,12 +208,9 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         }
 
         ValidatePurposeIntegrity(purpose, integrityDisposition);
-        ArgumentNullException.ThrowIfNull(stagedSourceBindings);
-        _stagedSourceBindings = [.. stagedSourceBindings];
-        if (_stagedSourceBindings.Any(static binding => binding is null))
-        {
-            throw new ArgumentException("Staged source bindings cannot contain null.", nameof(stagedSourceBindings));
-        }
+        _stagedSourceBindings = NvtFwCombiner.Domain.Composition.ImmutableReferenceSnapshot.Create(
+            stagedSourceBindings,
+            "Staged source bindings cannot contain null.");
 
         if (_stagedSourceBindings.Distinct().Count() != _stagedSourceBindings.Length)
         {
@@ -221,10 +218,10 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         }
 
         Array.Sort(_stagedSourceBindings, CompareBindings);
-        ArgumentNullException.ThrowIfNull(stagedArtifactBindings);
-        _stagedArtifactBindings = [.. stagedArtifactBindings];
-        if (_stagedArtifactBindings.Any(static binding => binding is null) ||
-            _stagedArtifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
+        _stagedArtifactBindings = NvtFwCombiner.Domain.Composition.ImmutableReferenceSnapshot.Create(
+            stagedArtifactBindings,
+            "Staged artifact bindings must be non-null with unique artifact ids.");
+        if (_stagedArtifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
             _stagedArtifactBindings.Length)
         {
             throw new ArgumentException(

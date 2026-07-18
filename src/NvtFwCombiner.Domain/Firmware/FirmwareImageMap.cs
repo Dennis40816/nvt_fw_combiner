@@ -126,17 +126,10 @@ public sealed class FirmwareImageMap
         bool requireValue)
         where TFact : class, IFirmwareMapFact
     {
-        ArgumentNullException.ThrowIfNull(bindings);
-        FirmwareMapFactBinding<TFact>[] snapshot = [.. bindings];
-        if (requireValue && snapshot.Length == 0)
-        {
-            throw new ArgumentException("Firmware image maps require a region-set binding.", nameof(bindings));
-        }
-
-        if (snapshot.Any(static binding => binding is null))
-        {
-            throw new ArgumentException("Firmware image-map bindings cannot contain null.", nameof(bindings));
-        }
+        FirmwareMapFactBinding<TFact>[] snapshot = ImmutableReferenceSnapshot.Create(
+            bindings,
+            "Firmware image-map bindings must be non-null and include required values.",
+            requireValue);
 
         foreach (FirmwareMapFactBinding<TFact> binding in snapshot)
         {

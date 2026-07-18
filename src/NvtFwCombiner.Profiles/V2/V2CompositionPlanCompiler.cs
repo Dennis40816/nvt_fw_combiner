@@ -10,9 +10,10 @@ internal sealed class V2CompositionPlanCompileResult
 
     private V2CompositionPlanCompileResult(CompiledComposition? compiledComposition, IEnumerable<CompositionIssue> issues)
     {
-        ArgumentNullException.ThrowIfNull(issues);
-        _issues = [.. issues];
-        if (_issues.Any(static issue => issue is null) || (compiledComposition is null) != (_issues.Length != 0))
+        _issues = ImmutableReferenceSnapshot.Create(
+            issues,
+            "V2 plan compilation requires either one artifact or one or more issues.");
+        if ((compiledComposition is null) != (_issues.Length != 0))
         {
             throw new ArgumentException("V2 plan compilation requires either one artifact or one or more issues.", nameof(issues));
         }

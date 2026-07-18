@@ -39,11 +39,10 @@ public sealed class FirmwareMapApplicability
         ArgumentNullException.ThrowIfNull(topologyRequirement);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacityBytes);
 
-        _metadataPredicates = [.. metadataPredicates ?? []];
-        if (_metadataPredicates.Any(static predicate => predicate is null))
-        {
-            throw new ArgumentException("Metadata predicates cannot contain null.", nameof(metadataPredicates));
-        }
+        _metadataPredicates = Composition.ImmutableReferenceSnapshot.Create(
+            metadataPredicates ?? [],
+            "Metadata predicates cannot contain null.",
+            parameterName: nameof(metadataPredicates));
 
         MemberIds = Array.AsReadOnly(_memberIds);
         ModeIds = Array.AsReadOnly(_modeIds);

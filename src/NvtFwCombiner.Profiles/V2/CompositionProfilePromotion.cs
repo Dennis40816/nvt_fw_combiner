@@ -77,12 +77,7 @@ internal sealed class CompositionProfilePromotion
             throw new ArgumentOutOfRangeException(nameof(stage), stage, "Unknown profile promotion stage.");
         }
 
-        ArgumentNullException.ThrowIfNull(blockers);
-        _blockers = [.. blockers];
-        if (_blockers.Any(static blocker => blocker is null))
-        {
-            throw new ArgumentException("Promotion blockers cannot contain null.", nameof(blockers));
-        }
+        _blockers = NvtFwCombiner.Domain.Composition.ImmutableReferenceSnapshot.Create(blockers, "Promotion blockers cannot contain null.");
 
         if (_blockers.Select(static blocker => blocker.BlockerId)
             .Distinct(StringComparer.Ordinal).Count() != _blockers.Length)

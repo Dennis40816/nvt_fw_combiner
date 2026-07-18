@@ -227,12 +227,12 @@ internal sealed partial class CompositionProfileDefinition
         bool requireValue)
         where T : class
     {
-        ArgumentNullException.ThrowIfNull(values, parameterName);
-        T[] snapshot = [.. values];
+        T[] snapshot = ImmutableReferenceSnapshot.Create(
+            values,
+            "Values cannot contain null.",
+            parameterName: parameterName);
         return requireValue && snapshot.Length == 0
             ? throw new ArgumentException("At least one value is required.", parameterName)
-            : snapshot.Any(static value => value is null)
-            ? throw new ArgumentException("Values cannot contain null.", parameterName)
             : snapshot.Select(idSelector).Distinct(StringComparer.Ordinal).Count() != snapshot.Length
             ? throw new ArgumentException("Value identifiers must be ordinally unique.", parameterName)
             : snapshot;

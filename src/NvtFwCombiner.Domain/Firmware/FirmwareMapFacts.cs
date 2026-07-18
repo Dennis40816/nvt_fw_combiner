@@ -88,11 +88,10 @@ public sealed class FirmwareFactApplicability
             null,
             "Identifiers cannot contain null or whitespace.",
             "Identifiers must be ordinally unique.");
-        _metadataPredicates = [.. metadataPredicates ?? []];
-        if (_metadataPredicates.Any(static predicate => predicate is null))
-        {
-            throw new ArgumentException("Metadata predicates cannot contain null.", nameof(metadataPredicates));
-        }
+        _metadataPredicates = Composition.ImmutableReferenceSnapshot.Create(
+            metadataPredicates ?? [],
+            "Metadata predicates cannot contain null.",
+            parameterName: nameof(metadataPredicates));
 
         ModeIds = Array.AsReadOnly(_modeIds);
         TopologyRequirement = topologyRequirement;
@@ -275,17 +274,12 @@ public sealed class FirmwareFactProvenance
             throw new ArgumentException("Effective and direct source keys must have the same fact kind.", nameof(directSourceKey));
         }
 
-        ArgumentNullException.ThrowIfNull(aliasChain);
-        _aliasChain = [.. aliasChain];
-        if (_aliasChain.Any(static hop => hop is null))
-        {
-            throw new ArgumentException("Alias chains cannot contain null.", nameof(aliasChain));
-        }
-
-        if (_aliasChain.Select(static hop => hop.AliasId).Distinct(StringComparer.Ordinal).Count() != _aliasChain.Length)
-        {
-            throw new ArgumentException("Alias chains cannot repeat an alias id.", nameof(aliasChain));
-        }
+        _aliasChain = Composition.ImmutableReferenceSnapshot.CreateUnique(
+            aliasChain,
+            static hop => hop.AliasId,
+            "Alias chains cannot contain null.",
+            "Alias chains cannot repeat an alias id.",
+            StringComparer.Ordinal);
 
         ValidateChain(effectiveKey, directSourceKey, _aliasChain);
         _directEvidenceRefs = SnapshotDirectEvidenceRefs(directEvidenceRefs);

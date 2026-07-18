@@ -93,18 +93,12 @@ public sealed class FirmwareMapResolutionInputs
                 nameof(requestedTopology));
         }
 
-        ArgumentNullException.ThrowIfNull(artifacts);
-        _artifacts = [.. artifacts];
-        if (_artifacts.Any(static artifact => artifact is null))
-        {
-            throw new ArgumentException("Resolution artifacts cannot contain null.", nameof(artifacts));
-        }
-
-        if (_artifacts.Select(static artifact => artifact.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
-            _artifacts.Length)
-        {
-            throw new ArgumentException("Resolution artifact ids must be ordinally unique.", nameof(artifacts));
-        }
+        _artifacts = Composition.ImmutableReferenceSnapshot.CreateUnique(
+            artifacts,
+            static artifact => artifact.ArtifactId,
+            "Resolution artifacts cannot contain null.",
+            "Resolution artifact ids must be ordinally unique.",
+            StringComparer.Ordinal);
 
         Array.Sort(_artifacts, static (left, right) =>
             StringComparer.Ordinal.Compare(left.ArtifactId, right.ArtifactId));

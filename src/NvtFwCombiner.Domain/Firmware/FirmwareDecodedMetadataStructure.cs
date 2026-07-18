@@ -45,13 +45,9 @@ public sealed class FirmwareDecodedMetadataStructure
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
         ArgumentException.ThrowIfNullOrWhiteSpace(metadataStructureId);
-        ArgumentNullException.ThrowIfNull(facts);
-
-        _facts = [.. facts];
-        if (_facts.Any(static fact => fact is null))
-        {
-            throw new ArgumentException("Decoded metadata structures cannot contain null facts.", nameof(facts));
-        }
+        _facts = Composition.ImmutableReferenceSnapshot.Create(
+            facts,
+            "Decoded metadata structures cannot contain null facts.");
 
         if (_facts.Any(fact =>
             !StringComparer.Ordinal.Equals(fact.ArtifactBindingId, artifactBindingId) ||

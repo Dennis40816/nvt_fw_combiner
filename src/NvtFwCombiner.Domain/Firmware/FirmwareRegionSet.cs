@@ -16,23 +16,13 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
         ArgumentException.ThrowIfNullOrWhiteSpace(regionSetId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
 
-        ArgumentNullException.ThrowIfNull(regions);
-        _regions = [.. regions];
-        if (_regions.Length == 0)
-        {
-            throw new ArgumentException("Firmware region sets cannot be empty.", nameof(regions));
-        }
-
-        if (_regions.Any(static region => region is null))
-        {
-            throw new ArgumentException("Firmware region sets cannot contain null.", nameof(regions));
-        }
-
-        if (_regions.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
-            _regions.Length)
-        {
-            throw new ArgumentException("Firmware region ids must be ordinally unique within a set.", nameof(regions));
-        }
+        _regions = Composition.ImmutableReferenceSnapshot.CreateUnique(
+            regions,
+            static region => region.RegionId,
+            "Firmware region sets require non-null regions.",
+            "Firmware region ids must be ordinally unique within a set.",
+            StringComparer.Ordinal,
+            requireValue: true);
 
         Array.Sort(_regions, FirmwareRangeOrdering.Compare);
         _evidenceRefs = ImmutableStringSnapshot.Create(

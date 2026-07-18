@@ -100,13 +100,10 @@ public sealed partial class CompositionPlan
         Dictionary<string, ImageInitialization> ByTargetSpaceId) BuildInitializationIndex(
         IEnumerable<ImageInitialization> initializations)
     {
-        ImageInitialization[] ordered = [.. initializations];
-        if (ordered.Length == 0 || ordered.Any(static initialization => initialization is null))
-        {
-            throw new ArgumentException(
-                "Composition plans require non-null mutable-space initializers.",
-                nameof(initializations));
-        }
+        ImageInitialization[] ordered = ImmutableReferenceSnapshot.Create(
+            initializations,
+            "Composition plans require non-null mutable-space initializers.",
+            requireValue: true);
 
         Array.Sort(ordered, static (left, right) =>
             StringComparer.Ordinal.Compare(left.TargetSpaceId, right.TargetSpaceId));
