@@ -101,11 +101,7 @@ public sealed partial class MainWindowViewModel
     public ObservableCollection<GeneralMergeMappingViewModel> GeneralMergeMappings { get; } = [];
 
     /// <summary>Gets Merge memory coverage text for the selected IC.</summary>
-    public string MergeMemoryRangeLabel => IsGeneralMergeModeSelected
-        ? UiCompositionRunner.GetGeneralMergeMemoryRangeLabel(GeneralMergeOutputLength)
-        : WorkbenchCompositionService.GetStandardMergeMemoryRangeLabel(
-            SelectedIc,
-            GetSelectedMergeDpInputLength());
+    public string MergeMemoryRangeLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the profile-owned default Standard Merge output file name.</summary>
     public string StandardMergeOutputFileName => CreateFlashCodeOutputFileName(MergeSlots);

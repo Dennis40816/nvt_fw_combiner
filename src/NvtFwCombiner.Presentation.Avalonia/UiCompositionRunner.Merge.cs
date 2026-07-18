@@ -5,28 +5,19 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 
 public static partial class UiCompositionRunner
 {
-    /// <summary>Gets readable memory-map rows for the selected Standard Merge profile.</summary>
-    public static IReadOnlyList<MemoryMapRowViewModel> GetStandardMergeMemoryMapRows(
+    /// <summary>Projects one Standard Merge memory display snapshot.</summary>
+    public static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetStandardMergeMemoryDisplay(
         string icId,
         long? dpInputLength = null)
     {
-        return
-        [
-            .. WorkbenchCompositionService.GetStandardMergeMemoryMapRows(icId, dpInputLength)
-                .Select(ToMemoryMapRow),
-        ];
-    }
-
-    /// <summary>Gets final visual coverage segments for the selected Standard Merge profile.</summary>
-    public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetStandardMergeCoverageSegments(
-        string icId,
-        long? dpInputLength = null)
-    {
-        return
-        [
-            .. WorkbenchCompositionService.GetStandardMergeCoverageSegments(icId, dpInputLength)
-                .Select(ToMemoryCoverageSegment),
-        ];
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetStandardMergeMemoryDisplay(icId, dpInputLength);
+        return (
+            display.RangeLabel,
+            [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
+            [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
     }
 
     /// <summary>Gets readable memory-map rows for the selected General Merge authoring state.</summary>

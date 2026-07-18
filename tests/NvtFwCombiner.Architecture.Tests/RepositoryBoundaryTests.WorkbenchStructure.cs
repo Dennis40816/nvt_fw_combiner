@@ -49,8 +49,6 @@ public sealed partial class RepositoryBoundaryTests
         string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
         string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.cs");
         string standardMergeDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
-        string standardMergeCoverage = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Coverage.cs");
-        string standardMergeDisplayProfile = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.DisplayProfile.cs");
         string standardMergeCompilation = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Compilation.cs");
         string standardMergeBuiltInV2 = ReadText(
@@ -111,19 +109,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("RunGeneralMergeV2Async", mergeCli, StringComparison.Ordinal);
         Assert.DoesNotContain("RunGeneralMergeV2Async", mergeUi, StringComparison.Ordinal);
         Assert.DoesNotContain("RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetStandardMergeMemoryMapRows", standardMerge, StringComparison.Ordinal);
-        Assert.Contains("GetStandardMergeMemoryMapRows", standardMergeDisplay, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(standardMergeDisplay, "public static IReadOnlyList<WorkbenchMemoryMapRow> GetStandardMergeMemoryMapRows("));
-        Assert.DoesNotContain("GetStandardMergeCoverageSegments", standardMergeDisplay, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetStandardMergeMemoryDisplay", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("GetStandardMergeMemoryDisplay", standardMergeDisplay, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(standardMergeDisplay, "public static WorkbenchMemoryDisplay GetStandardMergeMemoryDisplay("));
         Assert.DoesNotContain("private static bool TryResolveStandardMergeProfileForDisplay", standardMergeDisplay, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", standardMergeDisplay, StringComparison.Ordinal);
-        Assert.Contains("GetStandardMergeCoverageSegments", standardMergeCoverage, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(standardMergeCoverage, "public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetStandardMergeCoverageSegments("));
-        Assert.Contains("TryCompileStandardMerge", standardMergeCoverage, StringComparison.Ordinal);
-        Assert.Contains("GetStandardMergeMemoryRangeLabel", standardMergeDisplayProfile, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(standardMergeDisplayProfile, "public static string GetStandardMergeMemoryRangeLabel("));
-        Assert.DoesNotContain("TryResolveStandardMergeProfileForDisplay", standardMergeDisplayProfile, StringComparison.Ordinal);
-        Assert.Contains("TryCompileStandardMerge", standardMergeDisplayProfile, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(standardMergeDisplay, "TryCompileStandardMerge("));
         Assert.Contains("RunStandardMergeAsync", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("TryGetStandardMergeDpInputLength", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", standardMergeRun, StringComparison.Ordinal);

@@ -158,6 +158,12 @@ public sealed record WorkbenchMemoryCoverageSegment(
     double BarWidth,
     bool IsChanged);
 
+/// <summary>One coherent range, row, and coverage projection from a single compiled workflow state.</summary>
+public sealed record WorkbenchMemoryDisplay(
+    string RangeLabel,
+    IReadOnlyList<WorkbenchMemoryMapRow> MemoryMapRows,
+    IReadOnlyList<WorkbenchMemoryCoverageSegment> CoverageSegments);
+
 /// <summary>One file slot declared by the selected Replace workflow.</summary>
 public sealed record WorkbenchReplaceInputSlot(
     string SlotId,

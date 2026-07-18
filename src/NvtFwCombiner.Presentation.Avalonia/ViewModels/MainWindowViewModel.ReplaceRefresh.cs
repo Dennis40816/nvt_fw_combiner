@@ -22,6 +22,7 @@ public sealed partial class MainWindowViewModel
         if (IsGeneralMergeModeSelected)
         {
             IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings = CreateGeneralMergeMappingInputs();
+            MergeMemoryRangeLabel = UiCompositionRunner.GetGeneralMergeMemoryRangeLabel(GeneralMergeOutputLength);
             ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetGeneralMergeMemoryMapRows(
                 GeneralMergeOutputLength,
                 mappings));
@@ -31,12 +32,15 @@ public sealed partial class MainWindowViewModel
         }
         else
         {
-            ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetStandardMergeMemoryMapRows(
+            (
+                string rangeLabel,
+                IReadOnlyList<MemoryMapRowViewModel> rows,
+                IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) = UiCompositionRunner.GetStandardMergeMemoryDisplay(
                 SelectedIc,
-                selectedMergeDpInputLength));
-            ReplaceRows(MergeCoverageSegments, UiCompositionRunner.GetStandardMergeCoverageSegments(
-                SelectedIc,
-                selectedMergeDpInputLength));
+                selectedMergeDpInputLength);
+            MergeMemoryRangeLabel = rangeLabel;
+            ReplaceRows(MergeMemoryRows, rows);
+            ReplaceRows(MergeCoverageSegments, coverageSegments);
         }
 
         ReplaceRows(ReplaceMemoryRows, UiCompositionRunner.GetReplaceMemoryMapRows(
