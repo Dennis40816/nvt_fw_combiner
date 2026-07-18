@@ -7,6 +7,8 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private const string Nt51926Fw200ProcessorId = "nfc.nt51926.ctrlram-postbuild-v1";
+    private const string Nt51920Fw120SingleBaseSha256 = "b9965def2946fd6e28165af5929ede885e1d0e3c0ab29266a737ac458225920d";
+    private const string Nt51920Fw120Cascade2BaseSha256 = "681f904ecdf5785ca26f94eabb8191ddaa8976e0e6f750145475568c6cde4d43";
     private const string Nt51931Fw130ExactBaseSha256 = "2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3";
     private const string Nt51932Fw200ExactBaseSha256 = "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd";
     private const string Nt51951Fw200ExactBaseSha256 = "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69";

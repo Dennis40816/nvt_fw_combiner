@@ -61,7 +61,9 @@ public static partial class WorkbenchCompositionService
             IcWorkflowEvidenceStatus.NotAvailable => new WorkbenchWorkflowReadiness(
                 false,
                 WorkbenchWorkflowEvidenceStatus.NotAvailable,
-                HasAnyReplaceWorkflow(entry)
+                entry.SupportsWorkflow(IcWorkflowIds.DpReplace) ||
+                    entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace) ||
+                    entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace)
                     ? GetUnsupportedReplaceReason(replaceMode)
                     : entry.Notes ?? GetUnsupportedReplaceReason(replaceMode),
                 GetUnsupportedReplaceOpenCondition(replaceMode)),
@@ -90,13 +92,6 @@ public static partial class WorkbenchCompositionService
             display.Issues.Count == 0
                 ? FormatV2DpReplaceCapacities(display)
                 : null;
-    }
-
-    private static bool HasAnyReplaceWorkflow(IcSupportEntry entry)
-    {
-        return entry.SupportsWorkflow(IcWorkflowIds.DpReplace) ||
-            entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace) ||
-            entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace);
     }
 
     private static WorkbenchIcFamilyRelationship MapFamilyRelationship(IcFamilyRelationship relationship)

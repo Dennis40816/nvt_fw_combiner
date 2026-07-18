@@ -65,6 +65,12 @@ public static partial class WorkbenchCompositionService
             firmware?.ChipNumber,
             firmware?.ProjectId) switch
         {
+            ("NT51920", "nfc.nt51920.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.2.0", 1, 0xF401)
+                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51920Fw120SingleBaseSha256) =>
+                "nt51920-ctrlram-replace-fw120-single",
+            ("NT51920", "nfc.nt51920.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.2.0", 2, 0x1403)
+                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51920Fw120Cascade2BaseSha256) =>
+                "nt51920-ctrlram-replace-fw120-cascade2",
             ("NT51926", "nfc.nt51926.ctrlram-postbuild-fw1.4.1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, _, > 1, _) =>
                 "nt51926-ctrlram-replace-fw141-runtime-cascade",
             ("NT51926", Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x1309) =>

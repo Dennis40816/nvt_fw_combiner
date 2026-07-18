@@ -12,11 +12,17 @@ public static partial class WorkbenchCompositionService
 {
     internal const string StandardMergeFallbackOutputFileName = "nvt-fw-combiner-output.bin";
 
-    private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_standardMergeProfileSummaries = new(
-        CreateStandardMergeProfileSummaries);
+    private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_standardMergeProfileSummaries = new(() =>
+        Array.AsReadOnly(BuiltInV2RegistrationRegistry.StandardMerge
+            .Select(static registration => registration.CreateProfileSummary())
+            .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
+            .ToArray()));
 
-    private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_replaceProfileSummaries = new(
-        CreateReplaceProfileSummaries);
+    private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_replaceProfileSummaries = new(() =>
+        Array.AsReadOnly(BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values
+            .Select(static registration => registration.CreateProfileSummary())
+            .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal)
+            .ToArray()));
 
     /// <summary>Gets selectable IC ids from the IC support catalog.</summary>
     public static IReadOnlyList<string> GetSupportedIcIds()
@@ -95,24 +101,6 @@ public static partial class WorkbenchCompositionService
             s_standardMergeProfileSummaries.Value.Count,
             s_replaceProfileSummaries.Value.Count,
             icIds.Count(icId => IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.CtrlRamReplace)));
-    }
-
-    private static ReadOnlyCollection<WorkbenchProfileSummary> CreateStandardMergeProfileSummaries()
-    {
-        return Array.AsReadOnly(
-            BuiltInV2RegistrationRegistry.StandardMerge
-                .Select(static registration => registration.CreateProfileSummary())
-                .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
-                .ToArray());
-    }
-
-    private static ReadOnlyCollection<WorkbenchProfileSummary> CreateReplaceProfileSummaries()
-    {
-        return Array.AsReadOnly(
-            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values
-                .Select(static registration => registration.CreateProfileSummary())
-                .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal)
-                .ToArray());
     }
 
     internal static WorkbenchProfileSummary CreateProfileSummary(CompiledComposition composition)

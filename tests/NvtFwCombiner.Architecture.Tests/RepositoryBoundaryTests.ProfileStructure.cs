@@ -123,6 +123,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51930-general-merge-logical-candidate",
             "nt51931-general-merge-logical-candidate",
             "nt51950-nt51951-general-merge-logical-candidate",
+            "nt51920-ctrlram-replace-candidate",
             "nt51926-ctrlram-replace-candidate",
             "nt51930-ctrlram-replace-candidate",
             "nt51931-ctrlram-replace-candidate",
@@ -166,6 +167,7 @@ public sealed partial class RepositoryBoundaryTests
                     Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
             else if (bundle.Attribute("Include")?.Value is
+                         "nt51920-ctrlram-replace-candidate" or
                          "nt51926-ctrlram-replace-candidate" or
                          "nt51930-ctrlram-replace-candidate" or
                          "nt51931-ctrlram-replace-candidate" or
