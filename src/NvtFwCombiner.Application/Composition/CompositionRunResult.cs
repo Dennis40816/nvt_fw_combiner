@@ -14,15 +14,45 @@ public sealed class CompositionRunResult
         CompositionRunReport report,
         string? committedOutputId,
         string? previewToken = null)
+        : this(
+            status,
+            outputBytes ?? throw new ArgumentNullException(nameof(outputBytes)),
+            report,
+            committedOutputId,
+            previewToken,
+            inspectionReferenceSpaceId: null,
+            inspectionReferenceBytes: null)
     {
-        ArgumentNullException.ThrowIfNull(outputBytes);
+    }
+
+    internal CompositionRunResult(
+        CompositionExecutionStatus status,
+        ReadOnlyMemory<byte> outputBytes,
+        CompositionRunReport report,
+        string? committedOutputId,
+        string? previewToken,
+        string? inspectionReferenceSpaceId,
+        byte[]? inspectionReferenceBytes)
+    {
         ArgumentNullException.ThrowIfNull(report);
+        if ((inspectionReferenceSpaceId is null) != (inspectionReferenceBytes is null))
+        {
+            throw new ArgumentException("Replace inspection requires both a reference space id and reference bytes.");
+        }
+
+        if (status != CompositionExecutionStatus.Succeeded && inspectionReferenceBytes is not null)
+        {
+            throw new ArgumentException("Only a successful Replace result may carry inspection bytes.");
+        }
 
         Status = status;
-        _outputBytes = [.. outputBytes];
+        _outputBytes = outputBytes.ToArray();
         Report = report;
         CommittedOutputId = string.IsNullOrWhiteSpace(committedOutputId) ? null : committedOutputId;
         PreviewToken = string.IsNullOrWhiteSpace(previewToken) ? null : previewToken;
+        InspectionSnapshot = inspectionReferenceBytes is { } referenceBytes
+            ? new CompositionRunInspectionSnapshot(inspectionReferenceSpaceId!, referenceBytes, _outputBytes)
+            : null;
     }
 
     /// <summary>Execution status returned by the shared domain engine.</summary>
@@ -30,6 +60,11 @@ public sealed class CompositionRunResult
 
     /// <summary>Output bytes for preview/build when execution succeeded.</summary>
     public ReadOnlyMemory<byte> OutputBytes => _outputBytes;
+
+    /// <summary>
+    /// In-memory reference/output bytes for successful Replace inspection, or <see langword="null"/> when unavailable.
+    /// </summary>
+    public CompositionRunInspectionSnapshot? InspectionSnapshot { get; }
 
     /// <summary>Application summary for UI, CLI, and regression tests; not the canonical v1 report artifact.</summary>
     public CompositionRunReport Report { get; }

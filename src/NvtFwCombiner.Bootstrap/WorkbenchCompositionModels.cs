@@ -1,5 +1,7 @@
-using NvtFwCombiner.Domain.Composition;
+using System.Text.Json.Serialization;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -189,7 +191,12 @@ public sealed record WorkbenchRunResult(
     string OutputSha256,
     string OutputFileName,
     string? CommittedOutputId,
-    string ReportJson);
+    string ReportJson)
+{
+    /// <summary>Non-serialized in-memory bytes available to the current desktop inspection session.</summary>
+    [JsonIgnore]
+    public CompositionRunInspectionSnapshot? InspectionSnapshot { get; internal init; }
+}
 
 internal sealed record CoverageSegment(
     ByteRange Range,
