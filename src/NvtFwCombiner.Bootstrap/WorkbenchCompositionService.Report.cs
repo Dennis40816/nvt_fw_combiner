@@ -27,7 +27,10 @@ public static partial class WorkbenchCompositionService
             report.Output.Sha256,
             report.Output.FileName,
             result.CommittedOutputId,
-            reportJson);
+            reportJson)
+        {
+            InspectionSnapshot = result.InspectionSnapshot,
+        };
     }
 
     private static WorkbenchRunResult CreateReplaceReportRunResult(

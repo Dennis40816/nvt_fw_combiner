@@ -284,11 +284,18 @@ public sealed partial class CompositionRunService
             validations: [.. finalOutputValidations.Select(static evaluation => evaluation.Summary)],
             executedCommandsByOperationId: executedCommandsByOperationId);
 
+        (string? inspectionReferenceSpaceId, byte[]? inspectionReferenceBytes) = GetInspectionReference(
+            request,
+            runStatus,
+            boundInputs.InputBytes,
+            execution.OutputBytes.Length);
         return new CompositionRunResult(
             runStatus,
-            runStatus == CompositionExecutionStatus.Succeeded ? execution.OutputBytes.ToArray() : [],
+            runStatus == CompositionExecutionStatus.Succeeded ? execution.OutputBytes : ReadOnlyMemory<byte>.Empty,
             report,
             committedOutputId,
-            commitOutput ? null : previewToken);
+            commitOutput ? null : previewToken,
+            inspectionReferenceSpaceId,
+            inspectionReferenceBytes);
     }
 }
