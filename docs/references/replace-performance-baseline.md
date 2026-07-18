@@ -179,6 +179,15 @@ The exact packaged candidate must still record cold first-interactive-frame
 behavior with a full 12-entry history and with an explicit large report; those
 rows remain in the Windows manual gate.
 
+Commit `9bfc780f` also removes preference-file serialization and atomic
+promotion from the dispatcher property-change handler. Report history and
+immutable shell preferences now share the same typed, serialized,
+latest-wins coordinator and the bounded close drain waits for both. Tests lock
+cancelled-save non-publication, atomic latest-snapshot promotion, superseded
+queue cancellation, fault recovery, and close completion. This is a UI-thread
+I/O ownership improvement; no elapsed-time claim is made until the packaged
+rapid-settings row is recorded.
+
 ## Firmware evidence scope
 
 The synthetic counter cases are process-contract evidence, not firmware
