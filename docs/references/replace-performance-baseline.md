@@ -133,23 +133,40 @@ CtrlRAM fixtures without an independent expected output may contribute only
 count/timing evidence. General Replace has no owner full-output golden and is
 excluded from firmware parity claims.
 
-## Current Infrastructure read model
+## Infrastructure readback comparison
 
-The legacy postbuild adapter still performs two full staging-firmware reads per
-command: one before the command and one inside shortened-output normalization.
-It then performs one final read after all commands. This is a source-audited
-model, `2C + 1` reads per processor session, not a runtime counter from the
+Before the ADR 0025 adapter slice, Legacy Combiner postbuild performed two full
+staging-firmware reads per command: one before the command and one inside
+shortened-output normalization, followed by one final read. This is the
+source-audited `2C + 1` predecessor model, not a runtime counter from the
 Bootstrap baseline.
 
-| Command count (`C`) | Reads per current session | Current automatic-Build sessions | Derived current reads |
-| ---: | ---: | ---: | ---: |
-| 2 | 5 | 2 | 10 (provisional C: 5) |
-| 13 | 27 | 2 | 54 (provisional C: 27) |
+The provisional slice at `67bc5a4e` retains the last accepted full firmware
+bytes. There is now one `ReadAllBytesAsync(firmwarePath, ...)` in the command
+loop and no final firmware read. Approved shortened output restores its tail
+from the preceding accepted command state and writes the normalized full image
+back only when required.
+
+| Command count (`C`) | Pre-optimization reads/session | Historical A, two sessions | Single-run before readback change | `67bc5a4e`, one session |
+| ---: | ---: | ---: | ---: | ---: |
+| 2 | 5 | 10 | 5 | 2 |
+| 13 | 27 | 54 | 27 | 13 |
+
+Infrastructure tests pass `185` with `2` platform skips and cover two-command
+NT51926 behavior, a synthetic 13-command plan, one-command shortened output,
+and a two-command case proving normalization retains the first command's
+accepted tail. The NT51926 Common FW 1.4.1 cascade TP-base CLI golden passes
+complete bytes and SHA-256. Production C#/AXAML decreases from `56,721` to the
+new exact `56,720` ratchet.
 
 Staged immutable-artifact verification reads are separate and must not be
-hidden in future evidence. Any R3 adapter phase remains limited to an applicable
-full-byte CtrlRAM golden and firmware-owner review; broader routing is selected
-only at the post-remediation decision gate.
+hidden in future evidence. The first canonical full attempt exposed the stale
+size ratchet. After the code was reduced, the structure validator accepted the
+exact lower design; the canonical post-change retry exceeded the local
+60-second command budget before returning a verdict. Final-`0.9.9` replay,
+canonical full verification, independent review, and firmware-owner approval
+therefore remain required. The 13-command case has count/sequence evidence, not
+independent full-output golden parity, and cannot be used to broaden support.
 
 ## Current UI inspection fan-out
 

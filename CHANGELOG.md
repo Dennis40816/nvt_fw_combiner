@@ -55,6 +55,13 @@ measured before/after parity.
   UI inspection snapshots, progress animation, allocations, and B/C timing.
   Complete report export, processor trace, golden bytes, host diff/range checks,
   atomicity, and support truth remain unchanged gates.
+- Added the provisional ADR 0025 Legacy Combiner readback slice at `67bc5a4e`.
+  One automatic Build still launches all `C` commands sequentially, while the
+  adapter now carries the last accepted full firmware bytes and performs one
+  authoritative staging-firmware readback per command instead of `2C + 1` per
+  session. Approved short output is normalized from the preceding accepted
+  state. NT51926 full-output golden parity passes; final `0.9.9` replay,
+  canonical full verification, and firmware-owner review remain open gates.
 - Defined three comparison nodes: pre-rebase historical A, final-`0.9.9`
   unoptimized B, and the same reconciled source as optimized `0.9.10` node C.
   Only B/C may support a performance decision. Deterministic counters and
