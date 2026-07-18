@@ -99,6 +99,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(0xA5, output[0x100]);
         Assert.Equal(0x5A, output[0x101]);
         Assert.Equal(baseBytes[0x102], output[0x102]);
+        Assert.Equal(
+            Application.Composition.CompositionRunPhase.PreparingReport,
+            viewModel.CompositionProgress.CurrentPhase);
         Assert.Contains(viewModel.LoadedReport.Operations, operation =>
             operation.Title.Contains("general-map-1", StringComparison.Ordinal));
     }

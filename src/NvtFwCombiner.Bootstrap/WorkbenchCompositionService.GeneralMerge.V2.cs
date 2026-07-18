@@ -22,7 +22,8 @@ public static partial class WorkbenchCompositionService
         bool build,
         CancellationToken cancellationToken,
         string? outputPath = null,
-        bool overwrite = true)
+        bool overwrite = true,
+        CompositionRunProgressFeed? progress = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(mappingInputs);
@@ -156,7 +157,8 @@ public static partial class WorkbenchCompositionService
             externalProcessor: null,
             icNumberSelection: null,
             overwrite: overwrite,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+            cancellationToken: cancellationToken,
+            progress: progress).ConfigureAwait(false);
     }
 
     private static bool IsExpectedGeneralMergeV2Candidate(

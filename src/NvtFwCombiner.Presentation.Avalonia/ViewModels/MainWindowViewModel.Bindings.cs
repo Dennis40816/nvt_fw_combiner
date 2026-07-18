@@ -29,8 +29,8 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Gets the shared device context status text.</summary>
     public string DeviceContextStatus => IsNumberSelectorVisible
-        ? $"{SelectedIc} / {SelectedNumber}: {DeviceContextRefreshSummary}"
-        : $"{SelectedIc}: {DeviceContextRefreshSummary}";
+        ? $"{DisplayedDeviceIc} / {DisplayedDeviceNumber}: {DisplayedDeviceContextRefreshSummary}"
+        : $"{DisplayedDeviceIc}: {DisplayedDeviceContextRefreshSummary}";
 
     /// <summary>Gets selectable IC choices from the current catalog.</summary>
     public IReadOnlyList<string> IcChoices { get; } = WorkbenchCompositionService.GetSupportedIcIds();

@@ -1,5 +1,7 @@
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
@@ -12,6 +14,29 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Workbench facade tests for report generation around gated workflows.</summary>
 public sealed class WorkbenchCompositionServiceTests
 {
+    /// <summary>Progress-aware UI entry points do not replace the existing CLI/public CLR signatures.</summary>
+    [Fact]
+    public void ProgressAwareFacadePreservesLegacyPublicOverloads()
+    {
+        MethodInfo[] methods = typeof(WorkbenchCompositionService).GetMethods(
+            BindingFlags.Public | BindingFlags.Static);
+        MethodInfo[] standardMerge = [.. methods.Where(static method => method.Name == "RunStandardMergeAsync")];
+        MethodInfo[] generalMerge = [.. methods.Where(static method => method.Name == "RunGeneralMergeAsync")];
+        MethodInfo[] replace = [.. methods.Where(static method => method.Name == "RunReplaceAsync")];
+
+        Assert.Equal([5], standardMerge.Select(static method => method.GetParameters().Length));
+        Assert.Equal([7], generalMerge.Select(static method => method.GetParameters().Length));
+        Assert.Equal([8, 9, 10], replace.Select(static method => method.GetParameters().Length).Order());
+        Assert.All(
+            standardMerge.Concat(generalMerge).Concat(replace),
+            static method => Assert.DoesNotContain(
+                method.GetParameters(),
+                static parameter => parameter.ParameterType == typeof(CompositionRunProgressFeed)));
+        AssertProgressAwareMethod(methods, "RunStandardMergeWithProgressAsync", expectedParameterCount: 6);
+        AssertProgressAwareMethod(methods, "RunGeneralMergeWithProgressAsync", expectedParameterCount: 8);
+        AssertProgressAwareMethod(methods, "RunReplaceWithProgressAsync", expectedParameterCount: 11);
+    }
+
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
     private sealed class InspectingExternalProcessor : IExternalProcessor
@@ -601,6 +626,18 @@ public sealed class WorkbenchCompositionServiceTests
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
         Assert.Equal(ReplaceWorkflowNotSupported, issue.GetProperty("Code").GetString());
         Assert.Empty(document.RootElement.GetProperty("Operations").EnumerateArray());
+    }
+
+    private static void AssertProgressAwareMethod(
+        IEnumerable<MethodInfo> methods,
+        string name,
+        int expectedParameterCount)
+    {
+        MethodInfo method = Assert.Single(methods, candidate => candidate.Name == name);
+        Assert.Equal(expectedParameterCount, method.GetParameters().Length);
+        Assert.Contains(
+            method.GetParameters(),
+            static parameter => parameter.ParameterType == typeof(CompositionRunProgressFeed));
     }
 
 }

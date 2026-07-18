@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -119,7 +120,34 @@ public static partial class WorkbenchCompositionService
             build,
             cancellationToken,
             outputPath,
-            overwrite).ConfigureAwait(false);
+            overwrite,
+            progress: null).ConfigureAwait(false);
+    }
+
+    /// <summary>Runs General Merge and publishes bounded Application-owned lifecycle phases.</summary>
+    public static async ValueTask<WorkbenchRunResult> RunGeneralMergeWithProgressAsync(
+        string icId,
+        string outputLength,
+        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs,
+        bool build,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken,
+        string? outputPath = null,
+        bool overwrite = true)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(mappingInputs);
+        ArgumentNullException.ThrowIfNull(progress);
+
+        return await RunGeneralMergeV2Async(
+            icId,
+            outputLength,
+            mappingInputs,
+            build,
+            cancellationToken,
+            outputPath,
+            overwrite,
+            progress).ConfigureAwait(false);
     }
 
 }

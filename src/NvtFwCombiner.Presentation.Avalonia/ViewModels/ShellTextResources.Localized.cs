@@ -164,6 +164,10 @@ public sealed partial class ShellTextResources
             SettingsPreferencesSubtitle = Pick("Preferences that take effect now and are restored on startup.", "立即生效並在啟動時還原的本機偏好。"),
             ThemeLabel = Pick("Theme", "主題"),
             LanguageLabel = Pick("Language", "語言"),
+            ReducedMotionLabel = Pick("Reduced motion", "減少動態效果"),
+            ReducedMotionDescription = Pick(
+                "Keep step status visible while removing non-essential progress animation.",
+                "保留步驟狀態，同時停用非必要的進度動畫。"),
             ReportToastTitle = "Report",
             ReplaceSelectionTitle = "Replace selection",
             CloseSelectionTooltip = Pick("Close selection overview", "關閉 selection overview"),

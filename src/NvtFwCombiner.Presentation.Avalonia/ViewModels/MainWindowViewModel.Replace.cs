@@ -56,13 +56,15 @@ public sealed partial class MainWindowViewModel
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs = CreateGeneralReplaceMappingInputs();
         return RunCompositionAsync(
             build,
-            cancellationToken => WorkbenchCompositionService.RunReplaceAsync(
+            (progress, cancellationToken) => WorkbenchCompositionService.RunReplaceWithProgressAsync(
                 icId,
                 number,
                 replaceMode,
                 slotPaths,
                 mappingInputs,
+                [],
                 build,
+                progress,
                 cancellationToken,
                 outputPath,
                 ctrlRamFirmwareVersionEdit),

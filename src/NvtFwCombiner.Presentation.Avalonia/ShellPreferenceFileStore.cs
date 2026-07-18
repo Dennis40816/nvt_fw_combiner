@@ -64,11 +64,16 @@ public static class ShellPreferenceFileStore
 
     private sealed class ShellPreferenceFileEntry
     {
-        public ShellPreferenceFileEntry(string theme, string strictness, string language)
+        public ShellPreferenceFileEntry(
+            string theme,
+            string strictness,
+            string language,
+            bool isReducedMotionEnabled = false)
         {
             Theme = theme ?? string.Empty;
             Strictness = strictness ?? string.Empty;
             Language = language ?? string.Empty;
+            IsReducedMotionEnabled = isReducedMotionEnabled;
         }
 
         public string Theme { get; }
@@ -77,19 +82,23 @@ public static class ShellPreferenceFileStore
 
         public string Language { get; }
 
+        public bool IsReducedMotionEnabled { get; }
+
         public static ShellPreferenceFileEntry FromSnapshot(ShellPreferenceSnapshot snapshot)
         {
             return new ShellPreferenceFileEntry(
                 snapshot.Theme,
                 "Strict",
-                snapshot.Language);
+                snapshot.Language,
+                snapshot.IsReducedMotionEnabled);
         }
 
         public ShellPreferenceSnapshot ToSnapshot()
         {
             return new ShellPreferenceSnapshot(
                 Theme ?? string.Empty,
-                Language ?? string.Empty);
+                Language ?? string.Empty,
+                IsReducedMotionEnabled);
         }
     }
 }

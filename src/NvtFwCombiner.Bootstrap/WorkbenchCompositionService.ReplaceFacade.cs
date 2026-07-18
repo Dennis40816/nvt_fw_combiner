@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
@@ -187,6 +188,62 @@ public static partial class WorkbenchCompositionService
         string? outputPath = null,
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
     {
+        return await RunReplaceCoreAsync(
+            icId,
+            number,
+            replaceMode,
+            slotPaths,
+            generalReplaceMappings,
+            generalReplacePatches,
+            build,
+            outputPath,
+            ctrlRamFirmwareVersionEdit,
+            progress: null,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Runs Replace and publishes bounded Application-owned lifecycle phases.</summary>
+    public static async ValueTask<WorkbenchRunResult> RunReplaceWithProgressAsync(
+        string icId,
+        string number,
+        string replaceMode,
+        IReadOnlyDictionary<string, string> slotPaths,
+        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
+        IReadOnlyList<WorkbenchGeneralReplacePatchInput> generalReplacePatches,
+        bool build,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken,
+        string? outputPath = null,
+        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        return await RunReplaceCoreAsync(
+            icId,
+            number,
+            replaceMode,
+            slotPaths,
+            generalReplaceMappings,
+            generalReplacePatches,
+            build,
+            outputPath,
+            ctrlRamFirmwareVersionEdit,
+            progress,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<WorkbenchRunResult> RunReplaceCoreAsync(
+        string icId,
+        string number,
+        string replaceMode,
+        IReadOnlyDictionary<string, string> slotPaths,
+        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
+        IReadOnlyList<WorkbenchGeneralReplacePatchInput> generalReplacePatches,
+        bool build,
+        string? outputPath,
+        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit,
+        CompositionRunProgressFeed? progress,
+        CancellationToken cancellationToken)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
         ArgumentException.ThrowIfNullOrWhiteSpace(replaceMode);
@@ -219,6 +276,7 @@ public static partial class WorkbenchCompositionService
                     slotPaths,
                     build,
                     outputPath,
+                    progress,
                     cancellationToken).ConfigureAwait(false),
                 WorkbenchReplaceModes.Dp => CreatePlanningRunResult(
                     icId,
@@ -234,6 +292,7 @@ public static partial class WorkbenchCompositionService
                     build,
                     outputPath,
                     ctrlRamFirmwareVersionEdit,
+                    progress,
                     cancellationToken).ConfigureAwait(false),
                 WorkbenchReplaceModes.General => await RunGeneralReplaceAsync(
                     icId,
@@ -243,6 +302,7 @@ public static partial class WorkbenchCompositionService
                     generalReplacePatches,
                     build,
                     outputPath,
+                    progress,
                     cancellationToken).ConfigureAwait(false),
                 _ => CreatePlanningRunResult(
                     icId,

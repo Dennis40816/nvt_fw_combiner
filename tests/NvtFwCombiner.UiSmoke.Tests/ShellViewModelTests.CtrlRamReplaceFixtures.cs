@@ -46,6 +46,9 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.HasLoadedReport);
         Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
         Assert.Equal(outputPath, viewModel.LoadedReport.OutputArtifactPath);
+        Assert.Equal(
+            Application.Composition.CompositionRunPhase.PreparingReport,
+            viewModel.CompositionProgress.CurrentPhase);
         Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
             operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
         using var firstReportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);

@@ -102,10 +102,11 @@ public sealed partial class MainWindowViewModel
             WorkbenchCompositionService.GetStandardMergeProfileId(icId) ?? WorkbenchWorkflowIds.StandardMerge;
         return RunCompositionAsync(
             build,
-            cancellationToken => WorkbenchCompositionService.RunStandardMergeAsync(
+            (progress, cancellationToken) => WorkbenchCompositionService.RunStandardMergeWithProgressAsync(
                 icId,
                 slotPaths,
                 build,
+                progress,
                 cancellationToken,
                 outputPath),
             (action, errorMessage) => LoadRunErrorReport(
@@ -127,11 +128,12 @@ public sealed partial class MainWindowViewModel
         string outputFileName = WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId);
         return RunCompositionAsync(
             build,
-            cancellationToken => WorkbenchCompositionService.RunGeneralMergeAsync(
+            (progress, cancellationToken) => WorkbenchCompositionService.RunGeneralMergeWithProgressAsync(
                 icId,
                 outputLength,
                 mappingInputs,
                 build,
+                progress,
                 cancellationToken,
                 outputPath),
             (action, errorMessage) => LoadRunErrorReport(

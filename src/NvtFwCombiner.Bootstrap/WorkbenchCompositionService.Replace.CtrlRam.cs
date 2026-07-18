@@ -16,9 +16,10 @@ public static partial class WorkbenchCompositionService
         bool build,
         string? outputPath,
         WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
+        CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken)
     {
-        return await RunCtrlRamReplaceWithProcessorAsync(
+        return await RunCtrlRamReplaceWithProcessorCoreAsync(
             icId,
             number,
             slotPaths,
@@ -26,6 +27,7 @@ public static partial class WorkbenchCompositionService
             outputPath,
             firmwareVersionEdit,
             ExternalProcessorFactory.CreateOrNull(),
+            progress,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -37,6 +39,29 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
         IExternalProcessor? externalProcessor,
+        CancellationToken cancellationToken)
+    {
+        return await RunCtrlRamReplaceWithProcessorCoreAsync(
+            icId,
+            number,
+            slotPaths,
+            build,
+            outputPath,
+            firmwareVersionEdit,
+            externalProcessor,
+            progress: null,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<WorkbenchRunResult> RunCtrlRamReplaceWithProcessorCoreAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        string? outputPath,
+        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
+        IExternalProcessor? externalProcessor,
+        CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken)
     {
         CtrlRamReplaceRunContext context = CreateCtrlRamReplaceRunContext(
@@ -84,7 +109,8 @@ public static partial class WorkbenchCompositionService
                     externalProcessor,
                     icNumberSelection: context.Selection,
                     overwrite: true,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    progress: progress).ConfigureAwait(false);
         }
 
         ExternalProcessorStagedSourceBinding[] stagedSourceBindings = CreateCtrlRamStagedSourceBindings(
@@ -137,6 +163,7 @@ public static partial class WorkbenchCompositionService
             externalProcessor,
             icNumberSelection: context.Selection,
             overwrite: true,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            progress: progress).ConfigureAwait(false);
     }
 }
