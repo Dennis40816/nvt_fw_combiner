@@ -29,13 +29,33 @@ public sealed partial class CompositionRunService
 
         OutputDifferenceExpectation[] expectations = [.. CreateOutputDifferenceExpectations(request)];
         List<OutputDifferenceSummary> rows = [];
+        OutputDifferenceExpectation? cachedSemanticExpectation = null;
+        OutputDifferenceSemantic? cachedSemantic = null;
         int rowIndex = 0;
         foreach (ByteRange changedRange in changedRanges)
         {
             foreach (ByteRange segment in SplitRangeByExpectations(changedRange, expectations))
             {
                 OutputDifferenceExpectation expectation = ClassifyDifferenceSegment(segment, expectations);
-                OutputDifferenceSemantic semantic = CreateOutputDifferenceSemantic(request, expectation, segment);
+                OutputDifferenceSemantic semantic;
+                if (CanShareOutputDifferenceSemantic(expectation))
+                {
+                    if (ReferenceEquals(expectation, cachedSemanticExpectation) && cachedSemantic is not null)
+                    {
+                        semantic = cachedSemantic;
+                    }
+                    else
+                    {
+                        cachedSemanticExpectation = expectation;
+                        semantic = CreateOutputDifferenceSemantic(request, expectation, segment);
+                        cachedSemantic = semantic;
+                    }
+                }
+                else
+                {
+                    semantic = CreateOutputDifferenceSemantic(request, expectation, segment);
+                }
+
                 rows.Add(new OutputDifferenceSummary(
                     FormattableString.Invariant($"diff-{++rowIndex:D3}"),
                     segment,
@@ -56,6 +76,13 @@ public sealed partial class CompositionRunService
         }
 
         return rows;
+    }
+
+    private static bool CanShareOutputDifferenceSemantic(OutputDifferenceExpectation expectation)
+    {
+        return expectation.Classification is
+            OutputDifferenceClassifications.DeclaredReplacement or
+            OutputDifferenceClassifications.PreservedReference;
     }
 
     private static IEnumerable<CompositionIssue> CreateOutputDifferenceIssues(
