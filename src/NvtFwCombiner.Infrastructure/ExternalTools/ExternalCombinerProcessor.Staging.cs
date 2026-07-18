@@ -16,7 +16,7 @@ public sealed partial class ExternalCombinerProcessor
         {
             string path = Path.Combine(runDirectory, $"artifact-{artifact.ArtifactId}.bin");
             _ = artifactPaths.TryAdd(artifact.ArtifactId, path);
-            await File.WriteAllBytesAsync(path, artifact.Bytes.ToArray(), cancellationToken).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(path, artifact.Bytes, cancellationToken).ConfigureAwait(false);
         }
 
         return artifactPaths;

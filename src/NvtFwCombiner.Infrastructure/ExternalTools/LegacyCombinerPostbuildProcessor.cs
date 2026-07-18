@@ -101,14 +101,14 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
             _ = Directory.CreateDirectory(binDirectory);
 
             string firmwarePath = Path.Combine(outputDirectory, profile.FirmwareFileName);
-            byte[] inputBytes = request.InputBytes.ToArray();
+            ReadOnlyMemory<byte> inputBytes = request.InputBytes;
             await File.WriteAllBytesAsync(firmwarePath, inputBytes, cancellationToken).ConfigureAwait(false);
             await File.WriteAllBytesAsync(Path.Combine(outputDirectory, MapFileName), [], cancellationToken)
                 .ConfigureAwait(false);
 
             // Staged BIN files use selected replacement bytes as source material without
             // pre-writing those bytes into the firmware image given to Combiner.exe.
-            byte[] stagedSourceBytes = [.. inputBytes];
+            byte[] stagedSourceBytes = inputBytes.ToArray();
             CompositionIssue? stagedSourceIssue = ApplyStagedSourceOverrides(stagedSourceBytes, request.StagedSources);
             if (stagedSourceIssue is not null)
             {
@@ -124,7 +124,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
             foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
             {
                 byte[] commandInputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
-                if (commandInputBytes.LongLength != inputBytes.LongLength)
+                if (commandInputBytes.LongLength != inputBytes.Length)
                 {
                     return Fail(
                         "external-tool.output-length.changed",
@@ -214,7 +214,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
             }
 
             byte[] outputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
-            return outputBytes.LongLength != inputBytes.LongLength
+            return outputBytes.LongLength != inputBytes.Length
                 ? Fail(
                     "external-tool.output-length.changed",
                     "External processor changed the firmware image length.",

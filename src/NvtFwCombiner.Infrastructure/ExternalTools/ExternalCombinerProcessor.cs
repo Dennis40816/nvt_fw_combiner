@@ -70,7 +70,7 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
             _ = Directory.CreateDirectory(runDirectory);
             string workBin = Path.Combine(runDirectory, WorkFileName);
             string outputBin = Path.Combine(runDirectory, OutputFileName);
-            await File.WriteAllBytesAsync(workBin, request.InputBytes.ToArray(), cancellationToken).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(workBin, request.InputBytes, cancellationToken).ConfigureAwait(false);
             IReadOnlyDictionary<string, string> stagedArtifactPaths = await MaterializeStagedArtifactsAsync(
                 request,
                 runDirectory,
