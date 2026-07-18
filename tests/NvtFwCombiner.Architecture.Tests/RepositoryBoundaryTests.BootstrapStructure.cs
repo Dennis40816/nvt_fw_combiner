@@ -7,12 +7,17 @@ public sealed partial class RepositoryBoundaryTests
     public void BootstrapUsesOneAutomaticBuildExecutionGate()
     {
         string bootstrapSource = ReadBootstrapSources();
+        string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
+        string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
+        int cliCalls = CountOccurrences(cli, ".PreviewOrBuildAsync(");
+        int runnerCalls = CountOccurrences(runner, ".PreviewOrBuildAsync(");
 
         Assert.DoesNotContain("CompositionRunExecutionSupport", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildWithInternalPreviewAsync", bootstrapSource, StringComparison.Ordinal);
-        Assert.Equal(
-            2,
-            CountOccurrences(bootstrapSource, ".PreviewOrBuildAsync("));
+        Assert.Equal(1, cliCalls);
+        Assert.Equal(2, runnerCalls);
+        Assert.Contains("progress is null", runner, StringComparison.Ordinal);
+        Assert.Equal(cliCalls + runnerCalls, CountOccurrences(bootstrapSource, ".PreviewOrBuildAsync("));
         Assert.DoesNotContain("WithApprovedPreviewToken", bootstrapSource, StringComparison.Ordinal);
     }
 
