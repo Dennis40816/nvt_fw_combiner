@@ -20,11 +20,11 @@ public static partial class WorkbenchCompositionService
             rows =
             [
                 new WorkbenchMemoryMapRow(
-                    $"Base BIN length: {FormatV2DpReplaceCapacities(display)}",
-                    "Base flash",
+                    $"Reference FlashCode length: {FormatV2DpReplaceCapacities(display)}",
+                    "Reference FlashCode",
                     "Select",
                     "DP replacement",
-                    $"Select a base BIN to compile the {icId} V2 DP Replace plan."),
+                    $"Select a complete Standard/Normal Merge FlashCode for {icId} to compile the V2 DP Replace plan."),
             ];
             return true;
         }
@@ -68,7 +68,7 @@ public static partial class WorkbenchCompositionService
         }
 
         rangeLabel = display.IsLengthPending
-            ? $"Base BIN length: {FormatV2DpReplaceCapacities(display)}"
+            ? $"Reference FlashCode length: {FormatV2DpReplaceCapacities(display)}"
             : display.Composition is { } composition
             ? FormatFullRange(composition.Plan.OutputInitialization.Capacity)
             : FormatV2DpReplaceFailureLabel(display);
@@ -91,9 +91,9 @@ public static partial class WorkbenchCompositionService
             segments =
             [
                 new WorkbenchMemoryCoverageSegment(
-                    "Base length pending",
-                    "DP base required",
-                    $"Select a base BIN to resolve the actual DP Replace length ({FormatV2DpReplaceCapacities(display)}).",
+                    "Reference length pending",
+                    "Reference FlashCode required",
+                    $"Select a complete Standard/Normal Merge FlashCode to resolve the actual DP Replace length ({FormatV2DpReplaceCapacities(display)}).",
                     "#CBD5E1",
                     280,
                     false),
@@ -110,8 +110,8 @@ public static partial class WorkbenchCompositionService
                 [
                     new WorkbenchMemoryCoverageSegment(
                         $"Unsupported {FormatHexLength(requestedCapacity)}",
-                        "Unsupported base",
-                        $"This base BIN length is not approved for {icId} DP Replace; use {FormatV2DpReplaceCapacities(display)}.",
+                        "Unsupported reference",
+                        $"This Reference FlashCode length is not approved for {icId} DP Replace; use {FormatV2DpReplaceCapacities(display)}.",
                         "#FCA5A5",
                         280,
                         false),
@@ -168,7 +168,7 @@ public static partial class WorkbenchCompositionService
         }
 
         description = display.Issues.Count == 0
-            ? $"Replacement DP is padded to the selected base BIN length ({FormatV2DpReplaceCapacities(display)}); only the original TP range is restored from base."
+            ? $"Use a DP/FlashCode-shaped BIN no larger than the selected Reference FlashCode ({FormatV2DpReplaceCapacities(display)}); shorter input is zero-padded and the original TP range is restored from the reference."
             : $"The V2 DP Replace profile is unavailable: {FormatV2DpReplaceIssues(display)}";
         return true;
     }
@@ -182,7 +182,7 @@ public static partial class WorkbenchCompositionService
     {
         return display.RequestedBaseCapacity is long requestedCapacity &&
             !display.SupportedBaseCapacities.Contains(requestedCapacity)
-            ? $"Unsupported base BIN length {FormatHexLength(requestedCapacity)}"
+            ? $"Unsupported Reference FlashCode length {FormatHexLength(requestedCapacity)}"
             : "DP Replace profile unavailable";
     }
 

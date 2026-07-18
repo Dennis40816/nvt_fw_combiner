@@ -43,7 +43,7 @@ public sealed partial class ShellViewModelTests
         OpenReplace(viewModel, "CtrlRAM");
         var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
 
-        Assert.Equal("Base firmware BIN", viewModel.ReplaceBaseSlot.Title);
+        Assert.Equal("Reference firmware", viewModel.ReplaceBaseSlot.Title);
         Assert.Contains("When the selected IC/profile supports it", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
         Assert.Contains("TP FW or a complete Flash Code", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
         Assert.Contains("僅在選定的 IC/profile 支援時", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.Ordinal);
@@ -52,7 +52,7 @@ public sealed partial class ShellViewModelTests
         Assert.DoesNotContain("base flash", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("FlashCode", viewModel.Text.CtrlRamFirmwareVersionCurrentLabel, StringComparison.Ordinal);
         Assert.DoesNotContain("FlashCode", traditionalChinese.CtrlRamFirmwareVersionSourceDetail, StringComparison.Ordinal);
-        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base firmware BIN");
+        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Reference firmware");
     }
 
     /// <summary>Verifies CtrlRAM plan rows promote readable region labels over raw postbuild filenames.</summary>
@@ -152,7 +152,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("0 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
         Assert.Contains("Build blocked", viewModel.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
-        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base firmware BIN");
+        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Reference firmware");
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
         FirmwareSlotGroupViewModel slaveLGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
         Assert.Equal("0/2", slaveLGroup.CountLabel);

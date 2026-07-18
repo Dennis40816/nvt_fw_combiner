@@ -134,6 +134,12 @@ public sealed partial class MainWindowViewModel
         ApplyFirmwareSlotText();
         RefreshReplaceSlotGroups();
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
+        OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeGoldenVerified));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeEvidenceGated));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeUnavailable));
         OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
         OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
         OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));

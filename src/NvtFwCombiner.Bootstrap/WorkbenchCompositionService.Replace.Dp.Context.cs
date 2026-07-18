@@ -21,7 +21,7 @@ public static partial class WorkbenchCompositionService
                 slotPaths,
                 build,
                 WorkbenchIssueCodes.InputMissing,
-                $"Base flash BIN is required before {FormatBuiltInV2DpReplaceIcIds()} DP Replace can determine the DP base length.");
+                $"Reference FlashCode is required before {FormatBuiltInV2DpReplaceIcIds()} DP Replace can determine the output capacity.");
             return false;
         }
 
@@ -34,7 +34,7 @@ public static partial class WorkbenchCompositionService
                 slotPaths,
                 build,
                 WorkbenchIssueCodes.InputArtifactReadFailed,
-                "Base flash BIN path does not exist.");
+                "Reference FlashCode path does not exist.");
             return false;
         }
 

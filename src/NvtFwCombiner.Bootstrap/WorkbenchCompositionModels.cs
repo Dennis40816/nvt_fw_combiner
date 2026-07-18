@@ -14,6 +14,49 @@ public sealed record WorkbenchSettingsSnapshot(
 /// <summary>One stable workbench IC-number choice projected from compatibility catalogs.</summary>
 public sealed record WorkbenchIcNumberChoice(string Token, string DisplayLabel);
 
+/// <summary>Golden-evidence state shown without implying a product support promise.</summary>
+public enum WorkbenchWorkflowEvidenceStatus
+{
+    /// <summary>Direct or owner-approved fact-scoped golden parity exists.</summary>
+    GoldenVerified,
+
+    /// <summary>The workflow is available while golden/owner review remains open.</summary>
+    EvidenceGated,
+
+    /// <summary>No approved executable/safety contract exists for the selected IC/workflow.</summary>
+    NotAvailable,
+}
+
+/// <summary>Selected workflow availability plus its evidence reason and opening condition.</summary>
+public sealed record WorkbenchWorkflowReadiness(
+    bool IsAvailable,
+    WorkbenchWorkflowEvidenceStatus EvidenceStatus,
+    string Reason,
+    string OpenCondition);
+
+/// <summary>Owner-defined IC-family relation projected without exposing Profiles types.</summary>
+public enum WorkbenchIcFamilyRelationship
+{
+    /// <summary>No cross-IC family fact is declared.</summary>
+    Standalone,
+
+    /// <summary>The IC is the canonical family source.</summary>
+    Canonical,
+
+    /// <summary>All facts in the declared family scope are reusable.</summary>
+    PerfectAlias,
+
+    /// <summary>Only the explicitly declared family scope is reusable.</summary>
+    PartialAlias,
+}
+
+/// <summary>Owner-defined perfect/partial IC family fact exposed to UI and audit surfaces.</summary>
+public sealed record WorkbenchIcFamilySummary(
+    string? FamilyId,
+    string? CanonicalIcId,
+    WorkbenchIcFamilyRelationship Relationship,
+    string? Scope);
+
 /// <summary>One compiled built-in profile summary exposed without its legacy profile model.</summary>
 public sealed record WorkbenchProfileSummary(
     string ProfileId,

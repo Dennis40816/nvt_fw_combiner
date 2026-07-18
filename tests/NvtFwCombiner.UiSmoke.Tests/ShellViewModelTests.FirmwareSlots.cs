@@ -64,7 +64,7 @@ public sealed partial class ShellViewModelTests
             HasDrawableIcon(slot));
         Assert.Equal(FirmwareSlotKind.Base, viewModel.ReplaceBaseSlot.SlotKind);
         AssertIconGeometry(viewModel.ReplaceBaseSlot);
-        Assert.Equal("Base firmware BIN", viewModel.ReplaceBaseSlot.SlotIconTooltip);
+        Assert.Equal("Reference firmware input", viewModel.ReplaceBaseSlot.SlotIconTooltip);
 
         OpenReplace(viewModel, "DP");
 

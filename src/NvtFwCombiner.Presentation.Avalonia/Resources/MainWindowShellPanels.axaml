@@ -109,6 +109,11 @@
               Text="{Binding DeviceContextStatus}"
               TextAlignment="Left"
               TextWrapping="Wrap" />
+          <Label
+              Classes="compactBadge neutralBadge reportBadge info"
+              Content="{Binding SelectedIcFamilyLabel}"
+              IsVisible="{Binding HasSelectedIcFamily}"
+              ToolTip.Tip="{Binding SelectedIcFamilyTooltip}" />
         </StackPanel>
       </Grid>
     </Grid>

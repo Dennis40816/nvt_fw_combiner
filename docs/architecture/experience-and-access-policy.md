@@ -32,6 +32,16 @@ Each profile compiles canonical IC regions plus experience-specific `regionAcces
 - There is no separate TP firmware Replace category in the product taxonomy.
 - IC num input mode is profile-declared as `single`, `cascade`, or `numeric`; two-option profiles use text choices such as `single`/`cascade`, while three-or-more concrete count profiles use numeric selection with future room for Other/custom exceptions.
 
+### DP Replace eligibility and inputs
+
+- Standard Merge and DP Replace consume the same canonical memory-map facts. DP Replace therefore requires Standard Merge exposure for the same IC, but Standard Merge alone does not automatically promote DP Replace.
+- Promotion additionally requires explicit DP-owned write ranges, preserved ranges, accepted capacities, normalization, integrity/postbuild behavior, golden evidence, and firmware-owner review.
+- `reference-base` is presented as **Reference FlashCode**. For the current NT51950/NT51951 DP Perspective profiles it is one complete final Standard/Normal Merge `.bin` for the selected IC, with exact capacity `0x40000`, `0x80000`, or `0x100000`.
+- The current DP replacement slot accepts a DP/FlashCode-shaped `.bin` no larger than the selected Reference FlashCode. Shorter input uses the profile-declared `0x00` padding; oversized input fails closed.
+- Future AB FlashCode sources require an AB-specific, profile-declared artifact shape/extractor plus explicit A/B bank, header-copy, preservation, and Legacy Combiner behavior. A UI label or generic file length must never select AB offsets.
+
+Golden readiness is display/audit metadata, orthogonal to access. `Evidence open` does not disable a workflow whose executable/safety contract exists. `Not available` is used only when that contract is absent, and the UI must show the reason and opening condition.
+
 ## General mode
 
 General mode is not scripting. It supports an extensible list of input BIN bindings and mapping rows. Every row has an explicit source range, target range, sequence, overlap policy, reason, and validation result. Mappings compile to the same `copy-range`/`replace-range` operations used by fixed profiles.

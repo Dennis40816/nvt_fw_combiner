@@ -65,8 +65,8 @@ public sealed class MemoryCoverageSegmentViewModel
         {
             "Reserved" => "Output range remains reserved; no input writes it.",
             "DP length pending" => "Output range will follow the selected DP BIN length.",
-            "DP base required" => "Output range will follow the selected base BIN length.",
-            "Unsupported base" => "This base BIN length is blocked by profile policy.",
+            "Reference FlashCode required" => "Output range will follow the selected Reference FlashCode length.",
+            "Unsupported reference" => "This Reference FlashCode length is blocked by profile policy.",
             string label when label.Equals("Preserve", StringComparison.OrdinalIgnoreCase) ||
                 label.Equals("Base flash", StringComparison.OrdinalIgnoreCase) =>
                 "Output range keeps bytes from the base firmware.",

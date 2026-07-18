@@ -175,15 +175,35 @@
               </StackPanel>
               <Grid
                   Grid.Column="1"
-                  ColumnDefinitions="158,Auto,Auto"
+                  ColumnDefinitions="Auto,Auto,Auto"
                   ColumnSpacing="{DynamicResource NfcSpace12}"
                   VerticalAlignment="Center">
                 <StackPanel Spacing="3">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
-                  <ComboBox
-                      MinHeight="32"
-                      ItemsSource="{Binding ReplaceModeChoices}"
-                      SelectedItem="{Binding SelectedReplaceMode, Mode=TwoWay}" />
+                  <Grid ColumnDefinitions="158,Auto" ColumnSpacing="6">
+                    <ComboBox
+                        MinHeight="32"
+                        ItemsSource="{Binding ReplaceModeChoices}"
+                        SelectedItem="{Binding SelectedReplaceMode, Mode=TwoWay}" />
+                    <Label
+                        Grid.Column="1"
+                        Classes="compactBadge neutralBadge reportBadge success"
+                        Content="{Binding SelectedReplaceModeEvidenceLabel}"
+                        IsVisible="{Binding IsSelectedReplaceModeGoldenVerified}"
+                        ToolTip.Tip="{Binding SelectedReplaceModeEvidenceTooltip}" />
+                    <Label
+                        Grid.Column="1"
+                        Classes="compactBadge neutralBadge reportBadge review"
+                        Content="{Binding SelectedReplaceModeEvidenceLabel}"
+                        IsVisible="{Binding IsSelectedReplaceModeEvidenceGated}"
+                        ToolTip.Tip="{Binding SelectedReplaceModeEvidenceTooltip}" />
+                    <Label
+                        Grid.Column="1"
+                        Classes="compactBadge neutralBadge reportBadge info"
+                        Content="{Binding SelectedReplaceModeEvidenceLabel}"
+                        IsVisible="{Binding IsSelectedReplaceModeUnavailable}"
+                        ToolTip.Tip="{Binding SelectedReplaceModeEvidenceTooltip}" />
+                  </Grid>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Spacing="3">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.TargetsLabel}" />

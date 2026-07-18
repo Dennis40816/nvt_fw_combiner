@@ -174,13 +174,13 @@ public sealed class BuiltInV2DpReplaceRoutingTests
             WorkbenchReplaceModes.Dp);
 
         WorkbenchMemoryMapRow row = Assert.Single(rows);
-        Assert.Equal("Base BIN length: 0x40000 / 0x80000 / 0x100000", row.RangeLabel);
+        Assert.Equal("Reference FlashCode length: 0x40000 / 0x80000 / 0x100000", row.RangeLabel);
         Assert.Equal("Select", row.ActionLabel);
         WorkbenchMemoryCoverageSegment segment = Assert.Single(coverage);
-        Assert.Equal("Base length pending", segment.RangeLabel);
+        Assert.Equal("Reference length pending", segment.RangeLabel);
         Assert.Contains("0x40000 / 0x80000 / 0x100000", segment.Detail, StringComparison.Ordinal);
         Assert.Equal(
-            "Base BIN length: 0x40000 / 0x80000 / 0x100000",
+            "Reference FlashCode length: 0x40000 / 0x80000 / 0x100000",
             WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, "single", WorkbenchReplaceModes.Dp));
     }
 

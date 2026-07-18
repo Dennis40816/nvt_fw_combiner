@@ -166,7 +166,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(1, result.ExitCode);
         Assert.Contains(WorkbenchIssueCodes.ReplaceWorkflowNotSupported, result.Error, StringComparison.Ordinal);
         Assert.Contains("NT51931", result.Error, StringComparison.Ordinal);
-        Assert.Contains("Not Supported", result.Error, StringComparison.Ordinal);
+        Assert.Contains("Not available", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("--ic-num is required", result.Error, StringComparison.Ordinal);
     }
 }

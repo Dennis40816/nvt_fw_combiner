@@ -90,6 +90,16 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(ReplaceBuildActionTip));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
+        OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeGoldenVerified));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeEvidenceGated));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeUnavailable));
+        OnPropertyChanged(nameof(SelectedIcFamilySummary));
+        OnPropertyChanged(nameof(SelectedIcFamilyLabel));
+        OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
+        OnPropertyChanged(nameof(HasSelectedIcFamily));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));

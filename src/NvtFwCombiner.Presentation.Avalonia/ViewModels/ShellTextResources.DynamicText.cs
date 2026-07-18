@@ -57,13 +57,78 @@ public sealed partial class ShellTextResources
         };
     }
 
+    public string GetReplaceBaseTitle(string mode)
+    {
+        return mode == WorkbenchReplaceModes.Dp
+            ? "Reference FlashCode"
+            : SelectLanguage("Reference firmware", "參考韌體");
+    }
+
+    public string GetReplaceBaseDescription(string mode, string? dpReferenceCapacityLabel)
+    {
+        return mode switch
+        {
+            WorkbenchReplaceModes.Dp => SelectLanguage(
+                $"Complete Standard/Normal Merge FlashCode for the same IC and one profile capacity ({dpReferenceCapacityLabel ?? "profile-declared"}); it is cloned before declared DP ranges change.",
+                $"同一 IC 且符合 profile 容量（{dpReferenceCapacityLabel ?? "由 profile 宣告"}）的完整 Standard/Normal Merge FlashCode；系統會先完整複製，再只修改已宣告的 DP 範圍。"),
+            WorkbenchReplaceModes.CtrlRam => SelectLanguage(
+                "TP firmware or complete FlashCode only when recognized by the selected IC/profile; unchanged regions stay from this image.",
+                "僅可使用所選 IC/profile 能辨識的 TP firmware 或完整 FlashCode；未替換區域會保留此映像內容。"),
+            WorkbenchReplaceModes.General => SelectLanguage(
+                "Complete immutable base image; only compiled explicit mappings may change it.",
+                "完整且不可變的基底映像；只有已編譯的明確 mapping 可以修改內容。"),
+            _ => SelectLanguage("Complete source image cloned before replacement.", "Replace 前完整複製的來源映像。"),
+        };
+    }
+
+    public string GetWorkflowEvidenceLabel(WorkbenchWorkflowEvidenceStatus status)
+    {
+        return status switch
+        {
+            WorkbenchWorkflowEvidenceStatus.GoldenVerified => SelectLanguage("Golden verified", "Golden 已驗證"),
+            WorkbenchWorkflowEvidenceStatus.EvidenceGated => SelectLanguage("Evidence open", "Evidence 待補"),
+            WorkbenchWorkflowEvidenceStatus.NotAvailable => SelectLanguage("Not available", "尚未開放"),
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
+        };
+    }
+
+    public string GetWorkflowEvidenceTooltip(WorkbenchWorkflowReadiness readiness)
+    {
+        ArgumentNullException.ThrowIfNull(readiness);
+        return SelectLanguage(
+            $"Evidence: {readiness.Reason}\nOpen condition: {readiness.OpenCondition}\nThis reports verification only; it is not a product-support promise.",
+            $"Evidence：{readiness.Reason}\n開放條件：{readiness.OpenCondition}\n此狀態只表示驗證程度，不代表產品支援承諾。");
+    }
+
+    public string GetIcFamilyLabel(WorkbenchIcFamilyRelationship relationship)
+    {
+        return relationship switch
+        {
+            WorkbenchIcFamilyRelationship.PerfectAlias => SelectLanguage("Perfect IC Family", "完整 IC Family"),
+            WorkbenchIcFamilyRelationship.PartialAlias => SelectLanguage("Partial IC Family", "部分 IC Family"),
+            WorkbenchIcFamilyRelationship.Canonical => SelectLanguage("IC Family source", "IC Family 基準"),
+            WorkbenchIcFamilyRelationship.Standalone => string.Empty,
+            _ => throw new ArgumentOutOfRangeException(nameof(relationship), relationship, null),
+        };
+    }
+
+    public string GetIcFamilyTooltip(WorkbenchIcFamilySummary family)
+    {
+        ArgumentNullException.ThrowIfNull(family);
+        return family.FamilyId is null
+            ? string.Empty
+            : SelectLanguage(
+                $"Family: {family.FamilyId}\nCanonical IC: {family.CanonicalIcId}\nReusable scope: {family.Scope}\nFamily reuse never expands executable ranges by itself.",
+                $"Family：{family.FamilyId}\n基準 IC：{family.CanonicalIcId}\n可沿用範圍：{family.Scope}\nFamily 關係本身不會擴張可執行的 firmware range。");
+    }
+
     public string GetReplaceMemorySummary(string mode)
     {
         return mode switch
         {
             WorkbenchReplaceModes.Dp => SelectLanguage(
-                "Blue shows new DP bytes; gray shows sections preserved or restored from the base firmware.",
-                "藍色代表新的 DP bytes；灰色代表從 base firmware 保留或還原的區段。"),
+                "Blue shows new DP bytes; gray shows sections preserved or restored from the Reference FlashCode.",
+                "藍色代表新的 DP bytes；灰色代表從 Reference FlashCode 保留或還原的區段。"),
             WorkbenchReplaceModes.CtrlRam => SelectLanguage(
                 "Colored blocks show replaceable CtrlRAM positions; gray stays from the base firmware.",
                 "有色區塊代表可取代的 CtrlRAM 位置；灰色保留 base firmware。"),
@@ -84,8 +149,8 @@ public sealed partial class ShellTextResources
                 "Ready: Build will validate DP Replace inputs, then write output and report.",
                 "Ready：Build 會先驗證 DP Replace input，再寫出 output 與 report。"),
             WorkbenchReplaceModes.Dp => SelectLanguage(
-                "Build blocked: base BIN and required DP replacement inputs are required.",
-                "Build blocked：需要 base BIN 與必要的 DP replacement input。"),
+                "Build blocked: Reference FlashCode and required DP replacement inputs are required.",
+                "Build blocked：需要 Reference FlashCode 與必要的 DP replacement input。"),
             WorkbenchReplaceModes.CtrlRam when canRun => SelectLanguage(
                 "Ready: Build will replace selected CtrlRAM regions and run postbuild.",
                 "Ready：Build 會取代選定的 CtrlRAM region 並執行 postbuild。"),

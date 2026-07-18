@@ -87,7 +87,7 @@ internal static partial class ReplaceCliCommandHandler
         if (!WorkbenchCompositionService.IsReplaceWorkflowSupported(icId, replaceMode))
         {
             await error.WriteLineAsync(
-                $"error: {WorkbenchIssueCodes.ReplaceWorkflowNotSupported}: {icId} {replaceMode} Replace is Not Supported.")
+                $"error: {WorkbenchIssueCodes.ReplaceWorkflowNotSupported}: {icId} {replaceMode} Replace is Not available.")
                 .ConfigureAwait(false);
             return CompositionFailed;
         }

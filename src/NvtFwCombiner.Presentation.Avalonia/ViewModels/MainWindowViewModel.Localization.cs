@@ -35,6 +35,10 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReplaceMemorySummary));
         OnPropertyChanged(nameof(StandardMergeSupportSummary));
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
+        OnPropertyChanged(nameof(SelectedIcFamilyLabel));
+        OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(MergeBuildActionTip));
@@ -91,8 +95,10 @@ public sealed partial class MainWindowViewModel
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
         ReplaceBaseSlot.ApplyDisplayText(
-            Text.BaseFlashBinTitle,
-            Text.BaseFlashBinDescription,
+            Text.GetReplaceBaseTitle(SelectedReplaceMode),
+            Text.GetReplaceBaseDescription(
+                SelectedReplaceMode,
+                WorkbenchCompositionService.GetDpReplaceReferenceCapacityLabel(SelectedIc)),
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);

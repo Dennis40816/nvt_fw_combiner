@@ -39,10 +39,10 @@ public static partial class WorkbenchCompositionService
             [
                 new WorkbenchMemoryMapRow(
                     "Policy",
-                    "Not Supported",
+                    "Not available",
                     "Blocked",
                     "No target",
-                    $"{icId} {replaceMode} Replace is Not Supported by the current IC support policy."),
+                    $"{icId} {replaceMode} Replace is Not available under the current IC workflow policy."),
             ];
         }
 
@@ -108,7 +108,7 @@ public static partial class WorkbenchCompositionService
         if (GetReplaceWorkflowId(replaceMode) is not null &&
             !IsReplaceWorkflowSupported(icId, replaceMode))
         {
-            return "Not Supported";
+            return "Not available";
         }
 
         if (replaceMode == WorkbenchReplaceModes.Dp &&

@@ -30,6 +30,101 @@ public static partial class WorkbenchCompositionService
             IcSupportCatalog.SupportsWorkflow(icId, workflowId);
     }
 
+    /// <summary>Gets selected Replace availability and golden readiness from the IC support catalog.</summary>
+    public static WorkbenchWorkflowReadiness GetReplaceWorkflowReadiness(string icId, string replaceMode)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(replaceMode);
+        string? workflowId = GetReplaceWorkflowId(replaceMode);
+        if (workflowId is null || !IcSupportCatalog.TryFind(icId, out IcSupportEntry? entry) || entry is null)
+        {
+            return new WorkbenchWorkflowReadiness(
+                false,
+                WorkbenchWorkflowEvidenceStatus.NotAvailable,
+                "The selected IC or Replace mode is not declared by the support catalog.",
+                "Add an owner-reviewed catalog entry, profile/safety contract, and full-byte evidence.");
+        }
+
+        IcWorkflowEvidenceStatus evidenceStatus = entry.GetWorkflowEvidenceStatus(workflowId);
+        return evidenceStatus switch
+        {
+            IcWorkflowEvidenceStatus.GoldenVerified => new WorkbenchWorkflowReadiness(
+                true,
+                WorkbenchWorkflowEvidenceStatus.GoldenVerified,
+                "Direct or owner-approved fact-scoped golden parity is recorded for this workflow.",
+                "Golden verification does not grant product support; firmware-owner release review remains separate."),
+            IcWorkflowEvidenceStatus.EvidenceGated => new WorkbenchWorkflowReadiness(
+                true,
+                WorkbenchWorkflowEvidenceStatus.EvidenceGated,
+                "The workflow is available, but its direct/fact-scoped golden or owner review is not closed.",
+                "Close the current evidence gaps and firmware-owner review; pending evidence alone does not ban authoring."),
+            IcWorkflowEvidenceStatus.NotAvailable => new WorkbenchWorkflowReadiness(
+                false,
+                WorkbenchWorkflowEvidenceStatus.NotAvailable,
+                HasAnyReplaceWorkflow(entry)
+                    ? GetUnsupportedReplaceReason(replaceMode)
+                    : entry.Notes ?? GetUnsupportedReplaceReason(replaceMode),
+                GetUnsupportedReplaceOpenCondition(replaceMode)),
+            _ => throw new InvalidOperationException($"Unknown workflow evidence status '{evidenceStatus}'."),
+        };
+    }
+
+    /// <summary>Gets the owner-defined perfect/partial IC family relation for display.</summary>
+    public static WorkbenchIcFamilySummary GetIcFamilySummary(string icId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        return IcSupportCatalog.TryFind(icId, out IcSupportEntry? entry) && entry is not null
+            ? new WorkbenchIcFamilySummary(
+                entry.FamilyId,
+                entry.FamilySourceIcId,
+                MapFamilyRelationship(entry.FamilyRelationship),
+                entry.FamilyScope)
+            : new WorkbenchIcFamilySummary(null, null, WorkbenchIcFamilyRelationship.Standalone, null);
+    }
+
+    /// <summary>Gets current profile-derived DP Replace Reference FlashCode capacities.</summary>
+    public static string? GetDpReplaceReferenceCapacityLabel(string icId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        return TryResolveDpPerspectiveDpReplaceDisplay(icId, baseCapacity: null, out DpPerspectiveDpReplaceDisplay? display) &&
+            display.Issues.Count == 0
+                ? FormatV2DpReplaceCapacities(display)
+                : null;
+    }
+
+    private static bool HasAnyReplaceWorkflow(IcSupportEntry entry)
+    {
+        return entry.SupportsWorkflow(IcWorkflowIds.DpReplace) ||
+            entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace) ||
+            entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace);
+    }
+
+    private static WorkbenchIcFamilyRelationship MapFamilyRelationship(IcFamilyRelationship relationship)
+    {
+        return relationship switch
+        {
+            IcFamilyRelationship.Standalone => WorkbenchIcFamilyRelationship.Standalone,
+            IcFamilyRelationship.Canonical => WorkbenchIcFamilyRelationship.Canonical,
+            IcFamilyRelationship.PerfectAlias => WorkbenchIcFamilyRelationship.PerfectAlias,
+            IcFamilyRelationship.PartialAlias => WorkbenchIcFamilyRelationship.PartialAlias,
+            _ => throw new InvalidOperationException($"Unknown IC family relationship '{relationship}'."),
+        };
+    }
+
+    private static string GetUnsupportedReplaceReason(string replaceMode)
+    {
+        return string.Equals(replaceMode, WorkbenchReplaceModes.Dp, StringComparison.Ordinal)
+            ? "No owner-approved DP Replace profile/map is registered for this IC."
+            : "No owner-approved executable and safety contract is registered for this IC and Replace mode.";
+    }
+
+    private static string GetUnsupportedReplaceOpenCondition(string replaceMode)
+    {
+        return string.Equals(replaceMode, WorkbenchReplaceModes.Dp, StringComparison.Ordinal)
+            ? "Add the IC-specific DP map/profile, full-byte golden parity, and firmware-owner review."
+            : "Owner must reactivate the scope with a safe executable contract, direct evidence, and firmware-owner review.";
+    }
+
     /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>
     public static async ValueTask<WorkbenchRunResult> RunReplaceAsync(
         string icId,
@@ -108,7 +203,7 @@ public static partial class WorkbenchCompositionService
                 [],
                 [new CompositionIssue(
                     WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
-                    $"{IcSupportCatalog.NormalizeIcId(icId)} {replaceMode} Replace is Not Supported by the current IC support policy.",
+                    $"{IcSupportCatalog.NormalizeIcId(icId)} {replaceMode} Replace is Not available under the current IC workflow policy.",
                     workflowId)],
                 GetReplaceDefaultOutputFileName(icId, replaceMode))
             : ctrlRamFirmwareVersionEdit is not null &&

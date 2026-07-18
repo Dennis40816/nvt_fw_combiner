@@ -66,8 +66,8 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the independent General Replace base firmware slot.</summary>
     public FirmwareSlotViewModel ReplaceBaseSlot { get; } = new(
         ReplaceBaseSlotId,
-        "Base firmware BIN",
-        "Reference firmware image before replacement",
+        "Reference firmware",
+        "Complete source image cloned before replacement",
         FirmwareSlotKind.Base);
 
     /// <summary>Gets replace input slots for the selected replace mode.</summary>
@@ -210,6 +210,43 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Description shown under the selected replace mode.</summary>
     public string SelectedReplaceModeDescription => Text.GetReplaceModeDescription(SelectedReplaceMode);
+
+    /// <summary>Selected Replace workflow availability and golden-evidence state.</summary>
+    public WorkbenchWorkflowReadiness SelectedReplaceWorkflowReadiness =>
+        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode);
+
+    /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
+    public string SelectedReplaceModeEvidenceLabel =>
+        Text.GetWorkflowEvidenceLabel(SelectedReplaceWorkflowReadiness.EvidenceStatus);
+
+    /// <summary>Localized evidence reason and opening condition for the selected Replace workflow.</summary>
+    public string SelectedReplaceModeEvidenceTooltip =>
+        Text.GetWorkflowEvidenceTooltip(SelectedReplaceWorkflowReadiness);
+
+    /// <summary>True when selected Replace has golden parity evidence.</summary>
+    public bool IsSelectedReplaceModeGoldenVerified =>
+        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.GoldenVerified;
+
+    /// <summary>True when selected Replace is available with evidence still open.</summary>
+    public bool IsSelectedReplaceModeEvidenceGated =>
+        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.EvidenceGated;
+
+    /// <summary>True when selected Replace has no approved executable/safety contract.</summary>
+    public bool IsSelectedReplaceModeUnavailable =>
+        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.NotAvailable;
+
+    /// <summary>Owner-defined IC-family relationship shown without changing firmware maps.</summary>
+    public WorkbenchIcFamilySummary SelectedIcFamilySummary =>
+        WorkbenchCompositionService.GetIcFamilySummary(SelectedIc);
+
+    /// <summary>Localized label for an owner-defined IC family.</summary>
+    public string SelectedIcFamilyLabel => Text.GetIcFamilyLabel(SelectedIcFamilySummary.Relationship);
+
+    /// <summary>Localized boundary of reusable family facts.</summary>
+    public string SelectedIcFamilyTooltip => Text.GetIcFamilyTooltip(SelectedIcFamilySummary);
+
+    /// <summary>True when the selected IC has an owner-defined family relation.</summary>
+    public bool HasSelectedIcFamily => SelectedIcFamilySummary.FamilyId is not null;
 
     /// <summary>Status shown in the merge inspector.</summary>
     public string MergeReadinessStatus => Text.GetMergeReadinessStatus(
