@@ -6,6 +6,10 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 Post-`0.9.8` development targets verified legacy convergence, patch closure, firmware-owner evidence, and the UI-driven IC intake toolchain.
 
+### Changed
+
+- Moved the generated CRC Worker 0.1.0 payload from the release root to the closed `external-tools/crc-worker/0.1.0/` package path while preserving Protocol 1.0, its manifest hash, and the packaged `123456789` self-test.
+
 ## [0.9.8] - 2026-07-16
 
 ### Added

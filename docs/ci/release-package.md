@@ -7,7 +7,6 @@ The end-user ZIP contains one top-level directory with a closed file allowlist:
 ```text
 NvtFwCombiner-vX.Y.Z-win-x64/
 ├─ NvtFwCombiner.exe
-├─ Nfc.CrcWorker.exe
 ├─ profiles/
 │  └─ built-in/
 │     ├─ <Bootstrap-declared bundle>/
@@ -18,6 +17,9 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 │        └─ flash-map.json
 ├─ external-tools/
 │  ├─ README.md
+│  ├─ crc-worker/
+│  │  └─ 0.1.0/
+│  │     └─ Nfc.CrcWorker.exe
 │  └─ legacy-combiner/
 │     ├─ README.md
 │     └─ 1.13.0/
@@ -43,7 +45,7 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 └─ SHA256SUMS.txt
 ```
 
-No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, private golden inputs, unmanifested firmware BINs, generated firmware outputs, PDBs, or Codex configuration is shipped. `profiles/built-in/` contains only the bundles explicitly materialized by the Bootstrap project plus the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping a candidate bundle does not change its declared stage, blockers, runtime eligibility, or owner-review requirement. The packager rejects extra published bundle, runtime-catalog directories, or files. The only shipped external executable is an owner-approved Combiner package under `external-tools/`; packaging copies only its fixed allowlist, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Owner-approved Standard Merge golden fixture BINs may ship under `reference/testdata/golden/standard-merge-gen-flash/` only when they are declared by that fixture manifest for future packaged self-tests. Every shipped file under `profiles/built-in/`, `external-tools/`, and `reference/` is listed in `RELEASE-MANIFEST.json` and `SHA256SUMS.txt`.
+No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, private golden inputs, unmanifested firmware BINs, generated firmware outputs, PDBs, or Codex configuration is shipped. `profiles/built-in/` contains only the bundles explicitly materialized by the Bootstrap project plus the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping a candidate bundle does not change its declared stage, blockers, runtime eligibility, or owner-review requirement. The packager rejects extra published bundle, runtime-catalog directories, or files. Shipped external executables are confined to `external-tools/`: the generated CRC Worker 0.1.0 payload and the owner-approved Legacy Combiner package. Packaging uses a fixed allowlist, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Owner-approved Standard Merge golden fixture BINs may ship under `reference/testdata/golden/standard-merge-gen-flash/` only when they are declared by that fixture manifest for future packaged self-tests. Every shipped file under `profiles/built-in/`, `external-tools/`, and `reference/` is listed in `RELEASE-MANIFEST.json` and `SHA256SUMS.txt`.
 
 ## Implemented commands
 

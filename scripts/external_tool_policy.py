@@ -10,13 +10,16 @@ ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS = {
     PurePosixPath("external-tools/diff-nf-merge/1.0.0/DiffNFMerge.exe"),
     PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
 }
-APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS = {
+APPROVED_REPOSITORY_EXTERNAL_TOOL_PACKAGE_PATHS = {
     PurePosixPath("external-tools/README.md"),
     PurePosixPath("external-tools/legacy-combiner/README.md"),
     PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
     PurePosixPath("external-tools/legacy-combiner/1.13.0/manifest.json"),
 }
-APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS = APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS | {
+APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS = APPROVED_REPOSITORY_EXTERNAL_TOOL_PACKAGE_PATHS | {
+    PurePosixPath("external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe"),
+}
+APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS = APPROVED_REPOSITORY_EXTERNAL_TOOL_PACKAGE_PATHS | {
     PurePosixPath("external-tools/diff-nf-merge/README.md"),
     PurePosixPath("external-tools/diff-nf-merge/1.0.0/CommandLine.dll"),
     PurePosixPath("external-tools/diff-nf-merge/1.0.0/DiffNFMerge.exe"),

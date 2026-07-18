@@ -52,7 +52,7 @@
       "items": { "$ref": "#/$defs/file" },
       "allOf": [
         { "contains": { "properties": { "path": { "const": "NvtFwCombiner.exe" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "path": { "const": "Nfc.CrcWorker.exe" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "path": { "const": "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "path": { "const": "THIRD-PARTY-NOTICES.txt" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "path": { "const": "LICENSE.txt" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "path": { "const": "README.txt" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 }
@@ -79,7 +79,6 @@
             {
               "enum": [
                 "NvtFwCombiner.exe",
-                "Nfc.CrcWorker.exe",
                 "THIRD-PARTY-NOTICES.txt",
                 "LICENSE.txt",
                 "README.txt"

@@ -8,7 +8,7 @@ Rules:
 - UTF-8, deterministic property order, no unknown properties.
 - SHA-256 is lowercase 64-character hex.
 - Package paths are relative package paths. Base payload files are plain filenames; approved external tool payloads must live under `external-tools/`; human-review evidence and owner-approved golden fixtures must live under `reference/`.
-- Manifest lists the five base payload files plus each explicitly approved file path under `external-tools/`, excluding itself and `SHA256SUMS.txt`.
+- Manifest lists the four root payload files plus each explicitly approved file path under `external-tools/`, excluding itself and `SHA256SUMS.txt`. The CRC Worker is an `externalTool` at `external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe`, not a root payload.
 - Manifest also lists every shipped file under `reference/`. Owner-approved golden firmware fixtures use role `goldenFixture`; non-BIN reference evidence uses role `reference`.
 - Built-in profile/schema/processor digests describe resources embedded in the executables.
 - `licenseSpdx` is `MIT`.
@@ -47,10 +47,10 @@ Example:
       "role": "application"
     },
     {
-      "path": "Nfc.CrcWorker.exe",
+      "path": "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
       "size": 1,
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-      "role": "crcWorker"
+      "role": "externalTool"
     },
     {
       "path": "THIRD-PARTY-NOTICES.txt",
@@ -94,4 +94,4 @@ Example:
 }
 ```
 
-`approvedProcessorIds` may be empty in a pre-transform beta, but a profile requiring processor authority `transform` cannot be included unless its processor id is present and tested. `processorBundleSha256` covers the deterministic registry/parameter-schema bundle, not firmware data. Shipped legacy Combiner binaries are represented as `externalTool` file entries and pinned by their own external tool manifests.
+`approvedProcessorIds` may be empty in a pre-transform beta, but a profile requiring processor authority `transform` cannot be included unless its processor id is present and tested. `processorBundleSha256` pins the generated CRC Worker payload, not firmware data. The CRC Worker and shipped Legacy Combiner binaries are represented as `externalTool` file entries; the Combiner remains additionally pinned by its repository external-tool manifest.

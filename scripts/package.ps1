@@ -74,8 +74,16 @@ function Restore-SourcePackageLocks {
     }
 }
 
+$CrcWorkerPackagePath = 'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe'
+$ApprovedRepositoryExternalToolPackagePaths = @(
+    'external-tools/README.md',
+    'external-tools/legacy-combiner/README.md',
+    'external-tools/legacy-combiner/1.13.0/Combiner.exe',
+    'external-tools/legacy-combiner/1.13.0/manifest.json'
+) | Sort-Object
 $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
+    'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
     'external-tools/legacy-combiner/README.md',
     'external-tools/legacy-combiner/1.13.0/Combiner.exe',
     'external-tools/legacy-combiner/1.13.0/manifest.json'
@@ -117,7 +125,7 @@ function Copy-PackageFileFromRoot {
 function Copy-ApprovedExternalToolPackageFiles {
     param([Parameter(Mandatory = $true)][string]$DestinationRoot)
 
-    foreach ($ApprovedExternalToolPackagePath in $ApprovedExternalToolPackagePaths) {
+    foreach ($ApprovedExternalToolPackagePath in $ApprovedRepositoryExternalToolPackagePaths) {
         Copy-PackageFile -RelativePath $ApprovedExternalToolPackagePath -DestinationRoot $DestinationRoot
     }
 }
@@ -353,6 +361,9 @@ function Invoke-ExternalToolPolicyDryRun {
         'negative release-policy probe' | Set-Content -LiteralPath $ProbeSourcePath -Encoding ascii
 
         Copy-ApprovedExternalToolPackageFiles -DestinationRoot $DryRunPackageRoot
+        $DryRunWorkerPath = Join-Path $DryRunPackageRoot $CrcWorkerPackagePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $DryRunWorkerPath) | Out-Null
+        'generated CRC worker policy fixture' | Set-Content -LiteralPath $DryRunWorkerPath -Encoding ascii
         $DryRunExternalToolsRoot = Join-Path $DryRunPackageRoot 'external-tools'
         $DryRunEntries = @(Get-ExternalToolManifestEntries `
             -PackageRoot $DryRunPackageRoot `
@@ -605,7 +616,8 @@ $BuiltWorker = Join-Path $WorkerDist 'Nfc.CrcWorker.exe'
 if (-not (Test-Path -LiteralPath $BuiltWorker -PathType Leaf)) {
     throw "Packaged CRC worker was not found at $BuiltWorker"
 }
-$WorkerExe = Join-Path $PackageRoot 'Nfc.CrcWorker.exe'
+$WorkerExe = Join-Path $PackageRoot $CrcWorkerPackagePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $WorkerExe) | Out-Null
 Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
 
 $ExternalToolsDestination = Join-Path $PackageRoot 'external-tools'
@@ -665,9 +677,9 @@ NVT FW Combiner $SemanticVersion
 
 Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
-- Nfc.CrcWorker.exe: constrained external checksum/header worker
+- external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe: constrained external checksum/header worker
 - profiles/built-in/: manifest-pinned bundles materialized by the Bootstrap build; profile stage and runtime routing remain authoritative
-- external-tools/: approved legacy Combiner runtime packages
+- external-tools/: generated CRC Worker and approved legacy Combiner runtime packages
 - reference/: owner-approved flash-map, postbuild, flash-header, and golden fixture evidence
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
@@ -719,7 +731,6 @@ $SbomName = "$PackageName.spdx.json"
 $ProvenanceName = "$PackageName.provenance.json"
 $FileEntries = @(
     [ordered]@{ path = 'NvtFwCombiner.exe'; size = (Get-Item $AppExe).Length; sha256 = $AppHash; role = 'application' },
-    [ordered]@{ path = 'Nfc.CrcWorker.exe'; size = (Get-Item $WorkerExe).Length; sha256 = $WorkerHash; role = 'crcWorker' },
     [ordered]@{ path = 'THIRD-PARTY-NOTICES.txt'; size = (Get-Item $NoticePath).Length; sha256 = (Get-LowerSha256 $NoticePath); role = 'notices' },
     [ordered]@{ path = 'LICENSE.txt'; size = (Get-Item $LicensePath).Length; sha256 = (Get-LowerSha256 $LicensePath); role = 'license' },
     [ordered]@{ path = 'README.txt'; size = (Get-Item $ReadmePath).Length; sha256 = (Get-LowerSha256 $ReadmePath); role = 'readme' }
@@ -803,7 +814,6 @@ $HashLines | Set-Content -LiteralPath (Join-Path $PackageRoot 'SHA256SUMS.txt') 
 
 $Expected = (@(
     'LICENSE.txt',
-    'Nfc.CrcWorker.exe',
     'NvtFwCombiner.exe',
     'README.txt',
     'RELEASE-MANIFEST.json',

@@ -4,6 +4,7 @@
 
 Current runtime and release package:
 
+- generated `crc-worker/0.1.0/Nfc.CrcWorker.exe` release payload (built from `tools/crc-worker/`; not stored as a repository binary)
 - `legacy-combiner/1.13.0/Combiner.exe`
 
 Repository-only intake:

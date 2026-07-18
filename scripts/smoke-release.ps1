@@ -19,6 +19,7 @@ $ApprovedPackageBaselineBytes = 57501699
 $MaximumPackageBytes = 58076715
 $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
+    'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
     'external-tools/legacy-combiner/README.md',
     'external-tools/legacy-combiner/1.13.0/Combiner.exe',
     'external-tools/legacy-combiner/1.13.0/manifest.json'
@@ -199,7 +200,7 @@ try {
     $packageRoot = $topLevelDirectories[0].FullName
     foreach ($requiredPath in @(
         'NvtFwCombiner.exe',
-        'Nfc.CrcWorker.exe',
+        'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
         'RELEASE-MANIFEST.json',
         'SHA256SUMS.txt',
         'README.txt',
@@ -320,7 +321,7 @@ try {
         }
     }
 
-    $workerPath = Join-Path $packageRoot 'Nfc.CrcWorker.exe'
+    $workerPath = Join-Path $packageRoot 'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe'
     $request = '{"protocolVersion":"1.0","requestId":"release-smoke","operation":"calculate","algorithmId":"crc-32-mpeg-2","payloadBase64":"MTIzNDU2Nzg5"}'
     $workerOutput = [string]::Join([Environment]::NewLine, @($request | & $workerPath))
     if ($LASTEXITCODE -ne 0) {

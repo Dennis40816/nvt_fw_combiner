@@ -19,6 +19,7 @@ SMOKE_SCRIPT = ROOT / "scripts" / "smoke-release.ps1"
 PROBE_RELATIVE_PATH = Path("external-tools/release-package-policy-probe.txt")
 APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/README.md",
+    "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
     "external-tools/legacy-combiner/README.md",
     "external-tools/legacy-combiner/1.13.0/Combiner.exe",
     "external-tools/legacy-combiner/1.13.0/manifest.json",
@@ -184,16 +185,18 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
             for required_file in (
                 "NvtFwCombiner.exe",
-                "Nfc.CrcWorker.exe",
+                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
                 "SHA256SUMS.txt",
                 "README.txt",
                 "LICENSE.txt",
                 "THIRD-PARTY-NOTICES.txt",
             ):
-                (package_root / required_file).write_bytes(b"release-policy fixture\n")
+                required_path = package_root / required_file
+                required_path.parent.mkdir(parents=True, exist_ok=True)
+                required_path.write_bytes(b"release-policy fixture\n")
 
             staged_probe = package_root / PROBE_RELATIVE_PATH
-            staged_probe.parent.mkdir(parents=True)
+            staged_probe.parent.mkdir(parents=True, exist_ok=True)
             staged_probe.write_bytes(b"negative release-policy probe\n")
             manifest = {
                 "files": [
@@ -245,13 +248,15 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
             for required_file in (
                 "NvtFwCombiner.exe",
-                "Nfc.CrcWorker.exe",
+                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
                 "SHA256SUMS.txt",
                 "README.txt",
                 "LICENSE.txt",
                 "THIRD-PARTY-NOTICES.txt",
             ):
-                (package_root / required_file).write_bytes(b"release-policy fixture\n")
+                required_path = package_root / required_file
+                required_path.parent.mkdir(parents=True, exist_ok=True)
+                required_path.write_bytes(b"release-policy fixture\n")
 
             manifest_entries = []
             for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
