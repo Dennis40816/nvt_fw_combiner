@@ -121,17 +121,9 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 return ExternalProcessorResult.Failed([stagedArtifactIssue]);
             }
 
+            byte[] acceptedFirmwareBytes = inputBytes;
             foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
             {
-                byte[] commandInputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
-                if (commandInputBytes.LongLength != inputBytes.LongLength)
-                {
-                    return Fail(
-                        "external-tool.output-length.changed",
-                        "External processor changed the firmware image length.",
-                        executedCommands);
-                }
-
                 ResetDirectory(binDirectory);
                 CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(
                     command.Blocks,
@@ -181,16 +173,27 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     return ExternalProcessorResult.Failed([artifactMutationIssue], executedCommands);
                 }
 
-                CompositionIssue? lengthIssue = await NormalizeShortenedFirmwareAsync(
-                        firmwarePath,
-                        commandInputBytes,
-                        command,
-                        cancellationToken)
+                byte[] commandOutputBytes = await File
+                    .ReadAllBytesAsync(firmwarePath, cancellationToken)
                     .ConfigureAwait(false);
+                CompositionIssue? lengthIssue = NormalizeShortenedFirmware(
+                        acceptedFirmwareBytes,
+                        commandOutputBytes,
+                        command,
+                        out byte[] normalizedFirmwareBytes);
                 if (lengthIssue is not null)
                 {
                     return ExternalProcessorResult.Failed([lengthIssue], executedCommands);
                 }
+
+                if (normalizedFirmwareBytes.LongLength != commandOutputBytes.LongLength)
+                {
+                    await File
+                        .WriteAllBytesAsync(firmwarePath, normalizedFirmwareBytes, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                acceptedFirmwareBytes = normalizedFirmwareBytes;
 
                 CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, profile, resolvedManifest, commandPlan);
                 if (perCommandUnexpectedFileIssue is not null)
@@ -208,18 +211,15 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
             }
 
             CompositionIssue? unexpectedFileIssue = ValidateStagingTree(runDirectory, profile, resolvedManifest, commandPlan);
-            if (unexpectedFileIssue is not null)
+            return unexpectedFileIssue switch
             {
-                return ExternalProcessorResult.Failed([unexpectedFileIssue], executedCommands);
-            }
-
-            byte[] outputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
-            return outputBytes.LongLength != inputBytes.LongLength
-                ? Fail(
+                not null => ExternalProcessorResult.Failed([unexpectedFileIssue], executedCommands),
+                null when acceptedFirmwareBytes.LongLength != inputBytes.LongLength => Fail(
                     "external-tool.output-length.changed",
                     "External processor changed the firmware image length.",
-                    executedCommands)
-                : CreateCheckedSuccess(inputBytes, outputBytes, request.AllowedWriteRanges, executedCommands);
+                    executedCommands),
+                _ => CreateCheckedSuccess(inputBytes, acceptedFirmwareBytes, request.AllowedWriteRanges, executedCommands),
+            };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

@@ -237,13 +237,13 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         }
     }
 
-    private static async ValueTask<CompositionIssue?> NormalizeShortenedFirmwareAsync(
-        string firmwarePath,
+    private static CompositionIssue? NormalizeShortenedFirmware(
         byte[] commandInputBytes,
+        byte[] commandOutputBytes,
         LegacyCombinerPostbuildCommand command,
-        CancellationToken cancellationToken)
+        out byte[] normalizedBytes)
     {
-        byte[] commandOutputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
+        normalizedBytes = commandOutputBytes;
         if (commandOutputBytes.LongLength == commandInputBytes.LongLength)
         {
             return null;
@@ -266,9 +266,8 @@ public sealed partial class LegacyCombinerPostbuildProcessor
                 command.CommandId);
         }
 
-        byte[] normalizedBytes = [.. commandInputBytes];
+        normalizedBytes = [.. commandInputBytes];
         commandOutputBytes.CopyTo(normalizedBytes, 0);
-        await File.WriteAllBytesAsync(firmwarePath, normalizedBytes, cancellationToken).ConfigureAwait(false);
         return null;
     }
 

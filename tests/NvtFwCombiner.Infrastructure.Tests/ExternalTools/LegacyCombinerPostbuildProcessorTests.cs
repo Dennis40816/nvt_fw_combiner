@@ -461,4 +461,74 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(new ByteRange(0x12, 1), Assert.Single(result.ChangedRanges));
     }
 
+    /// <summary>Verifies shortened output restores its tail from the preceding accepted command, not the original input.</summary>
+    [Fact]
+    public async Task TransformCarriesAcceptedFirmwareIntoLaterShortenedOutputNormalization()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = CreateFirmwareImage();
+        int call = 0;
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            call++;
+            string firmwarePath = startInfo.Arguments.First(argument =>
+                argument.EndsWith("shortened_after_crc_fw.bin", StringComparison.Ordinal));
+            byte[] output = File.ReadAllBytes(firmwarePath);
+            if (call == 1)
+            {
+                output[0x30] ^= 0x44;
+                File.WriteAllBytes(firmwarePath, output);
+                return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+            }
+
+            Assert.Equal((byte)(firmware[0x30] ^ 0x44), output[0x30]);
+            byte[] shortened = output[..0x20];
+            shortened[0x12] ^= 0x33;
+            File.WriteAllBytes(firmwarePath, shortened);
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProfile profile = CreateShortenedOutputAfterCrcProfile();
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-shortened-after-crc",
+            profile.ProcessorId,
+            profile.ToolBindingId,
+            firmware,
+            [new ByteRange(0x12, 1), new ByteRange(0x30, 1)],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.Equal((byte)(firmware[0x12] ^ 0x33), result.OutputBytes.Span[0x12]);
+        Assert.Equal((byte)(firmware[0x30] ^ 0x44), result.OutputBytes.Span[0x30]);
+        Assert.Equal(2, runner.RunCount);
+    }
+
+    /// <summary>Verifies a long postbuild plan preserves all sequential commands and output bytes.</summary>
+    [Fact]
+    public async Task TransformPreservesThirteenCommandPlanAndOutput()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = [0x10, 0x20, 0x30, 0x40];
+        LegacyCombinerPostbuildProfile profile = CreateRepeatedCrcProfile(commandCount: 13);
+        FakeProcessRunner runner = new(_ => new ExternalProcessResult(0, false, string.Empty, string.Empty));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-thirteen-command-readback",
+            profile.ProcessorId,
+            profile.ToolBindingId,
+            firmware,
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.Equal(firmware, result.OutputBytes.ToArray());
+        Assert.Equal(13, runner.RunCount);
+    }
+
 }

@@ -239,6 +239,58 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "test shortened output profile");
     }
 
+    private static LegacyCombinerPostbuildProfile CreateRepeatedCrcProfile(int commandCount)
+    {
+        LegacyCombinerPostbuildCommand[] commands = [
+            .. Enumerable.Range(1, commandCount)
+                .Select(index => new LegacyCombinerPostbuildCommand(
+                    $"crc-only-{index}",
+                    LegacyCombinerCommandFamily.CrcOnlyMode,
+                    "NT51927BASED_GEN_CRC_MODE",
+                    "CRC32",
+                    [])),
+        ];
+        return new LegacyCombinerPostbuildProfile(
+            "nfc.test.repeated-crc-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "repeated_crc_fw.bin",
+            commands,
+            commands,
+            "test repeated CRC command profile");
+    }
+
+    private static LegacyCombinerPostbuildProfile CreateShortenedOutputAfterCrcProfile()
+    {
+        var crcCommand = new LegacyCombinerPostbuildCommand(
+            "crc-first",
+            LegacyCombinerCommandFamily.CrcOnlyMode,
+            "NT51927BASED_GEN_CRC_MODE",
+            "CRC32",
+            []);
+        var shortenedCommand = new LegacyCombinerPostbuildCommand(
+            "shortened-second",
+            LegacyCombinerCommandFamily.MergeMode,
+            "MERGE_MODE",
+            null,
+            [
+                new LegacyCombinerBlockArgument(
+                    "shortened-block",
+                    LegacyCombinerBlockSourceKind.StagedFile,
+                    "Short.bin",
+                    0,
+                    new ByteRange(0, 0x20)),
+            ]);
+        return new LegacyCombinerPostbuildProfile(
+            "nfc.test.shortened-output-after-crc-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "shortened_after_crc_fw.bin",
+            [crcCommand, shortenedCommand],
+            [crcCommand, shortenedCommand],
+            "test shortened output after accepted CRC state");
+    }
+
     private sealed class FakeProcessRunner : IExternalProcessRunner
     {
         private readonly Func<ExternalProcessStartInfo, ExternalProcessResult> _run;
