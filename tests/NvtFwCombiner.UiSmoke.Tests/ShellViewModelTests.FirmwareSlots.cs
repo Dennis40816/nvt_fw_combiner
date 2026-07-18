@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -183,81 +184,96 @@ public sealed partial class ShellViewModelTests
             !fact.IsWarning);
     }
 
-    /// <summary>File, context, date, and slot identity control output-name cache reuse.</summary>
+    /// <summary>Output naming publishes unknown at selection start, latest completion, and no stale result.</summary>
     [Fact]
-    public void OutputFileNameProjectionCacheReusesOnlyAnUnchangedIdentity()
+    public async Task OutputFileNamePublishesInspectionSnapshotLifecycle()
     {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-cache");
-        string dpPath = workspace.Write("dp.bin", [0x00]);
-        var slots = new List<FirmwareSlotViewModel>
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-snapshot");
+        string dpPath = workspace.Write("dp.bin", [0x01]);
+        string stalePath = workspace.Write("stale.bin", [0x02]);
+        string currentPath = workspace.Write("current.bin", [0x03]);
+        using var reselectionStarted = new ManualResetEventSlim();
+        using var releaseReselection = new ManualResetEventSlim();
+        using var staleStarted = new ManualResetEventSlim();
+        using var releaseStale = new ManualResetEventSlim();
+        bool blockInitialReselection = false;
+        string initialVersion = "0101";
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
         {
-            new("merge-dp", "DP BIN", "Display payload", FirmwareSlotKind.Dp)
+            string path = inputs.Single().Path;
+            if (string.Equals(path, dpPath, StringComparison.Ordinal) && blockInitialReselection)
             {
-                FilePath = dpPath,
-            },
-        };
-        var cache = new OutputFileNameProjectionCache();
-        var date = new DateOnly(2026, 7, 18);
-        int invocationCount = 0;
-        string Create(string icId, DateOnly snapshotDate, IReadOnlyList<FirmwareSlotViewModel> snapshotSlots)
-        {
-            return $"projection-{++invocationCount}";
-        }
-
-        string first = cache.GetOrCreate("NT51950", date, slots, Create);
-        string repeated = cache.GetOrCreate("NT51950", date, slots, Create);
-
-        Assert.Equal(1, invocationCount);
-        Assert.Same(first, repeated);
-
-        File.SetLastWriteTimeUtc(dpPath, File.GetLastWriteTimeUtc(dpPath).AddMinutes(1));
-        _ = cache.GetOrCreate("NT51950", date, slots, Create);
-        _ = cache.GetOrCreate("NT51951", date, slots, Create);
-        _ = cache.GetOrCreate("NT51951", date.AddDays(1), slots, Create);
-        slots.Add(new FirmwareSlotViewModel("merge-tp", "TP BIN", "Touch payload", FirmwareSlotKind.Tp));
-        _ = cache.GetOrCreate("NT51951", date.AddDays(1), slots, Create);
-
-        Assert.Equal(5, invocationCount);
-    }
-
-    /// <summary>A file changed during naming cannot publish a result under the later stamp.</summary>
-    [Fact]
-    public void OutputFileNameProjectionCacheRejectsStampChangeDuringCreation()
-    {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-cache-race");
-        string dpPath = workspace.Write("dp.bin", [0x00]);
-        var slots = new List<FirmwareSlotViewModel>
-        {
-            new("merge-dp", "DP BIN", "Display payload", FirmwareSlotKind.Dp)
+                reselectionStarted.Set();
+                releaseReselection.Wait(TestContext.Current.CancellationToken);
+            }
+            else if (string.Equals(path, stalePath, StringComparison.Ordinal))
             {
-                FilePath = dpPath,
-            },
+                staleStarted.Set();
+                releaseStale.Wait(TestContext.Current.CancellationToken);
+            }
+
+            string version = string.Equals(path, stalePath, StringComparison.Ordinal)
+                ? "0303"
+                : string.Equals(path, currentPath, StringComparison.Ordinal)
+                    ? "0404"
+                    : initialVersion;
+            return
+            [
+                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                    input.InspectionId,
+                    new WorkbenchFirmwareInspection(
+                        null,
+                        null,
+                        new WorkbenchDpVersionMetadata(version),
+                        null,
+                        null,
+                        null))),
+            ];
+        });
+        viewModel.SelectedIc = "NT51926";
+        await viewModel.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
+        Assert.Contains("_D0101Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+        var notifications = new List<string>();
+        viewModel.PropertyChanged += (_, args) =>
+        {
+            if (string.Equals(args.PropertyName, nameof(MainWindowViewModel.StandardMergeOutputFileName), StringComparison.Ordinal))
+            {
+                notifications.Add(viewModel.StandardMergeOutputFileName);
+            }
         };
-        var cache = new OutputFileNameProjectionCache();
-        var date = new DateOnly(2026, 7, 18);
-        int invocationCount = 0;
 
-        string changedDuringRead = cache.GetOrCreate("NT51950", date, slots, (_, _, _) =>
-        {
-            invocationCount++;
-            File.SetLastWriteTimeUtc(dpPath, File.GetLastWriteTimeUtc(dpPath).AddMinutes(1));
-            return "changed-during-read";
-        });
-        string stable = cache.GetOrCreate("NT51950", date, slots, (_, _, _) =>
-        {
-            invocationCount++;
-            return "stable";
-        });
-        string repeated = cache.GetOrCreate("NT51950", date, slots, (_, _, _) =>
-        {
-            invocationCount++;
-            return "unexpected";
-        });
+        initialVersion = "0202";
+        blockInitialReselection = true;
+        Task reselection = viewModel.SetSlotFileAsync(
+            "merge-dp",
+            dpPath,
+            TestContext.Current.CancellationToken);
+        Assert.True(reselectionStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+        Assert.Contains(notifications, name => name.Contains("_DxxxxTxxxx_", StringComparison.Ordinal));
+        Assert.Contains("_DxxxxTxxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
 
-        Assert.Equal("changed-during-read", changedDuringRead);
-        Assert.Equal("stable", stable);
-        Assert.Same(stable, repeated);
-        Assert.Equal(2, invocationCount);
+        releaseReselection.Set();
+        await reselection;
+        Assert.Contains(notifications, name => name.Contains("_D0202Txxxx_", StringComparison.Ordinal));
+        Assert.Contains("_D0202Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+
+        notifications.Clear();
+        Task stale = viewModel.SetSlotFileAsync(
+            "merge-dp",
+            stalePath,
+            TestContext.Current.CancellationToken);
+        Assert.True(staleStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+        await viewModel.SetSlotFileAsync(
+            "merge-dp",
+            currentPath,
+            TestContext.Current.CancellationToken);
+        Assert.Contains("_D0404Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+        int notificationsAfterCurrent = notifications.Count;
+
+        releaseStale.Set();
+        await stale;
+        Assert.Equal(notificationsAfterCurrent, notifications.Count);
+        Assert.Contains("_D0404Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies an unobserved DP size keeps the concise DP/Jira slot badge set.</summary>

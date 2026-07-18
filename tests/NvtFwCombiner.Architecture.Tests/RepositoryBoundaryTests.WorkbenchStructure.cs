@@ -13,6 +13,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
         string replaceRefresh = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplaceRefresh.cs");
+        string outputNamingViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.OutputNaming.cs");
 
         Assert.Contains("SetSlotFileAsync", viewModels, StringComparison.Ordinal);
         Assert.Contains("Task.Run", viewModels, StringComparison.Ordinal);
@@ -33,6 +35,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("RefreshMergeMemoryMapState", replaceRefresh, StringComparison.Ordinal);
         Assert.Contains("RefreshReplaceMemoryMapState", replaceRefresh, StringComparison.Ordinal);
         Assert.DoesNotContain("ValidateCachedCtrlRamDisplayAsync", viewModels, StringComparison.Ordinal);
+        Assert.Contains(
+            "CreateFlashCodeOutputFileNameFromInspections",
+            outputNamingViewModel,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("FileInfo", outputNamingViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.Exists", outputNamingViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "WorkbenchCompositionService.CreateFlashCodeOutputFileName(",
+            outputNamingViewModel,
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies General Merge workbench orchestration, mapping, profile, and report helpers stay split.</summary>

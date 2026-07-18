@@ -146,6 +146,11 @@ public sealed record WorkbenchOutputNameCandidate(
     WorkbenchOutputNameCandidateKind Kind,
     string? Path);
 
+/// <summary>One already-inspected firmware candidate used by pure output-name projection.</summary>
+public sealed record WorkbenchOutputNameInspectionCandidate(
+    WorkbenchOutputNameCandidateKind Kind,
+    WorkbenchFirmwareInspection? Inspection);
+
 /// <summary>Firmware candidate role used by FlashCode output naming.</summary>
 public enum WorkbenchOutputNameCandidateKind
 {
