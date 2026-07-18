@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -40,7 +41,8 @@ public sealed partial class ReportReviewViewModel
             }
         }
 
-        return slices;
+        cancellationToken.ThrowIfCancellationRequested();
+        return AddCharBounds(reportUtf8, slices, cancellationToken);
     }
 
     private static JsonValueSlice[] ReadJsonArraySlices(
@@ -58,10 +60,37 @@ public sealed partial class ReportReviewViewModel
             }
 
             int endExclusive = checked((int)reader.BytesConsumed);
-            slices.Add(new JsonValueSlice(start, checked(endExclusive - start)));
+            slices.Add(new JsonValueSlice(start, checked(endExclusive - start), 0, 0));
         }
 
         return [.. slices];
+    }
+
+    private static JsonValueSlice[] AddCharBounds(
+        ReadOnlySpan<byte> reportUtf8,
+        JsonValueSlice[] slices,
+        CancellationToken cancellationToken)
+    {
+        int byteCursor = 0;
+        int charCursor = 0;
+        for (int index = 0; index < slices.Length; index++)
+        {
+            if ((index & 0xff) == 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            JsonValueSlice slice = slices[index];
+            int leadingByteCount = checked(slice.Start - byteCursor);
+            charCursor = checked(
+                charCursor + Encoding.UTF8.GetCharCount(reportUtf8.Slice(byteCursor, leadingByteCount)));
+            int charLength = Encoding.UTF8.GetCharCount(reportUtf8.Slice(slice.Start, slice.Length));
+            slices[index] = slice with { CharStart = charCursor, CharLength = charLength };
+            byteCursor = checked(slice.Start + slice.Length);
+            charCursor = checked(charCursor + charLength);
+        }
+
+        return slices;
     }
 
     internal static void SkipJsonValue(
@@ -95,5 +124,5 @@ public sealed partial class ReportReviewViewModel
         throw new JsonException("The JSON compound value ended before its closing token.");
     }
 
-    internal readonly record struct JsonValueSlice(int Start, int Length);
+    internal readonly record struct JsonValueSlice(int Start, int Length, int CharStart, int CharLength);
 }

@@ -10,6 +10,7 @@ public sealed partial class ReportReviewViewModel
 
     private static OutputDifferenceProjection ParseOutputDifferences(
         JsonElement root,
+        string reportJson,
         byte[] reportUtf8,
         string outputSpaceId,
         ShellLanguage language,
@@ -35,7 +36,7 @@ public sealed partial class ReportReviewViewModel
 
         var rows = new MemoizedIndexedReadOnlyList<ReportLineViewModel>(
             count,
-            index => ParseOutputDifference(reportUtf8, slices[index], language));
+            index => ParseOutputDifference(reportJson, slices[index], language));
         var groupBySection = new Dictionary<string, DifferenceGroupBuilder>(StringComparer.Ordinal);
         var groupOrder = new List<DifferenceGroupBuilder>();
         var summaryBySection = new Dictionary<string, DifferenceSummaryBuilder>(StringComparer.Ordinal);
@@ -137,7 +138,7 @@ public sealed partial class ReportReviewViewModel
         ReportHexDiffRangeViewModel hexDiffRowFactory(int sourceIndex)
         {
             return ParseHexDiffRange(
-                reportUtf8,
+                reportJson,
                 slices[sourceIndex],
                 hexDiffDescriptors[sourceIndex],
                 outputSpaceId,
@@ -153,11 +154,11 @@ public sealed partial class ReportReviewViewModel
     }
 
     private static ReportLineViewModel ParseOutputDifference(
-        ReadOnlyMemory<byte> reportUtf8,
+        string reportJson,
         JsonValueSlice slice,
         ShellLanguage language)
     {
-        using var document = JsonDocument.Parse(reportUtf8.Slice(slice.Start, slice.Length));
+        using var document = JsonDocument.Parse(reportJson.AsMemory(slice.CharStart, slice.CharLength));
         return ParseOutputDifference(document.RootElement, language);
     }
 
@@ -236,13 +237,13 @@ public sealed partial class ReportReviewViewModel
     }
 
     private static ReportHexDiffRangeViewModel ParseHexDiffRange(
-        ReadOnlyMemory<byte> reportUtf8,
+        string reportJson,
         JsonValueSlice slice,
         ReportHexDiffRangeDescriptor descriptor,
         string outputSpaceId,
         ShellLanguage language)
     {
-        using var document = JsonDocument.Parse(reportUtf8.Slice(slice.Start, slice.Length));
+        using var document = JsonDocument.Parse(reportJson.AsMemory(slice.CharStart, slice.CharLength));
         JsonElement difference = document.RootElement;
         ReportLineViewModel detail = ParseOutputDifference(difference, language);
         return new ReportHexDiffRangeViewModel(

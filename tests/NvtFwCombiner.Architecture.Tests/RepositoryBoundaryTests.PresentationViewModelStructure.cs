@@ -135,6 +135,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("await Task.Run(", report, StringComparison.Ordinal);
         Assert.Contains("FromJsonCancellable(", report, StringComparison.Ordinal);
         Assert.Contains("cancellationToken.ThrowIfCancellationRequested();", factory, StringComparison.Ordinal);
+        Assert.Contains("new UTF8Encoding(", factory, StringComparison.Ordinal);
+        Assert.Contains("throwOnInvalidBytes: true", factory, StringComparison.Ordinal);
         Assert.Contains("private readonly ObservableCollection<object> _items", pager, StringComparison.Ordinal);
         Assert.Contains("ReadOnlyObservableCollection<object> Items", pager, StringComparison.Ordinal);
         Assert.Contains("LoadMoreCommand", pager, StringComparison.Ordinal);
@@ -145,9 +147,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", indexedRows, StringComparison.Ordinal);
         Assert.Contains("Utf8JsonReader", differenceJson, StringComparison.Ordinal);
         Assert.Contains("JsonValueSlice", differenceJson, StringComparison.Ordinal);
+        Assert.Contains("Encoding.UTF8.GetCharCount", differenceJson, StringComparison.Ordinal);
+        Assert.Contains("return AddCharBounds(reportUtf8, slices, cancellationToken);", differenceJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("? AddCharBounds(", differenceJson, StringComparison.Ordinal);
         Assert.Contains("SkipJsonValue", differenceJson, StringComparison.Ordinal);
         Assert.DoesNotContain("reader.Skip()", differenceJson, StringComparison.Ordinal);
         Assert.DoesNotContain("differences.Clone()", parser, StringComparison.Ordinal);
+        Assert.Contains("reportJson.AsMemory(slice.CharStart, slice.CharLength)", parser, StringComparison.Ordinal);
+        Assert.DoesNotContain("JsonDocument.Parse(reportUtf8.Slice", parser, StringComparison.Ordinal);
         Assert.Contains("loadInitialPage: false", differenceGroups, StringComparison.Ordinal);
         Assert.Contains("IsExpanded=\"{Binding IsExpanded, Mode=TwoWay}\"", changes, StringComparison.Ordinal);
         Assert.DoesNotContain("OrderBy", parser, StringComparison.Ordinal);
