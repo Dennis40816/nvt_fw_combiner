@@ -41,10 +41,13 @@ public static partial class WorkbenchCompositionService
                 coverage: null);
         }
 
-        if (replaceMode == WorkbenchReplaceModes.Dp &&
-            CreateV2DpReplaceMemoryDisplay(icId, dpBaseLength) is { } v2Display)
+        if (replaceMode == WorkbenchReplaceModes.Dp)
         {
-            return v2Display;
+            return CreateV2DpReplaceMemoryDisplay(icId, dpBaseLength) ??
+                CreateMessageDisplay(
+                    "No DP Replace profile",
+                    ("Catalog", "No V2 profile", "Blocked", "No target", $"No trusted V2 DP Replace profile is registered for {icId}."),
+                    coverage: null);
         }
 
         IcNumberSelection selection = ToIcNumberSelection(number);
@@ -67,7 +70,6 @@ public static partial class WorkbenchCompositionService
 
         IReadOnlyList<WorkbenchMemoryMapRow> rows = replaceMode switch
         {
-            WorkbenchReplaceModes.Dp => CreateDpReplaceRows(icId, regions),
             WorkbenchReplaceModes.CtrlRam => CreateCtrlRamReplaceRows(
                 BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)),
             WorkbenchReplaceModes.General =>

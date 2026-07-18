@@ -25,24 +25,14 @@ public static partial class WorkbenchCompositionService
                 false),
         ];
 
-        IEnumerable<TpFlashMapRegion> replacementRegions = replaceMode switch
-        {
-            WorkbenchReplaceModes.Dp => GetDpReplaceRegions(icId, regions),
-            WorkbenchReplaceModes.CtrlRam => BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile),
-            _ => [],
-        };
+        IEnumerable<TpFlashMapRegion> replacementRegions = replaceMode == WorkbenchReplaceModes.CtrlRam
+            ? BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)
+            : [];
 
         foreach (TpFlashMapRegion region in replacementRegions.OrderBy(region => region.Range.Start))
         {
-            string label = replaceMode switch
-            {
-                WorkbenchReplaceModes.Dp => IsLdRegion(region) ? "Changed LDC BIN" : "Changed DP BIN",
-                WorkbenchReplaceModes.CtrlRam => region.DisplayName,
-                _ => "Replacement BIN",
-            };
-            string detail = replaceMode == WorkbenchReplaceModes.CtrlRam
-                ? $"{region.DisplayName} can be replaced here. Empty input keeps the original firmware; Preview lists the CRC/header refresh command."
-                : $"{region.DisplayName}; {ActionSummaryForReplaceMode(replaceMode)}";
+            string label = region.DisplayName;
+            string detail = $"{region.DisplayName} can be replaced here. Empty input keeps the original firmware; Preview lists the CRC/header refresh command.";
             segments = ApplyCoverageWrite(
                 segments,
                 new CoverageSegment(

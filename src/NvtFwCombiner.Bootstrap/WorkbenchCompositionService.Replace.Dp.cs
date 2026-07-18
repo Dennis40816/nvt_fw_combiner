@@ -1,6 +1,5 @@
 using System.Globalization;
 using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
@@ -91,23 +90,6 @@ public static partial class WorkbenchCompositionService
             : throw new InvalidOperationException($"Input slot '{WorkbenchSlotIds.ReplaceDp}' is required.");
     }
 
-    private static IReadOnlyList<WorkbenchMemoryMapRow> CreateDpReplaceRows(
-        string icId,
-        IReadOnlyList<TpFlashMapRegion> regions)
-    {
-        return
-        [
-            .. GetDpReplaceRegions(icId, regions)
-                .OrderBy(region => region.Range.Start)
-                .Select(region => new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(region.Range),
-                    "Base flash",
-                    "Replace",
-                    IsLdRegion(region) ? "LDC BIN" : "DP BIN",
-                    $"{region.DisplayName}; source mapping is blocked until per-IC DP Replace evidence is approved.")),
-        ];
-    }
-
     private static List<WorkbenchReplaceInputSlot> GetDpReplaceInputSlots(string icId)
     {
         List<WorkbenchReplaceInputSlot> slots =
@@ -136,28 +118,9 @@ public static partial class WorkbenchCompositionService
         return slots;
     }
 
-    private static IEnumerable<TpFlashMapRegion> GetDpReplaceRegions(
-        string icId,
-        IEnumerable<TpFlashMapRegion> regions)
-    {
-        return regions
-            .Where(region => region.Kind == TpFlashMapRegionKind.Dp)
-            .Where(region => IsDpRegionVisibleForReplace(icId, region));
-    }
-
-    private static bool IsDpRegionVisibleForReplace(string icId, TpFlashMapRegion region)
-    {
-        return !IsLdRegion(region) || DpReplaceAuthoringCatalog.IsAdditionalPayloadRegion(icId, region.RegionId);
-    }
-
     private static string FormatHexLength(long length)
     {
         return string.Create(CultureInfo.InvariantCulture, $"0x{length:X}");
     }
 
-    private static bool IsLdRegion(TpFlashMapRegion region)
-    {
-        return region.RegionId.Contains("ld", StringComparison.OrdinalIgnoreCase) ||
-            region.DisplayName.Contains("LDC", StringComparison.OrdinalIgnoreCase);
-    }
 }

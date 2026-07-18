@@ -95,15 +95,49 @@ public sealed class IcSupportWorkflowDependencyTests
     [Fact]
     public void DpReplaceWorkflowRemainsClosedToV2RegisteredMembers()
     {
-        string[] dpReplaceIcIds =
+        string[] supportedIcIds =
         [
             .. IcSupportCatalog.All
                 .Where(entry => entry.SupportsWorkflow(IcWorkflowIds.DpReplace))
                 .Select(entry => entry.IcId)
                 .Order(StringComparer.Ordinal),
         ];
+        string[] registeredIcIds =
+        [
+            .. WorkbenchCompositionService.GetReplaceProfileSummaries()
+                .Select(summary => summary.IcId)
+                .Order(StringComparer.Ordinal),
+        ];
 
-        Assert.Equal(["NT51930", "NT51950", "NT51951"], dpReplaceIcIds);
+        Assert.Equal(registeredIcIds, supportedIcIds);
+        foreach (string icId in supportedIcIds)
+        {
+            WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+                icId,
+                "single",
+                WorkbenchReplaceModes.Dp);
+            WorkbenchMemoryMapRow row = Assert.Single(display.MemoryMapRows);
+            Assert.StartsWith("Reference FlashCode length:", display.RangeLabel, StringComparison.Ordinal);
+            Assert.Equal("Reference FlashCode", row.BeforeSource);
+            Assert.Equal("Select", row.ActionLabel);
+            Assert.Equal("DP replacement", row.AfterSource);
+            Assert.NotEmpty(display.CoverageSegments);
+        }
+
+        foreach (string icId in IcSupportCatalog.All
+                     .Select(entry => entry.IcId)
+                     .Except(supportedIcIds, StringComparer.Ordinal))
+        {
+            WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+                icId,
+                "single",
+                WorkbenchReplaceModes.Dp);
+            WorkbenchMemoryMapRow row = Assert.Single(display.MemoryMapRows);
+            Assert.Equal("Not available", display.RangeLabel);
+            Assert.Equal("Blocked", row.ActionLabel);
+            Assert.Equal("No target", row.AfterSource);
+            Assert.Empty(display.CoverageSegments);
+        }
     }
 
     /// <summary>Every postbuild branch staged BIN is explainable by the profile-adjusted TP Overview CtrlRAM rows.</summary>

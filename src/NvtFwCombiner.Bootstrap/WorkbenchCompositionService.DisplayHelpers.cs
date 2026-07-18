@@ -34,16 +34,6 @@ public static partial class WorkbenchCompositionService
         };
     }
 
-    private static string ActionSummaryForReplaceMode(string replaceMode)
-    {
-        return replaceMode switch
-        {
-            WorkbenchReplaceModes.Dp => "profile policy controls padding",
-            WorkbenchReplaceModes.CtrlRam => "postbuild refreshes CRC/header",
-            _ => "profile validation controls write access",
-        };
-    }
-
     private static CoverageSegment[] ApplyCoverageWrite(
         IReadOnlyList<CoverageSegment> current,
         CoverageSegment write)

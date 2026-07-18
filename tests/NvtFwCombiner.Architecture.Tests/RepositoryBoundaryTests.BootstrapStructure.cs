@@ -124,6 +124,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("DpPerspectiveCatalog", v2Display, StringComparison.Ordinal);
         Assert.Contains("CreateV2DpReplaceMemoryDisplay", v2Display, StringComparison.Ordinal);
         Assert.Contains("CreateV2DpReplaceMemoryDisplay", replaceDisplay, StringComparison.Ordinal);
+        Assert.Contains("\"No DP Replace profile\"", replaceDisplay, StringComparison.Ordinal);
+        Assert.Contains("\"No V2 profile\"", replaceDisplay, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateDpReplaceRows", replaceDisplay, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetDpReplaceRegions", string.Concat(replaceDp, replaceDisplay, replaceCoverage), StringComparison.Ordinal);
         Assert.Contains("CreateReplaceCoverageSegments", replaceCoverage, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", string.Concat(
             replaceDp,
