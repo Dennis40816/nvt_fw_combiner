@@ -48,7 +48,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 Assert.Equal(CompositionOperationKind.ReplaceRange, mapping.Kind);
                 Assert.Equal(new ByteRange(8, 2), mapping.TargetRange);
             },
-            processor => Assert.Equal(CompositionOperationKind.RunExternalProcessor, processor.Kind));
+            processor =>
+            {
+                Assert.Equal(CompositionOperationKind.RunExternalProcessor, processor.Kind);
+                Assert.Equal(
+                    [new ByteRange(8, 2), new ByteRange(12, 4)],
+                    processor.ExternalProcessorInvocation!.AllowedWriteRanges);
+            });
     }
 
     /// <summary>Verifies CtrlRAM Replace cannot borrow an explicitly writable DP region.</summary>

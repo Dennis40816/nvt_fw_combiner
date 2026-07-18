@@ -88,6 +88,14 @@ the declared section maximum. The final processor runs over the host staging
 copy with no staged-source or staged-artifact bindings because its physical
 files are materialized from the already modified staging image.
 
+The compiler also narrows the processor's CtrlRAM allowed-write ranges to the
+actual request mappings. Profile-declared Header, CRC, backup, and other reviewed
+processor-only ranges remain unchanged. This prevents an omitted CtrlRAM source
+or the preserved tail of a short source from becoming allowed diff authority.
+The Domain artifact independently requires every CtrlRAM processor write range
+to correspond to a compiled mapping and retain containing physical-view
+provenance.
+
 This candidate contract registers no IC route. Each IC/topology/profile still
 requires direct or owner-approved fact-scoped golden parity, exact command and
 allowed-range review, and firmware-owner approval before its V1 consumer can be

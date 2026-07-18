@@ -107,7 +107,12 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        CompositionOperation[] processorOperations = touchesTp ? declaredProcessorOperations : [];
+        CompositionOperation[] processorOperations = touchesTp
+            ? NarrowRuntimeReferenceProcessorAuthority(
+                resolvedMap,
+                mappingOperations,
+                declaredProcessorOperations)
+            : [];
         CompositionOperation[] operations = [.. mappingOperations, .. processorOperations];
 
         V2RuntimeReferenceReplaceInputBinding referenceBinding = bindings.Values.Single(binding =>
@@ -425,6 +430,66 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         return touchesTp;
+    }
+
+    private static CompositionOperation[] NarrowRuntimeReferenceProcessorAuthority(
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        IReadOnlyList<CompositionOperation> mappingOperations,
+        CompositionOperation[] processorOperations)
+    {
+        if (!StringComparer.Ordinal.Equals(resolvedMap.ModeId, ExperienceIds.CtrlRamReplace) ||
+            processorOperations.Length == 0)
+        {
+            return [.. processorOperations];
+        }
+
+        CompositionOperation processor = processorOperations.Single();
+        ExternalProcessorInvocation declared = processor.ExternalProcessorInvocation!;
+        ByteRange[] allowedWrites =
+        [
+            .. declared.AllowedWriteRanges.SelectMany(range =>
+                IsCanonicalCtrlRamRange(resolvedMap.ImageMap, range)
+                    ? mappingOperations
+                        .Select(mapping => mapping.TargetRange.Intersect(range))
+                        .Where(static overlap => overlap is not null)
+                        .Select(static overlap => overlap!.Value)
+                    : [range]),
+        ];
+        var invocation = new ExternalProcessorInvocation(
+            declared.ProcessorId,
+            declared.ToolBindingId,
+            declared.AllowedReadRanges,
+            allowedWrites,
+            declared.StagedSourceBindings,
+            declared.AllowedWriteRangeSections.Where(section =>
+                allowedWrites.Any(range => range.Contains(section.Range))),
+            declared.StagedArtifactBindings,
+            declared.OutputAssertions);
+        return
+        [
+            CompositionOperation.RunExternalProcessor(
+                processor.OperationId,
+                processor.Sequence,
+                processor.TargetSpaceId,
+                processor.TargetRange,
+                invocation,
+                processor.OverlapPolicy,
+                processor.Reason,
+                processor.Provenance),
+        ];
+    }
+
+    private static bool IsCanonicalCtrlRamRange(FirmwareImageMap map, ByteRange range)
+    {
+        return map.Regions
+            .Where(region => region.Range.Contains(range))
+            .OrderBy(static region => region.Range.Length)
+            .ThenBy(static region => region.RegionId, StringComparer.Ordinal)
+            .FirstOrDefault() is
+        {
+            Owner: FirmwareRegionOwner.Tp,
+            Kind: FirmwareRegionKind.CtrlRam,
+        };
     }
 
     private sealed record RuntimeReferenceReplaceProfileShape(

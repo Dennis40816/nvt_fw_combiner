@@ -226,6 +226,9 @@ public sealed partial class CompiledComposition
         CompositionOperation[] processorOperations,
         IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews)
     {
+        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
+            runtimeContext.ModeId,
+            ExperienceIds.CtrlRamReplace);
         bool touchesTp = mappingOperations.Any(mapping =>
             runtimeContext.ResolvedMap.ImageMap.Regions.Any(region =>
                 region.Owner == FirmwareRegionOwner.Tp &&
@@ -264,13 +267,37 @@ public sealed partial class CompiledComposition
             .. invocation.AllowedReadRanges,
             .. invocation.AllowedWriteRanges,
         ];
+        bool everyProcessorRangeHasProvenance = processorRanges.All(range =>
+            resolvedViews.Any(view => isCtrlRamReplace
+                ? view.Range.Contains(range)
+                : view.Range == range));
+        bool ctrlRamWritesMatchMappings = !isCtrlRamReplace ||
+            (mappingOperations.All(mapping => invocation.AllowedWriteRanges.Any(range =>
+                 range.Contains(mapping.TargetRange))) &&
+             invocation.AllowedWriteRanges
+                 .Where(range => IsCanonicalCtrlRamRange(runtimeContext.ResolvedMap.ImageMap, range))
+                 .All(range => mappingOperations.Any(mapping => mapping.TargetRange.Contains(range))));
         if (resolvedViews.Count == 0 ||
-            resolvedViews.Any(view => !processorRanges.Contains(view.Range)) ||
-            processorRanges.Any(range => !resolvedViews.Any(view => view.Range == range)))
+            !everyProcessorRangeHasProvenance ||
+            !ctrlRamWritesMatchMappings ||
+            (!isCtrlRamReplace && resolvedViews.Any(view => !processorRanges.Contains(view.Range))))
         {
             throw new ArgumentException(
                 "Every runtime reference Replace processor target, read, and write range must retain profile-owned physical-view provenance.",
                 nameof(resolvedViews));
         }
+    }
+
+    private static bool IsCanonicalCtrlRamRange(FirmwareImageMap map, ByteRange range)
+    {
+        return map.Regions
+            .Where(region => region.Range.Contains(range))
+            .OrderBy(static region => region.Range.Length)
+            .ThenBy(static region => region.RegionId, StringComparer.Ordinal)
+            .FirstOrDefault() is
+        {
+            Owner: FirmwareRegionOwner.Tp,
+            Kind: FirmwareRegionKind.CtrlRam,
+        };
     }
 }

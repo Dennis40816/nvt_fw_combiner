@@ -190,6 +190,12 @@ mapped, so a short input preserves the cloned target tail and an oversized input
 cannot expand section authority. This is candidate compilation, not built-in
 runtime registration or support promotion.
 
+For CtrlRAM Replace, the compiler intersects each profile-declared TP CtrlRAM
+processor write view with the concrete mapping targets. Only those intersections
+enter the external invocation's allowed-write set. Non-CtrlRAM processor-only
+views remain exact profile authority. The compiled Domain artifact rejects a
+broader CtrlRAM write range even when it is contained by a declared view.
+
 The compiler intersects every accepted mapping target with canonical `owner = tp` regions. A DP-only
 request omits the declared stage. One or many TP-touching mappings append the stage exactly once after
 all mappings; TP authoring without that closed stage fails. Processor allowed-write views have separate
