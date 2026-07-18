@@ -250,7 +250,10 @@ public static class IcSupportCatalog
             familySourceIcId: "NT51929",
             familyRelationship: IcFamilyRelationship.Canonical,
             familyScope: "Canonical single-product member for NT51919/NT51929/NT51932 family facts."),
-        Entry("NT51930", notes: "CtrlRAM postbuild category is selected by Common FW version."),
+        Entry(
+            "NT51930",
+            workflowIds: [.. DefaultWorkflowIds, IcWorkflowIds.DpReplace],
+            notes: "DP Replace reuses the canonical 256 KiB Standard Merge map and remains Evidence open pending direct golden parity; CtrlRAM Postbuild category is selected by Common FW version."),
         Entry(
             "NT51931",
             workflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.GeneralMerge],

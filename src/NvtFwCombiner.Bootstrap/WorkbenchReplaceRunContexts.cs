@@ -2,7 +2,7 @@ using NvtFwCombiner.Application.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
-internal sealed record DpPerspectiveDpReplaceRunContext(
+internal sealed record BuiltInV2DpReplaceRunContext(
     IcNumberSelection Selection,
     string BasePath,
     long Capacity,

@@ -218,7 +218,7 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Profiles",
             "DpPerspectiveCatalog.cs")));
         Assert.DoesNotContain("BuiltInReplaceProfiles", registration, StringComparison.Ordinal);
-        Assert.Contains("TryResolveDpPerspectiveDpReplaceDisplay", registration, StringComparison.Ordinal);
+        Assert.Contains("TryResolveBuiltInV2DpReplaceDisplay", registration, StringComparison.Ordinal);
         Assert.Contains("composition.Plan.OrderedOperations", display, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInTpFlashMapCatalog", planning, StringComparison.Ordinal);
         Assert.DoesNotContain("GetDpReplaceRegions", planning, StringComparison.Ordinal);

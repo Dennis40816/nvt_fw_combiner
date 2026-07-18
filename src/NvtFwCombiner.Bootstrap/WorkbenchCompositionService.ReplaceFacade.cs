@@ -86,7 +86,7 @@ public static partial class WorkbenchCompositionService
     public static string? GetDpReplaceReferenceCapacityLabel(string icId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        return TryResolveDpPerspectiveDpReplaceDisplay(icId, baseCapacity: null, out DpPerspectiveDpReplaceDisplay? display) &&
+        return TryResolveBuiltInV2DpReplaceDisplay(icId, baseCapacity: null, out BuiltInV2DpReplaceDisplay? display) &&
             display.Issues.Count == 0
                 ? FormatV2DpReplaceCapacities(display)
                 : null;
@@ -213,7 +213,7 @@ public static partial class WorkbenchCompositionService
                 nameof(ctrlRamFirmwareVersionEdit))
             : replaceMode switch
             {
-                WorkbenchReplaceModes.Dp when IsDpPerspectiveIc(icId) => await RunDpPerspectiveDpReplaceAsync(
+                WorkbenchReplaceModes.Dp when HasBuiltInV2DpReplace(icId) => await RunBuiltInV2DpReplaceAsync(
                     icId,
                     number,
                     slotPaths,

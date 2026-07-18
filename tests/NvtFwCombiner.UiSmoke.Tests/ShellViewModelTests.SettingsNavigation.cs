@@ -22,7 +22,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Supported ICs" && row.Value == "13");
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Standard Merge" && row.Value == "13 profiles");
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "2 profiles");
+        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "3 profiles");
         Assert.Contains(viewModel.SettingsCapabilityRows, row => row.Title == "CtrlRAM Replace-enabled ICs" && row.Value == "12 ICs");
         Assert.Contains(viewModel.SettingsCapabilityRows, row => row.Title == "External postbuild tools" && row.Value == "1 binding");
 

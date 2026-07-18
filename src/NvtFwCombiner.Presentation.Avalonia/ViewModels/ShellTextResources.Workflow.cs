@@ -59,8 +59,6 @@ public sealed partial class ShellTextResources
 
     public string DpReplacementBinTitle { get; private init; } = string.Empty;
 
-    public string DpReplacementBinDescription { get; private init; } = string.Empty;
-
     public string SelectReplacementBinTooltip { get; private init; } = string.Empty;
 
     public string SelectSourceBinTooltip { get; private init; } = string.Empty;

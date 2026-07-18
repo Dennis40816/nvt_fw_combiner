@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static async ValueTask<WorkbenchRunResult> RunDpPerspectiveDpReplaceAsync(
+    private static async ValueTask<WorkbenchRunResult> RunBuiltInV2DpReplaceAsync(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
@@ -16,18 +16,18 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         CancellationToken cancellationToken)
     {
-        if (!TryCreateDpPerspectiveDpReplaceRunContext(
+        if (!TryCreateBuiltInV2DpReplaceRunContext(
                 icId,
                 number,
                 slotPaths,
                 build,
-                out DpPerspectiveDpReplaceRunContext? context,
+                out BuiltInV2DpReplaceRunContext? context,
                 out WorkbenchRunResult? failure))
         {
             return failure!;
         }
 
-        if (!TryCompileDpPerspectiveDpReplace(
+        if (!TryCompileBuiltInV2DpReplace(
                 icId,
                 context!.Capacity,
                 out CompiledComposition? compiledComposition,

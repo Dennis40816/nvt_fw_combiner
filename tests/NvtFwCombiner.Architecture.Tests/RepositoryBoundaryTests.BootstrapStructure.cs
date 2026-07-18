@@ -108,11 +108,11 @@ public sealed partial class RepositoryBoundaryTests
         string bundle = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs");
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
 
-        Assert.Contains("TryCompileDpPerspectiveDpReplace", replaceDp, StringComparison.Ordinal);
+        Assert.Contains("TryCompileBuiltInV2DpReplace", replaceDp, StringComparison.Ordinal);
         Assert.Contains("CompiledCompositionInputBindingFactory.Create", replaceDp, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", replaceDp, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", replaceDp, StringComparison.Ordinal);
-        Assert.Contains("TryResolveDpPerspectiveDpReplaceSelector", replaceCli, StringComparison.Ordinal);
+        Assert.Contains("TryResolveBuiltInV2DpReplaceSelector", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", replaceCli, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.DpReplace", registrations, StringComparison.Ordinal);
@@ -120,7 +120,7 @@ public sealed partial class RepositoryBoundaryTests
             "BuiltInV2BundleRegistry.All[\"nt51950-nt51951-standard-merge\"]",
             registrations,
             StringComparison.Ordinal);
-        Assert.Contains("TryResolveDpPerspectiveDpReplaceDisplay", v2Resolution, StringComparison.Ordinal);
+        Assert.Contains("TryResolveBuiltInV2DpReplaceDisplay", v2Resolution, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", v2Display, StringComparison.Ordinal);
         Assert.Contains("TryCreateV2DpReplaceMemoryMapRows", replaceDisplay, StringComparison.Ordinal);
         Assert.Contains("TryGetV2DpReplaceMemoryRangeLabel", replaceDisplay, StringComparison.Ordinal);

@@ -74,7 +74,7 @@ public sealed partial class MainWindowViewModel
     private long? GetSelectedReplaceBaseLength()
     {
         return SelectedReplaceMode == DpReplaceMode &&
-            WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
+            WorkbenchCompositionService.HasBuiltInV2DpReplace(SelectedIc) &&
             !string.IsNullOrWhiteSpace(ReplaceBaseSlot.FilePath) &&
             File.Exists(ReplaceBaseSlot.FilePath)
                 ? new FileInfo(ReplaceBaseSlot.FilePath).Length

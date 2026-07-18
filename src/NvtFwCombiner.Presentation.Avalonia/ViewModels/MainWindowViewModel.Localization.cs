@@ -115,7 +115,7 @@ public sealed partial class MainWindowViewModel
         {
             slot.ApplyDisplayText(
                 Text.DpReplacementBinTitle,
-                Text.DpReplacementBinDescription,
+                slot.Description,
                 Text.RequiredLabel,
                 Text.OptionalLabel,
                 Text.NoBinSelectedLabel);

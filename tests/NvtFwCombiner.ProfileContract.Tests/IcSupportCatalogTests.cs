@@ -146,9 +146,9 @@ public sealed class IcSupportCatalogTests
             Assert.True(IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.StandardMerge), icId));
     }
 
-    /// <summary>Only NT51950/NT51951 currently expose DP Perspective DP Replace.</summary>
+    /// <summary>DP Replace exposure follows a canonical Standard Merge map; evidence readiness remains separate.</summary>
     [Fact]
-    public void DpReplaceExposureIsLimitedToDpPerspectiveIcs()
+    public void DpReplaceExposureRequiresCanonicalStandardMergeMap()
     {
         string[] dpReplaceIcIds =
         [
@@ -158,7 +158,7 @@ public sealed class IcSupportCatalogTests
                 .Order(StringComparer.Ordinal),
         ];
 
-        Assert.Equal(["NT51950", "NT51951"], dpReplaceIcIds);
+        Assert.Equal(["NT51930", "NT51950", "NT51951"], dpReplaceIcIds);
         Assert.All(dpReplaceIcIds, icId =>
             Assert.True(IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.StandardMerge), icId));
     }
@@ -264,5 +264,10 @@ public sealed class IcSupportCatalogTests
         Assert.Equal(
             IcWorkflowEvidenceStatus.GoldenVerified,
             nt51950!.GetWorkflowEvidenceStatus(IcWorkflowIds.DpReplace));
+
+        Assert.True(IcSupportCatalog.TryFind("NT51930", out IcSupportEntry? nt51930));
+        Assert.Equal(
+            IcWorkflowEvidenceStatus.EvidenceGated,
+            nt51930!.GetWorkflowEvidenceStatus(IcWorkflowIds.DpReplace));
     }
 }

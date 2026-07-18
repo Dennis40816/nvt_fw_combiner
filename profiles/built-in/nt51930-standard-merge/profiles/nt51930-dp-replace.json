@@ -1,19 +1,20 @@
 {
   "schemaVersion": "2.0",
-  "profileId": "nt51930-standard-merge-flashmap",
-  "profileVersion": "0.5.1",
+  "profileId": "nt51930-dp-replace-flashmap",
+  "profileVersion": "0.1.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
   },
-  "compositionKind": "merge",
+  "compositionKind": "replace",
+  "icNumberInputMode": "single-selector",
   "experience": {
-    "experienceId": "standard-merge",
-    "audience": "system",
-    "layoutPolicy": "fixed",
+    "experienceId": "dp-replace",
+    "audience": "dp",
+    "layoutPolicy": "constrained",
     "inputPolicy": "fixed",
     "topologyAuthoring": "hidden",
-    "displayNameKey": "profile.nt51930.standard-merge"
+    "displayNameKey": "profile.nt51930.dp-replace"
   },
   "mapBinding": {
     "familyId": "nt51930",
@@ -23,7 +24,6 @@
       "nt51930-standard-merge-256k"
     ],
     "requiredRegionIds": [
-      "tp-code",
       "dp-code"
     ],
     "requiredMetadataStructureIds": [],
@@ -31,9 +31,9 @@
   },
   "inputSlots": [
     {
-      "slotId": "tp-input",
-      "role": "tp",
-      "artifactClass": "tp-firmware",
+      "slotId": "reference-base",
+      "role": "reference",
+      "artifactClass": "reference-image",
       "required": true,
       "cardinality": "exactly-one",
       "acceptedExtensions": [
@@ -41,8 +41,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "tp-maximum-256k",
-          "maximumBytes": 262144
+          "kind": "exact-resolved-map-capacity"
         },
         "normalization": {
           "kind": "none"
@@ -50,7 +49,7 @@
       }
     },
     {
-      "slotId": "dp-input",
+      "slotId": "dp-replacement",
       "role": "dp",
       "artifactClass": "dp-firmware",
       "required": true,
@@ -71,15 +70,15 @@
   ],
   "spaces": [
     {
-      "spaceId": "tp-input",
+      "spaceId": "reference-base",
       "kind": "input-artifact",
-      "slotId": "tp-input",
+      "slotId": "reference-base",
       "instancePolicy": "singleton"
     },
     {
-      "spaceId": "dp-input",
+      "spaceId": "dp-replacement",
       "kind": "input-artifact",
-      "slotId": "dp-input",
+      "slotId": "dp-replacement",
       "instancePolicy": "singleton"
     },
     {
@@ -89,38 +88,22 @@
         "kind": "resolved-map"
       },
       "initializer": {
-        "kind": "blank",
-        "fillByte": 0
+        "kind": "clone",
+        "sourceSlotId": "reference-base"
       }
     }
   ],
   "views": [
     {
-      "viewId": "tp-source",
-      "spaceId": "tp-input",
-      "selector": {
-        "kind": "map-region",
-        "regionId": "tp-code"
-      }
-    },
-    {
-      "viewId": "dp-source",
-      "spaceId": "dp-input",
+      "viewId": "dp-code-source",
+      "spaceId": "dp-replacement",
       "selector": {
         "kind": "map-region",
         "regionId": "dp-code"
       }
     },
     {
-      "viewId": "tp-output",
-      "spaceId": "output-image",
-      "selector": {
-        "kind": "map-region",
-        "regionId": "tp-code"
-      }
-    },
-    {
-      "viewId": "dp-output",
+      "viewId": "dp-code-output",
       "spaceId": "output-image",
       "selector": {
         "kind": "map-region",
@@ -131,45 +114,33 @@
   "metadataBindings": [],
   "regionAccessRules": [
     {
-      "regionId": "tp-code",
-      "access": "whole",
-      "reason": "Owner-approved NT51930 FlashMap Standard Merge TP range."
-    },
-    {
       "regionId": "dp-code",
       "access": "whole",
-      "reason": "Owner-approved NT51930 FlashMap Standard Merge DP range."
+      "reason": "Replace the complete DP code region from the owner-approved NT51930 Standard Merge map."
     }
   ],
   "operations": [
     {
-      "operationId": "copy-tp",
+      "operationId": "replace-dp-code",
       "sequence": 100,
       "overlapPolicy": "reject",
-      "reason": "Copy the reviewed NT51930 TP range.",
-      "kind": "copy-range",
-      "sourceViewId": "tp-source",
-      "targetViewId": "tp-output"
-    },
-    {
-      "operationId": "copy-dp",
-      "sequence": 200,
-      "overlapPolicy": "reject",
-      "reason": "Copy the reviewed NT51930 DP range.",
-      "kind": "copy-range",
-      "sourceViewId": "dp-source",
-      "targetViewId": "dp-output"
+      "reason": "Replace only the canonical NT51930 DP code range and preserve all other reference bytes.",
+      "kind": "replace-range",
+      "sourceViewId": "dp-code-source",
+      "targetViewId": "dp-code-output"
     }
   ],
   "validations": [],
   "processorStages": [],
   "output": {
-    "fileNameTemplate": "nt51930-standard-merge-flashmap.bin",
+    "fileNameTemplate": "nt51930-dp-replace.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "merge-bin-51930-flashmap-golden"
+    "merge-bin-51930-flashmap-golden",
+    "nt51930-dp-replace-canonical-map-owner-decision-v1",
+    "nt51930-dp-replace-oracle-v1"
   ]
 }

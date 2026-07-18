@@ -9,7 +9,7 @@ public static partial class WorkbenchCompositionService
         long? baseCapacity,
         out IReadOnlyList<WorkbenchMemoryMapRow> rows)
     {
-        if (!TryResolveDpPerspectiveDpReplaceDisplay(icId, baseCapacity, out DpPerspectiveDpReplaceDisplay? display))
+        if (!TryResolveBuiltInV2DpReplaceDisplay(icId, baseCapacity, out BuiltInV2DpReplaceDisplay? display))
         {
             rows = [];
             return false;
@@ -61,7 +61,7 @@ public static partial class WorkbenchCompositionService
         long? baseCapacity,
         out string rangeLabel)
     {
-        if (!TryResolveDpPerspectiveDpReplaceDisplay(icId, baseCapacity, out DpPerspectiveDpReplaceDisplay? display))
+        if (!TryResolveBuiltInV2DpReplaceDisplay(icId, baseCapacity, out BuiltInV2DpReplaceDisplay? display))
         {
             rangeLabel = string.Empty;
             return false;
@@ -80,7 +80,7 @@ public static partial class WorkbenchCompositionService
         long? baseCapacity,
         out IReadOnlyList<WorkbenchMemoryCoverageSegment> segments)
     {
-        if (!TryResolveDpPerspectiveDpReplaceDisplay(icId, baseCapacity, out DpPerspectiveDpReplaceDisplay? display))
+        if (!TryResolveBuiltInV2DpReplaceDisplay(icId, baseCapacity, out BuiltInV2DpReplaceDisplay? display))
         {
             segments = [];
             return false;
@@ -161,24 +161,40 @@ public static partial class WorkbenchCompositionService
 
     private static bool TryGetV2DpReplaceInputDescription(string icId, out string description)
     {
-        if (!TryResolveDpPerspectiveDpReplaceDisplay(icId, baseCapacity: null, out DpPerspectiveDpReplaceDisplay? display))
+        if (!TryResolveBuiltInV2DpReplaceDisplay(icId, baseCapacity: null, out BuiltInV2DpReplaceDisplay? display))
         {
             description = string.Empty;
             return false;
         }
 
-        description = display.Issues.Count == 0
+        if (display.Issues.Count != 0 ||
+            display.SupportedBaseCapacities.Count == 0 ||
+            !TryResolveBuiltInV2DpReplaceDisplay(
+                icId,
+                display.SupportedBaseCapacities[0],
+                out BuiltInV2DpReplaceDisplay? resolved) ||
+            resolved.Composition is not { } composition)
+        {
+            description = $"The V2 DP Replace profile is unavailable: {FormatV2DpReplaceIssues(display)}";
+            return true;
+        }
+
+        AddressSpace replacement = composition.Plan.AddressSpaces.Single(static space =>
+            space.AddressSpaceId == CompositionAddressSpaceIds.DpReplacement);
+        bool restoresReference = composition.Plan.OrderedOperations.Any(static operation =>
+            string.Equals(operation.SourceSpaceId, CompositionAddressSpaceIds.ReferenceBase, StringComparison.Ordinal));
+        description = replacement.InputPaddingByte is not null && restoresReference
             ? $"Use a DP/FlashCode-shaped BIN no larger than the selected Reference FlashCode ({FormatV2DpReplaceCapacities(display)}); shorter input is zero-padded and the original TP range is restored from the reference."
-            : $"The V2 DP Replace profile is unavailable: {FormatV2DpReplaceIssues(display)}";
+            : $"Use a same-IC DP/FlashCode BIN containing the complete declared DP range ({FormatHexLength(replacement.Length)} bytes; expected outer length {FormatV2DpReplaceCapacities(display)}). Only declared DP ranges are copied; every other byte stays from Reference FlashCode.";
         return true;
     }
 
-    private static string FormatV2DpReplaceCapacities(DpPerspectiveDpReplaceDisplay display)
+    private static string FormatV2DpReplaceCapacities(BuiltInV2DpReplaceDisplay display)
     {
         return BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities);
     }
 
-    private static string FormatV2DpReplaceFailureLabel(DpPerspectiveDpReplaceDisplay display)
+    private static string FormatV2DpReplaceFailureLabel(BuiltInV2DpReplaceDisplay display)
     {
         return display.RequestedBaseCapacity is long requestedCapacity &&
             !display.SupportedBaseCapacities.Contains(requestedCapacity)
@@ -186,13 +202,13 @@ public static partial class WorkbenchCompositionService
             : "DP Replace profile unavailable";
     }
 
-    private static bool IsV2DpReplaceUnsupportedLength(DpPerspectiveDpReplaceDisplay display)
+    private static bool IsV2DpReplaceUnsupportedLength(BuiltInV2DpReplaceDisplay display)
     {
         return display.RequestedBaseCapacity is long requestedCapacity &&
             !display.SupportedBaseCapacities.Contains(requestedCapacity);
     }
 
-    private static string FormatV2DpReplaceIssues(DpPerspectiveDpReplaceDisplay display)
+    private static string FormatV2DpReplaceIssues(BuiltInV2DpReplaceDisplay display)
     {
         return display.Issues.Count == 0
             ? "The V2 DP Replace profile did not produce an executable composition."
@@ -249,7 +265,7 @@ public static partial class WorkbenchCompositionService
     }
 }
 
-internal sealed record DpPerspectiveDpReplaceDisplay(
+internal sealed record BuiltInV2DpReplaceDisplay(
     long? RequestedBaseCapacity,
     IReadOnlyList<long> SupportedBaseCapacities,
     CompiledComposition? Composition,

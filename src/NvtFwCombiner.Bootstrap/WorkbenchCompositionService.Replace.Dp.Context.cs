@@ -2,12 +2,12 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static bool TryCreateDpPerspectiveDpReplaceRunContext(
+    private static bool TryCreateBuiltInV2DpReplaceRunContext(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
-        out DpPerspectiveDpReplaceRunContext? context,
+        out BuiltInV2DpReplaceRunContext? context,
         out WorkbenchRunResult? failure)
     {
         context = null;
@@ -39,7 +39,7 @@ public static partial class WorkbenchCompositionService
         }
 
         long baseLength = new FileInfo(fullBasePath).Length;
-        context = new DpPerspectiveDpReplaceRunContext(
+        context = new BuiltInV2DpReplaceRunContext(
             ToIcNumberSelection(number),
             fullBasePath,
             baseLength,

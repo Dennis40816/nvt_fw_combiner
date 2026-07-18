@@ -124,7 +124,6 @@ public sealed partial class ShellTextResources
             MergeTpSlotDescription = Pick("Touch payload for Standard Merge", "Standard Merge 的 Touch payload"),
             MergeLdSlotDescription = Pick("Required only when the selected profile uses LD", "只有選定 profile 使用 LD 時才需要"),
             DpReplacementBinTitle = "DP replacement source",
-            DpReplacementBinDescription = Pick("DP/FlashCode-shaped .bin no larger than Reference FlashCode; shorter input is zero-padded, oversized input is rejected, and reference TP is restored.", "DP/FlashCode 格式的 .bin 不得大於 Reference FlashCode；短檔以 0x00 補齊、長檔拒絕，並還原 reference TP。"),
             SelectReplacementBinTooltip = Pick("Select replacement BIN", "選擇 replacement BIN"),
             SelectSourceBinTooltip = Pick("Select source BIN", "選擇 source BIN"),
             RemoveRangeTooltip = Pick("Remove range", "移除範圍"),

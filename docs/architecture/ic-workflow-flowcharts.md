@@ -164,6 +164,25 @@ flowchart TD
     I --> J["Write the V2 workbench artifact and record deterministic hashes plus archived legacy-comparison evidence"]
 ```
 
+### R-DP-930
+
+Used by NT51930. This V2 route reuses the exact canonical 256 KiB Standard Merge map. Its checked-in deterministic oracle and owner Standard Merge self-replacement control admit the safety contract, while direct owner DP Replace golden parity remains **Evidence open**.
+
+```mermaid
+flowchart TD
+    A["Load NT51930 Reference FlashCode"] --> B{"Reference length is exactly 0x40000?"}
+    B -- "no" --> C["Reject reference"]
+    B -- "yes" --> D{"Replacement covers canonical DP [0x0000, 0x6000)?"}
+    D -- "no" --> E["Reject short replacement"]
+    D -- "yes" --> F{"Outer length is expected 0x40000?"}
+    F -- "no" --> G["Record DP_SIZE_WARNING and extract only the declared DP prefix"]
+    F -- "yes" --> H["Use declared DP prefix"]
+    G --> I["Clone Reference FlashCode and replace only [0x0000, 0x6000)"]
+    H --> I
+    I --> J["Preserve gap [0x6000, 0x7000) and TP [0x7000, 0x40000) byte-for-byte"]
+    J --> K["Write V2 artifact; report direct golden gate as Evidence open"]
+```
+
 ## CtrlRAM Replace flowcharts
 
 All CtrlRAM Replace flows require post-replace legacy Combiner 1.13.0 processing before the result can be treated as a finished TDDI firmware image. Command sequences are stored as structured command data, then converted to argv arrays.

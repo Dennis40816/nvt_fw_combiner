@@ -47,6 +47,26 @@ public sealed partial class ShellViewModelTests
         Assert.Contains("does not ban authoring", viewModel.SelectedReplaceModeEvidenceTooltip, StringComparison.Ordinal);
     }
 
+    /// <summary>NT51930 exposes its canonical-map DP Replace contract while direct golden evidence remains open.</summary>
+    [Fact]
+    public void Nt51930DpReplaceIsAvailableWithEvidenceOpenBadge()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51930";
+        OpenReplace(viewModel, "DP");
+
+        Assert.True(viewModel.IsSelectedReplaceModeEvidenceGated);
+        Assert.True(viewModel.IsNonCtrlRamStructuredReplaceModeSelected);
+        Assert.Equal("Evidence open", viewModel.SelectedReplaceModeEvidenceLabel);
+        Assert.Contains(viewModel.ReplaceSlots, static slot => slot.SlotId == "replace-base");
+        FirmwareSlotViewModel replacement = Assert.Single(
+            viewModel.ReplaceSlots,
+            static slot => slot.SlotId == "replace-dp");
+        Assert.Contains("0x6000", replacement.Description, StringComparison.Ordinal);
+        Assert.Contains("0x40000", replacement.Description, StringComparison.Ordinal);
+        Assert.Contains("does not ban authoring", viewModel.SelectedReplaceModeEvidenceTooltip, StringComparison.Ordinal);
+    }
+
     /// <summary>Owner-declared perfect/partial IC-family facts are visible with their reuse boundary.</summary>
     [Theory]
     [InlineData("NT51917", "Perfect IC Family")]

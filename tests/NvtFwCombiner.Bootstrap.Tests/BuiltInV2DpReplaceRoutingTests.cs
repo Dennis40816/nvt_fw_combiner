@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Runtime-routing evidence for the supported NT51950/NT51951 V2 DP Replace profiles.</summary>
 public sealed class BuiltInV2DpReplaceRoutingTests
 {
-    /// <summary>Verifies UI/workbench family classification is projected from the registered V2 artifacts.</summary>
+    /// <summary>Verifies DP Perspective classification remains a map-shape fact, not generic DP Replace availability.</summary>
     [Theory]
     [InlineData("51950")]
     [InlineData("nt51951")]
@@ -15,6 +15,14 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     public void DpPerspectiveClassificationNormalizesRegisteredV2IcIds(string icId)
     {
         Assert.True(WorkbenchCompositionService.IsDpPerspectiveIc(icId));
+    }
+
+    /// <summary>Verifies NT51930 has a V2 DP Replace route without being misclassified as a DP Perspective family.</summary>
+    [Fact]
+    public void Nt51930DpReplaceAvailabilityDoesNotChangeStandardMergeFamilyShape()
+    {
+        Assert.True(WorkbenchCompositionService.HasBuiltInV2DpReplace("NT51930"));
+        Assert.False(WorkbenchCompositionService.IsDpPerspectiveIc("NT51930"));
     }
 
     /// <summary>Verifies ICs without a registered V2 DP Replace artifact are not promoted by classification.</summary>
@@ -36,7 +44,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [InlineData("NT51951", 0x100000)]
     public void SupportedDpReplaceUsesCapacitySelectedTrustedV2Artifact(string icId, long baseCapacity)
     {
-        bool compiled = WorkbenchCompositionService.TryCompileDpPerspectiveDpReplace(
+        bool compiled = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
             icId,
             baseCapacity,
             out CompiledComposition? composition,
@@ -64,7 +72,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [Fact]
     public void UnsupportedDpReplaceBaseCapacityFailsClosed()
     {
-        bool registered = WorkbenchCompositionService.TryCompileDpPerspectiveDpReplace(
+        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
             "NT51950",
             0x40001,
             out CompiledComposition? composition,
@@ -116,7 +124,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [InlineData("NT51951", 0x40000)]
     public void DpReplaceDisplayProjectsSelectedV2Plan(string icId, int baseCapacity)
     {
-        _ = WorkbenchCompositionService.TryCompileDpPerspectiveDpReplace(
+        _ = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
             icId,
             baseCapacity,
             out CompiledComposition? composition,

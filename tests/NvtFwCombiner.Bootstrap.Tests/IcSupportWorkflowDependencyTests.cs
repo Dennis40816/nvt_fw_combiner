@@ -91,7 +91,7 @@ public sealed class IcSupportWorkflowDependencyTests
         }
     }
 
-    /// <summary>DP Replace exposure stays closed to the two members with trusted V2 runtime registrations.</summary>
+    /// <summary>DP Replace exposure stays closed to members with trusted V2 runtime registrations.</summary>
     [Fact]
     public void DpReplaceWorkflowRemainsClosedToV2RegisteredMembers()
     {
@@ -103,7 +103,7 @@ public sealed class IcSupportWorkflowDependencyTests
                 .Order(StringComparer.Ordinal),
         ];
 
-        Assert.Equal(["NT51950", "NT51951"], dpReplaceIcIds);
+        Assert.Equal(["NT51930", "NT51950", "NT51951"], dpReplaceIcIds);
     }
 
     /// <summary>Every postbuild branch staged BIN is explainable by the profile-adjusted TP Overview CtrlRAM rows.</summary>

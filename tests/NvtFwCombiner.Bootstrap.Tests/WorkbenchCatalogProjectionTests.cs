@@ -65,7 +65,7 @@ public sealed class WorkbenchCatalogProjectionTests
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
         Assert.Equal(13, settings.SupportedIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
-        Assert.Equal(2, settings.ReplaceProfileCount);
+        Assert.Equal(3, settings.ReplaceProfileCount);
         Assert.Equal(12, settings.CtrlRamReplaceIcCount);
         Assert.Equal(1, settings.ExternalToolBindingCount);
     }
@@ -102,18 +102,14 @@ public sealed class WorkbenchCatalogProjectionTests
 
     private static void AssertV2DpReplaceProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)
     {
-        WorkbenchProfileSummary[] dpReplaceSummaries =
-        [
-            .. summaries.Where(static summary => summary.ProfileId.EndsWith(
-                "-dp-replace-dp-perspective",
-                StringComparison.Ordinal)),
-        ];
-        Assert.Equal(["NT51950", "NT51951"], dpReplaceSummaries.Select(static summary => summary.IcId));
+        Assert.Equal(
+            ["NT51930", "NT51950", "NT51951"],
+            summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
-        foreach (WorkbenchProfileSummary summary in dpReplaceSummaries)
+        foreach (WorkbenchProfileSummary summary in summaries)
         {
             Assert.True(
-                WorkbenchCompositionService.TryCompileDpPerspectiveDpReplace(
+                WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
                     summary.IcId,
                     0x40000,
                     out CompiledComposition? composition,

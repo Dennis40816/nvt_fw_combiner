@@ -13,7 +13,7 @@ internal static partial class ReplaceCliCommandHandler
         [NotNullWhen(true)] out string? icId)
     {
         return (command == IcWorkflowIds.DpReplace &&
-                WorkbenchCompositionService.TryResolveDpPerspectiveDpReplaceSelector(selector, out icId)) ||
+                WorkbenchCompositionService.TryResolveBuiltInV2DpReplaceSelector(selector, out icId)) ||
             TryResolveWorkbenchIc(selector, out icId);
     }
 

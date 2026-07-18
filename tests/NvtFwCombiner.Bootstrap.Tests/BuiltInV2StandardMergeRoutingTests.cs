@@ -18,7 +18,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af", "dp-input,ld-input,tp-input", "DpFirmware,Auxiliary,TpFirmware")]
     [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51930", "nt51930-standard-merge-flashmap", "nt51930-standard-merge", "b9ca3d66d8674d080b4e0c8563110dfd305b3df18746f5164e7ed45514e0714e", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51930", "nt51930-standard-merge-flashmap", "nt51930-standard-merge", "50f9b7f84879088c72ba6da8f23860d92d7819eff5dd0a4772e4b3bc28f0921a", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51931", "nt51931-standard-merge-gen-flash", "nt51931-standard-merge", "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     public void RegisteredStandardMergeUsesDeployedTrustedV2Artifact(

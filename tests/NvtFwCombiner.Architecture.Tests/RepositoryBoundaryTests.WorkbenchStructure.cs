@@ -182,7 +182,7 @@ public sealed partial class RepositoryBoundaryTests
         }
 
         Assert.Equal(17, bundle.Split('"').Count(IsSha256Literal));
-        Assert.Equal(28, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
+        Assert.Equal(29, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
         Assert.Equal(
             1,
             CountOccurrences(
