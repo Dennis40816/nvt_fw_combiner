@@ -12,13 +12,13 @@ public sealed class ExternalProcessorResult
 
     private ExternalProcessorResult(
         bool succeeded,
-        byte[] outputBytes,
+        byte[] ownedOutputBytes,
         IReadOnlyList<ByteRange> changedRanges,
         IReadOnlyList<CompositionIssue> issues,
         IReadOnlyList<ExternalProcessInvocation>? executedCommands)
     {
         Succeeded = succeeded;
-        _outputBytes = [.. outputBytes];
+        _outputBytes = ownedOutputBytes;
         _changedRanges = [.. changedRanges];
         _issues = [.. issues];
         _executedCommands = executedCommands is null ? [] : [.. executedCommands];
