@@ -54,7 +54,19 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WorkbenchCompositionService.RunReplaceWithProgressAsync", replace, StringComparison.Ordinal);
         Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("await Task.Run(", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("ApplyRunResult(result, build);", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ProjectRunReport(result, build, reportLanguage", lifecycle, StringComparison.Ordinal);
+        int reportProjectionIndex = lifecycle.IndexOf("ProjectRunReport(result, build, reportLanguage", StringComparison.Ordinal);
+        int cancellationIndex = lifecycle.IndexOf(
+            "cancellationSource.Token.ThrowIfCancellationRequested();",
+            reportProjectionIndex,
+            StringComparison.Ordinal);
+        int publishIndex = lifecycle.IndexOf("publishReport: IsCurrentReportProjection(", StringComparison.Ordinal);
+        Assert.True(
+            reportProjectionIndex >= 0 && cancellationIndex > reportProjectionIndex && publishIndex > cancellationIndex,
+            "Run cancellation must be rechecked after report projection and before publishing UI/history state.");
+        Assert.Contains("long reportProjectionGeneration = BeginReportProjection();", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("publishReport: IsCurrentReportProjection(reportProjectionGeneration)", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ReportReviewViewModel.FromJsonCancellable(", merge, StringComparison.Ordinal);
         Assert.Contains("loadErrorReport(action, exception.Message);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("CompleteRun(cancellationSource);", lifecycle, StringComparison.Ordinal);
         Assert.Equal(
@@ -67,6 +79,36 @@ public sealed partial class RepositoryBoundaryTests
             CountOccurrences(
                 ReadViewModelPartials(),
                 "catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)"));
+    }
+
+    /// <summary>Large report projection stays cancellable and UI bindings expose bounded pages.</summary>
+    [Fact]
+    public void ReportReviewProjectsOffDispatcherAndPagesLargeEvidence()
+    {
+        string report = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs");
+        string factory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Factory.cs");
+        string pager = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPagedListViewModel.cs");
+        string bindings = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Bindings.cs");
+
+        Assert.Contains("await Task.Run(", report, StringComparison.Ordinal);
+        Assert.Contains("FromJsonCancellable(", report, StringComparison.Ordinal);
+        Assert.Contains("cancellationToken.ThrowIfCancellationRequested();", factory, StringComparison.Ordinal);
+        Assert.Contains("private readonly ObservableCollection<object> _items", pager, StringComparison.Ordinal);
+        Assert.Contains("ReadOnlyObservableCollection<object> Items", pager, StringComparison.Ordinal);
+        Assert.Contains("LoadMoreCommand", pager, StringComparison.Ordinal);
+        Assert.Contains("OutputDifferenceGroupPage", bindings, StringComparison.Ordinal);
+        Assert.Contains("MutationPage", bindings, StringComparison.Ordinal);
+        Assert.Contains("IssuePage", bindings, StringComparison.Ordinal);
+        Assert.Contains("while (language != Text.Language);", report, StringComparison.Ordinal);
+        Assert.Contains("long generation = BeginReportProjection();", report, StringComparison.Ordinal);
+        Assert.Contains("if (IsCurrentReportProjection(generation))", report, StringComparison.Ordinal);
+        Assert.Contains("Interlocked.Increment(ref _reportProjectionGeneration)", report, StringComparison.Ordinal);
+        Assert.Contains("while (reportLanguage != Text.Language);", ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs"), StringComparison.Ordinal);
     }
 
     /// <summary>Prevents retired, unbound shell inspector projections from returning.</summary>

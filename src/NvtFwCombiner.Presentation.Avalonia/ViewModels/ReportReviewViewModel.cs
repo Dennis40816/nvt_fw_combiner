@@ -89,6 +89,13 @@ public sealed partial class ReportReviewViewModel
         ByteDifferenceMeta = CreateByteDifferenceMeta(outputDifferences, language);
         OutputDifferenceSummaryRows = CreateOutputDifferenceSummaryRows(outputDifferences, language);
         AuditSummary = CreateAuditSummary(inputs, operations, mutations, outputDifferences, issues, language);
+        OutputDifferenceSummaryPage = ReportPagedListViewModel.Create(OutputDifferenceSummaryRows, 8, language);
+        OutputDifferenceGroupPage = ReportPagedListViewModel.Create(OutputDifferenceGroups, 8, language);
+        MutationPage = ReportPagedListViewModel.Create(Mutations, 40, language);
+        OperationFlowPage = ReportPagedListViewModel.Create(OperationFlow, 24, language);
+        StepOperationPage = ReportPagedListViewModel.Create(StepOperations, 24, language);
+        PostbuildInvocationPage = ReportPagedListViewModel.Create(PostbuildInvocations, 24, language);
+        IssuePage = ReportPagedListViewModel.Create(Issues, 40, language);
     }
 
     /// <summary>Empty report sentinel.</summary>

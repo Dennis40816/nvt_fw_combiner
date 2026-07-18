@@ -101,6 +101,9 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Human-readable run flow nodes.</summary>
     public IReadOnlyList<ReportOperationFlowNodeViewModel> OperationFlow { get; }
 
+    /// <summary>Bounded operation-flow nodes rendered by the Operations tab.</summary>
+    public ReportPagedListViewModel OperationFlowPage { get; }
+
     /// <summary>True when operation flow nodes are available.</summary>
     public bool HasOperationFlow => OperationFlow.Count > 0;
 
@@ -112,6 +115,9 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>Actual postbuild process invocations flattened into independently numbered review rows.</summary>
     public IReadOnlyList<ReportPostbuildInvocationViewModel> PostbuildInvocations { get; }
+
+    /// <summary>Bounded postbuild invocation rows rendered by the Postbuild tab.</summary>
+    public ReportPagedListViewModel PostbuildInvocationPage { get; }
 
     /// <summary>Number of independently numbered postbuild invocation rows.</summary>
     public int PostbuildInvocationCount => PostbuildInvocations.Count;
@@ -125,6 +131,9 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Operations that do not contain an external command block.</summary>
     public IReadOnlyList<ReportLineViewModel> StepOperations { get; }
 
+    /// <summary>Bounded operation-detail rows rendered by the Operations tab.</summary>
+    public ReportPagedListViewModel StepOperationPage { get; }
+
     /// <summary>Number of non-command operation rows.</summary>
     public int StepOperationCount => StepOperations.Count;
 
@@ -133,6 +142,9 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>Mutation rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Mutations { get; }
+
+    /// <summary>Bounded mutation rows rendered by the Changes tab.</summary>
+    public ReportPagedListViewModel MutationPage { get; }
 
     /// <summary>Number of mutation rows.</summary>
     public int MutationCount => Mutations.Count;
@@ -149,6 +161,9 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Final output differences grouped by physical report section.</summary>
     public IReadOnlyList<ReportDifferenceGroupViewModel> OutputDifferenceGroups { get; }
 
+    /// <summary>Bounded output-difference section groups rendered by the Changes tab.</summary>
+    public ReportPagedListViewModel OutputDifferenceGroupPage { get; }
+
     /// <summary>True when output difference details are available.</summary>
     public bool HasOutputDifferences => OutputDifferences.Count > 0;
 
@@ -157,6 +172,9 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>Simplified output-difference rows for the primary report view.</summary>
     public IReadOnlyList<ReportDifferenceSummaryRowViewModel> OutputDifferenceSummaryRows { get; }
+
+    /// <summary>Bounded primary difference-summary rows rendered by the modal.</summary>
+    public ReportPagedListViewModel OutputDifferenceSummaryPage { get; }
 
     /// <summary>Primary byte-difference verdict title.</summary>
     public string ByteDifferenceTitle { get; }
@@ -172,6 +190,9 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>Issue rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Issues { get; }
+
+    /// <summary>Bounded issue rows rendered by the Issues tab.</summary>
+    public ReportPagedListViewModel IssuePage { get; }
 
     /// <summary>Number of diagnostic rows, including warnings.</summary>
     public int IssueCount => Issues.Count;
