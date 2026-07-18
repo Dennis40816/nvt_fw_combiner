@@ -191,4 +191,80 @@ public sealed class WorkbenchFirmwareInspectionTests
         Assert.Null(invalidMetadata.PostbuildCategory);
         Assert.Empty(Assert.IsType<WorkbenchCtrlRamInspectionDisplay>(invalidInspection.CtrlRamDisplay).InputSlots);
     }
+
+    /// <summary>Paired DP/TP projections share one physical read for every distinct selected path.</summary>
+    [Fact]
+    public void InspectionBatchReadsEveryDistinctPathOnce()
+    {
+        byte[] dpBytes = File.ReadAllBytes(GoldenPath("inputs/51950/dp-256k/dp.bin"));
+        byte[] tpBytes = File.ReadAllBytes(GoldenPath("inputs/51950/dp-256k/tp.bin"));
+        var artifacts = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            ["dp.bin"] = dpBytes,
+            ["tp.bin"] = tpBytes,
+        };
+        var reads = new List<string>();
+
+        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                "NT51950",
+                [
+                    new WorkbenchFirmwareInspectionInput("tp", "tp.bin"),
+                    new WorkbenchFirmwareInspectionInput("dp", "dp.bin", "tp.bin"),
+                ],
+                path =>
+                {
+                    reads.Add(path);
+                    return artifacts.GetValueOrDefault(path);
+                });
+
+        Assert.Equal(["tp.bin", "dp.bin"], reads);
+        Assert.Equal(2, results.Count);
+        Assert.NotNull(results.Single(result => result.InspectionId == "tp").Inspection.FirmwareConfig);
+        _ = Assert.NotNull(results.Single(result => result.InspectionId == "dp").Inspection.CmiDpCode);
+    }
+
+    /// <summary>Named batch projections reject ambiguous duplicate result identities.</summary>
+    [Fact]
+    public void InspectionBatchRejectsDuplicateIds()
+    {
+        int reads = 0;
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                "NT51926",
+                [
+                    new WorkbenchFirmwareInspectionInput("slot", "first.bin"),
+                    new WorkbenchFirmwareInspectionInput("slot", "second.bin"),
+                ],
+                _ =>
+                {
+                    reads++;
+                    return null;
+                }));
+
+        Assert.Equal("inputs", exception.ParamName);
+        Assert.Equal(0, reads);
+    }
+
+    /// <summary>A null batch item is rejected before any firmware reader can observe the request.</summary>
+    [Fact]
+    public void InspectionBatchRejectsNullItemsBeforeReading()
+    {
+        int reads = 0;
+
+        _ = Assert.Throws<ArgumentNullException>(() =>
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                "NT51926",
+                [
+                    new WorkbenchFirmwareInspectionInput("first", "first.bin"),
+                    null!,
+                ],
+                _ =>
+                {
+                    reads++;
+                    return null;
+                }));
+
+        Assert.Equal(0, reads);
+    }
 }
