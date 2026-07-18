@@ -36,7 +36,7 @@
 </DataTemplate>
 
 <DataTemplate x:Key="ReportOutputDifferenceGroupTemplate" DataType="vm:ReportDifferenceGroupViewModel">
-  <Expander Margin="0,0,0,10" IsExpanded="False">
+  <Expander Margin="0,0,0,10" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
     <Expander.Header>
       <Border Classes="reportInputGroupHeader">
         <Grid ColumnDefinitions="4,*,Auto" ColumnSpacing="10">
