@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.Input;
 
@@ -28,9 +27,7 @@ public sealed partial class MainWindowViewModel
     public string ReportHistorySummary => Text.GetReportHistorySummary(ReportHistoryCount);
 
     /// <summary>Total in-memory persisted history payload size.</summary>
-    public long ReportHistoryTotalBytes => ReportHistoryEntries.Sum(entry =>
-        Encoding.UTF8.GetByteCount(entry.ReportJson) +
-        Encoding.UTF8.GetByteCount(entry.ArtifactPath));
+    public long ReportHistoryTotalBytes => ReportHistoryEntries.Sum(static entry => entry.StoredByteCount);
 
     /// <summary>Human-readable local report history storage summary.</summary>
     public string ReportHistoryStorageSummary => Text.GetReportHistoryStorageSummary(FormatByteCount(ReportHistoryTotalBytes));
@@ -105,8 +102,7 @@ public sealed partial class MainWindowViewModel
         else
         {
             ReportHistoryEntryViewModel latest = ReportHistoryEntries[0];
-            LoadedReport = latest.Report;
-            LoadedReportJson = latest.ReportJson;
+            LoadReportHistoryEntry(latest);
         }
 
         NotifyReportHistoryChanged();
@@ -149,8 +145,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        LoadedReport = entry.Report;
-        LoadedReportJson = entry.ReportJson;
+        LoadReportHistoryEntry(entry);
         CloseReplaceSelectionForRun();
         IsReportModalOpen = true;
         IsReportHistoryViewOpen = false;
@@ -199,7 +194,9 @@ public sealed partial class MainWindowViewModel
 
         ReportHistoryEntries.Insert(
             0,
-            new ReportHistoryEntryViewModel(++_reportHistorySequence, LoadedReport, LoadedReportJson));
+            new ReportHistoryEntryViewModel(
+                ++_reportHistorySequence,
+                CreateReportHistorySnapshot(LoadedReport, LoadedReportJson)));
         while (ReportHistoryEntries.Count > MaxReportHistoryEntries)
         {
             ReportHistoryEntries.RemoveAt(ReportHistoryEntries.Count - 1);
@@ -218,20 +215,30 @@ public sealed partial class MainWindowViewModel
             return false;
         }
 
+        ReportHistorySnapshot normalizedSnapshot = snapshot;
         try
         {
-            var report = ReportReviewViewModel.FromJson(
-                snapshot.ReportJson,
-                string.IsNullOrWhiteSpace(snapshot.SourceName) ? "persisted report" : snapshot.SourceName,
-                snapshot.OutputArtifactPath,
-                Text.Language);
-            entry = new ReportHistoryEntryViewModel(++_reportHistorySequence, report, snapshot.ReportJson);
-            return true;
+            if (snapshot.Metadata == ReportHistoryMetadataSnapshot.Empty)
+            {
+                var report = ReportReviewViewModel.FromJson(
+                    snapshot.ReportJson,
+                    string.IsNullOrWhiteSpace(snapshot.SourceName) ? "persisted report" : snapshot.SourceName,
+                    snapshot.OutputArtifactPath,
+                    Text.Language);
+                normalizedSnapshot = CreateReportHistorySnapshot(report, snapshot.ReportJson);
+            }
+            else
+            {
+                using JsonDocument _ = JsonDocument.Parse(snapshot.ReportJson);
+            }
         }
-        catch (JsonException)
+        catch (Exception exception) when (IsReportMaterializationException(exception))
         {
             return false;
         }
+
+        entry = new ReportHistoryEntryViewModel(++_reportHistorySequence, normalizedSnapshot);
+        return true;
     }
 
     private void NotifyReportHistoryChanged()
@@ -260,34 +267,105 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        ReportReviewViewModel localizedReport;
         try
         {
-            LoadedReport = ReportReviewViewModel.FromJson(
+            localizedReport = ReportReviewViewModel.FromJson(
                 LoadedReportJson,
                 LoadedReport.SourceName,
                 LoadedReport.OutputArtifactPath,
                 Text.Language);
-            for (int index = 0; index < ReportHistoryEntries.Count; index++)
-            {
-                ReportHistoryEntryViewModel entry = ReportHistoryEntries[index];
-                if (!string.Equals(entry.ReportJson, LoadedReportJson, StringComparison.Ordinal))
-                {
-                    continue;
-                }
+        }
+        catch (Exception exception) when (IsReportMaterializationException(exception))
+        {
+            return;
+        }
 
-                ReportHistoryEntries[index] = new ReportHistoryEntryViewModel(
-                    entry.Sequence,
-                    LoadedReport,
-                    entry.ReportJson);
-                break;
+        LoadedReport = localizedReport;
+        for (int index = 0; index < ReportHistoryEntries.Count; index++)
+        {
+            ReportHistoryEntryViewModel entry = ReportHistoryEntries[index];
+            if (!string.Equals(entry.ReportJson, LoadedReportJson, StringComparison.Ordinal))
+            {
+                continue;
             }
 
-            NotifyReportChanged();
-            NotifyReportHistoryChanged();
+            ReportHistoryEntries[index] = new ReportHistoryEntryViewModel(
+                entry.Sequence,
+                CreateReportHistorySnapshot(LoadedReport, entry.ReportJson));
+            break;
         }
-        catch (JsonException)
+
+        NotifyReportChanged();
+        NotifyReportHistoryChanged();
+    }
+
+    private void LoadReportHistoryEntry(ReportHistoryEntryViewModel entry)
+    {
+        try
         {
+            LoadedReport = ReportReviewViewModel.FromJson(
+                entry.ReportJson,
+                string.IsNullOrWhiteSpace(entry.SourceName) ? "persisted report" : entry.SourceName,
+                entry.ArtifactPath,
+                Text.Language);
         }
+        catch (Exception exception) when (IsReportMaterializationException(exception))
+        {
+            LoadedReport = ReportReviewViewModel.Error(entry.SourceName, exception.Message, language: Text.Language);
+        }
+
+        LoadedReportJson = entry.ReportJson;
+    }
+
+    private static ReportHistorySnapshot CreateReportHistorySnapshot(
+        ReportReviewViewModel report,
+        string reportJson)
+    {
+        return new ReportHistorySnapshot(
+            report.SourceName,
+            reportJson,
+            report.OutputArtifactPath,
+            new ReportHistoryMetadataSnapshot(
+                report.Title,
+                report.Status,
+                CreateReportHistoryContext(report),
+                string.IsNullOrWhiteSpace(report.OutputFileName)
+                    ? "No output"
+                    : $"{report.OutputFileName} / {report.OutputSize} bytes",
+                report.OutputHashLabel,
+                report.HasPostbuildInvocations
+                    ? FormatReportHistoryCount(report.PostbuildInvocationCount, "command")
+                    : "No external command",
+                report.HasPrimaryIssue
+                    ? FormatReportHistoryCount(report.BlockingIssueCount, "issue")
+                    : report.HasWarnings
+                        ? FormatReportHistoryCount(report.WarningCount, "warning")
+                        : "No issue",
+                $"{FormatReportHistoryCount(report.InputCount, "input")} / {FormatReportHistoryCount(report.OperationCount, "step")} / {FormatReportHistoryCount(report.MutationCount, "mutation")}",
+                report.RunId,
+                report.StartedAtUtc,
+                report.IcId,
+                report.ModeId,
+                report.ExperienceId,
+                report.CompositionKind));
+    }
+
+    private static string CreateReportHistoryContext(ReportReviewViewModel report)
+    {
+        string workflow = string.IsNullOrWhiteSpace(report.CompositionKind)
+            ? "Report"
+            : report.CompositionKind;
+        string experience = string.IsNullOrWhiteSpace(report.ExperienceId)
+            ? report.SourceName
+            : report.ExperienceId;
+        string ic = string.IsNullOrWhiteSpace(report.IcId) ? "unknown IC" : report.IcId;
+        return $"{workflow} / {experience} / {ic}";
+    }
+
+    private static string FormatReportHistoryCount(int count, string noun)
+    {
+        return count == 1 ? $"1 {noun}" : $"{count} {noun}s";
     }
 
     private static string FormatByteCount(long byteCount)

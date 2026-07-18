@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -204,5 +205,121 @@ public sealed partial class ShellViewModelTests
         File.WriteAllText(historyPath, "{not valid json");
 
         Assert.Empty(ReportHistoryFileStore.Load(historyPath));
+    }
+
+    /// <summary>Metadata-backed history stays compact and materializes only the entry opened for review.</summary>
+    [Fact]
+    public void ReportHistoryDefersOlderReviewMaterialization()
+    {
+        string latestJson = ReportJsonSamples.Succeeded(runId: "latest-run");
+        string deferredJson = ReportJsonSamples.Succeeded(runId: "deferred-run");
+        ReportHistoryMetadataSnapshot latestMetadata = ReportHistoryMetadataSnapshot.Empty with
+        {
+            Title = "Latest report",
+            Status = "Succeeded",
+            RunId = "latest-run",
+        };
+        ReportHistoryMetadataSnapshot deferredMetadata = ReportHistoryMetadataSnapshot.Empty with
+        {
+            Title = "Deferred report",
+            Status = "Stored",
+            RunId = "deferred-run",
+        };
+        ReportHistorySnapshot latest = new("latest.json", latestJson, string.Empty, latestMetadata);
+        ReportHistorySnapshot deferred = new("deferred.json", deferredJson, "C:/output/deferred.bin", deferredMetadata);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportHistory([latest, deferred]);
+
+        Assert.Equal(2, viewModel.ReportHistoryCount);
+        Assert.Equal("latest-run", viewModel.LoadedReport.RunId);
+        ReportHistoryEntryViewModel deferredEntry = viewModel.ReportHistoryEntries[1];
+        Assert.Equal("Deferred report", deferredEntry.Title);
+        Assert.Equal(
+            Encoding.UTF8.GetByteCount(deferredJson) + Encoding.UTF8.GetByteCount(deferred.OutputArtifactPath),
+            deferredEntry.StoredByteCount);
+        Assert.Same(deferred, deferredEntry.ToSnapshot());
+
+        viewModel.OpenReportHistoryEntryCommand.Execute(deferredEntry);
+
+        Assert.Equal(deferredJson, viewModel.LoadedReportJson);
+        Assert.Equal("deferred-run", viewModel.LoadedReport.RunId);
+        Assert.NotEqual(deferredEntry.Title, viewModel.LoadedReport.Title);
+        Assert.Equal(2, viewModel.ReportHistoryCount);
+    }
+
+    /// <summary>A metadata-backed invalid latest report becomes a readable error instead of breaking restore.</summary>
+    [Fact]
+    public void ReportHistoryInvalidLatestShapeDegradesToError()
+    {
+        ReportHistoryMetadataSnapshot metadata = ReportHistoryMetadataSnapshot.Empty with
+        {
+            Title = "Invalid latest report",
+            Status = "Stored",
+        };
+        ReportHistorySnapshot invalid = new("invalid-latest.json", "[]", string.Empty, metadata);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportHistory([invalid]);
+
+        Assert.Equal(1, viewModel.ReportHistoryCount);
+        Assert.Equal("Invalid JSON", viewModel.LoadedReport.Status);
+        Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
+        Assert.Equal("[]", viewModel.LoadedReportJson);
+    }
+
+    /// <summary>A metadata-backed entry with malformed raw JSON is excluded during restore.</summary>
+    [Fact]
+    public void ReportHistoryMalformedMetadataBackedJsonIsExcluded()
+    {
+        ReportHistoryMetadataSnapshot metadata = ReportHistoryMetadataSnapshot.Empty with
+        {
+            Title = "Malformed report",
+            Status = "Stored",
+        };
+        ReportHistorySnapshot malformed = new("malformed.json", "{not json", string.Empty, metadata);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportHistory([malformed]);
+
+        Assert.Empty(viewModel.ReportHistoryEntries);
+        Assert.False(viewModel.HasLoadedReport);
+        Assert.Equal(string.Empty, viewModel.LoadedReportJson);
+    }
+
+    /// <summary>A metadata-backed invalid older report degrades safely only when the user opens it.</summary>
+    [Fact]
+    public void ReportHistoryInvalidDeferredShapeDegradesOnOpen()
+    {
+        string latestJson = ReportJsonSamples.Succeeded(runId: "latest-safe-run");
+        ReportHistoryMetadataSnapshot latestMetadata = ReportHistoryMetadataSnapshot.Empty with
+        {
+            Title = "Latest safe report",
+            Status = "Succeeded",
+        };
+        ReportHistoryMetadataSnapshot invalidMetadata = ReportHistoryMetadataSnapshot.Empty with
+        {
+            Title = "Invalid deferred report",
+            Status = "Stored",
+        };
+        ReportHistorySnapshot latest = new("latest-safe.json", latestJson, string.Empty, latestMetadata);
+        ReportHistorySnapshot invalid = new(
+            "invalid-deferred.json",
+            "{\"Operations\":[0]}",
+            string.Empty,
+            invalidMetadata);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportHistory([latest, invalid]);
+
+        Assert.Equal("latest-safe-run", viewModel.LoadedReport.RunId);
+        ReportHistoryEntryViewModel invalidEntry = viewModel.ReportHistoryEntries[1];
+
+        viewModel.OpenReportHistoryEntryCommand.Execute(invalidEntry);
+
+        Assert.Equal("Invalid JSON", viewModel.LoadedReport.Status);
+        Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
+        Assert.Equal(invalid.ReportJson, viewModel.LoadedReportJson);
+        Assert.Equal(2, viewModel.ReportHistoryCount);
     }
 }

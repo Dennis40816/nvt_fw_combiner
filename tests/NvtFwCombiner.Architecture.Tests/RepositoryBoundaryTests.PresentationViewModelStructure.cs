@@ -175,6 +175,24 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("UnauthorizedAccessException", helper, StringComparison.Ordinal);
     }
 
+    /// <summary>Report history retains compact immutable snapshots instead of every fully parsed review graph.</summary>
+    [Fact]
+    public void ReportHistoryMaterializesOnlyTheOpenedReview()
+    {
+        string entry = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHistoryEntryViewModel.cs");
+        string history = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReportHistory.cs");
+
+        Assert.Contains("private readonly ReportHistorySnapshot snapshot;", entry, StringComparison.Ordinal);
+        Assert.Contains("public long StoredByteCount", entry, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportReviewViewModel", entry, StringComparison.Ordinal);
+        Assert.Contains("LoadReportHistoryEntry(latest);", history, StringComparison.Ordinal);
+        Assert.Contains("LoadReportHistoryEntry(entry);", history, StringComparison.Ordinal);
+        Assert.Contains("entry.StoredByteCount", history, StringComparison.Ordinal);
+        Assert.DoesNotContain("Encoding.UTF8.GetByteCount(entry.ReportJson)", history, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies firmware slot model, icons, and fact badges stay split by UI responsibility.</summary>
     [Fact]
     public void FirmwareSlotViewModelConcernsStaySplit()
