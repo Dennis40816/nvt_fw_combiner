@@ -58,6 +58,14 @@ report entry/exit of an approved processor through that port but does not
 invent product steps. Presentation receives typed snapshots and never branches
 on operation ids, processor ids, issue text, filenames, or IC labels.
 
+The Application surface uses one `CompositionRunProgressFeed` per run. Its
+bounded asynchronous channel can hold the complete seven-phase lifecycle, is
+completed on success, failure, or cancellation, and never invokes a host or UI
+callback inline with composition or output commit. Each immutable snapshot
+contains the run id, applicable phase sequence, phases actually completed, the
+current phase, and its lifecycle ordinal. Reusing one feed for another run is
+rejected.
+
 The UI shows the localized current step and the applicable step sequence.
 Completed steps are visually complete, the active step has a restrained
 indeterminate animation, and future steps remain inactive. Lifecycle ordinal
@@ -82,7 +90,8 @@ diagnostic result.
 
 ### Negative / trade-offs
 
-- Application and Bootstrap gain a small additive observer contract.
+- Application and Bootstrap gain a small additive asynchronous progress-feed
+  contract.
 - External processor progress remains phase-level until a reviewed process
   contract exposes more detail; command duration is not guessed.
 - Localization and accessibility tests must cover every stable phase.
@@ -90,7 +99,11 @@ diagnostic result.
 ### Risks and mitigations
 
 - Excessive events could add UI-thread work -> publish only phase transitions,
-  coalesce duplicate snapshots, and keep animation inside Presentation.
+  coalesce duplicate snapshots, bound the feed to the complete lifecycle, and
+  keep animation inside Presentation.
+- A host callback could throw during or after output commit -> Application only
+  enqueues immutable snapshots; consuming and dispatching them is host-owned
+  asynchronous work and cannot change the run result.
 - UI could treat lifecycle ordinal as completion percentage -> do not bind a
   determinate percentage or derive remaining time.
 - Progress could drift from execution -> emit transitions at the owning
@@ -103,8 +116,14 @@ diagnostic result.
 This is an additive Application/Bootstrap/UI contract. It does not change
 profiles, ranges, operations, processor argv/order, report wire schemas,
 output bytes, support state, or CLI compatibility. CLI callers may omit the
-observer. The current generic progress bar remains the fallback until the
+feed. The current generic progress bar remains the fallback until the
 stepper is wired and verified after the final `0.9.9` UI-contract rebase.
+
+The first provisional Application-only slice implements the enum, snapshot,
+single-run bounded feed, and exact service transitions. It deliberately does
+not change Bootstrap or Presentation while the final `0.9.9` workflow and UI
+contracts are still moving. That wiring, localization, accessibility styling,
+and reduced-motion animation remain an integration gate after rebase.
 
 ## Verification
 
@@ -119,5 +138,8 @@ stepper is wired and verified after the final `0.9.9` UI-contract rebase.
   high-contrast styling, and reduced motion.
 - A bounded-event test prevents per-byte, per-frame, or polling updates from
   crossing the Application boundary.
+- The feed is completed when input reading is cancelled or an adapter throws,
+  and source-boundary coverage rejects inline `IProgress<T>` callbacks and any
+  copy of the lifecycle contract in Domain.
 - Existing byte, SHA-256, mutation, processor trace, golden, Polytail, and
   canonical full-verification gates remain mandatory.

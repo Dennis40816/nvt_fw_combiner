@@ -176,7 +176,9 @@ background/bounded report slice records `57,115`. The first immutable UI
 inspection slice records `57,636`, including exact partial aggregates of
 `4,727` for `WorkbenchCompositionService` and `3,082` for
 `MainWindowViewModel`; no safety check or evidence was removed to offset these
-changes.
+changes. The first typed Application progress slice records `57,916`; its
+bounded feed and lifecycle tests are retained as correctness infrastructure,
+not claimed as a performance win based on source size.
 
 Staged immutable-artifact verification reads are separate and must not be
 hidden in future evidence. During the conservative phase, the first canonical
@@ -256,6 +258,26 @@ thousands of difference rows. Node C keeps complete saved/exported JSON while
 moving parsing/projection off the dispatcher and bounding initial materialized
 detail through lazy tabs plus virtualization or paging.
 
+## Typed run-progress core
+
+The first provisional ADR 0024 Application slice now owns seven stable phases:
+preparing, input reading, composition, external processing, final validation,
+output commit, and report preparation. Each run receives one bounded
+asynchronous feed containing at most those seven immutable transitions.
+Duplicate processor operations coalesce into one processor phase, skipped work
+is never marked completed, and failure or cancellation completes the feed at
+the last truthful phase. Application enqueues snapshots and does not execute a
+host/UI callback inline, including after atomic output commit.
+
+Seven focused tests lock Preview and automatic-Build order, two external
+operations with one processor transition, input failure, cancellation, final
+validation rejection, and commit-adapter failure. This is lifecycle contract
+evidence only: Bootstrap consumption, run-id ownership at the ViewModel,
+localized step labels, accessible live status, high contrast, and reduced
+motion remain pending until the final `0.9.9` UI-contract rebase. Node B/C must
+also record event count, click-to-first-step, dispatcher heartbeat impact, and
+cancellation latency; no lifecycle ordinal is a byte percentage.
+
 ## Follow-up gates
 
 - The provisional `v0.9.10` process prototype reduces a valid automatic Build
@@ -266,10 +288,11 @@ detail through lazy tabs plus virtualization or paging.
 - UI inspection begins only after the `0.9.9` typed workflow contracts freeze.
   One immutable asynchronous snapshot may serve display projections for one
   file identity/hash, but never Build authority.
-- ADR 0024 step progress begins from the same reconciled UI boundary.
-  Application publishes only bounded typed lifecycle transitions; Presentation
-  localizes and animates the active step, honors reduced motion, and never
-  fabricates byte percentage or infers phases from firmware-facing text.
+- ADR 0024 Application progress is provisionally implemented behind a bounded
+  asynchronous feed. Bootstrap/UI wiring begins from the reconciled UI
+  boundary; Presentation localizes and animates only the active step, honors
+  reduced motion, and never fabricates byte percentage or infers phases from
+  firmware-facing text.
 - ADR 0025 makes Combiner, Build responsiveness, and large-report scalability
   first-class gates. Exact sequential commands remain `C` launches; non-merge
   plans use metadata plus one final full read, and merge-mode plans add only
