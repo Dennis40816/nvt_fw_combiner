@@ -87,6 +87,6 @@ public sealed partial class CompositionRunService
 
     private static string ToHex(ReadOnlySpan<byte> bytes)
     {
-        return Convert.ToHexString(bytes).ToLowerInvariant();
+        return Convert.ToHexStringLower(bytes);
     }
 }
