@@ -201,7 +201,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("nt51926-ctrlram-fw200-tp-work-240k", fw200CascadeProfile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw200-full-flash-256k", fw200CascadeProfile, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", nt51930Profile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"release-support-review\"", nt51930Profile, StringComparison.Ordinal);
+        Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51930Profile, StringComparison.Ordinal);
+        Assert.Contains("\"kind\": \"release\"", nt51930Profile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"cascade-selector\"", nt51930Profile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51930.ctrlram-postbuild-fw1.x", nt51930Profile, StringComparison.Ordinal);
         Assert.Contains("nt51930-ctrlram-fw130-cascade3-full-flash", nt51930Profile, StringComparison.Ordinal);

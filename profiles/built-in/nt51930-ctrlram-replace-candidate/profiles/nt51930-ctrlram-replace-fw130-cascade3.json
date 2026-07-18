@@ -6,9 +6,9 @@
     "stage": "executable-candidate",
     "blockers": [
       {
-        "blockerId": "release-support-review",
-        "kind": "human-review",
-        "reason": "The exact owner-golden route remains support-neutral until independent release review approves a support claim.",
+        "blockerId": "support-neutral-no-promotion",
+        "kind": "release",
+        "reason": "The exact route is evidence-complete and intentionally remains support-neutral; this no-promotion policy is not a missing owner input or decision.",
         "evidenceRefs": [ "nt51930-fw130-cascade3-auto-prj-302-owner-golden-20260718" ]
       }
     ]

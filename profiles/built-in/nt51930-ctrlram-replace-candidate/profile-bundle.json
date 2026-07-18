@@ -3,7 +3,7 @@
   "bundleId": "nt51930-ctrlram-replace-candidate",
   "bundleVersion": "0.9.9-candidate.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "5055102c3f02604944430117fad27eabd373edc74545e3a0f89d51ed4c81edbb",
+  "contentHash": "7748330d397b1a3c039b36f5df0a78c75f5c1a26f93e50afe2e8495e9c45eca5",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -32,7 +32,7 @@
       "kind": "composition-profile",
       "path": "profiles/nt51930-ctrlram-replace-fw130-cascade3.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "0d2b7fcb3b9407ceb1202f28f6dd7474f85d8147287c6271f8baaa47706f27d0"
+      "contentHash": "bad5013ffa4f7adfcdb89c29c42d9c21df67d340a1d2a7b4480efce82c7feb53"
     }
   ]
 }

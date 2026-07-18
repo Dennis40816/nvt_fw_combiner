@@ -145,5 +145,10 @@ def nt51930_phase_b_result() -> dict[str, Any]:
         "inputArtifactsUnchanged": True,
         "reportIdentityParity": True,
         "wrongShapeBehavior": "legacy-v1-fallback",
+        "reviewEvidence": {
+            "ownerInputGate": "closed-by-existing-owner-decision",
+            "independentR3Findings": {"p0": 0, "p1": 0, "p2": 0, "p3": 0},
+            "promotionPolicy": "support-neutral-no-promotion",
+        },
         "runtimeSupportPromotion": False,
     }
