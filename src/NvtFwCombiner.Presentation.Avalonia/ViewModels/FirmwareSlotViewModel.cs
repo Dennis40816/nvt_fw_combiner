@@ -1,11 +1,15 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>UI file slot for one firmware input artifact.</summary>
 public sealed partial class FirmwareSlotViewModel : ObservableObject
 {
+    private static readonly StringComparison PathComparison = OperatingSystem.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase
+        : StringComparison.Ordinal;
     private string RequiredText { get; set; } = "Required";
     private string OptionalText { get; set; } = "Optional";
     private string EmptyDisplayName { get; set; } = "No BIN selected";
@@ -55,6 +59,10 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>Firmware facts decoded from the selected file, when the active IC has a FWConfig map.</summary>
     public ObservableCollection<FirmwareSlotFactViewModel> FirmwareFacts { get; } = [];
+
+    internal WorkbenchFirmwareArtifactSnapshot? ArtifactSnapshot { get; private set; }
+
+    internal WorkbenchFirmwareInspection? FirmwareInspection { get; private set; }
 
     /// <summary>True when the slot has decoded firmware facts to show.</summary>
     public bool HasFirmwareFacts => FirmwareFacts.Count > 0;
@@ -109,6 +117,49 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(HasFirmwareFacts));
+    }
+
+    internal void SetFirmwareInspection(
+        WorkbenchFirmwareArtifactSnapshot snapshot,
+        WorkbenchFirmwareInspection inspection)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(inspection);
+
+        if (!string.Equals(FilePath, snapshot.ArtifactPath, PathComparison) &&
+            !string.Equals(
+                FilePath is null ? null : Path.GetFullPath(FilePath),
+                Path.GetFullPath(snapshot.ArtifactPath),
+                PathComparison))
+        {
+            throw new InvalidOperationException("Firmware inspection snapshot does not match the selected slot path.");
+        }
+
+        ArtifactSnapshot = snapshot;
+        FirmwareInspection = inspection;
+    }
+
+    internal void SetFirmwareInspection(WorkbenchFirmwareInspection inspection)
+    {
+        ArgumentNullException.ThrowIfNull(inspection);
+        if (ArtifactSnapshot is null)
+        {
+            throw new InvalidOperationException("A firmware artifact snapshot is required before projection.");
+        }
+
+        FirmwareInspection = inspection;
+    }
+
+    partial void OnFilePathChanged(string? value)
+    {
+        if (ArtifactSnapshot is null ||
+            string.Equals(value, ArtifactSnapshot.ArtifactPath, PathComparison))
+        {
+            return;
+        }
+
+        ArtifactSnapshot = null;
+        FirmwareInspection = null;
     }
 
 }

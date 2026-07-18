@@ -169,7 +169,13 @@ public sealed partial class MainWindowViewModel
     private WorkbenchFirmwareConfigMetadata? ReadCtrlRamFirmwareVersionMetadata()
     {
         string? basePath = ReplaceBaseSlot.FilePath;
-        return !string.IsNullOrWhiteSpace(basePath)
+        WorkbenchFirmwareInspection? inspection = ReplaceBaseSlot.FirmwareInspection;
+        return string.Equals(
+                inspection?.IcId,
+                SelectedIc,
+                StringComparison.OrdinalIgnoreCase)
+            ? inspection!.FirmwareConfig
+            : !string.IsNullOrWhiteSpace(basePath)
             ? WorkbenchCompositionService.TryReadFirmwareConfigMetadata(SelectedIc, basePath)
             : null;
     }

@@ -25,14 +25,20 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that retains the current IC context despite the prompt.</summary>
     public IRelayCommand DismissFirmwareIcMismatchCommand { get; }
 
-    private void PromptForFirmwareIcMismatch(FirmwareSlotViewModel slot)
+    private void PromptForFirmwareIcMismatch(
+        FirmwareSlotViewModel slot,
+        bool allowFileReadFallback = true)
     {
         if (!slot.HasFile || string.IsNullOrWhiteSpace(slot.FilePath))
         {
             return;
         }
 
-        string? detectedIc = FirmwareIcIdentifierDetector.TryDetect(slot.FilePath);
+        string? detectedIc = slot.ArtifactSnapshot is { } snapshot
+            ? FirmwareIcIdentifierDetector.TryDetect(slot.FilePath, snapshot)
+            : allowFileReadFallback
+                ? FirmwareIcIdentifierDetector.TryDetect(slot.FilePath)
+                : null;
         if (string.IsNullOrWhiteSpace(detectedIc) ||
             !IcChoices.Contains(detectedIc, StringComparer.OrdinalIgnoreCase) ||
             string.Equals(detectedIc, SelectedIc, StringComparison.OrdinalIgnoreCase))

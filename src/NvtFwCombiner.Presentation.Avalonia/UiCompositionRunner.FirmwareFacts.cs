@@ -11,11 +11,31 @@ public static partial class UiCompositionRunner
         string path,
         bool includeBaseFacts = false)
     {
-        WorkbenchFirmwareConfigMetadata? metadata =
-            WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
+        WorkbenchFirmwareArtifactSnapshot? snapshot =
+            WorkbenchCompositionService.TryCaptureFirmwareArtifact(path);
+        return snapshot is null
+            ? includeBaseFacts
+                ? [new FirmwareSlotFactViewModel("DP", "Pending", true)]
+                : []
+            : GetFirmwareSlotFacts(
+                WorkbenchCompositionService.InspectFirmwareArtifact(
+                    icId,
+                    snapshot,
+                    includeBaseFacts ? snapshot : null),
+                includeBaseFacts);
+    }
+
+    /// <summary>Gets compact firmware facts without re-reading an already captured artifact.</summary>
+    public static IReadOnlyList<FirmwareSlotFactViewModel> GetFirmwareSlotFacts(
+        WorkbenchFirmwareInspection inspection,
+        bool includeBaseFacts = false)
+    {
+        ArgumentNullException.ThrowIfNull(inspection);
+
+        WorkbenchFirmwareConfigMetadata? metadata = inspection.FirmwareConfig;
         if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeBaseFacts))
         {
-            return includeBaseFacts ? GetDpFirmwareSlotFacts(icId, path, path) : [];
+            return includeBaseFacts ? GetDpFirmwareSlotFacts(inspection) : [];
         }
 
         List<FirmwareSlotFactViewModel> facts =
@@ -25,7 +45,7 @@ public static partial class UiCompositionRunner
             new("PID", FormattableString.Invariant($"0x{metadata.ProjectId:X4}")),
         ];
 
-        return includeBaseFacts ? [.. GetDpFirmwareSlotFacts(icId, path, path), .. facts] : facts;
+        return includeBaseFacts ? [.. GetDpFirmwareSlotFacts(inspection), .. facts] : facts;
     }
 
     /// <summary>Gets compact DP version facts decoded using gen_flash standard-merge version rules.</summary>
@@ -34,13 +54,32 @@ public static partial class UiCompositionRunner
         string path,
         string? tpPath = null)
     {
-        WorkbenchDpVersionMetadata? legacyMetadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
-            icId,
-            path);
-        WorkbenchCmiDpCodeMetadata? cmiMetadata = WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
-            icId,
-            path,
-            tpPath);
+        WorkbenchFirmwareArtifactSnapshot? snapshot =
+            WorkbenchCompositionService.TryCaptureFirmwareArtifact(path);
+        WorkbenchFirmwareArtifactSnapshot? tpSnapshot = string.IsNullOrWhiteSpace(tpPath)
+            ? null
+            : string.Equals(
+                path,
+                tpPath,
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)
+                ? snapshot
+                : WorkbenchCompositionService.TryCaptureFirmwareArtifact(tpPath);
+        return snapshot is null
+            ? [new FirmwareSlotFactViewModel("DP", "Pending", true)]
+            : GetDpFirmwareSlotFacts(WorkbenchCompositionService.InspectFirmwareArtifact(
+                icId,
+                snapshot,
+                tpSnapshot));
+    }
+
+    /// <summary>Gets compact DP facts without re-reading an already captured artifact.</summary>
+    public static IReadOnlyList<FirmwareSlotFactViewModel> GetDpFirmwareSlotFacts(
+        WorkbenchFirmwareInspection inspection)
+    {
+        ArgumentNullException.ThrowIfNull(inspection);
+
+        WorkbenchDpVersionMetadata? legacyMetadata = inspection.DpVersion;
+        WorkbenchCmiDpCodeMetadata? cmiMetadata = inspection.CmiDpCode;
         if (legacyMetadata is null && cmiMetadata is null)
         {
             return [new FirmwareSlotFactViewModel("DP", "Pending", true)];

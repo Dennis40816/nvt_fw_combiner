@@ -132,6 +132,25 @@ row model on a background worker. Deferring row-model creation by selected tab
 and measuring separate summary-ready/detail-ready latency remain explicit
 follow-up work rather than an implied result.
 
+### Immutable UI firmware inspection
+
+- File-picker and drag/drop paths capture one immutable, hash-identified byte
+  snapshot outside the UI dispatcher. The selected slot owns that snapshot;
+  replacing the slot path or completing a newer selection invalidates an older
+  in-flight result.
+- Firmware facts, IC mismatch guidance, verified IC-number suggestion, output
+  naming, and CtrlRAM firmware-version confirmation project from the selected
+  snapshot instead of reopening the file independently.
+- Reprojecting an already selected file for another IC context may decode the
+  same captured bytes again, but it performs no new file read. The snapshot is
+  inspection-only: Preview/Build still reads and hashes every input through the
+  Application composition use case and never consumes UI-cached bytes.
+- Category-dependent CtrlRAM region, slot, coverage, and postbuild-readiness
+  projections remain a separate post-`0.9.9` integration slice because their
+  current path-based APIs overlap the active support/evidence work. Until that
+  slice lands, this first snapshot phase is not represented as a complete
+  one-read CtrlRAM selection path.
+
 ### Measurement and phase separation
 
 Node B and C use identical source inputs, expected hashes, tool manifest hash,

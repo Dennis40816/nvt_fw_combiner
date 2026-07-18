@@ -41,7 +41,23 @@ public sealed partial class MainWindowViewModel
         string shellVersion,
         string appVersion,
         ShellLanguage language = ShellLanguage.English)
+        : this(
+            shellVersion,
+            appVersion,
+            language,
+            WorkbenchCompositionService.TryCaptureFirmwareArtifactAsync)
     {
+    }
+
+    internal MainWindowViewModel(
+        string shellVersion,
+        string appVersion,
+        ShellLanguage language,
+        Func<string, CancellationToken, Task<WorkbenchFirmwareArtifactSnapshot?>> firmwareArtifactSnapshotLoader)
+    {
+        ArgumentNullException.ThrowIfNull(firmwareArtifactSnapshotLoader);
+
+        _firmwareArtifactSnapshotLoader = firmwareArtifactSnapshotLoader;
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         HexEditorWorkspace = new HexEditorWorkspaceViewModel(Text);

@@ -10,47 +10,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        FirmwareSlotViewModel? slot = FindSlot(slotId);
-        if (slot is null)
-        {
-            if (SetGeneralMergeMappingFile(slotId, path))
-            {
-                return;
-            }
-
-            SetGeneralReplaceMappingFile(slotId, path);
-            return;
-        }
-
-        slot.FilePath = path;
-        RefreshFirmwareFacts(slot);
-        PromptForFirmwareIcMismatch(slot);
-        if (!IsFirmwareIcMismatchModalOpen)
-        {
-            TryApplyVerifiedFirmwareContext(slot);
-        }
-        if (slot.SlotId == MergeTpSlotId && _mergeDpSlot.HasFile)
-        {
-            RefreshFirmwareFacts(_mergeDpSlot);
-        }
-
-        OnPropertyChanged(nameof(StandardMergeOutputFileName));
-        OnPropertyChanged(nameof(GeneralMergeOutputFileName));
-        OnPropertyChanged(nameof(MergeOutputFileName));
-        OnPropertyChanged(nameof(ReplaceOutputFileName));
-        if (slot.SlotId == ReplaceBaseSlotId && IsCtrlRamReplaceModeSelected)
-        {
-            RefreshCtrlRamRegions();
-            RefreshReplaceModeState(preserveSlotFiles: true);
-            RefreshMemoryMapState();
-        }
-        else if (slot.SlotId is MergeDpSlotId or ReplaceBaseSlotId)
-        {
-            RefreshMemoryMapState();
-        }
-
-        RefreshCommandState();
+        SetSlotFileSynchronously(slotId, path);
     }
 
     private FirmwareSlotViewModel? FindSlot(string slotId)

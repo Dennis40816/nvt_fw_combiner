@@ -14,7 +14,14 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         byte[]? image = TryReadFirmwareImage(path);
-        return image is not null && GenFlashVersionCatalog.TryReadDpVersion(
+        return image is null ? null : TryReadDpVersionMetadata(icId, image);
+    }
+
+    private static WorkbenchDpVersionMetadata? TryReadDpVersionMetadata(
+        string icId,
+        ReadOnlySpan<byte> image)
+    {
+        return GenFlashVersionCatalog.TryReadDpVersion(
                 icId,
                 image,
                 out GenFlashDpVersionMetadata metadata)
@@ -47,6 +54,14 @@ public static partial class WorkbenchCompositionService
         }
 
         byte? chipNumber = TryReadFirmwareConfigBackupChipNumber(icId, tpPath);
+        return TryReadCmiDpCodeMetadata(icId, image, chipNumber);
+    }
+
+    private static WorkbenchCmiDpCodeMetadata? TryReadCmiDpCodeMetadata(
+        string icId,
+        ReadOnlySpan<byte> image,
+        byte? chipNumber)
+    {
         return GenFlashVersionCatalog.TryReadCmiDpCode(
                 icId,
                 image,
@@ -73,16 +88,44 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        if (!TryReadFirmwareConfigBackupMetadata(icId, path, out FirmwareConfigMetadata metadata))
-        {
-            return null;
-        }
+        byte[]? image = TryReadFirmwareImage(path);
+        return image is null ? null : TryReadFirmwareConfigMetadata(icId, image);
+    }
+
+    /// <summary>
+    /// Returns an auto-applicable IC-number selection only when the canonical NVT Backup is unique
+    /// and its chip number resolves to one approved postbuild branch token.
+    /// </summary>
+    public static WorkbenchFirmwareContextSuggestion? TryReadFirmwareContextSuggestion(string icId, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        return TryReadFirmwareConfigBackupMetadata(icId, path, out FirmwareConfigMetadata metadata)
+            ? TryCreateFirmwareContextSuggestion(icId, metadata)
+            : null;
+    }
+
+    private static WorkbenchFirmwareConfigMetadata? TryReadFirmwareConfigMetadata(
+        string icId,
+        ReadOnlySpan<byte> image)
+    {
+        return !TryReadFirmwareConfigBackupMetadata(icId, image, out FirmwareConfigMetadata metadata)
+            ? null
+            : TryCreateFirmwareConfigMetadata(icId, metadata);
+    }
+
+    private static WorkbenchFirmwareConfigMetadata? TryCreateFirmwareConfigMetadata(
+        string icId,
+        FirmwareConfigMetadata metadata)
+    {
 
         try
         {
             string? postbuildCategory = TryResolvePostbuildProfileForDisplay(
                 icId,
-                path,
+                metadata.CommonFwVersion,
+                hasReadableBase: true,
                 out LegacyCombinerPostbuildProfile? postbuildProfile)
                     ? postbuildProfile!.DisplayCategory
                     : null;
@@ -98,23 +141,18 @@ public static partial class WorkbenchCompositionService
                 postbuildCategory,
                 metadata.Hardware);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
+                                          ArgumentException or NotSupportedException)
         {
             return null;
         }
     }
 
-    /// <summary>
-    /// Returns an auto-applicable IC-number selection only when the canonical NVT Backup is unique
-    /// and its chip number resolves to one approved postbuild branch token.
-    /// </summary>
-    public static WorkbenchFirmwareContextSuggestion? TryReadFirmwareContextSuggestion(string icId, string path)
+    private static WorkbenchFirmwareContextSuggestion? TryCreateFirmwareContextSuggestion(
+        string icId,
+        FirmwareConfigMetadata metadata)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        return TryReadFirmwareConfigBackupMetadata(icId, path, out FirmwareConfigMetadata metadata) &&
-            metadata.ChipNumber != 0 &&
+        return metadata.ChipNumber != 0 &&
             TryResolveNumberTokenForFirmwareChipNumber(icId, metadata.ChipNumber, out string? numberToken)
             ? new WorkbenchFirmwareContextSuggestion(
                 icId,
@@ -261,8 +299,36 @@ public static partial class WorkbenchCompositionService
         }
 
         bool hasReadableBase = !string.IsNullOrWhiteSpace(basePath) && File.Exists(basePath);
+        string? commonFwVersion = null;
+        _ = hasReadableBase && TryReadBaseCommonFwVersion(icId, basePath!, out commonFwVersion);
+        return TryResolvePostbuildProfileForDisplay(
+            icId,
+            commonFwVersion,
+            hasReadableBase,
+            out postbuildProfile);
+    }
+
+    private static bool TryResolvePostbuildProfileForDisplay(
+        string icId,
+        string? commonFwVersion,
+        bool hasReadableBase,
+        out LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
+        postbuildProfile = null;
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
+        if (profiles.Count == 0)
+        {
+            return false;
+        }
+
+        if (profiles.Count == 1)
+        {
+            postbuildProfile = profiles[0];
+            return true;
+        }
+
         bool matchedBaseProfile = hasReadableBase &&
-            TryReadBaseCommonFwVersion(icId, basePath!, out string? commonFwVersion) &&
+            !string.IsNullOrWhiteSpace(commonFwVersion) &&
             IcMetadataFacade.TrySelectPostbuildProfile(
                 icId,
                 commonFwVersion,

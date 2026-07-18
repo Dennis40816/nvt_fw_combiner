@@ -172,8 +172,11 @@ The owner clarified on 2026-07-18 that code size is measured but is not a
 `v0.9.10` optimization priority. The maintainable I/O seam and deterministic
 counters first updated the exact production ratchet from `56,720` to `56,821`.
 The isolated Build scheduling slice then records `56,838`, and the first
-background/bounded report slice records `57,115`; no safety check or evidence
-was removed to offset these changes.
+background/bounded report slice records `57,115`. The first immutable UI
+inspection slice records `57,636`, including exact partial aggregates of
+`4,727` for `WorkbenchCompositionService` and `3,082` for
+`MainWindowViewModel`; no safety check or evidence was removed to offset these
+changes.
 
 Staged immutable-artifact verification reads are separate and must not be
 hidden in future evidence. During the conservative phase, the first canonical
@@ -187,11 +190,27 @@ evidence, not independent full-output golden parity, and cannot broaden support.
 
 ## Current UI inspection fan-out
 
-The pre-rebase UI asks independent helpers for firmware facts, verified
+The pre-rebase UI asked independent helpers for firmware facts, verified
 context suggestion, firmware metadata/version, CtrlRAM region/context,
-memory-map rows, and coverage. Several paths reach the current static
-`TryReadFirmwareImage` implementation independently. This is a source-audited
-optimization candidate, not yet an exact read-count baseline.
+memory-map rows, and coverage. Several paths reached the current static
+`TryReadFirmwareImage` implementation independently.
+
+The first provisional C inspection slice now captures one SHA-256-identified
+immutable byte snapshot on a background worker for each file-picker or
+drag/drop selection. Firmware facts, bounded IC-marker guidance, verified
+IC-number suggestion, output naming, and CtrlRAM firmware-version confirmation
+project from that snapshot. Tests lock one artifact-reader call for those typed
+facts, publish the selected path before capture starts, prove capture is not on
+the UI thread, cancel/reject a stale selection result, and retain facts/output
+naming after the selected source is deleted. Re-selecting a path captures a new
+identity; Build does not receive the UI snapshot and still performs its own
+authoritative reads and hashes.
+
+This is not yet a complete one-read CtrlRAM selection claim. The
+category-dependent CtrlRAM region, dynamic slot, coverage, memory-map, and
+postbuild-readiness APIs still accept a base path and overlap active `0.9.9`
+support/evidence work. They must consume the reconciled snapshot only after the
+final `0.9.9` rebase.
 
 Node B must instrument the final `0.9.9` file reader/inspection boundary and
 record actual read calls and bytes for cold selection, repeated same-file

@@ -8,7 +8,9 @@ public sealed partial class MainWindowViewModel
     /// Applies a number token only after the Bootstrap reader finds one NVT Backup FWConfig.
     /// This is shared by Merge and Replace slot loading.
     /// </summary>
-    private void TryApplyVerifiedFirmwareContext(FirmwareSlotViewModel slot)
+    private void TryApplyVerifiedFirmwareContext(
+        FirmwareSlotViewModel slot,
+        bool allowFileReadFallback = true)
     {
         if (!slot.HasFile || string.IsNullOrWhiteSpace(slot.FilePath) ||
             slot.SlotKind is not (FirmwareSlotKind.Tp or FirmwareSlotKind.Base))
@@ -16,9 +18,13 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        WorkbenchFirmwareContextSuggestion? suggestion = WorkbenchCompositionService.TryReadFirmwareContextSuggestion(
-            SelectedIc,
-            slot.FilePath);
+        WorkbenchFirmwareInspection? inspection = slot.FirmwareInspection;
+        WorkbenchFirmwareContextSuggestion? suggestion =
+            string.Equals(inspection?.IcId, SelectedIc, StringComparison.OrdinalIgnoreCase)
+                ? inspection!.ContextSuggestion
+                : allowFileReadFallback
+                    ? WorkbenchCompositionService.TryReadFirmwareContextSuggestion(SelectedIc, slot.FilePath)
+                    : null;
         if (suggestion is null || string.Equals(SelectedNumber, suggestion.NumberToken, StringComparison.Ordinal))
         {
             return;

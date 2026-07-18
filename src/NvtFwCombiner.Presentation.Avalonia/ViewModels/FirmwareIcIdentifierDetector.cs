@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -40,6 +41,22 @@ internal static partial class FirmwareIcIdentifierDetector
         {
             return null;
         }
+    }
+
+    /// <summary>Detects an IC marker from a bounded immutable inspection snapshot without file I/O.</summary>
+    public static string? TryDetect(string path, WorkbenchFirmwareArtifactSnapshot snapshot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        Match fileNameMatch = IcMarker().Match(Path.GetFileNameWithoutExtension(path));
+        if (fileNameMatch.Success)
+        {
+            return $"NT{fileNameMatch.Groups["ic"].Value}";
+        }
+
+        Match headerMatch = IcMarker().Match(Encoding.ASCII.GetString(snapshot.GetHeaderProbe().Span));
+        return headerMatch.Success ? $"NT{headerMatch.Groups["ic"].Value}" : null;
     }
 
     [GeneratedRegex(@"(?<!\d)(?:NT)?(?<ic>519\d{2})(?:TT)?(?!\d)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
