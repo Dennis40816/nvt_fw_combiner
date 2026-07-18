@@ -175,6 +175,10 @@ content changes. Build still performs its own authoritative read and hash.
 - UI inspection begins only after the `0.9.9` typed workflow contracts freeze.
   One immutable asynchronous snapshot may serve display projections for one
   file identity/hash, but never Build authority.
+- ADR 0024 step progress begins from the same reconciled UI boundary.
+  Application publishes only bounded typed lifecycle transitions; Presentation
+  localizes and animates the active step, honors reduced motion, and never
+  fabricates byte percentage or infers phases from firmware-facing text.
 - Infrastructure read-model changes remain separate R3 work and are limited to
   exact full-output golden scope plus firmware-owner review. Exact output
   bytes, hashes, command argv/order, mutations, differences, warnings, and

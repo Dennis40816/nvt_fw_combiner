@@ -42,6 +42,12 @@ before/after parity.
   public DP evidence, and the NT51926 cascade TP-base full-output golden remain
   equal. Final B/C timing and allocation evidence still waits for final
   `0.9.9`.
+- Added ADR 0024 and the `0.9.10` goal for truthful UI step progress. The
+  current generic Preview/Build bar will become an Application-driven,
+  localized and accessible lifecycle indicator for input reading, composition,
+  approved postbuild, output validation, commit, and report preparation. It
+  remains indeterminate within a phase, honors reduced motion, and does not
+  infer firmware semantics or display a fabricated byte percentage.
 - Defined three comparison nodes: pre-rebase historical A, final-`0.9.9`
   unoptimized B, and the same reconciled source with the `0.9.10` prototype C.
   Only B/C may support a performance decision. Deterministic counters and

@@ -684,11 +684,23 @@ Build automatically runs the same validation path as Preview before committing o
 
 Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings. The initial default language is English.
 
-While Preview or Build is active, the shell shows one accessible, indeterminate progress bar beside
-the selected IC/mode context. It must not invent percentage completion when the
-composition/external-tool contracts do not expose byte-level progress. CtrlRAM Replace remains one
-logical run across validation, replacement, and the approved Postbuild sequence; approved external
-processes execute headlessly and never open user-visible console windows.
+While Preview or Build is active, the shell shows one accessible progress
+surface beside the selected IC/mode context. `v0.9.10` upgrades the current
+generic indeterminate bar to an Application-driven step indicator that names
+the applicable current phase: preparing, reading inputs, executing composition,
+running an approved external processor, validating output, committing output,
+or preparing the report. Presentation only localizes and animates typed phase
+state; it must not infer progress from operation ids, filenames, issue text, or
+elapsed timers.
+
+The active phase may animate indeterminately and the UI may show lifecycle
+ordinal such as “Step N of M”, but it must not invent byte percentage or
+remaining time when the contracts do not expose them. Step changes are
+screen-reader-visible, animation honors reduced motion and high contrast, and
+animation frames never create Application progress events. CtrlRAM Replace
+remains one logical run across validation, replacement, and the approved
+Postbuild sequence; approved external processes execute headlessly and never
+open user-visible console windows. See ADR 0024.
 
 ### 11.5 Typography and localization defaults
 
