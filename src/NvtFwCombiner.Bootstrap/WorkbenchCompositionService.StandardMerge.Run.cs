@@ -36,7 +36,13 @@ public static partial class WorkbenchCompositionService
         InputArtifactBinding[] bindings = [
             .. plan.RequiredInputAddressSpaceIds
                 .Order(StringComparer.Ordinal)
-                .Select(addressSpaceId => CreateBinding(compiledComposition, addressSpaceId, slotPaths)),
+                .Select(addressSpaceId => slotPaths.TryGetValue(addressSpaceId, out string? path) &&
+                    !string.IsNullOrWhiteSpace(path)
+                        ? CompiledCompositionInputBindingFactory.Create(
+                            compiledComposition,
+                            addressSpaceId,
+                            Path.GetFullPath(path))
+                        : throw new InvalidOperationException($"Input slot '{addressSpaceId}' is required.")),
         ];
 
         return await RunCompiledCompositionAsync(
