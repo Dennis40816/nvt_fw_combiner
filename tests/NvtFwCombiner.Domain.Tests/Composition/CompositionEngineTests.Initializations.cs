@@ -35,12 +35,13 @@ public sealed partial class CompositionEngineTests
         {
             ["source"] = source,
         });
+        source.AsSpan().Fill(0xFF);
 
         CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal(source, result.OutputBytes.ToArray());
-        Assert.Equal([0x12, 0x34], source);
+        Assert.Equal([0x12, 0x34], result.OutputBytes.ToArray());
+        Assert.Equal([0xFF, 0xFF], source);
     }
 
     /// <summary>Verifies caller bytes cannot seed any engine-owned work buffer.</summary>
