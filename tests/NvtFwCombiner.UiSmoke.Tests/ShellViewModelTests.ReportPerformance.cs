@@ -4,7 +4,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
-    /// <summary>Large reports retain complete evidence while initially exposing bounded UI pages.</summary>
+    /// <summary>Large reports retain complete evidence while deferring unexpanded difference row models.</summary>
     [Fact]
     public async Task LargeChangeReportUsesBoundedPagesAndKeepsCompleteJson()
     {
@@ -21,7 +21,18 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(json, viewModel.LoadedReportJson);
         Assert.Equal(differenceCount, viewModel.LoadedReport.OutputDifferenceCount);
         Assert.Equal(differenceCount, viewModel.LoadedReport.OutputDifferences.Count);
+        Assert.Equal(0, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
         Assert.Equal(sectionCount, viewModel.LoadedReport.OutputDifferenceGroups.Count);
+        string[] expectedSectionOrder =
+        [
+            .. Enumerable.Range(0, sectionCount).Select(index => $"Section {index:D2}"),
+        ];
+        Assert.Equal(expectedSectionOrder, viewModel.LoadedReport.OutputDifferenceGroups.Select(group => group.Title));
+        Assert.Equal(expectedSectionOrder, viewModel.LoadedReport.OutputDifferenceSummaryRows.Select(row => row.Label));
+        Assert.False(viewModel.LoadedReport.OutputDifferenceGroups[0].IsReviewRequired);
+        Assert.True(viewModel.LoadedReport.OutputDifferenceGroups[^1].IsReviewRequired);
+        Assert.Equal("expected", viewModel.LoadedReport.OutputDifferenceSummaryRows[0].Status);
+        Assert.Equal("review", viewModel.LoadedReport.OutputDifferenceSummaryRows[^1].Status);
         Assert.Equal(8, viewModel.LoadedReport.OutputDifferenceGroupPage.VisibleCount);
         Assert.Equal(8, viewModel.LoadedReport.OutputDifferenceSummaryPage.VisibleCount);
         Assert.True(viewModel.LoadedReport.OutputDifferenceGroupPage.HasMoreItems);
@@ -30,13 +41,26 @@ public sealed partial class ShellViewModelTests
             viewModel.LoadedReport.OutputDifferenceGroupPage.Items[0]);
         Assert.Equal("Section 00", firstGroup.Title);
         Assert.False(firstGroup.IsReviewRequired);
+        Assert.False(firstGroup.IsExpanded);
         Assert.Equal(25, firstGroup.RowsPage.TotalCount);
+        Assert.Equal(0, firstGroup.RowsPage.VisibleCount);
+        Assert.Equal(0, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
+        firstGroup.IsExpanded = true;
         Assert.Equal(24, firstGroup.RowsPage.VisibleCount);
+        Assert.Equal(24, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
         ReportLineViewModel firstDifference = Assert.IsType<ReportLineViewModel>(firstGroup.RowsPage.Items[0]);
         Assert.Equal("diff-00000", firstDifference.Title);
+        Assert.Same(firstDifference, firstGroup.Rows[0]);
+        Assert.Same(firstDifference, viewModel.LoadedReport.OutputDifferences[0]);
+        Assert.Equal(24, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
+        firstGroup.IsExpanded = false;
+        firstGroup.IsExpanded = true;
+        Assert.Equal(24, firstGroup.RowsPage.VisibleCount);
+        Assert.Equal(24, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
         Assert.True(firstGroup.RowsPage.LoadMoreCommand.CanExecute(null));
         firstGroup.RowsPage.LoadMoreCommand.Execute(null);
         Assert.Equal(25, firstGroup.RowsPage.VisibleCount);
+        Assert.Equal(25, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
         Assert.False(firstGroup.RowsPage.HasMoreItems);
         Assert.False(firstGroup.RowsPage.LoadMoreCommand.CanExecute(null));
         Assert.Equal("Showing 25/25", firstGroup.RowsPage.PageStatus);
@@ -45,6 +69,7 @@ public sealed partial class ShellViewModelTests
         viewModel.LoadedReport.OutputDifferenceGroupPage.LoadMoreCommand.Execute(null);
         Assert.Equal(16, viewModel.LoadedReport.OutputDifferenceGroupPage.VisibleCount);
         Assert.Equal(differenceCount, viewModel.LoadedReport.OutputDifferenceCount);
+        Assert.Equal(25, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
     }
 
     /// <summary>Legacy full-hex fields render only a bounded preview while raw report JSON stays complete.</summary>

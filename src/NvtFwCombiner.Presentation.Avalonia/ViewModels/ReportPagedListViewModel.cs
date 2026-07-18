@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Bounded report-detail window that adds one UI page only when requested.</summary>
+/// <summary>Bounded report-detail window that materializes more UI rows only when requested.</summary>
 public sealed class ReportPagedListViewModel : ObservableObject
 {
     private readonly IReadOnlyList<object> _allItems;
@@ -16,7 +16,8 @@ public sealed class ReportPagedListViewModel : ObservableObject
     private ReportPagedListViewModel(
         IReadOnlyList<object> allItems,
         int pageSize,
-        ShellLanguage language)
+        ShellLanguage language,
+        bool loadInitialPage)
     {
         ArgumentNullException.ThrowIfNull(allItems);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
@@ -25,7 +26,10 @@ public sealed class ReportPagedListViewModel : ObservableObject
         _language = language;
         Items = new ReadOnlyObservableCollection<object>(_items);
         _loadMoreCommand = new RelayCommand(LoadMore, () => HasMoreItems);
-        LoadMore();
+        if (loadInitialPage)
+        {
+            LoadMore();
+        }
     }
 
     /// <summary>Rows currently materialized for Avalonia controls.</summary>
@@ -73,10 +77,23 @@ public sealed class ReportPagedListViewModel : ObservableObject
     internal static ReportPagedListViewModel Create<T>(
         IReadOnlyList<T> items,
         int pageSize,
-        ShellLanguage language)
+        ShellLanguage language,
+        bool loadInitialPage = true)
     {
         ArgumentNullException.ThrowIfNull(items);
-        return new ReportPagedListViewModel(new ObjectReadOnlyList<T>(items), pageSize, language);
+        return new ReportPagedListViewModel(
+            new ObjectReadOnlyList<T>(items),
+            pageSize,
+            language,
+            loadInitialPage);
+    }
+
+    internal void EnsureInitialPage()
+    {
+        if (VisibleCount == 0 && TotalCount > 0)
+        {
+            LoadMore();
+        }
     }
 
     private void LoadMore()
