@@ -8,11 +8,11 @@ public sealed class CompositionExternalProcessorResult
 
     private CompositionExternalProcessorResult(
         bool succeeded,
-        byte[] outputBytes,
+        byte[] ownedOutputBytes,
         IReadOnlyList<CompositionIssue> issues)
     {
         Succeeded = succeeded;
-        _outputBytes = [.. outputBytes];
+        _outputBytes = ownedOutputBytes;
         _issues = [.. issues];
     }
 
