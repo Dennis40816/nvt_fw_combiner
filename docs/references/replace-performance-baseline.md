@@ -8,6 +8,10 @@ Captured: 2026-07-18 on
 `feature/0.9.10/replace-performance-baseline`; node A is retained at
 `74fb1028` and the provisional process prototype is `315272b3`.
 
+The ordered patch units, conflict rules, node B/C capture sequence, and
+fail-stop gates are defined in the
+[v0.9.10 Performance and UI Safe-Import Runbook](../governance/v0.9.10-performance-import-runbook.md).
+
 ## Purpose and boundary
 
 Node A records the historical orchestration cost before automatic-Build
