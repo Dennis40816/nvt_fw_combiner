@@ -115,7 +115,11 @@ public sealed partial class ShellViewModelTests
                     operation.Facts.Any(fact =>
                         fact.Label == "Processor" &&
                         fact.Value.Contains("nfc.nt51926.ctrlram-postbuild-fw1.4.1", StringComparison.Ordinal)) &&
-                    operation.CodeBlock.Contains("0x32F50", StringComparison.Ordinal));
+                    operation.RangeRows.Any(range =>
+                        range.Kind == "Processor write" &&
+                        range.Range == "0x32F50-0x3304F (len 0x100)") &&
+                    operation.RuntimeCommands.Any(command =>
+                        command.ArgumentListEvidence.Contains("0x32F50", StringComparison.Ordinal)));
             }
 
             Assert.True(viewModel.CanBuildReplace, caseId);
