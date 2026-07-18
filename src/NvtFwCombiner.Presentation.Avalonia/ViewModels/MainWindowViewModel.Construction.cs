@@ -86,7 +86,11 @@ public sealed partial class MainWindowViewModel
         ShowReportHistoryCommand = new RelayCommand(ShowReportHistory, () => CanOpenReportHistory);
         CloseReportHistoryCommand = new RelayCommand(CloseReportHistory);
         ClearReportHistoryCommand = new RelayCommand(ClearReportHistory, () => CanClearReportHistory);
-        OpenReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(OpenReportHistoryEntry);
+        OpenReportHistoryEntryAsyncCommand = new AsyncRelayCommand<ReportHistoryEntryViewModel>(OpenReportHistoryEntryAsync);
+        OpenReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(
+            entry => OpenReportHistoryEntryAsyncCommand.Execute(entry),
+            entry => OpenReportHistoryEntryAsyncCommand.CanExecute(entry));
+        OpenReportHistoryEntryAsyncCommand.CanExecuteChanged += OpenReportHistoryEntryAsyncCommand_CanExecuteChanged;
         RemoveReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(RemoveReportHistoryEntry);
         ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);

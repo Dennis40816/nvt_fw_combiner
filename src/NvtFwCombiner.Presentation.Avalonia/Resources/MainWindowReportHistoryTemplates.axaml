@@ -10,7 +10,7 @@
         Padding="0"
         Background="Transparent"
         BorderBrush="Transparent"
-        Command="{ReflectionBinding $parent[Window].DataContext.OpenReportHistoryEntryCommand}"
+        Command="{ReflectionBinding $parent[Window].DataContext.OpenReportHistoryEntryAsyncCommand}"
         CommandParameter="{Binding}">
       <Border Classes="compactSurface" Padding="10">
         <StackPanel Spacing="3">
