@@ -10,12 +10,34 @@ namespace NvtFwCombiner.Bootstrap;
 public sealed class WorkbenchRawBinaryEditorSession
 {
     private readonly RawBinaryEditorSession _editor;
+    private readonly Func<byte[], RawBinaryEditorState, string, long, CancellationToken, RawBinaryEditorSearchResult>
+        _asciiSearch;
+    private AsciiSearchSnapshot? _asciiSearchSnapshot;
+    private int _asciiSearchSnapshotCaptureCount;
+
+    internal WorkbenchRawBinaryEditorSession(
+        Func<byte[], RawBinaryEditorState, string, long, CancellationToken, RawBinaryEditorSearchResult> asciiSearch)
+        : this(new RawBinaryEditorSession(), asciiSearch)
+    {
+    }
+
+    internal WorkbenchRawBinaryEditorSession(
+        RawBinaryEditorSession editor,
+        Func<byte[], RawBinaryEditorState, string, long, CancellationToken, RawBinaryEditorSearchResult> asciiSearch)
+    {
+        _editor = editor ?? throw new ArgumentNullException(nameof(editor));
+        _asciiSearch = asciiSearch ?? throw new ArgumentNullException(nameof(asciiSearch));
+    }
+
+    internal int AsciiSearchSnapshotCaptureCount => Volatile.Read(ref _asciiSearchSnapshotCaptureCount);
 
     /// <summary>Creates a file adapter for one application-owned memory editor.</summary>
     public WorkbenchRawBinaryEditorSession(RawBinaryEditorSession editor)
+        : this(
+            editor,
+            static (snapshot, state, text, startOffset, cancellationToken) =>
+                RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken))
     {
-        ArgumentNullException.ThrowIfNull(editor);
-        _editor = editor;
     }
 
     /// <summary>Gets the normalized source path of the currently loaded document.</summary>
@@ -54,6 +76,7 @@ public sealed class WorkbenchRawBinaryEditorSession
             var reader = new FileArtifactReader([directory]);
             ReadOnlyMemory<byte> bytes = await reader.ReadAsync(fullPath, cancellationToken)
                 .ConfigureAwait(false);
+            InvalidateAsciiSearchSnapshot();
             _ = _editor.Load(bytes.Span);
             SourcePath = fullPath;
             return WorkbenchRawBinaryEditorFileResult.Success(fullPath, _editor.State);
@@ -75,7 +98,13 @@ public sealed class WorkbenchRawBinaryEditorSession
     {
         ArgumentNullException.ThrowIfNull(text);
         RawBinaryEditorState state = _editor.State;
-        if (!_editor.TryCopyWorkingBytes(out byte[]? snapshot))
+        if (state.HasDocument)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        AsciiSearchSnapshot? snapshot = GetOrCreateAsciiSearchSnapshot(state);
+        if (snapshot is null)
         {
             return new RawBinaryEditorSearchResult(
                 state,
@@ -84,11 +113,42 @@ public sealed class WorkbenchRawBinaryEditorSession
         }
 
         RawBinaryEditorSearchResult result = await Task.Run(
-            () => RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken),
+            () =>
+            {
+                ThrowIfAsciiSearchSnapshotInvalidated(snapshot);
+                return _asciiSearch(snapshot.Bytes, state, text, startOffset, cancellationToken);
+            },
             cancellationToken).ConfigureAwait(false);
+        ThrowIfAsciiSearchSnapshotInvalidated(snapshot);
         return result;
     }
 
+    private AsciiSearchSnapshot? GetOrCreateAsciiSearchSnapshot(RawBinaryEditorState state)
+    {
+        if ((_asciiSearchSnapshot is null || _asciiSearchSnapshot.State != state) &&
+            _editor.TryCopyWorkingBytes(out byte[]? snapshot))
+        {
+            _asciiSearchSnapshot = new AsciiSearchSnapshot(snapshot!, state);
+            _ = Interlocked.Increment(ref _asciiSearchSnapshotCaptureCount);
+        }
+
+        return _asciiSearchSnapshot;
+    }
+
+    private void InvalidateAsciiSearchSnapshot()
+    {
+        _asciiSearchSnapshot = null;
+    }
+
+    private void ThrowIfAsciiSearchSnapshotInvalidated(AsciiSearchSnapshot snapshot)
+    {
+        if (!ReferenceEquals(snapshot, _asciiSearchSnapshot) || snapshot.State != _editor.State)
+        {
+            throw new OperationCanceledException("The raw-BIN document changed while the ASCII search was running.");
+        }
+    }
+
+    private sealed record AsciiSearchSnapshot(byte[] Bytes, RawBinaryEditorState State);
     /// <summary>
     /// Exports the current memory buffer through the atomic writer. The loaded source path is never
     /// a valid output target, and output files are never overwritten.
