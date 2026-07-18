@@ -220,7 +220,9 @@ part of this milestone. Their later version is selected only after reviewed
   reports; bounded visible row/control count; typed output-space address labels
   and jump validation; review-first order; original-row toggle; fallback;
   localization; accessibility; high contrast; reduced motion; stale completion;
-  and cancellation. These gates remain pending until the H1 consumer exists.
+  and cancellation. The H1 consumer and executable functional/accessibility
+  coverage now exist; dedicated high-contrast visual evidence and the final
+  integrated stale-completion/cancellation gate remain pending.
 - Every phase runs Polytail and independent architecture/UI review. R3 process
   changes additionally require exact golden parity and firmware-owner review.
 - `python scripts/verify.py --all` remains the final branch gate after the known
