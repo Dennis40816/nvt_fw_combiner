@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -115,7 +116,8 @@ public sealed partial class MainWindowViewModel
         string sourceName,
         string? outputArtifactPath,
         CancellationToken cancellationToken,
-        bool materializationErrorsAsReport = true)
+        bool materializationErrorsAsReport = true,
+        CompositionRunInspectionSnapshot? inspectionSnapshot = null)
     {
         ShellLanguage language;
         ReportReviewViewModel report;
@@ -129,6 +131,7 @@ public sealed partial class MainWindowViewModel
                         json,
                         sourceName,
                         outputArtifactPath,
+                        inspectionSnapshot,
                         language,
                         cancellationToken),
                     cancellationToken);

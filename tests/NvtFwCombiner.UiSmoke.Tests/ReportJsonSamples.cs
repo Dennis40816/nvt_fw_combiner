@@ -151,7 +151,10 @@ internal static class ReportJsonSamples
     public static string ReplaceWithManyOutputDifferences(
         int count,
         int sectionCount,
-        string sectionPrefix = "Section")
+        string sectionPrefix = "Section",
+        string runId = "large-difference-report",
+        long? outputSize = null,
+        string outputSha256 = "0123456789abcdef012345")
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sectionCount);
@@ -175,15 +178,15 @@ internal static class ReportJsonSamples
             "ctrlram-replace",
             "ctrlram-replace",
             "Replace",
-            "large-difference-report",
+            runId,
             "2026-07-01T00:05:00Z",
             [],
             [],
             [],
             "build.bin",
-            count * 4L,
+            outputSize ?? (count * 4L),
             committed: true,
-            "0123456789abcdef012345",
+            outputSha256,
             differences);
     }
 
@@ -221,6 +224,46 @@ internal static class ReportJsonSamples
                     afterFullHex: afterHex,
                     beforeHexPreview: string.Empty,
                     afterHexPreview: string.Empty),
+            ]);
+    }
+
+    public static string ReplaceWithOutputDifferenceRanges(
+        string runId,
+        long outputSize,
+        string outputSha256,
+        params (long Start, long EndExclusive, long Length, long ChangedByteCount)[] ranges)
+    {
+        ArgumentNullException.ThrowIfNull(ranges);
+        return Create(
+            "nt51950-general-replace",
+            "NT51950",
+            "general-replace",
+            "general-replace",
+            "Replace",
+            runId,
+            "2026-07-01T00:05:00Z",
+            [],
+            [],
+            [],
+            "preview.bin",
+            outputSize,
+            committed: false,
+            outputSha256,
+            [
+                .. ranges.Select((range, index) => OutputDifference(
+                    $"range-{index}",
+                    new
+                    {
+                        range.Start,
+                        range.EndExclusive,
+                        range.Length,
+                    },
+                    range.ChangedByteCount,
+                    OutputDifferenceClassifications.DeclaredReplacement,
+                    isAccepted: true,
+                    "test-evidence",
+                    "typed range identity test",
+                    "Payload")),
             ]);
     }
 

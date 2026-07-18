@@ -193,6 +193,7 @@ public sealed partial class MainWindowViewModel
             result.ReportJson,
             $"{action.ToLowerInvariant()} report",
             result.CommittedOutputId,
+            result.InspectionSnapshot,
             language,
             cancellationToken);
     }
