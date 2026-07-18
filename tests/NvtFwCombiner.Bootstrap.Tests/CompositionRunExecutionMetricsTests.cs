@@ -3,7 +3,6 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -27,27 +26,24 @@ public sealed class CompositionRunExecutionMetricsTests
             ["replacement-artifact"] = replacementBytes,
         });
         var writer = new CountingOutputWriter();
+        var clock = new CountingClock();
         var service = new CompositionRunService(
             reader,
-            CreateClock(),
+            clock,
             writer);
 
-        CompositionRunExecutionOutcome outcome = await CompositionRunExecutionSupport
-            .PreviewOrBuildWithMetricsAsync(
+        CompositionRunResult result = await CompositionRunExecutionSupport
+            .PreviewOrBuildAsync(
                 service,
                 CreateDpReplaceRequest(outputLength),
                 build: true,
                 CancellationToken.None);
 
-        Assert.Equal(CompositionExecutionStatus.Succeeded, outcome.Result.Status);
-        Assert.Equal(replacementBytes, outcome.Result.OutputBytes.ToArray());
-        Assert.Equal(2, outcome.Metrics.CompositionRunCount);
-        Assert.Equal(1, outcome.Metrics.PreviewRunCount);
-        Assert.Equal(1, outcome.Metrics.BuildRunCount);
-        Assert.Equal(4, outcome.Metrics.SuccessfulInputReadCount);
-        Assert.Equal(reader.CallCount, outcome.Metrics.SuccessfulInputReadCount);
-        Assert.Equal(0, outcome.Metrics.ExternalProcessorSessionCount);
-        Assert.Equal(0, outcome.Metrics.ExternalProcessInvocationCount);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(replacementBytes, result.OutputBytes.ToArray());
+        Assert.Equal(2, clock.RunCount);
+        Assert.Equal(4, reader.CallCount);
+        Assert.Equal(4, reader.SuccessfulReadCount);
         Assert.Equal(1, writer.CallCount);
     }
 
@@ -62,22 +58,20 @@ public sealed class CompositionRunExecutionMetricsTests
             ["replacement-artifact"] = CreateFilledBytes(outputLength, 0x22),
         });
         var writer = new CountingOutputWriter();
-        var service = new CompositionRunService(reader, CreateClock(), writer);
+        var clock = new CountingClock();
+        var service = new CompositionRunService(reader, clock, writer);
 
-        CompositionRunExecutionOutcome outcome = await CompositionRunExecutionSupport
-            .PreviewOrBuildWithMetricsAsync(
+        CompositionRunResult result = await CompositionRunExecutionSupport
+            .PreviewOrBuildAsync(
                 service,
                 CreateDpReplaceRequest(outputLength),
                 build: false,
                 CancellationToken.None);
 
-        Assert.Equal(CompositionExecutionStatus.Succeeded, outcome.Result.Status);
-        Assert.Equal(1, outcome.Metrics.CompositionRunCount);
-        Assert.Equal(1, outcome.Metrics.PreviewRunCount);
-        Assert.Equal(0, outcome.Metrics.BuildRunCount);
-        Assert.Equal(2, outcome.Metrics.SuccessfulInputReadCount);
-        Assert.Equal(0, outcome.Metrics.ExternalProcessorSessionCount);
-        Assert.Equal(0, outcome.Metrics.ExternalProcessInvocationCount);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(1, clock.RunCount);
+        Assert.Equal(2, reader.CallCount);
+        Assert.Equal(2, reader.SuccessfulReadCount);
         Assert.Equal(0, writer.CallCount);
     }
 
@@ -91,23 +85,20 @@ public sealed class CompositionRunExecutionMetricsTests
             ["reference-artifact"] = CreateFilledBytes(outputLength, 0x11),
         });
         var writer = new CountingOutputWriter();
-        var service = new CompositionRunService(reader, CreateClock(), writer);
+        var clock = new CountingClock();
+        var service = new CompositionRunService(reader, clock, writer);
 
-        CompositionRunExecutionOutcome outcome = await CompositionRunExecutionSupport
-            .PreviewOrBuildWithMetricsAsync(
+        CompositionRunResult result = await CompositionRunExecutionSupport
+            .PreviewOrBuildAsync(
                 service,
                 CreateDpReplaceRequest(outputLength),
                 build: true,
                 CancellationToken.None);
 
-        Assert.Equal(CompositionExecutionStatus.Failed, outcome.Result.Status);
-        Assert.Equal(1, outcome.Metrics.CompositionRunCount);
-        Assert.Equal(1, outcome.Metrics.PreviewRunCount);
-        Assert.Equal(0, outcome.Metrics.BuildRunCount);
-        Assert.Equal(1, outcome.Metrics.SuccessfulInputReadCount);
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Equal(1, clock.RunCount);
         Assert.Equal(2, reader.CallCount);
-        Assert.Equal(0, outcome.Metrics.ExternalProcessorSessionCount);
-        Assert.Equal(0, outcome.Metrics.ExternalProcessInvocationCount);
+        Assert.Equal(1, reader.SuccessfulReadCount);
         Assert.Equal(0, writer.CallCount);
     }
 
@@ -128,28 +119,28 @@ public sealed class CompositionRunExecutionMetricsTests
         });
         var writer = new CountingOutputWriter();
         var processor = new CountingExternalProcessor(commandCount);
+        var clock = new CountingClock();
         var service = new CompositionRunService(
             reader,
-            CreateClock(),
+            clock,
             writer,
             processor);
 
-        CompositionRunExecutionOutcome outcome = await CompositionRunExecutionSupport
-            .PreviewOrBuildWithMetricsAsync(
+        CompositionRunResult result = await CompositionRunExecutionSupport
+            .PreviewOrBuildAsync(
                 service,
                 CreateCtrlRamReplaceRequest(outputLength, ctrlRamLength),
                 build: true,
                 CancellationToken.None);
 
-        Assert.Equal(CompositionExecutionStatus.Succeeded, outcome.Result.Status);
-        Assert.Equal(replacementBytes, outcome.Result.OutputBytes[..ctrlRamLength].ToArray());
-        Assert.Equal(2, outcome.Metrics.CompositionRunCount);
-        Assert.Equal(4, outcome.Metrics.SuccessfulInputReadCount);
-        Assert.Equal(reader.CallCount, outcome.Metrics.SuccessfulInputReadCount);
-        Assert.Equal(2, outcome.Metrics.ExternalProcessorSessionCount);
-        Assert.Equal(processor.CallCount, outcome.Metrics.ExternalProcessorSessionCount);
-        Assert.Equal(checked(commandCount * 2), outcome.Metrics.ExternalProcessInvocationCount);
-        Assert.Equal(processor.InvocationCount, outcome.Metrics.ExternalProcessInvocationCount);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(replacementBytes, result.OutputBytes[..ctrlRamLength].ToArray());
+        Assert.Equal(2, clock.RunCount);
+        Assert.Equal(4, reader.CallCount);
+        Assert.Equal(4, reader.SuccessfulReadCount);
+        Assert.Equal(2, processor.CallCount);
+        Assert.Equal(checked(commandCount * 2), processor.InvocationCount);
+        Assert.Equal(commandCount, Assert.Single(result.Report.Operations).ExecutedCommands.Count);
         Assert.Equal(1, writer.CallCount);
     }
 
@@ -313,16 +304,6 @@ public sealed class CompositionRunExecutionMetricsTests
             icNumberSelection: selection);
     }
 
-    private static FakeClock CreateClock()
-    {
-        return new FakeClock([
-            StartedAtUtc,
-            StartedAtUtc.AddSeconds(1),
-            StartedAtUtc.AddSeconds(2),
-            StartedAtUtc.AddSeconds(3),
-        ]);
-    }
-
     private static byte[] CreateFilledBytes(int length, byte value)
     {
         byte[] bytes = new byte[length];
@@ -341,13 +322,33 @@ public sealed class CompositionRunExecutionMetricsTests
 
         internal int CallCount { get; private set; }
 
+        internal int SuccessfulReadCount { get; private set; }
+
         public ValueTask<ReadOnlyMemory<byte>> ReadAsync(
             string artifactId,
             CancellationToken cancellationToken)
         {
             CallCount++;
-            return ValueTask.FromResult<ReadOnlyMemory<byte>>(_artifacts[artifactId]);
+            byte[] bytes = _artifacts[artifactId];
+            SuccessfulReadCount++;
+            return ValueTask.FromResult<ReadOnlyMemory<byte>>(bytes);
         }
+    }
+
+    private sealed class CountingClock : ISystemClock
+    {
+        private int _callCount;
+
+        internal int RunCount
+        {
+            get
+            {
+                Assert.Equal(0, _callCount % 2);
+                return _callCount / 2;
+            }
+        }
+
+        public DateTimeOffset UtcNow => StartedAtUtc.AddSeconds(_callCount++);
     }
 
     private sealed class CountingOutputWriter : ICompositionOutputWriter
