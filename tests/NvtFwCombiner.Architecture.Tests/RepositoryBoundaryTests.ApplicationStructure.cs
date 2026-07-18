@@ -81,6 +81,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static OperationRunSummary ToOperationSummary", reports, StringComparison.Ordinal);
         Assert.Contains("private static string ToSha256Hex", hashing, StringComparison.Ordinal);
         Assert.Contains("SHA256.HashData", hashing, StringComparison.Ordinal);
+        Assert.Contains("Convert.ToHexStringLower", hashing, StringComparison.Ordinal);
+        Assert.DoesNotContain("ToLowerInvariant", hashing, StringComparison.Ordinal);
         Assert.Contains("ToSha256Hex(buffer)", inputs, StringComparison.Ordinal);
         Assert.Contains("ToSha256Hex(execution.OutputBytes.Span)", previewTokens, StringComparison.Ordinal);
         Assert.Contains("CreateOutputDifferences", outputDifferences, StringComparison.Ordinal);
@@ -103,6 +105,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static string ToSliceSha256Hex", outputDifferences, StringComparison.Ordinal);
         Assert.Contains("ToSliceSha256Hex", outputDifferenceBytes, StringComparison.Ordinal);
         Assert.Contains("ToSliceHexPreview", outputDifferenceBytes, StringComparison.Ordinal);
+        Assert.Contains("Convert.ToHexStringLower", outputDifferenceBytes, StringComparison.Ordinal);
+        Assert.DoesNotContain("ToLowerInvariant", outputDifferenceBytes, StringComparison.Ordinal);
         Assert.Contains("CreateOutputDifferenceExpectations", outputDifferenceExpectations, StringComparison.Ordinal);
         Assert.Contains("ClassifyDifferenceSegment", outputDifferenceExpectations, StringComparison.Ordinal);
     }
