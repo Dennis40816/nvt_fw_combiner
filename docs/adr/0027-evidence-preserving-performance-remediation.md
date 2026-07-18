@@ -220,9 +220,14 @@ part of this milestone. Their later version is selected only after reviewed
   reports; bounded visible row/control count; typed output-space address labels
   and jump validation; review-first order; original-row toggle; fallback;
   localization; accessibility; high contrast; reduced motion; stale completion;
-  and cancellation. The H1 consumer and executable functional/accessibility
-  coverage now exist; dedicated high-contrast visual evidence and the final
-  integrated stale-completion/cancellation gate remain pending.
+  and cancellation. The H1 consumer and executable coverage now include
+  non-color Changed/Original/Selected/verdict cues, a two-pixel selected
+  outline, and the exact production run projection path with its verified
+  snapshot. Pre-cancel publishes no partial report state, and an identity-
+  matched 10,000-range stale run cannot overwrite a newer report or append
+  history. Rendered Windows high-contrast/manual visual evidence remains
+  pending; the source contract does not substitute for effective-theme
+  rendering.
 - Every phase runs Polytail and independent architecture/UI review. R3 process
   changes additionally require exact golden parity and firmware-owner review.
 - `python scripts/verify.py --all` remains the final branch gate after the known
