@@ -87,6 +87,10 @@ public sealed partial class RepositoryBoundaryTests
     {
         string report = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs");
+        string reportHistory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReportHistory.cs");
+        string reportHistoryTemplate = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml");
         string factory = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Factory.cs");
         string pager = ReadText(
@@ -127,6 +131,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("long generation = BeginReportProjection();", report, StringComparison.Ordinal);
         Assert.Contains("if (IsCurrentReportProjection(generation))", report, StringComparison.Ordinal);
         Assert.Contains("Interlocked.Increment(ref _reportProjectionGeneration)", report, StringComparison.Ordinal);
+        Assert.Contains("private async Task OpenReportHistoryEntryAsync(", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("await ProjectReportAsync(", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("if (!IsCurrentReportProjection(generation))", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("BeginReportProjection(preserveHistoryReopen: true)", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("public IRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryCommand", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("public IAsyncRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryAsyncCommand", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("CancelReportHistoryReopen();", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("OpenReportHistoryEntryCommand.NotifyCanExecuteChanged();", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("OpenReportHistoryEntryAsyncCommand", reportHistoryTemplate, StringComparison.Ordinal);
         Assert.Contains("while (reportLanguage != Text.Language);", ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs"), StringComparison.Ordinal);
     }

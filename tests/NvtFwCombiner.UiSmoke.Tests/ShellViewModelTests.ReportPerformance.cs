@@ -226,6 +226,131 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("newer-report.json", historyEntry.SourceName);
     }
 
+    /// <summary>A large history reopen cannot overwrite a newer report and never records another run.</summary>
+    [Fact]
+    public async Task ChangeReportHistoryReopenUsesLatestProjectionGeneration()
+    {
+        string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 10_000, sectionCount: 40);
+        string currentJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "current-report");
+        string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-after-history");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.LoadReportJson(olderJson, "older-history-report.json");
+        ReportHistoryEntryViewModel olderEntry = viewModel.ReportHistoryEntries[0];
+        viewModel.LoadReportJson(currentJson, "current-report.json");
+
+        Task reopening = viewModel.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(olderEntry);
+        viewModel.LoadReportJson(newerJson, "newer-after-history.json");
+        await reopening;
+
+        Assert.Equal("newer-after-history.json", viewModel.LoadedReport.SourceName);
+        Assert.Equal(newerJson, viewModel.LoadedReportJson);
+        Assert.Equal(3, viewModel.ReportHistoryCount);
+        Assert.Equal("newer-after-history.json", viewModel.ReportHistoryEntries[0].SourceName);
+    }
+
+    /// <summary>Explicit history navigation and cleanup choices cancel an in-flight reopen.</summary>
+    [Theory]
+    [InlineData("cancel")]
+    [InlineData("close")]
+    [InlineData("back")]
+    [InlineData("clear")]
+    [InlineData("remove")]
+    public async Task ChangeReportHistoryReopenHonorsInFlightUserAction(string action)
+    {
+        using var uiThread = new UiThreadTestContext();
+        await uiThread.InvokeAsync(async () =>
+        {
+            string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
+            string currentJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "current-before-action");
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.LoadReportJson(olderJson, "older-action-report.json");
+            ReportHistoryEntryViewModel olderEntry = viewModel.ReportHistoryEntries[0];
+            viewModel.LoadReportJson(currentJson, "current-before-action.json");
+            viewModel.ShowReportHistoryCommand.Execute(null);
+
+            int legacyCanExecuteNotifications = 0;
+            viewModel.OpenReportHistoryEntryCommand.CanExecuteChanged += (_, _) => legacyCanExecuteNotifications++;
+            viewModel.OpenReportHistoryEntryAsyncCommand.Execute(olderEntry);
+            Task reopening = Assert.IsType<Task>(
+                viewModel.OpenReportHistoryEntryAsyncCommand.ExecutionTask,
+                exactMatch: false);
+            Assert.True(viewModel.OpenReportHistoryEntryAsyncCommand.IsRunning);
+            Assert.False(viewModel.OpenReportHistoryEntryCommand.CanExecute(olderEntry));
+            switch (action)
+            {
+                case "cancel":
+                    viewModel.OpenReportHistoryEntryAsyncCommand.Cancel();
+                    break;
+                case "close":
+                    viewModel.CloseReportCommand.Execute(null);
+                    break;
+                case "back":
+                    viewModel.CloseReportHistoryCommand.Execute(null);
+                    break;
+                case "clear":
+                    viewModel.ClearReportHistoryCommand.Execute(null);
+                    break;
+                case "remove":
+                    viewModel.RemoveReportHistoryEntryCommand.Execute(olderEntry);
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unknown test action '{action}'.");
+            }
+
+            await reopening;
+
+            Assert.False(viewModel.OpenReportHistoryEntryAsyncCommand.IsRunning);
+            Assert.True(viewModel.OpenReportHistoryEntryCommand.CanExecute(olderEntry));
+            Assert.True(legacyCanExecuteNotifications >= 2);
+            Assert.Equal("current-before-action.json", viewModel.LoadedReport.SourceName);
+            Assert.Equal(currentJson, viewModel.LoadedReportJson);
+            Assert.False(viewModel.HasReportToast);
+            if (action == "close")
+            {
+                Assert.False(viewModel.IsReportModalOpen);
+            }
+            else if (action == "back")
+            {
+                Assert.True(viewModel.IsReportModalOpen);
+                Assert.False(viewModel.IsReportHistoryViewOpen);
+            }
+            else if (action == "clear")
+            {
+                Assert.Empty(viewModel.ReportHistoryEntries);
+            }
+            else if (action == "remove")
+            {
+                Assert.DoesNotContain(olderEntry, viewModel.ReportHistoryEntries);
+            }
+        });
+    }
+
+    /// <summary>A language change during history projection publishes only the stable language.</summary>
+    [Fact]
+    public async Task ChangeReportHistoryReopenReplaysLanguageDrift()
+    {
+        using var uiThread = new UiThreadTestContext();
+        await uiThread.InvokeAsync(async () =>
+        {
+            string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
+            string currentJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "current-language");
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.LoadReportJson(olderJson, "older-language-report.json");
+            ReportHistoryEntryViewModel olderEntry = viewModel.ReportHistoryEntries[0];
+            viewModel.LoadReportJson(currentJson, "current-language-report.json");
+
+            Task reopening = viewModel.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(olderEntry);
+            Assert.True(viewModel.OpenReportHistoryEntryAsyncCommand.IsRunning);
+            viewModel.SelectedLanguage = "Traditional Chinese";
+            await reopening;
+
+            Assert.Equal("older-language-report.json", viewModel.LoadedReport.SourceName);
+            Assert.Contains(viewModel.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "預期");
+            Assert.Equal("已顯示 8/40 筆", viewModel.LoadedReport.OutputDifferenceGroupPage.PageStatus);
+            Assert.Equal(2, viewModel.ReportHistoryCount);
+        });
+    }
+
     /// <summary>Relocalizing an existing report does not cancel a newer in-flight load.</summary>
     [Fact]
     public async Task LanguageChangeKeepsNewerInFlightReportGeneration()

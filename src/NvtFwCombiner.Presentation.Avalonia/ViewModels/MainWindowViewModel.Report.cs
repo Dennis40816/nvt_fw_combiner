@@ -98,6 +98,24 @@ public sealed partial class MainWindowViewModel
         CancellationToken cancellationToken = default)
     {
         long generation = BeginReportProjection();
+        ReportReviewViewModel report = await ProjectReportAsync(
+            json,
+            sourceName,
+            outputArtifactPath: null,
+            cancellationToken);
+
+        if (IsCurrentReportProjection(generation))
+        {
+            ApplyLoadedReport(report, json, sourceName);
+        }
+    }
+
+    private async Task<ReportReviewViewModel> ProjectReportAsync(
+        string json,
+        string sourceName,
+        string? outputArtifactPath,
+        CancellationToken cancellationToken)
+    {
         ShellLanguage language;
         ReportReviewViewModel report;
         do
@@ -109,9 +127,9 @@ public sealed partial class MainWindowViewModel
                     () => ReportReviewViewModel.FromJsonCancellable(
                         json,
                         sourceName,
-                        outputArtifactPath: null,
-                        language: language,
-                        cancellationToken: cancellationToken),
+                        outputArtifactPath,
+                        language,
+                        cancellationToken),
                     cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
             }
@@ -124,14 +142,16 @@ public sealed partial class MainWindowViewModel
         }
         while (language != Text.Language);
 
-        if (IsCurrentReportProjection(generation))
-        {
-            ApplyLoadedReport(report, json, sourceName);
-        }
+        return report;
     }
 
-    private long BeginReportProjection()
+    private long BeginReportProjection(bool preserveHistoryReopen = false)
     {
+        if (!preserveHistoryReopen && OpenReportHistoryEntryAsyncCommand is { IsRunning: true } historyReopen)
+        {
+            historyReopen.Cancel();
+        }
+
         return Interlocked.Increment(ref _reportProjectionGeneration);
     }
 
@@ -265,6 +285,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        CancelReportHistoryReopen();
         CloseReplaceSelectionForRun();
         IsReportModalOpen = true;
         IsReportHistoryViewOpen = false;
@@ -278,6 +299,7 @@ public sealed partial class MainWindowViewModel
 
     private void CloseReport()
     {
+        CancelReportHistoryReopen();
         if (!IsReportModalOpen)
         {
             return;
