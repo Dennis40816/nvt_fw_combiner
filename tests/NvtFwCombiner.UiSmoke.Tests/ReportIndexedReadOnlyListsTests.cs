@@ -5,6 +5,51 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Concurrency regression coverage for indexed report row projections.</summary>
 public sealed class ReportIndexedReadOnlyListsTests
 {
+    /// <summary>Unopened report rows retain only the index array rather than one Lazy and closure per row.</summary>
+    [Fact]
+    public void MemoizedIndexDefersPerRowAllocationUntilAccess()
+    {
+        const int rowCount = 10_000;
+        static object factory(int _)
+        {
+            return new object();
+        }
+
+        var warmup = new MemoizedIndexedReadOnlyList<object>(1, factory);
+        _ = warmup[0];
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var rows = new MemoizedIndexedReadOnlyList<object>(rowCount, factory);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(rowCount, rows.Count);
+        Assert.Equal(0, rows.MaterializedCount);
+        Assert.InRange(allocated, (long)rowCount * IntPtr.Size, ((long)rowCount * IntPtr.Size) + 32_768);
+    }
+
+    /// <summary>A failed row factory remains single-execution and rethrows the same cached failure.</summary>
+    [Fact]
+    public void MemoizedIndexCachesFactoryFailure()
+    {
+        var expected = new InvalidOperationException("Synthetic row projection failure.");
+        int invocationCount = 0;
+        var rows = new MemoizedIndexedReadOnlyList<object>(
+            1,
+            _ =>
+            {
+                _ = Interlocked.Increment(ref invocationCount);
+                throw expected;
+            });
+
+        InvalidOperationException first = Assert.Throws<InvalidOperationException>(() => rows[0]);
+        InvalidOperationException second = Assert.Throws<InvalidOperationException>(() => rows[0]);
+
+        Assert.Same(expected, first);
+        Assert.Same(expected, second);
+        Assert.Equal(1, invocationCount);
+        Assert.Equal(0, rows.MaterializedCount);
+    }
+
     /// <summary>Concurrent readers execute an expensive row factory once and share its published instance.</summary>
     [Fact]
     public async Task MemoizedIndexPublishesOneFactoryResultToConcurrentReaders()
