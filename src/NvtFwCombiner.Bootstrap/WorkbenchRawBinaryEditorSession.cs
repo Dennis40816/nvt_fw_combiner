@@ -11,6 +11,26 @@ namespace NvtFwCombiner.Bootstrap;
 public sealed class WorkbenchRawBinaryEditorSession
 {
     private readonly RawBinaryEditorSession _editor = new();
+    private readonly Func<byte[], RawBinaryEditorState, string, long, CancellationToken, RawBinaryEditorSearchResult>
+        _asciiSearch;
+    private AsciiSearchSnapshot? _asciiSearchSnapshot;
+    private int _asciiSearchSnapshotCaptureCount;
+    private long _asciiSearchSnapshotRevision;
+
+    /// <summary>Creates one raw-BIN editor host session.</summary>
+    public WorkbenchRawBinaryEditorSession()
+        : this(static (snapshot, state, text, startOffset, cancellationToken) =>
+            RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken))
+    {
+    }
+
+    internal WorkbenchRawBinaryEditorSession(
+        Func<byte[], RawBinaryEditorState, string, long, CancellationToken, RawBinaryEditorSearchResult> asciiSearch)
+    {
+        _asciiSearch = asciiSearch ?? throw new ArgumentNullException(nameof(asciiSearch));
+    }
+
+    internal int AsciiSearchSnapshotCaptureCount => Volatile.Read(ref _asciiSearchSnapshotCaptureCount);
 
     /// <summary>Maximum zero-filled bytes accepted by one insert request.</summary>
     public static int MaximumInsertByteCount => RawBinaryEditorSession.MaximumInsertByteCount;
@@ -57,6 +77,7 @@ public sealed class WorkbenchRawBinaryEditorSession
             var reader = new FileArtifactReader([directory]);
             ReadOnlyMemory<byte> bytes = await reader.ReadAsync(fullPath, cancellationToken)
                 .ConfigureAwait(false);
+            InvalidateAsciiSearchSnapshot();
             _ = _editor.Load(bytes.Span);
             SourcePath = fullPath;
             return WorkbenchRawBinaryEditorFileResult.Success(fullPath, _editor.State);
@@ -82,7 +103,12 @@ public sealed class WorkbenchRawBinaryEditorSession
     /// <summary>Finds printable ASCII text in the editor-owned memory buffer without reading the source file again.</summary>
     public RawBinaryEditorSearchResult FindAscii(string text, long startOffset)
     {
-        return _editor.FindAscii(text, startOffset);
+        ArgumentNullException.ThrowIfNull(text);
+        RawBinaryEditorState state = _editor.State;
+        AsciiSearchSnapshot? snapshot = GetOrCreateAsciiSearchSnapshot();
+        return snapshot is null
+            ? _editor.FindAscii(text, startOffset)
+            : _asciiSearch(snapshot.Bytes, state, text, startOffset, CancellationToken.None);
     }
 
     /// <summary>
@@ -96,7 +122,13 @@ public sealed class WorkbenchRawBinaryEditorSession
     {
         ArgumentNullException.ThrowIfNull(text);
         RawBinaryEditorState state = _editor.State;
-        if (!_editor.TryCopyWorkingBytes(out byte[]? snapshot))
+        if (state.HasDocument)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        AsciiSearchSnapshot? snapshot = GetOrCreateAsciiSearchSnapshot();
+        if (snapshot is null)
         {
             return new RawBinaryEditorSearchResult(
                 state,
@@ -105,8 +137,13 @@ public sealed class WorkbenchRawBinaryEditorSession
         }
 
         RawBinaryEditorSearchResult result = await Task.Run(
-            () => RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken),
+            () =>
+            {
+                ThrowIfAsciiSearchSnapshotInvalidated(snapshot);
+                return _asciiSearch(snapshot.Bytes, state, text, startOffset, cancellationToken);
+            },
             cancellationToken).ConfigureAwait(false);
+        ThrowIfAsciiSearchSnapshotInvalidated(snapshot);
         return result;
     }
 
@@ -119,62 +156,101 @@ public sealed class WorkbenchRawBinaryEditorSession
     /// <summary>Writes one byte only to the session-owned work buffer.</summary>
     public RawBinaryEditorOperationResult OverwriteByte(string address, string value)
     {
+        InvalidateAsciiSearchSnapshot();
         return _editor.OverwriteByte(address, value);
     }
 
     /// <summary>Writes a hexadecimal sequence from Start without crossing the selected inclusive End.</summary>
     public RawBinaryEditorOperationResult OverwriteRange(string startAddress, string endAddress, string values)
     {
+        InvalidateAsciiSearchSnapshot();
         return _editor.OverwriteRange(startAddress, endAddress, values);
     }
 
     /// <summary>Fills one inclusive range only in the session-owned work buffer.</summary>
     public RawBinaryEditorOperationResult FillRange(string startAddress, string endAddress, string value)
     {
+        InvalidateAsciiSearchSnapshot();
         return _editor.FillRange(startAddress, endAddress, value);
     }
 
     /// <summary>Inserts an explicit zero byte before the selected working-buffer byte.</summary>
     public RawBinaryEditorOperationResult InsertZeroBefore(string address)
     {
+        InvalidateAsciiSearchSnapshot();
         return _editor.InsertZeroBefore(address);
     }
 
     /// <summary>Inserts an explicit zero byte after the selected working-buffer byte.</summary>
     public RawBinaryEditorOperationResult InsertZeroAfter(string address)
     {
+        InvalidateAsciiSearchSnapshot();
         return _editor.InsertZeroAfter(address);
     }
 
     /// <summary>Inserts a bounded zero-filled run before the selected byte.</summary>
     public RawBinaryEditorOperationResult InsertZeroBytesBefore(string address, int count)
     {
+        InvalidateAsciiSearchSnapshot();
         return _editor.InsertZeroBytesBefore(address, count);
     }
 
     /// <summary>Inserts a bounded zero-filled run after the selected byte.</summary>
     public RawBinaryEditorOperationResult InsertZeroBytesAfter(string address, int count)
     {
+        InvalidateAsciiSearchSnapshot();
         return _editor.InsertZeroBytesAfter(address, count);
     }
 
     /// <summary>Deletes one working-buffer byte and shifts later bytes toward lower offsets.</summary>
     public RawBinaryEditorOperationResult DeleteByte(string address)
     {
+        InvalidateAsciiSearchSnapshot();
         return _editor.DeleteByte(address);
     }
 
     /// <summary>Reverts the most recent session-owned operation.</summary>
     public RawBinaryEditorOperationResult Undo()
     {
+        InvalidateAsciiSearchSnapshot();
         return _editor.Undo();
     }
 
     /// <summary>Reapplies the most recently reverted session-owned operation.</summary>
     public RawBinaryEditorOperationResult Redo()
     {
+        InvalidateAsciiSearchSnapshot();
         return _editor.Redo();
     }
+
+    private AsciiSearchSnapshot? GetOrCreateAsciiSearchSnapshot()
+    {
+        if (_asciiSearchSnapshot is null && _editor.TryCopyWorkingBytes(out byte[]? snapshot))
+        {
+            _asciiSearchSnapshot = new AsciiSearchSnapshot(
+                snapshot!,
+                Volatile.Read(ref _asciiSearchSnapshotRevision));
+            _ = Interlocked.Increment(ref _asciiSearchSnapshotCaptureCount);
+        }
+
+        return _asciiSearchSnapshot;
+    }
+
+    private void InvalidateAsciiSearchSnapshot()
+    {
+        _ = Interlocked.Increment(ref _asciiSearchSnapshotRevision);
+        _asciiSearchSnapshot = null;
+    }
+
+    private void ThrowIfAsciiSearchSnapshotInvalidated(AsciiSearchSnapshot snapshot)
+    {
+        if (snapshot.Revision != Volatile.Read(ref _asciiSearchSnapshotRevision))
+        {
+            throw new OperationCanceledException("The raw-BIN document changed while the ASCII search was running.");
+        }
+    }
+
+    private sealed record AsciiSearchSnapshot(byte[] Bytes, long Revision);
 
     /// <summary>
     /// Exports the current memory buffer through the atomic writer. The loaded source path is never
