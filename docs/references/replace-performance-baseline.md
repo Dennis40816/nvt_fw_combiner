@@ -140,6 +140,27 @@ were `131.124`/`102.023` ms before and `140.850`/`119.596` ms after, so this
 slice makes no latency-improvement claim. Repeated same-source p50/p95 and
 packaged first-page evidence remain open.
 
+Commit `c22c2a68` removes the additional full-report UTF-8 mirror from the
+long-lived lazy row and Hex Diff factories. The production shell and report
+history already retain the same original JSON string, so those factories now
+share that string and parse exact UTF-16 character slices; the transient UTF-8
+buffer is retained only for the initial root parse and wire index. An isolated
+temporary full-GC diagnostic measured the 10,000-range model's retained delta
+at `7,567,592` bytes before and `1,491,936` bytes after, a reduction of
+`6,075,656` bytes (`80.3%`). The diagnostic was removed rather than promoted to
+a reachability-sensitive CI threshold. It is product-path evidence, not a
+general claim for standalone `FromJson` callers that would otherwise release
+their input string.
+
+The same isolated projection observation allocates `9,553,408`/`9,531,816`
+bytes after this retained-memory change, an increase of `349,608` (`3.8%`)
+and `342,112` (`3.7%`) bytes over the preceding cold/repeated values. This is
+an explicitly retained transient-allocation tradeoff, not a latency
+improvement claim. Strict UTF-8 validation, raw surrogate-pair coverage,
+last-top-level-property semantics, cancellation, output identity, bounded
+materialization, and jump behavior remain locked. Repeated same-source p50/p95,
+packaged first-page evidence, and Windows working-set observation remain open.
+
 ## Firmware evidence scope
 
 The synthetic counter cases are process-contract evidence, not firmware
