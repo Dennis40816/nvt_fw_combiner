@@ -22,7 +22,38 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpFlashMapRegion> regions = [];
         IReadOnlyList<TpCtrlRamPostbuildSource> sources = [];
 
-        (string? basePath, long baseLength) = ResolveCtrlRamBaseInput(slotPaths, validationIssues);
+        string? basePath = null;
+        long baseLength = 0;
+        if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? suppliedBasePath) ||
+            string.IsNullOrWhiteSpace(suppliedBasePath))
+        {
+            validationIssues.Add(new CompositionIssue(
+                WorkbenchIssueCodes.InputMissing,
+                "Base firmware BIN is required before CtrlRAM Replace can run.",
+                WorkbenchSlotIds.ReplaceBase));
+        }
+        else
+        {
+            basePath = Path.GetFullPath(suppliedBasePath);
+            if (!File.Exists(basePath))
+            {
+                validationIssues.Add(new CompositionIssue(
+                    WorkbenchIssueCodes.InputArtifactReadFailed,
+                    "Base firmware BIN path does not exist.",
+                    WorkbenchSlotIds.ReplaceBase));
+            }
+            else
+            {
+                baseLength = new FileInfo(basePath).Length;
+                if (baseLength <= 0)
+                {
+                    validationIssues.Add(new CompositionIssue(
+                        CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                        "Base firmware BIN must not be empty.",
+                        WorkbenchSlotIds.ReplaceBase));
+                }
+            }
+        }
 
         if (basePath is not null && baseLength > 0)
         {
@@ -161,42 +192,6 @@ public static partial class WorkbenchCompositionService
             selectedSources,
             selectedSourceLengths,
             validationIssues);
-    }
-
-    private static (string? Path, long Length) ResolveCtrlRamBaseInput(
-        IReadOnlyDictionary<string, string> slotPaths,
-        List<CompositionIssue> validationIssues)
-    {
-        if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? suppliedBasePath) ||
-            string.IsNullOrWhiteSpace(suppliedBasePath))
-        {
-            validationIssues.Add(new CompositionIssue(
-                WorkbenchIssueCodes.InputMissing,
-                "Base firmware BIN is required before CtrlRAM Replace can run.",
-                WorkbenchSlotIds.ReplaceBase));
-            return (null, 0);
-        }
-
-        string basePath = Path.GetFullPath(suppliedBasePath);
-        if (!File.Exists(basePath))
-        {
-            validationIssues.Add(new CompositionIssue(
-                WorkbenchIssueCodes.InputArtifactReadFailed,
-                "Base firmware BIN path does not exist.",
-                WorkbenchSlotIds.ReplaceBase));
-            return (basePath, 0);
-        }
-
-        long baseLength = new FileInfo(basePath).Length;
-        if (baseLength <= 0)
-        {
-            validationIssues.Add(new CompositionIssue(
-                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                "Base firmware BIN must not be empty.",
-                WorkbenchSlotIds.ReplaceBase));
-        }
-
-        return (basePath, baseLength);
     }
 
     private static InputArtifactBinding[] CreateCtrlRamReplaceBindings(

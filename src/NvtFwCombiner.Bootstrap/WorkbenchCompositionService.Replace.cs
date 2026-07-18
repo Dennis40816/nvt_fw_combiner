@@ -19,34 +19,19 @@ public static partial class WorkbenchCompositionService
             ? []
             : [
             .. BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, ToIcNumberSelection(number), postbuildProfile)
-                    .Select(source => new WorkbenchReplaceInputSlot(
-                        CtrlRamSlotId(source.SourceId),
-                        FormatCtrlRamSourceTitle(icId, branch, source),
-                        FormatCtrlRamSourceDescription(icId, branch, source),
-                        true,
-                        CtrlRamSlotId(source.SourceId),
-                        source.SourceId)),
+                    .Select(source => CreateCtrlRamReplaceInputSlot(icId, branch, source)),
             ];
     }
 
-    private static string FormatCtrlRamSourceTitle(
+    private static WorkbenchReplaceInputSlot CreateCtrlRamReplaceInputSlot(
         string icId,
         LegacyCombinerPostbuildBranch branch,
         TpCtrlRamPostbuildSource source)
     {
+        bool requiresDiffNfMerge = RequiresDiffNfMergeOutput(icId, branch, source);
         string title = source.Regions.Count == 1
             ? source.Regions[0].DisplayName
             : $"{DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(source.SourceId)} (Shared)";
-        return RequiresDiffNfMergeOutput(icId, branch, source)
-            ? $"{title} (DiffNFMerge output)"
-            : title;
-    }
-
-    private static string FormatCtrlRamSourceDescription(
-        string icId,
-        LegacyCombinerPostbuildBranch branch,
-        TpCtrlRamPostbuildSource source)
-    {
         string sections = string.Join("; ", source.Blocks
             .DistinctBy(block => (block.SourceOffset, block.FirmwareRange))
             .OrderBy(block => block.FirmwareRange.Start)
@@ -56,9 +41,16 @@ public static partial class WorkbenchCompositionService
                 return $"{region.DisplayName}: max {block.FirmwareRange.Length} bytes, source +0x{block.SourceOffset:X} to flash 0x{block.FirmwareRange.Start:X}";
             }));
         string description = $"{source.SourceFileName}. Expected sections: {sections}. Short source files stop at EOF without padding; bytes beyond each section maximum are not used.";
-        return RequiresDiffNfMergeOutput(icId, branch, source)
-            ? $"{description} Required cascade input: select an NF_Ctrlram.bin prebuilt by the external DiffNFMerge.exe. Its input contract and execution are not yet integrated."
-            : description;
+        string slotId = CtrlRamSlotId(source.SourceId);
+        return new WorkbenchReplaceInputSlot(
+            slotId,
+            requiresDiffNfMerge ? $"{title} (DiffNFMerge output)" : title,
+            requiresDiffNfMerge
+                ? $"{description} Required cascade input: select an NF_Ctrlram.bin prebuilt by the external DiffNFMerge.exe. Its input contract and execution are not yet integrated."
+                : description,
+            true,
+            slotId,
+            source.SourceId);
     }
 
     private static bool RequiresDiffNfMergeOutput(

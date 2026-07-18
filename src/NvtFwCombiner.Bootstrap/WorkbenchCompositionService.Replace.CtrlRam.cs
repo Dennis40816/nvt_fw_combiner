@@ -93,6 +93,8 @@ public static partial class WorkbenchCompositionService
                 ("nt51931-ctrlram-replace-fw130-cascade6", "2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3"),
             ("NT51932", "nfc.nt51932.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "2.0.0", 3, 0x5601) =>
                 ("nt51932-ctrlram-replace-fw200-cascade3", "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd"),
+            ("NT51950", "nfc.nt51950.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x4A06) =>
+                ("nt51950-ctrlram-replace-fw200-single", "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e"),
             ("NT51951", "nfc.nt51951.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x5901) =>
                 ("nt51951-ctrlram-replace-fw200-single", "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69"),
             _ => (null, null),

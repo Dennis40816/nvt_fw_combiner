@@ -39,7 +39,7 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 | NT51930 | `SM-FLASHMAP-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: current cascade maps to `<=13 IC`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves the `merge_bin.7z` golden bytes; firmware-owner review remains required before release support. |
 | NT51931 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | Not Supported. | Exact AUTO_PRJ-158/PID `0x131B`/cascade-6 V2 route is materialized with registered 1.13.0 `NT51931BASED_NORMAL_MODE CRC8`; support remains neutral. | Not Supported. | V1 and V2 output SHA are both `f38fdecd...c594`; payload drift to the owner expected is 0 and all 108 differing bytes are classified header/header-copy CRC. Other shapes do not enter the exact route. |
 | NT51932 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | `AB-51932-CANDIDATE`: fixed `0x80000` full DP -> TPA -> relocated TPB V2 plan; no UI/CLI route or runtime promotion. |
-| NT51950 | `SM-950-951-DP-PERSPECTIVE-V2`: packaged canonical V2 maps select the exact submitted DP capacity; owner `0x40000` DP golden passes. | `R-DP-950-951`: the workbench UI/CLI routes the supported V2 profile and selects its exact base capacity. | `R-CTRLRAM-51950`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Standard/DP migration evidence is not a hardware golden or product support claim. `AB-51950-CANDIDATE` has two direct owner fixtures with full-byte Python/Combiner parity; no UI/CLI route, and firmware-owner promotion review remains pending. |
+| NT51950 | `SM-950-951-DP-PERSPECTIVE-V2`: packaged canonical V2 maps select the exact submitted DP capacity; owner `0x40000` DP golden passes. | `R-DP-950-951`: the workbench UI/CLI routes the supported V2 profile and selects its exact base capacity. | `R-CTRLRAM-51950`: exact AUTO_PRJ-676/PID `0x4A06`/FW 2.0.0/single/reference-SHA uses V2; other shapes retain the fallback. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | CtrlRAM V1/V2 bytes are equal and the owner delta is four CRC words. Cascade has no product case and is outside v0.9.9 scope. `AB-51950-CANDIDATE` remains separate and unpromoted. |
 | NT51951 | `SM-950-951-DP-PERSPECTIVE-V2`: packaged canonical V2 maps select the exact submitted DP capacity; owner `0x80000` DP golden passes. | `R-DP-950-951`: the workbench UI/CLI routes the supported V2 profile and selects its exact base capacity. | `R-CTRLRAM-51950`: follows NT51950. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Standard/DP migration evidence is not a hardware golden or product support claim. `AB-51951-CANDIDATE` uses the owner-approved NT51950 workflow-logic scope and independently locks the distinct `0x80000` synthetic topology; firmware-owner review and runtime promotion remain pending. |
 
 ## Deferred AB Initializer Policy
@@ -300,9 +300,11 @@ flowchart TD
     B --> C["Replace approved CtrlRAM ranges"]
     C --> D["Stage postbuild BIN files and work firmware"]
     D --> E{"IC num selection"}
-    E -- "single" --> F["Build NT51950BASED_NORMAL_MODE CRC8 single plan"]
+    E -- "exact NT51950 single" --> F["Compile exact hash-pinned V2 plan"]
+    E -- "other single" --> L["Retain validated fallback"]
     E -- "cascade" --> G["Build NT51950BASED_NORMAL_MODE CRC8 cascade plan"]
     F --> H["Run Combiner.exe commands in order"]
+    L --> H
     G --> H
     H --> I["Validate transformed changed ranges"]
     I --> J["Preview/Build report and history entry"]

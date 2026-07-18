@@ -10,7 +10,7 @@
     "recoveredAtTaipei": "2026-07-17T17:18:00+08:00"
   },
   "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
-  "evidenceScope": "Owner-approved intake plus exact NT51920, NT51923, NT51927, and NT51929 Phase B route evidence. The previously omitted NT51950 single owner package is now inventoried for agent-owned parity work. Routed controls lock canonical-base reconstruction where DP/TP inputs exist, V1/V2 full-byte and process parity, and explicit CRC-only owner differences; no support promotion is authorized.",
+  "evidenceScope": "Owner-approved intake plus exact NT51920, NT51923, NT51927, NT51929, and NT51950 Phase B route evidence. Routed controls lock canonical-base reconstruction where DP/TP inputs exist, V1/V2 full-byte and process parity, and explicit CRC-only owner differences; no support promotion is authorized.",
   "intakeCaseAddenda": [
     {
       "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
@@ -21,9 +21,9 @@
       "pid": "0x4A06",
       "topology": "single",
       "chipCount": 1,
-      "routeProfileId": null,
-      "routeProfileVersion": null,
-      "routeProfileStatus": "pending-agent-owned-materialization",
+      "routeProfileId": "nt51950-ctrlram-replace-fw200-single",
+      "routeProfileVersion": "0.1.0",
+      "routeProfileStatus": "materialized-exact-route-support-neutral",
       "sourceClassification": "owner-expected-output-plus-standard-merge-inputs-and-physical-ctrlram",
       "sourceArchive": "NVT_Golden_Evidence_v0.9.9_20260717.7z",
       "expectedOutputSha256": "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e",
@@ -212,6 +212,35 @@
       "commandCount": 2,
       "inputArtifactsUnchanged": true,
       "reportAndOrderedArgvParityTest": "Nt51929CtrlRamFw200SingleEvidenceTests.V1AndV2ProduceIdenticalExactOutputWithCrcOnlyGoldenDeviationAsync",
+      "runtimeSupportPromotion": false
+    },
+    {
+      "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
+      "ic": "NT51950",
+      "workflow": "ctrlram-replace",
+      "variant": "Common FW 2.0.0",
+      "project": "AUTO_PRJ-676",
+      "pid": "0x4A06",
+      "topology": "single",
+      "chipCount": 1,
+      "baseKind": "canonical-standard-merge-owner-output",
+      "ownerExpectedSha256": "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e",
+      "legacyOutputSha256": "a32e6896b840d44e4933adb8827d66bfe642a1347835a1c5bda848cb33ecd5c4",
+      "v2OutputSha256": "a32e6896b840d44e4933adb8827d66bfe642a1347835a1c5bda848cb33ecd5c4",
+      "differenceCounts": { "legacyToV2": 0, "ownerToLegacy": 16, "ownerToV2": 16, "ctrlRamPayload": 0 },
+      "allowedDifferenceRanges": [
+        { "start": "0xA11C", "endExclusive": "0xA120", "classification": "header-crc-word" },
+        { "start": "0xA130", "endExclusive": "0xA134", "classification": "header-crc-word" },
+        { "start": "0x2D428", "endExclusive": "0x2D42C", "classification": "header-copy-crc-word" },
+        { "start": "0x2D43C", "endExclusive": "0x2D440", "classification": "header-copy-crc-word" }
+      ],
+      "routeProfileId": "nt51950-ctrlram-replace-fw200-single",
+      "processorId": "nfc.nt51950.ctrlram-postbuild-v1",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "sessionCount": 1,
+      "commandCount": 2,
+      "inputArtifactsUnchanged": true,
+      "reportAndOrderedArgvParityTest": "Nt51950CtrlRamFw200EvidenceTests.V1AndV2ProduceIdenticalOutputWithCrcOnlyOwnerDeviationAsync",
       "runtimeSupportPromotion": false
     }
   ],

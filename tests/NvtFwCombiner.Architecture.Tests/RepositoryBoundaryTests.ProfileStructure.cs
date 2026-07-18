@@ -131,6 +131,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51930-ctrlram-replace-candidate",
             "nt51931-ctrlram-replace-candidate",
             "nt51932-ctrlram-replace-candidate",
+            "nt51950-ctrlram-replace-candidate",
             "nt51951-ctrlram-replace-candidate",
             "nt51923-standard-merge",
             "nt51927-standard-merge",
@@ -178,6 +179,7 @@ public sealed partial class RepositoryBoundaryTests
                          "nt51930-ctrlram-replace-candidate" or
                          "nt51931-ctrlram-replace-candidate" or
                          "nt51932-ctrlram-replace-candidate" or
+                         "nt51950-ctrlram-replace-candidate" or
                          "nt51951-ctrlram-replace-candidate")
             {
                 Assert.Equal(
