@@ -15,12 +15,7 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         byte[]? image = TryReadFirmwareImage(path);
-        return image is not null && GenFlashVersionCatalog.TryReadDpVersion(
-                icId,
-                image,
-                out GenFlashDpVersionMetadata metadata)
-                    ? new WorkbenchDpVersionMetadata(metadata.VersionToken)
-                    : null;
+        return image is null ? null : ReadDpVersionMetadata(icId, image);
     }
 
     /// <summary>Reads CMI DP Jira and major/minor facts without making unobserved DP sizes a build blocker.</summary>
@@ -38,21 +33,8 @@ public static partial class WorkbenchCompositionService
             return null;
         }
 
-        byte? chipNumber = !string.IsNullOrWhiteSpace(tpPath) &&
-            TryReadFirmwareConfigBackupMetadata(icId, tpPath, out FirmwareConfigMetadata fwConfigMetadata)
-                ? fwConfigMetadata.ChipNumber
-                : null;
-        return GenFlashVersionCatalog.TryReadCmiDpCode(
-                icId,
-                image,
-                chipNumber,
-                out CmiDpCodeMetadata metadata)
-                    ? new WorkbenchCmiDpCodeMetadata(
-                        metadata.MajorVersionByte,
-                        metadata.MinorVersionNibble,
-                        metadata.JiraNumber,
-                        metadata.Register16Offset)
-                    : null;
+        byte? chipNumber = TryReadFirmwareConfigBackupChipNumber(icId, tpPath);
+        return ReadCmiDpCodeMetadata(icId, image, chipNumber);
     }
 
     /// <summary>Reads FWConfig display metadata from the canonical NVT-located Backup in a selected firmware image.</summary>
@@ -61,35 +43,8 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        if (!TryReadFirmwareConfigBackupMetadata(icId, path, out FirmwareConfigMetadata metadata))
-        {
-            return null;
-        }
-
-        try
-        {
-            string? postbuildCategory = TryResolvePostbuildProfileForDisplay(
-                icId,
-                path,
-                out LegacyCombinerPostbuildProfile? postbuildProfile)
-                    ? postbuildProfile!.DisplayCategory
-                    : null;
-            return new WorkbenchFirmwareConfigMetadata(
-                metadata.FirmwareConfigStart,
-                metadata.CommonFwVersion,
-                metadata.FirmwareVersion,
-                metadata.FirmwareVersionBar,
-                metadata.IsFirmwareVersionBarValid,
-                metadata.FirmwareSubVersion,
-                metadata.ChipNumber,
-                metadata.ProjectId,
-                postbuildCategory,
-                metadata.Hardware);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        {
-            return null;
-        }
+        byte[]? image = TryReadFirmwareImage(path);
+        return image is null ? null : ReadFirmwareConfigMetadata(icId, image);
     }
 
     /// <summary>
@@ -101,16 +56,8 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        return TryReadFirmwareConfigBackupMetadata(icId, path, out FirmwareConfigMetadata metadata) &&
-            metadata.ChipNumber != 0 &&
-            TryResolveNumberTokenForFirmwareChipNumber(icId, metadata.ChipNumber, out string? numberToken)
-            ? new WorkbenchFirmwareContextSuggestion(
-                icId,
-                numberToken!,
-                metadata.ChipNumber,
-                metadata.CommonFwVersion,
-                metadata.ProjectId)
-            : null;
+        byte[]? image = TryReadFirmwareImage(path);
+        return image is null ? null : ReadFirmwareContextSuggestion(icId, image);
     }
 
     private static bool TryReadBaseCommonFwVersion(
@@ -192,6 +139,14 @@ public static partial class WorkbenchCompositionService
 
         byte[]? image = TryReadFirmwareImage(path);
         return image is not null && TryReadFirmwareConfigBackupMetadata(icId, image, out metadata);
+    }
+
+    private static byte? TryReadFirmwareConfigBackupChipNumber(string icId, string? tpPath)
+    {
+        return !string.IsNullOrWhiteSpace(tpPath) &&
+            TryReadFirmwareConfigBackupMetadata(icId, tpPath, out FirmwareConfigMetadata metadata)
+                ? metadata.ChipNumber
+                : null;
     }
 
     private static byte[]? TryReadFirmwareImage(string path)
