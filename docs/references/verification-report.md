@@ -6,6 +6,13 @@ Specification package version: `0.9.8`
 
 ## 0.9.10 codebase-audit baseline
 
+Parallel-development update, 2026-07-18: local `0.9.10` was rebased onto the
+current clean `0.9.9` committed tip `7e18cfa0`. The four existing `0.9.10`
+commits were patch-equivalent under `git range-diff`, and `0.9.9...0.9.10`
+became `0/4`. Because `0.9.9` development remains active, this does not close
+the predecessor or full-verification gates; a final rebase and canonical
+verification are still required. The remote `0.9.10` ref was not rewritten.
+
 On 2026-07-17, local `0.9.10` at `762c777d` was audited before readiness
 planning. `origin/0.9.9` and `origin/0.9.10` are sibling lines with five and two
 unique commits respectively, so the current branch is not yet a reviewed
