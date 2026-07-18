@@ -7,6 +7,19 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 /// <summary>Tests legacy profile compilation into one atomic composition artifact.</summary>
 public sealed class CompositionProfileCompilerArtifactTests
 {
+    /// <summary>Locks the retired legacy access explanation out of the executable profile surface.</summary>
+    [Fact]
+    public void LegacyRegionAccessRuleRetainsOnlyExecutableSurface()
+    {
+        Assert.Null(typeof(RegionAccessRule).GetProperty("Reason"));
+        System.Reflection.ConstructorInfo constructor = Assert.Single(
+            typeof(RegionAccessRule).GetConstructors());
+        Assert.Collection(
+            constructor.GetParameters(),
+            parameter => Assert.Equal(typeof(string), parameter.ParameterType),
+            parameter => Assert.Equal(typeof(RegionAccessKind), parameter.ParameterType));
+    }
+
     /// <summary>Verifies successful compilation returns one artifact as the only plan authority.</summary>
     [Fact]
     public void CompileReturnsAtomicLegacyArtifact()

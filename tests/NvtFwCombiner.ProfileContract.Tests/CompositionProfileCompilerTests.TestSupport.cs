@@ -48,8 +48,8 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules ??
             [
-                new RegionAccessRule("header", RegionAccessKind.Hidden, "protect header"),
-                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "allow general mapping"),
+                new RegionAccessRule("header", RegionAccessKind.Hidden),
+                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange),
             ],
             icNumberInputMode ?? (compositionKind == CompositionKind.Replace
                 ? IcNumberInputMode.SingleSelector

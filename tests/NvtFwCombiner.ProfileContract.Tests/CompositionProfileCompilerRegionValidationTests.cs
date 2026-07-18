@@ -129,8 +129,8 @@ public sealed partial class CompositionProfileCompilerTests
             ImageInitialization.Reference("output-image", "source", 4),
             accessRules:
             [
-                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "allow payload"),
-                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "duplicate payload"),
+                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange),
+                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange),
             ]);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);

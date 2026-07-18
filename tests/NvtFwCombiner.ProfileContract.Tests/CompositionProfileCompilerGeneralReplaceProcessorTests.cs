@@ -25,7 +25,7 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange, "allow TP payload"),
+                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange),
             ]);
         ExplicitMapping mapping = CreateMapping(
             ExplicitMappingOperationKind.ReplaceRange);
@@ -62,8 +62,8 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "allow payload"),
-                new RegionAccessRule("tp-window", RegionAccessKind.ExplicitRange, "allow TP window"),
+                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange),
+                new RegionAccessRule("tp-window", RegionAccessKind.ExplicitRange),
             ]);
         ExplicitMapping mapping = CreateMapping(
             ExplicitMappingOperationKind.ReplaceRange);
@@ -103,8 +103,8 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange, "allow TP payload"),
-                new RegionAccessRule("tp-crc", RegionAccessKind.Hidden, "processor owned"),
+                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange),
+                new RegionAccessRule("tp-crc", RegionAccessKind.Hidden),
             ]);
         ExplicitMapping mapping = CreateMapping(
             ExplicitMappingOperationKind.ReplaceRange);
@@ -148,8 +148,8 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange, "processor owned"),
-                new RegionAccessRule("tp-crc", RegionAccessKind.Hidden, "processor owned"),
+                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange),
+                new RegionAccessRule("tp-crc", RegionAccessKind.Hidden),
             ]);
         ExplicitMapping mapping = CreateMapping(
             ExplicitMappingOperationKind.ReplaceRange);
@@ -189,8 +189,8 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange, "allow TP payload"),
-                new RegionAccessRule("tp-crc", RegionAccessKind.Hidden, "processor owned"),
+                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange),
+                new RegionAccessRule("tp-crc", RegionAccessKind.Hidden),
             ]);
         ExplicitMapping mapping = CreateMapping(
             ExplicitMappingOperationKind.ReplaceRange);

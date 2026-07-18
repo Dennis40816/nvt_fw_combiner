@@ -41,8 +41,8 @@ public static class SyntheticReplaceProfiles
                     classificationTags: ["general"]),
             ],
             [
-                new RegionAccessRule("protected-header", RegionAccessKind.Hidden, "Synthetic protected header."),
-                new RegionAccessRule("general-payload", RegionAccessKind.ExplicitRange, "Synthetic general mapping area."),
+                new RegionAccessRule("protected-header", RegionAccessKind.Hidden),
+                new RegionAccessRule("general-payload", RegionAccessKind.ExplicitRange),
             ],
             IcNumberInputMode.SingleSelector);
 }

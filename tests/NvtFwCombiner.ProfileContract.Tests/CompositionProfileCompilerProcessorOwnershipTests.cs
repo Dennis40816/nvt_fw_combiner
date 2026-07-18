@@ -44,7 +44,7 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("ctrlram", RegionAccessKind.Whole, "allow whole CtrlRAM replacement"),
+                new RegionAccessRule("ctrlram", RegionAccessKind.Whole),
             ]);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
@@ -94,7 +94,7 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("payload", RegionAccessKind.Whole, "synthetic non-CtrlRAM payload"),
+                new RegionAccessRule("payload", RegionAccessKind.Whole),
             ]);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
@@ -158,8 +158,8 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "allow payload"),
-                new RegionAccessRule("payload-crc", RegionAccessKind.ExplicitRange, "processor owned"),
+                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange),
+                new RegionAccessRule("payload-crc", RegionAccessKind.ExplicitRange),
             ]);
         ExplicitMapping mapping = CreateMapping(
             ExplicitMappingOperationKind.ReplaceRange,
@@ -199,8 +199,8 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "payload"),
-                new RegionAccessRule("payload-crc", RegionAccessKind.Hidden, "processor owned"),
+                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange),
+                new RegionAccessRule("payload-crc", RegionAccessKind.Hidden),
             ]);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
@@ -231,7 +231,7 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("payload-crc", RegionAccessKind.Hidden, "processor owned"),
+                new RegionAccessRule("payload-crc", RegionAccessKind.Hidden),
             ]);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);

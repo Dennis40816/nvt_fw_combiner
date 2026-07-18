@@ -37,10 +37,7 @@ public static partial class WorkbenchCompositionService
                 region.RegionId,
                 region.WritePolicy == RegionWritePolicy.GeneralExplicit
                     ? RegionAccessKind.ExplicitRange
-                    : RegionAccessKind.Hidden,
-                region.WritePolicy == RegionWritePolicy.GeneralExplicit
-                    ? "General Replace explicit mapping range."
-                    : "Protected from General Replace.")),
+                    : RegionAccessKind.Hidden)),
         ];
         CompositionOperation[] operations = commandPlan is null || postbuildProfile is null
             ? []

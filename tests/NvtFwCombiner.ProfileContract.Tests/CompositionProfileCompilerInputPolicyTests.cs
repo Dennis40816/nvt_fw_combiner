@@ -51,7 +51,7 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("payload-crc", RegionAccessKind.Hidden, "processor owned"),
+                new RegionAccessRule("payload-crc", RegionAccessKind.Hidden),
             ]);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
@@ -86,7 +86,7 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("payload-crc", RegionAccessKind.Hidden, "processor owned"),
+                new RegionAccessRule("payload-crc", RegionAccessKind.Hidden),
             ]);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(

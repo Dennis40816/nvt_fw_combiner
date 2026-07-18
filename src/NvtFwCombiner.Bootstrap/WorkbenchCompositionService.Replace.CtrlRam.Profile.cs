@@ -56,8 +56,7 @@ public static partial class WorkbenchCompositionService
                 classificationTags: ["tp-ctrlram"]));
             accessRules.Add(new RegionAccessRule(
                 region.RegionId,
-                RegionAccessKind.Whole,
-                "CtrlRAM Replace allows whole-region replacement before the postbuild processor refreshes integrity data."));
+                RegionAccessKind.Whole));
         }
 
         int sequence = 100;
@@ -106,14 +105,12 @@ public static partial class WorkbenchCompositionService
                 profileRegions,
                 accessRules,
                 "firmware-version-source",
-                firmwareVersionWritePlan.FirmwareVersionAndBarRange,
-                "TP FW version and complement source for the legacy Combiner Backup propagation.");
+                firmwareVersionWritePlan.FirmwareVersionAndBarRange);
             AddFirmwareVersionWriteRegion(
                 profileRegions,
                 accessRules,
                 "firmware-sub-version-source",
-                firmwareVersionWritePlan.FirmwareSubVersionRange,
-                "TP FW sub-version source for the legacy Combiner Backup propagation.");
+                firmwareVersionWritePlan.FirmwareSubVersionRange);
             operations.Add(CompositionOperation.PatchScalar(
                 "patch-fw-version-and-bar",
                 10,
@@ -198,8 +195,7 @@ public static partial class WorkbenchCompositionService
         List<ProfileRegion> profileRegions,
         List<RegionAccessRule> accessRules,
         string regionId,
-        ByteRange range,
-        string reason)
+        ByteRange range)
     {
         profileRegions.Add(new ProfileRegion(
             regionId,
@@ -208,6 +204,6 @@ public static partial class WorkbenchCompositionService
             RegionAtomicity.Whole,
             RegionWritePolicy.WholeOnly,
             classificationTags: ["firmware-config", "firmware-version"]));
-        accessRules.Add(new RegionAccessRule(regionId, RegionAccessKind.Whole, reason));
+        accessRules.Add(new RegionAccessRule(regionId, RegionAccessKind.Whole));
     }
 }

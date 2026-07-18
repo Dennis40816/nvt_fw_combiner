@@ -43,7 +43,7 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("ctrlram", RegionAccessKind.ExplicitRange, "allow ctrlram"),
+                new RegionAccessRule("ctrlram", RegionAccessKind.ExplicitRange),
             ]);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
@@ -100,7 +100,7 @@ public sealed partial class CompositionProfileCompilerTests
             ],
             accessRules:
             [
-                new RegionAccessRule("ctrlram", RegionAccessKind.Whole, "allow whole ctrlram replacement"),
+                new RegionAccessRule("ctrlram", RegionAccessKind.Whole),
             ]);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
