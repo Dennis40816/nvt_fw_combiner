@@ -28,9 +28,22 @@ public static partial class WorkbenchCompositionService
         string? basePath)
     {
         _ = TryResolvePostbuildProfileForDisplay(icId, basePath, out LegacyCombinerPostbuildProfile? postbuildProfile);
+        return CreateCtrlRamReplaceInputSlots(
+            icId,
+            number,
+            postbuildProfile,
+            !string.IsNullOrWhiteSpace(basePath) && File.Exists(basePath));
+    }
+
+    private static IReadOnlyList<WorkbenchReplaceInputSlot> CreateCtrlRamReplaceInputSlots(
+        string icId,
+        string number,
+        LegacyCombinerPostbuildProfile? postbuildProfile,
+        bool hasReadableBase)
+    {
         LegacyCombinerPostbuildBranch branch = postbuildProfile is null ? LegacyCombinerPostbuildBranch.SingleChip :
             LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, ToIcNumberSelection(number)).Branch;
-        return postbuildProfile is null && basePath is not null && File.Exists(basePath)
+        return postbuildProfile is null && hasReadableBase
             ? []
             : [
             .. BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, ToIcNumberSelection(number), postbuildProfile)

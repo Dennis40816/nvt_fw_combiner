@@ -65,6 +65,7 @@ public sealed partial class RepositoryBoundaryTests
         string mergeCli = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.cs");
         string mergeUi = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Merge.cs");
         string firmwareMetadata = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs");
+        string firmwareInspection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareInspection.cs");
         string workbenchModels = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionModels.cs");
         string outputNaming = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.OutputNaming.cs");
         string ctrlRamDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs");
@@ -129,8 +130,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("TryGetFirmwareConfigPrimaryStart", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("HaveEquivalentFirmwareConfigValues", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("GenFlashVersionCatalog.TryReadDpVersion", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("DisplayCategory", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("ReadDpVersionMetadata(icId, image)", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("GenFlashVersionCatalog.TryReadDpVersion", firmwareInspection, StringComparison.Ordinal);
+        Assert.Contains("InspectFirmware", firmwareInspection, StringComparison.Ordinal);
+        Assert.Contains("DisplayCategory", firmwareInspection, StringComparison.Ordinal);
         Assert.DoesNotContain("PostbuildSetup_", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("GetCtrlRamRegions", firmwareMetadata, StringComparison.Ordinal);

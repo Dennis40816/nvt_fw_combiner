@@ -32,6 +32,20 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
+        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
+            TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
+                ? profile
+                : null;
+        return CreateReplaceMemoryDisplay(icId, number, replaceMode, dpBaseLength, postbuildProfile);
+    }
+
+    private static WorkbenchMemoryDisplay CreateReplaceMemoryDisplay(
+        string icId,
+        string number,
+        string replaceMode,
+        long? dpBaseLength,
+        LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
         if (GetReplaceWorkflowId(replaceMode) is not null &&
             !IsReplaceWorkflowSupported(icId, replaceMode))
         {
@@ -55,10 +69,6 @@ public static partial class WorkbenchCompositionService
         }
 
         IcNumberSelection selection = ToIcNumberSelection(number);
-        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
-            TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
-                ? profile
-                : null;
         IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
             icId,
             selection,

@@ -110,6 +110,25 @@ public sealed record WorkbenchFirmwareContextSuggestion(
     string CommonFwVersion,
     ushort ProjectId);
 
+/// <summary>One read-only workbench projection decoded from one immutable firmware image read.</summary>
+public sealed record WorkbenchFirmwareInspection(
+    string? DetectedIcId,
+    WorkbenchFirmwareConfigMetadata? FirmwareConfig,
+    WorkbenchDpVersionMetadata? DpVersion,
+    WorkbenchCmiDpCodeMetadata? CmiDpCode,
+    WorkbenchFirmwareContextSuggestion? ContextSuggestion,
+    WorkbenchCtrlRamInspectionDisplay? CtrlRamDisplay);
+
+/// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>
+public sealed record WorkbenchCtrlRamInspectionRequest(string NumberToken);
+
+/// <summary>Materialized CtrlRAM shell projections derived from the inspected base firmware.</summary>
+public sealed record WorkbenchCtrlRamInspectionDisplay(
+    string NumberToken,
+    IReadOnlyList<WorkbenchCtrlRamRegion> Regions,
+    IReadOnlyList<WorkbenchReplaceInputSlot> InputSlots,
+    WorkbenchMemoryDisplay MemoryDisplay);
+
 /// <summary>One selected firmware path candidate used by output naming metadata policy.</summary>
 public sealed record WorkbenchOutputNameCandidate(
     WorkbenchOutputNameCandidateKind Kind,

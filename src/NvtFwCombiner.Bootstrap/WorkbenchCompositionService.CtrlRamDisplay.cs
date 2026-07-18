@@ -17,6 +17,14 @@ public static partial class WorkbenchCompositionService
             out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
+        return CreateCtrlRamRegions(icId, number, postbuildProfile);
+    }
+
+    private static IReadOnlyList<WorkbenchCtrlRamRegion> CreateCtrlRamRegions(
+        string icId,
+        string number,
+        LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
         return
         [
             .. BuiltInTpFlashMapCatalog.GetRegions(icId, ToIcNumberSelection(number), postbuildProfile, TpFlashMapRegionKind.CtrlRam)
