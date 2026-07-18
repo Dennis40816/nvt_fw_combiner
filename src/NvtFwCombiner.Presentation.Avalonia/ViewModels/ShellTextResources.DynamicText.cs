@@ -12,34 +12,6 @@ public sealed partial class ShellTextResources
         return Language == ShellLanguage.ChineseTraditional ? traditionalChinese : english;
     }
 
-    public string GetThemePreferenceStatus(string selectedTheme)
-    {
-        return selectedTheme switch
-        {
-            "System" => SelectLanguage("Follows the operating-system theme.", "跟隨作業系統主題。"),
-            "Light" => SelectLanguage("Light theme is applied to this window.", "目前視窗已套用亮色主題。"),
-            "Dark" => SelectLanguage("Dark theme is applied to this window.", "目前視窗已套用暗色主題。"),
-            "High contrast" => SelectLanguage(
-                "Uses the dark visual variant; firmware gates are unchanged.",
-                "目前使用暗色視覺變體；韌體 gate 不受影響。"),
-            _ => SelectLanguage("Theme preference is saved locally.", "主題偏好已儲存在本機。"),
-        };
-    }
-
-    public string GetLanguagePreferenceStatus(string selectedLanguage)
-    {
-        return selectedLanguage switch
-        {
-            "Traditional Chinese" => SelectLanguage(
-                "Traditional Chinese shell resources are active and restored on startup.",
-                "繁體中文介面已套用並會在啟動時還原。"),
-            "English" => SelectLanguage(
-                "English shell resources are active and restored on startup.",
-                "英文介面已套用並會在啟動時還原。"),
-            _ => SelectLanguage("Language preference is saved locally.", "語言偏好已儲存在本機。"),
-        };
-    }
-
     public string GetReplaceModeDescription(string mode)
     {
         return mode switch

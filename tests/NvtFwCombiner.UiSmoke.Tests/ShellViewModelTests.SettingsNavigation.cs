@@ -20,11 +20,14 @@ public sealed partial class ShellViewModelTests
         string expectedVersion = File.ReadAllText(RepositoryPaths.FromRepositoryRoot("VERSION")).Trim();
         Assert.Equal(expectedVersion, viewModel.AppVersion);
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Supported ICs" && row.Value == "13");
+        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "IC catalog" && row.Value == "13");
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Standard Merge" && row.Value == "13 profiles");
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "3 profiles");
-        Assert.Contains(viewModel.SettingsCapabilityRows, row => row.Title == "CtrlRAM Replace-enabled ICs" && row.Value == "12 ICs");
-        Assert.Contains(viewModel.SettingsCapabilityRows, row => row.Title == "External postbuild tools" && row.Value == "1 binding");
+        SettingSummaryViewModel capability = Assert.Single(viewModel.SettingsCapabilityRows);
+        Assert.Equal("CtrlRAM Replace available ICs", capability.Title);
+        Assert.Equal("12 ICs", capability.Value);
+        Assert.Equal("Available", capability.Status);
+        Assert.Equal(["System", "Light", "Dark"], viewModel.ThemeChoices);
 
         viewModel.SelectedTheme = "Dark";
         viewModel.SelectedLanguage = "Traditional Chinese";
@@ -32,23 +35,18 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("設定", viewModel.SettingsPreview.Title);
         Assert.Equal("建立", viewModel.Text.BuildActionLabel);
         Assert.Equal("首頁 > 設定", viewModel.NavigationPath);
-        Assert.Equal("目前視窗已套用暗色主題。", viewModel.ThemePreferenceStatus);
-        Assert.Equal("繁體中文介面已套用並會在啟動時還原。", viewModel.LanguagePreferenceStatus);
         Assert.Contains(viewModel.MergeSlots, slot =>
             slot.Title == "DP BIN" &&
             slot.RequirementLabel == "必填" &&
             slot.DisplayName == "尚未選擇 BIN");
         Assert.Equal("必填", viewModel.ReplaceBaseSlot.RequirementLabel);
         Assert.Equal("尚未選擇 BIN", viewModel.ReplaceBaseSlot.DisplayName);
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "支援 IC" && row.Status == "Catalog");
+        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "IC 目錄" && row.Status == "Catalog");
         Assert.Contains(viewModel.SettingsCapabilityRows, row =>
-            row.Title == "已啟用 CtrlRAM Replace 的 IC" &&
+            row.Title == "CtrlRAM Replace 可用 IC" &&
             row.Value == "12 ICs" &&
-            row.Status == "已啟用" &&
-            row.Description.Contains("firmware-owner evidence", StringComparison.Ordinal));
-        Assert.Contains(viewModel.SettingsCapabilityRows, row =>
-            row.Title == "外部 postbuild tools" &&
-            row.Status == "固定");
+            row.Status == "可用" &&
+            row.Description.Contains("golden 驗證狀態", StringComparison.Ordinal));
     }
 
     /// <summary>Verifies breadcrumbs show page hierarchy while Back returns to the previous page.</summary>

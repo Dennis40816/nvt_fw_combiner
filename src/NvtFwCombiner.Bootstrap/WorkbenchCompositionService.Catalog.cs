@@ -64,18 +64,11 @@ public static partial class WorkbenchCompositionService
     public static WorkbenchSettingsSnapshot GetSettingsSnapshot()
     {
         IReadOnlyList<string> icIds = IcSupportCatalog.IcIds;
-        int externalToolBindingCount = icIds
-            .SelectMany(IcMetadataFacade.GetPostbuildProfiles)
-            .Select(static profile => profile.ToolBindingId)
-            .Distinct(StringComparer.Ordinal)
-            .Count();
-
         return new WorkbenchSettingsSnapshot(
             icIds.Count,
             StandardMergeProfileSummaries.Count,
             ReplaceProfileSummaries.Count,
-            icIds.Count(icId => IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.CtrlRamReplace)),
-            externalToolBindingCount);
+            icIds.Count(icId => IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.CtrlRamReplace)));
     }
 
     private static ReadOnlyCollection<WorkbenchProfileSummary> CreateStandardMergeProfileSummaries()

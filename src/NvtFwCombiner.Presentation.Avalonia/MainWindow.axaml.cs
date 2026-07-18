@@ -126,7 +126,7 @@ public sealed partial class MainWindow : Window
         RequestedThemeVariant = selectedTheme switch
         {
             "Light" => ThemeVariant.Light,
-            "Dark" or "High contrast" => ThemeVariant.Dark,
+            "Dark" => ThemeVariant.Dark,
             _ => ThemeVariant.Default,
         };
     }

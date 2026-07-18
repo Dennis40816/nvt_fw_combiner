@@ -29,7 +29,6 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Dark", restoredViewModel.SelectedTheme);
         Assert.Equal("Traditional Chinese", restoredViewModel.SelectedLanguage);
         Assert.Equal("設定", restoredViewModel.SettingsPreview.Title);
-        Assert.Equal("繁體中文介面已套用並會在啟動時還原。", restoredViewModel.LanguagePreferenceStatus);
         Assert.Equal(preferences, restoredViewModel.ExportShellPreferences());
 
         File.WriteAllText(preferencesPath, "{not valid json");

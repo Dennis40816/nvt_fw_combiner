@@ -159,7 +159,7 @@ public sealed partial class ShellTextResources
             SettingsOverviewTitle = Pick("Product information", "產品資訊"),
             SettingsOverviewSubtitle = Pick("Installed version and executable profile coverage.", "已安裝版本與可執行 profile coverage。"),
             SettingsCapabilitiesTitle = Pick("Implemented capabilities", "已實作功能"),
-            SettingsCapabilitiesSubtitle = Pick("Catalog-backed CtrlRAM and external processor coverage.", "由 catalog 提供的 CtrlRAM 與外部 processor coverage。"),
+            SettingsCapabilitiesSubtitle = Pick("Workflow availability backed by executable safety contracts.", "由 executable safety contract 支撐的 workflow availability。"),
             SettingsPreferencesTitle = Pick("Preferences", "偏好設定"),
             SettingsPreferencesSubtitle = Pick("Preferences that take effect now and are restored on startup.", "立即生效並在啟動時還原的本機偏好。"),
             ThemeLabel = Pick("Theme", "主題"),

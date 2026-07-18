@@ -5,11 +5,10 @@ namespace NvtFwCombiner.Bootstrap;
 
 /// <summary>Catalog and tool status used by the Settings page.</summary>
 public sealed record WorkbenchSettingsSnapshot(
-    int SupportedIcCount,
+    int CatalogIcCount,
     int StandardMergeProfileCount,
-    int ReplaceProfileCount,
-    int CtrlRamReplaceIcCount,
-    int ExternalToolBindingCount);
+    int DpReplaceProfileCount,
+    int CtrlRamReplaceAvailableIcCount);
 
 /// <summary>One stable workbench IC-number choice projected from compatibility catalogs.</summary>
 public sealed record WorkbenchIcNumberChoice(string Token, string DisplayLabel);

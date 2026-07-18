@@ -18,7 +18,6 @@ public sealed partial class MainWindowViewModel
         "System",
         "Light",
         "Dark",
-        "High contrast",
     ];
 
     /// <summary>Gets language choices for the settings surface.</summary>
@@ -35,12 +34,6 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets or sets the selected language preference.</summary>
     [ObservableProperty]
     public partial string SelectedLanguage { get; set; } = "English";
-
-    /// <summary>Gets the current theme preference effect shown next to the selector.</summary>
-    public string ThemePreferenceStatus => Text.GetThemePreferenceStatus(SelectedTheme);
-
-    /// <summary>Gets the current language preference effect shown next to the selector.</summary>
-    public string LanguagePreferenceStatus => Text.GetLanguagePreferenceStatus(SelectedLanguage);
 
     /// <summary>Exports local shell preferences for best-effort UI persistence.</summary>
     public ShellPreferenceSnapshot ExportShellPreferences()
@@ -73,11 +66,11 @@ public sealed partial class MainWindowViewModel
                     : "Application version in the installed package.",
                 Text.Language == ShellLanguage.ChineseTraditional ? "目前版本" : "Current"),
             new SettingSummaryViewModel(
-                Text.Language == ShellLanguage.ChineseTraditional ? "支援 IC" : "Supported ICs",
-                $"{snapshot.SupportedIcCount}",
+                Text.Language == ShellLanguage.ChineseTraditional ? "IC 目錄" : "IC catalog",
+                $"{snapshot.CatalogIcCount}",
                 Text.Language == ShellLanguage.ChineseTraditional
-                    ? "可由共用 IC 選擇器載入的 catalog 項目。"
-                    : "Catalog entries available from the shared IC selector.",
+                    ? "共用選擇器中的 IC 項目；各 workflow availability 仍分開判定。"
+                    : "IC entries in the shared selector; workflow availability is evaluated separately.",
                 "Catalog"),
             new SettingSummaryViewModel(
                 "Standard Merge",
@@ -88,7 +81,7 @@ public sealed partial class MainWindowViewModel
                 Text.Language == ShellLanguage.ChineseTraditional ? "可執行" : "Executable"),
             new SettingSummaryViewModel(
                 "DP Replace",
-                $"{snapshot.ReplaceProfileCount} profiles",
+                $"{snapshot.DpReplaceProfileCount} profiles",
                 Text.Language == ShellLanguage.ChineseTraditional
                     ? "已編譯並可執行的 V2 DP Replace profiles。"
                     : "Compiled executable V2 DP Replace profiles.",
@@ -99,21 +92,12 @@ public sealed partial class MainWindowViewModel
             SettingsCapabilityRows,
             [
             new SettingSummaryViewModel(
-                Text.Language == ShellLanguage.ChineseTraditional ? "已啟用 CtrlRAM Replace 的 IC" : "CtrlRAM Replace-enabled ICs",
-                $"{snapshot.CtrlRamReplaceIcCount} ICs",
+                Text.Language == ShellLanguage.ChineseTraditional ? "CtrlRAM Replace 可用 IC" : "CtrlRAM Replace available ICs",
+                $"{snapshot.CtrlRamReplaceAvailableIcCount} ICs",
                 Text.Language == ShellLanguage.ChineseTraditional
-                    ? "Catalog 與 policy 已啟用 CtrlRAM Replace；部分 IC 仍需 firmware-owner evidence。"
-                    : "Catalog- and policy-enabled CtrlRAM Replace; some ICs still require firmware-owner evidence.",
-                Text.Language == ShellLanguage.ChineseTraditional ? "已啟用" : "Enabled"),
-            new SettingSummaryViewModel(
-                Text.Language == ShellLanguage.ChineseTraditional ? "外部 postbuild tools" : "External postbuild tools",
-                snapshot.ExternalToolBindingCount == 1
-                    ? "1 binding"
-                    : $"{snapshot.ExternalToolBindingCount} bindings",
-                Text.Language == ShellLanguage.ChineseTraditional
-                    ? "已註冊且由 manifest 固定 hash 的 processor tool bindings。"
-                    : "Processor tool bindings registered with manifest-pinned hashes.",
-                Text.Language == ShellLanguage.ChineseTraditional ? "固定" : "Pinned"),
+                    ? "已有 executable/safety contract；golden 驗證狀態由各 workflow 分開顯示。"
+                    : "An executable/safety contract exists; golden verification remains a separate per-workflow status.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "可用" : "Available"),
             ]);
     }
 
@@ -127,14 +111,8 @@ public sealed partial class MainWindowViewModel
             : fallback;
     }
 
-    partial void OnSelectedThemeChanged(string value)
-    {
-        OnPropertyChanged(nameof(ThemePreferenceStatus));
-    }
-
     partial void OnSelectedLanguageChanged(string value)
     {
         ApplyTextResources(ShellTextResources.LanguageFromPreference(value));
-        OnPropertyChanged(nameof(LanguagePreferenceStatus));
     }
 }
