@@ -10,11 +10,17 @@ public sealed class BuiltInPostbuildProfileCatalogTests
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/catalog.json";
 
-    /// <summary>The deployed hash-pinned catalog constructs all reviewed profile rows.</summary>
+    /// <summary>The deployed hash-pinned catalog exposes only runtime-approved profile rows.</summary>
     [Fact]
-    public void LoadReadsEveryBuiltInProfile()
+    public void LoadReadsEveryRuntimeBuiltInProfile()
     {
-        Assert.Equal(15, BuiltInPostbuildProfileCatalog.All.Count);
+        Assert.Equal(14, BuiltInPostbuildProfileCatalog.All.Count);
+        Assert.DoesNotContain(
+            BuiltInPostbuildProfileCatalog.All,
+            profile => profile.ProcessorId == "nfc.nt51930.ctrlram-postbuild-v1");
+        Assert.Contains(
+            BuiltInPostbuildProfileCatalog.All,
+            profile => profile.ProcessorId == "nfc.nt51930.ctrlram-postbuild-fw1.x");
     }
 
     /// <summary>A catalog byte change cannot pass under the release-pinned hash.</summary>
@@ -35,7 +41,7 @@ public sealed class BuiltInPostbuildProfileCatalogTests
         byte[] lfBytes = Encoding.UTF8.GetBytes(lfText);
         byte[] crlfBytes = Encoding.UTF8.GetBytes(lfText.Replace("\n", "\r\n", StringComparison.Ordinal));
 
-        Assert.Equal(15, BuiltInPostbuildProfileCatalog.Load(crlfBytes, Hash(lfBytes)).Count);
+        Assert.Equal(14, BuiltInPostbuildProfileCatalog.Load(crlfBytes, Hash(lfBytes)).Count);
     }
 
     /// <summary>Unknown config fields fail closed after their exact bytes are explicitly trusted.</summary>
@@ -57,6 +63,19 @@ public sealed class BuiltInPostbuildProfileCatalogTests
         JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
         JsonObject command = Assert.IsType<JsonObject>(root["profiles"]![0]!["singleCommands"]![0]);
         command["modeArgument"] = "UNREVIEWED_MODE";
+        byte[] bytes = Encoding.UTF8.GetBytes(root.ToJsonString());
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
+    }
+
+    /// <summary>Config cannot invent an availability classification that bypasses runtime review.</summary>
+    [Fact]
+    public void LoadRejectsUnknownProfileAvailability()
+    {
+        JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
+        JsonObject profile = Assert.IsType<JsonObject>(root["profiles"]![0]);
+        profile["availability"] = "unreviewed";
         byte[] bytes = Encoding.UTF8.GetBytes(root.ToJsonString());
 
         _ = Assert.Throws<InvalidDataException>(() =>

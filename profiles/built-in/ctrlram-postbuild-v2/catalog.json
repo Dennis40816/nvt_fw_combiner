@@ -5184,6 +5184,7 @@
         "pattern": "2.0.0",
         "description": "Common FW 2.0.0 =\u003E PostbuildSetup_51930_2.0.0"
       },
+      "availability": "evidence-only",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51930_2.0.0.bat"
     },
     {

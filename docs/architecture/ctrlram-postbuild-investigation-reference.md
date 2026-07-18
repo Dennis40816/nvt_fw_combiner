@@ -232,7 +232,7 @@ The earlier single-branch hidden-mutation observation with the current `2.0.0` c
 
 Current interpretation:
 
-- NT51930 production selection must distinguish `1.4.0` and `2.0.0` evidence.
+- NT51930 evidence must distinguish the inspected `1.4.0` and `2.0.0` shapes; production accepts only Common FW 1.x through the 1.4.0 shape, while 2.0.0 is evidence-only.
 - Current 51930 golden should be validated with the `1.4.0` postbuild reference first.
 - Any production acceptance of `2.0.0`-only broad writes requires matching `2.0.0` golden output, explicit processor-owned/protected range evidence, and firmware-owner review.
 

@@ -40,7 +40,7 @@ The `51926 TP Flashmap` detail sheet still carries the 2.0.0-style single table,
 
 Committed NT51926 `1.4.1` BIN evidence has exactly one little-endian end-flag marker (`00 4E 56 54`) and it starts at `0x3BFFC`. The same check on the 2026-07-05 base, Standard Merge TP input, and Standard Merge expected flash shows `0x34FFC = 00 00 00 00`. Use the selected postbuild category for FWConfig/header-copy lengths, and do not treat the 2.0.0 mmap `FLASHMAP_ENDFLAG 0x34FFC` row as the actual marker location for the current `1.4.1` fixture.
 
-NT51930 has an archived `IC > 13, Max29` extended DiffDLM row in the 2026-07-05 10:34:14 workbook, but no current product evidence authorizes that branch. Both 1.x and 2.0.0 categories therefore keep counts `14..29` on the approved `0xFE00` cascade DiffDLM range until the owner explicitly reactivates the extended command.
+NT51930 has an archived `IC > 13, Max29` extended DiffDLM row in the 2026-07-05 10:34:14 workbook, but no current product evidence authorizes that branch. Runtime Common FW 1.x therefore keeps counts `14..29` on the approved `0xFE00` cascade DiffDLM range until the owner explicitly reactivates the extended command. The inspected 2.0.0 category is evidence-only.
 
 | NT51930 source | Branch | MP | VN | DiffDLM | Header copy |
 | --- | --- | --- | --- | --- | --- |

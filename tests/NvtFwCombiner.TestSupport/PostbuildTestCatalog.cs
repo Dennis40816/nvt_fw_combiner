@@ -28,8 +28,6 @@ public static class PostbuildTestCatalog
     /// <summary>Named fixture projection.</summary>
     public static LegacyCombinerPostbuildProfile Nt51929 => Find("nfc.nt51929.ctrlram-postbuild-v1");
     /// <summary>Named fixture projection.</summary>
-    public static LegacyCombinerPostbuildProfile Nt51930 => Find("nfc.nt51930.ctrlram-postbuild-v1");
-    /// <summary>Named fixture projection.</summary>
     public static LegacyCombinerPostbuildProfile Nt51930CommonFw1x => Find("nfc.nt51930.ctrlram-postbuild-fw1.x");
     /// <summary>Named fixture projection.</summary>
     public static LegacyCombinerPostbuildProfile Nt51931 => Find("nfc.nt51931.ctrlram-postbuild-v1");

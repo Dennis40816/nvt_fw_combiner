@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Infrastructure.ExternalTools;
 internal static class BuiltInPostbuildProfileCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/catalog.json";
-    private const string ExpectedSha256 = "59ec1a298c63e8c692386848bff08dff8dec492f48a2d2c493eed0ee3a095328";
+    private const string ExpectedSha256 = "08c73483acab41e9c87d38064dd52186668fe9f89606be145c161f34aa171e65";
     private static readonly Lazy<IReadOnlyList<LegacyCombinerPostbuildProfile>> Profiles = new(Load);
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> All => Profiles.Value;
@@ -32,10 +32,18 @@ internal static class BuiltInPostbuildProfileCatalog
             throw new InvalidDataException("Built-in CtrlRAM Postbuild catalog must use schema 2.0 with profiles.");
         }
 
-        LegacyCombinerPostbuildProfile[] profiles = [.. document.Profiles.Select(CreateProfile)];
-        return profiles.Select(static profile => profile.ProcessorId).Distinct(StringComparer.Ordinal).Count() == profiles.Length
-            ? Array.AsReadOnly(profiles)
-            : throw new InvalidDataException("Built-in CtrlRAM Postbuild catalog repeats a processor id.");
+        ProfileDocument[] sources = [.. document.Profiles];
+        LegacyCombinerPostbuildProfile[] declaredProfiles = [.. sources.Select(CreateProfile)];
+        if (declaredProfiles.Select(static profile => profile.ProcessorId).Distinct(StringComparer.Ordinal).Count() != declaredProfiles.Length)
+        {
+            throw new InvalidDataException("Built-in CtrlRAM Postbuild catalog repeats a processor id.");
+        }
+
+        LegacyCombinerPostbuildProfile[] runtimeProfiles =
+        [
+            .. declaredProfiles.Where((_, index) => IsRuntimeProfile(sources[index])),
+        ];
+        return Array.AsReadOnly(runtimeProfiles);
     }
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> GetProfiles(string icId)
@@ -67,7 +75,7 @@ internal static class BuiltInPostbuildProfileCatalog
             return false;
         }
 
-        if (profiles.Count == 1)
+        if (profiles.Count == 1 && profiles[0].CommonFwVersionRule is null)
         {
             postbuildProfile = profiles[0];
             issue = null;
@@ -86,7 +94,7 @@ internal static class BuiltInPostbuildProfileCatalog
 
         postbuildProfile = null;
         issue = string.IsNullOrWhiteSpace(commonFwVersion)
-            ? $"{icId} has multiple postbuild categories; base FWConfig Common FW version is required."
+            ? $"{icId} has a versioned postbuild category; base FWConfig Common FW version is required."
             : $"{icId} Common FW {commonFwVersion} has no approved postbuild category. Supported categories: {Describe(profiles)}.";
         return false;
     }
@@ -144,6 +152,16 @@ internal static class BuiltInPostbuildProfileCatalog
                     },
                     source.CommonFwVersionRule.Pattern,
                     source.CommonFwVersionRule.Description));
+    }
+
+    private static bool IsRuntimeProfile(ProfileDocument source)
+    {
+        return source.Availability switch
+        {
+            null or "runtime" => true,
+            "evidence-only" => false,
+            _ => throw Invalid("profile availability"),
+        };
     }
 
     private static LegacyCombinerPostbuildCommand CreateCommand(CommandDocument source)
@@ -223,6 +241,7 @@ internal static class BuiltInPostbuildProfileCatalog
         IReadOnlyList<BranchRuleDocument>? BranchRules,
         string AssemblyKind,
         CommonFwVersionRuleDocument? CommonFwVersionRule,
+        string? Availability,
         string Evidence);
 
     private sealed record CommandDocument(

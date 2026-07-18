@@ -32,7 +32,7 @@ lengths fail closed.
 Highlighted conclusion:
 
 ```text
-NT51926 and NT51930 are versioned postbuild-category cases. Use the base BIN FWConfig Common FW version before selecting a postbuild profile: NT51926 Common FW 1.4.1 uses the 1.4.1 reference, NT51926 Common FW 2.0.0 uses the 2.0.0 reference, NT51930 Common FW 1.x.x uses the archived 1.4.0 reference, and NT51930 Common FW 2.0.0 uses the 2.0.0 reference.
+NT51926 and NT51930 are versioned postbuild-category cases. Use the base BIN FWConfig Common FW version before selecting a postbuild profile: NT51926 Common FW 1.4.1 uses the 1.4.1 reference, NT51926 Common FW 2.0.0 uses the 2.0.0 reference, and NT51930 accepts only Common FW 1.x.x through the archived 1.4.0 reference. The inspected NT51930 2.0.0 BAT is evidence-only because the owner confirmed that no stable 2.0.0 project exists.
 ```
 
 The currently visible version-crossing issue is concentrated in ICs whose postbuild changed between 1.4.x/1.x.x and 2.0.0. The known differences are header-copy range/length/command-count changes:
@@ -206,7 +206,7 @@ No-overlay/header-copy size cross-check:
 | NT51923 | `PostbuildSetup_51923_1.4.1.bat` | `0x100`; golden header table also reports `0x100`. |
 | NT51926 | `PostbuildSetup_51926_1.4.1.bat` and `PostbuildSetup_51926_2.0.0.bat` | Size remains `0x100`; mismatch is target address/codebase, not size. |
 | NT51929 / NT51932 | `PostbuildSetup_51932_2.0.0.bat` | `0x200`; this is the 2.0.0 NT-based header size. |
-| NT51930 | `PostbuildSetup_51930_1.4.0.bat` and `PostbuildSetup_51930_2.0.0.bat` | `0x100` for 1.4.0 evidence; `0x200` for 2.0.0 evidence. Use FWConfig/category before choosing. |
+| NT51930 | `PostbuildSetup_51930_1.4.0.bat`; `PostbuildSetup_51930_2.0.0.bat` evidence-only | Runtime accepts only 1.x through the 1.4.0 shape (`0x100`). The inspected 2.0.0 shape (`0x200`) is retained for traceability and cannot be selected. |
 | NT51931 | `PostbuildSetup_51931_1.3.0.bat` | `0x100` in official reference, but official execution still crashes with Combiner 1.13.0. |
 | NT51950 / NT51951 | `PostbuildSetup_51950_2.0.0.bat` | `0x200`; this is the 2.0.0 NT-based header size. |
 
@@ -233,7 +233,7 @@ TP Overview evidence notes:
 - The owner workbook now carries explicit postbuild codebase/category notes for ICs where Common FW `1.x.x` and `2.0.0` use different header copy behavior.
 - NT51926 now has two documented TP Overview sections: Common FW `1.4.1` uses header copy `0x0 -> 0x32F50`, length `0x100`, VN length `0x1660`, and FWConfig backup length `0x800`; Common FW `2.0.0` uses `0x0 -> 0x32A70`, length `0x100`, VN length `0x149E`, and FWConfig backup length `0x780`. The current golden/base evidence reads Common FW `1.4.1`.
 - NT51926 `1.4.1` committed BIN evidence has one little-endian end-flag marker (`00 4E 56 54`) at `0x3BFFC`; `0x34FFC` is `00 00 00 00` in the 2026-07-05 base, Standard Merge TP input, and expected flash. Treat `0x34FFC` as the 2.0.0 mmap/TP Overview `FLASHMAP_ENDFLAG` row, not as the actual marker location for the current `1.4.1` fixture.
-- NT51930 has documented TP Overview category notes: Common FW `1.4.0/1.x.x` evidence uses `0x7000 -> 0x28FB0`, length `0x100`, single postbuild command, consumes `MP_Ctrlram.bin`, and uses VN length `0x195E`; numeric cascade `2..29` uses the approved `DiffDLM` length `0xFE00`. Common FW `2.0.0` uses length `0x200`, includes a second header-only command, and does not currently consume `MP_Ctrlram.bin`. The current Standard Merge golden reads Common FW `1.3.0`, so it must not be validated against the 2.0.0 row.
+- NT51930 has documented TP Overview category notes: Common FW `1.4.0/1.x.x` evidence uses `0x7000 -> 0x28FB0`, length `0x100`, single postbuild command, consumes `MP_Ctrlram.bin`, and uses VN length `0x195E`; numeric cascade `2..29` uses the approved `DiffDLM` length `0xFE00`. The inspected Common FW `2.0.0` BAT uses length `0x200`, includes a second header-only command, and does not consume `MP_Ctrlram.bin`, but it is evidence-only and not runtime-selectable. The current Standard Merge golden reads Common FW `1.3.0`.
 - The workbench uses default TP Overview rows before a base image is loaded, then refreshes visible replaceable CtrlRAM slots after FWConfig category selection so NT51930 `1.x.x` exposes MP as consumed and NT51926 `1.4.1` exposes the correct VN/FWConfig lengths.
 - TP Overview should include the primary `FLASHMAP_FW_REGISTER` start per IC because UI traceability and postbuild-category selection now read Common FW/FW/PID from FWConfig.
 - A 2026-07-06 TP Overview end-flag audit checked the row immediately before each `end_flag (0x00,N,V,T)` section:
@@ -335,7 +335,7 @@ Do not implement header-copy prefill as a production mode.
 
 Reasoning:
 
-- It does not answer the real NT51926/NT51930 issue. Current evidence points to postbuild-version mismatch: 1.x.x-era golden files are being tested with 2.0.0 postbuild shape.
+- It does not answer the real NT51926 issue. NT51930 now fails closed outside Common FW 1.x so a 1.x-era golden cannot be tested with the evidence-only 2.0.0 shape.
 - Combiner header-copy commands overwrite the target before CRC/header recalculation. When the correct postbuild version is selected, target prefill should usually be irrelevant.
 - If any byte in the prefilled target is not overwritten, the mode can erase meaningful prior-generation header state and weaken golden evidence.
 - It would add a visible mutation before the external processor, so reports, allowed-write ranges, and golden explanations must all account for it.

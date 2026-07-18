@@ -260,12 +260,12 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             block => block.SourceFileName == "DiffDLM.bin");
     }
 
-    /// <summary>Locks NT51930 cascade support to the current owner-approved less-or-equal 13 IC DiffDLM branch.</summary>
+    /// <summary>Locks NT51930 Common FW 1.x cascade support to the approved DiffDLM branch.</summary>
     [Fact]
     public void Nt51930CascadeUsesLessOrEqual13IcDiffDlmLength()
     {
         LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51930,
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
             new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
 
         LegacyCombinerBlockArgument diffBlock = plan.Commands

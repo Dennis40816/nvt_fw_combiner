@@ -275,9 +275,9 @@ public sealed class BuiltInTpFlashMapCatalogTests
         }
     }
 
-    /// <summary>Overview-only rows remain visible even when postbuild does not currently consume a separate BIN.</summary>
+    /// <summary>NT51930 Common FW 1.x exposes and consumes its MP CtrlRAM input.</summary>
     [Fact]
-    public void Nt51930MpCtrlRamIsVisibleAsOverviewOnly()
+    public void Nt51930CommonFw1xConsumesMpCtrlRam()
     {
         IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51930",
@@ -287,10 +287,10 @@ public sealed class BuiltInTpFlashMapCatalogTests
         IReadOnlyList<TpFlashMapRegion> postbuildMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
             new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]),
-            LegacyCombinerPostbuildCatalog.Nt51930);
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
 
         Assert.Contains(regions, region => region.RegionId == "mp" && region.Tags.Contains("overview-only"));
-        Assert.DoesNotContain(postbuildMapped, region => region.RegionId == "mp");
+        Assert.Contains(postbuildMapped, region => region.RegionId == "mp");
     }
 
     /// <summary>NT51926 CtrlRAM rows follow the selected Common FW postbuild category.</summary>
@@ -318,7 +318,7 @@ public sealed class BuiltInTpFlashMapCatalogTests
             commonFw200Regions.Single(region => region.RegionId == "fw-config-backup").Range);
     }
 
-    /// <summary>NT51930 Common FW 1.x consumes MP CtrlRAM while 2.0.0 keeps MP overview-only.</summary>
+    /// <summary>NT51930 Common FW 1.x keeps its approved MP/VN and large-count DiffDLM mapping.</summary>
     [Fact]
     public void Nt51930PostbuildCategoryControlsMpConsumption()
     {
@@ -328,10 +328,6 @@ public sealed class BuiltInTpFlashMapCatalogTests
             "NT51930",
             selection,
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
-        IReadOnlyList<TpFlashMapRegion> commonFw200Mapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
-            "NT51930",
-            selection,
-            LegacyCombinerPostbuildCatalog.Nt51930);
         IReadOnlyList<TpFlashMapRegion> commonFw1xLargeCountMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"]),
@@ -340,8 +336,6 @@ public sealed class BuiltInTpFlashMapCatalogTests
         Assert.Contains(commonFw1xMapped, region => region.RegionId == "mp" && region.Range == new ByteRange(0x24250, 0x3400));
         Assert.Contains(commonFw1xMapped, region => region.RegionId == "vn" && region.Range == new ByteRange(0x27650, 0x195E));
         Assert.Contains(commonFw1xLargeCountMapped, region => region.RegionId == "diff" && region.Range == new ByteRange(0x2F200, 0xFE00));
-        Assert.DoesNotContain(commonFw200Mapped, region => region.RegionId == "mp");
-        Assert.Contains(commonFw200Mapped, region => region.RegionId == "vn" && region.Range == new ByteRange(0x27650, 0x1960));
     }
 
     /// <summary>NT51930 retains serialized numeric aliases for the owner-approved cascade count range.</summary>

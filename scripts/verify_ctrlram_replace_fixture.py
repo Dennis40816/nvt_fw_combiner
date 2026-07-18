@@ -69,7 +69,6 @@ DEFAULT_POSTBUILD_CATEGORIES = {
 VERSIONED_POSTBUILD_CATEGORIES = {
     ("NT51926", "1.4.1"): "PostbuildSetup_51926_1.4.1",
     ("NT51926", "2.0.0"): "PostbuildSetup_51926_2.0.0",
-    ("NT51930", "2.0.0"): "PostbuildSetup_51930_2.0.0",
 }
 VERSIONED_POSTBUILD_ICS = {"NT51926", "NT51930"}
 
