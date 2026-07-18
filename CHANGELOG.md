@@ -5,16 +5,16 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 ## [Unreleased]
 
 Post-`0.9.8` development targets `0.9.9` legacy/contract/support convergence
-and a separate `0.9.10` process/UI performance prototype with measured
-before/after parity.
+and a separate `0.9.10` end-to-end performance remediation program with
+measured before/after parity.
 
 ### Changed
 
 - Reassigned legacy/V2 retirement, public contract convergence, IC
   family/evidence semantics, support matrix, and workflow exposure to `v0.9.9`.
-  `v0.9.10` now owns only the reconciled process/UI performance baseline and
-  prototype; candidate IC intake and the `v0.9.11+` route are unassigned until
-  reviewed `v0.9.9` and `v0.9.10` merge.
+  `v0.9.10` now owns the reconciled end-to-end performance baseline and
+  remediation; candidate IC intake and the `v0.9.11+` route are unassigned
+  until reviewed `v0.9.9` and `v0.9.10` merge.
 - Recorded that the audited `0.9.10` lineage was not based on `0.9.9`, and that
   its canonical full gate remained red after one load-sensitive process-tree
   timeout test failed while the isolated test passed. On 2026-07-18 the local
@@ -48,8 +48,15 @@ before/after parity.
   approved postbuild, output validation, commit, and report preparation. It
   remains indeterminate within a phase, honors reduced motion, and does not
   infer firmware semantics or display a fabricated byte percentage.
+- Expanded `0.9.10` into the end-to-end performance remediation milestone and
+  added ADR 0025. Its explicit scope now includes exact sequential legacy
+  Combiner calls and staging readback reduction, Build click/UI-dispatcher
+  responsiveness, large change-report background/lazy/virtualized projection,
+  UI inspection snapshots, progress animation, allocations, and B/C timing.
+  Complete report export, processor trace, golden bytes, host diff/range checks,
+  atomicity, and support truth remain unchanged gates.
 - Defined three comparison nodes: pre-rebase historical A, final-`0.9.9`
-  unoptimized B, and the same reconciled source with the `0.9.10` prototype C.
+  unoptimized B, and the same reconciled source as optimized `0.9.10` node C.
   Only B/C may support a performance decision. Deterministic counters and
   golden byte/report parity are gates; p50/p95, allocation, working-set, and
   UI-thread timing remain recorded local evidence rather than CI thresholds.

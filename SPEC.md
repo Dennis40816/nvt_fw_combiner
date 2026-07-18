@@ -702,6 +702,16 @@ remains one logical run across validation, replacement, and the approved
 Postbuild sequence; approved external processes execute headlessly and never
 open user-visible console windows. See ADR 0024.
 
+`v0.9.10` also treats Build responsiveness and large-report review as product
+performance requirements. A Preview/Build click must publish its active state
+before CPU-heavy planning, hashing, composition, external processing, or report
+projection can block the UI dispatcher. Completion must not synchronously
+materialize every change row or expand every changed byte. The report modal is
+summary-first and uses background parsing, lazy detail projection, bounded byte
+previews, and virtualized or paged collections while preserving the complete
+machine-readable report for save/export and human evidence review. See ADR
+0025.
+
 ### 11.5 Typography and localization defaults
 
 - Initial default language: English. Traditional Chinese is supported through the same text-resource architecture, not through duplicated XAML or ViewModel strings.

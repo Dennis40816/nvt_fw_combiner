@@ -1,4 +1,4 @@
-# Replace Performance Baseline
+# 0.9.10 Performance Baseline
 
 Status: node A deterministic baseline plus a provisional node C process
 prototype; neither is the reconciled B/C timing result or a firmware support
@@ -10,16 +10,17 @@ Captured: 2026-07-18 on
 
 ## Purpose and boundary
 
-This baseline records the current orchestration cost before automatic-Build
-optimization. It exercises the existing Bootstrap Preview/Build gate through
+Node A records the historical orchestration cost before automatic-Build
+optimization. It exercises the historical shared Preview/Build gate through
 the real Application service, profile compiler, shared Domain engine, typed
 ports, immutable reports, and atomic output-writer contract. Test adapters
 provide synthetic bytes and external-process audit records; no executable or
 firmware fixture is used.
 
-The test instrumentation calls the unchanged internal Bootstrap gate and
-counts through deterministic clock, artifact-reader, external-processor, and
-output-writer adapters. It does not add a production metrics surface, extend
+The retained comparison test executes the historical two-run sequence and the
+provisional Application-owned single-run path through deterministic clock,
+artifact-reader, external-processor, and output-writer adapters. It does not
+add a production metrics surface, extend
 `composition-report-v1`, change `CompositionRunReport`, add a runtime
 dependency, expose timing as a CI threshold, or grant a UI cache authority over
 Build. It counts only facts observable at the existing port/report boundary:
@@ -146,9 +147,9 @@ Bootstrap baseline.
 | 13 | 27 | 2 | 54 (provisional C: 27) |
 
 Staged immutable-artifact verification reads are separate and must not be
-hidden in future evidence. Any R3 adapter prototype remains limited to an
-applicable full-byte CtrlRAM golden and firmware-owner review; broader routing
-is selected only at the post-prototype decision gate.
+hidden in future evidence. Any R3 adapter phase remains limited to an applicable
+full-byte CtrlRAM golden and firmware-owner review; broader routing is selected
+only at the post-remediation decision gate.
 
 ## Current UI inspection fan-out
 
@@ -161,9 +162,30 @@ optimization candidate, not yet an exact read-count baseline.
 Node B must instrument the final `0.9.9` file reader/inspection boundary and
 record actual read calls and bytes for cold selection, repeated same-file
 selection, IC/mode/IC-num changes, coverage projection, and report projection.
-The C prototype target is at most one full-file read for one immutable display
+The optimized C target is at most one full-file read for one immutable display
 snapshot identity/hash, with cancellation and invalidation when identity or
 content changes. Build still performs its own authoritative read and hash.
+
+## Current Build responsiveness and report scale
+
+The current ViewModel establishes run ownership, then invokes the workbench
+delegate directly. Synchronous planning before the delegate reaches its first
+incomplete await can delay the initial progress repaint. After the run returns,
+`ApplyRunResult` synchronously parses `ReportJson`, constructs the complete
+`ReportReviewViewModel`, captures history, and publishes every report binding.
+
+`ReportReviewViewModel.FromJson` currently enumerates every output difference
+and constructs all rows, facts, groups, summary rows, mutations, operations,
+and issues. The report tabs bind long collections through `ItemsControl` inside
+`ScrollViewer`, and the raw tab binds the complete JSON string. This is a
+source-audited scalability risk rather than a measured node B value.
+
+Node B must record click-to-first-progress, dispatcher heartbeat gap,
+summary-ready/detail-ready latency, initial row/control count, allocation, and
+working set for bounded public synthetic reports ranging from small to many
+thousands of difference rows. Node C keeps complete saved/exported JSON while
+moving parsing/projection off the dispatcher and bounding initial materialized
+detail through lazy tabs plus virtualization or paging.
 
 ## Follow-up gates
 
@@ -179,6 +201,11 @@ content changes. Build still performs its own authoritative read and hash.
   Application publishes only bounded typed lifecycle transitions; Presentation
   localizes and animates the active step, honors reduced motion, and never
   fabricates byte percentage or infers phases from firmware-facing text.
+- ADR 0025 makes Combiner, Build responsiveness, and large-report scalability
+  first-class gates. Exact sequential commands remain `C` launches; the R3
+  adapter target is `C` authoritative firmware readbacks, while UI work moves
+  off the dispatcher and complete report evidence is presented through bounded
+  lazy projections rather than eager control creation.
 - Infrastructure read-model changes remain separate R3 work and are limited to
   exact full-output golden scope plus firmware-owner review. Exact output
   bytes, hashes, command argv/order, mutations, differences, warnings, and
