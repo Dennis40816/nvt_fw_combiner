@@ -41,7 +41,23 @@ public sealed partial class MainWindowViewModel
         string shellVersion,
         string appVersion,
         ShellLanguage language = ShellLanguage.English)
+        : this(
+            shellVersion,
+            appVersion,
+            language,
+            static (icId, path) => WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path))
     {
+    }
+
+    /// <summary>Initializes the main workbench view model with a deterministic firmware metadata reader.</summary>
+    internal MainWindowViewModel(
+        string shellVersion,
+        string appVersion,
+        ShellLanguage language,
+        Func<string, string, WorkbenchFirmwareConfigMetadata?> firmwareConfigMetadataReader)
+    {
+        ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
+        _ctrlRamFirmwareVersionMetadataReader = firmwareConfigMetadataReader;
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         HexEditorWorkspace = new HexEditorWorkspaceViewModel(Text);

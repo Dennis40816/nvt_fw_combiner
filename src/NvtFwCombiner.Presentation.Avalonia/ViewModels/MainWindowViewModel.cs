@@ -21,6 +21,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return;
         }
 
+        InvalidateCtrlRamFirmwareVersionContext();
         slot.FilePath = path;
         RefreshFirmwareFacts(slot);
         PromptForFirmwareIcMismatch(slot);
