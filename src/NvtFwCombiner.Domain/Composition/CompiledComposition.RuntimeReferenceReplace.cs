@@ -10,10 +10,17 @@ public sealed partial class CompiledComposition
         string experienceId,
         V2CompiledCompositionDetails details)
     {
+        var runtimeContext = details.Provenance.Context as RuntimeReferenceReplaceV2CompilationContext;
+        bool isGeneralReplace = StringComparer.Ordinal.Equals(
+            runtimeContext?.ModeId,
+            ExperienceIds.GeneralReplace);
+        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
+            runtimeContext?.ModeId,
+            ExperienceIds.CtrlRamReplace);
         if (compositionKind != CompositionKind.Replace ||
-            details.Provenance.Context is not RuntimeReferenceReplaceV2CompilationContext runtimeContext ||
-            !StringComparer.Ordinal.Equals(runtimeContext.ModeId, ExperienceIds.GeneralReplace) ||
-            !StringComparer.Ordinal.Equals(experienceId, ExperienceIds.GeneralReplace) ||
+            runtimeContext is null ||
+            (!isGeneralReplace && !isCtrlRamReplace) ||
+            !StringComparer.Ordinal.Equals(experienceId, runtimeContext.ModeId) ||
             plan.OutputInitialization.Kind != ImageInitializationKind.Reference ||
             plan.OutputInitialization.ReferenceSpaceId is null ||
             details.RegionAccessContract.Requirements.Count == 0 ||
@@ -21,9 +28,13 @@ public sealed partial class CompiledComposition
              details.RegionAccessContract.ResolvedViews.Count != 0))
         {
             throw new ArgumentException(
-                "Map-bound runtime reference-replace artifacts require the General Replace mode and experience, a reference-cloned Replace output, declared physical access, and only contract-authorized processor views.",
+                "Map-bound runtime reference-replace artifacts require a matching General or CtrlRAM Replace experience, a reference-cloned output, declared physical access, and only contract-authorized processor views.",
                 nameof(details));
         }
+
+        CompiledInputArtifactClass expectedSourceClass = isCtrlRamReplace
+            ? CompiledInputArtifactClass.CtrlRamReplacement
+            : CompiledInputArtifactClass.Auxiliary;
 
         CompiledInputSlotRequirement[] referenceSlots =
         [
@@ -32,8 +43,8 @@ public sealed partial class CompiledComposition
         ];
         CompiledInputSlotRequirement[] sourceSlots =
         [
-            .. details.InputContract.Slots.Where(static slot =>
-                slot.ArtifactClass == CompiledInputArtifactClass.Auxiliary),
+            .. details.InputContract.Slots.Where(slot =>
+                slot.ArtifactClass == expectedSourceClass),
         ];
         if (details.InputContract.Slots.Count != 2 || referenceSlots.Length != 1 || sourceSlots.Length != 1 ||
             referenceSlots[0] is not
@@ -56,7 +67,7 @@ public sealed partial class CompiledComposition
             })
         {
             throw new ArgumentException(
-                "Map-bound runtime reference-replace artifacts require one exact reference slot and one unnormalized per-binding auxiliary source slot.",
+                "Map-bound runtime reference-replace artifacts require one exact reference slot and one unnormalized per-binding experience-owned source slot.",
                 nameof(details));
         }
 
@@ -152,7 +163,23 @@ public sealed partial class CompiledComposition
                 !sourceAddressSpaceIds.Contains(operation.SourceSpaceId)))
         {
             throw new ArgumentException(
-                "Runtime reference-replace plans require only reject-overlap ReplaceRange operations from declared auxiliary sources into the output.",
+                "Runtime reference-replace plans require only reject-overlap ReplaceRange operations from declared sources into the output.",
+                nameof(plan));
+        }
+
+        if (isCtrlRamReplace && mappingOperations.Any(mapping =>
+                runtimeContext.ResolvedMap.ImageMap.Regions
+                    .Where(region => region.Range.Contains(mapping.TargetRange))
+                    .OrderBy(static region => region.Range.Length)
+                    .ThenBy(static region => region.RegionId, StringComparer.Ordinal)
+                    .FirstOrDefault() is not
+                    {
+                        Owner: FirmwareRegionOwner.Tp,
+                        Kind: FirmwareRegionKind.CtrlRam,
+                    }))
+        {
+            throw new ArgumentException(
+                "CtrlRAM runtime reference-replace mappings must target canonical TP-owned CtrlRAM regions.",
                 nameof(plan));
         }
 
@@ -162,7 +189,7 @@ public sealed partial class CompiledComposition
         if (!referencedSourceAddressSpaceIds.SetEquals(sourceAddressSpaceIds))
         {
             throw new ArgumentException(
-                "Every runtime reference-replace auxiliary source binding must participate in at least one operation.",
+                "Every runtime reference-replace source binding must participate in at least one operation.",
                 nameof(plan));
         }
 
@@ -187,7 +214,7 @@ public sealed partial class CompiledComposition
                 !output.Contains(view.Range)))
         {
             throw new ArgumentException(
-                "General Replace processor views must be profile-owned physical ranges inside the cloned output image.",
+                "Runtime reference Replace processor views must be profile-owned physical ranges inside the cloned output image.",
                 nameof(resolvedViews));
         }
     }
@@ -207,7 +234,7 @@ public sealed partial class CompiledComposition
             (touchesTp && !runtimeContext.AllowsConditionalProcessor))
         {
             throw new ArgumentException(
-                "General Replace requires exactly one approved processor after TP mappings and no processor for mappings outside TP regions.",
+                "Runtime reference Replace requires exactly one approved processor after TP mappings and no processor for mappings outside TP regions.",
                 nameof(processorOperations));
         }
 
@@ -227,7 +254,7 @@ public sealed partial class CompiledComposition
             invocation.StagedArtifactBindings.Count != 0)
         {
             throw new ArgumentException(
-                "The General Replace processor must be the single final profile-owned output refresh with no staged source artifacts.",
+                "The runtime reference Replace processor must be the single final profile-owned output refresh with no staged source artifacts.",
                 nameof(processorOperations));
         }
 
@@ -242,7 +269,7 @@ public sealed partial class CompiledComposition
             processorRanges.Any(range => !resolvedViews.Any(view => view.Range == range)))
         {
             throw new ArgumentException(
-                "Every General Replace processor target, read, and write range must retain profile-owned physical-view provenance.",
+                "Every runtime reference Replace processor target, read, and write range must retain profile-owned physical-view provenance.",
                 nameof(resolvedViews));
         }
     }

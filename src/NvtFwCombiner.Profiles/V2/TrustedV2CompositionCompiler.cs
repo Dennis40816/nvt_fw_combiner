@@ -62,13 +62,44 @@ internal static class TrustedV2CompositionCompiler
         string memberId,
         V2RuntimeReferenceReplaceCompileRequest request)
     {
+        return CompileRuntimeReferenceReplace(
+            catalog,
+            profileId,
+            profileVersion,
+            memberId,
+            ExperienceIds.GeneralReplace,
+            requestedTopology: null,
+            request);
+    }
+
+    /// <summary>Compiles one trusted map-bound Replace request with explicit experience and topology selection.</summary>
+    internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string experienceId,
+        TopologySelection? requestedTopology,
+        V2RuntimeReferenceReplaceCompileRequest request)
+    {
         ArgumentNullException.ThrowIfNull(request);
+        bool allowsTopologyDisambiguation = StringComparer.Ordinal.Equals(
+            experienceId,
+            ExperienceIds.CtrlRamReplace);
+        if (requestedTopology is not null && !allowsTopologyDisambiguation)
+        {
+            return Failed(
+                [],
+                "profile.v2.runtime-reference-replace.topology-not-admitted",
+                "Only CtrlRAM runtime reference-replace compilation can use an explicit topology selection.");
+        }
+
         if (!TryResolveMapCandidates(
                 catalog,
                 profileId,
                 profileVersion,
                 memberId,
-                ExperienceIds.GeneralReplace,
+                experienceId,
                 out TrustedProfileBundleCatalog.ProfileSelection? selection,
                 out FirmwareImageMap[] mapCandidates,
                 out IReadOnlyList<CompositionIssue> resolutionIssues))
@@ -105,12 +136,13 @@ internal static class TrustedV2CompositionCompiler
         [
             .. mapCandidates.Where(map => map.CapacityBytes == referenceBindings[0].ExactLengthBytes),
         ];
-        if (mapCandidates.Length != 1)
+        if (mapCandidates.Length == 0 ||
+            ((!allowsTopologyDisambiguation || requestedTopology is null) && mapCandidates.Length != 1))
         {
             return Failed(
                 [],
                 MapSelectionInvalid,
-                "The selected trusted V2 profile must identify exactly one canonical image map for the requested runtime reference-replace capacity.");
+                "The selected trusted V2 profile must identify a canonical image map for the requested runtime reference-replace capacity and topology.");
         }
 
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
@@ -119,9 +151,9 @@ internal static class TrustedV2CompositionCompiler
                 selection!,
                 new FirmwareMapResolutionInputs(
                     memberId,
-                    ExperienceIds.GeneralReplace,
-                    mapCandidates[0].CapacityBytes,
-                    requestedTopology: null,
+                    experienceId,
+                    referenceBindings[0].ExactLengthBytes,
+                    requestedTopology,
                     [])));
         return preparation.IsAdmitted
             ? V2CompositionPlanCompiler.CompileRuntimeReferenceReplace(preparation, request)

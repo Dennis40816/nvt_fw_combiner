@@ -108,22 +108,36 @@ internal sealed partial class CompositionProfileDefinition
     {
         var context =
             (RuntimeReferenceReplaceProfileCompilationContext)CompilationContext;
+        bool isGeneralReplace = StringComparer.Ordinal.Equals(
+            Experience.ExperienceId,
+            ExperienceIds.GeneralReplace);
+        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
+            Experience.ExperienceId,
+            ExperienceIds.CtrlRamReplace);
+        CompositionProfileArtifactClass expectedSourceClass = isCtrlRamReplace
+            ? CompositionProfileArtifactClass.CtrlRamReplacement
+            : CompositionProfileArtifactClass.Auxiliary;
         MutableCompositionProfileSpace output = _spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
             space.Kind == CompositionProfileSpaceKind.OutputImage);
         bool processorFree = _views.Length == 0 && _operations.Length == 0 && _processorStages.Length == 0;
         bool conditionalProcessor = context.AllowsConditionalProcessor &&
             HasValidRuntimeReferenceProcessorShape(output);
         if (CompositionKind != CompositionKind.Replace ||
-            !StringComparer.Ordinal.Equals(Experience.ExperienceId, ExperienceIds.GeneralReplace) ||
-            Experience.LayoutPolicy != LayoutPolicy.UserDefined ||
-            Experience.InputPolicy != InputPolicy.Extensible ||
+            (!isGeneralReplace && !isCtrlRamReplace) ||
+            (isGeneralReplace &&
+             (Experience.LayoutPolicy != LayoutPolicy.UserDefined ||
+              Experience.InputPolicy != InputPolicy.Extensible)) ||
+            (isCtrlRamReplace &&
+             (Experience.LayoutPolicy != LayoutPolicy.Fixed ||
+              Experience.InputPolicy != InputPolicy.Fixed ||
+              !conditionalProcessor)) ||
             _metadataBindings.Length != 0 ||
             _validations.Length != 0 ||
             _regionAccessRules.Length == 0 ||
             (!processorFree && !conditionalProcessor))
         {
             throw new ArgumentException(
-                "Runtime reference-replace profiles require the closed General Replace mapping shape with zero or one conditional Legacy Combiner stage.");
+                "Runtime reference-replace profiles require the closed General Replace or CtrlRAM Replace mapping shape; CtrlRAM Replace requires one final Legacy Combiner stage.");
         }
 
         InputArtifactProfileSpace[] inputs = [.. _spaces.OfType<InputArtifactProfileSpace>()];
@@ -154,16 +168,16 @@ internal sealed partial class CompositionProfileDefinition
             source is not
             {
                 Required: true,
-                ArtifactClass: CompositionProfileArtifactClass.Auxiliary,
                 Cardinality: CompositionProfileSlotCardinality.OneOrMore,
                 LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
                 Normalization: NoInputNormalization,
             } ||
+            source.ArtifactClass != expectedSourceClass ||
             referenceSpace is not { InstancePolicy: CompositionProfileInstancePolicy.Singleton } ||
             sourceSpace is not { InstancePolicy: CompositionProfileInstancePolicy.PerBinding })
         {
             throw new ArgumentException(
-                "Runtime reference-replace profiles require one exact singleton reference and one unnormalized per-binding auxiliary source.");
+                "Runtime reference-replace profiles require one exact singleton reference and one unnormalized per-binding source of the experience-owned artifact class.");
         }
 
         if (Promotion.Stage >= CompositionProfilePromotionStage.Supported)

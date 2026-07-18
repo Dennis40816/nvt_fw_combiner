@@ -137,13 +137,24 @@ public sealed partial class CompositionRunRequestV2Tests
             experienceId: experienceId));
     }
 
+    /// <summary>Verifies a hand-minted CtrlRAM context cannot target a non-CtrlRAM physical map region.</summary>
+    [Fact]
+    public void RuntimeReferenceContextCannotMintCtrlRamMappingOverSystemRegion()
+    {
+        _ = Assert.Throws<ArgumentException>(() => CreateRuntimeReferenceCandidate(
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement));
+    }
+
     private static CompiledComposition CreateRuntimeReferenceCandidate(
         bool useRuntimeContext = true,
         bool includeAuxiliarySource = true,
         bool allowsConditionalProcessor = false,
         bool includeProcessorView = false,
         string modeId = ExperienceIds.GeneralReplace,
-        string experienceId = ExperienceIds.GeneralReplace)
+        string experienceId = ExperienceIds.GeneralReplace,
+        CompiledInputArtifactClass sourceArtifactClass = CompiledInputArtifactClass.Auxiliary)
     {
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
             modeId,
@@ -185,7 +196,7 @@ public sealed partial class CompositionRunRequestV2Tests
         var sourceSlot = new CompiledInputSlotRequirement(
             "source-slot",
             "source",
-            CompiledInputArtifactClass.Auxiliary,
+            sourceArtifactClass,
             required: true,
             CompiledInputSlotCardinality.OneOrMore,
             [".bin"],

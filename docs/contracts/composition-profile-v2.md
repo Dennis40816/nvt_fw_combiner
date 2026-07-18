@@ -142,7 +142,7 @@ bound family snapshot; generic lowercase IDs cannot represent firmware-family me
 2.4 schema snapshots remain immutable and retain their original identifier grammar.
 
 Schema 2.6 adds the map-bound `runtime-reference-replace` context from
-[ADR 0020](../adr/0020-v2-runtime-reference-replace.md). It is restricted to declarative General
+[ADR 0020](../adr/0020-v2-runtime-reference-replace.md). Its original shape is restricted to declarative General
 Replace: one exact singleton reference image, one unnormalized per-binding auxiliary source, a
 runtime-capacity output cloned from the reference, declared physical region access, and no static
 views, metadata, operations, validations, or processors. The typed runtime request supplies only
@@ -171,13 +171,24 @@ replace firmware-owner golden review. Exact ordered Combiner command facts remai
 closed `invocationProfileId` and are loaded from the separately hash-pinned built-in Postbuild data
 catalog; the composition profile does not duplicate that command table.
 
-Schema 2.9 keeps every earlier resolved-map and processor contract and adds one closed alternative
+Schema 2.9 keeps every earlier resolved-map and processor contract and adds two closed alternatives
 to `runtime-reference-replace`. A General Replace profile remains processor-free, or declares exactly
 one final `run-processor` operation and one `legacy-combiner-v1` stage for TP header/integrity refresh.
 The operation sequence is `2147483647`, its overlap policy is `replace-existing`, and the stage cannot
 stage source or auxiliary artifacts. Its views are profile-owned output/map views only; the typed request
 still supplies only immutable binding lengths and explicit mappings, never commands, processor paths,
 arguments, or mutable buffers.
+
+The CtrlRAM Replace alternative uses the same reference-clone and typed mapping
+algebra but has a fixed/fixed experience, an unnormalized per-binding
+`ctrlram-replacement` source, and exactly one final processor stage. Every
+mapping target must resolve to a canonical TP-owned CtrlRAM region; no other
+region class can borrow profile access. The reference length selects capacity,
+and an explicit IC-number topology may disambiguate same-capacity single and
+cascade maps through the canonical resolver. Only supplied source bytes are
+mapped, so a short input preserves the cloned target tail and an oversized input
+cannot expand section authority. This is candidate compilation, not built-in
+runtime registration or support promotion.
 
 The compiler intersects every accepted mapping target with canonical `owner = tp` regions. A DP-only
 request omits the declared stage. One or many TP-touching mappings append the stage exactly once after

@@ -23,9 +23,11 @@ engine boundary.
 
 ## Decision
 
-Add one map-bound `runtime-reference-replace` compilation context. The first
-admitted experience is `general-replace`; CtrlRAM Replace is deferred until
-its Combiner evidence is independently complete.
+Add one map-bound `runtime-reference-replace` compilation context. General
+Replace is the first admitted experience. Schema 2.9 also admits a closed
+CtrlRAM Replace candidate shape after direct Postbuild evidence became
+available; that admission is compiler authority only and remains gated from
+runtime routing and support promotion.
 
 This acceptance authorizes only request-scoped candidate compilation and
 Application admission. It does not register a built-in route, promote firmware
@@ -35,18 +37,23 @@ The declaration must contain exactly:
 
 - one required, exact resolved-map-capacity `reference-image` singleton that
   initializes the output clone;
-- one required `auxiliary`, unnormalized, bounded `one-or-more` source slot
-  with a per-binding input template;
+- one required, unnormalized, bounded `one-or-more` source slot with a
+  per-binding input template: `auxiliary` for General Replace or
+  `ctrlram-replacement` for CtrlRAM Replace;
 - one resolved-map-capacity output image cloned from that reference;
-- no static views, metadata bindings, operations, validations, or processor
-  stages; and
+- no metadata bindings or validations; General Replace has no static byte
+  operations and may use only the schema-2.9 conditional processor shape,
+  while CtrlRAM Replace requires that one final processor shape; and
 - explicit canonical region-access rules that cannot relax the resolved map's
   physical write constraints.
 
 A typed request supplies only concrete immutable source binding identities,
 exact source lengths, and ordered explicit `ReplaceRange` mappings. The exact
-singleton `reference-image` length uniquely selects the canonical map capacity;
-the request has no independent map-capacity override. It has no
+singleton `reference-image` length selects the canonical map capacity. General
+Replace still rejects multiple maps at that capacity. A CtrlRAM request may
+add the profile-owned IC-number topology selection so the canonical resolver,
+rather than Bootstrap, selects one single/cascade map. The request has no
+independent map-capacity override. It has no
 host paths, source bytes, commands, process arguments, decoded firmware facts,
 or caller-supplied mutable buffers. The compiler materializes those bindings,
 checks every source and target range, derives the target's canonical region
@@ -61,9 +68,30 @@ profile has been selected for this V2 route.
 
 Application admits only the explicit `RuntimeReferenceReplaceV2CompilationContext`
 with promotion stage `executable-candidate`, a reference singleton, and one-or-more
-auxiliary per-binding sources. A generic resolved-map artifact cannot obtain this
+experience-owned per-binding sources. A generic resolved-map artifact cannot obtain this
 admission from its input shape. This candidate admission is not a production route,
 UI catalog change, or support promotion.
+
+## CtrlRAM Replace Candidate Boundary
+
+The CtrlRAM alternative is narrower than General Replace. Its experience is
+`fixed`/`fixed`; every typed mapping target must resolve to the deepest canonical
+physical region with `owner = tp` and `kind = ctrlram`; and the profile must
+declare exactly one final schema-2.9 Legacy Combiner stage. DP, Header, CRC,
+customer, reserved, and unknown regions never become CtrlRAM authoring targets.
+
+Each supplied physical CtrlRAM file is one immutable per-binding source. The
+request maps only the bytes that the reviewed Postbuild command can consume. A
+short source replaces only its available prefix and leaves the remaining
+reference-cloned bytes unchanged; an oversized source grants no authority beyond
+the declared section maximum. The final processor runs over the host staging
+copy with no staged-source or staged-artifact bindings because its physical
+files are materialized from the already modified staging image.
+
+This candidate contract registers no IC route. Each IC/topology/profile still
+requires direct or owner-approved fact-scoped golden parity, exact command and
+allowed-range review, and firmware-owner approval before its V1 consumer can be
+removed.
 
 ## General Replace Product Boundary
 
@@ -112,7 +140,7 @@ and firmware-owner review close independently.
   host is introduced.
 - No firmware range, postbuild command, header/CRC rule, or support promotion
   is introduced by this context.
-- CtrlRAM Combiner staging, TP FW version editing, and AB behavior remain R3
+- CtrlRAM runtime routing, TP FW version editing, and AB behavior remain R3
   work with their existing owner-evidence gates.
 
 ## Migration and Verification
@@ -124,9 +152,9 @@ and firmware-owner review close independently.
 2. Register an `executable-candidate` General Replace bundle only after exact
    map/region evidence is available; compare byte output, report, naming,
    CLI, and UI behavior to the legacy path before routing production traffic.
-3. Keep TP-touching and Combiner stages outside the candidate until their
-   declared tool binding, reads, writes, staging trace, golden bytes, and R3
-   owner review are complete.
+3. Keep every TP-touching production route closed until its declared tool
+   binding, reads, writes, staging trace, golden bytes, and R3 owner review are
+   complete. Candidate compilation alone is insufficient.
 4. Retire a legacy consumer only when the Legacy Retirement Matrix has direct
    evidence for every production consumer.
 

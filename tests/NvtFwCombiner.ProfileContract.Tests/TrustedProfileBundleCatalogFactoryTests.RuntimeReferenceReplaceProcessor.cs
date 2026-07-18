@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
@@ -8,6 +9,103 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class TrustedProfileBundleCatalogFactoryTests
 {
+    /// <summary>Verifies CtrlRAM runtime mappings select topology, consume only supplied bytes, and append one processor.</summary>
+    [Fact]
+    public void RuntimeReferenceCtrlRamReplaceCompilesShortSourceForSelectedTopology()
+    {
+        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            CreateConditionalRuntimeReferenceReplaceCatalog(
+                includeProcessor: true,
+                experienceId: ExperienceIds.CtrlRamReplace,
+                mapDefinitions:
+                [
+                    new RuntimeReferenceReplaceMapDocument("single-map", 16, "single"),
+                    new RuntimeReferenceReplaceMapDocument("cascade-map", 16, "cascade"),
+                ]),
+            "runtime-ctrlram-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.CtrlRamReplace,
+            new TopologySelection(3, "cascade", TopologySelectionSource.Requested, "ic-number"),
+            RuntimeReferenceReplaceRequest(
+                sourceLength: 2,
+                mappings:
+                [RuntimeReferenceReplaceMapping("replace-tp-prefix", 10, new ByteRange(0, 2), new ByteRange(8, 2))]));
+
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
+        Assert.True(result.IsCompiled);
+        Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
+        Assert.Equal(ExperienceIds.CtrlRamReplace, composition.ExperienceId);
+        Assert.Equal("cascade-map", composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+        CompiledInputSlotRequirement sourceSlot = Assert.Single(
+            composition.V2Details.InputContract.Slots,
+            slot => slot.ArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement);
+        Assert.Equal(CompiledInputSlotCardinality.OneOrMore, sourceSlot.Cardinality);
+        Assert.Collection(
+            composition.Plan.OrderedOperations,
+            mapping =>
+            {
+                Assert.Equal(CompositionOperationKind.ReplaceRange, mapping.Kind);
+                Assert.Equal(new ByteRange(8, 2), mapping.TargetRange);
+            },
+            processor => Assert.Equal(CompositionOperationKind.RunExternalProcessor, processor.Kind));
+    }
+
+    /// <summary>Verifies CtrlRAM Replace cannot borrow an explicitly writable DP region.</summary>
+    [Fact]
+    public void RuntimeReferenceCtrlRamReplaceRejectsDpTarget()
+    {
+        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            CreateConditionalRuntimeReferenceReplaceCatalog(
+                includeProcessor: true,
+                experienceId: ExperienceIds.CtrlRamReplace),
+            "runtime-ctrlram-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.CtrlRamReplace,
+            new TopologySelection(1, "single", TopologySelectionSource.Requested, "ic-number"),
+            RuntimeReferenceReplaceRequest(
+                sourceLength: 2,
+                mappings:
+                [RuntimeReferenceReplaceMapping("replace-dp", 10, new ByteRange(0, 2), new ByteRange(2, 2))]));
+
+        Assert.False(result.IsCompiled);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "profile.v2.runtime-reference-replace.ctrlram-target-invalid");
+    }
+
+    /// <summary>Verifies CtrlRAM runtime-reference profiles cannot omit their final refresh processor.</summary>
+    [Fact]
+    public void RuntimeReferenceCtrlRamReplaceProfileRequiresProcessor()
+    {
+        TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
+            CreateConditionalRuntimeReferenceReplaceCatalog(
+                includeProcessor: false,
+                experienceId: ExperienceIds.CtrlRamReplace));
+
+        Assert.Contains("CtrlRAM Replace requires one final Legacy Combiner stage", exception.Message);
+    }
+
+    /// <summary>Verifies General Replace cannot use the CtrlRAM-only topology disambiguation input.</summary>
+    [Fact]
+    public void RuntimeReferenceGeneralReplaceRejectsExplicitTopology()
+    {
+        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor: true),
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.GeneralReplace,
+            new TopologySelection(1, "single", TopologySelectionSource.Requested, "ic-number"),
+            RuntimeReferenceReplaceRequest());
+
+        Assert.False(result.IsCompiled);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "profile.v2.runtime-reference-replace.topology-not-admitted");
+    }
+
     /// <summary>Verifies a processor-capable profile does not run its Legacy Combiner stage for DP-only mappings.</summary>
     [Fact]
     public void RuntimeReferenceReplaceSkipsDeclaredProcessorForDpOnlyMappings()
@@ -167,14 +265,21 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     private static TrustedProfileBundleCatalog CreateConditionalRuntimeReferenceReplaceCatalog(
         bool includeProcessor,
         string headerWriteConstraint = "explicit-range",
-        string headerAccess = "hidden")
+        string headerAccess = "hidden",
+        string experienceId = ExperienceIds.GeneralReplace,
+        IReadOnlyList<RuntimeReferenceReplaceMapDocument>? mapDefinitions = null)
     {
-        string familyJson = ConditionalRuntimeReferenceReplaceFamilyJson(headerWriteConstraint);
+        string familyJson = ConditionalRuntimeReferenceReplaceFamilyJson(
+            headerWriteConstraint,
+            experienceId,
+            mapDefinitions);
         string familyHash = Hash(familyJson);
         string profileJson = ConditionalRuntimeReferenceReplaceProfileJson(
             familyHash,
             includeProcessor,
-            headerAccess);
+            headerAccess,
+            experienceId,
+            mapDefinitions?.Select(static map => map.MapId));
         using var familyDocument = JsonDocument.Parse(familyJson);
         using var profileDocument = JsonDocument.Parse(profileJson);
         return TrustedProfileBundleCatalogFactory.Create(Source(
@@ -182,27 +287,40 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             [Profile("runtime-reference-replace-profile", Hash(profileJson), profileDocument.RootElement.Clone())]));
     }
 
-    private static string ConditionalRuntimeReferenceReplaceFamilyJson(string headerWriteConstraint)
+    private static string ConditionalRuntimeReferenceReplaceFamilyJson(
+        string headerWriteConstraint,
+        string experienceId,
+        IReadOnlyList<RuntimeReferenceReplaceMapDocument>? mapDefinitions)
     {
         JsonObject family = Assert.IsType<JsonObject>(JsonNode.Parse(
             RuntimeReferenceReplaceTestDocuments.FamilyJson(
-                [new RuntimeReferenceReplaceMapDocument("map", 16)],
-                "explicit-range")));
-        JsonObject regionSet = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(family["regionSets"])[0]);
-        JsonArray regions = Assert.IsType<JsonArray>(regionSet["regions"]);
-        regions.Add(Region("dp", "root", "dp", "code", 0, 8, "explicit-range"));
-        regions.Add(Region("tp", "root", "tp", "ctrlram", 8, 4, "explicit-range"));
-        regions.Add(Region("header", "root", "system", "header", 12, 4, headerWriteConstraint));
+                mapDefinitions ?? [new RuntimeReferenceReplaceMapDocument("map", 16)],
+                "explicit-range",
+                experienceId)));
+        foreach (JsonNode? regionSetNode in Assert.IsType<JsonArray>(family["regionSets"]))
+        {
+            JsonArray regions = Assert.IsType<JsonArray>(Assert.IsType<JsonObject>(regionSetNode)["regions"]);
+            regions.Add(Region("dp", "root", "dp", "code", 0, 8, "explicit-range"));
+            regions.Add(Region("tp", "root", "tp", "ctrlram", 8, 4, "explicit-range"));
+            regions.Add(Region("header", "root", "system", "header", 12, 4, headerWriteConstraint));
+        }
+
         return family.ToJsonString();
     }
 
     private static string ConditionalRuntimeReferenceReplaceProfileJson(
         string familyHash,
         bool includeProcessor,
-        string headerAccess)
+        string headerAccess,
+        string experienceId,
+        IEnumerable<string>? mapIds)
     {
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
-            RuntimeReferenceReplaceTestDocuments.ProfileJson(familyHash, "compilable", ["map"])));
+            RuntimeReferenceReplaceTestDocuments.ProfileJson(
+                familyHash,
+                "compilable",
+                mapIds ?? ["map"],
+                experienceId)));
         profile["schemaVersion"] = "2.9";
         JsonObject mapBinding = Assert.IsType<JsonObject>(profile["mapBinding"]);
         mapBinding["requiredRegionIds"] = new JsonArray("root", "dp", "tp", "header");
@@ -246,7 +364,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 ["processorStageId"] = "tp-refresh",
                 ["kind"] = "legacy-combiner-v1",
                 ["toolBindingId"] = "legacy-combiner-1.13.0",
-                ["invocationProfileId"] = "nfc.synthetic.general-replace",
+                ["invocationProfileId"] = $"nfc.synthetic.{experienceId}",
                 ["targetSpaceId"] = "output-image",
                 ["targetViewId"] = "processor-image",
                 ["authority"] = "transform",

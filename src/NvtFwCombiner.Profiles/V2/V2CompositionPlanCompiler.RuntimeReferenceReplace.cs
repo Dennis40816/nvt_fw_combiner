@@ -11,10 +11,11 @@ internal static partial class V2CompositionPlanCompiler
     private const string RuntimeReferenceMappingInvalid = "profile.v2.runtime-reference-replace.mapping-invalid";
     private const string RuntimeReferenceSourceOutOfBounds = "profile.v2.runtime-reference-replace.source-out-of-bounds";
     private const string RuntimeReferenceTargetOutOfBounds = "profile.v2.runtime-reference-replace.target-out-of-bounds";
+    private const string RuntimeReferenceCtrlRamTargetInvalid = "profile.v2.runtime-reference-replace.ctrlram-target-invalid";
     private const string RuntimeReferenceProcessorRequired = "profile.v2.runtime-reference-replace.processor-required";
     private const string RuntimeReferenceProcessorOrderInvalid = "profile.v2.runtime-reference-replace.processor-order-invalid";
 
-    /// <summary>Lowers one admitted map-bound General Replace request through the shared plan algebra.</summary>
+    /// <summary>Lowers one admitted map-bound runtime reference Replace request through the shared plan algebra.</summary>
     internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
         V2CompositionPreparationResult preparation,
         V2RuntimeReferenceReplaceCompileRequest request)
@@ -37,7 +38,7 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed([
                 new CompositionIssue(
                     RuntimeReferenceProfileShapeInvalid,
-                    "The admitted profile is not the closed map-bound runtime reference-replace General Replace shape.")]);
+                    "The admitted profile is not a closed map-bound runtime reference-replace shape.")]);
         }
 
         RuntimeReferenceReplaceProfileShape shape = AssertRuntimeReferenceReplaceProfileShape(profile);
@@ -159,15 +160,24 @@ internal static partial class V2CompositionPlanCompiler
 
     private static bool IsRuntimeReferenceReplaceProfile(CompositionProfileDefinition profile)
     {
+        bool isGeneralReplace = StringComparer.Ordinal.Equals(
+            profile.Experience.ExperienceId,
+            ExperienceIds.GeneralReplace);
+        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
+            profile.Experience.ExperienceId,
+            ExperienceIds.CtrlRamReplace);
         return profile.CompilationContext is RuntimeReferenceReplaceProfileCompilationContext &&
             profile.CompositionKind == CompositionKind.Replace &&
-            StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.GeneralReplace) &&
-            profile.Experience.LayoutPolicy == LayoutPolicy.UserDefined &&
-            profile.Experience.InputPolicy == InputPolicy.Extensible &&
+            ((isGeneralReplace &&
+              profile.Experience.LayoutPolicy == LayoutPolicy.UserDefined &&
+              profile.Experience.InputPolicy == InputPolicy.Extensible) ||
+             (isCtrlRamReplace &&
+              profile.Experience.LayoutPolicy == LayoutPolicy.Fixed &&
+              profile.Experience.InputPolicy == InputPolicy.Fixed)) &&
             profile.MetadataBindings.Count == 0 &&
             profile.RegionAccessRules.Count != 0 &&
             profile.Validations.Count == 0 &&
-            (profile.ProcessorStages.Count == 0 ||
+            ((!isCtrlRamReplace && profile.ProcessorStages.Count == 0) ||
              profile.CompilationContext is RuntimeReferenceReplaceProfileCompilationContext
              {
                  AllowsConditionalProcessor: true,
@@ -199,6 +209,12 @@ internal static partial class V2CompositionPlanCompiler
     private static RuntimeReferenceReplaceProfileShape AssertRuntimeReferenceReplaceProfileShape(
         CompositionProfileDefinition profile)
     {
+        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
+            profile.Experience.ExperienceId,
+            ExperienceIds.CtrlRamReplace);
+        CompositionProfileArtifactClass expectedSourceClass = isCtrlRamReplace
+            ? CompositionProfileArtifactClass.CtrlRamReplacement
+            : CompositionProfileArtifactClass.Auxiliary;
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
         CloneProfileInitializer clone = output.Capacity is RuntimeRequestProfileCapacity &&
             output.Initializer is CloneProfileInitializer initializer
@@ -223,11 +239,11 @@ internal static partial class V2CompositionPlanCompiler
             source is not
             {
                 Required: true,
-                ArtifactClass: CompositionProfileArtifactClass.Auxiliary,
                 Cardinality: CompositionProfileSlotCardinality.OneOrMore,
                 LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
                 Normalization: NoInputNormalization,
             } ||
+            source.ArtifactClass != expectedSourceClass ||
             referenceSpace.InstancePolicy != CompositionProfileInstancePolicy.Singleton ||
             sourceSpace.InstancePolicy != CompositionProfileInstancePolicy.PerBinding
             ? throw new InvalidOperationException("Validated runtime reference-replace profile has an invalid input contract.")
@@ -264,7 +280,7 @@ internal static partial class V2CompositionPlanCompiler
             {
                 issues.Add(new CompositionIssue(
                     RuntimeReferenceBindingInvalid,
-                    "Runtime reference-replace bindings must be unique declared reference or auxiliary source instances with valid exact lengths."));
+                    "Runtime reference-replace bindings must be unique declared reference or source instances with valid exact lengths."));
                 continue;
             }
 
@@ -276,7 +292,7 @@ internal static partial class V2CompositionPlanCompiler
         {
             issues.Add(new CompositionIssue(
                 RuntimeReferenceBindingInvalid,
-                "Runtime reference-replace compilation requires exactly one map-capacity reference binding and one or more auxiliary source bindings."));
+                "Runtime reference-replace compilation requires exactly one map-capacity reference binding and one or more experience-owned source bindings."));
         }
 
         return bindings;
@@ -291,6 +307,9 @@ internal static partial class V2CompositionPlanCompiler
         List<CompositionIssue> issues)
     {
         bool touchesTp = false;
+        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
+            resolvedMap.ModeId,
+            ExperienceIds.CtrlRamReplace);
 
         var mappingIds = new HashSet<string>(StringComparer.Ordinal);
         var sequences = new HashSet<int>();
@@ -320,7 +339,7 @@ internal static partial class V2CompositionPlanCompiler
             {
                 issues.Add(new CompositionIssue(
                     RuntimeReferenceMappingInvalid,
-                    "Runtime reference-replace mappings must read one declared auxiliary source binding, never the reference image.",
+                    "Runtime reference-replace mappings must read one declared source binding, never the reference image.",
                     mapping.MappingId));
                 continue;
             }
@@ -355,6 +374,18 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
+            FirmwareRegion governingRegion = governingRegionChain[^1];
+            if (isCtrlRamReplace &&
+                (governingRegion.Owner != FirmwareRegionOwner.Tp ||
+                 governingRegion.Kind != FirmwareRegionKind.CtrlRam))
+            {
+                issues.Add(new CompositionIssue(
+                    RuntimeReferenceCtrlRamTargetInvalid,
+                    "CtrlRAM Replace mappings must target one canonical TP-owned CtrlRAM region.",
+                    mapping.MappingId));
+                continue;
+            }
+
             touchesTp |= resolvedMap.ImageMap.Regions.Any(region =>
                 region.Owner == FirmwareRegionOwner.Tp &&
                 region.Range.Overlaps(mapping.TargetRange));
@@ -381,7 +412,7 @@ internal static partial class V2CompositionPlanCompiler
         {
             issues.Add(new CompositionIssue(
                 RuntimeReferenceProcessorRequired,
-                "A General Replace mapping touches a TP-owned canonical region, but the selected profile has no approved Legacy Combiner refresh stage.",
+                "A runtime reference Replace mapping touches a TP-owned canonical region, but the selected profile has no approved Legacy Combiner refresh stage.",
                 "mappings"));
         }
         else if (touchesTp && request.Mappings.Any(mapping =>
@@ -389,7 +420,7 @@ internal static partial class V2CompositionPlanCompiler
         {
             issues.Add(new CompositionIssue(
                 RuntimeReferenceProcessorOrderInvalid,
-                "Every General Replace mapping must run before the profile-owned Legacy Combiner refresh stage.",
+                "Every runtime reference Replace mapping must run before the profile-owned Legacy Combiner refresh stage.",
                 shape.ProcessorOperation!.OperationId));
         }
 
