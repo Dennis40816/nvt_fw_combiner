@@ -23,6 +23,12 @@ Post-`0.9.8` development targets verified legacy convergence, patch closure, fir
 - The `v0.9.10` roadmap now records why Replace performance work is needed: automatic Build currently executes Preview and Build separately, CtrlRAM postbuild repeatedly reads the full staging image, UI inspection rereads selected firmware, and owned byte buffers cross redundant copy boundaries.
 - The same roadmap clarifies that `DeclaredReplacement` means an accepted output difference inside a declared Replace write range, not a firmware version change. Any TP FW version-edit explanation must be projected as an Application-owned semantic while preserving or explicitly versioning the stable machine classification.
 - These entries authorize measurement and reviewed optimization work only. They do not change output bytes, ranges, processor commands, profile promotion, or firmware support state.
+- Added deterministic test instrumentation and synthetic automatic-Build
+  baseline coverage for DP lengths `0x40000`, `0x80000`, and `0x100000`, plus
+  two-command and 13-command CtrlRAM plans. The baseline records two current
+  runs, two CtrlRAM processor sessions, and 4/26 process invocations without a
+  new production metrics surface or changes to output bytes, report contracts,
+  processor authority, or support state.
 
 ## [0.9.8] - 2026-07-16
 
