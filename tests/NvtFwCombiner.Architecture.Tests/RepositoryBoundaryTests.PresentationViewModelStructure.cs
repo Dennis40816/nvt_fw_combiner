@@ -53,7 +53,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", replace, StringComparison.Ordinal);
         Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("await Task.Run(", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("ApplyRunResult(result, build);", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ProjectRunReport(result, build, reportLanguage", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ApplyRunResult(result, build, report);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("loadErrorReport(action, exception.Message);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("CompleteRun(cancellationSource);", lifecycle, StringComparison.Ordinal);
         Assert.Equal(
@@ -66,6 +67,35 @@ public sealed partial class RepositoryBoundaryTests
             CountOccurrences(
                 ReadViewModelPartials(),
                 "catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)"));
+    }
+
+    /// <summary>Verifies complete report evidence is projected through bounded UI collections.</summary>
+    [Fact]
+    public void ReportDetailsUseBoundedPresentationPages()
+    {
+        string audit = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml");
+        string panels = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml");
+        string changes = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml");
+        string parser = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferences.cs");
+        string reportLifecycle = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs");
+
+        Assert.Contains("LoadedReport.OutputDifferenceGroupPage.Items", audit, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.MutationPage.Items", audit, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OperationFlowPage.Items", audit, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.StepOperationPage.Items", audit, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.PostbuildInvocationPage.Items", audit, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.IssuePage.Items", audit, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OutputDifferenceSummaryPage.Items", panels, StringComparison.Ordinal);
+        Assert.Contains("RowsPage.Items", changes, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding LoadedReport.OutputDifferenceGroups}\"", audit, StringComparison.Ordinal);
+        Assert.Contains("MaximumRenderedHexPreviewBytes = 64", parser, StringComparison.Ordinal);
+        Assert.Contains("public async Task LoadReportJsonAsync(", reportLifecycle, StringComparison.Ordinal);
+        Assert.Contains("report = await Task.Run(", reportLifecycle, StringComparison.Ordinal);
     }
 
     /// <summary>Prevents retired, unbound shell inspector projections from returning.</summary>

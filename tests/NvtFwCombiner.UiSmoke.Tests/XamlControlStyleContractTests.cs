@@ -106,6 +106,21 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("<ScrollViewer MaxHeight=\"320\"", rawTemplate, StringComparison.Ordinal);
     }
 
+    /// <summary>Ensures report paging uses one accessible shared control template.</summary>
+    [Fact]
+    public void ReportPagingUsesTheSharedAccessibleTemplate()
+    {
+        string templates = ReadPresentationFile("Resources/MainWindowReportTemplates.axaml");
+        string audit = ReadPresentationFile("Resources/MainWindowReportAuditTemplates.axaml");
+        string changes = ReadPresentationFile("Resources/MainWindowReportChangeTemplates.axaml");
+
+        Assert.Contains("x:Key=\"ReportPagerTemplate\"", templates, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding PageStatus}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding LoadMoreLabel}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportPagerTemplate}\"", audit, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportPagerTemplate}\"", changes, StringComparison.Ordinal);
+    }
+
     /// <summary>Ensures application resources expose the shared control style library to all views.</summary>
     [Fact]
     public void SharedControlStyleLibraryIsIncludedByTheApplication()

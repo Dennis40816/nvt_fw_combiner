@@ -121,6 +121,17 @@ visible and independently reviewable.
 - Pagination changes only the presentation projection. Saving/exporting and
   human evidence review retain the complete report.
 
+The first implementation slice moves run-result and manual-load projection off
+the dispatcher, propagates cancellation through high-cardinality parser loops,
+and binds only bounded pages of summaries, difference groups/rows, mutations,
+operation flow/detail, postbuild invocations, and issues. Review-required
+difference groups and rows sort first. Legacy reports that contain complete hex
+fields render at most the first 64 bytes; the untouched JSON remains the
+history/save/export authority. This slice still builds the complete immutable
+row model on a background worker. Deferring row-model creation by selected tab
+and measuring separate summary-ready/detail-ready latency remain explicit
+follow-up work rather than an implied result.
+
 ### Measurement and phase separation
 
 Node B and C use identical source inputs, expected hashes, tool manifest hash,

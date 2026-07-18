@@ -187,14 +187,27 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private void ApplyRunResult(WorkbenchRunResult result, bool build)
+    private static ReportReviewViewModel ProjectRunReport(
+        WorkbenchRunResult result,
+        bool build,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
     {
         string action = build ? "Build" : "Preview";
-        var report = ReportReviewViewModel.FromJson(
+        return ReportReviewViewModel.FromJsonCancellable(
             result.ReportJson,
             $"{action.ToLowerInvariant()} report",
             result.CommittedOutputId,
-            Text.Language);
+            language,
+            cancellationToken);
+    }
+
+    private void ApplyRunResult(
+        WorkbenchRunResult result,
+        bool build,
+        ReportReviewViewModel report)
+    {
+        string action = build ? "Build" : "Preview";
         string detail = result.Succeeded
             ? $"{result.ProfileId} / {result.OutputSize} bytes / {Text.RunResultReportReadyLabel}"
             : report.Issues.Count == 0 ? result.Status : report.Issues[0].Detail;

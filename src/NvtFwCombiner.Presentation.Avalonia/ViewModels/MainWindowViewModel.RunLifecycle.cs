@@ -60,7 +60,11 @@ public sealed partial class MainWindowViewModel
             WorkbenchRunResult result = await Task.Run(
                 () => run(cancellationSource.Token).AsTask(),
                 cancellationSource.Token);
-            ApplyRunResult(result, build);
+            ShellLanguage reportLanguage = Text.Language;
+            ReportReviewViewModel report = await Task.Run(
+                () => ProjectRunReport(result, build, reportLanguage, cancellationSource.Token),
+                cancellationSource.Token);
+            ApplyRunResult(result, build, report);
         }
         catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
         {

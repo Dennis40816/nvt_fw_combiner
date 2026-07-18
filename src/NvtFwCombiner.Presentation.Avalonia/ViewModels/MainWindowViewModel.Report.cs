@@ -73,15 +73,52 @@ public sealed partial class MainWindowViewModel
     /// <summary>Loads a CLI/application run report JSON into the readable report modal.</summary>
     public void LoadReportJson(string json, string sourceName)
     {
+        ReportReviewViewModel report;
         try
         {
-            LoadedReport = ReportReviewViewModel.FromJson(json, sourceName, language: Text.Language);
+            report = ReportReviewViewModel.FromJson(json, sourceName, language: Text.Language);
         }
         catch (JsonException exception)
         {
-            LoadedReport = ReportReviewViewModel.Error(sourceName, exception.Message, language: Text.Language);
+            report = ReportReviewViewModel.Error(sourceName, exception.Message, language: Text.Language);
         }
 
+        ApplyLoadedReport(report, json, sourceName);
+    }
+
+    /// <summary>Projects a loaded report outside the UI dispatcher before publishing bounded state.</summary>
+    public async Task LoadReportJsonAsync(
+        string json,
+        string sourceName,
+        CancellationToken cancellationToken = default)
+    {
+        ShellLanguage language = Text.Language;
+        ReportReviewViewModel report;
+        try
+        {
+            report = await Task.Run(
+                () => ReportReviewViewModel.FromJsonCancellable(
+                    json,
+                    sourceName,
+                    outputArtifactPath: null,
+                    language: language,
+                    cancellationToken: cancellationToken),
+                cancellationToken);
+        }
+        catch (JsonException exception)
+        {
+            report = ReportReviewViewModel.Error(sourceName, exception.Message, language: language);
+        }
+
+        ApplyLoadedReport(report, json, sourceName);
+    }
+
+    private void ApplyLoadedReport(
+        ReportReviewViewModel report,
+        string json,
+        string sourceName)
+    {
+        LoadedReport = report;
         LoadedReportJson = json;
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportLoadedToast(sourceName));

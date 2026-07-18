@@ -171,8 +171,9 @@ SHA-256.
 The owner clarified on 2026-07-18 that code size is measured but is not a
 `v0.9.10` optimization priority. The maintainable I/O seam and deterministic
 counters first updated the exact production ratchet from `56,720` to `56,821`.
-The isolated Build scheduling slice then records `56,838`; no safety check or
-evidence was removed to offset either change.
+The isolated Build scheduling slice then records `56,838`, and the first
+background/bounded report slice records `57,115`; no safety check or evidence
+was removed to offset these changes.
 
 Staged immutable-artifact verification reads are separate and must not be
 hidden in future evidence. During the conservative phase, the first canonical
@@ -213,16 +214,21 @@ before worker entry and confirms the worker is not the caller thread. A second
 smoke changes the live IC immediately after scheduling and confirms that the
 run report retains the captured IC and file bindings.
 
-After the background run returns, `ApplyRunResult` still synchronously parses
-`ReportJson`, constructs the complete `ReportReviewViewModel`, captures history,
-and publishes every report binding on the UI context. That remaining cost is
-not claimed as solved by the scheduling slice.
+The first report slice now parses run results and manually loaded reports on a
+background worker with cancellation, then publishes the immutable model on the
+UI context. The modal binds bounded pages: 8 summary sections, 8 difference
+groups, 24 rows per expanded group, 40 mutations, 24 operation-flow/detail or
+postbuild rows, and 40 issues at a time. Review-required groups/rows sort first.
+Legacy complete hex fields render at most a 64-byte preview while
+`LoadedReportJson`, history, save, and export retain the complete payload.
 
-`ReportReviewViewModel.FromJson` currently enumerates every output difference
-and constructs all rows, facts, groups, summary rows, mutations, operations,
-and issues. The report tabs bind long collections through `ItemsControl` inside
-`ScrollViewer`, and the raw tab binds the complete JSON string. This is a
-source-audited scalability risk rather than a measured node B value.
+`ReportReviewViewModel.FromJson` still enumerates every output difference and
+constructs the complete immutable row model, but that work is no longer on the
+dispatcher and the UI no longer creates every detail control initially. True
+selected-tab lazy row-model creation, summary-ready/detail-ready separation,
+and a virtualizing-control comparison remain unclaimed until final node B/C
+evidence. The raw tab continues to expose the complete JSON string on explicit
+selection.
 
 Node B must record click-to-first-progress, dispatcher heartbeat gap,
 summary-ready/detail-ready latency, initial row/control count, allocation, and

@@ -59,6 +59,7 @@ public sealed partial class ReportReviewViewModel
                 .GroupBy(difference => string.IsNullOrWhiteSpace(difference.SectionLabel)
                     ? T(language, "Unclassified changes", "未分類差異")
                     : difference.SectionLabel)
+                .OrderBy(group => group.All(IsAcceptedOutputDifference))
                 .Select(group =>
                 {
                     int reviewCount = group.Count(IsReviewRequiredOutputDifference);

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using NvtFwCombiner.Bootstrap;
 
@@ -5,9 +6,12 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportReviewViewModel
 {
+    private const int MaximumRenderedHexPreviewBytes = 64;
+
     private static IReadOnlyList<ReportLineViewModel> ParseOutputDifferences(
         JsonElement root,
-        ShellLanguage language)
+        ShellLanguage language,
+        CancellationToken cancellationToken)
     {
         return !root.TryGetProperty(nameof(OutputDifferences), out JsonElement differences) ||
                differences.ValueKind != JsonValueKind.Array
@@ -16,6 +20,7 @@ public sealed partial class ReportReviewViewModel
             [
                 .. differences.EnumerateArray().Select(difference =>
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string classification = GetString(difference, "Classification");
                     bool accepted = GetBool(difference, "IsAccepted");
                     string beforeFullHex = GetStringOrNull(difference, "BeforeHex") ?? string.Empty;
@@ -23,13 +28,31 @@ public sealed partial class ReportReviewViewModel
                     string beforePreviewHex = GetStringOrNull(difference, "BeforeHexPreview") ?? string.Empty;
                     string afterPreviewHex = GetStringOrNull(difference, "AfterHexPreview") ?? string.Empty;
                     bool hasFullHex = !string.IsNullOrWhiteSpace(beforeFullHex) || !string.IsNullOrWhiteSpace(afterFullHex);
-                    bool isHexComplete = hasFullHex || GetBool(difference, "IsHexPreviewComplete");
                     long previewByteCount = GetLong(difference, "HexPreviewByteCount");
-                    string beforeHex = hasFullHex ? beforeFullHex : beforePreviewHex;
-                    string afterHex = hasFullHex ? afterFullHex : afterPreviewHex;
+                    bool useBeforeFullHex = string.IsNullOrWhiteSpace(beforePreviewHex) && !string.IsNullOrWhiteSpace(beforeFullHex);
+                    bool useAfterFullHex = string.IsNullOrWhiteSpace(afterPreviewHex) && !string.IsNullOrWhiteSpace(afterFullHex);
+                    bool usesContractHexPreview = !string.IsNullOrWhiteSpace(beforePreviewHex) ||
+                        !string.IsNullOrWhiteSpace(afterPreviewHex);
+                    string beforeHex = useBeforeFullHex ? beforeFullHex : beforePreviewHex;
+                    string afterHex = useAfterFullHex ? afterFullHex : afterPreviewHex;
                     bool hasHex = !string.IsNullOrWhiteSpace(beforeHex) || !string.IsNullOrWhiteSpace(afterHex);
-                    string before = hasHex ? FormatBytePreview(beforeHex) : GetString(difference, "BeforeSha256");
-                    string after = hasHex ? FormatBytePreview(afterHex) : GetString(difference, "AfterSha256");
+                    bool contractHexComplete = GetBool(difference, "IsHexPreviewComplete") ||
+                        (hasFullHex &&
+                         (string.IsNullOrWhiteSpace(beforeHex) || useBeforeFullHex) &&
+                         (string.IsNullOrWhiteSpace(afterHex) || useAfterFullHex));
+                    int displayLimit = usesContractHexPreview && !contractHexComplete && previewByteCount > 0
+                        ? (int)Math.Min(previewByteCount, MaximumRenderedHexPreviewBytes)
+                        : MaximumRenderedHexPreviewBytes;
+                    FormattedHexPreview beforePreview = FormatBytePreview(beforeHex, displayLimit);
+                    FormattedHexPreview afterPreview = FormatBytePreview(afterHex, displayLimit);
+                    bool isHexComplete = contractHexComplete && beforePreview.IsComplete && afterPreview.IsComplete;
+                    long displayedByteCount = isHexComplete
+                        ? Math.Max(beforePreview.ByteCount, afterPreview.ByteCount)
+                        : usesContractHexPreview && previewByteCount > 0
+                            ? Math.Min(previewByteCount, MaximumRenderedHexPreviewBytes)
+                            : Math.Max(beforePreview.ByteCount, afterPreview.ByteCount);
+                    string before = hasHex ? beforePreview.Value : GetString(difference, "BeforeSha256");
+                    string after = hasHex ? afterPreview.Value : GetString(difference, "AfterSha256");
                     string range = GetRangeOrNull(difference, "Range") ?? string.Empty;
                     string semanticCategoryLabel = GetSemanticString(difference, "CategoryLabel");
                     string semanticParentLabel = GetSemanticString(difference, "ParentLabel");
@@ -70,11 +93,11 @@ public sealed partial class ReportReviewViewModel
                         reason: reason,
                         sectionLabel: sectionLabel,
                         beforeLabel: hasHex
-                            ? FormatByteValueLabel(isBefore: true, isComplete: isHexComplete, previewByteCount, language)
+                            ? FormatByteValueLabel(isBefore: true, isComplete: isHexComplete, displayedByteCount, language)
                             : T(language, "Before range hash", "變更前 range hash"),
                         beforeValue: before,
                         afterLabel: hasHex
-                            ? FormatByteValueLabel(isBefore: false, isComplete: isHexComplete, previewByteCount, language)
+                            ? FormatByteValueLabel(isBefore: false, isComplete: isHexComplete, displayedByteCount, language)
                             : T(language, "After range hash", "變更後 range hash"),
                         afterValue: after);
                 }),
@@ -127,7 +150,7 @@ public sealed partial class ReportReviewViewModel
                     : difference.SectionLabel)
                 .Select(group =>
                 {
-                    ReportLineViewModel[] rows = [.. group];
+                    ReportLineViewModel[] rows = [.. group.OrderBy(IsAcceptedOutputDifference)];
                     int accepted = rows.Count(IsAcceptedOutputDifference);
                     int review = rows.Length - accepted;
                     bool isAccepted = review == 0;
@@ -141,8 +164,9 @@ public sealed partial class ReportReviewViewModel
                             $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} expected / {review.ToString(System.Globalization.CultureInfo.InvariantCulture)} review",
                             $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} 預期 / {review.ToString(System.Globalization.CultureInfo.InvariantCulture)} 待審查");
                     string detail = FormatDifferenceGroupDetail(rows.Length, accepted, review, language);
-                    return new ReportDifferenceGroupViewModel(group.Key, detail, status, rows, isAccepted);
-                }),
+                    return new ReportDifferenceGroupViewModel(group.Key, detail, status, rows, isAccepted, language);
+                })
+                .OrderBy(group => group.IsAccepted),
             ];
     }
 
@@ -233,25 +257,56 @@ public sealed partial class ReportReviewViewModel
         return facts;
     }
 
-    private static string FormatBytePreview(string hex)
+    private static FormattedHexPreview FormatBytePreview(string hex, int maximumBytes)
     {
-        string compact = hex.Replace(" ", string.Empty, StringComparison.Ordinal).Trim();
-        if (compact.Length == 0)
+        if (string.IsNullOrWhiteSpace(hex))
         {
-            return string.Empty;
+            return new FormattedHexPreview(string.Empty, 0, IsComplete: true);
         }
 
-        if (compact.Length % 2 != 0)
+        var builder = new StringBuilder(Math.Min(hex.Length, checked(maximumBytes * 3)));
+        char? highNibble = null;
+        int byteCount = 0;
+        foreach (char value in hex)
         {
-            return compact.ToUpperInvariant();
+            if (char.IsWhiteSpace(value))
+            {
+                continue;
+            }
+
+            if (highNibble is null)
+            {
+                highNibble = char.ToUpperInvariant(value);
+                continue;
+            }
+
+            if (byteCount >= maximumBytes)
+            {
+                return new FormattedHexPreview(builder.ToString(), byteCount, IsComplete: false);
+            }
+
+            if (builder.Length > 0)
+            {
+                _ = builder.Append(' ');
+            }
+
+            _ = builder.Append(highNibble.Value).Append(char.ToUpperInvariant(value));
+            highNibble = null;
+            byteCount++;
         }
 
-        List<string> bytes = [];
-        for (int index = 0; index < compact.Length; index += 2)
+        if (highNibble is not null)
         {
-            bytes.Add(compact.Substring(index, 2).ToUpperInvariant());
+            if (builder.Length > 0)
+            {
+                _ = builder.Append(' ');
+            }
+
+            _ = builder.Append(highNibble.Value);
         }
 
-        return string.Join(" ", bytes);
+        return new FormattedHexPreview(builder.ToString(), byteCount, IsComplete: true);
     }
+
+    private readonly record struct FormattedHexPreview(string Value, int ByteCount, bool IsComplete);
 }

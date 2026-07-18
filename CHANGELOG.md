@@ -70,6 +70,14 @@ measured before/after parity.
   smoke coverage locks progress-before-work, off-caller-thread execution, and
   captured-input ownership. Large-report parsing/projection remains a separate
   pending phase rather than being hidden inside this scheduling change.
+- Added the first large-report scalability slice. Run completion and manual
+  report loading now project JSON outside the UI dispatcher with cancellation;
+  the modal binds bounded pages for summaries, difference groups and rows,
+  mutations, operations, postbuild invocations, and issues. Legacy full-hex
+  evidence renders at most a 64-byte preview while the original JSON remains
+  byte-for-byte available for history/save/export. A 1,000-difference smoke
+  locks global counts, review-first ordering, bounded initial rows, paging, and
+  cancellation without changing the report wire contract.
 - Defined three comparison nodes: pre-rebase historical A, final-`0.9.9`
   unoptimized B, and the same reconciled source as optimized `0.9.10` node C.
   Only B/C may support a performance decision. Deterministic counters and

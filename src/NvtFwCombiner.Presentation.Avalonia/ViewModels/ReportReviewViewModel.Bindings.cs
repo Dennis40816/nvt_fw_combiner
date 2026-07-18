@@ -164,6 +164,27 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Simplified output-difference rows for the primary report view.</summary>
     public IReadOnlyList<ReportDifferenceSummaryRowViewModel> OutputDifferenceSummaryRows { get; }
 
+    /// <summary>Bounded primary difference-summary rows rendered by the modal.</summary>
+    public ReportPagedListViewModel OutputDifferenceSummaryPage { get; }
+
+    /// <summary>Bounded output-difference section groups rendered by the Changes tab.</summary>
+    public ReportPagedListViewModel OutputDifferenceGroupPage { get; }
+
+    /// <summary>Bounded mutation rows rendered by the Changes tab.</summary>
+    public ReportPagedListViewModel MutationPage { get; }
+
+    /// <summary>Bounded operation-flow nodes rendered by the Operations tab.</summary>
+    public ReportPagedListViewModel OperationFlowPage { get; }
+
+    /// <summary>Bounded operation-detail rows rendered by the Operations tab.</summary>
+    public ReportPagedListViewModel StepOperationPage { get; }
+
+    /// <summary>Bounded postbuild invocation rows rendered by the Postbuild tab.</summary>
+    public ReportPagedListViewModel PostbuildInvocationPage { get; }
+
+    /// <summary>Bounded issue rows rendered by the Issues tab.</summary>
+    public ReportPagedListViewModel IssuePage { get; }
+
     /// <summary>Primary byte-difference verdict title.</summary>
     public string ByteDifferenceTitle { get; }
 

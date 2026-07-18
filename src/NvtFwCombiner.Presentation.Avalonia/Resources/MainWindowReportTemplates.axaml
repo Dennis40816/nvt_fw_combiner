@@ -7,6 +7,22 @@
   <Label Margin="0,0,6,6" Classes="compactBadge neutralBadge reportBadge" Content="{Binding Text}" />
 </DataTemplate>
 
+<DataTemplate x:Key="ReportPagerTemplate" DataType="vm:ReportPagedListViewModel">
+  <Grid Margin="0,8,0,0" ColumnDefinitions="*,Auto" ColumnSpacing="10" IsVisible="{Binding HasMoreItems}">
+    <TextBlock
+        VerticalAlignment="Center"
+        Classes="captionText"
+        Text="{Binding PageStatus}"
+        AutomationProperties.Name="{Binding PageStatus}" />
+    <Button
+        Grid.Column="1"
+        Classes="secondary"
+        Command="{Binding LoadMoreCommand}"
+        Content="{Binding LoadMoreLabel}"
+        AutomationProperties.Name="{Binding LoadMoreLabel}" />
+  </Grid>
+</DataTemplate>
+
 <DataTemplate x:Key="ReportLineFactTemplate" DataType="vm:ReportLineFactViewModel">
   <Grid Margin="0,1" ColumnDefinitions="Auto,*" ColumnSpacing="10">
     <TextBlock Classes="tableHeader" Text="{Binding Label}" TextWrapping="Wrap" />
