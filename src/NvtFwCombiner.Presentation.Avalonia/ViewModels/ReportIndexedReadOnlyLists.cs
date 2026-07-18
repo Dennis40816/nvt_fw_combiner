@@ -6,30 +6,44 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed class MemoizedIndexedReadOnlyList<T> : IReadOnlyList<T>
     where T : class
 {
-    private readonly Lazy<T>[] _items;
+    private readonly Func<int, T> _factory;
+    private readonly Lazy<T>?[] _items;
     private int _materializedCount;
 
     internal MemoizedIndexedReadOnlyList(int count, Func<int, T> factory)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         ArgumentNullException.ThrowIfNull(factory);
-        _items = new Lazy<T>[count];
-        for (int index = 0; index < count; index++)
-        {
-            int itemIndex = index;
-            _items[index] = new Lazy<T>(
-                () => CreateItem(factory, itemIndex),
-                LazyThreadSafetyMode.ExecutionAndPublication);
-        }
+        _factory = factory;
+        _items = new Lazy<T>?[count];
     }
 
     public int Count => _items.Length;
 
     internal int MaterializedCount => Volatile.Read(ref _materializedCount);
 
-    public T this[int index] => (uint)index < (uint)_items.Length
-        ? _items[index].Value
-        : throw new ArgumentOutOfRangeException(nameof(index));
+    public T this[int index]
+    {
+        get
+        {
+            if ((uint)index >= (uint)_items.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            Lazy<T>? item = Volatile.Read(ref _items[index]);
+            if (item is null)
+            {
+                int itemIndex = index;
+                var candidate = new Lazy<T>(
+                    () => CreateItem(_factory, itemIndex),
+                    LazyThreadSafetyMode.ExecutionAndPublication);
+                item = Interlocked.CompareExchange(ref _items[index], candidate, null) ?? candidate;
+            }
+
+            return item.Value;
+        }
+    }
 
     private T CreateItem(Func<int, T> factory, int index)
     {
