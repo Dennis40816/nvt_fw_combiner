@@ -16,8 +16,8 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
         using var process = new Process { StartInfo = CreateProcessStartInfo(startInfo) };
 
         _ = process.Start();
-        Task<string> stdout = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
-        Task<string> stderr = process.StandardError.ReadToEndAsync(CancellationToken.None);
+        Task<string> stdout = BoundedProcessOutputReader.ReadAsync(process.StandardOutput);
+        Task<string> stderr = BoundedProcessOutputReader.ReadAsync(process.StandardError);
         Task wait = process.WaitForExitAsync(CancellationToken.None);
         using var timeoutSource = new CancellationTokenSource();
         var timeout = Task.Delay(startInfo.Timeout, timeoutSource.Token);
