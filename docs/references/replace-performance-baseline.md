@@ -65,14 +65,31 @@ On the same local .NET 10 test path, run-through-report current-thread
 allocation changed from `20,162,040` bytes at the initial baseline to
 `11,719,480` bytes after the bounded P1 slices, a reduction of `8,442,560`
 bytes (`41.9%`). The exact output/JSON facts above did not change. The latest
-isolated serialization run measured about `58.0` MB for the first call and
-`23,761,648` bytes for an exact repeated call. The repeated allocation is only
+isolated serialization run measured `58,057,368` bytes and `132.240` ms for the
+first call, then `23,761,648` bytes and `52.627` ms for an exact repeated call.
+The repeated allocation is only
 `320,608` bytes (`1.37%`) above the `23,441,040`-byte payload floor of the final
 UTF-16 string. This supports treating recurring serialization as close to its
-unavoidable representation cost and the roughly `34` MB gap as
-first-call-specific overhead. It does not yet attribute that gap among serializer metadata,
-JIT, or cold pooled-buffer effects. These allocation numbers are diagnostic
-local evidence, not universal CI thresholds.
+unavoidable representation cost.
+
+A clean-process attribution experiment rented the shared `ArrayPool<byte>`
+geometric buckets from 16 KiB through 16 MiB before serializing the same report.
+Those buckets allocated `33,538,536` bytes; after they were returned, the exact
+first serialization allocated `24,519,944` bytes. Their sum, `58,058,480`,
+reproduces the observed cold allocation within `1,112` bytes. The pool buckets
+therefore explain `33,538,536` of the `34,295,720` cold-versus-repeated gap
+(`97.79%`); the post-return first serialization remains `758,296` bytes above
+the repeated call. This attributes the dominant cold inflation and rules out
+another retained full-report copy without claiming every first-call byte is
+explained. A separate 16 MiB `DefaultBufferSize` candidate preserved the exact
+JSON SHA and
+reduced allocation to `41,267,016` bytes, but took `208.190` ms versus the
+`132.240` ms cold baseline sample. It did not demonstrate a first-call latency
+improvement and was rejected: pre-sizing or warming only moves the pool cost
+and can over-rent for normal reports. No production serializer or schema change
+follows from this result.
+Fresh-process working set and latency remain part of final Node C measurement.
+These numbers are diagnostic local evidence, not universal CI thresholds.
 
 Run the focused evidence from the repository root:
 
