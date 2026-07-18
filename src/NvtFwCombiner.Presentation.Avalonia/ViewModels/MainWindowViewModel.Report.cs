@@ -77,7 +77,7 @@ public sealed partial class MainWindowViewModel
         {
             LoadedReport = ReportReviewViewModel.FromJson(json, sourceName, language: Text.Language);
         }
-        catch (JsonException exception)
+        catch (Exception exception) when (IsReportMaterializationException(exception))
         {
             LoadedReport = ReportReviewViewModel.Error(sourceName, exception.Message, language: Text.Language);
         }
@@ -292,5 +292,14 @@ public sealed partial class MainWindowViewModel
         return oneLine.Length <= maxLength
             ? oneLine
             : string.Concat(oneLine.AsSpan(0, Math.Max(0, maxLength - 3)), "...");
+    }
+
+    private static bool IsReportMaterializationException(Exception exception)
+    {
+        return exception is JsonException or
+            InvalidOperationException or
+            ArgumentException or
+            FormatException or
+            OverflowException;
     }
 }
