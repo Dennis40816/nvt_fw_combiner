@@ -113,6 +113,34 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("<ScrollViewer MaxHeight=\"320\"", rawTemplate, StringComparison.Ordinal);
     }
 
+    /// <summary>Large report collections render bounded pages instead of binding complete evidence lists.</summary>
+    [Fact]
+    public void ReportDetailCollectionsUseBoundedPagerBindings()
+    {
+        string templates = ReadPresentationFile("Resources/MainWindowReportTemplates.axaml");
+        string changes = ReadPresentationFile("Resources/MainWindowReportChangeTemplates.axaml");
+        string panels = ReadPresentationFile("Resources/MainWindowReportPanels.axaml");
+        string audit = ReadPresentationFile("Resources/MainWindowReportAuditTemplates.axaml");
+        string reportUi = string.Join(Environment.NewLine, changes, panels, audit);
+
+        Assert.Contains("x:Key=\"ReportPagerTemplate\"", templates, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsVisible=\"{Binding HasMoreItems}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding PageStatus}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", templates, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding LoadMoreLabel}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("RowsPage.Items", changes, StringComparison.Ordinal);
+        Assert.Contains("OutputDifferenceSummaryPage.Items", panels, StringComparison.Ordinal);
+        Assert.Contains("OutputDifferenceGroupPage.Items", audit, StringComparison.Ordinal);
+        Assert.Contains("MutationPage.Items", audit, StringComparison.Ordinal);
+        Assert.Contains("OperationFlowPage.Items", audit, StringComparison.Ordinal);
+        Assert.Contains("StepOperationPage.Items", audit, StringComparison.Ordinal);
+        Assert.Contains("PostbuildInvocationPage.Items", audit, StringComparison.Ordinal);
+        Assert.Contains("IssuePage.Items", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding LoadedReport.OutputDifferenceGroups}\"", reportUi, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding LoadedReport.Mutations}\"", reportUi, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding LoadedReport.Issues}\"", reportUi, StringComparison.Ordinal);
+    }
+
     /// <summary>Ensures application resources expose the shared control style library to all views.</summary>
     [Fact]
     public void SharedControlStyleLibraryIsIncludedByTheApplication()

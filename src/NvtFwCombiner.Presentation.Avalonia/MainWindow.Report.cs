@@ -32,7 +32,7 @@ public sealed partial class MainWindow
         await using Stream stream = await files[0].OpenReadAsync();
         using var reader = new StreamReader(stream);
         string json = await reader.ReadToEndAsync();
-        viewModel.LoadReportJson(json, files[0].Name);
+        await viewModel.LoadReportJsonAsync(json, files[0].Name);
     }
 
     private static void ApplyLaunchOptions(MainWindowViewModel viewModel, UiLaunchOptions launchOptions)

@@ -5,7 +5,10 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportReviewViewModel
 {
-    private static IReadOnlyList<ReportLineViewModel> ParseOperations(JsonElement root, ShellLanguage language)
+    private static IReadOnlyList<ReportLineViewModel> ParseOperations(
+        JsonElement root,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
     {
         return !root.TryGetProperty(nameof(Operations), out JsonElement operations) ||
                operations.ValueKind != JsonValueKind.Array
@@ -14,6 +17,7 @@ public sealed partial class ReportReviewViewModel
             [
                 .. operations.EnumerateArray().Select(operation =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 string source = FormatEndpoint(GetStringOrNull(operation, "SourceSpaceId"), GetRangeOrNull(operation, "SourceRange"));
                 string target = FormatEndpoint(GetString(operation, "TargetSpaceId"), GetRangeOrNull(operation, "TargetRange"));
                 string kind = GetString(operation, "Kind");

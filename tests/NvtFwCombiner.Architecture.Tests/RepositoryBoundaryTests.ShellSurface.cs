@@ -209,7 +209,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ContentTemplate=\"{StaticResource ReportSummaryPanelTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OutcomeTitle", reportPanels, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.ByteDifferenceTitle", reportPanels, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.OutputDifferenceSummaryRows", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OutputDifferenceSummaryPage.Items", reportPanels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.ChangeReviewTitle}\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource ReportAuditDetailsPanelTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", reportAuditTemplates, StringComparison.Ordinal);
@@ -240,9 +240,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ReportInputGroupTemplate", reportInputTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportOperationFlowNodeTemplate", reportOperationTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportHistoryEntryTemplate", reportHistoryTemplates, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.OperationFlow", reportAuditTemplates, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.StepOperations", reportAuditTemplates, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.PostbuildInvocations", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OperationFlowPage.Items", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.StepOperationPage.Items", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.PostbuildInvocationPage.Items", reportAuditTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("LoadedReport.CommandOperations", reportAuditTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"24,*\"", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"{DynamicResource NfcUiFontFamily}\"", shell, StringComparison.Ordinal);

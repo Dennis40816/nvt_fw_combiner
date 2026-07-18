@@ -82,6 +82,7 @@ public sealed partial class MainWindowViewModel
     public void LoadReportHistory(IEnumerable<ReportHistorySnapshot> snapshots)
     {
         ArgumentNullException.ThrowIfNull(snapshots);
+        _ = BeginReportProjection();
 
         ReportHistoryEntries.Clear();
         _reportHistorySequence = 0;
@@ -302,6 +303,7 @@ public sealed partial class MainWindowViewModel
 
     private void LoadReportHistoryEntry(ReportHistoryEntryViewModel entry)
     {
+        _ = BeginReportProjection();
         try
         {
             LoadedReport = ReportReviewViewModel.FromJson(
