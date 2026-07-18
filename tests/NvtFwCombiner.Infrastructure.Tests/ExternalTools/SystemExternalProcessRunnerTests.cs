@@ -133,6 +133,71 @@ public sealed class SystemExternalProcessRunnerTests
         }
     }
 
+    /// <summary>Large stdout and stderr are drained concurrently but retained only within the diagnostic cap.</summary>
+    [Fact]
+    public async Task RunAsyncBoundsAndDrainsBothOutputStreams()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var workspace = TempWorkspace.Create("nfc-process-runner-output");
+        string scriptPath = workspace.PathFor("large-output.ps1");
+        File.WriteAllText(
+            scriptPath,
+            "[Console]::Out.Write(('A' * 131072) + 'OUT-END')" + Environment.NewLine +
+            "[Console]::Error.Write(('B' * 131072) + 'ERR-END')" + Environment.NewLine);
+        var runner = new SystemExternalProcessRunner();
+        ExternalProcessStartInfo startInfo = CreateStartInfo(workspace.Root, scriptPath, TimeSpan.FromSeconds(10));
+
+        ExternalProcessResult result = await runner.RunAsync(
+            startInfo,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.False(result.TimedOut);
+        Assert.Equal(BoundedProcessOutputReader.MaximumCapturedCharacters, result.StandardOutput.Length);
+        Assert.Equal(BoundedProcessOutputReader.MaximumCapturedCharacters, result.StandardError.Length);
+        Assert.StartsWith(new string('A', 256), result.StandardOutput, StringComparison.Ordinal);
+        Assert.StartsWith(new string('B', 256), result.StandardError, StringComparison.Ordinal);
+        Assert.Contains(BoundedProcessOutputReader.TruncationMarker, result.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains(BoundedProcessOutputReader.TruncationMarker, result.StandardError, StringComparison.Ordinal);
+        Assert.EndsWith("OUT-END", result.StandardOutput, StringComparison.Ordinal);
+        Assert.EndsWith("ERR-END", result.StandardError, StringComparison.Ordinal);
+    }
+
+    /// <summary>Timeout waits for killed-stream drainage and retains bounded partial diagnostics.</summary>
+    [Fact]
+    public async Task RunAsyncTimeoutRetainsBoundedPartialOutputAfterKill()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var workspace = TempWorkspace.Create("nfc-process-runner-timeout-output");
+        string scriptPath = workspace.PathFor("large-output-then-wait.ps1");
+        File.WriteAllText(
+            scriptPath,
+            "[Console]::Out.Write(('O' * 131072) + 'OUT-PARTIAL-END')" + Environment.NewLine +
+            "[Console]::Error.Write(('E' * 131072) + 'ERR-PARTIAL-END')" + Environment.NewLine +
+            "Start-Sleep -Seconds 30" + Environment.NewLine);
+        var runner = new SystemExternalProcessRunner();
+        ExternalProcessStartInfo startInfo = CreateStartInfo(workspace.Root, scriptPath, TimeSpan.FromSeconds(2));
+
+        ExternalProcessResult result = await runner.RunAsync(
+            startInfo,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(-1, result.ExitCode);
+        Assert.True(result.TimedOut);
+        Assert.Equal(BoundedProcessOutputReader.MaximumCapturedCharacters, result.StandardOutput.Length);
+        Assert.Equal(BoundedProcessOutputReader.MaximumCapturedCharacters, result.StandardError.Length);
+        Assert.EndsWith("OUT-PARTIAL-END", result.StandardOutput, StringComparison.Ordinal);
+        Assert.EndsWith("ERR-PARTIAL-END", result.StandardError, StringComparison.Ordinal);
+    }
+
     private static ExternalProcessStartInfo CreateStartInfo(string root, string scriptPath, TimeSpan timeout)
     {
         return new ExternalProcessStartInfo(
