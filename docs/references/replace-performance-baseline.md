@@ -181,6 +181,9 @@ bounded feed and lifecycle tests are retained as correctness infrastructure,
 not claimed as a performance win based on source size. The lazy report-detail
 slice records `58,112`; its acceptance is the deterministic materialization
 result below, not a lower line count.
+The sequential JSON-slice phase records `58,179`; this is only the exact
+maintainability ratchet. Its acceptance is the measured summary-ready and
+allocation result with complete report/detail parity, not code size.
 
 Staged immutable-artifact verification reads are separate and must not be
 hidden in future evidence. During the conservative phase, the first canonical

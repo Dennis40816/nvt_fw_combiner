@@ -71,6 +71,25 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(new string('A', 512), viewModel.LoadedReportJson, StringComparison.Ordinal);
     }
 
+    /// <summary>Lazy byte slices preserve escaped labels after the summary parser releases its JSON document.</summary>
+    [Fact]
+    public void LazyDifferenceSlicePreservesEscapedSectionText()
+    {
+        const string sectionPrefix = "觸控 / \"CRC\" 欄位";
+        string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(
+            count: 8,
+            sectionCount: 4,
+            sectionPrefix);
+
+        ReportReviewViewModel report = ReportReviewViewModel.FromJson(json, "escaped-section.json");
+
+        ReportDifferenceGroupViewModel firstGroup = report.OutputDifferenceGroups[0];
+        Assert.Equal($"{sectionPrefix} 03", firstGroup.Title);
+        firstGroup.IsExpanded = true;
+        ReportLineViewModel firstRow = Assert.IsType<ReportLineViewModel>(firstGroup.RowsPage.Items[0]);
+        Assert.Equal($"{sectionPrefix} 03", firstRow.SectionLabel);
+    }
+
     /// <summary>Cancelled background projection does not publish a partial report or history entry.</summary>
     [Fact]
     public async Task CancelledChangeReportProjectionPublishesNoPartialState()
