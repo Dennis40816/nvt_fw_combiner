@@ -76,6 +76,9 @@ public static partial class WorkbenchCompositionService
             ("NT51932", "nfc.nt51932.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "2.0.0", 3, 0x5601)
                 when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51932Fw200ExactBaseSha256) =>
                 "nt51932-ctrlram-replace-fw200-cascade3",
+            ("NT51951", "nfc.nt51951.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x5901)
+                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51951Fw200ExactBaseSha256) =>
+                "nt51951-ctrlram-replace-fw200-single",
             _ => null,
         };
         if (v2ProfileId is not null)
@@ -102,9 +105,24 @@ public static partial class WorkbenchCompositionService
                     cancellationToken).ConfigureAwait(false);
         }
 
-        ExternalProcessorStagedSourceBinding[] stagedSourceBindings = CreateCtrlRamStagedSourceBindings(
-            context.SelectedSources,
-            context.SelectedSourceLengths);
+        ExternalProcessorStagedSourceBinding[] stagedSourceBindings =
+        [
+            .. context.SelectedSources.SelectMany(source =>
+            {
+                string slotId = CtrlRamSlotId(source.SourceId);
+                long sourceLength = context.SelectedSourceLengths[source.SourceId];
+                return source.Blocks.Select(block =>
+                {
+                    long effectiveLength = Math.Min(
+                        block.FirmwareRange.Length,
+                        sourceLength - block.SourceOffset);
+                    return new ExternalProcessorStagedSourceBinding(
+                        slotId,
+                        new ByteRange(block.SourceOffset, effectiveLength),
+                        new ByteRange(block.FirmwareRange.Start, effectiveLength));
+                });
+            }),
+        ];
         IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections =
             LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForStagedSources(
             context.CommandPlan!,

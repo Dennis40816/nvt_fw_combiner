@@ -126,6 +126,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51926-ctrlram-replace-candidate",
             "nt51930-ctrlram-replace-candidate",
             "nt51932-ctrlram-replace-candidate",
+            "nt51951-ctrlram-replace-candidate",
             "nt51923-standard-merge",
             "nt51927-standard-merge",
             "nt51928-standard-merge",
@@ -166,7 +167,8 @@ public sealed partial class RepositoryBoundaryTests
             else if (bundle.Attribute("Include")?.Value is
                          "nt51926-ctrlram-replace-candidate" or
                          "nt51930-ctrlram-replace-candidate" or
-                         "nt51932-ctrlram-replace-candidate")
+                         "nt51932-ctrlram-replace-candidate" or
+                         "nt51951-ctrlram-replace-candidate")
             {
                 Assert.Equal(
                     "composition-profile-v2.9.schema.json",

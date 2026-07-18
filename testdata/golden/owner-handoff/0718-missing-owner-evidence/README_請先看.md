@@ -1,7 +1,8 @@
-# 0718 尚缺 Owner Golden Evidence
+# 0718 Owner Golden Evidence 歷史交接（已取代）
 
-這個資料夾只列出目前仍缺的 owner evidence。沒有出現在這裡的 IC／模式，
-代表目前不需要你重複提供。
+這份清單保留 2026-07-17 當時的交接內容。2026-07-18 final intake 與後續
+owner 決定已關閉所有 owner 補件 gate；以下 P0/P1 舊列不得再當成目前補件要求。
+剩餘 parity、route、retirement、review 都是 agent-owned engineering gate。
 
 ## 最重要的規則
 
@@ -13,7 +14,7 @@
 - 每個 case 都附一份 `Reply.md`，至少寫 IC、模式、實際 IC 顆數、Common FW 版本、最終檔名、是否同一次 run、Postbuild BAT／命令與 Combiner 版本。
 - 若有正式 log，請原樣附上；若沒有，至少列出命令列、輸入／輸出檔名及 SHA-256。
 
-## 目前真正需要你提供的項目
+## 當時要求提供的項目（歷史）
 
 | 優先 | Case | 仍缺內容 |
 | --- | --- | --- |
@@ -21,8 +22,8 @@
 | P0 | NT51931 既有多 IC case | 既有 golden 與 CtrlRAM inputs 已在 Git；只缺 `InsertSID.py`、它產生／修改後的狀態證據，以及能跑正式命令的 Combiner 工具／build 資訊 |
 | P0 | NT51932 cascade | 正確 `DiffDLM.bin` 或其生成命令／log／hash；以及 DiffNFMerge 完成後的 `NF_Ctrlram.bin` 或等價 input/output hash 與 log |
 | P0 | NT51950 CtrlRAM cascade | 同一次 run 的 Normal、VN、NF、DiffDLM 與完整最終 FlashCode |
-| P0 | NT51951 CtrlRAM single 修正版 | 同一次 run 的 Initial DP、原始 TP、Normal、VN、NF 與完整最終 FlashCode；目前 Git 內那一組有 3,773 個未解釋 payload diff |
-| P0 | NT51951 CtrlRAM cascade | 同一次 run 的 Normal、VN、NF、DiffDLM 與完整最終 FlashCode；若可取得也附 Initial DP／原始 TP |
+| 已關閉 | NT51951 CtrlRAM single | AUTO_PRJ-695 修正版已納入；V1/V2 full-byte 相同，1.11 expected 與 1.13 結果只差四個已分類 CRC words，不再需要 owner 補件 |
+| 範圍排除 | NT51951 CtrlRAM cascade | 目前沒有實際 product project，排除於 v0.9.9 release scope，不是缺少 evidence |
 | P0 | NT51930 DP Replace direct golden | 以既有 Standard Merge expected FlashCode 作 Reference FlashCode 時，提供實際 replacement DP／FlashCode 與完整最終 expected FlashCode，並在 `Reply.md` 確認 reference 身分 |
 | P1 | NT51926 Common FW 2.0.0 | 提供 single/cascade evidence，或只在 `Reply.md` 明確核准排除於 stable v0.9.9 範圍 |
 | P1 | General Replace migration | 先核准 protected ranges、mapping envelope、overlap/alignment 與 release IC/count；再提供代表性的 TP/CtrlRAM-touching input、mapping 與完整 expected FlashCode |

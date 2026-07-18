@@ -8,6 +8,7 @@ public static partial class WorkbenchCompositionService
 {
     private const string Nt51926Fw200ProcessorId = "nfc.nt51926.ctrlram-postbuild-v1";
     private const string Nt51932Fw200ExactBaseSha256 = "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd";
+    private const string Nt51951Fw200ExactBaseSha256 = "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69";
 
     private static V2CompositionPlanCompileResult CompileCtrlRamV2(
         CtrlRamReplaceRunContext context,

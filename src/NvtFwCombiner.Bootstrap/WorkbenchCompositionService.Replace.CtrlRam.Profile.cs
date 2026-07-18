@@ -167,30 +167,6 @@ public static partial class WorkbenchCompositionService
             validationRequirements);
     }
 
-    private static ExternalProcessorStagedSourceBinding[] CreateCtrlRamStagedSourceBindings(
-        IReadOnlyList<TpCtrlRamPostbuildSource> selectedSources,
-        IReadOnlyDictionary<string, long> selectedSourceLengths)
-    {
-        return
-        [
-            .. selectedSources.SelectMany(source =>
-            {
-                string slotId = CtrlRamSlotId(source.SourceId);
-                long sourceLength = selectedSourceLengths[source.SourceId];
-                return source.Blocks.Select(block =>
-                {
-                    long effectiveLength = Math.Min(
-                        block.FirmwareRange.Length,
-                        sourceLength - block.SourceOffset);
-                    return new ExternalProcessorStagedSourceBinding(
-                        slotId,
-                        new ByteRange(block.SourceOffset, effectiveLength),
-                        new ByteRange(block.FirmwareRange.Start, effectiveLength));
-                });
-            }),
-        ];
-    }
-
     private static void AddFirmwareVersionWriteRegion(
         List<ProfileRegion> profileRegions,
         List<RegionAccessRule> accessRules,
