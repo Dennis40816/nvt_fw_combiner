@@ -15,14 +15,8 @@ public static partial class WorkbenchCompositionService
     private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_standardMergeProfileSummaries = new(
         CreateStandardMergeProfileSummaries);
 
-    private static ReadOnlyCollection<WorkbenchProfileSummary> StandardMergeProfileSummaries =>
-        s_standardMergeProfileSummaries.Value;
-
     private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_replaceProfileSummaries = new(
         CreateReplaceProfileSummaries);
-
-    private static ReadOnlyCollection<WorkbenchProfileSummary> ReplaceProfileSummaries =>
-        s_replaceProfileSummaries.Value;
 
     /// <summary>Gets selectable IC ids from the IC support catalog.</summary>
     public static IReadOnlyList<string> GetSupportedIcIds()
@@ -76,19 +70,19 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets compiled Standard Merge profile summaries in stable CLI/display order.</summary>
     public static IReadOnlyList<WorkbenchProfileSummary> GetStandardMergeProfileSummaries()
     {
-        return StandardMergeProfileSummaries;
+        return s_standardMergeProfileSummaries.Value;
     }
 
     /// <summary>Gets compiled Replace profile summaries in stable CLI/display order.</summary>
     public static IReadOnlyList<WorkbenchProfileSummary> GetReplaceProfileSummaries()
     {
-        return ReplaceProfileSummaries;
+        return s_replaceProfileSummaries.Value;
     }
 
     private static WorkbenchProfileSummary? FindStandardMergeProfileSummaryByIc(string icId)
     {
         ArgumentNullException.ThrowIfNull(icId);
-        return StandardMergeProfileSummaries.FirstOrDefault(profile =>
+        return s_standardMergeProfileSummaries.Value.FirstOrDefault(profile =>
             string.Equals(profile.IcId, icId, StringComparison.Ordinal));
     }
 
@@ -98,15 +92,15 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<string> icIds = IcSupportCatalog.IcIds;
         return new WorkbenchSettingsSnapshot(
             icIds.Count,
-            StandardMergeProfileSummaries.Count,
-            ReplaceProfileSummaries.Count,
+            s_standardMergeProfileSummaries.Value.Count,
+            s_replaceProfileSummaries.Value.Count,
             icIds.Count(icId => IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.CtrlRamReplace)));
     }
 
     private static ReadOnlyCollection<WorkbenchProfileSummary> CreateStandardMergeProfileSummaries()
     {
         return Array.AsReadOnly(
-            BuiltInV2StandardMergeRegistrations
+            BuiltInV2RegistrationRegistry.StandardMerge
                 .Select(static registration => registration.CreateProfileSummary())
                 .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
                 .ToArray());

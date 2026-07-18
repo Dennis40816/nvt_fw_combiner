@@ -73,6 +73,9 @@ public static partial class WorkbenchCompositionService
                 "nt51926-ctrlram-replace-fw200-runtime-cascade",
             ("NT51930", "nfc.nt51930.ctrlram-postbuild-fw1.x", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.3.0", 3, 0x110D) =>
                 "nt51930-ctrlram-replace-fw130-cascade3",
+            ("NT51931", "nfc.nt51931.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.3.0", 6, 0x131B)
+                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51931Fw130ExactBaseSha256) =>
+                "nt51931-ctrlram-replace-fw130-cascade6",
             ("NT51932", "nfc.nt51932.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "2.0.0", 3, 0x5601)
                 when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51932Fw200ExactBaseSha256) =>
                 "nt51932-ctrlram-replace-fw200-cascade3",

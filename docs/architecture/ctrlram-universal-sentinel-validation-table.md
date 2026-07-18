@@ -79,8 +79,8 @@ Ranges are TP work-image half-open ranges.
 | NT51930 | Common FW 1.x cascade `14..29` | single slots plus approved DiffDLM `[0x2F200,0x3F000)` `0xFE00`; archived extended row remains disabled pending product evidence |
 | NT51930 | Common FW 2.0.0 single | NF `[0x1FC00,0x21650)` `0x1A50`; Normal `[0x21650,0x24250)` `0x2C00`; VN `[0x27650,0x28FB0)` `0x1960` |
 | NT51930 | Common FW 2.0.0 cascade `2..29` | single slots plus DiffDLM `[0x2F200,0x3F000)` `0xFE00` |
-| NT51931 | single; exact V2 route pending | NF `[0x16800,0x177D0)` `0xFD0`; Normal `[0x177D0,0x19FD0)` `0x2800`; MP `[0x19FD0,0x1C3D0)` `0x2400`; VN `[0x1C3D0,0x1DA30)` `0x1660` |
-| NT51931 | cascade; registered 1.13.0/51931-based parity validated | single slots plus DLM `[0x22800,0x3A400)` `0x17C00` |
+| NT51931 | single physical-slot layout | NF `[0x16800,0x177D0)` `0xFD0`; Normal `[0x177D0,0x19FD0)` `0x2800`; MP `[0x19FD0,0x1C3D0)` `0x2400`; VN `[0x1C3D0,0x1DA30)` `0x1660` |
+| NT51931 | cascade; exact AUTO_PRJ-158 cascade-6 V2 route materialized; registered 1.13.0/51931-based parity validated | single slots plus DLM `[0x22800,0x3A400)` `0x17C00` |
 | NT51932 | single | NF `[0x1FC00,0x21B90)` `0x1F90`; Normal `[0x21B90,0x26590)` `0x4A00`; VN `[0x26590,0x27EF0)` `0x1960` |
 | NT51932 | cascade | single slots plus DiffDLM `[0x2D100,0x35D00)` `0x8C00` |
 | NT51950 | single | NF `[0x22C00,0x25610)` `0x2A10`; Normal `[0x25610,0x2B210)` `0x5C00`; VN `[0x2B210,0x2D30C)` `0x20FC` |

@@ -275,12 +275,11 @@ EXPECTED_20260718_CASES: dict[str, dict[str, Any]] = {
             "route": "support-catalog-not-available",
         },
         "targetV2": {
-            "status": "registered-tool-mode-parity-validated",
+            "status": "exact-route-materialized",
             "runtimePromotion": False,
         },
         "baseKind": "expected-derived-self-replacement-control",
         "engineeringGateIds": [
-            "v2-exact-route-not-materialized",
             "provided-flashcode-not-same-build",
             "insertsid-out-of-scope-prestep",
         ],

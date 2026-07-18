@@ -4,9 +4,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static IReadOnlyList<BuiltInV2Registration> BuiltInV2StandardMergeRegistrations =>
-        BuiltInV2RegistrationRegistry.StandardMerge;
-
     private static bool TryGetBuiltInV2StandardMergeCompilation(
         string icId,
         long? dpInputLength,

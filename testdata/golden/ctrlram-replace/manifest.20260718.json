@@ -426,7 +426,7 @@
         "route": "support-catalog-not-available"
       },
       "targetV2": {
-        "status": "registered-tool-mode-parity-validated",
+        "status": "exact-route-materialized",
         "runtimePromotion": false
       },
       "baseKind": "expected-derived-self-replacement-control",
@@ -447,7 +447,6 @@
         "Owner classifies InsertSID as an out-of-scope pre-step, so its absent script is not a V1-retirement or exact CtrlRAM/Postbuild parity blocker."
       ],
       "engineeringGateIds": [
-        "v2-exact-route-not-materialized",
         "provided-flashcode-not-same-build",
         "insertsid-out-of-scope-prestep"
       ],
@@ -458,9 +457,19 @@
         "runtimeSupportPromotion": false
       },
       "phaseBResult": {
-        "status": "registered-tool-mode-parity-validated",
-        "routeProfileId": null,
+        "status": "v1-v2-parity-routed-owner-crc-delta-classified",
+        "routeProfileId": "nt51931-ctrlram-replace-fw130-cascade6",
+        "routeProfileVersion": "0.1.0",
         "ownerExpectedSha256": "2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3",
+        "legacyOutputSha256": "f38fdecd95092d9bacabd8ca59c442cbdb601edd280c23efa088693cb256c594",
+        "v2OutputSha256": "f38fdecd95092d9bacabd8ca59c442cbdb601edd280c23efa088693cb256c594",
+        "differenceCounts": {
+          "legacyToV2": 0,
+          "ownerToLegacy": 108,
+          "ownerToV2": 108,
+          "headerCrc": 108,
+          "replacementPayload": 0
+        },
         "providedFlashCode": {
           "sha256": "d997b27199d93110f1f9753dd997fb12c6e814abfd22657e6b8b0c3baf400221",
           "sameBuildAsExpected": false,
@@ -596,12 +605,20 @@
         },
         "insertSidScope": "out-of-scope-pre-step-nonblocking",
         "inputArtifactsUnchanged": true,
-        "supportState": "v2-route-pending",
+        "baseMetadata": {
+          "commonFwVersion": "1.3.0",
+          "chipCount": 6,
+          "pid": "0x131B",
+          "topology": "cascade"
+        },
+        "reportIdentityParity": true,
+        "wrongShapeBehavior": "legacy-v1-fallback",
+        "supportState": "exact-route-materialized-support-neutral",
         "reviewEvidence": {
           "ownerInputGate": "closed-by-existing-owner-decision",
           "ownerModeSelection": "registered-1.13.0-nt51931-based",
           "independentR3Findings": { "p0": 0, "p1": 0, "p2": 0, "p3": 0 },
-          "promotionPolicy": "support-neutral-until-v2-route-review"
+          "promotionPolicy": "support-neutral-no-promotion"
         },
         "runtimeSupportPromotion": false
       }
