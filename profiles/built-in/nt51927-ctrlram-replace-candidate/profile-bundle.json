@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51927-ctrlram-replace-candidate",
-  "bundleVersion": "0.9.9-candidate.2",
+  "bundleVersion": "0.9.9-candidate.3",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "5afa39ebb5190484de3f3a5a3d8e117710334fc914800d007a395d7cab9d4777",
+  "contentHash": "91306b10813ddcbb2851da4ef21e6aa5086c07a2f3ea6d6829b99570902eaa81",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,21 +25,28 @@
       "kind": "firmware-family",
       "path": "families/nt51927-ctrlram-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "e09fe895982b90a8e4bf934bbd5d42bf02fbb4adc03b5e0679dee6b4166dd01f"
+      "contentHash": "234ceffe1fefba40d7df6eed8a2b0831e46bf263f0812e3426077529a06ab893"
     },
     {
       "entryId": "nt51927-ctrlram-replace-fw141-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51927-ctrlram-replace-fw141-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "94222dff67a06482dc8f3a13ed8b8e495e52b8f40848f961c2abe18f78bb0af8"
+      "contentHash": "9bbd6d93d0cc6bfb127d3b48155678ee84f6918ae64fdc4dfc9f5bc6c034f7b3"
     },
     {
       "entryId": "nt51927-ctrlram-replace-fw132-twochip-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51927-ctrlram-replace-fw132-twochip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "2a259389f1d41b9d0ac1f114b040c8252051e31cd514834866322c2944c94634"
+      "contentHash": "a04f2899fdffa355b06bcf7d2d0c481f44fe8fd4d9edd307d8f8dbac718cdbdc"
+    },
+    {
+      "entryId": "nt51927-ctrlram-replace-fw140-threechip-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51927-ctrlram-replace-fw140-threechip.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "9586ccd8362ee7f9d6fe84e21a75d27b366497041d84a338452345f4f4829206"
     }
   ]
 }

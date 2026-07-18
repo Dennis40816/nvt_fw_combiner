@@ -416,7 +416,70 @@
           }
         }
       ],
-      "notes": "Committed owner-approved base with repository-derived replay inputs. The eight inputs now match the eight physical BIN filenames consumed by the pinned Postbuild; NF and VN each feed multiple logical destinations. They are not independently owner-supplied replacement files. The old per-region VN master slice differs from the shared R/L value by 22 bytes, so an official same-run physical vn.bin and expected output are still required for direct parity."
+      "phaseBResult": {
+        "status": "v1-v2-full-byte-parity-routed-expected-derived-replacement-and-crc-classified",
+        "project": "TM-TL177XFKS03-GM-D08T9B",
+        "pid": "0x570A",
+        "routeProfileId": "nt51927-ctrlram-replace-fw140-threechip",
+        "baseKind": "owner-approved-base-with-repository-derived-replay-inputs",
+        "baseSha256": "bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c",
+        "legacyOutputSha256": "dc1ee8928977845fad334b75c60b3e7fa3989f0a7e177206f83104217bf3fe16",
+        "v2OutputSha256": "dc1ee8928977845fad334b75c60b3e7fa3989f0a7e177206f83104217bf3fe16",
+        "differenceCounts": {
+          "legacyToV2": 0,
+          "baseToLegacy": 138,
+          "baseToV2": 138,
+          "headerAndCrc": 116,
+          "declaredReplacement": 22,
+          "headerAndCrcRanges": 29,
+          "declaredReplacementRanges": 4
+        },
+        "expectedDerivedCrcRanges": [
+          "[0x22C,0x230)",
+          "[0x24C,0x250)",
+          "[0x1E25C,0x1E260)",
+          "[0x1E27C,0x1E280)",
+          "[0x1E29C,0x1E2A0)",
+          "[0x1E2AC,0x1E2B0)",
+          "[0x1E2CC,0x1E2D0)",
+          "[0x1E2DC,0x1E2E0)",
+          "[0x2725C,0x27260)",
+          "[0x2727C,0x27280)",
+          "[0x2729C,0x272A0)",
+          "[0x272AC,0x272B0)",
+          "[0x272CC,0x272D0)",
+          "[0x272DC,0x272E0)",
+          "[0x3025C,0x30260)",
+          "[0x3027C,0x30280)",
+          "[0x3029C,0x302A0)",
+          "[0x302AC,0x302B0)",
+          "[0x302CC,0x302D0)",
+          "[0x302DC,0x302E0)",
+          "[0x32FDC,0x32FE0)",
+          "[0x32FEC,0x32FF0)",
+          "[0x3300C,0x33010)",
+          "[0x3302C,0x33030)",
+          "[0x3303C,0x33040)",
+          "[0x3305C,0x33060)",
+          "[0x3306C,0x33070)",
+          "[0x3307C,0x33080)",
+          "[0x3309C,0x330A0)"
+        ],
+        "expectedDerivedDeclaredReplacementRanges": [
+          "[0x1CBD8,0x1CBD9)",
+          "[0x1CC08,0x1CC10)",
+          "[0x1CC88,0x1CC90)",
+          "[0x1DEDB,0x1DEE0)"
+        ],
+        "toolBindingId": "legacy-combiner-1.13.0",
+        "sessionCount": 1,
+        "commandCount": 13,
+        "inputArtifactsUnchanged": true,
+        "reportIdentityParity": true,
+        "runtimeSupportPromotion": false,
+        "parityTest": "Nt51927CtrlRamFw140ThreeChipEvidenceTests.ExactExpectedDerivedCaseRunsThroughV2WithLegacyProcessParityAsync"
+      },
+      "notes": "Committed owner-approved base with repository-derived replay inputs. The eight inputs match the eight physical BIN filenames consumed by the pinned Postbuild; NF and VN each feed multiple logical destinations. Exact V1/V2 full-byte and one-session/13-command process parity is closed for this full-reference-SHA route. The shared VN differs from the base master VN by 22 bytes, and those bytes are classified as four declared replacement ranges rather than unexplained drift. Because there is no independent owner expected output, this remains support-neutral expected-derived evidence and does not promote public support."
     }
   ],
   "commitApproval": "Repository owner explicitly approved committing golden BIN payloads to Git on 2026-07-05."

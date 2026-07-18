@@ -66,7 +66,7 @@ Current NT51927 golden status:
 - Owner clarified that the earlier "TN3C" wording was a typo.
 - The current NT51927 golden in `testdata/golden/standard-merge-gen-flash` is the SINGLE/full flash golden for the current investigation scope.
 - A single-chip golden run through the 2-chip or 3-chip postbuild branch is not expected to remain byte-identical because the BAT explicitly copies the master window into slave windows.
-- Future 2-chip or 3-chip golden BIN files are only needed if multi-chip branch parity is promoted into scope.
+- Owner-approved two- and three-chip bases are now committed. Their exact V2 routes use repository-derived replay inputs and remain support-neutral because they do not include independent owner expected outputs.
 
 Not currently required for NT51928 just to classify LDC:
 
@@ -127,7 +127,7 @@ Results:
 
 - NT51926 cascade self-replacement built with the current `2.0.0` catalog successfully but was not byte-identical to the base: 251 bytes changed across 7 ranges, including main header CRC words `[0x1C,0x20)`, `[0xFC,0x100)` and the `2.0.0` copy-header target window near `[0x32A70,0x32B70)`.
 - NT51927 2-chip self-replacement built successfully but was not byte-identical to the base: 100 bytes changed across 25 header/integrity ranges, including `[0x23C,0x240)`, `[0x24C,0x250)`, `[0x26C,0x270)`, `[0x27C,0x280)` plus master/right header-copy and final-header-backup CRC word locations.
-- NT51927 3-chip self-replacement built successfully but was not byte-identical to the base: 105 bytes changed across 30 header/integrity ranges in the master/right/left header-copy and final-header-backup areas.
+- The superseded 3-chip self-replacement audit observed a different historical replay shape. The executable exact route now locks V1/V2 SHA `dc1ee892...fe16`: 116 bytes in 29 complete header/CRC words plus 22 bytes in four declared VN replacement ranges. The declared bytes reflect the shared VN input differing from the base master VN and are not unexplained drift.
 
 Interpretation:
 
@@ -173,7 +173,7 @@ Those 8 bytes are CRC/header-generation words, so the 251-byte `2.0.0` self-repl
 
 ### NT51927
 
-NT51927 2-chip and 3-chip branches explicitly contain whole-window copies in the BAT. These are not inferred from flash-map UI names.
+NT51927 2-chip and 3-chip branches explicitly contain whole-window copies in the BAT. These are not inferred from flash-map UI names. The exact three-chip route runs one ordered 13-command session; its right NF source offset is `0x1F90`, as declared by the BAT.
 
 2-chip right-window copy:
 
@@ -197,7 +197,7 @@ Current interpretation:
 
 - NT51927 single self-pasteback mostly reduces to header-word drift.
 - The current NT51927 golden is SINGLE and matches the current investigation scope.
-- NT51927 2-chip now has exact full-reference-SHA V1/V2 parity using the owner-approved base and repository-derived replay inputs. The 3-chip route follows the same expected-derived engineering policy; no new owner output is requested, and neither route may be described as direct owner-output parity.
+- NT51927 2-chip and 3-chip now have exact full-reference-SHA V1/V2 parity using owner-approved bases and repository-derived replay inputs. The three-chip expected-derived result contains 29 complete header/CRC words and four declared VN replacement ranges. No new owner output is requested, and neither multi-chip route may be described as direct owner-output parity.
 - Running a single-branch golden through a multi-chip branch is not a valid first-run-identity test.
 
 ### NT51928
@@ -279,7 +279,7 @@ The short answer to preserve:
 - NT51930 now has two inspected postbuild versions. The current Standard Merge golden aligns with `PostbuildSetup_51930_1.4.0.bat` header-copy length `0x100`, not the current `2.0.0` catalog length `0x200` plus second header-only command.
 - Current postbuild catalog matches inspected `2.0.0` BAT evidence, but not necessarily the version of every golden sample.
 - NT51926 is no longer just a copy-header initialization question; it is a postbuild-version selection/evidence question.
-- NT51927 single has direct owner-output evidence. The 2-chip exact route is closed through full-reference-SHA V1/V2 and expected-derived CRC/header classification; 3-chip remains agent-owned engineering work under the same no-new-owner-input policy.
+- NT51927 single has direct owner-output evidence. The 2-chip and 3-chip exact routes are closed through full-reference-SHA V1/V2 and expected-derived replacement/CRC classification; both remain support-neutral and make no independent owner-output claim.
 - NT51928 LDC is Display/DP-side data.
 - NT51930 hidden DiffDLM-like mutation should be treated as `2.0.0` catalog versus `1.4.0` golden mismatch until matching `2.0.0` evidence exists.
 - NT51931 is a version/mode pairing conflict between the two supplied BATs. The selected resolved catalog rule is registered Combiner 1.13.0 with `NT51931BASED_NORMAL_MODE CRC8`; the 1.2.0.4 binary is no longer needed for runtime packaging.

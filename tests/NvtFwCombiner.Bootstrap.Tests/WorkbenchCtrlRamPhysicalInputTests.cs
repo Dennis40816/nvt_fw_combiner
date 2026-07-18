@@ -123,12 +123,12 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         string nfPath = workspace.Write("NF_Ctrlram.bin", nfBytes);
         var processor = new InspectingProcessor(request =>
         {
-            Assert.Equal(5, request.StagedSources.Count);
-            AssertStagedSource(request, nfBytes, 0x0000, 0x16800, 0x0010);
-            AssertStagedSource(request, nfBytes, 0x0FD0, 0x16810, 0x0FC0);
-            AssertStagedSource(request, nfBytes, 0x0000, 0x1F800, 0x0010);
-            AssertStagedSource(request, nfBytes, 0x1F90, 0x1F810, 0x0FC0);
-            AssertStagedSource(request, nfBytes, 0x0000, 0x28800, 0x0FD0);
+            Assert.Empty(request.StagedSources);
+            AssertMappedBytes(request, nfBytes, 0x0000, 0x16800, 0x0010);
+            AssertMappedBytes(request, nfBytes, 0x0FD0, 0x16810, 0x0FC0);
+            AssertMappedBytes(request, nfBytes, 0x0000, 0x1F800, 0x0010);
+            AssertMappedBytes(request, nfBytes, 0x1F90, 0x1F810, 0x0FC0);
+            AssertMappedBytes(request, nfBytes, 0x0000, 0x28800, 0x0FD0);
             return ExternalProcessorResult.Success(request.InputBytes, []);
         });
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
@@ -206,5 +206,17 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         ExternalProcessorStagedSource stagedSource = request.StagedSources.Single(source =>
             source.FirmwareRange == new ByteRange(firmwareStart, length));
         Assert.Equal(sourceBytes[sourceOffset..(sourceOffset + length)], stagedSource.Bytes.ToArray());
+    }
+
+    private static void AssertMappedBytes(
+        ExternalProcessorRequest request,
+        byte[] sourceBytes,
+        int sourceOffset,
+        int firmwareStart,
+        int length)
+    {
+        Assert.Equal(
+            sourceBytes[sourceOffset..(sourceOffset + length)],
+            request.InputBytes.Slice(firmwareStart, length).ToArray());
     }
 }

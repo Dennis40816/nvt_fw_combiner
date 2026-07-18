@@ -33,7 +33,7 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 | NT51920 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
 | NT51923 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`, cascade split DiffDLM. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
 | NT51926 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-V2-141-CASCADE`: Common FW 1.4.1 cascade without a version edit selects exact `0x3C000`/`0x40000` maps and processes one TP prefix; other cases retain the existing path. | `R-GENERAL-V2-DP-SLICE`: single/full-Flash/file-backed DP-only mappings use V2; TP/CtrlRAM, patches/fills, other counts and shapes retain protected legacy planning/postbuild. | Both V2 slices preserve forced-V1 bytes and do not promote support; exact range and firmware-owner review remain. |
-| NT51927 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: numeric single/2/3 IC and cascade. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
+| NT51927 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: exact single/2/3 V2 routes use full-reference-SHA admission; other shapes retain the fallback. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Common FW 1.4.0/PID `0x570A`/three-chip now has support-neutral V1/V2 byte and 13-command parity; it is expected-derived evidence, not public support promotion. |
 | NT51928 | `SM-GENFLASH-LD-V2`: hash-anchored V2 route includes TP, DP, and typed auxiliary LD. | `R-DP-GENERIC`: DP/LD profile wiring pending. | `R-CTRLRAM-927`: follows NT51927 for non-NB only. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | NT51928 NB is not covered and must be a separate IC if approved later. |
 | NT51929 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51932. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | `AB-51929-CANDIDATE`: fixed `0x80000` full DP -> TPA -> relocated TPB V2 plan; no UI/CLI route or runtime promotion. |
 | NT51930 | `SM-FLASHMAP-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: current cascade maps to `<=13 IC`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves the `merge_bin.7z` golden bytes; firmware-owner review remains required before release support. |
@@ -197,6 +197,16 @@ V1 bytes; support promotion still requires firmware-owner R3 review.
 ### R-CTRLRAM-927
 
 Used by NT51917, NT51927, and NT51928 non-NB.
+
+NT51927 enters an exact V2 route only when IC, processor, branch, numeric mode,
+Common FW version, chip count, PID, and the complete reference-image SHA all
+match a reviewed case. The Common FW `1.4.0` / PID `0x570A` / three-chip case
+selects `nt51927-ctrlram-replace-fw140-threechip`, runs one ordered 13-command
+session, and preserves V1 output bytes. Its expected-derived result contains
+29 complete header/CRC words plus four explicit VN replacement ranges. It
+remains support-neutral because no independent owner expected output exists.
+Every other project, base hash, version, count, or selector retains the
+existing fallback.
 
 ```mermaid
 flowchart TD

@@ -260,6 +260,48 @@ public sealed partial class CompositionRunServiceTests
         Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
     }
 
+    /// <summary>Explicit Replace mappings remain payload evidence when a final processor has broader write authority.</summary>
+    [Fact]
+    public async Task ReplaceReportPrefersDeclaredMappingOverOverlappingProcessorAuthority()
+    {
+        var processor = new FakeExternalProcessor(request =>
+        {
+            byte[] output = request.InputBytes.ToArray();
+            output[3] = 0x7E;
+            return ExternalProcessorResult.Success(output, [new ByteRange(3, 1)]);
+        });
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = [0x10, 0x20, 0x30, 0x40],
+                ["ctrlram-artifact"] = [0xAA, 0xBB],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreateMappedExternalProcessorRequest(),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x10, 0xAA, 0xBB, 0x7E], result.OutputBytes.ToArray());
+        Assert.Collection(
+            result.Report.OutputDifferences,
+            replacement =>
+            {
+                Assert.Equal(new ByteRange(1, 2), replacement.Range);
+                Assert.Equal(OutputDifferenceClassifications.DeclaredReplacement, replacement.Classification);
+                Assert.Equal("replace-ctrlram", replacement.Evidence);
+            },
+            crcHeader =>
+            {
+                Assert.Equal(new ByteRange(3, 1), crcHeader.Range);
+                Assert.Equal(OutputDifferenceClassifications.PostbuildCrcHeader, crcHeader.Classification);
+                Assert.Equal("run-postbuild: processor-v1", crcHeader.Evidence);
+            });
+    }
+
     /// <summary>Verifies Replace differences use only the selected output clone and output-target operations.</summary>
     [Fact]
     public async Task ReplaceReportIgnoresNonOutputReferenceInitializerAndMutations()

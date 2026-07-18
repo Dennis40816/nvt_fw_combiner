@@ -178,6 +178,8 @@ public sealed partial class RepositoryBoundaryTests
             "profiles/built-in/nt51927-ctrlram-replace-candidate/profiles/nt51927-ctrlram-replace-fw141-single.json");
         string nt51927TwoChipProfile = ReadText(
             "profiles/built-in/nt51927-ctrlram-replace-candidate/profiles/nt51927-ctrlram-replace-fw132-twochip.json");
+        string nt51927ThreeChipProfile = ReadText(
+            "profiles/built-in/nt51927-ctrlram-replace-candidate/profiles/nt51927-ctrlram-replace-fw140-threechip.json");
         string nt51927Family = ReadText(
             "profiles/built-in/nt51927-ctrlram-replace-candidate/families/nt51927-ctrlram-replace.json");
         string nt51930Family = ReadText(
@@ -228,32 +230,29 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("string? v2ProfileId = (\n            icId,", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51920\", \"nfc.nt51920.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"1.2.0\", 1, 0xF401)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51920\", \"nfc.nt51920.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, \"1.2.0\", 2, 0x1403)", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("Nt51920Fw120SingleBaseSha256", ctrlRamV2, StringComparison.Ordinal);
-        Assert.Contains("Nt51920Fw120Cascade2BaseSha256", ctrlRamV2, StringComparison.Ordinal);
+        Assert.Contains("b9965def2946fd6e28165af5929ede885e1d0e3c0ab29266a737ac458225920d", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("681f904ecdf5785ca26f94eabb8191ddaa8976e0e6f750145475568c6cde4d43", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51923\", \"nfc.nt51923.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"1.4.1\", 1, 0x6005)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51923\", \"nfc.nt51923.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, \"1.4.1\", 3, 0x4C03)", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("Nt51923Fw141SingleBaseSha256", ctrlRamV2, StringComparison.Ordinal);
-        Assert.Contains("Nt51923Fw141Cascade3BaseSha256", ctrlRamV2, StringComparison.Ordinal);
+        Assert.Contains("a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51927\", \"nfc.nt51927.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"1.4.1\", 1, 0x5709)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51927\", \"nfc.nt51927.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.TwoChip, IcNumberInputMode.NumericSelector, \"1.3.2\", 2, 0x1615)", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("Nt51927Fw141SingleBaseSha256", ctrlRamV2, StringComparison.Ordinal);
-        Assert.Contains("fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a", ctrlRamV2, StringComparison.Ordinal);
-        Assert.Contains("Nt51927Fw132TwoChipBaseSha256", ctrlRamV2, StringComparison.Ordinal);
-        Assert.Contains("11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae", ctrlRamV2, StringComparison.Ordinal);
+        Assert.Contains("(\"NT51927\", \"nfc.nt51927.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.ThreeChip, IcNumberInputMode.NumericSelector, \"1.4.0\", 3, 0x570A)", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51926\", \"nfc.nt51926.ctrlram-postbuild-fw1.4.1\", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, _, > 1, _)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51926\", Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"2.0.0\", 1, 0x1309)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51926\", Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, \"2.0.0\", 3, 0x1309)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51930\", \"nfc.nt51930.ctrlram-postbuild-fw1.x\", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, \"1.3.0\", 3, 0x110D)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51931\", \"nfc.nt51931.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, \"1.3.0\", 6, 0x131B)", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("Nt51931Fw130ExactBaseSha256", ctrlRamV2, StringComparison.Ordinal);
-        Assert.Contains("2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3", ctrlRamV2, StringComparison.Ordinal);
+        Assert.Contains("2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51932\", \"nfc.nt51932.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, \"2.0.0\", 3, 0x5601)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("Sha256File(context.BasePath!)", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("Nt51932Fw200ExactBaseSha256", ctrlRamV2, StringComparison.Ordinal);
-        Assert.Contains("3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd", ctrlRamV2, StringComparison.Ordinal);
+        Assert.Contains("3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51951\", \"nfc.nt51951.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"2.0.0\", 1, 0x5901)", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("Nt51951Fw200ExactBaseSha256", ctrlRamV2, StringComparison.Ordinal);
-        Assert.Contains("c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69", ctrlRamV2, StringComparison.Ordinal);
+        Assert.Contains("c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("CompileCtrlRamV2", ctrlRamV2, StringComparison.Ordinal);
         Assert.Contains("Nt51926Fw200ProcessorId", ctrlRamV2, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-replace-fw141-runtime-cascade", ctrlRamRuntime, StringComparison.Ordinal);
@@ -302,9 +301,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("\"icNumberInputMode\": \"numeric-selector\"", nt51927TwoChipProfile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51927.ctrlram-postbuild-v1", nt51927TwoChipProfile, StringComparison.Ordinal);
         Assert.Contains("nt51927-ctrlram-fw132-twochip-full-flash", nt51927TwoChipProfile, StringComparison.Ordinal);
+        Assert.Contains("\"stage\": \"executable-candidate\"", nt51927ThreeChipProfile, StringComparison.Ordinal);
+        Assert.Contains("\"blockerId\": \"support-neutral-expected-derived-route\"", nt51927ThreeChipProfile, StringComparison.Ordinal);
+        Assert.Contains("\"icNumberInputMode\": \"numeric-selector\"", nt51927ThreeChipProfile, StringComparison.Ordinal);
+        Assert.Contains("nfc.nt51927.ctrlram-postbuild-v1", nt51927ThreeChipProfile, StringComparison.Ordinal);
+        Assert.Contains("nt51927-ctrlram-fw140-threechip-full-flash", nt51927ThreeChipProfile, StringComparison.Ordinal);
         Assert.Contains("\"expectedValues\": [ 22281 ]", nt51927Family, StringComparison.Ordinal);
         Assert.Contains("\"topologyRequirement\": { \"kind\": \"exact-count\", \"chipCount\": 2 }", nt51927Family, StringComparison.Ordinal);
         Assert.Contains("\"expectedValues\": [ 5653 ]", nt51927Family, StringComparison.Ordinal);
+        Assert.Contains("\"topologyRequirement\": { \"kind\": \"exact-count\", \"chipCount\": 3 }", nt51927Family, StringComparison.Ordinal);
+        Assert.Contains("\"expectedValues\": [ 22282 ]", nt51927Family, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", nt51930Profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51930Profile, StringComparison.Ordinal);
         Assert.Contains("\"kind\": \"release\"", nt51930Profile, StringComparison.Ordinal);

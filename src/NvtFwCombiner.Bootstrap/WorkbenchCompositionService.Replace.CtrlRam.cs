@@ -56,7 +56,7 @@ public static partial class WorkbenchCompositionService
         WorkbenchFirmwareContextSuggestion? firmware = firmwareVersionEdit is null
             ? TryReadFirmwareContextSuggestion(icId, context.BasePath!)
             : null;
-        string? v2ProfileId = (
+        (string? v2ProfileId, string? requiredBaseSha256) = (
             context.PostbuildProfile!.IcId,
             context.PostbuildProfile!.ProcessorId,
             context.CommandPlan!.Branch,
@@ -65,44 +65,39 @@ public static partial class WorkbenchCompositionService
             firmware?.ChipNumber,
             firmware?.ProjectId) switch
         {
-            ("NT51920", "nfc.nt51920.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.2.0", 1, 0xF401)
-                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51920Fw120SingleBaseSha256) =>
-                "nt51920-ctrlram-replace-fw120-single",
-            ("NT51920", "nfc.nt51920.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.2.0", 2, 0x1403)
-                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51920Fw120Cascade2BaseSha256) =>
-                "nt51920-ctrlram-replace-fw120-cascade2",
-            ("NT51923", "nfc.nt51923.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.4.1", 1, 0x6005)
-                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51923Fw141SingleBaseSha256) =>
-                "nt51923-ctrlram-replace-fw141-single",
-            ("NT51923", "nfc.nt51923.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.4.1", 3, 0x4C03)
-                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51923Fw141Cascade3BaseSha256) =>
-                "nt51923-ctrlram-replace-fw141-cascade3",
-            ("NT51927", "nfc.nt51927.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.4.1", 1, 0x5709)
-                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51927Fw141SingleBaseSha256) =>
-                "nt51927-ctrlram-replace-fw141-single",
-            ("NT51927", "nfc.nt51927.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.TwoChip, IcNumberInputMode.NumericSelector, "1.3.2", 2, 0x1615)
-                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51927Fw132TwoChipBaseSha256) =>
-                "nt51927-ctrlram-replace-fw132-twochip",
+            ("NT51920", "nfc.nt51920.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.2.0", 1, 0xF401) =>
+                ("nt51920-ctrlram-replace-fw120-single", "b9965def2946fd6e28165af5929ede885e1d0e3c0ab29266a737ac458225920d"),
+            ("NT51920", "nfc.nt51920.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.2.0", 2, 0x1403) =>
+                ("nt51920-ctrlram-replace-fw120-cascade2", "681f904ecdf5785ca26f94eabb8191ddaa8976e0e6f750145475568c6cde4d43"),
+            ("NT51923", "nfc.nt51923.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.4.1", 1, 0x6005) =>
+                ("nt51923-ctrlram-replace-fw141-single", "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f"),
+            ("NT51923", "nfc.nt51923.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.4.1", 3, 0x4C03) =>
+                ("nt51923-ctrlram-replace-fw141-cascade3", "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18"),
+            ("NT51927", "nfc.nt51927.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.4.1", 1, 0x5709) =>
+                ("nt51927-ctrlram-replace-fw141-single", "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"),
+            ("NT51927", "nfc.nt51927.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.TwoChip, IcNumberInputMode.NumericSelector, "1.3.2", 2, 0x1615) =>
+                ("nt51927-ctrlram-replace-fw132-twochip", "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae"),
+            ("NT51927", "nfc.nt51927.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.ThreeChip, IcNumberInputMode.NumericSelector, "1.4.0", 3, 0x570A) =>
+                ("nt51927-ctrlram-replace-fw140-threechip", "bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c"),
             ("NT51926", "nfc.nt51926.ctrlram-postbuild-fw1.4.1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, _, > 1, _) =>
-                "nt51926-ctrlram-replace-fw141-runtime-cascade",
+                ("nt51926-ctrlram-replace-fw141-runtime-cascade", null),
             ("NT51926", Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x1309) =>
-                "nt51926-ctrlram-replace-fw200-runtime-single",
+                ("nt51926-ctrlram-replace-fw200-runtime-single", null),
             ("NT51926", Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "2.0.0", 3, 0x1309) =>
-                "nt51926-ctrlram-replace-fw200-runtime-cascade",
+                ("nt51926-ctrlram-replace-fw200-runtime-cascade", null),
             ("NT51930", "nfc.nt51930.ctrlram-postbuild-fw1.x", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.3.0", 3, 0x110D) =>
-                "nt51930-ctrlram-replace-fw130-cascade3",
-            ("NT51931", "nfc.nt51931.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.3.0", 6, 0x131B)
-                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51931Fw130ExactBaseSha256) =>
-                "nt51931-ctrlram-replace-fw130-cascade6",
-            ("NT51932", "nfc.nt51932.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "2.0.0", 3, 0x5601)
-                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51932Fw200ExactBaseSha256) =>
-                "nt51932-ctrlram-replace-fw200-cascade3",
-            ("NT51951", "nfc.nt51951.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x5901)
-                when StringComparer.Ordinal.Equals(Sha256File(context.BasePath!), Nt51951Fw200ExactBaseSha256) =>
-                "nt51951-ctrlram-replace-fw200-single",
-            _ => null,
+                ("nt51930-ctrlram-replace-fw130-cascade3", null),
+            ("NT51931", "nfc.nt51931.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.3.0", 6, 0x131B) =>
+                ("nt51931-ctrlram-replace-fw130-cascade6", "2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3"),
+            ("NT51932", "nfc.nt51932.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "2.0.0", 3, 0x5601) =>
+                ("nt51932-ctrlram-replace-fw200-cascade3", "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd"),
+            ("NT51951", "nfc.nt51951.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x5901) =>
+                ("nt51951-ctrlram-replace-fw200-single", "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69"),
+            _ => (null, null),
         };
-        if (v2ProfileId is not null)
+        if (v2ProfileId is not null &&
+            (requiredBaseSha256 is null || StringComparer.Ordinal.Equals(
+                Sha256File(context.BasePath!), requiredBaseSha256)))
         {
             V2CompositionPlanCompileResult v2Compile = CompileCtrlRamV2(
                 context,
