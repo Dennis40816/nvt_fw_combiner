@@ -103,6 +103,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "manifest-pinned materialized files included and unexpected file rejected",
             result.stdout,
         )
+        self.assertIn(
+            "Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected",
+            result.stdout,
+        )
         self.assertFalse(
             probe_path.exists(), "packager did not clean its source policy probe"
         )

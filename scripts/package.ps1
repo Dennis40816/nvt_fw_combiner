@@ -81,6 +81,12 @@ $ApprovedExternalToolPackagePaths = @(
     'external-tools/legacy-combiner/1.13.0/manifest.json'
 ) | Sort-Object
 
+$ApprovedRuntimeCatalogPackagePaths = @(
+    'profiles/built-in/ctrlram-postbuild-v2/catalog.json',
+    'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
+) | Sort-Object
+$ApprovedRuntimeCatalogDirectories = @('ctrlram-postbuild-v2')
+
 function Copy-PackageFile {
     param(
         [Parameter(Mandatory = $true)][string]$RelativePath,
@@ -201,8 +207,9 @@ function Get-BuiltInProfilePackagePaths {
             ForEach-Object Name |
             Sort-Object
     )
-    if (Compare-Object -ReferenceObject $BundleDirectories -DifferenceObject $PublishedBundleDirectories) {
-        throw 'Published built-in profile bundle directories differ from the Bootstrap project allowlist.'
+    $ApprovedBuiltInDirectories = @($BundleDirectories + $ApprovedRuntimeCatalogDirectories | Sort-Object)
+    if (Compare-Object -ReferenceObject $ApprovedBuiltInDirectories -DifferenceObject $PublishedBundleDirectories) {
+        throw 'Published built-in profile directories differ from the bundle and runtime-catalog allowlists.'
     }
 
     $PackagePaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -249,6 +256,20 @@ function Get-BuiltInProfilePackagePaths {
         if (Compare-Object -ReferenceObject $ExpectedBundlePaths -DifferenceObject $ActualBundlePaths) {
             throw "Published built-in profile bundle '$BundleDirectory' differs from its manifest-pinned allowlist."
         }
+    }
+
+    $ActualRuntimeCatalogPaths = @(
+        foreach ($RuntimeCatalogDirectory in $ApprovedRuntimeCatalogDirectories) {
+            $RuntimeCatalogRoot = Join-Path $BuiltInRoot $RuntimeCatalogDirectory
+            Get-ChildItem -LiteralPath $RuntimeCatalogRoot -File -Recurse |
+                ForEach-Object { [IO.Path]::GetRelativePath($PublishedRoot, $_.FullName).Replace('\', '/') }
+        }
+    ) | Sort-Object
+    if (Compare-Object -ReferenceObject $ApprovedRuntimeCatalogPackagePaths -DifferenceObject $ActualRuntimeCatalogPaths) {
+        throw 'Published runtime catalog files differ from the approved allowlist.'
+    }
+    foreach ($RuntimeCatalogPath in $ApprovedRuntimeCatalogPackagePaths) {
+        [void]$PackagePaths.Add($RuntimeCatalogPath)
     }
 
     return @($PackagePaths | Sort-Object)
@@ -308,6 +329,13 @@ function New-BuiltInProfilePolicyDryRunFixture {
                 Set-Content -LiteralPath $FixturePath -Encoding utf8NoBOM
         }
     }
+
+    foreach ($RuntimeCatalogPath in $ApprovedRuntimeCatalogPackagePaths) {
+        Copy-PackageFileFromRoot `
+            -SourceRoot $RepoRoot `
+            -RelativePath $RuntimeCatalogPath `
+            -DestinationRoot $PublishedRoot
+    }
 }
 
 function Invoke-ExternalToolPolicyDryRun {
@@ -339,6 +367,15 @@ function Invoke-ExternalToolPolicyDryRun {
         if ($DryRunProfileEntries.Count -eq 0 -or
             @($DryRunProfileEntries | Where-Object { $_.role -ne 'builtInProfile' }).Count -ne 0) {
             throw 'Built-in profile policy dry-run did not produce role-pinned manifest entries.'
+        }
+        $DryRunRuntimeCatalogPaths = @(
+            $DryRunProfileEntries |
+                Where-Object { $_.path -in $ApprovedRuntimeCatalogPackagePaths } |
+                ForEach-Object path |
+                Sort-Object
+        )
+        if (Compare-Object -ReferenceObject $ApprovedRuntimeCatalogPackagePaths -DifferenceObject $DryRunRuntimeCatalogPaths) {
+            throw 'Runtime catalog policy dry-run did not produce the approved manifest entries.'
         }
 
         $DryRunManifestPath = Join-Path $DryRunPackageRoot 'RELEASE-MANIFEST.json'
@@ -373,9 +410,27 @@ function Invoke-ExternalToolPolicyDryRun {
         if (-not $UnexpectedProfileRejected) {
             throw 'Unexpected built-in profile file was not rejected by the package allowlist.'
         }
+        Remove-Item -LiteralPath $UnexpectedProfilePath -Force
+
+        $UnexpectedRuntimeCatalogPath = Join-Path $DryRunPublishedRoot 'profiles/built-in/ctrlram-postbuild-v2/unexpected.json'
+        '{}' | Set-Content -LiteralPath $UnexpectedRuntimeCatalogPath -Encoding ascii
+        $UnexpectedRuntimeCatalogRejected = $false
+        try {
+            Get-BuiltInProfilePackagePaths -PublishedRoot $DryRunPublishedRoot | Out-Null
+        }
+        catch {
+            if ($_.Exception.Message -notlike '*runtime catalog files differ from the approved allowlist*') {
+                throw
+            }
+            $UnexpectedRuntimeCatalogRejected = $true
+        }
+        if (-not $UnexpectedRuntimeCatalogRejected) {
+            throw 'Unexpected runtime catalog file was not rejected by the package allowlist.'
+        }
 
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included and unexpected file rejected.'
+        Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
     }
     finally {
         if (Test-Path -LiteralPath $ProbeSourcePath) {

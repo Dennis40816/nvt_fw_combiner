@@ -24,6 +24,11 @@ $ApprovedExternalToolPackagePaths = @(
     'external-tools/legacy-combiner/1.13.0/manifest.json'
 ) | Sort-Object
 
+$ApprovedRuntimeCatalogPackagePaths = @(
+    'profiles/built-in/ctrlram-postbuild-v2/catalog.json',
+    'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
+) | Sort-Object
+
 function Get-LowerSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -268,6 +273,17 @@ try {
     )
     if ($BuiltInProfileBundleManifests.Count -eq 0) {
         throw 'Release manifest has no built-in profile bundle manifest.'
+    }
+    $DeclaredRuntimeCatalogPaths = @(
+        $DeclaredBuiltInProfileEntries |
+            Where-Object {
+                ([string]$_.path).StartsWith('profiles/built-in/ctrlram-postbuild-v2/', [StringComparison]::Ordinal)
+            } |
+            ForEach-Object { [string]$_.path } |
+            Sort-Object
+    )
+    if (Compare-Object -ReferenceObject $ApprovedRuntimeCatalogPackagePaths -DifferenceObject $DeclaredRuntimeCatalogPaths) {
+        throw 'Release manifest runtime catalog files differ from the approved allowlist.'
     }
 
     foreach ($entry in $manifest.files) {
