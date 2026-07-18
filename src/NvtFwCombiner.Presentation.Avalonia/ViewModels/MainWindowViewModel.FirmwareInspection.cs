@@ -210,7 +210,10 @@ public sealed partial class MainWindowViewModel
         {
             WorkbenchFirmwareInspection inspection = result.InspectionsById[item.SlotId];
             FirmwareFileIdentity identity = result.FileIdentities[item.Path];
-            _firmwareFileProjections[item.SlotId] = new FirmwareFileProjection(item.Path, identity);
+            _firmwareFileProjections[item.SlotId] = new FirmwareFileProjection(
+                item.Path,
+                identity,
+                inspection);
             if (item.SlotId == ReplaceBaseSlotId)
             {
                 _baseFirmwareInspectionCache = new BaseFirmwareInspectionCache(
@@ -432,7 +435,8 @@ public sealed partial class MainWindowViewModel
 
     private readonly record struct FirmwareFileProjection(
         string Path,
-        FirmwareFileIdentity FileIdentity)
+        FirmwareFileIdentity FileIdentity,
+        WorkbenchFirmwareInspection Inspection)
     {
         internal bool Matches(string path)
         {
