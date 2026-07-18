@@ -2,6 +2,22 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Domain normalization reuses only its own caller-isolated immutable input backing.</summary>
+    [Fact]
+    public void CompositionInputNormalizationRetainsTheDomainOwnershipBarrier()
+    {
+        string input = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/CompositionExecutionInput.cs");
+        string normalization = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/CompositionEngine.Inputs.cs");
+
+        Assert.Contains("_addressSpaceBytes.Add(item.Key, [.. item.Value]);", input, StringComparison.Ordinal);
+        Assert.Contains("TryGetImmutableBuffer", input, StringComparison.Ordinal);
+        Assert.Contains("buffer = immutableBytes;", normalization, StringComparison.Ordinal);
+        Assert.Contains("immutableBytes.CopyTo(buffer, 0);", normalization, StringComparison.Ordinal);
+        Assert.DoesNotContain("bytes.ToArray()", normalization, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies typed run progress stays Application-owned and cannot invoke host callbacks inline.</summary>
     [Fact]
     public void CompositionRunProgressStaysApplicationOwnedAndAsynchronous()
