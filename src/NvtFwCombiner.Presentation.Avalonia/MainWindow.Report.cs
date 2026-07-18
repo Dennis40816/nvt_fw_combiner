@@ -35,9 +35,24 @@ public sealed partial class MainWindow
         await viewModel.LoadReportJsonAsync(json, files[0].Name);
     }
 
-    private static void ApplyLaunchOptions(MainWindowViewModel viewModel, UiLaunchOptions launchOptions)
+    private static void ApplyInitialLaunchOptions(MainWindowViewModel viewModel, UiLaunchOptions launchOptions)
     {
         ApplyLaunchPage(viewModel, launchOptions.Page);
+    }
+
+    private static async Task ApplyDeferredLaunchOptionsAsync(
+        MainWindowViewModel viewModel,
+        UiLaunchOptions launchOptions,
+        CancellationToken cancellationToken)
+    {
+        bool historyPublished = await viewModel.LoadReportHistoryAsync(
+            ReportHistoryFileStore.LoadAsync,
+            cancellationToken);
+        if (!historyPublished)
+        {
+            return;
+        }
+
         if (launchOptions.Issues.Count > 0)
         {
             viewModel.LoadReportError("Startup arguments", string.Join(Environment.NewLine, launchOptions.Issues));
@@ -45,7 +60,14 @@ public sealed partial class MainWindow
 
         if (!string.IsNullOrWhiteSpace(launchOptions.ReportPath))
         {
-            LoadStartupReport(viewModel, launchOptions.ReportPath);
+            bool reportPublished = await LoadStartupReportAsync(
+                viewModel,
+                launchOptions.ReportPath,
+                cancellationToken);
+            if (!reportPublished)
+            {
+                return;
+            }
         }
 
         if (!launchOptions.OpenReport)
@@ -90,30 +112,17 @@ public sealed partial class MainWindow
         }
     }
 
-    private static void LoadStartupReport(MainWindowViewModel viewModel, string reportPath)
+    private static Task<bool> LoadStartupReportAsync(
+        MainWindowViewModel viewModel,
+        string reportPath,
+        CancellationToken cancellationToken)
     {
-        try
-        {
-            string fullPath = Path.GetFullPath(reportPath);
-            string json = File.ReadAllText(fullPath);
-            viewModel.LoadReportJson(json, Path.GetFileName(fullPath));
-        }
-        catch (ArgumentException exception)
-        {
-            viewModel.LoadReportError(reportPath, exception.Message);
-        }
-        catch (IOException exception)
-        {
-            viewModel.LoadReportError(reportPath, exception.Message);
-        }
-        catch (NotSupportedException exception)
-        {
-            viewModel.LoadReportError(reportPath, exception.Message);
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            viewModel.LoadReportError(reportPath, exception.Message);
-        }
+        return viewModel.LoadReportJsonAsync(
+            token => Task.Run(
+                () => File.ReadAllText(Path.GetFullPath(reportPath)),
+                token),
+            Path.GetFileName(reportPath),
+            cancellationToken);
     }
 
     private void ReportToastHoldTimer_OnTick(object? sender, EventArgs e)

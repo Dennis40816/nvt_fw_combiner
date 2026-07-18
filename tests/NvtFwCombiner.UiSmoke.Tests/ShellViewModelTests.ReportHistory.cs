@@ -144,6 +144,127 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(1, restoredViewModel.ReportHistoryCount);
     }
 
+    /// <summary>A slow startup history load cannot replace a report published by a newer UI action.</summary>
+    [Fact]
+    public async Task DeferredReportHistoryLoadRejectsStalePublication()
+    {
+        string startupJson = ReportJsonSamples.Succeeded(runId: "startup-history-run");
+        string userJson = ReportJsonSamples.Succeeded(runId: "newer-user-run");
+        var pending = new TaskCompletionSource<IReadOnlyList<ReportHistorySnapshot>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        Task<bool> load = viewModel.LoadReportHistoryAsync(_ => pending.Task, CancellationToken.None);
+        viewModel.LoadReportJson(userJson, "user-report.json");
+        pending.SetResult([new ReportHistorySnapshot("startup.json", startupJson, string.Empty)]);
+
+        Assert.False(await load);
+        Assert.Equal("newer-user-run", viewModel.LoadedReport.RunId);
+        Assert.Equal(userJson, viewModel.LoadedReportJson);
+        Assert.Equal("user-report.json", Assert.Single(viewModel.ReportHistoryEntries).SourceName);
+    }
+
+    /// <summary>The production startup path publishes the same latest report and compact history semantics.</summary>
+    [Fact]
+    public async Task DeferredReportHistoryLoadPublishesPreparedState()
+    {
+        string startupJson = ReportJsonSamples.Succeeded(runId: "prepared-startup-run");
+        var snapshot = new ReportHistorySnapshot(
+            "prepared-startup.json",
+            startupJson,
+            "C:/output/prepared.bin");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        bool published = await viewModel.LoadReportHistoryAsync(
+            _ => Task.FromResult<IReadOnlyList<ReportHistorySnapshot>>([snapshot]),
+            CancellationToken.None);
+
+        Assert.True(published);
+        Assert.Equal("prepared-startup-run", viewModel.LoadedReport.RunId);
+        Assert.Equal(startupJson, viewModel.LoadedReportJson);
+        ReportHistoryEntryViewModel entry = Assert.Single(viewModel.ReportHistoryEntries);
+        Assert.Equal("prepared-startup.json", entry.SourceName);
+        Assert.NotEqual(ReportHistoryMetadataSnapshot.Empty, entry.ToSnapshot().Metadata);
+    }
+
+    /// <summary>Closing or cancelling startup prevents a pending history worker from publishing partial state.</summary>
+    [Fact]
+    public async Task DeferredReportHistoryCancellationPublishesNothing()
+    {
+        string startupJson = ReportJsonSamples.Succeeded(runId: "cancelled-startup-run");
+        var pending = new TaskCompletionSource<IReadOnlyList<ReportHistorySnapshot>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancellation = new CancellationTokenSource();
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        Task<bool> load = viewModel.LoadReportHistoryAsync(_ => pending.Task, cancellation.Token);
+        cancellation.Cancel();
+        pending.SetResult([new ReportHistorySnapshot("cancelled.json", startupJson, string.Empty)]);
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => load);
+        Assert.Empty(viewModel.ReportHistoryEntries);
+        Assert.False(viewModel.HasLoadedReport);
+        Assert.Equal(string.Empty, viewModel.LoadedReportJson);
+    }
+
+    /// <summary>A slow explicit startup report cannot replace a report published by a newer UI action.</summary>
+    [Fact]
+    public async Task DeferredReportSourceLoadRejectsStalePublication()
+    {
+        string startupJson = ReportJsonSamples.Succeeded(runId: "startup-explicit-run");
+        string userJson = ReportJsonSamples.Succeeded(runId: "newer-explicit-user-run");
+        var pending = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        Task<bool> load = viewModel.LoadReportJsonAsync(
+            _ => pending.Task,
+            "startup-report.json",
+            CancellationToken.None);
+        viewModel.LoadReportJson(userJson, "user-report.json");
+        pending.SetResult(startupJson);
+
+        Assert.False(await load);
+        Assert.Equal("newer-explicit-user-run", viewModel.LoadedReport.RunId);
+        Assert.Equal(userJson, viewModel.LoadedReportJson);
+        Assert.Equal("user-report.json", Assert.Single(viewModel.ReportHistoryEntries).SourceName);
+    }
+
+    /// <summary>The production startup source path projects and publishes a current report normally.</summary>
+    [Fact]
+    public async Task DeferredReportSourceLoadPublishesCurrentReport()
+    {
+        string startupJson = ReportJsonSamples.Succeeded(runId: "current-explicit-startup-run");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        bool published = await viewModel.LoadReportJsonAsync(
+            _ => Task.FromResult(startupJson),
+            "current-startup.json",
+            CancellationToken.None);
+
+        Assert.True(published);
+        Assert.Equal("current-explicit-startup-run", viewModel.LoadedReport.RunId);
+        Assert.Equal(startupJson, viewModel.LoadedReportJson);
+        Assert.Equal("current-startup.json", Assert.Single(viewModel.ReportHistoryEntries).SourceName);
+    }
+
+    /// <summary>A current startup source failure keeps the existing readable load-error contract.</summary>
+    [Fact]
+    public async Task DeferredReportSourceFailurePublishesReadableError()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        bool published = await viewModel.LoadReportJsonAsync(
+            _ => Task.FromException<string>(new IOException("startup storage unavailable")),
+            "missing-startup.json",
+            CancellationToken.None);
+
+        Assert.True(published);
+        Assert.Equal("Load failed", viewModel.LoadedReport.Status);
+        Assert.Contains("startup storage unavailable", viewModel.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, viewModel.LoadedReportJson);
+        Assert.Equal("missing-startup.json", Assert.Single(viewModel.ReportHistoryEntries).SourceName);
+    }
+
     /// <summary>Verifies local report history persistence round-trips and fails closed for bad JSON.</summary>
     [Fact]
     public void ReportHistoryFileStoreRoundTripsSnapshots()
@@ -305,7 +426,7 @@ public sealed partial class ShellViewModelTests
         ReportHistorySnapshot latest = new("latest-safe.json", latestJson, string.Empty, latestMetadata);
         ReportHistorySnapshot invalid = new(
             "invalid-deferred.json",
-            "{\"Operations\":[0]}",
+            /*lang=json,strict*/ "{\"Operations\":[0]}",
             string.Empty,
             invalidMetadata);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
