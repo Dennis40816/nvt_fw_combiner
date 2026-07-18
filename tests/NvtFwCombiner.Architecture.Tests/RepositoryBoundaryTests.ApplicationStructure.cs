@@ -84,6 +84,20 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ToSha256Hex(buffer)", inputs, StringComparison.Ordinal);
         Assert.Contains("ToSha256Hex(execution.OutputBytes.Span)", previewTokens, StringComparison.Ordinal);
         Assert.Contains("CreateOutputDifferences", outputDifferences, StringComparison.Ordinal);
+        Assert.Contains("CanShareOutputDifferenceSemantic", outputDifferences, StringComparison.Ordinal);
+        int sharingPolicyStart = outputDifferences.IndexOf(
+            "private static bool CanShareOutputDifferenceSemantic",
+            StringComparison.Ordinal);
+        int sharingPolicyEnd = outputDifferences.IndexOf(
+            "private static IEnumerable<CompositionIssue>",
+            sharingPolicyStart,
+            StringComparison.Ordinal);
+        Assert.True(sharingPolicyStart >= 0 && sharingPolicyEnd > sharingPolicyStart);
+        string sharingPolicy = outputDifferences[sharingPolicyStart..sharingPolicyEnd];
+        Assert.Contains("OutputDifferenceClassifications.DeclaredReplacement", sharingPolicy, StringComparison.Ordinal);
+        Assert.Contains("OutputDifferenceClassifications.PreservedReference", sharingPolicy, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutputDifferenceClassifications.PostbuildCrcHeader", sharingPolicy, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutputDifferenceClassifications.Unexpected", sharingPolicy, StringComparison.Ordinal);
         Assert.DoesNotContain("private static IEnumerable<OutputDifferenceExpectation> CreateOutputDifferenceExpectations", outputDifferences, StringComparison.Ordinal);
         Assert.DoesNotContain("execution.OutputBytes.ToArray()", reports, StringComparison.Ordinal);
         Assert.DoesNotContain("private static string ToSliceSha256Hex", outputDifferences, StringComparison.Ordinal);
