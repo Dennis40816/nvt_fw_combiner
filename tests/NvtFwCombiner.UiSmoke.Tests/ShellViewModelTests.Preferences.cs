@@ -85,6 +85,65 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
     }
 
+    /// <summary>Local preferences written with supported BOM encodings remain readable.</summary>
+    [Fact]
+    public void ShellPreferenceFileStoreLoadsBomDocuments()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-shell-preferences-utf16");
+        const string json = /*lang=json,strict*/ """
+            {
+              "SchemaVersion": 1,
+              "Preferences": {
+                "Theme": "Dark",
+                "Strictness": "Strict",
+                "Language": "Traditional Chinese",
+                "IsReducedMotionEnabled": true
+              }
+            }
+            """;
+        Encoding[] encodings =
+        [
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: true),
+            Encoding.Unicode,
+            Encoding.BigEndianUnicode,
+            new UTF32Encoding(bigEndian: false, byteOrderMark: true),
+            new UTF32Encoding(bigEndian: true, byteOrderMark: true),
+        ];
+        var expected = new ShellPreferenceSnapshot("Dark", "Traditional Chinese", true);
+
+        for (int index = 0; index < encodings.Length; index++)
+        {
+            string preferencesPath = workspace.PathFor(Path.Combine("state", $"preferences-{index}.v1.json"));
+            _ = Directory.CreateDirectory(Path.GetDirectoryName(preferencesPath)!);
+            File.WriteAllText(preferencesPath, json, encodings[index]);
+
+            Assert.Equal(expected, ShellPreferenceFileStore.Load(preferencesPath));
+        }
+    }
+
+    /// <summary>A valid preference document with an unsupported schema keeps fail-closed defaults.</summary>
+    [Fact]
+    public void ShellPreferenceFileStoreRejectsUnsupportedSchema()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-shell-preferences-schema");
+        string preferencesPath = workspace.PathFor(Path.Combine("state", "preferences.v1.json"));
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(preferencesPath)!);
+        const string json = /*lang=json,strict*/ """
+            {
+              "SchemaVersion": 2,
+              "Preferences": {
+                "Theme": "Dark",
+                "Strictness": "Strict",
+                "Language": "Traditional Chinese",
+                "IsReducedMotionEnabled": true
+              }
+            }
+            """;
+        File.WriteAllText(preferencesPath, json, Encoding.Unicode);
+
+        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+    }
+
     /// <summary>Async preference persistence keeps the previous file when cancelled and atomically publishes the latest snapshot.</summary>
     [Fact]
     public async Task ShellPreferenceFileStoreAsyncSavePreservesLastCompleteSnapshot()
