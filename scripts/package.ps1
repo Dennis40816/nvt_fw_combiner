@@ -927,6 +927,7 @@ $ApprovedProcessorIds = @(
     'nfc.nt51919.ctrlram-postbuild-v1',
     'nfc.nt51920.ctrlram-postbuild-v1',
     'nfc.nt51923.ctrlram-postbuild-v1',
+    'nfc.nt51926.ctrlram-postbuild-fw1.4.1',
     'nfc.nt51926.ctrlram-postbuild-v1',
     'nfc.nt51927.ctrlram-postbuild-v1',
     'nfc.nt51928.ctrlram-postbuild-v1',
@@ -990,9 +991,10 @@ $Sbom = [ordered]@{
     )
     files = @(
         $FileEntries | ForEach-Object {
+            $SpdxPathId = [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($_.path))
             [ordered]@{
                 fileName = $_.path
-                SPDXID = "SPDXRef-File-$($_.path.Replace('.', '-'))"
+                SPDXID = "SPDXRef-File-$SpdxPathId"
                 checksums = @([ordered]@{ algorithm = 'SHA256'; checksumValue = $_.sha256 })
                 licenseConcluded = 'NOASSERTION'
                 copyrightText = 'NOASSERTION'

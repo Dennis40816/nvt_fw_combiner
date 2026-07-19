@@ -46,9 +46,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
         smoke_script = SMOKE_SCRIPT.read_text(encoding="utf-8")
 
-        restore_index = package_script.index(
-            "& $DotNet restore $AppProject -r win-x64"
-        )
+        restore_index = package_script.index("& $DotNet restore $AppProject -r win-x64")
         clean_index = package_script.index(
             "& $DotNet clean $AppProject -c Release -r win-x64"
         )
@@ -62,7 +60,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             package_script,
         )
         self.assertIn("finally {", package_script)
-        self.assertIn("& $DotNet clean $AppProject -c Release -r win-x64", package_script)
+        self.assertIn(
+            "& $DotNet clean $AppProject -c Release -r win-x64", package_script
+        )
         self.assertIn("$application.MainWindowHandle -eq 0", smoke_script)
         self.assertIn("$application.Responding", smoke_script)
         self.assertIn("$application.Dispose()", smoke_script)
@@ -83,9 +83,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             DISTRIBUTION_OWNER,
             (ROOT / "LICENSE").read_text(encoding="utf-8"),
         )
-        build_metadata = (ROOT / "Directory.Build.props").read_text(
-            encoding="utf-8"
-        )
+        build_metadata = (ROOT / "Directory.Build.props").read_text(encoding="utf-8")
         self.assertIn(f"<Authors>{DISTRIBUTION_OWNER}</Authors>", build_metadata)
         self.assertIn(
             f"<RepositoryUrl>{SOURCE_IDENTITY}</RepositoryUrl>", build_metadata
@@ -226,7 +224,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             self.assertLess(package_index, smoke_index, workflow_path)
             self.assertLess(smoke_index, distribution_index, workflow_path)
 
-    def test_release_processor_allowlist_matches_nt51930_stable_scope(self) -> None:
+    def test_release_processor_allowlist_matches_packaged_runtime_scope(self) -> None:
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
         match = re.search(
             r"\$ApprovedProcessorIds\s*=\s*@\((.*?)\)\s*\n",
@@ -238,6 +236,19 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertNotIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
         self.assertNotIn("nfc.nt51930.ctrlram-postbuild-v1", match.group(1))
         self.assertIn("nfc.nt51930.ctrlram-postbuild-fw1.x", match.group(1))
+        self.assertIn("nfc.nt51926.ctrlram-postbuild-fw1.4.1", match.group(1))
+
+    def test_sbom_file_ids_encode_every_package_path_as_valid_spdx_characters(
+        self,
+    ) -> None:
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "[Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($_.path))",
+            package_script,
+        )
+        self.assertIn('SPDXID = "SPDXRef-File-$SpdxPathId"', package_script)
+        self.assertNotIn("$($_.path.Replace('.', '-'))", package_script)
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
