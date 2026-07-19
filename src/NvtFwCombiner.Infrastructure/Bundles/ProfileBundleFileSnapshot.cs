@@ -46,7 +46,10 @@ internal sealed class ProfileBundleFileSnapshot
     internal JsonDocument ParseStrictJson(int maximumDepth)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDepth);
-        return StrictJsonDocumentReader.Parse(_content, Math.Max(1, _content.Length), maximumDepth);
+        return StrictJsonDocumentReader.ParseOwnedSnapshot(
+            _content,
+            Math.Max(1, _content.Length),
+            maximumDepth);
     }
 
     private static ProfileBundleFileSnapshot ReadCore(
