@@ -546,6 +546,29 @@ unchanged. Focused preferences pass `4/4`, full UI `229/229`, Architecture
 corrupt or abnormal local-state bound, not a packaged startup-latency claim;
 final preference interaction/restoration remains in the Windows manual gate.
 
+## Immutable staged-artifact verification
+
+Commit `151310d8` removes the remaining full-size verification allocation for
+each immutable named artifact after a generic or Legacy external-processor run.
+The host still verifies the exact length and complete content after the process
+exits; it now compares sequential windows using a pooled buffer requested at no
+more than 128 KiB instead of calling `ReadAllBytesAsync` and materializing
+another artifact-sized `byte[]`. Exact matches still read every byte, while a
+length or content mismatch fails closed and may stop earlier. The buffer is
+cleared on return after success, mismatch, cancellation, or exception.
+
+This does not remove the independent staged-source gate, reuse a result across
+runs, cache executable trust, or weaken final firmware diff verification. The
+Legacy exact-file projection remains because it is the private mutable file the
+tool consumes; only its redundant post-process full-file allocation is removed.
+Seven direct tests cover a multi-window exact file, first/window-boundary/final
+byte changes, truncation, extension, and pre-cancellation. Generic and Legacy
+adapter integration tests retain `external-tool.staged-artifact.modified`.
+Focused coverage passes `11/11`, full Infrastructure passes `241/241` with two
+platform-specific skips, Architecture passes `94/94`, Polytail passes, and
+independent R3 review reports no P0-P3 finding. Physical-tool/golden parity,
+firmware/security owner review, and canonical verification remain mandatory.
+
 ## Firmware evidence scope
 
 The synthetic counter cases are process-contract evidence, not firmware
