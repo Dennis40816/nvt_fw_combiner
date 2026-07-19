@@ -25,7 +25,7 @@ public sealed partial class RawBinaryEditorSession
     private IReadOnlyList<RawBinaryEditorChangedRange> _cachedChangedRanges = [];
     private bool _changedRangesDirty;
     private bool _hasIdentityOriginalOffsets = true;
-    private List<RawBinaryEditorValueChange> _identityValueChanges = [];
+    private List<RawBinaryEditorChangedRange> _identityChangedRanges = [];
     private List<int>? _originalOffsets;
     private byte[]? _original;
     private List<byte>? _working;
@@ -54,7 +54,7 @@ public sealed partial class RawBinaryEditorSession
         _cachedChangedRanges = [];
         _changedRangesDirty = false;
         _hasIdentityOriginalOffsets = true;
-        _identityValueChanges = [];
+        _identityChangedRanges = [];
         _differenceCount = 0;
         _hasUnsavedChanges = false;
         return GetState();
@@ -447,7 +447,7 @@ public sealed partial class RawBinaryEditorSession
         _hasUnsavedChanges = _working.Count != _original.Length || _differenceCount > 0;
         if (canUpdateChangedRangesIncrementally && action is ReplaceAction valueChange)
         {
-            UpdateIdentityValueChanges(valueChange.Start, valueChange.Bytes.Length);
+            UpdateIdentityChangedRanges(valueChange.Start, valueChange.Bytes.Length);
         }
         else
         {
@@ -455,7 +455,7 @@ public sealed partial class RawBinaryEditorSession
             {
                 // A later cached structural rebuild can restore identity tracking after an exact undo.
                 _hasIdentityOriginalOffsets = false;
-                _identityValueChanges = [];
+                _identityChangedRanges = [];
             }
 
             _changedRangesDirty = true;
