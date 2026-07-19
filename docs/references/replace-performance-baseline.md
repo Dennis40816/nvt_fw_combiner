@@ -146,6 +146,25 @@ allocation are observations rather than p50/p95 or release thresholds. Final
 packaged 8 MiB responsiveness, render layout, accessibility, and process
 working set remain in A8.
 
+Commit `5e30f1e1` removes the remaining per-record rebuild on a later small
+value edit. Each identity-only revision now constructs a new ordered backing
+list, reuses every immutable range record outside the affected or touching
+span, and publishes that list through a read-only wrapper. No published list is
+ever mutated in place, so an earlier snapshot and all nested cause collections
+remain stable. Structural insert/delete still invalidates identity tracking and
+uses the complete structural fallback; exact undo may restore the identity
+path through the existing full comparison.
+
+In the 10,000-range fixture, changing the first already-different byte from
+`FF` to `FE` rebuilds the first range while the second and final range records
+remain reference-identical across revisions. The latest local single
+observation was `0.477` ms and `80,816` current-thread allocated bytes, with a
+`128 KiB` executable ceiling. Raw editor tests pass `23/23`, full Application
+passes `181/181`, Bootstrap integration passes `6/6`, Hex Editor UI passes
+`25/25`, and Architecture passes `94/94`. Record reuse, snapshot identity, old
+and new values, read-only collections, and the allocation ceiling are the
+deterministic gates; the elapsed observation is not p50/p95. A8 remains open.
+
 ## Fragmented report microbaseline
 
 `CompositionReportPerformanceBaselineTests` executes one real Application
