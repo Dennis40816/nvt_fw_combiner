@@ -112,6 +112,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Styles/MainWindowControlStyles.axaml", application, StringComparison.Ordinal);
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsGuidanceVisible}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
     }
 
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
@@ -368,6 +371,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ActiveRunIc}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ActiveRunNumber}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsActiveRunNumberVisible}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ActiveRunContextLabel}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsDeviceContextSelectionVisible}\"", contextPanel, StringComparison.Ordinal);
         Assert.Equal("True", progressBar.Attribute("IsIndeterminate")?.Value);

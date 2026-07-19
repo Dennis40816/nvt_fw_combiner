@@ -113,6 +113,7 @@ public sealed partial class MainWindowViewModel
     {
         OnPropertyChanged(nameof(IsDeviceContextSelectionVisible));
         OnPropertyChanged(nameof(IsDeviceContextNumberSelectionVisible));
+        OnPropertyChanged(nameof(IsActiveRunNumberVisible));
         OnPropertyChanged(nameof(IsDeviceContextFamilyBadgeVisible));
         OnPropertyChanged(nameof(DisplayedDeviceIc));
         OnPropertyChanged(nameof(DisplayedDeviceNumber));

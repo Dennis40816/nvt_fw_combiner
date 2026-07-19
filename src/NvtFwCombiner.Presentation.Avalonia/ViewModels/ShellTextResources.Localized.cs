@@ -142,7 +142,7 @@ public sealed partial class ShellTextResources
             HexEditorSaveConfirmationActionLabel = Pick("Choose output", "選擇輸出位置"),
             GeneralMergeMappingDetail = Pick("Copy explicit source BIN ranges into a blank output image. No postbuild command runs.", "將明確 source BIN ranges 複製到 blank output image；不執行 postbuild command。"),
             GeneralMergeMappingsDetail = Pick("Each row copies one source BIN range to one output target range.", "每列將一個 source BIN range 複製到一個 output target range。"),
-            CtrlRamInputFilesDetail = Pick("When the selected IC/profile supports it, use TP FW or a complete Flash Code as the base firmware BIN. Drop files only for CtrlRAM areas you want to change; empty areas stay from the base firmware.", "僅在選定的 IC/profile 支援時，Base firmware BIN 才可使用 TP FW 或完整 Flash Code。只放入要更動的 CtrlRAM 區域檔案；未放入的區域保留 base firmware。"),
+            CtrlRamInputFilesDetail = Pick("Use a complete FlashCode or TP FW as Reference firmware. Add only the CtrlRAM areas to replace; short files stop at EOF and bytes beyond each maximum are ignored.", "Reference firmware 可使用完整 FlashCode 或 TP FW。只加入要取代的 CtrlRAM 區域；短檔於 EOF 停止，超過各區上限的 bytes 會忽略。"),
             CtrlRamFirmwareVersionTitle = Pick("TP version for this output", "設定這次輸出的 TP 版本"),
             CtrlRamFirmwareVersionDetail = Pick("Choose how the output version is prepared before the approved CtrlRAM postbuild runs.", "選擇核准的 CtrlRAM postbuild 執行前，要如何準備輸出版本。"),
             CtrlRamFirmwareVersionKeepLabel = Pick("✓  Keep base version", "✓  沿用 Base 版本"),

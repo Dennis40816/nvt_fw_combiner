@@ -241,17 +241,17 @@ public sealed partial class ShellViewModelTests
         await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
         Assert.Contains(
             viewModel.ReplaceSlots,
-            slot => slot.Description.Contains("max 5728 bytes", StringComparison.Ordinal));
+            slot => slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
 
         await viewModel.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
         Assert.Contains(
             viewModel.ReplaceSlots,
-            slot => slot.Description.Contains("max 5728 bytes", StringComparison.Ordinal));
+            slot => slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
         Assert.DoesNotContain(
             viewModel.ReplaceSlots,
-            slot => slot.Description.Contains("max 5278 bytes", StringComparison.Ordinal));
+            slot => slot.Description.Contains("max 5278 B", StringComparison.Ordinal));
     }
 
     /// <summary>DP facts use the selected TP dependency regardless of file-selection order.</summary>

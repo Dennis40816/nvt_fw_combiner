@@ -16,6 +16,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(required.IsOptional);
         Assert.False(required.HasFile);
+        Assert.True(required.IsGuidanceVisible);
         Assert.Equal(FirmwareSlotKind.Dp, required.SlotKind);
         Assert.Equal("DP BIN", required.SlotIconTooltip);
         AssertIconGeometry(required);
@@ -26,6 +27,7 @@ public sealed partial class ShellViewModelTests
         required.FilePath = workspace.PathFor("dp.bin").Replace('\\', '/');
 
         Assert.True(required.HasFile);
+        Assert.False(required.IsGuidanceVisible);
         Assert.Equal("dp.bin", required.DisplayName);
         Assert.Equal(required.FilePath.Replace('/', '\\'), required.DisplayDetail);
         AssertIconGeometry(required);

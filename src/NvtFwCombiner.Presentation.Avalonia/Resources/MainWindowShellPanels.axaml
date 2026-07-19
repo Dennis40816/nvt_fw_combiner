@@ -107,7 +107,7 @@
             Classes="technicalCenteredInput"
             Width="132"
             IsReadOnly="True"
-            IsVisible="{Binding IsNumberSelectorVisible}"
+            IsVisible="{Binding IsActiveRunNumberVisible}"
             Text="{Binding ActiveRunNumber}" />
         <StackPanel
             Grid.Row="1"

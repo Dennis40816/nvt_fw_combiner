@@ -113,8 +113,8 @@ public sealed partial class ShellViewModelTests
         await viewModel.FirmwareInspectionRefreshTask;
         FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         Assert.Contains("VN_Ctrlram.bin", vn.Description, StringComparison.Ordinal);
-        Assert.Contains("VN CtrlRAM (Master): max 5728 bytes", vn.Description, StringComparison.Ordinal);
-        Assert.Contains("VN CtrlRAM (Slave L): max 5728 bytes", vn.Description, StringComparison.Ordinal);
+        Assert.Contains("VN CtrlRAM (Master): max 5728 B", vn.Description, StringComparison.Ordinal);
+        Assert.Contains("VN CtrlRAM (Slave L): max 5728 B", vn.Description, StringComparison.Ordinal);
         viewModel.SetSlotFile(vn.SlotId, fixtures.ReplacementPathFor(fixtureCase, vn.SlotId));
 
         Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));

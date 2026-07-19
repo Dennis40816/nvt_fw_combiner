@@ -54,15 +54,15 @@ public static partial class WorkbenchCompositionService
             .Select(block =>
             {
                 TpFlashMapRegion region = source.Regions.Single(region => region.Range.Overlaps(block.FirmwareRange));
-                return $"{region.DisplayName}: max {block.FirmwareRange.Length} bytes, source +0x{block.SourceOffset:X} to flash 0x{block.FirmwareRange.Start:X}";
+                return $"{region.DisplayName}: max {block.FirmwareRange.Length} B → 0x{block.FirmwareRange.Start:X}";
             }));
-        string description = $"{source.SourceFileName}. Expected sections: {sections}. Short source files stop at EOF without padding; bytes beyond each section maximum are not used.";
+        string description = $"{source.SourceFileName} · {sections}";
         string slotId = CtrlRamSlotId(source.SourceId);
         return new WorkbenchReplaceInputSlot(
             slotId,
             requiresDiffNfMerge ? $"{title} (DiffNFMerge output)" : title,
             requiresDiffNfMerge
-                ? $"{description} Required cascade input: select an NF_Ctrlram.bin prebuilt by the external DiffNFMerge.exe. Its input contract and execution are not yet integrated."
+                ? $"{description} · Cascade requires a DiffNFMerge-prebuilt NF_Ctrlram.bin; generation is not integrated."
                 : description,
             true,
             slotId,

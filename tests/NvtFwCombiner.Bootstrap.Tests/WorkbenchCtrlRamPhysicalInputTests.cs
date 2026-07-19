@@ -74,8 +74,8 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             WorkbenchReplaceModes.CtrlRam).Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
         Assert.Contains("DiffNFMerge output", nf.Title, StringComparison.Ordinal);
-        Assert.Contains("select an NF_Ctrlram.bin prebuilt by the external DiffNFMerge.exe", nf.Description, StringComparison.Ordinal);
-        Assert.Contains("input contract and execution are not yet integrated", nf.Description, StringComparison.Ordinal);
+        Assert.Contains("DiffNFMerge-prebuilt NF_Ctrlram.bin", nf.Description, StringComparison.Ordinal);
+        Assert.Contains("generation is not integrated", nf.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("NF_Diff_", nf.Description, StringComparison.Ordinal);
     }
 
@@ -94,7 +94,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         Assert.DoesNotContain("DiffNFMerge output", nf.Title, StringComparison.Ordinal);
     }
 
-    /// <summary>Each slot reports the declared maximum while explaining Legacy Combiner short-file behavior.</summary>
+    /// <summary>Each slot concisely reports its declared maximum and destination.</summary>
     [Fact]
     public void CtrlRamSlotDescriptionsExposeSectionByteLimits()
     {
@@ -103,10 +103,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             "single",
             WorkbenchReplaceModes.CtrlRam).Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
-        Assert.Contains("NF CtrlRAM: max 10768 bytes", nf.Description, StringComparison.Ordinal);
-        Assert.Contains("source +0x0 to flash 0x22C00", nf.Description, StringComparison.Ordinal);
-        Assert.Contains("Short source files stop at EOF without padding", nf.Description, StringComparison.Ordinal);
-        Assert.Contains("bytes beyond each section maximum are not used", nf.Description, StringComparison.Ordinal);
+        Assert.Equal("NF_Ctrlram.bin · NF CtrlRAM: max 10768 B → 0x22C00", nf.Description);
     }
 
     /// <summary>One three-chip NF input is sliced into every source-offset mapping declared by Postbuild.</summary>

@@ -19,7 +19,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceSlots, slot =>
             slot.SlotId == "replace-ctrlram-vn" &&
             slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
-            slot.Description.Contains("max 5278 bytes", StringComparison.Ordinal));
+            slot.Description.Contains("max 5278 B", StringComparison.Ordinal));
 
         await viewModel.SetSlotFileAsync(
             "replace-base",
@@ -32,13 +32,13 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceSlots, slot =>
             slot.SlotId == "replace-ctrlram-vn" &&
             slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
-            slot.Description.Contains("max 5728 bytes", StringComparison.Ordinal));
+            slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
             segment.SourceLabel == "VN CtrlRAM" &&
             segment.RangeLabel == "0x315D0-0x32C2F (len 0x1660)");
     }
 
-    /// <summary>Verifies CtrlRAM base wording scopes TP FW and Flash Code admission to the selected IC/profile.</summary>
+    /// <summary>Verifies CtrlRAM guidance names accepted base forms once and retains source-size safety.</summary>
     [Fact]
     public void CtrlRamBaseSlotUsesGenericFirmwareWording()
     {
@@ -47,10 +47,11 @@ public sealed partial class ShellViewModelTests
         var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
 
         Assert.Equal("Reference firmware", viewModel.ReplaceBaseSlot.Title);
-        Assert.Contains("When the selected IC/profile supports it", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
-        Assert.Contains("TP FW or a complete Flash Code", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
-        Assert.Contains("僅在選定的 IC/profile 支援時", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.Ordinal);
-        Assert.Contains("TP FW 或完整 Flash Code", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.Ordinal);
+        Assert.Contains("complete FlashCode or TP FW", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
+        Assert.Contains("short files stop at EOF", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
+        Assert.Contains("完整 FlashCode 或 TP FW", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.Ordinal);
+        Assert.Contains("短檔於 EOF 停止", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.Ordinal);
+        Assert.Contains("Complete FlashCode or TP FW", viewModel.ReplaceBaseSlot.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("base flash", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("base flash", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("FlashCode", viewModel.Text.CtrlRamFirmwareVersionCurrentLabel, StringComparison.Ordinal);
