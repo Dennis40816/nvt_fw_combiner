@@ -165,6 +165,36 @@ passes `181/181`, Bootstrap integration passes `6/6`, Hex Editor UI passes
 and new values, read-only collections, and the allocation ceiling are the
 deterministic gates; the elapsed observation is not p50/p95. A8 remains open.
 
+The dev.3 packaged 8 MiB exercise then exposed a separate Search/Next cost:
+the document snapshot was shared, but every same-query Next action still ran
+the complete ASCII scan and recreated its result. Commit `509dedd7` keys one
+completed result by document revision and ordinal query, copies its bounded
+retained index into an immutable collection once, and delegates all next,
+wrap, and truncated-index fallback policy to Application. A changed query or
+document revision runs a new authoritative scan. Selection through retained
+index 4,095 reuses the result; a request at index 4,096 of a truncated dense
+result fails the cache lookup and rescans, preserving the complete global
+match index rather than guessing from partial data.
+
+The deterministic regression proves that start, Next, and end-of-document
+wrap call the authoritative search delegate once; different queries call it
+twice; sync and async entry points agree; mutation invalidates both caches; and
+callers cannot mutate the shared match index. Application raw-search tests pass
+`26/26`, Bootstrap search-performance tests pass `11/11`, Hex Editor UI passes
+`25/25`, Architecture passes `94/94`, Polytail passes, and independent R2
+architecture review reports no P0-P2 findings.
+
+For development-only packaged evidence, the same deterministic
+8,388,608-byte input (SHA-256
+`0424143612b91825a9f886af14ffeda5a57d2bf560a23d47dd8bfa81015a3c38`)
+contained 254,208 `NVT-PERF` matches. Dev.4 advanced
+`0x0 -> 0x21 -> 0x42 -> 0x63`; working set read 466,010,112 bytes after the
+first search and 460,611,584 bytes after the fourth, with every observation
+Responding. Dev.3 had instead grown from 507,944,960 bytes after its edit
+exercise to 552,583,168 bytes after four searches. These are uncontrolled
+separate sessions, not a paired benchmark or percentile claim. The exact final
+candidate must still repeat A8 on the reviewed clean machine.
+
 ## Fragmented report microbaseline
 
 `CompositionReportPerformanceBaselineTests` executes one real Application
