@@ -428,21 +428,27 @@ allocation improvement. Hex Diff first-page latency is improved but remains
 noisy and modest at p50; its repeatable gains are lower projection allocation
 and handoff working set. Cold serialization p95 is effectively unchanged,
 which agrees with the prior shared-pool attribution and does not justify a new
-serializer or schema. Packaged first-page, dispatcher heartbeat,
-click-to-first-step, accessibility, physical Legacy Combiner, and clean-machine
-working-set evidence remain separate gates.
+serializer or schema. Stable physical Legacy Combiner evidence is closed by the
+authoritative capture below. Packaged first-page, dispatcher heartbeat,
+click-to-first-step, accessibility, and clean-machine working-set evidence
+remain separate gates.
 
-## Final annotated-v0.9.9 upstream report replay
+## Historical pre-stable 0.9.9 code-milestone report replay
 
 On 2026-07-19, the unchanged initial
 `FragmentedReplaceReportPreservesTenThousandDifferenceFacts` harness from
 `fbd7ee7c374458ecba84dd9b34493f28ee1adb5a` was applied as a test-only overlay
-to two detached worktrees. Node B's production source was the commit selected
-by the annotated `v0.9.9` tag,
+to two detached worktrees. Node B's production source was the then-current
+pre-stable 0.9.9 code milestone,
 `270e803e1f043ffd56d8568c7e80c7f771a35d7e`; Node C's production source was
 `4a2b6c0a04a8aac302830cabf60ba8080a39a8d8`. Both nodes compiled the same test
 without a production adapter or physical fixture/tool path, and used separate
 project-local `bin`/`obj` trees.
+
+This capture is retained as historical same-source performance evidence only.
+It is not the final stable predecessor and does not describe the current
+annotated `v0.9.9` tag. The authoritative stable Node B/C capture is recorded
+below at `32c37e25` and `6f3698dd`.
 
 The machine/runtime/power settings match the component replay above. Each node
 ran one exact-filter validation/warm-up sample that was discarded. Ten recorded
@@ -460,7 +466,7 @@ The 20,000-byte reference and replacement inputs therefore remain the same
 deterministic values recorded for the component replay; no expected output was
 regenerated.
 
-| Final predecessor report observation | Annotated `v0.9.9` | `v0.9.10` Node C | Observation |
+| Historical report observation | Pre-stable 0.9.9 milestone | Contemporary `v0.9.10` node | Observation |
 | --- | ---: | ---: | --- |
 | Application run through complete report, p50 / p95 | `118.581 / 145.196 ms` | `88.037 / 96.553 ms` | p50 `25.76%` lower; p95 `33.50%` lower |
 | Run-through current-thread allocation, p50 / p95 | `20,181,656 / 20,181,656` bytes | `7,541,912 / 7,591,112` bytes | p50 `62.63%` lower |
@@ -478,11 +484,12 @@ The ten run-through samples were B
 
 Node B reported `20,181,656` run-through allocated bytes in every recorded
 sample. Node C reported `7,541,912` bytes in nine samples and `7,591,112` bytes
-in one sample. The exact output/report digests make this a valid final
-predecessor comparison for upstream report creation. It does not create a
+in one sample. The exact output/report digests make this valid historical
+same-source evidence for upstream report creation. It does not create a stable
 `v0.9.9` Hex Diff baseline, because that UI did not exist at the predecessor;
 Hex Diff before/after remains the same-source component comparison above.
-Physical Legacy Combiner parity and packaged UI timings remain separate gates.
+Stable physical Legacy Combiner parity is closed by the authoritative capture
+below. Packaged UI timings remain a separate gate.
 
 Commit `64a45efd` also reuses the UTF-8 byte count already produced by a
 successful JSON projection when the active report is captured or relocalized
