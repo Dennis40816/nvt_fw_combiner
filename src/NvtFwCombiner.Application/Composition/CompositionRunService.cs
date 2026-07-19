@@ -271,7 +271,7 @@ public sealed partial class CompositionRunService
         }
 
         DateTimeOffset completedAtUtc = _clock.UtcNow;
-        progressPublisher.Report(CompositionRunPhase.PreparingReport);
+        progressPublisher.Report(CompositionRunPhase.PreparingReport, committedOutputId);
         CompositionRunReport report = CreateReport(
             request,
             execution,

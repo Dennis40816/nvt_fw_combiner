@@ -24,6 +24,7 @@ public sealed partial class RepositoryBoundaryTests
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.cs",
+                "src/NvtFwCombiner.Bootstrap/WorkbenchRuntimePrewarmer.cs",
             ]);
         AssertNoProductionText("IcMetadataFacade");
         AssertNoProductionText("LegacyCombinerPostbuildCatalog");

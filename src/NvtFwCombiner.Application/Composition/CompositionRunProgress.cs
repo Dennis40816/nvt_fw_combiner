@@ -38,7 +38,8 @@ public sealed class CompositionRunProgressSnapshot
         string runId,
         CompositionRunPhase currentPhase,
         IReadOnlyList<CompositionRunPhase> applicablePhases,
-        IReadOnlyList<CompositionRunPhase> completedPhases)
+        IReadOnlyList<CompositionRunPhase> completedPhases,
+        string? committedOutputId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(applicablePhases);
@@ -48,6 +49,7 @@ public sealed class CompositionRunProgressSnapshot
         CurrentPhase = currentPhase;
         _applicablePhases = Array.AsReadOnly([.. applicablePhases]);
         _completedPhases = Array.AsReadOnly([.. completedPhases]);
+        CommittedOutputId = committedOutputId;
         CurrentStep = _applicablePhases.IndexOf(currentPhase) + 1;
         if (CurrentStep == 0)
         {
@@ -66,6 +68,9 @@ public sealed class CompositionRunProgressSnapshot
 
     /// <summary>Gets only phases that were actually entered and completed before the current phase.</summary>
     public IReadOnlyList<CompositionRunPhase> CompletedPhases => _completedPhases;
+
+    /// <summary>Gets the atomically committed Build artifact once report preparation begins.</summary>
+    public string? CommittedOutputId { get; }
 
     /// <summary>Gets the one-based lifecycle ordinal; it is not a byte percentage.</summary>
     public int CurrentStep { get; }
@@ -133,6 +138,7 @@ internal sealed class CompositionRunProgressPublisher
     private readonly CompositionRunPhase[] _applicablePhases;
     private readonly List<CompositionRunPhase> _completedPhases = [];
     private CompositionRunPhase? _currentPhase;
+    private string? _committedOutputId;
 
     internal CompositionRunProgressPublisher(
         CompositionRunRequest request,
@@ -164,8 +170,19 @@ internal sealed class CompositionRunProgressPublisher
         _applicablePhases = [.. phases];
     }
 
-    internal void Report(CompositionRunPhase phase)
+    internal void Report(CompositionRunPhase phase, string? committedOutputId = null)
     {
+        if (committedOutputId is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(committedOutputId);
+            if (phase != CompositionRunPhase.PreparingReport)
+            {
+                throw new InvalidOperationException("A committed output can be published only when report preparation begins.");
+            }
+
+            _committedOutputId = committedOutputId;
+        }
+
         if (_currentPhase == phase)
         {
             return;
@@ -193,6 +210,7 @@ internal sealed class CompositionRunProgressPublisher
             _runId,
             phase,
             _applicablePhases,
-            _completedPhases));
+            _completedPhases,
+            _committedOutputId));
     }
 }

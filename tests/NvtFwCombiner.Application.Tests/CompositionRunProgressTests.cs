@@ -34,6 +34,7 @@ public sealed partial class CompositionRunServiceTests
                 CompositionRunPhase.ValidatingOutput,
                 CompositionRunPhase.PreparingReport,
             ]);
+        Assert.All(snapshots, static snapshot => Assert.Null(snapshot.CommittedOutputId));
     }
 
     /// <summary>Automatic Build reports commit only after validation and before report projection.</summary>
@@ -62,6 +63,8 @@ public sealed partial class CompositionRunServiceTests
                 CompositionRunPhase.CommittingOutput,
                 CompositionRunPhase.PreparingReport,
             ]);
+        Assert.Equal("committed:synthetic-standard-merge.bin", snapshots[^1].CommittedOutputId);
+        Assert.All(snapshots.Take(snapshots.Count - 1), static snapshot => Assert.Null(snapshot.CommittedOutputId));
     }
 
     /// <summary>Repeated processor operations produce one bounded processor phase transition.</summary>
@@ -127,6 +130,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.DoesNotContain(CompositionRunPhase.ExecutingComposition, report.CompletedPhases);
         Assert.Equal(5, report.CurrentStep);
         Assert.Equal(5, report.StepCount);
+        Assert.Null(report.CommittedOutputId);
     }
 
     /// <summary>Cancellation retains the last entered phase and never fabricates validation or report work.</summary>
