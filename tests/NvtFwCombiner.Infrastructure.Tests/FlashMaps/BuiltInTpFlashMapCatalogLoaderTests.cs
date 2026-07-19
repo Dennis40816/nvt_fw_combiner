@@ -46,12 +46,7 @@ public sealed class BuiltInTpFlashMapCatalogLoaderTests
     [Fact]
     public void DirectGoldenFixtureShapesMatchConfig()
     {
-        string manifestPath = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "manifest.json");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        using JsonDocument manifest = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
 
         foreach (JsonElement fixtureCase in manifest.RootElement.GetProperty("cases").EnumerateArray())
         {

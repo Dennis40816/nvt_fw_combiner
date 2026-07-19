@@ -12,7 +12,9 @@ public sealed partial class ShellViewModelTests
     {
         using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
         Assert.NotNull(fixtures);
-        JsonElement fixtureCase = fixtures.CaseById("nt51927-2chip-self-20260705");
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace",
+            "nt51927-2chip-self-20260705");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-build");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";

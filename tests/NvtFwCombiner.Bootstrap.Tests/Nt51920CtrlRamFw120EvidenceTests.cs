@@ -301,11 +301,12 @@ public sealed class Nt51920CtrlRamFw120EvidenceTests
 
     private static OwnerCase ReadOwnerCase(string topology)
     {
-        string prefix = $"fixtures/20260717/NT51920/replace/ctrlram/{topology}/";
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(GoldenRoot, "manifest.20260717.json")));
+        string caseId = StringComparer.Ordinal.Equals(topology, "single")
+            ? "nt51920-fw120-single-auto-prj-72-20260717"
+            : "nt51920-fw120-cascade2-auto-prj-55-20260717";
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
         OwnerArtifact[] artifacts = [
-            .. manifest.RootElement.GetProperty("payloads").EnumerateArray()
-                .Where(entry => entry.GetProperty("path").GetString()!.StartsWith(prefix, StringComparison.Ordinal))
+            .. goldenCase.GetProperty("artifacts").EnumerateArray()
                 .Select(entry =>
                 {
                     string path = RepositoryPaths.ManifestPath(GoldenRoot, entry);
@@ -314,7 +315,7 @@ public sealed class Nt51920CtrlRamFw120EvidenceTests
                     Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
                     return new OwnerArtifact(
                         entry.GetProperty("originalFileName").GetString()!,
-                        entry.GetProperty("role").GetString()!,
+                        entry.GetProperty("sourceRole").GetString()!,
                         path,
                         bytes);
                 }),
@@ -343,5 +344,5 @@ public sealed class Nt51920CtrlRamFw120EvidenceTests
 
     private sealed record OwnerArtifact(string FileName, string Role, string Path, byte[] Bytes);
 
-    private static string GoldenRoot => RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
+    private static string GoldenRoot => CanonicalGoldenTestData.Root;
 }

@@ -584,19 +584,15 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 
     private static OwnerIntakeFile ReadOwnerIntakeFile(params string[] parts)
     {
-        string goldenRoot = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "ctrlram-replace");
-        string relativePath = Path.Combine("fixtures", "20260717", Path.Combine(parts)).Replace('\\', '/');
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(
-            goldenRoot,
-            "manifest.20260717.json")));
-        JsonElement entry = manifest.RootElement.GetProperty("payloads")
+        string goldenRoot = CanonicalGoldenTestData.Root;
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51926-fw141-cascade2-auto-prj-597-20260717");
+        JsonElement entry = goldenCase.GetProperty("artifacts")
             .EnumerateArray()
             .Single(candidate => StringComparer.Ordinal.Equals(
-                candidate.GetProperty("path").GetString(),
-                relativePath));
+                candidate.GetProperty("originalFileName").GetString(),
+                parts[^1]));
         return ReadManifestArtifact(goldenRoot, entry);
     }
 

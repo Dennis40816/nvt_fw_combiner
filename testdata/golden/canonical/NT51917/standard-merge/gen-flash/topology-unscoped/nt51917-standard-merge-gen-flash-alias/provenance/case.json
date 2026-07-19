@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51917-standard-merge-gen-flash-alias",
+  "ic": "NT51917",
+  "workflow": "standard-merge",
+  "variantOrVersion": "gen-flash",
+  "topology": "topology-unscoped",
+  "directGolden": false,
+  "sourceClassification": "owner-approved-fact-scoped-alias",
+  "ownerApproval": "Firmware owner confirmed NT51917 follows the NT51927 perfect-family Standard Merge facts.",
+  "alias": {
+    "sourceCaseId": "nt51927-gen-flash",
+    "factScope": [
+      "standard-merge family mapping",
+      "dp-input and tp-input composition roles",
+      "full output byte expectation for the referenced direct case only"
+    ],
+    "evidenceRefs": [
+      "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+      "docs/adr/0017-map-bound-fact-aliases.md"
+    ]
+  }
+}

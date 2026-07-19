@@ -343,14 +343,18 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
 
     private static OwnerCase ReadOwnerCase()
     {
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(GoldenRoot, "manifest.json")));
-        JsonElement fixtureCase = manifest.RootElement.GetProperty("cases").EnumerateArray()
-            .Single(item => item.GetProperty("id").GetString() == "nt51927-3chip-self-20260705");
-        OwnerArtifact ownerBase = ReadArtifact(fixtureCase.GetProperty("base"), slotId: null);
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace",
+            "nt51927-3chip-self-20260705");
+        JsonElement[] canonicalArtifacts = [.. fixtureCase.GetProperty("artifacts").EnumerateArray()];
+        JsonElement baseArtifact = canonicalArtifacts.Single(item =>
+            item.GetProperty("slotId").GetString() == WorkbenchSlotIds.ReplaceBase);
+        OwnerArtifact ownerBase = ReadArtifact(baseArtifact, slotId: null);
         OwnerArtifact[] artifacts = [
             ownerBase,
-            .. fixtureCase.GetProperty("replacementInputs").EnumerateArray().Select(input =>
-                ReadArtifact(input.GetProperty("file"), input.GetProperty("slotId").GetString())),
+            .. canonicalArtifacts
+                .Where(item => item.GetProperty("slotId").GetString() != WorkbenchSlotIds.ReplaceBase)
+                .Select(item => ReadArtifact(item, item.GetProperty("slotId").GetString())),
         ];
         return new OwnerCase(ownerBase, artifacts);
     }
@@ -390,5 +394,5 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
 
     private sealed record OwnerArtifact(string? SlotId, string Path, byte[] Bytes);
 
-    private static string GoldenRoot => RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
+    private static string GoldenRoot => CanonicalGoldenTestData.Root;
 }

@@ -48,26 +48,40 @@ internal sealed class CtrlRamReplaceFixtureManifest : IDisposable
     {
         ArgumentNullException.ThrowIfNull(viewModel);
 
-        viewModel.SetSlotFile("replace-base", PathFor(fixtureCase.GetProperty("base")));
+        JsonElement baseArtifact = fixtureCase.TryGetProperty("artifacts", out JsonElement artifacts)
+            ? artifacts.EnumerateArray().Single(item =>
+                item.GetProperty("slotId").GetString() == "replace-base")
+            : fixtureCase.GetProperty("base");
+        viewModel.SetSlotFile("replace-base", PathForCaseArtifact(baseArtifact));
     }
 
     public void SetReplacementSlots(MainWindowViewModel viewModel, JsonElement fixtureCase)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
 
-        foreach (JsonElement replacement in fixtureCase.GetProperty("replacementInputs").EnumerateArray())
+        IEnumerable<JsonElement> replacements = fixtureCase.TryGetProperty("artifacts", out JsonElement artifacts)
+            ? artifacts.EnumerateArray().Where(item =>
+                item.GetProperty("slotId").GetString() != "replace-base")
+            : fixtureCase.GetProperty("replacementInputs").EnumerateArray();
+        foreach (JsonElement replacement in replacements)
         {
             string slotId = replacement.GetProperty("slotId").GetString()!;
             Assert.Contains(viewModel.ReplaceSlots, slot => slot.SlotId == slotId);
-            viewModel.SetSlotFile(slotId, PathFor(replacement.GetProperty("file")));
+            viewModel.SetSlotFile(
+                slotId,
+                PathForCaseArtifact(replacement.TryGetProperty("file", out JsonElement file) ? file : replacement));
         }
     }
 
     public string ReplacementPathFor(JsonElement fixtureCase, string slotId)
     {
-        JsonElement replacement = fixtureCase.GetProperty("replacementInputs").EnumerateArray().Single(candidate =>
+        IEnumerable<JsonElement> replacements = fixtureCase.TryGetProperty("artifacts", out JsonElement artifacts)
+            ? artifacts.EnumerateArray()
+            : fixtureCase.GetProperty("replacementInputs").EnumerateArray();
+        JsonElement replacement = replacements.Single(candidate =>
             StringComparer.Ordinal.Equals(candidate.GetProperty("slotId").GetString(), slotId));
-        return PathFor(replacement.GetProperty("file"));
+        return PathForCaseArtifact(
+            replacement.TryGetProperty("file", out JsonElement file) ? file : replacement);
     }
 
     public bool TryGetExpectedOutputPath(JsonElement fixtureCase, out string? expectedOutputPath)
@@ -85,5 +99,12 @@ internal sealed class CtrlRamReplaceFixtureManifest : IDisposable
     public void Dispose()
     {
         _document.Dispose();
+    }
+
+    private string PathForCaseArtifact(JsonElement artifact)
+    {
+        return artifact.TryGetProperty("legacyPaths", out _)
+            ? CanonicalGoldenTestData.ArtifactPath(artifact)
+            : PathFor(artifact);
     }
 }

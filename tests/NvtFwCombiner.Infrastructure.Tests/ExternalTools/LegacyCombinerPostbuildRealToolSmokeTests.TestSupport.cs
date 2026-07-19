@@ -6,6 +6,7 @@ using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
@@ -76,14 +77,9 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         return result.OutputBytes.ToArray();
     }
 
-    private static string FindGoldenExpectedOutput(string goldenRoot, string ic)
+    private static string FindGoldenExpectedOutput(string ic)
     {
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("ic").GetString() == ic);
-        string relativePath = goldenCase.GetProperty("expectedOutput").GetProperty("path").GetString()!;
-        return Path.Combine(goldenRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
+        return CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output");
     }
 
     private static ExternalCombinerToolManifest LoadManifest(string path)

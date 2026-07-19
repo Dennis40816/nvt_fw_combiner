@@ -621,12 +621,8 @@ public sealed class StandardMergeCliCommandTests
 
     private static GoldenCasePaths LoadGoldenCase(string caseId)
     {
-        string goldenRoot = Path.Combine(
-            RepositoryPaths.FindRepositoryRoot(),
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        string goldenRoot = CanonicalGoldenTestData.Root;
+        using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(item =>

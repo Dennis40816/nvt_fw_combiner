@@ -39,11 +39,11 @@ public sealed class Nt51931CtrlRamEvidenceTests
         using JsonDocument manifest = ReadManifest();
         JsonElement ownerCase = ReadCase(manifest);
         Assert.Equal("expected-derived-self-replacement-control", ownerCase.GetProperty("baseKind").GetString());
-        Assert.Equal("support-catalog-not-available", ownerCase.GetProperty("currentProfile").GetProperty("route").GetString());
-        Assert.Equal("exact-route-materialized", ownerCase.GetProperty("targetV2").GetProperty("status").GetString());
+        Assert.Equal(
+            "nt51931-ctrlram-replace-fw130-cascade6",
+            ownerCase.GetProperty("profileId").GetString());
 
-        foreach (JsonElement entry in manifest.RootElement.GetProperty("payloads").EnumerateArray()
-                     .Where(IsOwnerCaseEntry))
+        foreach (JsonElement entry in ownerCase.GetProperty("artifacts").EnumerateArray())
         {
             string path = RepositoryPaths.ManifestPath(GoldenRoot, entry);
             byte[] bytes = File.ReadAllBytes(path);
@@ -51,8 +51,7 @@ public sealed class Nt51931CtrlRamEvidenceTests
             Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
         }
 
-        JsonElement tool = manifest.RootElement.GetProperty("externalToolObservations").EnumerateArray()
-            .Single(IsOwnerCaseEntry);
+        JsonElement tool = Assert.Single(ownerCase.GetProperty("externalToolObservations").EnumerateArray());
         Assert.Equal(OwnerToolSha256, tool.GetProperty("sha256").GetString());
         Assert.Equal("1.2.0.4", tool.GetProperty("selfReportedVersion").GetString());
         Assert.False(tool.GetProperty("runtimeRegistrationAuthorized").GetBoolean());
@@ -74,8 +73,10 @@ public sealed class Nt51931CtrlRamEvidenceTests
         Assert.Equal(73645, CountDifferences(historical, expected));
         Assert.Equal(73637, CountDifferencesOutside(historical, expected, ControlDifferenceRanges));
 
-        JsonElement historicalEntry = ReadPayloadEntry(manifest, "NT51931_Flashcode_TM_1560_KVD_D8DfT82_3mux_nmos_20240721.bin");
-        Assert.Equal("historical-non-same-build-flashcode", historicalEntry.GetProperty("role").GetString());
+        JsonElement historicalEntry = Assert.Single(
+            ReadCase(manifest).GetProperty("diagnosticLegacyPaths").EnumerateArray());
+        Assert.Equal("historical-non-same-build-flashcode", historicalEntry.GetProperty("classification").GetString());
+        Assert.Equal(HistoricalFlashCodeSha256, historicalEntry.GetProperty("sha256").GetString());
     }
 
     /// <summary>Every physical CtrlRAM payload already matches the owner expected output.</summary>
@@ -109,7 +110,10 @@ public sealed class Nt51931CtrlRamEvidenceTests
         Assert.Equal(0, phaseB.GetProperty("differenceCounts").GetProperty("legacyToV2").GetInt32());
         string finalBatPath = RepositoryPaths.ManifestPath(
             GoldenRoot,
-            manifest.RootElement.GetProperty("supportingFiles").EnumerateArray().Single(IsOwnerCaseEntry));
+            ownerCase.GetProperty("artifacts").EnumerateArray().Single(entry =>
+                StringComparer.Ordinal.Equals(
+                    entry.GetProperty("sourceRole").GetString(),
+                    "postbuild-command-evidence")));
         string finalCommand = File.ReadLines(finalBatPath).Single(line =>
             line.StartsWith("@output\\Combiner.exe ", StringComparison.Ordinal) &&
             line.Contains("BIN\\DiffDLM.bin", StringComparison.Ordinal));
@@ -345,40 +349,47 @@ public sealed class Nt51931CtrlRamEvidenceTests
 
     private static JsonDocument ReadManifest()
     {
-        return JsonDocument.Parse(File.ReadAllText(Path.Combine(GoldenRoot, "manifest.20260718.json")));
+        return JsonDocument.Parse(
+            CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId).GetRawText());
     }
 
     private static JsonElement ReadCase(JsonDocument manifest)
     {
-        return manifest.RootElement.GetProperty("cases").EnumerateArray().Single(IsOwnerCaseEntry);
+        return manifest.RootElement;
     }
 
     private static byte[] ReadPayload(JsonDocument manifest, string originalFileName)
     {
+        if (StringComparer.Ordinal.Equals(
+                originalFileName,
+                "NT51931_Flashcode_TM_1560_KVD_D8DfT82_3mux_nmos_20240721.bin"))
+        {
+            byte[] historical = File.ReadAllBytes(HistoricalFlashCodePath);
+            Assert.Equal(HistoricalFlashCodeSha256, Hash(historical));
+            return historical;
+        }
+
         return File.ReadAllBytes(RepositoryPaths.ManifestPath(GoldenRoot, ReadPayloadEntry(manifest, originalFileName)));
     }
 
     private static JsonElement ReadPayloadEntry(JsonDocument manifest, string originalFileName)
     {
-        return manifest.RootElement.GetProperty("payloads").EnumerateArray().Single(entry =>
-            IsOwnerCaseEntry(entry) &&
+        return ReadCase(manifest).GetProperty("artifacts").EnumerateArray().Single(entry =>
             StringComparer.Ordinal.Equals(entry.GetProperty("originalFileName").GetString(), originalFileName));
     }
 
     private static Dictionary<string, string> ReadPayloadPaths(JsonDocument manifest)
     {
-        return manifest.RootElement.GetProperty("payloads")
+        var paths = ReadCase(manifest).GetProperty("artifacts")
             .EnumerateArray()
-            .Where(IsOwnerCaseEntry)
             .ToDictionary(
                 entry => entry.GetProperty("originalFileName").GetString()!,
                 entry => RepositoryPaths.ManifestPath(GoldenRoot, entry),
                 StringComparer.Ordinal);
-    }
-
-    private static bool IsOwnerCaseEntry(JsonElement entry)
-    {
-        return StringComparer.Ordinal.Equals(entry.GetProperty("caseId").GetString(), CaseId);
+        paths.Add(
+            "NT51931_Flashcode_TM_1560_KVD_D8DfT82_3mux_nmos_20240721.bin",
+            HistoricalFlashCodePath);
+        return paths;
     }
 
     private static int CountDifferences(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
@@ -424,5 +435,19 @@ public sealed class Nt51931CtrlRamEvidenceTests
         }
     }
 
-    private static string GoldenRoot => RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
+    private static string GoldenRoot => CanonicalGoldenTestData.Root;
+
+    private static string HistoricalFlashCodePath => RepositoryPaths.FromRepositoryRoot(
+        "testdata",
+        "golden",
+        "ctrlram-replace",
+        "fixtures",
+        "20260718",
+        "NT51931",
+        "replace",
+        "ctrlram",
+        "1.3.0",
+        "cascade",
+        "case-01",
+        "NT51931_Flashcode_TM_1560_KVD_D8DfT82_3mux_nmos_20240721.bin");
 }

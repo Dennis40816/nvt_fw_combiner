@@ -185,29 +185,18 @@ public sealed partial class ShellViewModelTests
 
     /// <summary>Verifies golden-backed NT51950/NT51951 DP Replace accepts the real 0x40000 and 0x80000 base lengths.</summary>
     [Theory]
-    [InlineData(
-        "NT51950",
-        "expected/51950/dp-256k/flash.bin",
-        "inputs/51950/dp-256k/dp.bin",
-        0x40000)]
-    [InlineData(
-        "NT51951",
-        "expected/51951/dp-512k/flash.bin",
-        "inputs/51951/dp-512k/dp.bin",
-        0x80000)]
+    [InlineData("NT51950", 0x40000)]
+    [InlineData("NT51951", 0x80000)]
     public async Task PreviewDpReplaceAcceptsGoldenBackedBaseLengths(
         string icId,
-        string baseRelativePath,
-        string dpRelativePath,
         int expectedLength)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseRelativePath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(dpRelativePath);
 
         using var golden = StandardMergeGoldenManifest.Load();
-        string basePath = golden.PathFromRelative(baseRelativePath);
-        string dpPath = golden.PathFromRelative(dpRelativePath);
+        JsonElement goldenCase = golden.CaseByIc(icId[2..]);
+        string basePath = golden.ExpectedOutputPath(goldenCase);
+        string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = icId;

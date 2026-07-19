@@ -2,12 +2,12 @@
 
 No BIN upload is currently requested for NT51950.
 
-The tracked `nt51950-ab-boe-d82t80` and `nt51950-ab-hiway-d82t80` fixtures in
-`testdata/golden/ab-merge/manifest.json` record the supplied DP_AB, TPA, TPB,
-and expected output. They prove full-byte V2/Python/Combiner parity for their
-named fixed-`0x80000` cases. The profile remains a repository-only executable
-candidate and must not be promoted to runtime/UI support without firmware-owner
-review.
+The canonical `nt51950-ab-boe-d82t80` and
+`nt51950-ab-hiway-d82t80` cases below `testdata/golden/canonical/NT51950/ab-merge`
+record the supplied DP_AB, TPA, TPB, and expected output. They prove full-byte
+V2/Python/Combiner parity for their named fixed-`0x80000` cases. The profile
+remains a repository-only executable candidate and must not be promoted to
+runtime/UI support without firmware-owner review.
 
 For a new or otherwise unrecorded NT51950 case, provide:
 

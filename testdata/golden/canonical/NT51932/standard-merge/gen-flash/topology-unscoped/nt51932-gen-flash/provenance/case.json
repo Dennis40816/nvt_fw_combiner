@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51932-gen-flash",
+  "ic": "NT51932",
+  "workflow": "standard-merge",
+  "variantOrVersion": "gen-flash",
+  "topology": "topology-unscoped",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner requested gen_flash_bin_v2 test BIN files be tracked as golden fixtures on 2026-06-30.",
+  "profileId": "nt51932-standard-merge-gen-flash",
+  "artifacts": [
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51932/standard-merge/gen-flash/topology-unscoped/nt51932-gen-flash/inputs/dp-input.bin",
+      "size": 262144,
+      "sha256": "c66e361bb04df9dd95aa0e10b38ee70bfbb6fa6fe2a6c8d1a0ab1124dd03542b",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51932/dp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51932_initial Code_TM_TL291XFKS01_6296x1740_D82_20251014.bin",
+      "sourceBlobSha": "2a24c9dc7f2d83afc29294423cf1e41bac8fda2b"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51932/standard-merge/gen-flash/topology-unscoped/nt51932-gen-flash/inputs/tp-input.bin",
+      "size": 262144,
+      "sha256": "3de3406d827b205601e085e163a0fff4c8180353e55535c33fb9f2b0357d9b9b",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51932/tp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/nt51932_fw_v80.bin",
+      "sourceBlobSha": "dbe7aa829c53d09d8b4dd95380279d11c1ad59b3"
+    },
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51932/standard-merge/gen-flash/topology-unscoped/nt51932-gen-flash/expected/flash.bin",
+      "size": 262144,
+      "sha256": "6a0c90b1c314536119dda9aacd1f3dfcccfc8b90aae6e43cdf713100bb308b14",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/expected/51932/flash.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51932_FlashCode_TM2910_6296x1740_D82T80_20251014.bin",
+      "sourceBlobSha": "52fe50c8dcbc990a674e740161baff65e89bc64c"
+    }
+  ]
+}

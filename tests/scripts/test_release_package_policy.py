@@ -39,6 +39,33 @@ def normalize_console_output(output: str) -> str:
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
 
+    def test_external_tool_catalog_matches_packager_and_smoke_allowlists(self) -> None:
+        catalog = json.loads(
+            (ROOT / "external-tools/catalog.json").read_text(encoding="utf-8")
+        )
+        catalog_paths = set(catalog["releasePackagePaths"])
+
+        self.assertEqual(set(APPROVED_EXTERNAL_TOOL_PATHS), catalog_paths)
+        for script_path in (PACKAGE_SCRIPT, SMOKE_SCRIPT):
+            match = re.search(
+                r"\$ApprovedExternalToolPackagePaths\s*=\s*@\((.*?)\)\s*\|\s*Sort-Object",
+                script_path.read_text(encoding="utf-8"),
+                flags=re.DOTALL,
+            )
+            self.assertIsNotNone(match, script_path)
+            self.assertEqual(
+                catalog_paths,
+                set(re.findall(r"'([^']+)'", match.group(1))),
+                script_path,
+            )
+        self.assertFalse(
+            any(
+                Path(path).suffix.lower() in {".exe", ".dll"}
+                and len(Path(path).parts) < 3
+                for path in catalog_paths
+            )
+        )
+
     def test_console_output_normalization_removes_powershell_formatting(self) -> None:
         output = "\x1b[31mowner-approved maximum\x1b[0m\n| 58076715 bytes"
 
@@ -108,6 +135,14 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected",
             result.stdout,
         )
+        self.assertIn(
+            "Canonical golden package policy dry-run passed: 34 direct Standard Merge BIN artifacts and 13 direct/alias cases selected; diagnostics and other workflows excluded",
+            result.stdout,
+        )
+        self.assertIn(
+            "Canonical golden package policy direct/alias drift and strict-type rejection passed",
+            result.stdout,
+        )
         self.assertFalse(
             probe_path.exists(), "packager did not clean its source policy probe"
         )
@@ -175,6 +210,29 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     def test_release_smoke_rejects_extra_external_tool_even_when_manifested(
         self,
     ) -> None:
+        result = self.run_smoke_with_manifested_external_tool(PROBE_RELATIVE_PATH)
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release manifest external-tool files differ from the approved allowlist.",
+            result.stdout + result.stderr,
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_root_crc_worker_even_when_manifested(self) -> None:
+        result = self.run_smoke_with_manifested_external_tool(Path("CRCWorker.exe"))
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release manifest external-tool paths and roles are inconsistent.",
+            result.stdout + result.stderr,
+        )
+
+    def run_smoke_with_manifested_external_tool(
+        self, relative_path: Path
+    ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory(
             prefix="nvt-release-policy-test-"
         ) as temporary_directory:
@@ -195,13 +253,13 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 required_path.parent.mkdir(parents=True, exist_ok=True)
                 required_path.write_bytes(b"release-policy fixture\n")
 
-            staged_probe = package_root / PROBE_RELATIVE_PATH
+            staged_probe = package_root / relative_path
             staged_probe.parent.mkdir(parents=True, exist_ok=True)
             staged_probe.write_bytes(b"negative release-policy probe\n")
             manifest = {
                 "files": [
                     {
-                        "path": PROBE_RELATIVE_PATH.as_posix(),
+                        "path": relative_path.as_posix(),
                         "size": staged_probe.stat().st_size,
                         "sha256": "0" * 64,
                         "role": "externalTool",
@@ -221,18 +279,12 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                     if path.is_file():
                         archive.write(path, path.relative_to(temporary_root))
 
-            result = self.run_powershell(
+            return self.run_powershell(
                 SMOKE_SCRIPT,
                 "-PackagePath",
                 str(package_path),
                 "-SkipUiLaunch",
             )
-
-        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-        self.assertIn(
-            "Release manifest external-tool files differ from the approved allowlist.",
-            result.stdout + result.stderr,
-        )
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"

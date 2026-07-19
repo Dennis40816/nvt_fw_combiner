@@ -15,7 +15,7 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
     private const string OwnerExpectedSha256 = "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910";
     private const string CurrentOutputSha256 = "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f";
     private const string RegisteredCombinerSha256 = "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf";
-    private const string CasePath = "fixtures/20260717/NT51929/replace/ctrlram/single/";
+    private const string CaseId = "nt51929-fw200-single-auto-prj-594-20260717";
     private const int Capacity = 0x40000;
     private const int NfStart = 0x1FC00;
     private const int NfMaximumLength = 0x1F90;
@@ -361,22 +361,34 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
 
     private static OwnerCase ReadOwnerCase()
     {
-        string root = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "manifest.20260717.json")));
+        string root = CanonicalGoldenTestData.Root;
+        JsonElement ctrlRamCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
+        JsonElement abCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ab-merge",
+            "nt51929-ab-t05-d06");
         OwnerArtifact[] artifacts = [
-            .. manifest.RootElement.GetProperty("payloads").EnumerateArray()
-                .Where(item => item.GetProperty("path").GetString()!.StartsWith(CasePath, StringComparison.Ordinal))
+            .. ctrlRamCase.GetProperty("artifacts").EnumerateArray()
                 .Select(item => ReadArtifact(root, item)),
         ];
+        OwnerArtifact abExpected = abCase.GetProperty("artifacts")
+            .EnumerateArray()
+            .Where(static item => StringComparer.Ordinal.Equals(
+                item.GetProperty("role").GetString(),
+                "expected"))
+            .Select(item => ReadArtifact(root, item, "expected-final-output-ab"))
+            .Single();
         return new OwnerCase(
             artifacts,
             artifacts.Single(static artifact => artifact.Role == "standard-merge-dp-input"),
             artifacts.Single(static artifact => artifact.Role == "standard-merge-tp-input"),
             artifacts.Single(static artifact => artifact.Role == "expected-final-output-single"),
-            artifacts.Single(static artifact => artifact.Role == "expected-final-output-ab"));
+            abExpected);
     }
 
-    private static OwnerArtifact ReadArtifact(string root, JsonElement entry)
+    private static OwnerArtifact ReadArtifact(
+        string root,
+        JsonElement entry,
+        string? sourceRole = null)
     {
         string path = RepositoryPaths.ManifestPath(root, entry);
         byte[] bytes = File.ReadAllBytes(path);
@@ -385,7 +397,7 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
         return new(
             entry.GetProperty("originalFileName").GetString()!,
             entry.GetProperty("path").GetString()!,
-            entry.GetProperty("role").GetString()!,
+            sourceRole ?? entry.GetProperty("sourceRole").GetString()!,
             path,
             bytes);
     }

@@ -1,21 +1,23 @@
 # NT51932 AB Merge Handoff
 
-This folder accepts private R3 evidence only. Existing candidate evidence does
-not replace a product golden or firmware-owner review.
+No BIN upload is currently requested for the approved fact scope. This folder
+remains available only if a new direct NT51932 product case is intentionally
+opened; existing candidate evidence does not replace a product golden or
+firmware-owner runtime-promotion review.
 
 The current Bootstrap regression compares the NT51932 candidate byte-for-byte
 with the immutable Python snapshot's directly named `51932` configuration over
 an address-sensitive synthetic vector (`cd54e124...7de10ce`). This confirms the
-candidate/reference geometry only; it is not a product golden and does not
-make the NT51929 owner fixture applicable to NT51932.
+candidate/reference geometry only; it is not a product golden. Separately, the
+firmware owner approved the NT51929 direct case as fact-scoped NT51932 family
+evidence on 2026-07-18. The canonical alias records only that reviewed scope.
 
-Provide these files under `inputs/`:
+Only for a newly opened direct NT51932 case, provide these files under `inputs/`:
 
 - `dp-ab.bin`, `tpa.bin`, `tpb.bin`, and `expected.bin`; and
 - `provenance.json` listing each original filename, SHA-256, source
   archive/ticket, expected output filename, owner, and approval date.
 
-Do not treat NT51929 evidence as this IC's product golden without an explicit
-owner fact-scoped parity decision. Promotion therefore still requires either
-the direct package above or that reviewed fact-scoped alias evidence, plus
-firmware-owner approval.
+Do not present NT51929 bytes as a direct NT51932 product golden. Runtime
+promotion remains separate from the approved family-fact alias and still
+requires firmware-owner review.

@@ -20,7 +20,7 @@ Affected layers:
 
 - `profiles/built-in/ctrlram-postbuild-v2/catalog.json`: hash-pinned structured command data.
 - `NvtFwCombiner.Infrastructure`: strict command-data loading, staged real-tool execution, output-length normalization, and byte diff validation.
-- Golden evidence: `testdata/golden/standard-merge-gen-flash` owner-approved expected outputs.
+- Golden evidence: owner-approved direct Standard Merge expected outputs indexed by `testdata/golden/canonical/manifest.json`.
 
 Affected workflow:
 
@@ -43,7 +43,7 @@ Primary evidence:
 - `docs/references/tddi-flash-header/Combiner.c`, version string `1.6.0.1`, used as source-level evidence for legacy normal-mode behavior.
 - `docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx`, used as TP header descriptor layout evidence.
 - `external-tools/legacy-combiner/1.13.0/Combiner.exe`, used for real-tool experiments.
-- `testdata/golden/standard-merge-gen-flash/expected/*/flash.bin`, used only as existing owner-approved firmware outputs for self-pasteback experiments.
+- Direct `standard-merge` expected artifacts under `testdata/golden/canonical/`, used only as existing owner-approved firmware outputs for self-pasteback experiments.
 
 Important limitation:
 

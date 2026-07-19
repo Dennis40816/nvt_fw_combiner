@@ -2,15 +2,15 @@
 
 No BIN upload is currently requested for NT51929.
 
-The tracked `nt51929-ab-t05-d06` fixture in
-`testdata/golden/ab-merge/manifest.json` now records the supplied DP_AB, TPA,
-TPB, and expected output with full V2/reference parity. It remains an
-executable candidate: firmware-owner review and any required member-specific
-alias decision are still needed before runtime exposure.
+The canonical `nt51929-ab-t05-d06` case in
+`testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/provenance/case.json`
+records the supplied DP_AB, TPA, TPB, and expected output with full
+V2/reference parity. It remains an executable candidate; firmware-owner review
+is still required before runtime exposure.
 
-The manifest applies this case directly to NT51929 and names only NT51919 as a
-fact-scoped alias. NT51932 is explicitly not established by this product
-golden.
+The canonical inventory applies this case directly to NT51929 and records the
+owner-approved NT51919 and NT51932 fact-scoped aliases. Neither alias is a
+direct product golden or a runtime support promotion.
 
 The existing 256 KiB `initial code` / `TPFW` / `FlashCode` Combiner archive is
 a Normal case, not AB evidence. Do not substitute it for the required AB

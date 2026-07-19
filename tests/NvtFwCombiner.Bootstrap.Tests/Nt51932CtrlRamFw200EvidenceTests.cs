@@ -378,20 +378,17 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
 
     private static OwnerCase ReadOwnerCase()
     {
-        string root = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "manifest.20260718.json")));
-        JsonElement caseElement = manifest.RootElement.GetProperty("cases").EnumerateArray()
-            .Single(item => StringComparer.Ordinal.Equals(item.GetProperty("caseId").GetString(), CaseId));
+        string root = CanonicalGoldenTestData.Root;
+        JsonElement caseElement = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
         OwnerArtifact[] artifacts = [
-            .. manifest.RootElement.GetProperty("payloads").EnumerateArray()
-                .Where(item => StringComparer.Ordinal.Equals(item.GetProperty("caseId").GetString(), CaseId))
+            .. caseElement.GetProperty("artifacts").EnumerateArray()
                 .Select(item => ReadArtifact(root, item)),
         ];
         return new OwnerCase(
             artifacts,
             artifacts.Single(static artifact => artifact.Role == "standard-merge-dp-input"),
             artifacts.Single(static artifact => artifact.Role == "standard-merge-tp-input"),
-            artifacts.Single(artifact => artifact.RelativePath == caseElement.GetProperty("expectedOutput").GetString()));
+            artifacts.Single(static artifact => artifact.Role == "expected-final-output"));
     }
 
     private static OwnerArtifact ReadArtifact(string root, JsonElement entry)
@@ -403,7 +400,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         return new(
             entry.GetProperty("originalFileName").GetString()!,
             entry.GetProperty("path").GetString()!,
-            entry.GetProperty("role").GetString()!,
+            entry.GetProperty("sourceRole").GetString()!,
             path,
             bytes);
     }

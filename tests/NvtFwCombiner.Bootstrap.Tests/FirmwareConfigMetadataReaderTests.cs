@@ -51,7 +51,7 @@ public sealed class FirmwareConfigMetadataReaderTests
     [MemberData(nameof(GoldenFirmwareConfigCases))]
     public void GoldenFlashImagesExposeExpectedFirmwareFacts(
         string ic,
-        string relativePath,
+        string _,
         string commonFwVersion,
         byte firmwareVersion,
         byte firmwareVersionBar,
@@ -59,14 +59,8 @@ public sealed class FirmwareConfigMetadataReaderTests
         byte chipNumber,
         ushort projectId)
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        byte[] image = File.ReadAllBytes(Path.Combine(
-            repositoryRoot,
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "expected",
-            relativePath));
+        byte[] image = File.ReadAllBytes(
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
 
         Assert.True(
             FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata metadata),
@@ -136,16 +130,10 @@ public sealed class FirmwareConfigMetadataReaderTests
     /// <summary>Confirms every current IC golden copies all exposed FWConfig fields to the NVT T-minus-FFF Backup block.</summary>
     [Theory]
     [MemberData(nameof(GoldenFirmwareConfigCopyCases))]
-    public void GoldenFlashHardwareInfoMatchesNvtBackup(string ic, string relativePath)
+    public void GoldenFlashHardwareInfoMatchesNvtBackup(string ic, string _)
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        byte[] image = File.ReadAllBytes(Path.Combine(
-            repositoryRoot,
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "expected",
-            relativePath));
+        byte[] image = File.ReadAllBytes(
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
 
         Assert.True(BuiltInTpFlashMapCatalog.TryFind($"NT{ic}", out TpFlashMapProfile? flashMap));
         long firmwareConfigStart = flashMap!.FirmwareConfigPrimaryStart;
@@ -209,7 +197,7 @@ public sealed class FirmwareConfigMetadataReaderTests
     [Fact]
     public void Nt51926GoldenReadsAsCommonFw141()
     {
-        FirmwareConfigMetadata metadata = ReadGoldenMetadata("51926/flash.bin");
+        FirmwareConfigMetadata metadata = ReadGoldenMetadata("51926");
 
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
     }
@@ -250,16 +238,10 @@ public sealed class FirmwareConfigMetadataReaderTests
         return data;
     }
 
-    private static FirmwareConfigMetadata ReadGoldenMetadata(string relativePath)
+    private static FirmwareConfigMetadata ReadGoldenMetadata(string ic)
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        byte[] image = File.ReadAllBytes(Path.Combine(
-            repositoryRoot,
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "expected",
-            relativePath));
+        byte[] image = File.ReadAllBytes(
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
 
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata metadata));
 
