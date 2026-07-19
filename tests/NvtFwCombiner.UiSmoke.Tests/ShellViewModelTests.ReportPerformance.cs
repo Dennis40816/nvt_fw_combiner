@@ -195,7 +195,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task CancelledRunHexDiffProjectionPublishesNoPartialState()
     {
-        WorkbenchRunResult result = await CreateGeneralReplaceInspectionResultAsync();
+        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         using var cancellationSource = new CancellationTokenSource();
         cancellationSource.Cancel();
@@ -262,7 +262,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task RunHexDiffProjectionUsesLatestReportGeneration()
     {
-        WorkbenchRunResult result = await CreateGeneralReplaceInspectionResultAsync();
+        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
         using var source = JsonDocument.Parse(result.ReportJson);
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         WorkbenchRunResult largeResult = result with
