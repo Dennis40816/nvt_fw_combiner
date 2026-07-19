@@ -96,4 +96,25 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SelectWriteRangeSection", normalize, StringComparison.Ordinal);
         Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", normalize, StringComparison.Ordinal);
     }
+
+    /// <summary>Locks one final full staging read while preserving selective short-output normalization.</summary>
+    [Fact]
+    public void LegacyPostbuildPipelineReadsTheCompleteFirmwareOnlyAtFinalImport()
+    {
+        string processor = ReadText(
+            "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs");
+        string staging = ReadText(
+            "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.Staging.cs");
+
+        string pipelineSource = processor + staging;
+        Assert.Equal(
+            1,
+            pipelineSource.Split("File.ReadAllBytesAsync(firmwarePath", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("File.ReadAllBytes(firmwarePath", pipelineSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.ReadAllBytesAsync(firmwarePath", staging, StringComparison.Ordinal);
+        Assert.Contains("command.Family != LegacyCombinerCommandFamily.MergeMode", staging, StringComparison.Ordinal);
+        Assert.Contains("expectedLength - minimumLength", staging, StringComparison.Ordinal);
+        Assert.Contains("ReadExactlyAsync(tailBytes", staging, StringComparison.Ordinal);
+        Assert.Contains("FileMode.Append", staging, StringComparison.Ordinal);
+    }
 }

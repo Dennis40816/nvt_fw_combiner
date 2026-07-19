@@ -124,8 +124,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
             StagingTreePolicy stagingTreePolicy = CreateStagingTreePolicy(profile, resolvedManifest, commandPlan);
             foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
             {
-                byte[] commandInputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
-                if (commandInputBytes.LongLength != inputBytes.Length)
+                if (new FileInfo(firmwarePath).Length != inputBytes.Length)
                 {
                     return Fail(
                         "external-tool.output-length.changed",
@@ -153,6 +152,12 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     runDirectory,
                     arguments,
                     TimeSpan.FromSeconds(resolvedManifest.TimeoutSeconds));
+                ShortOutputTailSnapshot? shortOutputTail = await CaptureShortOutputTailAsync(
+                        firmwarePath,
+                        command,
+                        inputBytes.Length,
+                        cancellationToken)
+                    .ConfigureAwait(false);
                 ExternalProcessResult processResult = await _processRunner.RunAsync(startInfo, cancellationToken).ConfigureAwait(false);
                 executedCommands.Add(startInfo.ToExecutedCommand());
                 if (processResult.TimedOut)
@@ -184,8 +189,9 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
 
                 CompositionIssue? lengthIssue = await NormalizeShortenedFirmwareAsync(
                         firmwarePath,
-                        commandInputBytes,
                         command,
+                        inputBytes.Length,
+                        shortOutputTail,
                         cancellationToken)
                     .ConfigureAwait(false);
                 if (lengthIssue is not null)
