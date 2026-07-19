@@ -4,7 +4,33 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Changes after `0.9.9` will be documented here.
+Changes after `0.9.10` will be documented here.
+
+## [0.9.10] - 2026-07-19
+
+### Added
+
+- Application-owned typed composition progress with stable phases, step counts, workflow context, accessible announcements, and a persisted reduced-motion mode that keeps status visible while removing non-essential animation.
+- A bounded read-only Hex Diff for complete in-session reports: 16-byte output/ASCII rows, optional original rows, typed reason and expected/review-required verdict, before/after hashes, half-open output ranges, address jump, and a review-first range navigator. Persisted reports without verified before/output bytes degrade explicitly instead of inventing a comparison.
+- Deterministic B/C performance surfaces for Automatic Build, Legacy Combiner sessions/launches/full reads, failed-input zero commit, fragmented reports, report history, startup restoration, immutable firmware inspection, and Raw Hex Editor search reuse.
+
+### Changed
+
+- One Build now performs one authoritative composition and report publication. DP changes from two runs/four artifact reads to one run/two reads; CtrlRAM changes from two processor sessions and `2C` launches to one session and the same exact `C` sequential launches.
+- Legacy Combiner commands remain exact, sequential, hidden-window, hash-pinned, and staging-confined, while complete staged-firmware reads change from `2C+1` to one final read. Final independent diffing still rejects changes outside the union of declared write ranges; only the evidenced `MERGE_MODE` short-output path may read a selective predecessor tail.
+- Report generation, JSON/history sizing, bounded history retention, large-report projection, startup report restoration, preference persistence, firmware inspection, output-name projection, Raw Hex Editor change tracking, and Search/Next reuse avoid repeated full scans/copies or dispatcher I/O while preserving their existing contracts.
+- Change review now opens in the focused Hex Diff workspace instead of presenting a long byte-change list as the primary view; JSON export, operation/postbuild/issues/raw evidence, and history reopen behavior remain available.
+
+### Security
+
+- External processor executable identity, command order/argv, per-command failure gates, private staging, immutable source artifacts, final write-range enforcement, atomic output promotion, and report evidence remain fail closed. No arbitrary executable path or script authority was added.
+- The release changes no IC support promise, profile range, CRC/header algorithm, processor command, or product golden. NT51931 Replace remains Not available, and 13-command evidence remains count/order-only rather than an independent full-output golden claim.
+
+### Notes
+
+- Stable Node B is protected-main `v0.9.9` commit `32c37e25`; optimized production Node C is `6f3698dd`. The exact NT51926 two-command output and 10,000-difference report/JSON hashes remain identical across the comparison.
+- The small physical two-command fresh-testhost case was slightly slower on Node C, so v0.9.10 claims deterministic execution/read/allocation reduction, not a Legacy Combiner wall-clock improvement for that case.
+- Production C#/AXAML is 59,429 nonblank lines under the owner-approved hard maximum of 60,000; code size is a maintainability gate, not the release performance KPI.
 
 ## [0.9.9] - 2026-07-19
 

@@ -1,8 +1,39 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.9 legacy-convergence stable release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.10 performance-remediation stable release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.9`
+Specification package version: `0.9.10`
+
+## 0.9.10 performance-remediation stable release candidate
+
+Stable Node B is protected-main `v0.9.9` commit
+`32c37e254271de507be49d0f5ef38faaa122dba6`; optimized production Node C is
+`6f3698ddeb0ec50a9ca46057af21e93bfbebd55f`. The 130-commit performance stack
+was replayed onto Node B with 130 equal range-diff patches and zero conflicts.
+Byte-identical external-tool/golden trees, DP and NT51926 filters, physical
+real-tool/headless tests, and command catalog/argv tests pass at both nodes.
+
+One authoritative Build replaces the prior duplicated execution. Legacy
+Combiner commands remain exact and sequential, while complete staging reads
+change from `2C+1` to one final read plus only the evidenced selective-tail
+short-output exception. The NT51926 two-command expected output SHA, the
+10,000-difference output/JSON hashes, mutations, validation, issue, command,
+and report facts remain unchanged. The release makes no support, profile,
+range, CRC/header, processor-command, or product-golden promotion.
+
+The frozen reviewed branch head
+`87a84ecd1f03e7257a40ddaf0b5531a3e66aaf30` passed
+`python scripts/verify.py --all` in a clean detached worktree in 186.8 seconds.
+Release build completed with zero warnings and errors: Domain 357, Application
+186, ProfileContract 350, Architecture 95, GoldenRegression 9, Infrastructure
+245 with 2 platform skips, Bootstrap 608, and UI Smoke 237 passed; Python CRC
+worker tests passed 28/28 at 98.88% coverage. Polytail and repository structure
+validation passed.
+
+The exact metadata-aligned package, clean-machine Narrator/NVDA and effective
+Windows contrast checks, explicit firmware-owner R3 approval, required PR/main
+CI, protected-main tag, and immutable GitHub Release verification remain
+release gates. Development-package observations do not substitute for them.
 
 ## 0.9.9 legacy-convergence stable release candidate
 
