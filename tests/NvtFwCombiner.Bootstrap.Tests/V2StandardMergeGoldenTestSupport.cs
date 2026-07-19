@@ -74,7 +74,7 @@ internal static class V2StandardMergeGoldenTestSupport
     internal static JsonElement ReadGoldenCase(string referenceIc)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(referenceIc);
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(GoldenRoot, "manifest.json")));
+        using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         return manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(item => StringComparer.Ordinal.Equals(item.GetProperty("ic").GetString(), referenceIc))
@@ -131,11 +131,7 @@ internal static class V2StandardMergeGoldenTestSupport
         Assert.Equal(compiledComposition.CompilationFingerprint, result.Report.CompilationFingerprint);
     }
 
-    internal static string GoldenRoot => Path.Combine(
-        RepositoryPaths.FindRepositoryRoot(),
-        "testdata",
-        "golden",
-        "standard-merge-gen-flash");
+    internal static string GoldenRoot => CanonicalGoldenTestData.Root;
 
     private static void AssertSchemaSnapshotsMatchManifest(string bundleRoot)
     {

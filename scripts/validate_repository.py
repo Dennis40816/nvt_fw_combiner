@@ -15,6 +15,10 @@ from typing import Any, Iterable
 from urllib.parse import unquote
 
 from ab_merge_fixture_validation import validate_ab_merge_golden_fixtures
+from canonical_golden_validation import (
+    validate_canonical_golden,
+    validate_standard_merge_release_allowlist,
+)
 from code_size_policy import validate_code_size_policy
 from external_tool_policy import (
     ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS,
@@ -34,10 +38,11 @@ REQUIRED_FILES = {
     "scripts/bootstrap.ps1", "scripts/bootstrap.sh", "scripts/install-dotnet.ps1",
     "scripts/install-dotnet.sh", "scripts/package.ps1", "scripts/polytail_check.py",
     "scripts/publish-github.ps1", "scripts/publish-github.sh", "scripts/validate_repository.py",
-    "scripts/code_size_policy.py", "scripts/external_tool_policy.py", "scripts/repository_contract_validation.py",
+    "scripts/canonical_golden_validation.py", "scripts/code_size_policy.py", "scripts/external_tool_policy.py",
+    "scripts/repository_contract_validation.py",
     "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py", "external-tools/README.md",
     "external-tools/legacy-combiner/README.md", "external-tools/legacy-combiner/1.13.0/manifest.json",
-    "testdata/golden/standard-merge-gen-flash/manifest.json",
+    "testdata/golden/canonical/manifest.json", "testdata/golden/release-standard-merge-v1.json",
     "docs/adr/0003-unified-composition-engine.md",
     "docs/adr/0004-orthogonal-experience-access-policy.md",
     "docs/adr/0005-replace-personas-and-general-mapping.md",
@@ -53,7 +58,8 @@ REQUIRED_FILES = {
     "docs/architecture/saved-rule-promotion.md",
     "docs/architecture/terminal-log-and-diagnostics.md",
     "docs/contracts/composition-profile-v1.schema.json",
-    "docs/contracts/composition-profile-v2.md", "docs/contracts/composition-profile-v2.schema.json",
+    "docs/contracts/canonical-golden-manifest-v1.md", "docs/contracts/composition-profile-v2.md",
+    "docs/contracts/composition-profile-v2.schema.json",
     "docs/contracts/composition-request-v1.schema.json",
     "docs/contracts/composition-report-v1.schema.json",
     "docs/contracts/crc-worker-v1.schema.json",
@@ -159,7 +165,7 @@ EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
 ALLOWED_GOLDEN_BIN_ROOTS = {
     PurePosixPath("testdata/golden/ab-merge"),
-    PurePosixPath("testdata/golden/standard-merge-gen-flash"),
+    PurePosixPath("testdata/golden/canonical"),
     PurePosixPath("testdata/golden/ctrlram-replace/fixtures"),
 }
 ALLOWED_EXECUTABLE_PAYLOADS = ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS
@@ -378,64 +384,6 @@ def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
         relative = candidate.relative_to(manifest_path.parent).as_posix()
         if candidate.suffix.lower() in SNAPSHOT_CODE_SUFFIXES and relative not in listed_paths:
             errors.append(f"unlisted reference source file: {candidate.relative_to(ROOT)}")
-
-
-def validate_standard_merge_golden_fixtures(errors: list[str]) -> None:
-    manifest_path = ROOT / "testdata/golden/standard-merge-gen-flash/manifest.json"
-    manifest = load_json(manifest_path, errors)
-    if not isinstance(manifest, dict):
-        return
-
-    if manifest.get("payloadClass") != "owner-approved-golden-firmware":
-        errors.append("standard-merge golden manifest must declare owner-approved-golden-firmware payloadClass")
-    if manifest.get("binaryPayloadsIncluded") is not True:
-        errors.append("standard-merge golden manifest must explicitly include binaryPayloadsIncluded=true")
-
-    golden_root = manifest_path.parent
-    declared_bins: set[PurePosixPath] = set()
-    supporting = manifest.get("supportingFiles")
-    if isinstance(supporting, dict):
-        config = supporting.get("test_ic_config")
-        if isinstance(config, dict):
-            validate_golden_manifest_entry(golden_root, config, errors, require_bin=False, label="standard-merge")
-
-    cases = manifest.get("cases")
-    if not isinstance(cases, list) or not cases:
-        errors.append("standard-merge golden manifest must contain cases")
-        return
-
-    for index, item in enumerate(cases):
-        if not isinstance(item, dict):
-            errors.append(f"invalid standard-merge golden case[{index}]")
-            continue
-        inputs = item.get("inputs")
-        if not isinstance(inputs, dict):
-            errors.append(f"standard-merge golden case[{index}] has no inputs")
-        else:
-            for entry in inputs.values():
-                if isinstance(entry, dict):
-                    relative = validate_golden_manifest_entry(golden_root, entry, errors, require_bin=True, label="standard-merge")
-                    if relative is not None:
-                        declared_bins.add(relative)
-        expected = item.get("expectedOutput")
-        if isinstance(expected, dict):
-            relative = validate_golden_manifest_entry(golden_root, expected, errors, require_bin=True, label="standard-merge")
-            if relative is not None:
-                declared_bins.add(relative)
-        else:
-            errors.append(f"standard-merge golden case[{index}] has no expectedOutput")
-
-    actual_bins = {
-        PurePosixPath(path.relative_to(golden_root).as_posix())
-        for path in golden_root.rglob("*.bin")
-        if path.is_file()
-    }
-    if actual_bins != declared_bins:
-        errors.append(
-            "standard-merge golden BIN manifest drift: "
-            f"expected={sorted(path.as_posix() for path in declared_bins)} "
-            f"actual={sorted(path.as_posix() for path in actual_bins)}"
-        )
 
 
 def validate_ctrlram_replace_golden_fixtures(errors: list[str]) -> None:
@@ -769,7 +717,8 @@ def validate() -> list[str]:
     validate_python_syntax(files, errors)
     validate_markdown_links(files, errors)
     validate_ab_merge_golden_fixtures(ROOT, load_json, validate_golden_manifest_entry, errors)
-    validate_standard_merge_golden_fixtures(errors)
+    validate_canonical_golden(ROOT, errors)
+    validate_standard_merge_release_allowlist(ROOT, errors)
     validate_ctrlram_replace_golden_fixtures(errors)
     validate_skills(errors)
     validate_refcode(errors)

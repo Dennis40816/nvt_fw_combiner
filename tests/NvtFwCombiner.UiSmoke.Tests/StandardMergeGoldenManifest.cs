@@ -7,7 +7,6 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Loads the owner-approved Standard Merge golden manifest for UI smoke tests.</summary>
 internal sealed class StandardMergeGoldenManifest : IDisposable
 {
-    private const string ManifestFileName = "manifest.json";
     private readonly JsonDocument _document;
 
     private StandardMergeGoldenManifest(string root, JsonDocument document)
@@ -20,12 +19,9 @@ internal sealed class StandardMergeGoldenManifest : IDisposable
 
     public static StandardMergeGoldenManifest Load()
     {
-        string root = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash");
-        string manifestPath = Path.Combine(root, ManifestFileName);
-        return new StandardMergeGoldenManifest(root, JsonDocument.Parse(File.ReadAllText(manifestPath)));
+        return new StandardMergeGoldenManifest(
+            CanonicalGoldenTestData.Root,
+            CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge"));
     }
 
     public TheoryData<string> CaseIds()

@@ -29,8 +29,8 @@ Repository evidence used:
 - `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`
 - `src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog*.cs`
 - `profiles/built-in/*-standard-merge/` and `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs`
-- `testdata/golden/standard-merge-gen-flash/manifest.json`
-- `testdata/golden/standard-merge-gen-flash/test_ic_config.json`
+- `testdata/golden/canonical/manifest.json`
+- `testdata/diagnostics/golden-evidence/standard-merge-gen-flash/test_ic_config.json`
 - `external-tools/legacy-combiner/1.13.0/Combiner.exe`
 - `docs/architecture/ctrlram-postbuild-original-pasteback.md`
 - `docs/architecture/ctrlram-postbuild-command-matrix.md`
@@ -64,7 +64,7 @@ Required for NT51926:
 Current NT51927 golden status:
 
 - Owner clarified that the earlier "TN3C" wording was a typo.
-- The current NT51927 golden in `testdata/golden/standard-merge-gen-flash` is the SINGLE/full flash golden for the current investigation scope.
+- The current NT51927 direct Standard Merge case in `testdata/golden/canonical` is the SINGLE/full flash golden for the current investigation scope.
 - A single-chip golden run through the 2-chip or 3-chip postbuild branch is not expected to remain byte-identical because the BAT explicitly copies the master window into slave windows.
 - Owner-approved two- and three-chip bases are now committed. Their exact V2 routes use repository-derived replay inputs and remain support-neutral because they do not include independent owner expected outputs.
 

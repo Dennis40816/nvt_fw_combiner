@@ -53,6 +53,11 @@ canonical golden regression tests. Release packaging may include only artifacts 
 inventory by an explicit release allowlist; a canonical path alone does not authorize shipment or
 support promotion.
 
+`testdata/golden/release-standard-merge-v1.json` is the current human-gated release selection. It
+pins every selected `caseId`, case-manifest path, `artifactId`, artifact path, byte size, and SHA-256.
+The packager fails closed if canonical facts drift from that independent allowlist. Changing the
+allowlist is an R3 release/security action and still requires firmware-owner and release review.
+
 `scripts/canonical_golden_validation.py` is the executable repository validator for this contract.
 It uses only the Python standard library and verifies path confinement, exact inventory, hash/size,
 direct-case completeness, and fact-scoped alias integrity.

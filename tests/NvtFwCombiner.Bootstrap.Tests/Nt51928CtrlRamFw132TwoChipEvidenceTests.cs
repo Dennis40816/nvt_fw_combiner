@@ -254,6 +254,8 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
 
     private sealed record OwnerArtifact(string? SlotId, string Path, byte[] Bytes);
 
-    private static string BasePath => RepositoryPaths.FromRepositoryRoot(
-        "testdata", "golden", "standard-merge-gen-flash", "expected", "51928", "flash.bin");
+    private static string BasePath => CanonicalGoldenTestData.ArtifactPath(
+        "standard-merge",
+        "51928",
+        "expected-output");
 }

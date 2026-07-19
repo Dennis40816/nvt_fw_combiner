@@ -35,13 +35,8 @@ public sealed class GenFlashVersionCatalogTests
     [InlineData("51932", "8201")]
     public void GoldenDpInputsExposeExpectedGenFlashVersion(string ic, string expectedToken)
     {
-        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "inputs",
-            ic,
-            "dp.bin"));
+        byte[] image = File.ReadAllBytes(
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "dp-input"));
 
         Assert.True(GenFlashVersionCatalog.TryReadDpVersion(
             $"NT{ic}",
@@ -96,14 +91,11 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void GoldenNt51950DpInputExposesCmiJiraAndDpVersion()
     {
-        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "inputs",
+        byte[] image = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+            "standard-merge",
             "51950",
-            "dp-256k",
-            "dp.bin"));
+            "dp-input",
+            "dp-256k"));
 
         Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
             "NT51950",
@@ -124,13 +116,8 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void GoldenNt51923OutputMatchesLegacyDpMajor()
     {
-        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "expected",
-            "51923",
-            "flash.bin"));
+        byte[] image = File.ReadAllBytes(
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", "51923", "expected-output"));
 
         AssertCmiMajorMatchesLegacyVersion("NT51923", image, 0x3E014, 216, 0x81, "AUTO_PRJ-216");
     }
@@ -139,13 +126,8 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void GoldenNt51932OutputMatchesLegacyDpMajor()
     {
-        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "expected",
-            "51932",
-            "flash.bin"));
+        byte[] image = File.ReadAllBytes(
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", "51932", "expected-output"));
 
         AssertCmiMajorMatchesLegacyVersion("NT51932", image, 0x401A, 495, 0x82, "AUTO_PRJ-495");
     }
@@ -185,14 +167,11 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void GoldenNt51951DpInputExposesCmiJiraAndDpVersion()
     {
-        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "inputs",
+        byte[] image = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+            "standard-merge",
             "51951",
-            "dp-512k",
-            "dp.bin"));
+            "dp-input",
+            "dp-512k"));
 
         Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
             "NT51951",
@@ -260,13 +239,8 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void GoldenNt51927TwoMiBDpInputExposesCmiMajorMatchingLegacyVersion()
     {
-        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "inputs",
-            "51927",
-            "dp.bin"));
+        byte[] image = File.ReadAllBytes(
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", "51927", "dp-input"));
 
         AssertCmiMajorMatchesLegacyVersion("NT51927", image, 0x3C01C, 313, 0x54, "AUTO_PRJ-313");
     }

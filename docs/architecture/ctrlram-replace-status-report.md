@@ -100,7 +100,7 @@ Primary files:
 - `docs/references/ic-flashmap/mmap/*.h`
 - `docs/references/ic-flashmap/common-fw/ap_fwconfig.c`
 - `docs/references/ic-flashmap/IC_FlashMap_20260705.xlsx`
-- `testdata/golden/standard-merge-gen-flash/manifest.json`
+- `testdata/golden/canonical/manifest.json`
 - `testdata/golden/ctrlram-replace/manifest.json`
 - `testdata/golden/ctrlram-replace/manifest.20260717.json`
 

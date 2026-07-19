@@ -101,7 +101,7 @@ Update only the rows that are relevant to the new IC/mode.
 | Output naming metadata | `src/NvtFwCombiner.Application/FlashMaps/GenFlashVersionCatalog.cs` and `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs` | Add DP main/sub contiguous version-byte rules, CMI register evidence when applicable, and FlashCode naming metadata only from owner-approved evidence. UI passes selected slot roles and paths; it must not decide DP/TP version offsets, CMI branches, metadata priority, or date/name format. |
 | CtrlRAM postbuild catalog | `profiles/built-in/ctrlram-postbuild-v2/catalog.json` plus `BuiltInPostbuildProfileCatalog` | Add structured command sequences, branch rules, staged-file names, firmware block ranges, evidence source, and Common FW rule metadata. Update the pinned SHA-256 and parity tests; never assemble one shell command string. |
 | External tool manifest | `external-tools/legacy-combiner/.../manifest.json` | Add or update only when a new exact `combiner.exe` binding/version is approved. |
-| Golden manifest | `testdata/golden/standard-merge-gen-flash/manifest.json` or workflow-specific golden folder | Add owner-approved public fixtures only. Use private manifests for confidential firmware evidence. |
+| Golden manifest | `testdata/golden/canonical/manifest.json` | Add owner-approved direct cases or explicit fact-scoped aliases only. Keep diagnostics outside canonical expected evidence. |
 | CtrlRAM golden template | `testdata/golden/ctrlram-replace/manifest.template.json` | Keep required private evidence fields synchronized when adding CtrlRAM Replace coverage. |
 | Architecture docs | `docs/architecture/supported-ic-matrix.md` and `docs/architecture/ic-workflow-flowcharts.md` | Add the IC/mode status, support gaps, flow id, and evidence notes in the same PR. |
 | Processor docs | `docs/architecture/ctrlram-replace-status-report.md`, `docs/architecture/ctrlram-postbuild-command-matrix.md`, and `docs/architecture/integrity-processing-matrix.md` | Update when command count, CRC/header behavior, allowed writes, processor status, experiment result, or owner conclusion changes. |
@@ -121,7 +121,7 @@ Do not add IC-specific byte behavior to:
 3. After evidence review, add the source bundle to the explicit Bootstrap materialization allowlist, then add the explicit V2 registration and compile the deployed materialized bundle. Production V2 routes have no legacy runtime fallback.
 4. Confirm blank initialization plus ordered copy operations, then add invalid input-size tests for every declared input length rule.
 5. Add or update golden regression:
-   - public approved fixtures under `testdata/golden/standard-merge-gen-flash/`, or
+   - owner-approved direct fixtures under `testdata/golden/canonical/`, or
    - private golden manifest and documented owner sign-off when firmware cannot be committed.
 6. Update `supported-ic-matrix.md` and `ic-workflow-flowcharts.md`.
 

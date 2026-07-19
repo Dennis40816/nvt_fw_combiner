@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51923-gen-flash",
+  "ic": "NT51923",
+  "workflow": "standard-merge",
+  "variantOrVersion": "gen-flash",
+  "topology": "topology-unscoped",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner requested gen_flash_bin_v2 test BIN files be tracked as golden fixtures on 2026-06-30.",
+  "profileId": "nt51923-standard-merge-gen-flash",
+  "artifacts": [
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/inputs/dp-input.bin",
+      "size": 262144,
+      "sha256": "eb15b2ad0172e325d767a27e32f56cc19df7b9d95e96e4b19cc2cd547656612d",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51923/dp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51923TT_Initial Code_CSOT_1920x1080_TFT126C_D81_20240119.bin",
+      "sourceBlobSha": "29c67ea2bd0e60dc30937cf344eb9288e7cd321b"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/inputs/tp-input.bin",
+      "size": 245760,
+      "sha256": "4efbb496096d5851b8ae5fee396a77f6aa85eb0240bc19e0fc3171c25c6b6514",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51923/tp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/NT51923_CSOT_1290_20240826_V06.bin",
+      "sourceBlobSha": "7ad561b83fe9419b8ee8b70b5e516c66435d7a65"
+    },
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/expected/flash.bin",
+      "size": 262144,
+      "sha256": "b611bd837991be1ccb8e1dfffa7a9a1e825e71221c27377cf1aca8b37cf5666f",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/expected/51923/flash.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51923_FlashCode_D81T06_20251028.bin",
+      "sourceBlobSha": "ba91f7ccf9258b1d520ef969ea221a4066d1f57c"
+    }
+  ]
+}

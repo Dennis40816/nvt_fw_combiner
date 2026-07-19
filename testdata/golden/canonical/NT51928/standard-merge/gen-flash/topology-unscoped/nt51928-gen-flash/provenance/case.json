@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51928-gen-flash",
+  "ic": "NT51928",
+  "workflow": "standard-merge",
+  "variantOrVersion": "gen-flash",
+  "topology": "topology-unscoped",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner requested gen_flash_bin_v2 test BIN files be tracked as golden fixtures on 2026-06-30.",
+  "profileId": "nt51928-standard-merge-gen-flash",
+  "artifacts": [
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/dp-input.bin",
+      "size": 524288,
+      "sha256": "a77fe6a40e4feebf100b7ef72addb4308f28579e4d8b291e3b555eb4b98886c3",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51928/dp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51928TT_FlashCode_CSOT_DOE_D82T83L00_JIRA0270_20241018.bin",
+      "sourceBlobSha": "6b41096967fa34eae1e81f7a1585f602b0df6382"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/tp-input.bin",
+      "size": 217088,
+      "sha256": "01e385aa60dcdbeeea343e8755af76cd0b282555494c8796e9ff687cd254ad6a",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51928/tp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/NT51928_fw.bin",
+      "sourceBlobSha": "0d75193d7a2e0c93fdb455f1a3eed5a07e6f10c6"
+    },
+    {
+      "artifactId": "ld-input",
+      "role": "input",
+      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/ld-input.bin",
+      "size": 524288,
+      "sha256": "a77fe6a40e4feebf100b7ef72addb4308f28579e4d8b291e3b555eb4b98886c3",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51928/ld.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_LD_Bin/NT51928TT_FlashCode_CSOT_DOE_D82T83L00_JIRA0270_20241018.bin",
+      "sourceBlobSha": "6b41096967fa34eae1e81f7a1585f602b0df6382"
+    },
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/expected/flash.bin",
+      "size": 524288,
+      "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/expected/51928/flash.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51928_FlashCode_D82T84L00_20251028.bin",
+      "sourceBlobSha": "ca14e9d304a9815de55de41ea75579b8099d4df7"
+    }
+  ]
+}

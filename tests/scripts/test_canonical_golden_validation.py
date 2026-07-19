@@ -113,6 +113,36 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         VALIDATOR.validate_canonical_golden(self.root, errors)
         return errors
 
+    def validate_release_allowlist(self) -> list[str]:
+        release_case = {
+            "caseId": self.case_manifest["caseId"],
+            "manifestPath": self.root_manifest["cases"][0]["manifestPath"],
+            "directGolden": True,
+            "artifacts": [
+                {
+                    "artifactId": artifact["artifactId"],
+                    "path": artifact["path"],
+                    "size": artifact["size"],
+                    "sha256": artifact["sha256"],
+                }
+                for artifact in self.case_manifest["artifacts"]
+            ],
+        }
+        self.release_allowlist = {
+            "schemaVersion": "1.0",
+            "policyId": "standard-merge-reference-v1",
+            "workflow": "standard-merge",
+            "releaseStatus": "human-gated-allowlist",
+            "approvalBasis": "test fixture",
+            "cases": [release_case],
+        }
+        path = self.root / "testdata/golden/release-standard-merge-v1.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self.write_json(path, self.release_allowlist)
+        errors: list[str] = []
+        VALIDATOR.validate_standard_merge_release_allowlist(self.root, errors)
+        return errors
+
     def rewrite_case(self) -> None:
         self.write_json(
             self.case_directory / "provenance/case.json", self.case_manifest
@@ -160,6 +190,55 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
     def test_accepts_hash_pinned_direct_case(self) -> None:
         self.assertEqual([], self.validate())
+
+    def test_accepts_explicit_standard_merge_release_artifact_facts(self) -> None:
+        self.assertEqual([], self.validate_release_allowlist())
+
+    def test_rejects_release_artifact_hash_drift(self) -> None:
+        self.validate_release_allowlist()
+        self.release_allowlist["cases"][0]["artifacts"][0]["sha256"] = "0" * 64
+        self.write_json(
+            self.root / "testdata/golden/release-standard-merge-v1.json",
+            self.release_allowlist,
+        )
+
+        errors: list[str] = []
+        VALIDATOR.validate_standard_merge_release_allowlist(self.root, errors)
+
+        self.assertTrue(any("sha256 differs" in error for error in errors))
+
+    def test_rejects_release_case_manifest_path_drift(self) -> None:
+        self.validate_release_allowlist()
+        self.release_allowlist["cases"][0]["manifestPath"] = "wrong/case.json"
+        self.write_json(
+            self.root / "testdata/golden/release-standard-merge-v1.json",
+            self.release_allowlist,
+        )
+
+        errors: list[str] = []
+        VALIDATOR.validate_standard_merge_release_allowlist(self.root, errors)
+
+        self.assertTrue(any("does not match" in error for error in errors))
+
+    def test_rejects_non_boolean_release_direct_golden(self) -> None:
+        for invalid_value in (1, "false", None):
+            with self.subTest(direct_golden=invalid_value):
+                self.validate_release_allowlist()
+                if invalid_value is None:
+                    del self.release_allowlist["cases"][0]["directGolden"]
+                else:
+                    self.release_allowlist["cases"][0]["directGolden"] = invalid_value
+                self.write_json(
+                    self.root / "testdata/golden/release-standard-merge-v1.json",
+                    self.release_allowlist,
+                )
+
+                errors: list[str] = []
+                VALIDATOR.validate_standard_merge_release_allowlist(self.root, errors)
+
+                self.assertTrue(
+                    any("directGolden must be a boolean" in error for error in errors)
+                )
 
     def test_rejects_payload_hash_drift(self) -> None:
         (self.case_directory / "expected/flash.bin").write_bytes(b"changed")

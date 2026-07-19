@@ -25,7 +25,6 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         }
 
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         string toolRoot = Path.Combine(repositoryRoot, "external-tools");
         ExternalCombinerToolManifest manifest = LoadManifest(
             Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
@@ -38,7 +37,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             .OrderBy(region => region.Range.Start)
             .ThenBy(region => region.RegionId, StringComparer.Ordinal)
             .First();
-        byte[] baseBytes = File.ReadAllBytes(FindGoldenExpectedOutput(goldenRoot, manifestIc));
+        byte[] baseBytes = File.ReadAllBytes(FindGoldenExpectedOutput(manifestIc));
         byte[] replacementBytes = baseBytes.AsSpan(
                 (int)selectedRegion.Range.Start,
                 (int)selectedRegion.Range.Length)

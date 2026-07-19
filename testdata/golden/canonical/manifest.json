@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0",
+  "payloadClass": "owner-approved-golden",
+  "binaryPayloadsIncluded": true,
+  "diagnosticsRoot": "testdata/diagnostics/golden-evidence",
+  "sourceCollections": [
+    {
+      "legacyRoot": "testdata/golden/standard-merge-gen-flash",
+      "source": {
+        "repository": "Dennis40816/NFCG",
+        "commit": "bb87f183dc8abe3c47ff1a01966805ede5e74115",
+        "basePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test",
+        "testTreeSha": "693368fc1bac3471a7ae09fc1e2735055150948b",
+        "sourceClassification": "private-owner-approved-golden",
+        "approval": "Repository owner requested gen_flash_bin_v2 test BIN files be tracked as golden fixtures on 2026-06-30."
+      },
+      "additionalSources": [
+        {
+          "name": "merge_bin.7z",
+          "sha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
+          "sourceClassification": "private-owner-approved-golden",
+          "approval": "Repository owner supplied merge_bin.7z for remaining Standard Merge golden fixtures on 2026-07-03."
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "caseId": "nt51920-gen-flash",
+      "manifestPath": "NT51920/standard-merge/gen-flash/topology-unscoped/nt51920-gen-flash/provenance/case.json"
+    },
+    {
+      "caseId": "nt51923-gen-flash",
+      "manifestPath": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/provenance/case.json"
+    },
+    {
+      "caseId": "nt51926-gen-flash",
+      "manifestPath": "NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/provenance/case.json"
+    },
+    {
+      "caseId": "nt51917-standard-merge-gen-flash-alias",
+      "manifestPath": "NT51917/standard-merge/gen-flash/topology-unscoped/nt51917-standard-merge-gen-flash-alias/provenance/case.json"
+    },
+    {
+      "caseId": "nt51927-gen-flash",
+      "manifestPath": "NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/provenance/case.json"
+    },
+    {
+      "caseId": "nt51928-gen-flash",
+      "manifestPath": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/provenance/case.json"
+    },
+    {
+      "caseId": "nt51919-standard-merge-gen-flash-alias",
+      "manifestPath": "NT51919/standard-merge/gen-flash/topology-unscoped/nt51919-standard-merge-gen-flash-alias/provenance/case.json"
+    },
+    {
+      "caseId": "nt51929-gen-flash",
+      "manifestPath": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/provenance/case.json"
+    },
+    {
+      "caseId": "51930-flashmap",
+      "manifestPath": "NT51930/standard-merge/flashmap/topology-unscoped/51930-flashmap/provenance/case.json"
+    },
+    {
+      "caseId": "nt51931-gen-flash",
+      "manifestPath": "NT51931/standard-merge/gen-flash/topology-unscoped/nt51931-gen-flash/provenance/case.json"
+    },
+    {
+      "caseId": "nt51932-gen-flash",
+      "manifestPath": "NT51932/standard-merge/gen-flash/topology-unscoped/nt51932-gen-flash/provenance/case.json"
+    },
+    {
+      "caseId": "51950-dp-256k",
+      "manifestPath": "NT51950/standard-merge/dp-256k/topology-unscoped/51950-dp-256k/provenance/case.json"
+    },
+    {
+      "caseId": "51951-dp-512k",
+      "manifestPath": "NT51951/standard-merge/dp-512k/topology-unscoped/51951-dp-512k/provenance/case.json"
+    }
+  ]
+}

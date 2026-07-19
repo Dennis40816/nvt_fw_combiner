@@ -20,8 +20,8 @@ public sealed class DpReplaceGoldenRegressionTests
     [InlineData("51951", "dp-512k")]
     public async Task Nt51950FamilyDpReplaceWithOriginalDpInputMatchesGoldenBaseBytes(string ic, string variant)
     {
-        string goldenRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "standard-merge-gen-flash");
-        using JsonDocument manifestDocument = LoadJson(Path.Combine(goldenRoot, "manifest.json"));
+        string goldenRoot = CanonicalGoldenTestData.Root;
+        using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         JsonElement goldenCase = FindDpPerspectiveCase(manifestDocument.RootElement, ic, variant);
         byte[] expectedBaseBytes = ReadManifestFile(goldenRoot, goldenCase.GetProperty("expectedOutput"));
         byte[] replacementDpBytes = ReadManifestFile(goldenRoot, goldenCase.GetProperty("inputs").GetProperty("dp-input"));
@@ -71,8 +71,8 @@ public sealed class DpReplaceGoldenRegressionTests
     [Fact]
     public async Task Nt51930DpReplaceWithOriginalDpInputMatchesGoldenBaseBytes()
     {
-        string goldenRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "standard-merge-gen-flash");
-        using JsonDocument manifestDocument = LoadJson(Path.Combine(goldenRoot, "manifest.json"));
+        string goldenRoot = CanonicalGoldenTestData.Root;
+        using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(item => item.GetProperty("ic").GetString() == "51930")
@@ -127,11 +127,6 @@ public sealed class DpReplaceGoldenRegressionTests
         Assert.Equal(manifestFile.GetProperty("size").GetInt64(), bytes.LongLength);
         Assert.Equal(manifestFile.GetProperty("sha256").GetString(), Sha256Hex(bytes));
         return bytes;
-    }
-
-    private static JsonDocument LoadJson(string path)
-    {
-        return JsonDocument.Parse(File.ReadAllText(path));
     }
 
     private static string Sha256Hex(ReadOnlySpan<byte> bytes)

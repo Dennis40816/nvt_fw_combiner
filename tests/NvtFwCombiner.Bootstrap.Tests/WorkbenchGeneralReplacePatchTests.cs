@@ -189,7 +189,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
     public async Task GeneralReplaceVirtualTpPatchFailsClosed()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-general-tp-patch");
-        string basePath = GoldenPath("expected/51950/dp-256k/flash.bin");
+        string basePath = GoldenArtifactPath("51950", "expected-output", "dp-256k");
         byte[] baseBytes = await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
 
         string outputPath = workspace.PathFor("output.bin");
@@ -216,7 +216,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
     [Fact]
     public async Task GeneralReplaceManyMappingsFailClosed()
     {
-        string basePath = GoldenPath("expected/51950/dp-256k/flash.bin");
+        string basePath = GoldenArtifactPath("51950", "expected-output", "dp-256k");
         byte[] baseBytes = await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
         WorkbenchGeneralReplacePatchInput[] patches =
         [

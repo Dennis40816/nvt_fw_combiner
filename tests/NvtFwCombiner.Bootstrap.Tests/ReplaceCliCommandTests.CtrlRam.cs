@@ -215,13 +215,10 @@ public sealed partial class ReplaceCliCommandTests
         string reportJson = await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken);
         Assert.DoesNotContain("base flash", reportJson, StringComparison.OrdinalIgnoreCase);
 
-        string basePath = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "inputs",
+        string basePath = CanonicalGoldenTestData.ArtifactPath(
+            "standard-merge",
             "51926",
-            "tp.bin");
+            "tp-input");
         WorkbenchRunResult planning = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51926",
             "cascade",

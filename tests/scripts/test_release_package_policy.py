@@ -108,6 +108,14 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected",
             result.stdout,
         )
+        self.assertIn(
+            "Canonical golden package policy dry-run passed: 34 direct Standard Merge BIN artifacts and 13 direct/alias cases selected; diagnostics and other workflows excluded",
+            result.stdout,
+        )
+        self.assertIn(
+            "Canonical golden package policy direct/alias drift and strict-type rejection passed",
+            result.stdout,
+        )
         self.assertFalse(
             probe_path.exists(), "packager did not clean its source policy probe"
         )

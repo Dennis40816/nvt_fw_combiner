@@ -42,6 +42,7 @@ $AppPublish = Join-Path $WorkRoot 'app-publish'
 $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
+$StandardMergeGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-standard-merge-v1.json'
 
 try {
 function Get-LowerSha256 {
@@ -439,9 +440,66 @@ function Invoke-ExternalToolPolicyDryRun {
             throw 'Unexpected runtime catalog file was not rejected by the package allowlist.'
         }
 
+        $GoldenPaths = @(Get-DeclaredStandardMergeGoldenPaths)
+        $GoldenBinPaths = @($GoldenPaths | Where-Object { $_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase) })
+        if ($GoldenBinPaths.Count -ne 34 -or $script:StandardMergeGoldenPackageManifest.cases.Count -ne 13) {
+            throw 'Standard Merge canonical package selection did not retain 34 direct BIN artifacts and 13 direct/alias cases.'
+        }
+        if (@($GoldenPaths | Where-Object {
+            $_ -like 'testdata/diagnostics/*' -or
+            $_ -like 'testdata/golden/canonical/*/ctrlram-replace/*' -or
+            $_ -like 'testdata/golden/canonical/*/ab-merge/*'
+        }).Count -ne 0) {
+            throw 'Standard Merge canonical package selection included diagnostics or another workflow.'
+        }
+
+        $SourceGoldenAllowlist = Get-Content -LiteralPath $StandardMergeGoldenReleaseAllowlistPath -Raw |
+            ConvertFrom-Json
+        $DirectGoldenPolicyProbes = @(
+            [pscustomobject]@{
+                Name = 'boolean-flip'
+                Value = -not [bool]$SourceGoldenAllowlist.cases[0].directGolden
+                ExpectedMessage = '*directGolden differs from the explicit release allowlist*'
+            },
+            [pscustomobject]@{
+                Name = 'numeric'
+                Value = 1
+                ExpectedMessage = '*directGolden must be a JSON boolean*'
+            },
+            [pscustomobject]@{
+                Name = 'string'
+                Value = 'false'
+                ExpectedMessage = '*directGolden must be a JSON boolean*'
+            }
+        )
+        foreach ($PolicyProbe in $DirectGoldenPolicyProbes) {
+            $InvalidGoldenAllowlistPath = Join-Path $DryRunRoot "invalid-standard-merge-$($PolicyProbe.Name).json"
+            $InvalidGoldenAllowlist = Get-Content -LiteralPath $StandardMergeGoldenReleaseAllowlistPath -Raw |
+                ConvertFrom-Json
+            $InvalidGoldenAllowlist.cases[0].directGolden = $PolicyProbe.Value
+            $InvalidGoldenAllowlist |
+                ConvertTo-Json -Depth 8 |
+                Set-Content -LiteralPath $InvalidGoldenAllowlistPath -Encoding utf8NoBOM
+            $InvalidGoldenAllowlistRejected = $false
+            try {
+                Get-DeclaredStandardMergeGoldenPaths -ReleaseAllowlistPath $InvalidGoldenAllowlistPath | Out-Null
+            }
+            catch {
+                if ($_.Exception.Message -notlike $PolicyProbe.ExpectedMessage) {
+                    throw
+                }
+                $InvalidGoldenAllowlistRejected = $true
+            }
+            if (-not $InvalidGoldenAllowlistRejected) {
+                throw "Standard Merge canonical package selection accepted the $($PolicyProbe.Name) directGolden policy probe."
+            }
+        }
+
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included and unexpected file rejected.'
         Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
+        Write-Host 'Canonical golden package policy dry-run passed: 34 direct Standard Merge BIN artifacts and 13 direct/alias cases selected; diagnostics and other workflows excluded.'
+        Write-Host 'Canonical golden package policy direct/alias drift and strict-type rejection passed.'
     }
     finally {
         if (Test-Path -LiteralPath $ProbeSourcePath) {
@@ -479,6 +537,18 @@ function Copy-PackageReferenceTree {
         }
 }
 
+function Assert-SafeCanonicalGoldenPath {
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+
+    if ([string]::IsNullOrWhiteSpace($RelativePath) -or
+        $RelativePath.Contains('\') -or
+        ($RelativePath.Split('/') -contains '..') -or
+        $RelativePath.Split('/')[0].Contains(':') -or
+        [System.IO.Path]::IsPathRooted($RelativePath)) {
+        throw "Unsafe canonical golden manifest path: '$RelativePath'"
+    }
+}
+
 function Add-GoldenManifestEntryPath {
     param(
         [Parameter(Mandatory = $true)][System.Collections.Generic.HashSet[string]]$Paths,
@@ -487,68 +557,150 @@ function Add-GoldenManifestEntryPath {
     )
 
     if ($null -eq $Entry -or $Entry.PSObject.Properties.Name -notcontains 'path') {
-        throw "Standard Merge golden manifest has an entry without a path."
+        throw "Canonical golden manifest has an entry without a path."
     }
 
     $ManifestRelativePath = [string]$Entry.path
-    if ([string]::IsNullOrWhiteSpace($ManifestRelativePath) -or $ManifestRelativePath.Contains('..') -or $ManifestRelativePath.StartsWith('/')) {
-        throw "Unsafe Standard Merge golden manifest path: '$ManifestRelativePath'"
-    }
+    Assert-SafeCanonicalGoldenPath -RelativePath $ManifestRelativePath
 
     [void]$Paths.Add("$GoldenRootRelative/$ManifestRelativePath")
 }
 
 function Get-DeclaredStandardMergeGoldenPaths {
-    $GoldenRootRelative = 'testdata/golden/standard-merge-gen-flash'
+    param(
+        [string]$ReleaseAllowlistPath = $StandardMergeGoldenReleaseAllowlistPath
+    )
+
+    $GoldenRootRelative = 'testdata/golden/canonical'
     $GoldenRoot = Join-Path $RepoRoot $GoldenRootRelative
     $ManifestPath = Join-Path $GoldenRoot 'manifest.json'
     if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
-        throw "Standard Merge golden manifest was not found at $ManifestPath"
+        throw "Canonical golden manifest was not found at $ManifestPath"
     }
 
     $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
-    if ($Manifest.payloadClass -ne 'owner-approved-golden-firmware' -or $Manifest.binaryPayloadsIncluded -ne $true) {
-        throw 'Standard Merge golden fixtures must declare owner-approved-golden-firmware with binaryPayloadsIncluded=true.'
+    if ($Manifest.schemaVersion -ne '1.0' -or
+        $Manifest.payloadClass -ne 'owner-approved-golden' -or
+        $Manifest.binaryPayloadsIncluded -ne $true) {
+        throw 'Canonical golden inventory must declare schemaVersion=1.0, owner-approved-golden, and binaryPayloadsIncluded=true.'
+    }
+    if (-not (Test-Path -LiteralPath $ReleaseAllowlistPath -PathType Leaf)) {
+        throw "Standard Merge golden release allowlist was not found at $ReleaseAllowlistPath"
+    }
+    $ReleaseAllowlist = Get-Content -LiteralPath $ReleaseAllowlistPath -Raw | ConvertFrom-Json
+    if ($ReleaseAllowlist.schemaVersion -ne '1.0' -or
+        $ReleaseAllowlist.workflow -ne 'standard-merge' -or
+        $ReleaseAllowlist.releaseStatus -ne 'human-gated-allowlist') {
+        throw 'Standard Merge golden release allowlist has invalid schema, workflow, or release status.'
+    }
+    $ApprovedCases = @{}
+    foreach ($ApprovedCase in $ReleaseAllowlist.cases) {
+        $ApprovedCaseId = [string]$ApprovedCase.caseId
+        if ([string]::IsNullOrWhiteSpace($ApprovedCaseId) -or $ApprovedCases.ContainsKey($ApprovedCaseId)) {
+            throw "Standard Merge golden release allowlist contains an invalid or duplicate case id: '$ApprovedCaseId'"
+        }
+        $ApprovedCases[$ApprovedCaseId] = $ApprovedCase
     }
 
     $Paths = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-    foreach ($StaticFile in @('README.md', 'manifest.json')) {
-        [void]$Paths.Add("$GoldenRootRelative/$StaticFile")
-    }
-
-    if ($Manifest.PSObject.Properties.Name -contains 'supportingFiles' -and $null -ne $Manifest.supportingFiles) {
-        foreach ($Property in $Manifest.supportingFiles.PSObject.Properties) {
-            Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Property.Value
-        }
-    }
+    [void]$Paths.Add("$GoldenRootRelative/README.md")
+    $SelectedCases = [System.Collections.Generic.List[object]]::new()
+    $SelectedCaseIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 
     if ($Manifest.PSObject.Properties.Name -notcontains 'cases' -or $null -eq $Manifest.cases) {
-        throw 'Standard Merge golden manifest does not contain cases.'
+        throw 'Canonical golden manifest does not contain cases.'
     }
 
-    foreach ($Case in $Manifest.cases) {
-        if ($Case.PSObject.Properties.Name -notcontains 'inputs' -or $null -eq $Case.inputs) {
-            throw 'Standard Merge golden manifest case has no inputs.'
+    foreach ($CaseEntry in $Manifest.cases) {
+        $CaseId = [string]$CaseEntry.caseId
+        if (-not $ApprovedCases.ContainsKey($CaseId)) {
+            continue
         }
 
-        foreach ($Input in $Case.inputs.PSObject.Properties) {
-            Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Input.Value
+        $ApprovedCase = $ApprovedCases[$CaseId]
+        $ManifestEntry = [pscustomobject]@{ path = [string]$CaseEntry.manifestPath }
+        if ($ManifestEntry.path -ne [string]$ApprovedCase.manifestPath) {
+            throw "Release-approved canonical case '$CaseId' manifest path differs from the explicit release allowlist."
+        }
+        Assert-SafeCanonicalGoldenPath -RelativePath $ManifestEntry.path
+        $CaseManifestPath = Join-Path $GoldenRoot $ManifestEntry.path
+        if (-not (Test-Path -LiteralPath $CaseManifestPath -PathType Leaf)) {
+            throw "Canonical golden case manifest was not found: $($ManifestEntry.path)"
         }
 
-        if ($Case.PSObject.Properties.Name -notcontains 'expectedOutput') {
-            throw 'Standard Merge golden manifest case has no expectedOutput.'
+        $Case = Get-Content -LiteralPath $CaseManifestPath -Raw | ConvertFrom-Json
+        if ($Case.caseId -ne $CaseId -or $Case.workflow -ne 'standard-merge') {
+            throw "Release-approved canonical case '$CaseId' does not resolve to the matching Standard Merge case."
         }
-        Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Case.expectedOutput
+        if ($ApprovedCase.PSObject.Properties.Name -notcontains 'directGolden' -or
+            $ApprovedCase.directGolden -isnot [bool]) {
+            throw "Release-approved canonical case '$CaseId' directGolden must be a JSON boolean."
+        }
+        if ($Case.PSObject.Properties.Name -notcontains 'directGolden' -or
+            $Case.directGolden -isnot [bool]) {
+            throw "Release-approved canonical case '$CaseId' canonical directGolden must be a JSON boolean."
+        }
+        if ($ApprovedCase.directGolden -ne $Case.directGolden) {
+            throw "Release-approved canonical case '$CaseId' directGolden differs from the explicit release allowlist."
+        }
+
+        Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $ManifestEntry
+        $SelectedCases.Add($CaseEntry)
+        [void]$SelectedCaseIds.Add($CaseId)
+        $ApprovedArtifactIds = @($ApprovedCase.artifacts | ForEach-Object { [string]$_.artifactId } | Sort-Object)
+        if ($Case.directGolden -eq $true) {
+            $Roles = @($Case.artifacts | ForEach-Object { [string]$_.role })
+            if ($Roles -notcontains 'input' -or $Roles -notcontains 'expected') {
+                throw "Direct Standard Merge canonical case '$($Case.caseId)' must declare input and expected artifacts."
+            }
+            $ActualArtifactIds = @($Case.artifacts | ForEach-Object { [string]$_.artifactId } | Sort-Object)
+            if (Compare-Object -ReferenceObject $ApprovedArtifactIds -DifferenceObject $ActualArtifactIds) {
+                throw "Standard Merge canonical case '$CaseId' artifacts differ from the explicit release allowlist."
+            }
+
+            foreach ($Artifact in $Case.artifacts) {
+                $ApprovedArtifact = @($ApprovedCase.artifacts | Where-Object { $_.artifactId -eq $Artifact.artifactId })
+                if ($ApprovedArtifact.Count -ne 1 -or
+                    [string]$ApprovedArtifact[0].path -ne [string]$Artifact.path -or
+                    [long]$ApprovedArtifact[0].size -ne [long]$Artifact.size -or
+                    [string]$ApprovedArtifact[0].sha256 -ne [string]$Artifact.sha256) {
+                    throw "Standard Merge canonical artifact '$CaseId/$($Artifact.artifactId)' differs from the explicit release allowlist."
+                }
+                Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Artifact
+                $ArtifactPath = Join-Path $GoldenRoot ([string]$Artifact.path)
+                if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
+                    throw "Canonical golden artifact was not found: $($Artifact.path)"
+                }
+                if ((Get-Item -LiteralPath $ArtifactPath).Length -ne [long]$Artifact.size) {
+                    throw "Canonical golden artifact size drift: $($Artifact.path)"
+                }
+                if ((Get-LowerSha256 -Path $ArtifactPath) -ne [string]$Artifact.sha256) {
+                    throw "Canonical golden artifact SHA-256 drift: $($Artifact.path)"
+                }
+            }
+        }
+        elseif ($Case.directGolden -ne $false -or $null -eq $Case.alias -or $ApprovedArtifactIds.Count -ne 0) {
+            throw "Standard Merge canonical case '$($Case.caseId)' has invalid direct/alias facts."
+        }
     }
 
-    $ActualBins = @(
-        Get-ChildItem -LiteralPath $GoldenRoot -Filter '*.bin' -File -Recurse |
-            ForEach-Object { [System.IO.Path]::GetRelativePath($RepoRoot, $_.FullName).Replace('\', '/') } |
+    $MissingApprovedCases = @(
+        $ApprovedCases.Keys |
+            Where-Object { -not $SelectedCaseIds.Contains($_) } |
             Sort-Object
     )
-    $DeclaredBins = @($Paths | Where-Object { $_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase) } | Sort-Object)
-    if (Compare-Object -ReferenceObject $DeclaredBins -DifferenceObject $ActualBins) {
-        throw 'Standard Merge golden BIN files do not exactly match manifest declarations.'
+    if ($MissingApprovedCases.Count -ne 0) {
+        throw "Canonical golden inventory is missing release-approved Standard Merge cases: $($MissingApprovedCases -join ', ')"
+    }
+
+    $script:StandardMergeGoldenPackageManifest = [ordered]@{
+        schemaVersion = '1.0'
+        payloadClass = 'owner-approved-golden'
+        binaryPayloadsIncluded = $true
+        diagnosticsRoot = 'testdata/diagnostics/golden-evidence'
+        inventoryScope = 'release-standard-merge'
+        sourceManifest = 'testdata/golden/canonical/manifest.json'
+        cases = @($SelectedCases)
     }
 
     return @($Paths | Sort-Object)
@@ -633,10 +785,9 @@ This directory contains human-review reference evidence and owner-approved golde
 Included:
 - docs/references/: flash-map, postbuild, flash-header, and provenance references.
 - docs/architecture/: CtrlRAM postbuild investigation and IC workflow references.
-- testdata/golden/standard-merge-gen-flash/: owner-approved Standard Merge golden BIN fixtures declared by manifest for future packaged self-tests.
-- testdata/golden/ctrlram-replace/ and testdata/golden/owner-handoff/: non-BIN fixture notes and manifests.
+- testdata/golden/canonical/: release-selected owner-approved Standard Merge direct payloads and fact-scoped alias manifests.
 
-Private golden inputs, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
+Non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
 "@ | Set-Content -LiteralPath (Join-Path $ReferenceDestination 'README.txt') -Encoding utf8NoBOM
 
 $ReferenceFiles = @(
@@ -656,11 +807,18 @@ foreach ($ReferenceFile in $ReferenceFiles) {
 
 Copy-PackageReferenceTree -RelativeRoot 'docs/references/ic-flashmap' -AllowedExtensions @('.bat', '.h', '.json', '.md', '.xlsx')
 
-foreach ($GoldenPath in (Get-DeclaredStandardMergeGoldenPaths)) {
+$StandardMergeGoldenPaths = Get-DeclaredStandardMergeGoldenPaths
+foreach ($GoldenPath in $StandardMergeGoldenPaths) {
     Copy-PackageFile -RelativePath $GoldenPath -DestinationRoot $ReferenceDestination
 }
-Copy-PackageReferenceTree -RelativeRoot 'testdata/golden/ctrlram-replace' -AllowedExtensions @('.json', '.md')
-Copy-PackageReferenceTree -RelativeRoot 'testdata/golden/owner-handoff' -AllowedExtensions @('.json', '.md')
+Copy-PackageFile `
+    -RelativePath 'testdata/golden/release-standard-merge-v1.json' `
+    -DestinationRoot $ReferenceDestination
+$PackagedGoldenManifestPath = Join-Path $ReferenceDestination 'testdata/golden/canonical/manifest.json'
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $PackagedGoldenManifestPath) | Out-Null
+$script:StandardMergeGoldenPackageManifest |
+    ConvertTo-Json -Depth 12 |
+    Set-Content -LiteralPath $PackagedGoldenManifestPath -Encoding utf8NoBOM
 
 $SelfTestRequest = '{"protocolVersion":"1.0","requestId":"package-self-test","operation":"calculate","algorithmId":"crc-32-mpeg-2","payloadBase64":"MTIzNDU2Nzg5"}'
 $SelfTestRaw = $SelfTestRequest | & $WorkerExe
@@ -684,7 +842,7 @@ Contents:
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
 
-This package includes owner-approved golden firmware fixtures under reference/testdata/golden/standard-merge-gen-flash for future packaged self-tests. It contains no private golden inputs, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, or .NET installation requirement. Built-in materialized profiles, external tools, and reference files are pinned by manifest and SHA-256; packaging a candidate bundle does not promote its runtime support stage.
+This package includes release-selected owner-approved Standard Merge golden firmware fixtures under reference/testdata/golden/canonical for future packaged self-tests. Diagnostics, owner handoff records, CtrlRAM private evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. Built-in materialized profiles, external tools, and reference files are pinned by manifest and SHA-256; packaging a candidate bundle does not promote its runtime support stage.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
 
 $AppHash = Get-LowerSha256 -Path $AppExe

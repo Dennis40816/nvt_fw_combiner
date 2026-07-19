@@ -11,6 +11,9 @@ from typing import Any
 
 CANONICAL_ROOT = PurePosixPath("testdata/golden/canonical")
 DIAGNOSTICS_ROOT = "testdata/diagnostics/golden-evidence"
+STANDARD_MERGE_RELEASE_ALLOWLIST = PurePosixPath(
+    "testdata/golden/release-standard-merge-v1.json"
+)
 ROOT_FILES = {PurePosixPath("README.md"), PurePosixPath("manifest.json")}
 ALLOWED_WORKFLOWS = {
     "ab-merge",
@@ -382,4 +385,121 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
             errors.append(
                 "canonical root contains undeclared files: "
                 + ", ".join(str(path) for path in extra)
+            )
+
+
+def validate_standard_merge_release_allowlist(
+    repository_root: Path, errors: list[str]
+) -> None:
+    """Validate the explicit case/artifact facts authorized for release packaging."""
+    canonical_root = repository_root / Path(CANONICAL_ROOT)
+    inventory = _load_object(
+        canonical_root / "manifest.json",
+        canonical_root,
+        "canonical manifest",
+        errors,
+    )
+    allowlist_path = repository_root / Path(STANDARD_MERGE_RELEASE_ALLOWLIST)
+    try:
+        allowlist = json.loads(allowlist_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        errors.append(f"cannot read Standard Merge release allowlist: {error}")
+        return
+    if not isinstance(allowlist, dict):
+        errors.append("Standard Merge release allowlist must be a JSON object")
+        return
+    if inventory is None:
+        return
+    if allowlist.get("schemaVersion") != "1.0":
+        errors.append("Standard Merge release allowlist schemaVersion must be 1.0")
+    if allowlist.get("workflow") != "standard-merge":
+        errors.append("Standard Merge release allowlist workflow must be standard-merge")
+    if allowlist.get("releaseStatus") != "human-gated-allowlist":
+        errors.append(
+            "Standard Merge release allowlist releaseStatus must be human-gated-allowlist"
+        )
+    inventory_cases = {
+        entry.get("caseId"): entry.get("manifestPath")
+        for entry in inventory.get("cases", [])
+        if isinstance(entry, dict)
+    }
+    release_cases = allowlist.get("cases")
+    if not isinstance(release_cases, list) or not release_cases:
+        errors.append("Standard Merge release allowlist must contain cases")
+        return
+    seen_case_ids: set[str] = set()
+    for index, release_case in enumerate(release_cases):
+        label = f"Standard Merge release cases[{index}]"
+        if not isinstance(release_case, dict):
+            errors.append(f"{label} must be an object")
+            continue
+        case_id = _required_string(release_case, "caseId", label, errors)
+        manifest_path = _relative_path(
+            release_case.get("manifestPath"), f"{label}.manifestPath", errors
+        )
+        if case_id is None or manifest_path is None:
+            continue
+        if case_id in seen_case_ids:
+            errors.append(f"duplicate Standard Merge release caseId: {case_id}")
+        seen_case_ids.add(case_id)
+        if inventory_cases.get(case_id) != str(manifest_path):
+            errors.append(
+                f"{label} does not match the canonical case manifest path for {case_id}"
+            )
+            continue
+        case = _load_object(
+            canonical_root / Path(manifest_path),
+            canonical_root,
+            "release-selected canonical case",
+            errors,
+        )
+        if case is None:
+            continue
+        if case.get("workflow") != "standard-merge":
+            errors.append(f"{label} selects a non-Standard Merge case")
+        release_direct = release_case.get("directGolden")
+        canonical_direct = case.get("directGolden")
+        if type(release_direct) is not bool:
+            errors.append(f"{label}.directGolden must be a boolean")
+        elif type(canonical_direct) is not bool:
+            errors.append(f"{label} canonical directGolden must be a boolean")
+        elif release_direct != canonical_direct:
+            errors.append(f"{label} directGolden differs from the canonical case")
+        canonical_artifacts = {
+            artifact.get("artifactId"): artifact
+            for artifact in case.get("artifacts", [])
+            if isinstance(artifact, dict)
+        }
+        release_artifacts = release_case.get("artifacts")
+        if not isinstance(release_artifacts, list):
+            errors.append(f"{label}.artifacts must be an array")
+            continue
+        release_artifact_ids: set[str] = set()
+        for artifact_index, release_artifact in enumerate(release_artifacts):
+            artifact_label = f"{label}.artifacts[{artifact_index}]"
+            if not isinstance(release_artifact, dict):
+                errors.append(f"{artifact_label} must be an object")
+                continue
+            artifact_id = _required_string(
+                release_artifact, "artifactId", artifact_label, errors
+            )
+            if artifact_id is None:
+                continue
+            if artifact_id in release_artifact_ids:
+                errors.append(f"{label} contains duplicate artifactId {artifact_id}")
+            release_artifact_ids.add(artifact_id)
+            canonical_artifact = canonical_artifacts.get(artifact_id)
+            if canonical_artifact is None:
+                errors.append(
+                    f"{artifact_label} is not declared by canonical case {case_id}"
+                )
+                continue
+            for field in ("path", "size", "sha256"):
+                if release_artifact.get(field) != canonical_artifact.get(field):
+                    errors.append(
+                        f"{artifact_label}.{field} differs from canonical case {case_id}"
+                    )
+        if release_artifact_ids != set(canonical_artifacts):
+            errors.append(
+                f"{label} artifact IDs must exactly match canonical case {case_id}"
             )

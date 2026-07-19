@@ -31,8 +31,8 @@ public sealed class WorkbenchCompositionServiceTests
     [Fact]
     public void FlashCodeOutputNameUsesCatalogBackedDpAndTpMetadata()
     {
-        string dpPath = GoldenPath("inputs/51926/dp.bin");
-        string tpPath = GoldenPath("inputs/51926/tp.bin");
+        string dpPath = GoldenArtifactPath("51926", "dp-input");
+        string tpPath = GoldenArtifactPath("51926", "tp-input");
 
         WorkbenchOutputFileNameSuggestion suggestion = WorkbenchCompositionService.CreateFlashCodeOutputFileName(
             "51926",
@@ -71,14 +71,14 @@ public sealed class WorkbenchCompositionServiceTests
     public async Task StandardMergePreviewWarnsButDoesNotBlockUnexpectedDpLength()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-dp-length");
-        byte[] dp = File.ReadAllBytes(GoldenPath("inputs/51926/dp.bin"));
+        byte[] dp = File.ReadAllBytes(GoldenArtifactPath("51926", "dp-input"));
         Array.Resize(ref dp, dp.Length + 1);
         dp[^1] = 0xA5;
         string dpPath = workspace.Write("dp-nonstandard.bin", dp);
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
             ["dp-input"] = dpPath,
-            ["tp-input"] = GoldenPath("inputs/51926/tp.bin"),
+            ["tp-input"] = GoldenArtifactPath("51926", "tp-input"),
         };
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
@@ -89,7 +89,7 @@ public sealed class WorkbenchCompositionServiceTests
 
         Assert.True(result.Succeeded, result.ReportJson);
         Assert.Equal(
-            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(GoldenPath("expected/51926/flash.bin")))).ToLowerInvariant(),
+            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output")))).ToLowerInvariant(),
             result.OutputSha256);
         using var document = JsonDocument.Parse(result.ReportJson);
         Assert.Contains(
@@ -105,10 +105,10 @@ public sealed class WorkbenchCompositionServiceTests
     {
         WorkbenchFirmwareConfigMetadata? metadata = WorkbenchCompositionService.TryReadFirmwareConfigMetadata(
             "NT51926",
-            GoldenPath("expected/51926/flash.bin"));
+            GoldenArtifactPath("51926", "expected-output"));
 
         Assert.NotNull(metadata);
-        byte[] image = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        byte[] image = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup));
         Assert.Equal(backup.FirmwareConfigStart, metadata.FirmwareConfigBackupStart);
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
@@ -122,7 +122,7 @@ public sealed class WorkbenchCompositionServiceTests
     {
         WorkbenchFirmwareContextSuggestion? suggestion = WorkbenchCompositionService.TryReadFirmwareContextSuggestion(
             "NT51926",
-            GoldenPath("expected/51926/flash.bin"));
+            GoldenArtifactPath("51926", "expected-output"));
 
         Assert.NotNull(suggestion);
         Assert.Equal("NT51926", suggestion.IcId);
@@ -136,7 +136,7 @@ public sealed class WorkbenchCompositionServiceTests
     public void FirmwareContextSuggestionKeepsBackupAuthorityWhenPrimaryDiffers()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fwconfig-mismatch");
-        byte[] bytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        byte[] bytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         Assert.True(BuiltInTpFlashMapCatalog.TryFind("NT51926", out TpFlashMapProfile? flashMap));
         long firmwareConfigStart = flashMap!.FirmwareConfigPrimaryStart;
         bytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.ChipNumberOffset)] = 0x01;
@@ -169,8 +169,8 @@ public sealed class WorkbenchCompositionServiceTests
     [Fact]
     public void Nt51950CmiMetadataRequiresTpNvtFirmwareConfig()
     {
-        string dpPath = GoldenPath("inputs/51950/dp-256k/dp.bin");
-        string tpPath = GoldenPath("inputs/51950/dp-256k/tp.bin");
+        string dpPath = GoldenArtifactPath("51950", "dp-input", "dp-256k");
+        string tpPath = GoldenArtifactPath("51950", "tp-input", "dp-256k");
 
         Assert.Null(WorkbenchCompositionService.TryReadCmiDpCodeMetadata("NT51950", dpPath));
 
@@ -219,7 +219,7 @@ public sealed class WorkbenchCompositionServiceTests
     public async Task GeneralReplaceTpPreviewFailsClosed()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-general-tp");
-        string basePath = GoldenPath("expected/51950/dp-256k/flash.bin");
+        string basePath = GoldenArtifactPath("51950", "expected-output", "dp-256k");
         string replacementPath = workspace.PathFor("replacement.bin");
         byte[] baseBytes = File.ReadAllBytes(basePath);
         File.WriteAllBytes(replacementPath, baseBytes[0x22C00..0x22C02]);
@@ -300,7 +300,7 @@ public sealed class WorkbenchCompositionServiceTests
     public async Task CtrlRamReplaceRejectsInvalidFwVersionBarBeforePostbuildCategorySelection()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-invalid-fwbar");
-        byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata backup));
         baseBytes[checked((int)backup.FirmwareConfigStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
 
@@ -335,7 +335,7 @@ public sealed class WorkbenchCompositionServiceTests
     public async Task CtrlRamReplaceBuildWithFirmwareVersionEditFailsClosed()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fw-version-edit");
-        byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
         string outputPath = workspace.PathFor("edited.bin");
@@ -366,7 +366,7 @@ public sealed class WorkbenchCompositionServiceTests
     public async Task CtrlRamReplaceBuildWithCustomProcessorFailsClosedBeforeInvocation()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fwconfig-ambiguous");
-        byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
         string outputPath = workspace.PathFor("not-published.bin");
@@ -399,7 +399,7 @@ public sealed class WorkbenchCompositionServiceTests
     public async Task CtrlRamReplaceBuildWithoutExactV2RouteFailsClosed()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fw-version-preserve");
-        byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
         string outputPath = workspace.PathFor("preserved.bin");

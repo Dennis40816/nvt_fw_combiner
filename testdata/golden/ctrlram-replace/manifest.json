@@ -86,7 +86,7 @@
         "path": "fixtures/derived/20260717/base/nt51926-cascade-tp-base-self-regression.bin",
         "size": 245760,
         "sha256": "9e5321fb7673736c6c52e61549e33347e3852488bd253088db7239d4d0f371fc",
-        "provenance": "Byte-for-byte copy of testdata/golden/standard-merge-gen-flash/inputs/51926/tp.bin from profile nt51926-standard-merge-gen-flash slot tp-input; Git stores the identical blob once."
+        "provenance": "Byte-for-byte copy of testdata/golden/canonical/NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/inputs/tp-input.bin from profile nt51926-standard-merge-gen-flash slot tp-input; Git stores the identical blob once."
       },
       "replacementInputs": [
         {

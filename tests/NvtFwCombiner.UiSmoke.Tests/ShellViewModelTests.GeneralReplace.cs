@@ -145,7 +145,7 @@ public sealed partial class ShellViewModelTests
     public async Task GeneralReplacePreviewRunsPostbuildForTpMapping()
     {
         using var golden = StandardMergeGoldenManifest.Load();
-        string basePath = golden.PathFromRelative("expected/51950/dp-256k/flash.bin");
+        string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51950"));
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace-tp");
         byte[] baseBytes = File.ReadAllBytes(basePath);
         string replacementPath = workspace.Write("self-nf.bin", baseBytes[0x22C00..0x22C02]);

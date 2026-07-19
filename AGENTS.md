@@ -108,7 +108,7 @@ Use `docs/governance/development-execution-workflow.md` to select the narrow tes
 - Python, legacy `combiner.exe`, and every external processor may modify only a host-created staging copy. They never modify the user's source BIN or final output path.
 - The host independently diffs staged before/after bytes and rejects every change outside declared write ranges.
 - Never add real firmware BIN files, credentials, generated releases, or private golden data to Git, except owner-approved golden fixtures under `testdata/golden/` with manifest paths, sizes, hashes, source provenance, and human approval recorded.
-- For standard merge regression, prefer owner-approved `gen_flash_bin_v2` / `gen_flash` fixtures under `testdata/golden/standard-merge-gen-flash/` as golden evidence when they cover the IC behavior being implemented.
+- For standard merge regression, prefer owner-approved direct `standard-merge` cases from `testdata/golden/canonical/manifest.json` when they cover the IC behavior being implemented. Fact-scoped aliases do not replace direct product evidence outside their recorded scope.
 
 ## Product direction guardrails
 

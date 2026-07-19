@@ -12,7 +12,7 @@ public sealed partial class ReplaceCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         byte[] baseBytes = await File.ReadAllBytesAsync(
-            GoldenPath("expected/51926/flash.bin"),
+            GoldenArtifactPath("51926", "expected-output"),
             TestContext.Current.CancellationToken);
         string reference = workspace.Write("reference.bin", baseBytes);
         string source = workspace.Write("dp-source.bin", [0xA5, 0x5A]);
@@ -90,7 +90,7 @@ public sealed partial class ReplaceCliCommandTests
     public async Task GeneralReplacePreviewWithWorkbenchTpMappingFailsClosed()
     {
         using var workspace = TempWorkspace.Create();
-        string reference = GoldenPath("expected/51950/dp-256k/flash.bin");
+        string reference = GoldenArtifactPath("51950", "expected-output", "dp-256k");
         byte[] baseBytes = await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken);
         string input = workspace.Write("input.bin", baseBytes[0x22C00..0x22C02]);
         string report = workspace.PathFor("general-replace-tp-report.json");
