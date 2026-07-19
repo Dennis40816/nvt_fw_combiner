@@ -546,32 +546,18 @@ unchanged. Focused preferences pass `4/4`, full UI `229/229`, Architecture
 corrupt or abnormal local-state bound, not a packaged startup-latency claim;
 final preference interaction/restoration remains in the Windows manual gate.
 
-Commit `c47b28c9` removes the whole-file text intermediate from local-state
-restore. Current UTF-8 history/preferences deserialize directly from the
-bounded opened stream. Legacy UTF-16 LE/BE and UTF-32 LE/BE BOM documents are
-identified before the overlapping UTF-16 prefix, positioned after the exact
-BOM, and streamed through a UTF-8 transcoder; compatibility no longer requires
-`ReadToEnd`. UTF-8 BOM remains on the direct serializer path.
+Commit `c47b28c9` removes the whole-file text intermediate from local-state restore. Current UTF-8 history/preferences deserialize directly from the bounded opened stream.
+Legacy UTF-16 LE/BE and UTF-32 LE/BE BOM documents are identified before the overlapping UTF-16 prefix, positioned after the exact BOM, and streamed through a UTF-8 transcoder;
+compatibility no longer requires `ReadToEnd`. UTF-8 BOM remains on the direct serializer path.
 
-The warmed 4 MiB current-format history observation allocated `25,227,920`
-bytes before this slice. The committed regression preserves the complete
-report string and requires both current UTF-8 and legacy UTF-16 restore to
-allocate no more than `12,582,912` current-thread bytes. This is a steady-state
-allocation ceiling, not a retained-memory or startup-latency measurement.
+The warmed 4 MiB current-format history observation allocated `25,227,920` bytes before this slice. The committed regression preserves the complete report string and requires both
+current UTF-8 and legacy UTF-16 restore to allocate no more than `12,582,912` current-thread bytes. This is a steady-state allocation ceiling, not a retained-memory or startup-latency measurement.
 
-The same opened snapshot shares delete but never write. A deterministic
-Windows-target regression keeps the old reader open while async atomic save
-publishes the latest path, then proves that the reader contains only the old
-complete snapshot, a subsequent load contains only the latest snapshot, and
-no temporary file remains. Deserialization completes before the handle closes;
-schema projection begins afterward. Missing, malformed, oversized and valid
-unsupported-schema inputs still use the best-effort fallback. Five BOM
-encodings, the held-reader replacement, focused local persistence `14/14`,
-full UI `237/237`, Architecture `94/94`, Polytail, and independent R2 UI and
-architecture review pass with no P0-P3 finding. Local schema, latest-wins
-persistence, dispatcher ownership, report content, and firmware behavior are
-unchanged. The exact packaged 12-entry cold-start and working-set rows remain
-open in the Windows manual gate.
+The same opened snapshot shares delete but never write. A deterministic Windows-target regression keeps the old reader open while async atomic save publishes the latest path, then proves that
+the reader contains only the old complete snapshot, a subsequent load contains only the latest snapshot, and no temporary file remains. Deserialization completes before the handle closes;
+schema projection begins afterward. Missing, malformed, oversized and valid unsupported-schema inputs still use the best-effort fallback. Five BOM encodings, the held-reader replacement,
+focused local persistence `14/14`, full UI `237/237`, Architecture `94/94`, Polytail, and independent R2 UI and architecture review pass with no P0-P3 finding. Local schema, latest-wins persistence,
+dispatcher ownership, report content, and firmware behavior are unchanged. The exact packaged 12-entry cold-start and working-set rows remain open in the Windows manual gate.
 
 ## Pinned catalog discovery baseline
 
