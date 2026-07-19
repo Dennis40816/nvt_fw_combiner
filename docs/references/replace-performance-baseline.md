@@ -82,6 +82,15 @@ Insert, delete, changed-range, viewport, undo/redo, and search cache behavior
 remain locked. Final packaged 8 MiB load/edit/search latency and process
 working set remain in the Windows manual gate.
 
+Commit `725dc041` removes another full-document scan after a structural edit
+when working and original lengths are unequal, because the length difference
+already proves dirty state. Overwrites in that unequal-length state also avoid
+the scan; when a later insert/delete restores equal length, the complete source
+identity/value comparison still runs. The 1 MiB insert one-sample observation
+changes from `13.007` to `3.151` ms (`75.8%`). This is not a universal timing
+claim; exact dirty, insert/delete, undo/redo, and equal-length restoration
+behavior remains the executable gate.
+
 ## Fragmented report microbaseline
 
 `CompositionReportPerformanceBaselineTests` executes one real Application
