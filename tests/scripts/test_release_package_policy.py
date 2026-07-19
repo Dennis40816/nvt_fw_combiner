@@ -42,10 +42,26 @@ def normalize_console_output(output: str) -> str:
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
 
-    def test_packager_cleans_publish_state_and_smoke_requires_window(self) -> None:
+    def test_packager_restores_then_cleans_and_smoke_requires_window(self) -> None:
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
         smoke_script = SMOKE_SCRIPT.read_text(encoding="utf-8")
 
+        restore_index = package_script.index(
+            "& $DotNet restore $AppProject -r win-x64"
+        )
+        clean_index = package_script.index(
+            "& $DotNet clean $AppProject -c Release -r win-x64"
+        )
+        publish_index = package_script.index(
+            "& $DotNet publish $AppProject -c Release -r win-x64"
+        )
+        self.assertLess(restore_index, clean_index)
+        self.assertLess(clean_index, publish_index)
+        self.assertIn(
+            "Restore-SourcePackageLocks -Snapshots $SourcePackageLockSnapshots",
+            package_script,
+        )
+        self.assertIn("finally {", package_script)
         self.assertIn("& $DotNet clean $AppProject -c Release -r win-x64", package_script)
         self.assertIn("$application.MainWindowHandle -eq 0", smoke_script)
         self.assertIn("$application.Responding", smoke_script)

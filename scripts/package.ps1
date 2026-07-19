@@ -765,19 +765,27 @@ Remove-Item -LiteralPath $ReleaseRoot, $WorkRoot -Recurse -Force -ErrorAction Si
 New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $WorkerBuild, $WorkerDist | Out-Null
 
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj'
-& $DotNet clean $AppProject -c Release -r win-x64
-if ($LASTEXITCODE -ne 0) { throw 'dotnet clean failed before publish.' }
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
-& $DotNet publish $AppProject -c Release -r win-x64 --self-contained true `
-    -p:Version=$SemanticVersion `
-    -p:PublishSingleFile=true `
-    -p:PublishTrimmed=false `
-    -p:IncludeNativeLibrariesForSelfExtract=true `
-    -p:DebugType=None `
-    -p:DebugSymbols=false `
-    -o $AppPublish
-$PublishExitCode = $LASTEXITCODE
-Restore-SourcePackageLocks -Snapshots $SourcePackageLockSnapshots
+try {
+    & $DotNet restore $AppProject -r win-x64
+    if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed before clean publish.' }
+
+    & $DotNet clean $AppProject -c Release -r win-x64
+    if ($LASTEXITCODE -ne 0) { throw 'dotnet clean failed before publish.' }
+
+    & $DotNet publish $AppProject -c Release -r win-x64 --self-contained true --no-restore `
+        -p:Version=$SemanticVersion `
+        -p:PublishSingleFile=true `
+        -p:PublishTrimmed=false `
+        -p:IncludeNativeLibrariesForSelfExtract=true `
+        -p:DebugType=None `
+        -p:DebugSymbols=false `
+        -o $AppPublish
+    $PublishExitCode = $LASTEXITCODE
+}
+finally {
+    Restore-SourcePackageLocks -Snapshots $SourcePackageLockSnapshots
+}
 if ($PublishExitCode -ne 0) { throw 'dotnet publish failed.' }
 
 $PublishedApp = Join-Path $AppPublish 'NvtFwCombiner.Presentation.Avalonia.exe'
