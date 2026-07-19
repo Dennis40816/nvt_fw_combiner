@@ -3,8 +3,9 @@
 ## Purpose
 
 The canonical golden inventory is repository test evidence, not a runtime support catalog. It gives
-every direct firmware golden one physical location and represents owner-approved reuse as an explicit
-fact-scoped alias without copying payloads or presenting an alias as a direct product golden.
+every direct firmware golden one physical location, preserves owner-approved immutable input evidence
+without inventing an expected output, and represents owner-approved reuse as an explicit fact-scoped
+alias without copying payloads or presenting an alias as a direct product golden.
 
 ## Root manifest
 
@@ -34,17 +35,23 @@ under the canonical root. The manifest facts must reproduce the same path. IC va
 workflows are `standard-merge`, `ab-merge`, `dp-replace`, or `ctrlram-replace`; topology is `single`,
 `cascade-<count>`, or `topology-unscoped`. Variant and case identifiers are stable lowercase slugs.
 
-A direct case declares `directGolden: true` and at least one immutable input plus one expected output.
+A direct golden declares `directGolden: true` and at least one immutable input plus one expected output.
 Every artifact declares a case-unique `artifactId`, role, canonical path, non-negative JSON integer
 byte size, lowercase SHA-256,
 and one or more pre-migration `legacyPaths`. Input, expected, and provenance artifacts stay below
 the corresponding case subtree; nested source groups such as `inputs/NF/` remain confined there.
 Expected bytes are never regenerated during layout migration.
 
-An alias case declares `directGolden: false`, has no physical artifacts, and declares a direct
-`sourceCaseId`, non-empty `factScope`, and non-empty `evidenceRefs`. Alias chains are forbidden: the
-source must be a direct case. The alias directory contains only its provenance manifest, so consumers
-cannot mistake alias evidence for a second expected BIN.
+A direct input-evidence case declares `directGolden: false` and `directEvidence: true`. It contains
+one or more immutable input artifacts but cannot declare an expected artifact. This represents
+owner-approved base, replacement, or processor inputs whose execution facts are useful without
+mislabeling a repository-derived output as an owner expected golden.
+
+An alias case declares `directGolden: false`, omits `directEvidence` or declares it as `false`, has no
+physical artifacts, and declares a direct `sourceCaseId`, non-empty `factScope`, and non-empty
+`evidenceRefs`. Alias chains and cross-workflow aliases are forbidden: the source must be a physical
+direct golden or direct input-evidence case in the same workflow. The alias directory contains only
+its provenance manifest, so consumers cannot mistake alias evidence for a second expected BIN.
 
 ## Diagnostics and release boundary
 

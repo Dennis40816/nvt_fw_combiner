@@ -117,7 +117,7 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         release_case = {
             "caseId": self.case_manifest["caseId"],
             "manifestPath": self.root_manifest["cases"][0]["manifestPath"],
-            "directGolden": True,
+            "directGolden": self.case_manifest["directGolden"],
             "artifacts": [
                 {
                     "artifactId": artifact["artifactId"],
@@ -151,14 +151,27 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
     def rewrite_root(self) -> None:
         self.write_json(self.canonical / "manifest.json", self.root_manifest)
 
-    def add_alias(self, source_case_id: str) -> Path:
-        alias_id = "nt51917-standard-merge-gen-flash-alias"
+    def convert_direct_golden_to_input_evidence(self) -> None:
+        expected_path = self.case_directory / "expected/flash.bin"
+        expected_path.unlink()
+        expected_path.parent.rmdir()
+        self.case_manifest["directGolden"] = False
+        self.case_manifest["directEvidence"] = True
+        self.case_manifest["artifacts"] = [self.case_manifest["artifacts"][0]]
+        self.rewrite_case()
+
+    def add_alias(
+        self,
+        source_case_id: str,
+        workflow: str = "standard-merge",
+    ) -> Path:
+        alias_id = f"nt51917-{workflow}-gen-flash-alias"
         alias_directory = self.canonical / (
-            "NT51917/standard-merge/gen-flash/topology-unscoped/" + alias_id
+            f"NT51917/{workflow}/gen-flash/topology-unscoped/" + alias_id
         )
         alias_directory.mkdir(parents=True)
         alias_manifest_path = (
-            "NT51917/standard-merge/gen-flash/topology-unscoped/"
+            f"NT51917/{workflow}/gen-flash/topology-unscoped/"
             f"{alias_id}/provenance/case.json"
         )
         alias_provenance = alias_directory / "provenance"
@@ -169,7 +182,7 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
                 "schemaVersion": "1.0",
                 "caseId": alias_id,
                 "ic": "NT51917",
-                "workflow": "standard-merge",
+                "workflow": workflow,
                 "variantOrVersion": "gen-flash",
                 "topology": "topology-unscoped",
                 "directGolden": False,
@@ -190,6 +203,28 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
     def test_accepts_hash_pinned_direct_case(self) -> None:
         self.assertEqual([], self.validate())
+
+    def test_accepts_hash_pinned_direct_input_evidence_without_expected(self) -> None:
+        self.convert_direct_golden_to_input_evidence()
+
+        self.assertEqual([], self.validate())
+
+    def test_accepts_alias_to_direct_input_evidence(self) -> None:
+        self.convert_direct_golden_to_input_evidence()
+        self.add_alias("nt51927-standard-merge-gen-flash")
+
+        self.assertEqual([], self.validate())
+
+    def test_rejects_cross_workflow_alias_to_direct_input_evidence(self) -> None:
+        self.convert_direct_golden_to_input_evidence()
+        self.add_alias(
+            "nt51927-standard-merge-gen-flash",
+            workflow="ctrlram-replace",
+        )
+
+        errors = self.validate()
+
+        self.assertTrue(any("workflow must match" in error for error in errors))
 
     def test_accepts_one_case_binding_one_payload_to_multiple_logical_roles(self) -> None:
         shared_input = dict(self.case_manifest["artifacts"][0])
@@ -236,6 +271,15 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
     def test_accepts_explicit_standard_merge_release_artifact_facts(self) -> None:
         self.assertEqual([], self.validate_release_allowlist())
+
+    def test_rejects_release_selection_of_direct_input_evidence(self) -> None:
+        self.convert_direct_golden_to_input_evidence()
+
+        errors = self.validate_release_allowlist()
+
+        self.assertTrue(
+            any("cannot select direct input evidence" in error for error in errors)
+        )
 
     def test_rejects_release_artifact_hash_drift(self) -> None:
         self.validate_release_allowlist()
@@ -384,6 +428,44 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
         self.assertTrue(any("requires input and expected" in error for error in errors))
 
+    def test_rejects_direct_input_evidence_with_expected_role(self) -> None:
+        self.case_manifest["directGolden"] = False
+        self.case_manifest["directEvidence"] = True
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("cannot declare an expected artifact" in error for error in errors)
+        )
+
+    def test_rejects_direct_input_evidence_without_input_role(self) -> None:
+        self.case_manifest["directGolden"] = False
+        self.case_manifest["directEvidence"] = True
+        self.case_manifest["artifacts"] = [self.case_manifest["artifacts"][1]]
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("requires input artifacts" in error for error in errors))
+
+    def test_rejects_case_marked_as_direct_golden_and_direct_evidence(self) -> None:
+        self.case_manifest["directEvidence"] = True
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("cannot be both" in error for error in errors))
+
+    def test_rejects_non_boolean_direct_evidence(self) -> None:
+        self.case_manifest["directGolden"] = False
+        self.case_manifest["directEvidence"] = "true"
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("must be a boolean" in error for error in errors))
+
     def test_rejects_diagnostic_path_as_canonical_artifact(self) -> None:
         self.case_manifest["artifacts"][0]["path"] = (
             "testdata/diagnostics/golden-evidence/payload.bin"
@@ -429,7 +511,10 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         errors = self.validate()
 
         self.assertTrue(
-            any("must reference a direct canonical case" in error for error in errors)
+            any(
+                "must reference a direct canonical evidence case" in error
+                for error in errors
+            )
         )
 
     def test_rejects_alias_with_physical_artifacts(self) -> None:

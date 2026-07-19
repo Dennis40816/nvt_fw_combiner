@@ -19,15 +19,22 @@ public static class CanonicalGoldenTestData
     /// </summary>
     public static JsonDocument LoadDirectWorkflowManifest(string workflow)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(workflow);
+        return LoadDirectWorkflowManifest(workflow, Root);
+    }
 
-        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "manifest.json")));
+    /// <summary>Loads direct cases from an explicit canonical root for focused contract tests.</summary>
+    public static JsonDocument LoadDirectWorkflowManifest(string workflow, string root)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workflow);
+        ArgumentException.ThrowIfNullOrWhiteSpace(root);
+
+        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "manifest.json")));
         var cases = new JsonArray();
         foreach (JsonElement entry in inventory.RootElement.GetProperty("cases").EnumerateArray())
         {
             string manifestPath = entry.GetProperty("manifestPath").GetString()!;
             using var document = JsonDocument.Parse(
-                File.ReadAllText(RepositoryPaths.PathFromRelative(Root, manifestPath)));
+                File.ReadAllText(RepositoryPaths.PathFromRelative(root, manifestPath)));
             JsonElement goldenCase = document.RootElement;
             if (!goldenCase.GetProperty("directGolden").GetBoolean() ||
                 !StringComparer.Ordinal.Equals(goldenCase.GetProperty("workflow").GetString(), workflow))
@@ -35,7 +42,7 @@ public static class CanonicalGoldenTestData
                 continue;
             }
 
-            cases.Add(ProjectDirectCase(goldenCase));
+            cases.Add(ProjectDirectCase(goldenCase, root));
         }
 
         return JsonDocument.Parse(new JsonObject { ["cases"] = cases }.ToJsonString());
@@ -44,10 +51,17 @@ public static class CanonicalGoldenTestData
     /// <summary>Loads one raw direct canonical case after validating all physical artifacts.</summary>
     public static JsonElement LoadDirectCase(string workflow, string caseId)
     {
+        return LoadDirectCase(workflow, caseId, Root);
+    }
+
+    /// <summary>Loads one direct case from an explicit canonical root for focused contract tests.</summary>
+    public static JsonElement LoadDirectCase(string workflow, string caseId, string root)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(workflow);
         ArgumentException.ThrowIfNullOrWhiteSpace(caseId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(root);
 
-        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "manifest.json")));
+        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "manifest.json")));
         foreach (JsonElement entry in inventory.RootElement.GetProperty("cases").EnumerateArray())
         {
             if (!StringComparer.Ordinal.Equals(entry.GetProperty("caseId").GetString(), caseId))
@@ -57,7 +71,7 @@ public static class CanonicalGoldenTestData
 
             string manifestPath = entry.GetProperty("manifestPath").GetString()!;
             using var document = JsonDocument.Parse(
-                File.ReadAllText(RepositoryPaths.PathFromRelative(Root, manifestPath)));
+                File.ReadAllText(RepositoryPaths.PathFromRelative(root, manifestPath)));
             JsonElement goldenCase = document.RootElement;
             if (!goldenCase.GetProperty("directGolden").GetBoolean() ||
                 !StringComparer.Ordinal.Equals(goldenCase.GetProperty("workflow").GetString(), workflow))
@@ -68,7 +82,7 @@ public static class CanonicalGoldenTestData
 
             foreach (JsonElement artifact in goldenCase.GetProperty("artifacts").EnumerateArray())
             {
-                _ = ValidatedArtifactPath(artifact);
+                _ = ValidatedArtifactPath(artifact, root);
             }
 
             return goldenCase.Clone();
@@ -80,16 +94,23 @@ public static class CanonicalGoldenTestData
     /// <summary>Loads fact-scoped aliases for one workflow and resolves each direct source IC.</summary>
     public static IReadOnlyList<CanonicalGoldenAlias> LoadWorkflowAliases(string workflow)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(workflow);
+        return LoadWorkflowAliases(workflow, Root);
+    }
 
-        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "manifest.json")));
+    /// <summary>Loads aliases from an explicit canonical root for focused contract tests.</summary>
+    public static IReadOnlyList<CanonicalGoldenAlias> LoadWorkflowAliases(string workflow, string root)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workflow);
+        ArgumentException.ThrowIfNullOrWhiteSpace(root);
+
+        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "manifest.json")));
         var directCases = new Dictionary<string, string>(StringComparer.Ordinal);
         var aliases = new List<(string CaseId, string Ic, string SourceCaseId)>();
         foreach (JsonElement entry in inventory.RootElement.GetProperty("cases").EnumerateArray())
         {
             string manifestPath = entry.GetProperty("manifestPath").GetString()!;
             using var document = JsonDocument.Parse(
-                File.ReadAllText(RepositoryPaths.PathFromRelative(Root, manifestPath)));
+                File.ReadAllText(RepositoryPaths.PathFromRelative(root, manifestPath)));
             JsonElement goldenCase = document.RootElement;
             if (!StringComparer.Ordinal.Equals(goldenCase.GetProperty("workflow").GetString(), workflow))
             {
@@ -98,7 +119,9 @@ public static class CanonicalGoldenTestData
 
             string caseId = goldenCase.GetProperty("caseId").GetString()!;
             string ic = goldenCase.GetProperty("ic").GetString()!;
-            if (goldenCase.GetProperty("directGolden").GetBoolean())
+            if (goldenCase.GetProperty("directGolden").GetBoolean() ||
+                (goldenCase.TryGetProperty("directEvidence", out JsonElement directEvidence) &&
+                    directEvidence.ValueKind == JsonValueKind.True))
             {
                 directCases.Add(caseId, ic);
             }
@@ -147,7 +170,12 @@ public static class CanonicalGoldenTestData
 
     private static string ValidatedArtifactPath(JsonElement artifact)
     {
-        string path = RepositoryPaths.ManifestPath(Root, artifact);
+        return ValidatedArtifactPath(artifact, Root);
+    }
+
+    private static string ValidatedArtifactPath(JsonElement artifact, string root)
+    {
+        string path = RepositoryPaths.ManifestPath(root, artifact);
         var file = new FileInfo(path);
         if (file.Length != artifact.GetProperty("size").GetInt64())
         {
@@ -161,14 +189,14 @@ public static class CanonicalGoldenTestData
             : path;
     }
 
-    private static JsonObject ProjectDirectCase(JsonElement goldenCase)
+    private static JsonObject ProjectDirectCase(JsonElement goldenCase, string root)
     {
         var inputs = new JsonObject();
         JsonObject? expected = null;
         foreach (JsonElement artifact in goldenCase.GetProperty("artifacts").EnumerateArray())
         {
             string role = artifact.GetProperty("role").GetString()!;
-            JsonObject projection = ProjectArtifact(artifact);
+            JsonObject projection = ProjectArtifact(artifact, root);
             if (StringComparer.Ordinal.Equals(role, "input"))
             {
                 inputs.Add(artifact.GetProperty("artifactId").GetString()!, projection);
@@ -196,9 +224,9 @@ public static class CanonicalGoldenTestData
         };
     }
 
-    private static JsonObject ProjectArtifact(JsonElement artifact)
+    private static JsonObject ProjectArtifact(JsonElement artifact, string root)
     {
-        _ = ValidatedArtifactPath(artifact);
+        _ = ValidatedArtifactPath(artifact, root);
         return new JsonObject
         {
             ["path"] = artifact.GetProperty("path").GetString(),

@@ -265,8 +265,9 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
         return
 
     declared_files = set(ROOT_FILES)
-    direct_case_ids: set[str] = set()
-    alias_sources: list[tuple[str, str]] = []
+    direct_source_case_ids: set[str] = set()
+    alias_sources: list[tuple[str, str, str]] = []
+    direct_source_workflows: dict[str, str] = {}
     case_ids: set[str] = set()
     for index, entry in enumerate(case_entries):
         entry_label = f"canonical cases[{index}]"
@@ -313,11 +314,22 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
         if not isinstance(direct, bool):
             errors.append(f"{label} must declare boolean directGolden")
             continue
-        if direct:
-            direct_case_ids.add(case_id)
+        direct_evidence = case.get("directEvidence", False)
+        if not isinstance(direct_evidence, bool):
+            errors.append(f"{label} directEvidence must be a boolean when declared")
+            continue
+        if direct and direct_evidence:
+            errors.append(f"{label} cannot be both a direct golden and direct evidence")
+            continue
+        if direct or direct_evidence:
+            direct_source_case_ids.add(case_id)
+            workflow = case.get("workflow")
+            if isinstance(workflow, str):
+                direct_source_workflows[case_id] = workflow
             artifacts = case.get("artifacts")
             if not isinstance(artifacts, list) or not artifacts:
-                errors.append(f"{label} direct golden must contain artifacts")
+                kind = "direct golden" if direct else "direct evidence"
+                errors.append(f"{label} {kind} must contain artifacts")
                 continue
             artifact_ids: set[str] = set()
             roles: list[str] = []
@@ -332,12 +344,18 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                     roles,
                     errors,
                 )
-            if "input" not in roles or "expected" not in roles:
+            if direct and ("input" not in roles or "expected" not in roles):
                 errors.append(
                     f"{label} direct golden requires input and expected artifacts"
                 )
+            if direct_evidence and "input" not in roles:
+                errors.append(f"{label} direct evidence requires input artifacts")
+            if direct_evidence and "expected" in roles:
+                errors.append(
+                    f"{label} direct evidence cannot declare an expected artifact"
+                )
             if "alias" in case:
-                errors.append(f"{label} direct golden cannot declare alias")
+                errors.append(f"{label} direct case cannot declare alias")
         else:
             if case.get("artifacts") not in (None, []):
                 errors.append(f"{label} alias case cannot contain physical artifacts")
@@ -367,12 +385,19 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                     f"{label}.alias evidenceRefs must be a non-empty string array"
                 )
             if source_case_id is not None:
-                alias_sources.append((case_id, source_case_id))
+                workflow = case.get("workflow")
+                if isinstance(workflow, str):
+                    alias_sources.append((case_id, workflow, source_case_id))
 
-    for alias_case_id, source_case_id in alias_sources:
-        if source_case_id not in direct_case_ids:
+    for alias_case_id, alias_workflow, source_case_id in alias_sources:
+        if source_case_id not in direct_source_case_ids:
             errors.append(
-                f"canonical alias {alias_case_id} must reference a direct canonical case: "
+                f"canonical alias {alias_case_id} must reference a direct canonical evidence case: "
+                f"{source_case_id}"
+            )
+        elif direct_source_workflows.get(source_case_id) != alias_workflow:
+            errors.append(
+                f"canonical alias {alias_case_id} workflow must match direct source "
                 f"{source_case_id}"
             )
 
@@ -466,6 +491,8 @@ def validate_standard_merge_release_allowlist(
             continue
         if case.get("workflow") != "standard-merge":
             errors.append(f"{label} selects a non-Standard Merge case")
+        if case.get("directEvidence") is True:
+            errors.append(f"{label} cannot select direct input evidence for release")
         release_direct = release_case.get("directGolden")
         canonical_direct = case.get("directGolden")
         if type(release_direct) is not bool:
