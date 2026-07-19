@@ -191,7 +191,7 @@ public sealed partial class CompositionRunService
             CompositionRunReport failedReport = CreateReport(
                 request,
                 previewRequired,
-                new Dictionary<string, byte[]>(StringComparer.Ordinal),
+                [],
                 [],
                 startedAtUtc,
                 failedAtUtc,
@@ -237,13 +237,19 @@ public sealed partial class CompositionRunService
         {
             finalOutputValidations = CreateSkippedFinalOutputValidations(request.CompiledComposition);
         }
+        OutputDifferenceSummary[] outputDifferences = [
+            .. CreateOutputDifferences(request, execution, boundInputs.InputBytes, execution.OutputBytes),
+        ];
         List<CompositionIssue> runIssues = [
             .. finalOutputValidations
                 .Where(static evaluation => evaluation.Issue is not null)
                 .Select(static evaluation => evaluation.Issue!),
+            .. CreateOutputDifferenceIssues(outputDifferences),
         ];
         bool finalOutputAccepted = !finalOutputValidations.Any(static evaluation => evaluation.BlocksPublication);
-        CompositionExecutionStatus runStatus = execution.Status == CompositionExecutionStatus.Succeeded && finalOutputAccepted
+        bool outputDifferencesAccepted = outputDifferences.All(static difference => difference.IsAccepted);
+        CompositionExecutionStatus runStatus = execution.Status == CompositionExecutionStatus.Succeeded &&
+            finalOutputAccepted && outputDifferencesAccepted
             ? CompositionExecutionStatus.Succeeded
             : CompositionExecutionStatus.Failed;
         string? previewToken = runStatus == CompositionExecutionStatus.Succeeded
@@ -275,8 +281,8 @@ public sealed partial class CompositionRunService
         CompositionRunReport report = CreateReport(
             request,
             execution,
-            boundInputs.InputBytes,
             boundInputs.InputSummaries,
+            outputDifferences,
             startedAtUtc,
             completedAtUtc,
             committedOutputId is not null,

@@ -10,8 +10,8 @@ public sealed partial class CompositionRunService
     private static CompositionRunReport CreateReport(
         CompositionRunRequest request,
         CompositionExecutionResult execution,
-        IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
+        IReadOnlyList<OutputDifferenceSummary> outputDifferences,
         DateTimeOffset startedAtUtc,
         DateTimeOffset completedAtUtc,
         bool committed,
@@ -47,13 +47,9 @@ public sealed partial class CompositionRunService
         MutationRunSummary[] mutations = [
             .. execution.Mutations.Select(ToMutationSummary),
         ];
-        OutputDifferenceSummary[] outputDifferences = [
-            .. CreateOutputDifferences(request, execution, inputBytes, outputBytes),
-        ];
         CompositionIssue[] issues = [
             .. execution.Issues,
             .. additionalIssues ?? [],
-            .. CreateOutputDifferenceIssues(outputDifferences),
         ];
 
         return new CompositionRunReport(

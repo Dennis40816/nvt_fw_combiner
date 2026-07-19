@@ -205,4 +205,23 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompositionOutputValidator", bootstrapSources, StringComparison.Ordinal);
         Assert.DoesNotContain("ValidateCtrlRamFirmwareVersionOutput", bootstrapSources, StringComparison.Ordinal);
     }
+
+    /// <summary>Unexpected Replace differences become run errors before any output commit is attempted.</summary>
+    [Fact]
+    public void OutputDifferenceVerdictPrecedesTheCommitGate()
+    {
+        string root = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.cs");
+        string reports = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs");
+        int differences = root.IndexOf("OutputDifferenceSummary[] outputDifferences", StringComparison.Ordinal);
+        int verdict = root.IndexOf("bool outputDifferencesAccepted", StringComparison.Ordinal);
+        int runStatus = root.IndexOf("CompositionExecutionStatus runStatus", StringComparison.Ordinal);
+        int commit = root.IndexOf(".CommitAsync(request.OutputFileName", StringComparison.Ordinal);
+
+        Assert.True(differences >= 0 && differences < verdict && verdict < runStatus && runStatus < commit);
+        Assert.Contains("CreateOutputDifferenceIssues(outputDifferences)", root, StringComparison.Ordinal);
+        Assert.Contains("outputDifferences.All(static difference => difference.IsAccepted)", root, StringComparison.Ordinal);
+        Assert.Contains("finalOutputAccepted && outputDifferencesAccepted", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateOutputDifferences(request", reports, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateOutputDifferenceIssues(outputDifferences)", reports, StringComparison.Ordinal);
+    }
 }
