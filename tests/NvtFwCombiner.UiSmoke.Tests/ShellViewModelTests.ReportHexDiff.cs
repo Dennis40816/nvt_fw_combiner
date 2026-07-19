@@ -11,7 +11,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ReportHexDiffUsesVerifiedSessionSnapshotWithoutPersistingBytes()
     {
-        WorkbenchRunResult result = await CreateGeneralReplaceInspectionResultAsync();
+        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
         var report = ReportReviewViewModel.FromJsonCancellable(
             result.ReportJson,
             "preview report",
@@ -122,7 +122,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ReportHexDiffRejectsUnverifiedSnapshotAndRangeIdentity()
     {
-        WorkbenchRunResult result = await CreateGeneralReplaceInspectionResultAsync();
+        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
         using var source = JsonDocument.Parse(result.ReportJson);
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         (string Name, string Json)[] invalidReports =
@@ -198,7 +198,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ReportHexDiffKeepsLargeRangeNavigationBounded()
     {
-        WorkbenchRunResult result = await CreateGeneralReplaceInspectionResultAsync();
+        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
         using var source = JsonDocument.Parse(result.ReportJson);
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(
@@ -321,23 +321,26 @@ public sealed partial class ShellViewModelTests
         return pageSelectionCount + (hexDiff.PinnedSelectedRange?.IsSelected == true ? 1 : 0);
     }
 
-    private static async Task<WorkbenchRunResult> CreateGeneralReplaceInspectionResultAsync()
+    private static async Task<WorkbenchRunResult> CreateDpReplaceInspectionResultAsync()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-report-hex-diff");
         byte[] baseBytes = CreatePattern(0x40000, 0x51);
+        byte[] replacementBytes = (byte[])baseBytes.Clone();
+        replacementBytes[0x100] = 0xA5;
+        replacementBytes[0x101] = 0x5A;
         string basePath = workspace.Write("base.bin", baseBytes);
-        string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
+        string replacementPath = workspace.Write("replacement.bin", replacementBytes);
         var paths = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["replace-base"] = basePath,
+            ["replace-dp"] = replacementPath,
         };
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51950",
             "single",
-            "General",
+            "DP",
             paths,
-            [new WorkbenchGeneralReplaceMappingInput("general-map-1", replacementPath, "0x00100", "0x00101")],
             build: false,
             TestContext.Current.CancellationToken);
         Assert.True(result.Succeeded, result.ReportJson);

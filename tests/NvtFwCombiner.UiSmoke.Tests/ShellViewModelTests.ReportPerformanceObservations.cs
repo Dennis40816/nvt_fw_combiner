@@ -12,7 +12,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ReportHexDiffEmitsColdWarmProjectionAndJumpObservations()
     {
-        WorkbenchRunResult result = await CreateGeneralReplaceInspectionResultAsync();
+        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
         using var source = JsonDocument.Parse(result.ReportJson);
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(

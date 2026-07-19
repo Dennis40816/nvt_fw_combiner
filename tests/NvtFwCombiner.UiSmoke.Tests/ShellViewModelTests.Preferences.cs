@@ -43,7 +43,8 @@ public sealed partial class ShellViewModelTests
             Assert.Equal("Dark", entry.GetProperty("Theme").GetString());
             Assert.Equal("Strict", entry.GetProperty("Strictness").GetString());
             Assert.Equal("Traditional Chinese", entry.GetProperty("Language").GetString());
-            Assert.Equal(3, entry.EnumerateObject().Count());
+            Assert.True(entry.GetProperty("IsReducedMotionEnabled").GetBoolean());
+            Assert.Equal(4, entry.EnumerateObject().Count());
         }
 
         ShellPreferenceSnapshot loaded = ShellPreferenceFileStore.Load(preferencesPath);
