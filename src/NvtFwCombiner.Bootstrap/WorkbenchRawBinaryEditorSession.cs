@@ -12,6 +12,7 @@ public sealed class WorkbenchRawBinaryEditorSession
     private readonly RawBinaryEditorSession _editor;
     private readonly Func<byte[], RawBinaryEditorState, string, long, CancellationToken, RawBinaryEditorSearchResult>
         _asciiSearch;
+    private AsciiSearchResultCache? _asciiSearchResultCache;
     private AsciiSearchSnapshot? _asciiSearchSnapshot;
     private int _asciiSearchSnapshotCaptureCount;
 
@@ -112,6 +113,12 @@ public sealed class WorkbenchRawBinaryEditorSession
                 Issue: new RawBinaryEditorIssue(RawBinaryEditorIssueCode.NoDocument));
         }
 
+        if (TryFindCachedAsciiResult(snapshot, text, startOffset, out RawBinaryEditorSearchResult cached))
+        {
+            ThrowIfAsciiSearchSnapshotInvalidated(snapshot);
+            return cached;
+        }
+
         RawBinaryEditorSearchResult result = await Task.Run(
             () =>
             {
@@ -120,7 +127,7 @@ public sealed class WorkbenchRawBinaryEditorSession
             },
             cancellationToken).ConfigureAwait(false);
         ThrowIfAsciiSearchSnapshotInvalidated(snapshot);
-        return result;
+        return CacheAsciiSearchResult(snapshot, text, result);
     }
 
     private AsciiSearchSnapshot? GetOrCreateAsciiSearchSnapshot(RawBinaryEditorState state)
@@ -138,6 +145,7 @@ public sealed class WorkbenchRawBinaryEditorSession
     private void InvalidateAsciiSearchSnapshot()
     {
         _asciiSearchSnapshot = null;
+        Volatile.Write(ref _asciiSearchResultCache, null);
     }
 
     private void ThrowIfAsciiSearchSnapshotInvalidated(AsciiSearchSnapshot snapshot)
@@ -148,7 +156,48 @@ public sealed class WorkbenchRawBinaryEditorSession
         }
     }
 
+    private bool TryFindCachedAsciiResult(
+        AsciiSearchSnapshot snapshot,
+        string text,
+        long startOffset,
+        out RawBinaryEditorSearchResult result)
+    {
+        result = null!;
+        AsciiSearchResultCache? cache = Volatile.Read(ref _asciiSearchResultCache);
+        return cache is not null &&
+            ReferenceEquals(cache.Snapshot, snapshot) &&
+            StringComparer.Ordinal.Equals(cache.Text, text) &&
+            RawBinaryEditorSearch.TrySelectFromAnchoredResult(cache.Result, startOffset, out result);
+    }
+
+    private RawBinaryEditorSearchResult CacheAsciiSearchResult(
+        AsciiSearchSnapshot snapshot,
+        string text,
+        RawBinaryEditorSearchResult result)
+    {
+        bool canAnchor = !result.Succeeded ||
+            (result.MatchIndex == 0 &&
+             result.Matches.Count > 0 &&
+             result.Matches[0] == result.SelectedAddress);
+        if (!canAnchor)
+        {
+            return result;
+        }
+
+        RawBinaryEditorSearchResult stable = result with
+        {
+            Matches = Array.AsReadOnly(result.Matches.ToArray()),
+        };
+        Volatile.Write(ref _asciiSearchResultCache, new AsciiSearchResultCache(text, snapshot, stable));
+        return stable;
+    }
+
     private sealed record AsciiSearchSnapshot(byte[] Bytes, RawBinaryEditorState State);
+
+    private sealed record AsciiSearchResultCache(
+        string Text,
+        AsciiSearchSnapshot Snapshot,
+        RawBinaryEditorSearchResult Result);
     /// <summary>
     /// Exports the current memory buffer through the atomic writer. The loaded source path is never
     /// a valid output target, and output files are never overwritten.
