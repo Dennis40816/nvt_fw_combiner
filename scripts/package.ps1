@@ -16,6 +16,9 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
+$DistributionOwner = 'MSP/FW3'
+$SourceIdentity = 'urn:msp-fw3:nvt-fw-combiner:source'
+$ReleaseNamespace = 'urn:msp-fw3:nvt-fw-combiner:release'
 $SourceTag = if ($Version.StartsWith('v', [StringComparison]::Ordinal)) { $Version } else { "v$Version" }
 $SemanticVersion = $SourceTag.Substring(1)
 $StableSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+$'
@@ -870,6 +873,7 @@ Copy-Item -LiteralPath (Join-Path $RepoRoot 'LICENSE') -Destination (Join-Path $
 Copy-Item -LiteralPath (Join-Path $RepoRoot 'THIRD_PARTY_NOTICES.md') -Destination (Join-Path $PackageRoot 'THIRD-PARTY-NOTICES.txt')
 @"
 NVT FW Combiner $SemanticVersion
+Distribution owner: $DistributionOwner
 
 Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
@@ -957,7 +961,7 @@ $Sbom = [ordered]@{
     dataLicense = 'CC0-1.0'
     SPDXID = 'SPDXRef-DOCUMENT'
     name = $PackageName
-    documentNamespace = "https://github.com/Dennis40816/nvt_fw_combiner/releases/download/$SourceTag/$SbomName"
+    documentNamespace = "$ReleaseNamespace/$SourceTag/$SbomName"
     creationInfo = [ordered]@{
         created = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
         creators = @('Tool: NVT-FW-Combiner-release-script')
@@ -992,7 +996,7 @@ $Provenance = [ordered]@{
     schemaVersion = '1.0'
     product = 'NVT FW Combiner'
     version = $SemanticVersion
-    sourceRepository = 'https://github.com/Dennis40816/nvt_fw_combiner'
+    sourceRepository = $SourceIdentity
     sourceCommit = $Commit
     sourceTag = $SourceTag
     builder = 'GitHub Actions / scripts/package.ps1'

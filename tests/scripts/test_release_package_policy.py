@@ -26,6 +26,9 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
 )
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
 MAXIMUM_PACKAGE_BYTES = 58_076_715
+PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
+DISTRIBUTION_OWNER = "MSP/FW3"
+SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
 ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
@@ -38,6 +41,33 @@ def normalize_console_output(output: str) -> str:
 
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
+
+    def test_distribution_metadata_uses_non_personal_owner_identity(self) -> None:
+        distribution_metadata_paths = (
+            ROOT / "LICENSE",
+            ROOT / "Directory.Build.props",
+            PACKAGE_SCRIPT,
+            ROOT / "docs/references/verification-report.md",
+        )
+
+        for metadata_path in distribution_metadata_paths:
+            metadata = metadata_path.read_text(encoding="utf-8")
+            self.assertNotIn(PERSONAL_OWNER_IDENTIFIER, metadata, metadata_path)
+
+        self.assertIn(
+            DISTRIBUTION_OWNER,
+            (ROOT / "LICENSE").read_text(encoding="utf-8"),
+        )
+        build_metadata = (ROOT / "Directory.Build.props").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(f"<Authors>{DISTRIBUTION_OWNER}</Authors>", build_metadata)
+        self.assertIn(
+            f"<RepositoryUrl>{SOURCE_IDENTITY}</RepositoryUrl>", build_metadata
+        )
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn(f"$DistributionOwner = '{DISTRIBUTION_OWNER}'", package_script)
+        self.assertIn(f"$SourceIdentity = '{SOURCE_IDENTITY}'", package_script)
 
     def test_external_tool_catalog_matches_packager_and_smoke_allowlists(self) -> None:
         catalog = json.loads(

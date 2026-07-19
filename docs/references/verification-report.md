@@ -108,7 +108,7 @@ The 0.9.1 release branch retains the documented legacy comparison and golden evi
 
 ## Bootstrap assertions
 
-- Repository identity is `Dennis40816/nvt_fw_combiner`, private, MIT.
+- Distribution owner identity is `MSP/FW3`; the private source is identified as `urn:msp-fw3:nvt-fw-combiner:source`, under MIT.
 - `global.json` pins .NET SDK `10.0.301` and installers consume that value.
 - Avalonia packages are centrally pinned to `12.0.5`.
 - Root `SPEC.md`, layered AGENTS, Codex configuration and nine skills are present.
