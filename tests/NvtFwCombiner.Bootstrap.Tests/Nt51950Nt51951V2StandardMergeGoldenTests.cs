@@ -20,19 +20,18 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
     {
         const string caseId = "nt51950-fw200-single-auto-prj-676-20260717";
         const string expectedSha256 = "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e";
-        string root = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifest = System.Text.Json.JsonDocument.Parse(
-            File.ReadAllText(Path.Combine(root, "manifest.20260717.json")));
+        string root = CanonicalGoldenTestData.Root;
+        System.Text.Json.JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            caseId);
         System.Text.Json.JsonElement[] payloads = [
-            .. manifest.RootElement.GetProperty("payloads").EnumerateArray()
-                .Where(entry => entry.TryGetProperty("caseId", out System.Text.Json.JsonElement value) &&
-                    StringComparer.Ordinal.Equals(value.GetString(), caseId)),
+            .. goldenCase.GetProperty("artifacts").EnumerateArray(),
         ];
         string PathForRole(string role)
         {
             System.Text.Json.JsonElement entry = Assert.Single(
                 payloads,
-                item => StringComparer.Ordinal.Equals(item.GetProperty("role").GetString(), role));
+                item => StringComparer.Ordinal.Equals(item.GetProperty("sourceRole").GetString(), role));
             return RepositoryPaths.ManifestPath(root, entry);
         }
 

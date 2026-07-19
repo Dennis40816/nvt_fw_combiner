@@ -102,7 +102,8 @@ Primary files:
 - `docs/references/ic-flashmap/IC_FlashMap_20260705.xlsx`
 - `testdata/golden/canonical/manifest.json`
 - `testdata/golden/ctrlram-replace/manifest.json`
-- `testdata/golden/ctrlram-replace/manifest.20260717.json`
+- `testdata/golden/ctrlram-replace/manifest.20260717.json` (remaining
+  diagnostics/cross-workflow duplicates only)
 
 Supporting notes:
 

@@ -351,12 +351,10 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
 
     private static OwnerCase ReadOwnerCase()
     {
-        string root = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "manifest.20260717.json")));
+        string root = CanonicalGoldenTestData.Root;
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
         OwnerArtifact[] artifacts = [
-            .. manifest.RootElement.GetProperty("payloads").EnumerateArray()
-                .Where(item => item.TryGetProperty("caseId", out JsonElement value) &&
-                    StringComparer.Ordinal.Equals(value.GetString(), CaseId))
+            .. goldenCase.GetProperty("artifacts").EnumerateArray()
                 .Select(item => ReadArtifact(root, item)),
         ];
         return new OwnerCase(
@@ -375,7 +373,7 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
         return new(
             entry.GetProperty("originalFileName").GetString()!,
             entry.GetProperty("path").GetString()!,
-            entry.GetProperty("role").GetString()!,
+            entry.GetProperty("sourceRole").GetString()!,
             path,
             bytes);
     }

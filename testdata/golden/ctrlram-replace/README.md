@@ -3,11 +3,12 @@
 This directory is reserved for owner-provided CtrlRAM Replace evidence.
 
 Owner-approved committed fixtures live under `fixtures/`. The original fixture
-set is listed by `manifest.json`; the 2026-07-17 intake remains listed by
-`manifest.20260717.json` until its migration slice completes. The final
-2026-07-18 direct cases now live only under `../canonical/`, where the repository
+set is listed by `manifest.json`. Nine direct 2026-07-17 cases and all final
+2026-07-18 direct cases now live under `../canonical/`, where the repository
 verifier checks every inventory, size, SHA-256 value, and exact-case relationship
-without promoting runtime support.
+without promoting runtime support. `manifest.20260717.json` now lists only the
+remaining diagnostic and cross-workflow duplicate artifacts pending their
+separate migration slice.
 
 Do not commit new private firmware BIN files by default. Put unapproved
 local/private payloads under `private/`, update `private/manifest.json` from

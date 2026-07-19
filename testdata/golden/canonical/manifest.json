@@ -35,6 +35,18 @@
       }
     },
     {
+      "legacyRoot": "testdata/golden/ctrlram-replace/fixtures/20260717",
+      "source": {
+        "fileName": "NVT_Golden_Evidence_v0.9.9_20260717.7z",
+        "sha256": "9027e9038f51c5421f922afdf73d1f16fc5f7dd582e23e25547727fda585205c",
+        "transfer": "HackMD CJK14 numbered-note transfer",
+        "recoveredAtTaipei": "2026-07-17T17:18:00+08:00",
+        "sourceClassification": "private-owner-approved-golden",
+        "approval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
+        "evidenceScope": "Nine direct CtrlRAM exact cases plus diagnostic evidence; canonicalization does not promote runtime support or release redistribution."
+      }
+    },
+    {
       "legacyRoot": "testdata/golden/ctrlram-replace/fixtures/20260718",
       "source": {
         "fileName": "Golden_最後一次_20260718_Reply.7z",
@@ -165,6 +177,42 @@
     {
       "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
       "manifestPath": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/provenance/case.json"
+    },
+    {
+      "caseId": "nt51920-fw120-single-auto-prj-72-20260717",
+      "manifestPath": "NT51920/ctrlram-replace/fw1.2.0/single/nt51920-fw120-single-auto-prj-72-20260717/provenance/case.json"
+    },
+    {
+      "caseId": "nt51920-fw120-cascade2-auto-prj-55-20260717",
+      "manifestPath": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/provenance/case.json"
+    },
+    {
+      "caseId": "nt51923-fw141-single-auto-prj-662-20260717",
+      "manifestPath": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/provenance/case.json"
+    },
+    {
+      "caseId": "nt51923-fw141-cascade3-auto-prj-734-20260717",
+      "manifestPath": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/provenance/case.json"
+    },
+    {
+      "caseId": "nt51926-fw141-single-auto-prj-747-20260717",
+      "manifestPath": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/provenance/case.json"
+    },
+    {
+      "caseId": "nt51926-fw141-cascade2-auto-prj-597-20260717",
+      "manifestPath": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/provenance/case.json"
+    },
+    {
+      "caseId": "nt51927-fw141-single-auto-prj-529-20260717",
+      "manifestPath": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/provenance/case.json"
+    },
+    {
+      "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+      "manifestPath": "NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/provenance/case.json"
+    },
+    {
+      "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
+      "manifestPath": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/provenance/case.json"
     }
   ]
 }
