@@ -33,7 +33,7 @@ removed budget. New partial aggregates may not exceed 2,500 lines.
 Owner decision, 2026-07-19: `v0.9.10` uses 60,000 nonblank production C#/AXAML
 lines as a hard ceiling rather than an exact descending total-source ratchet.
 Measured reductions below 60,000 do not require lowering that ceiling during
-the performance release. The final reconciled candidate at `c1f07ce5` measures
+the performance release. The stable-reconciled candidate at `6f3698dd` measures
 59,429 production lines. Its named partial aggregates are frozen as exact
 ratchets at 4,405 lines for `WorkbenchCompositionService` and 4,069 lines for
 `MainWindowViewModel`; the exact duplicate-JSON ratchet is 1,055 lines, and the

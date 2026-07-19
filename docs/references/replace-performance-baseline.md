@@ -1,12 +1,13 @@
 # v0.9.10 Replace Performance Baseline
 
-Status: deterministic orchestration/count baseline on the reviewed `v0.9.9`
+Status: deterministic orchestration/count baseline on the stable `v0.9.9`
 source line plus local fragmented-report, Hex Diff, allocation, and
-layout-neutral staging evidence. Path-independent component Node B/C replay and
-the final annotated-`v0.9.9` upstream report replay are recorded below; final
-physical-tool/golden-layout and packaged Windows evidence remain open.
+layout-neutral staging evidence. The final stable-predecessor report,
+physical-tool, golden-layout, output, argv, headless-window, and process-count
+replay is recorded below. Packaged Windows interaction evidence, required
+human review, canonical verification, CI, and publication remain open.
 
-Captured: 2026-07-18. Executable owner:
+Initial capture: 2026-07-18. Final stable capture: 2026-07-19. Executable owner:
 `tests/NvtFwCombiner.Bootstrap.Tests/CompositionRunExecutionMetricsTests.cs`.
 
 ## Purpose and boundary
@@ -626,72 +627,137 @@ support or golden claims. Final same-source node B/C uses:
 The 13-command case remains count/timing-only. General Replace contract tests
 do not substitute for an owner full-output golden.
 
-## Remaining node B/C record
+## Final stable-predecessor Node B/C capture
 
-Before and after results must use identical source, input/expected hashes,
-Legacy Combiner manifest hash, machine/runtime settings, warm-up policy, and
-run count. Record:
+The authoritative nodes are stable Node B
+`32c37e254271de507be49d0f5ef38faaa122dba6` and optimized Node C
+`6f3698ddeb0ec50a9ca46057af21e93bfbebd55f`. Annotated tag `v0.9.9`
+peels exactly to Node B. The 130-commit performance stack was replayed onto
+Node B with `git range-diff` reporting 130 equal patches, zero changed patches,
+zero old-only patches, and zero new-only patches.
 
-- cold/warm p50 and p95;
-- allocations, GC counts, and peak working set;
-- dispatcher heartbeat and click-to-first-step;
-- composition runs, artifact reads, processor sessions, launches, staging
-  metadata/full/selective reads and writes, and commits;
-- report discovery, hashing, creation, serialization, projection, history
-  capture/save/reopen/relocalization;
-- Hex Diff first bounded page and address-jump latency; and
-- output SHA, mutations, report facts, process-window behavior, cancellation,
-  and atomic-failure parity.
+Both nodes used separate detached worktrees and project-local Release
+`bin`/`obj` trees on Windows `10.0.26200`, .NET SDK `10.0.302`, and an Intel
+Core i9-10900F with 10 cores/20 logical processors. The active power plan was
+Ultimate Performance (`e9a42b02-d5df-448d-aa00-03f14749eb61`); the machine had
+no `Win32_Battery`. No `COR*`, `CORECLR*`, `DOTNET*`, `NVT*`, or `NFC*`
+feature/profiler environment variable was set. Recorded pairs ran B then C
+without concurrency. Each timing invocation created a fresh testhost; one
+exact-filter validation/warm-up per node was discarded before the ten report
+and physical-tool pairs. p50 is the average of the middle two sorted values;
+p95 is nearest-rank and therefore the observed maximum for ten samples.
 
-The layout-neutral Legacy Combiner runner now executes one private sequential
-pipeline with zero intermediate complete-file reads and one complete read after
-the final successful command. It retains process, artifact, staging-tree, and
-length gates after each launch. Only `MERGE_MODE` shortened-output handling
-captures a selective tail after the command's minimum declared coverage, then
-appends the exact predecessor tail if the tool actually shortens the file;
-other shortened command families fail closed. The final host diff still uses
-the pre-pipeline bytes and union of declared write ranges. Intermediate
-full-image values are not parity evidence.
+An initial concurrent physical-tool attempt was invalidated because identical
+fixed test run ids in separate testhosts contend for the same OS temporary
+staging path. Both nodes failed the same one case and passed the other 13. No
+result from that attempt is included; all authoritative captures are serial.
 
-The later predecessor reconciliation supplies the reviewed physical
-external-tool/golden layout and repeats the exact two-command golden plus
-13-command count/timing evidence. No final performance or release claim is made
-until that same-source B/C record, Polytail, architecture review, required
-golden and firmware-owner gates, and canonical verification are complete.
+The B/C evidence trees are byte-identical under `external-tools/`,
+`testdata/golden/`, and `testdata/public-synthetic/`. Important identities are:
 
-The layout-neutral counter surface executes two- and thirteen-command plans
-through the real Infrastructure processor with one sequential session and the
-exact launch count. A source audit locks one complete staging-file read in the
-pipeline, located at final import, and rejects a synchronous full-read
-substitute. Focused processor tests pass `26/26`; full Infrastructure passes
-`234/234` with two platform-specific skips; Architecture passes `93/93`; and
-the B0 harness plus both tracked NT51926 owner-golden-backed Legacy Combiner
-cases pass `9/9` on the current development layout. The golden run is
-development evidence only and must be repeated after the physical layout is
-reconciled. Independent R3 architecture review reports no P0/P1 finding and
-passes with the final firmware-owner, layout-reconciliation, Node B/C, and
-canonical-verification gates still mandatory.
+- external-tools catalog SHA-256
+  `0c9079ba73ffd35d8c91fd89c40f3b0d89a79e31035b9e3b5b2781e16bc5dac9`;
+- Legacy Combiner manifest SHA-256
+  `1c60badcc23fc5f3708d7cfb171a9a2e94c708a1aa257d0dac3efb7a20d96442`;
+- `Combiner.exe` 1.13.0 SHA-256
+  `ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf`;
+- canonical golden manifest SHA-256
+  `fb0fb411c99772335c2558d673963c1f017d28356e8d1d1d16d3af2a5d3afdc4`;
+- CtrlRAM manifest SHA-256
+  `b3bee909e571c742b215200fdd354dd2d77e9fca934fd4a8362a69134fbec3fc`;
+  and
+- DP oracle SHA-256
+  `5133fc02d06d048385f3de37089ab1fa0eed147bda9c5229c1b9ec6eaa0675ee`.
 
-External-processor discovery now has one explicit OS-process lifetime. The
-first applicable call performs the parent-root search, recursive manifest
-enumeration/parsing, registry construction, and router construction; concurrent
-and later calls receive the same immutable environment. The deterministic
-lifetime tests prove successful, unavailable, and invalid initialization each
-invoke their factory once. A missing root remains unavailable and an invalid
-manifest remains fail closed until process restart. A restart is the explicit
-refresh boundary for any tool/manifest layout change.
+The common DP and physical CtrlRAM filter passed `14/14` at each node. The
+public synthetic DP output hashes remained:
 
-This does not cache process results, staging state, or executable trust. Each
-transform still creates a private run directory and the resolver rechecks the
-selected executable's existence and SHA-256 against the retained manifest. No
-physical tool path is embedded. Focused lifetime plus current-layout NT51926
-owner-golden-backed tests pass `5/5`, and Architecture passes `94/94`. The
-unrelated profile-list regression expectation is reconciled at `2d227cb2` with
-the already registered NT51930 DP Replace row from annotated `v0.9.9`; the
-focused test passes `1/1`, full Bootstrap passes `465/465`, and Architecture
-passes `94/94`. The test blob exactly matches annotated `v0.9.9`, and
-independent review reports no P0-P3 finding. Final Node B/C records one
-discovery/manifest/registry build per process and repeats physical-layout parity
-after predecessor reconciliation. Independent R2 architecture review reports
-no P0/P1 finding and passes with the final Node B/C, reconciled-layout,
-domain-owner, and canonical-verification gates retained.
+| IC | Capacity | Replacement length | Output SHA-256 |
+| --- | ---: | ---: | --- |
+| NT51950 | 262,144 | 233,472 | `5093a639fea086e859781b29ddad7a29613d02e88a3c6d50bc9192612daaa1cb` |
+| NT51950 | 524,288 | 233,472 | `e90e1a1cbd0af91383aaf4b9eb7397a6bc1be9fdc04438322a600f8fd655941a` |
+| NT51950 | 1,048,576 | 233,472 | `378804ff71b9e59a99d7790caab1c889888f9d944ef9f54dfd6cf18ce10ff2e2` |
+| NT51951 | 262,144 | 233,472 | `c9ba97ef782cec37bc242d1686dce713995ac17d42b11fea10a30fdd9c32a232` |
+| NT51951 | 524,288 | 233,472 | `3db20990e379d0741fd719839375ba8be289e65ff145459c5b14e5673e7f7ee7` |
+| NT51951 | 1,048,576 | 233,472 | `7ff5bc0e87f493cc8bb83e9e54e56e958bf0ccac4e90728da9e11ee3c6343f73` |
+| NT51950 | 262,144 | 225,280 | `ceec21f2f1f061046f2866736a42e3e85c087ce75d55c8bd8e7282e0df5397e7` |
+| NT51951 | 524,288 | 225,281 | `1d2be3b544ba19215d6ae5e958ddb23123ff15c2bf9e8c6f446458f3ecbf35d8` |
+
+The NT51926 Common FW 1.4.1 cascade case used base SHA-256
+`9e5321fb7673736c6c52e61549e33347e3852488bd253088db7239d4d0f371fc`
+and VN replacement SHA-256
+`b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7`.
+Both nodes produced the complete 245,760-byte expected output SHA-256
+`f26b6366bc858a751bd0b7bc3be1b6a1ac6edfb4fa25b92b57bea140e193e13a`.
+The shared real-tool/headless filter passed `21/21` per node and the complete
+postbuild catalog/argv filter passed `33/33` per node. `CreateNoWindow=true`,
+shell execution disabled, command order, exact argv, two launches, immutable
+inputs, and the manifest-pinned executable therefore remain unchanged.
+
+The deterministic B0 surface passed `7/7` on Node C and locks output bytes,
+output SHA, mutations, validations, issues, processor argv, and commits while
+measuring orchestration counts:
+
+| Case | Node B retained sequence | Node C authoritative Build |
+| --- | --- | --- |
+| DP, each of 256/512/1024 KiB | 2 runs, 4 successful reads, 0 sessions, 0 launches, 1 commit | 1 run, 2 successful reads, 0 sessions, 0 launches, 1 commit |
+| CtrlRAM, two commands | 2 runs, 4 reads, 2 sessions, 4 launches, 1 commit | 1 run, 2 reads, 1 session, 2 launches, 1 commit |
+| CtrlRAM, 13 commands | 2 runs, 4 reads, 2 sessions, 26 launches, 1 commit | 1 run, 2 reads, 1 session, 13 launches, 1 commit |
+| Failed required input | no second run and no commit | 1 run, 1 successful of 2 attempted reads, no session/launch/commit |
+
+Inside one successful Legacy Combiner session, Node B has two loop-owned
+complete-firmware read sites plus the final read: `2C+1`, or 5 complete reads
+for two commands and 27 for 13 commands. Node C has no loop-owned complete read
+and exactly one final complete read per successful session. The only optional
+intermediate read is a selective predecessor tail for evidenced `MERGE_MODE`
+short-output normalization; it is not a complete image or parity checkpoint.
+Two-/13-command, shortened-output, and preceding-pipeline-state tests pass
+`4/4`; source audits that reject synchronous or additional full reads pass
+`2/2`. Launch count and order remain `C` at both nodes.
+
+The exact fragmented-report harness was applied to Node B as the reviewed
+single-file test-only overlay `fbd7ee7c`; Node C used the current executable
+test. All 20 recorded samples retained exactly 10,000 differences, output
+SHA-256 `e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4`,
+11,720,520 JSON characters, and JSON SHA-256
+`16d46159b46bcb3acdd27783321b21504a721f01e4dddef43f10fc336a49c937`.
+
+| Fragmented report observation | Node B | Node C | Result |
+| --- | ---: | ---: | --- |
+| Run through complete report, p50 / p95 | `112.298 / 129.861 ms` | `87.143 / 96.256 ms` | `22.40% / 25.88%` lower |
+| Current-thread allocation | `19,700,128` bytes | `6,980,496` bytes | `64.57%` lower; constant at each node |
+| First serialization, p50 / p95 | `150.447 / 170.796 ms` | `144.413 / 159.211 ms` | Local observation only; no serializer/schema claim |
+
+The ten run-through samples were B
+`107.897, 104.306, 115.534, 106.252, 120.809, 115.532, 101.755, 129.861,
+109.063, 117.501` ms and C
+`84.336, 90.099, 84.731, 84.122, 89.516, 86.026, 85.341, 96.256,
+88.260, 89.674` ms. The first-serialization samples were B
+`139.995, 145.603, 163.655, 146.468, 151.524, 166.004, 144.260,
+151.689, 149.369, 170.796` ms and C
+`135.419, 146.823, 141.601, 137.999, 144.024, 140.407, 146.777,
+144.802, 148.586, 159.211` ms.
+
+The two-command physical-golden fresh-testhost wall observation did not show a
+latency gain: B p50/p95 was `3,771.299 / 3,852.837 ms`; C was
+`3,820.476 / 4,013.205 ms`, `1.30% / 4.16%` higher. Samples were B
+`3837.504, 3852.837, 3717.799, 3786.184, 3640.049, 3813.338, 3697.118,
+3756.413, 3639.170, 3846.889` ms and C
+`3957.402, 3736.700, 3867.586, 3831.020, 3875.041, 3688.196, 3789.234,
+3809.931, 4013.205, 3787.266` ms. Testhost startup and two unchanged external
+process launches dominate this small 240 KiB case. The release therefore
+claims deterministic full-read reduction, not physical-tool wall-clock
+improvement for this case.
+
+## Remaining release record
+
+The reconciled source, physical-tool/golden layout, output/report identity,
+headless process contract, command/session/read counts, and stable-predecessor
+report replay are closed. Still required are the exact packaged candidate's
+dispatcher heartbeat, click-to-first-step, cold startup/history, first bounded
+Hex Diff page, address jump, reduced-motion/high-contrast/Narrator sessions,
+working set, clean-machine package smoke, required R2/R3 and firmware-owner
+review, the one final `python scripts/verify.py --all`, required PR/main CI,
+version/package/provenance alignment, protected-main tag, and GitHub Release
+verification. No supported-IC promotion or all-IC CtrlRAM golden claim follows
+from this capture.
