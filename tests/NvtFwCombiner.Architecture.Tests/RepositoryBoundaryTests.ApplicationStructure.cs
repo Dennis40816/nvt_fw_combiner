@@ -60,11 +60,16 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("public enum CompositionRunPhase", progress, StringComparison.Ordinal);
         Assert.Contains("public sealed class CompositionRunProgressSnapshot", progress, StringComparison.Ordinal);
+        Assert.Contains("public string? CommittedOutputId", progress, StringComparison.Ordinal);
         Assert.Contains("public sealed class CompositionRunProgressFeed", progress, StringComparison.Ordinal);
         Assert.Contains("Channel.CreateBounded<CompositionRunProgressSnapshot>", progress, StringComparison.Ordinal);
         Assert.Contains("_feed?.Publish", progress, StringComparison.Ordinal);
         Assert.DoesNotContain("IProgress<", progress, StringComparison.Ordinal);
         Assert.Contains("progress.Complete()", root, StringComparison.Ordinal);
+        Assert.Contains(
+            "progressPublisher.Report(CompositionRunPhase.PreparingReport, committedOutputId)",
+            root,
+            StringComparison.Ordinal);
         Assert.Contains(
             "progressPublisher.Report(CompositionRunPhase.RunningExternalProcessor)",
             externalProcessors,
@@ -83,6 +88,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("TryApply(CompositionRunProgressSnapshot snapshot)", projection, StringComparison.Ordinal);
         Assert.Contains("snapshot.ApplicablePhases", projection, StringComparison.Ordinal);
         Assert.Contains("snapshot.CompletedPhases", projection, StringComparison.Ordinal);
+        Assert.Contains("snapshot.CommittedOutputId", projection, StringComparison.Ordinal);
+        Assert.Contains("CompositionRunDeliveryState.ArtifactCommitted", projection, StringComparison.Ordinal);
         Assert.Contains("IsReducedMotionEnabled", projection, StringComparison.Ordinal);
         Assert.DoesNotContain("OperationId", projection, StringComparison.Ordinal);
         Assert.DoesNotContain("FileName", projection, StringComparison.Ordinal);

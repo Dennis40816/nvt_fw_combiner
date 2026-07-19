@@ -82,6 +82,14 @@ entries, off-dispatcher persistence/projection, and latest-request ownership.
 Paging or virtualization changes only Presentation materialization; it cannot
 hide review-required counts or alter export evidence.
 
+Atomic output commit and report readiness are separate typed UI delivery
+states. A successful Build publishes its committed output identity when
+`preparing-report` begins, so the destination BIN is truthfully available
+before complete JSON, Hex Diff, and history projection finishes on a worker.
+Preview and uncommitted failure paths never publish an artifact. The active run
+continues to own the command until report publication completes, preventing a
+second Build from racing report/history state.
+
 ### Successful Replace inspection snapshot
 
 Application may attach a full before/output inspection snapshot only when all

@@ -60,7 +60,10 @@ channel can hold the complete seven-phase lifecycle, completes on success,
 failure, or cancellation, and never invokes a host or UI callback inline with
 composition or output commit. Each immutable snapshot contains the run id,
 applicable phase sequence, completed phases, current phase, and lifecycle
-ordinal. Reusing one feed for another run is rejected.
+ordinal. When an atomic Build commit succeeds, the `preparing-report` snapshot
+also carries the committed output identity. Preview and every failed or
+uncommitted Build leave it absent. Reusing one feed for another run is
+rejected.
 
 Bootstrap exposes optional progress-aware facade overloads while preserving the
 existing public CLR overloads used by CLI and tests. Presentation observes the
@@ -75,11 +78,19 @@ percentage. Step changes use one accessible live status. Animation frames do
 not produce accessibility announcements or Application events. Reduced motion
 uses a static active-state emphasis while text and accessibility state remain.
 
+Presentation projects a separate typed delivery state: running, artifact
+committed, and report ready. After the committed output snapshot arrives, the
+BIN is already available at its atomically promoted destination while complete
+JSON, Hex Diff, and history projection continue on a worker. Report-ready is
+published only after that projection completes. The run retains command
+ownership until then so a second Build cannot race report/history publication.
+
 ## Consequences
 
 ### Positive
 
 - Users can see where a long CtrlRAM/postbuild run is waiting.
+- Users can distinguish a usable committed BIN from optional report projection.
 - Deterministic phase evidence replaces guessed timers or percentages.
 - Progress does not create a second execution model or expose firmware rules to
   Presentation.
@@ -123,8 +134,9 @@ acceptance criterion.
 - UI acceptance tests must cover English and Traditional Chinese labels,
   run-id isolation, active/completed/future states, screen-reader status, high
   contrast, and reduced motion. Current executable evidence covers the typed
-  steps, polite live region, and reduced-motion animation switch; high-contrast
-  progress evidence remains an explicit release gate.
+  steps, the artifact-committed/report-ready boundary, polite live region, and
+  reduced-motion animation switch; high-contrast progress evidence remains an
+  explicit release gate.
 - A bounded-event test prevents per-byte, per-frame, or polling updates from
   crossing the Application boundary.
 - Existing byte, SHA-256, mutation, processor trace, golden, Polytail, and final

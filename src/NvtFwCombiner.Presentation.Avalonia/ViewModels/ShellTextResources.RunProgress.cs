@@ -28,6 +28,22 @@ public sealed partial class ShellTextResources
         };
     }
 
+    /// <summary>Returns the localized post-commit label while the report completes on a worker.</summary>
+    public string GetCompositionArtifactCommittedLabel()
+    {
+        return Language == ShellLanguage.ChineseTraditional
+            ? "輸出已就緒，正在背景整理報告"
+            : "Output ready; preparing report in background";
+    }
+
+    /// <summary>Returns the localized label after the complete report becomes reviewable.</summary>
+    public string GetCompositionReportReadyLabel()
+    {
+        return Language == ShellLanguage.ChineseTraditional
+            ? "報告已就緒"
+            : "Report ready";
+    }
+
     /// <summary>Formats the lifecycle ordinal without presenting it as byte completion.</summary>
     public string FormatCompositionRunStepOrdinal(int currentStep, int stepCount)
     {
