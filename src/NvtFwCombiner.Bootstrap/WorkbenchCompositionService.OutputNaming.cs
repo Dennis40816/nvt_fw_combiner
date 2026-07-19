@@ -56,12 +56,10 @@ public static partial class WorkbenchCompositionService
     private static string? FindInspectedDpVersionToken(
         IReadOnlyList<WorkbenchOutputNameInspectionCandidate> candidates)
     {
-        bool hasDpInput = candidates.Any(static candidate =>
-            candidate.Kind == WorkbenchOutputNameCandidateKind.Dp);
+        WorkbenchOutputNameCandidateKind sourceKind = candidates.Any(static candidate => candidate.Kind == WorkbenchOutputNameCandidateKind.Dp)
+            ? WorkbenchOutputNameCandidateKind.Dp : WorkbenchOutputNameCandidateKind.Base;
         return candidates
-            .Where(candidate => candidate.Kind == (hasDpInput
-                ? WorkbenchOutputNameCandidateKind.Dp
-                : WorkbenchOutputNameCandidateKind.Base))
+            .Where(candidate => candidate.Kind == sourceKind)
             .Select(static candidate => candidate.Inspection?.DpVersion?.VersionToken)
             .FirstOrDefault(static versionToken => !string.IsNullOrWhiteSpace(versionToken));
     }
@@ -73,9 +71,7 @@ public static partial class WorkbenchCompositionService
             .OrderBy(static candidate => OutputNameCandidateOrder(candidate.Kind))
             .Select(static candidate => candidate.Inspection?.FirmwareConfig)
             .FirstOrDefault(static candidateMetadata => candidateMetadata?.IsFirmwareVersionBarValid == true);
-        return metadata is null
-            ? null
-            : FormattableString.Invariant($"{metadata.FirmwareVersion:X2}{metadata.FirmwareSubVersion:X2}");
+        return metadata is null ? null : FormattableString.Invariant($"{metadata.FirmwareVersion:X2}{metadata.FirmwareSubVersion:X2}");
     }
 
     private static int OutputNameCandidateOrder(WorkbenchOutputNameCandidateKind kind)
@@ -95,12 +91,10 @@ public static partial class WorkbenchCompositionService
         string icId,
         IReadOnlyList<WorkbenchOutputNameCandidate> candidates)
     {
-        bool hasDpInput = candidates.Any(static candidate =>
-            candidate.Kind == WorkbenchOutputNameCandidateKind.Dp);
+        WorkbenchOutputNameCandidateKind sourceKind = candidates.Any(static candidate => candidate.Kind == WorkbenchOutputNameCandidateKind.Dp)
+            ? WorkbenchOutputNameCandidateKind.Dp : WorkbenchOutputNameCandidateKind.Base;
         foreach (WorkbenchOutputNameCandidate candidate in candidates.Where(candidate =>
-                     candidate.Kind == (hasDpInput
-                         ? WorkbenchOutputNameCandidateKind.Dp
-                         : WorkbenchOutputNameCandidateKind.Base)))
+                     candidate.Kind == sourceKind))
         {
             if (string.IsNullOrWhiteSpace(candidate.Path))
             {
