@@ -336,6 +336,52 @@ public sealed partial class CompositionRunServiceTests
         Assert.All(result.Report.Issues, issue => Assert.Equal(CompositionIssueSeverity.Error, issue.Severity));
     }
 
+    /// <summary>One immutable artifact is read and hashed once while each address space keeps its own buffer.</summary>
+    [Fact]
+    public async Task PreviewSnapshotsSharedArtifactOncePerRun()
+    {
+        byte[] sharedBytes = [0x11, 0x22, 0x33, 0x44];
+        var reader = new CountingArtifactReader(sharedBytes);
+        var service = new CompositionRunService(
+            reader,
+            new FakeClock([FirstTimestamp, SecondTimestamp]));
+        CompositionRunRequest request = CreateRequest(bindings:
+        [
+            new InputArtifactBinding("dp-input", "dp-safe", "shared-artifact"),
+            new InputArtifactBinding("tp-input", "tp-safe", "shared-artifact"),
+        ]);
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(1, reader.ReadCount);
+        Assert.Equal([.. sharedBytes, .. sharedBytes], result.OutputBytes.ToArray());
+        Assert.Equal(["dp-input", "tp-input"], result.Report.Inputs.Select(input => input.AddressSpaceId));
+        _ = Assert.Single(result.Report.Inputs.Select(input => input.Sha256).Distinct(StringComparer.Ordinal));
+    }
+
+    /// <summary>A failed shared artifact read is retried so each missing binding keeps its own issue.</summary>
+    [Fact]
+    public async Task PreviewDoesNotCacheSharedArtifactReadFailure()
+    {
+        var reader = new CountingArtifactReader(bytes: null);
+        var service = new CompositionRunService(
+            reader,
+            new FakeClock([FirstTimestamp, SecondTimestamp]));
+        CompositionRunRequest request = CreateRequest(bindings:
+        [
+            new InputArtifactBinding("dp-input", "dp-safe", "missing-shared-artifact"),
+            new InputArtifactBinding("tp-input", "tp-safe", "missing-shared-artifact"),
+        ]);
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Equal(2, reader.ReadCount);
+        Assert.Equal(2, result.Report.Issues.Count);
+        Assert.All(result.Report.Issues, issue => Assert.Equal("input.artifact.read-failed", issue.Code));
+    }
+
     /// <summary>Verifies Replace requests require IC number context before execution.</summary>
     [Fact]
     public void ReplaceRunRequestRequiresIcNumberSelection()

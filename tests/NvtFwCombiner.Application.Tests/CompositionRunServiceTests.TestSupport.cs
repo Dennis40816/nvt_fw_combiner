@@ -64,4 +64,21 @@ public sealed partial class CompositionRunServiceTests
             return ValueTask.FromResult($"committed:{fileName}");
         }
     }
+
+    private sealed class CountingArtifactReader(byte[]? bytes) : IArtifactReader
+    {
+        internal int ReadCount { get; private set; }
+
+        public ValueTask<ReadOnlyMemory<byte>> ReadAsync(
+            string artifactId,
+            CancellationToken cancellationToken)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
+            cancellationToken.ThrowIfCancellationRequested();
+            ReadCount++;
+            return bytes is null
+                ? ValueTask.FromException<ReadOnlyMemory<byte>>(new FileNotFoundException(artifactId))
+                : ValueTask.FromResult<ReadOnlyMemory<byte>>(bytes);
+        }
+    }
 }
