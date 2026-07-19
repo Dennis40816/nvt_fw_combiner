@@ -49,6 +49,23 @@ Run the executable baseline from the repository root:
 dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj --filter "FullyQualifiedName~CompositionRunExecutionMetricsTests"
 ```
 
+## Shared artifact read contract
+
+General Merge and General Replace may bind one immutable source artifact to
+multiple mapping-specific address spaces. Within one Application run, let `K`
+be the number of bindings and `U` the number of unique exact artifact ids whose
+reads succeed. The current source-audited contract performs `U` reader calls
+and `U` SHA-256 calculations instead of `K`, while retaining `K` independent
+Application-owned address-space buffers, input summaries, normalization, and
+validation paths.
+
+The snapshot key is the exact artifact id: it does not normalize physical
+paths and does not survive across runs. A failed read is not cached, so each
+binding retries the reader and preserves its own typed failure. Tests lock a
+shared successful artifact to one read with two independent outputs, and the
+same missing artifact to two attempted reads and two issues. This is a
+deterministic count reduction, not a universal elapsed-time claim.
+
 ## Fragmented report microbaseline
 
 `CompositionReportPerformanceBaselineTests` executes one real Application
