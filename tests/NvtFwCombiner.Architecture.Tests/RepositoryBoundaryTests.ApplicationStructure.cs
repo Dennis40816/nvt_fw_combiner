@@ -135,6 +135,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SHA256.HashData", hashing, StringComparison.Ordinal);
         Assert.Contains("Convert.ToHexStringLower", hashing, StringComparison.Ordinal);
         Assert.DoesNotContain("ToLowerInvariant", hashing, StringComparison.Ordinal);
+        Assert.Contains("Dictionary<string, ArtifactReadSnapshot>", inputs, StringComparison.Ordinal);
+        Assert.Contains("buffer = [.. snapshot.Bytes];", inputs, StringComparison.Ordinal);
+        Assert.Contains("sha256 = snapshot.Sha256;", inputs, StringComparison.Ordinal);
+        Assert.Contains("artifactSnapshots.Add(binding.ArtifactId", inputs, StringComparison.Ordinal);
         Assert.Contains("ToSha256Hex(buffer)", inputs, StringComparison.Ordinal);
         Assert.Contains("ToSha256Hex(execution.OutputBytes.Span)", previewTokens, StringComparison.Ordinal);
         Assert.Contains("CreateOutputDifferences", outputDifferences, StringComparison.Ordinal);
