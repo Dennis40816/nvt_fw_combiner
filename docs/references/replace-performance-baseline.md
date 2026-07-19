@@ -89,6 +89,15 @@ The repeated allocation is only
 UTF-16 string. This supports treating recurring serialization as close to its
 unavoidable representation cost.
 
+Commit `6b4379d2` reuses the universal SHA-256 text for each of the 256
+possible single-byte report slices. The immediate isolated before/after
+observations for the exact command above changed run-through-report allocation
+from `11,646,384` to `7,541,912` bytes, a reduction of `4,104,472` bytes
+(`35.2%`). The one-sample run-through time changed from `132.869` to `79.421`
+ms, which is recorded only as an observation. The output SHA, JSON character
+count, JSON SHA, all 10,000 ranges and hashes, and multi-byte slice hashing are
+unchanged; repeated same-source p50/p95 remains the final timing gate.
+
 A clean-process attribution experiment rented the shared `ArrayPool<byte>`
 geometric buckets from 16 KiB through 16 MiB before serializing the same report.
 Those buckets allocated `33,538,536` bytes; after they were returned, the exact
