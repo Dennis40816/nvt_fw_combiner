@@ -36,8 +36,8 @@ Measured reductions below 60,000 do not require lowering that ceiling during
 the performance release. The final reconciled candidate at `c1f07ce5` measures
 59,429 production lines. Its named partial aggregates are frozen as exact
 ratchets at 4,405 lines for `WorkbenchCompositionService` and 4,069 lines for
-`MainWindowViewModel`; the exact duplicate-JSON ratchet and general 2,500-line
-partial ceiling also remain in force.
+`MainWindowViewModel`; the exact duplicate-JSON ratchet is 1,055 lines, and the
+general 2,500-line partial ceiling also remains in force.
 
 The exception is time-bounded. `v0.9.10` added measured progress,
 accessibility, report/Hex Diff, cancellation, persistence, inspection, and
