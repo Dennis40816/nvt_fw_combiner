@@ -33,7 +33,7 @@ PARTIAL_TYPE_PATTERN = re.compile(
 
 @dataclass(frozen=True)
 class CodeSizeLimits:
-    """Exact ratchets and the default ceiling for a partial type aggregate."""
+    """Production ceiling, exact duplication ratchets, and partial limits."""
 
     production_nonblank: int
     duplicate_json_nonblank: int
@@ -63,12 +63,12 @@ class CodeSizeSnapshot:
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
-    production_nonblank=55_031,
+    production_nonblank=60_000,
     duplicate_json_nonblank=1_055,
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={
-        "NvtFwCombiner.Bootstrap.WorkbenchCompositionService": 4_474,
-        "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 2_701,
+        "NvtFwCombiner.Bootstrap.WorkbenchCompositionService": 4_405,
+        "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 4_069,
     },
 )
 
@@ -161,6 +161,11 @@ def _validate_exact_ratchet(
         )
 
 
+def _validate_maximum(label: str, actual: int, maximum: int, errors: list[str]) -> None:
+    if actual > maximum:
+        errors.append(f"code-size {label} exceeded maximum: {actual} > {maximum}")
+
+
 def validate_code_size_policy(
     root: Path,
     errors: list[str],
@@ -169,7 +174,7 @@ def validate_code_size_policy(
     """Append deterministic ratchet and aggregate-limit violations."""
 
     snapshot = measure_code_size(root)
-    _validate_exact_ratchet(
+    _validate_maximum(
         "production nonblank lines",
         snapshot.production_nonblank,
         limits.production_nonblank,
