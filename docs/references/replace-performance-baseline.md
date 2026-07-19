@@ -212,6 +212,15 @@ path is still counted. The history schema, JSON payload, warning threshold,
 entry order, and reopen behavior are unchanged. This is a source-audited
 whole-report scan removal; packaged click-to-history timing remains open.
 
+Commit `7185c0e2` bounds retained best-effort local history by both 12 entries
+and a 16 MiB UTF-8 soft budget. The newest report is never dropped; older
+entries are evicted from the tail until the budget is met. A single newest
+report may exceed the soft budget so active review is not lost. Persisted
+history files above 64 MiB are rejected from file metadata before their JSON
+text is read, bounding legacy/corrupt startup input. The machine-readable run
+report and local history schema are unchanged. This is a deterministic
+retention/I/O bound; packaged startup working set remains open.
+
 ## Startup report restoration baseline
 
 Commit `7b6f1ab6` removes persisted-history and explicit startup-report work
