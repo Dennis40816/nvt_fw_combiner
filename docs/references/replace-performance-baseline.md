@@ -1,9 +1,10 @@
 # v0.9.10 Replace Performance Baseline
 
 Status: deterministic orchestration/count baseline on the reviewed `v0.9.9`
-source line plus local fragmented-report allocation and layout-neutral staging
-evidence; wall-clock, final physical-tool layout, and same-source Node B/C
-evidence remain open.
+source line plus local fragmented-report, Hex Diff, allocation, and
+layout-neutral staging evidence. Path-independent component Node B/C replay is
+recorded below; final physical-tool/golden-layout and packaged Windows evidence
+remain open.
 
 Captured: 2026-07-18. Executable owner:
 `tests/NvtFwCombiner.Bootstrap.Tests/CompositionRunExecutionMetricsTests.cs`.
@@ -149,8 +150,9 @@ reduced allocation to `41,267,016` bytes, but took `208.190` ms versus the
 improvement and was rejected: pre-sizing or warming only moves the pool cost
 and can over-rent for normal reports. No production serializer or schema change
 follows from this result.
-Fresh-process working set and latency remain part of final Node C measurement.
-These numbers are diagnostic local evidence, not universal CI thresholds.
+The path-independent fresh-process replay below records component latency; the
+packaged-process working set remains a separate final gate. These numbers are
+diagnostic local evidence, not universal CI thresholds.
 
 Run the focused evidence from the repository root:
 
@@ -182,11 +184,12 @@ Run the focused observation from the repository root:
 dotnet test tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj --filter "FullyQualifiedName~ReportHexDiffEmitsColdWarmProjectionAndJumpObservations" --logger "console;verbosity=detailed"
 ```
 
-The `HEX_DIFF_BASELINE` line is non-gating local evidence. Final Node B/C p50
-and p95 values require the same isolated-process run count, machine/runtime,
-input hashes, power mode, and monitoring setup at both nodes. A single warm
-repeat is not a percentile claim, and testhost working set does not replace the
-packaged Windows first-frame/manual acceptance record.
+The `HEX_DIFF_BASELINE` line is non-gating local evidence. Node B/C p50 and p95
+values require the same isolated-process run count, machine/runtime, input
+hashes, power mode, and monitoring setup at both nodes; the replay below uses
+that protocol. A single warm repeat is not a percentile claim, and testhost
+working set does not replace the packaged Windows first-frame/manual acceptance
+record.
 
 Using the same local .NET 10 exact-filter command in isolated test processes,
 the retained `aaa9edca` observation allocated
@@ -198,8 +201,8 @@ same observation allocates
 10,000-range identity/bounds assertions, 64/65 navigator materialization, and
 the `51,952`-byte jump allocation. The corresponding one-sample elapsed values
 were `131.124`/`102.023` ms before and `140.850`/`119.596` ms after, so this
-slice makes no latency-improvement claim. Repeated same-source p50/p95 and
-packaged first-page evidence remain open.
+slice alone makes no latency-improvement claim. The ten-sample component replay
+below supplies p50/p95; packaged first-page evidence remains open.
 
 Commit `c22c2a68` removes the additional full-report UTF-8 mirror from the
 long-lived lazy row and Hex Diff factories. The production shell and report
@@ -219,8 +222,121 @@ and `342,112` (`3.7%`) bytes over the preceding cold/repeated values. This is
 an explicitly retained transient-allocation tradeoff, not a latency
 improvement claim. Strict UTF-8 validation, raw surrogate-pair coverage,
 last-top-level-property semantics, cancellation, output identity, bounded
-materialization, and jump behavior remain locked. Repeated same-source p50/p95,
-packaged first-page evidence, and Windows working-set observation remain open.
+materialization, and jump behavior remain locked. The component replay below
+supplies p50/p95 and testhost handoff working-set observations; packaged
+first-page and Windows process working-set evidence remain open.
+
+## Path-independent component Node B/C replay
+
+On 2026-07-19, the report and Hex Diff microbaselines were replayed on Windows
+`10.0.26200`, .NET SDK `10.0.302`, `win-x64`, and an Intel Core i9-10900F
+(10 cores/20 logical processors). The active Windows plan was Ultimate
+Performance (`e9a42b02-d5df-448d-aa00-03f14749eb61`) on a desktop with no
+`Win32_Battery` device. No profiler, ETW capture, external process sampler, or
+performance feature flag was enabled; tests used their default configuration
+and only the test-owned timers, allocation counters, GC counters, and process
+working-set reads shown by the harness.
+
+Node B used a detached, tracked-clean worktree and Node C used the separate,
+tracked-clean main worktree synchronized to its origin. Their project-local
+`bin`/`obj` output trees were therefore distinct. Before each component pair,
+the B worktree was checked out at the full SHA named below, both projects were
+built once in Debug for `net10.0`, and their exact-filter invocations used
+`--no-build --no-restore`. No testhost warm-up sample was run or discarded.
+Ten B/C samples then alternated without concurrency, and every invocation
+created a fresh testhost. The p50 is the median. The p95 is the nearest-rank
+value; with ten samples it is the observed maximum. These local values are
+evidence, not portable CI thresholds.
+
+The Hex Diff comparison uses the unchanged
+`ReportHexDiffEmitsColdWarmProjectionAndJumpObservations` test at component
+Node B `aaa9edca60265aa5f0e1585495b949ac3ea010a3` and Node C
+`3d427b0bd3afca60cb8aa1c1d6967cc6ce0202e8`. Every sample preserved the same output
+SHA-256 `5e53ca2936f1d2345bc1299ead189d94454fd14e5d9d585c7a68646bc25df996`,
+`6,163,125` JSON characters, the unchanged synthetic 10,000-range input
+generator, asserted total count, bounded 64/65 navigator materialization, and
+the selected address-jump result. The observation does not claim a digest of
+all projected range identities. The deterministic 256 KiB reference input
+SHA-256 was
+`206ddc54b8a62b0dc62ba79249d5a04d951aca42470028704b604b3747ee269d`;
+the two-byte replacement input SHA-256 was
+`857b915078ad488cff951bded73cfb4021129efb943c37604781c79f0726bb41`.
+
+| Hex Diff observation | Node B value | Node C value | Observation |
+| --- | ---: | ---: | --- |
+| Cold projection to first page, p50 / p95 | `150.592 / 200.696 ms` | `145.827 / 170.064 ms` | p50 `3.16%` lower; p95 `15.26%` lower |
+| Repeated projection to first page, p50 / p95 | `110.849 / 155.150 ms` | `109.402 / 142.773 ms` | p50 `1.31%` lower; p95 `7.98%` lower |
+| Off-page address jump, p50 / p95 | `1.079 / 2.020 ms` | `1.058 / 1.672 ms` | Same selected range and `51,952` allocated bytes |
+| Cold projection allocation, identical in all 10 samples | `10,883,824` bytes | `9,561,312` bytes | `12.15%` lower |
+| Repeated projection allocation, identical in all 10 samples | `10,869,728` bytes | `9,531,832` bytes | `12.31%` lower |
+| Handoff working set, p50 / p95 | `107,188,224 / 108,027,904` bytes | `105,037,824 / 105,385,984` bytes | p50 `2.01%` lower; includes both live models |
+
+The ten cold elapsed samples were B
+`154.828, 135.757, 153.421, 156.833, 147.764, 133.392, 200.696, 137.526,
+144.975, 165.451` ms and C
+`145.285, 154.222, 146.369, 136.779, 170.064, 136.848, 137.304, 149.567,
+162.221, 141.396` ms. The ten repeated samples were B
+`118.082, 102.689, 108.302, 107.669, 118.097, 102.106, 155.150, 113.396,
+101.397, 144.501` ms and C
+`114.644, 110.494, 124.326, 104.145, 109.722, 106.641, 100.658, 109.083,
+142.773, 103.663` ms.
+
+The ten off-page jump samples were B
+`1.032, 1.005, 2.020, 1.086, 1.093, 1.072, 1.285, 1.029, 1.034, 1.656` ms
+and C
+`1.071, 1.060, 1.672, 0.987, 1.057, 0.971, 0.978, 1.037, 1.353, 1.062`
+ms. Every cold projection reported Gen0/Gen1/Gen2 deltas `0/0/0`; every
+successor projection reported `1/1/1` at both nodes. In all 20 samples,
+`testhostLifetimePeakWorkingSet` equalled the handoff working-set observation
+listed below. It remains a testhost-lifetime peak that includes fixture
+composition and JSON setup, not an isolated projection-interval or packaged
+process peak.
+
+The ten handoff working-set samples were B
+`107663360, 106983424, 107028480, 106946560, 107560960, 107290624,
+108027904, 107175936, 107200512, 107122688` bytes and C
+`105385984, 105029632, 105328640, 105009152, 105046016, 104890368,
+104976384, 105193472, 104992768, 105373696` bytes. Each snapshot includes the
+cold and successor models alive together and is not a steady-state or packaged
+process measurement.
+
+The upstream fragmented-report comparison uses component Node B
+`fbd7ee7c374458ecba84dd9b34493f28ee1adb5a` and Node C
+`3d427b0bd3afca60cb8aa1c1d6967cc6ce0202e8`. The measured run-through and first-serialization regions
+are the same; later Node C assertions and the repeated-serialization observation
+occur after both measured regions. Every sample preserved 10,000 exact
+one-byte differences, output SHA-256
+`e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4`,
+`11,720,520` JSON characters, and JSON SHA-256
+`16d46159b46bcb3acdd27783321b21504a721f01e4dddef43f10fc336a49c937`.
+The 20,000-byte reference SHA-256 was
+`28b4f41a7f3ee6d8cc87272db6e09c6d3566551fd4d18702b041a21658272a85`;
+the deterministic replacement SHA-256 was the output SHA-256 above.
+
+| Fragmented report observation | Node B value | Node C value | Observation |
+| --- | ---: | ---: | --- |
+| Application run through complete report, p50 / p95 | `114.900 / 127.140 ms` | `81.325 / 103.226 ms` | p50 `29.22%` lower; p95 `18.81%` lower |
+| Run-through allocation, identical in all 10 samples | `20,162,040` bytes | `7,541,912` bytes | `62.59%` lower |
+| First indented serialization, p50 / p95 | `160.942 / 172.545 ms` | `150.742 / 171.121 ms` | p50 `6.34%` lower; p95 `0.83%` lower |
+
+The ten run-through elapsed samples were B
+`106.839, 111.179, 113.519, 112.788, 116.281, 107.790, 121.013, 127.140,
+126.965, 126.838` ms and C
+`79.465, 82.289, 103.226, 78.794, 80.361, 82.639, 78.741, 78.227, 92.674,
+95.508` ms. The first-serialization samples were B
+`145.881, 138.059, 168.960, 172.351, 145.547, 148.607, 157.268, 167.677,
+172.545, 164.617` ms and C
+`153.058, 144.498, 157.005, 151.554, 143.798, 151.057, 142.327, 146.250,
+150.428, 171.121` ms.
+
+The replay therefore supports a material upstream report-generation and
+allocation improvement. Hex Diff first-page latency is improved but remains
+noisy and modest at p50; its repeatable gains are lower projection allocation
+and handoff working set. Cold serialization p95 is effectively unchanged,
+which agrees with the prior shared-pool attribution and does not justify a new
+serializer or schema. Packaged first-page, dispatcher heartbeat,
+click-to-first-step, accessibility, physical Legacy Combiner, and clean-machine
+working-set evidence remain separate gates.
 
 Commit `64a45efd` also reuses the UTF-8 byte count already produced by a
 successful JSON projection when the active report is captured or relocalized
