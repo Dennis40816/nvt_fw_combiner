@@ -261,10 +261,15 @@ run count. Record:
 - output SHA, mutations, report facts, process-window behavior, cancellation,
   and atomic-failure parity.
 
-Legacy Combiner readback and any physical tool/golden layout dependency wait
-for the owner-coordinated `0.9.9.5` predecessor-layout convergence gate. This is
-not a release tag or assumed branch: P2 remains blocked until the owner supplies
-the exact reviewed commit SHA and its external-tool/golden-layout reference. No
-final performance or release claim is made until the same-source B/C record,
+Legacy Combiner final-read implementation and any physical tool/golden layout
+dependency wait for the owner-coordinated `0.9.9.5` predecessor-layout
+convergence gate. This is not a release tag or assumed branch: P2 remains
+blocked until the owner supplies the exact reviewed commit SHA and its
+external-tool/golden-layout reference. The target is already fixed: one private
+sequential pipeline, zero intermediate full reads by default, one full read
+after the final successful command, final diff against the pre-pipeline bytes
+and the union of declared write ranges, and only evidenced selective reads or
+normalization. Intermediate full-image values are not parity evidence. No final
+performance or release claim is made until the same-source B/C record,
 Polytail, architecture/UI review, required golden and firmware-owner gates, and
 canonical verification are complete.

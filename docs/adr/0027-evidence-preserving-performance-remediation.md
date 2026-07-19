@@ -147,10 +147,22 @@ snapshot length; it never invents the identity from profile, IC, or UI labels.
 
 Combiner commands remain sequential, exact, and attributable. No command is
 parallelized, folded into a BAT/shell string, skipped, or reused across runs.
-Any reduction in intermediate full-firmware readback must preserve staged-file
-existence/length checks, documented short-output normalization, unexpected-file
-rejection, independent final before/after diff, allowed-write-range validation,
-timeouts, cancellation, and hidden process windows.
+The host treats the exact command plan as one private staging pipeline: each
+command consumes the staging file left by its predecessor, and the host does
+not materialize the complete firmware between commands merely to observe an
+intermediate value. Intermediate gates retain process exit/timeout,
+cancellation, hidden-window, expected-file existence/length, and
+unexpected-file rejection. Only an evidenced short-output normalization or
+selective-tail dependency may perform the smallest necessary intermediate
+read.
+
+After the last successful command, the host performs one complete firmware
+read and independently diffs it against the pre-pipeline baseline. The final
+changes must remain inside the union of the command plan's declared write
+ranges, and output SHA/report facts must match the approved full-output golden.
+No output is promoted after an intermediate failure. The owner clarification
+on 2026-07-18 explicitly makes final pipeline state authoritative; intermediate
+full-image values are not product evidence and are not retained as a gate.
 
 This slice is R3. It waits for the owner-coordinated `0.9.9.5`
 predecessor-layout convergence gate and the same-source node B baseline. That
@@ -159,7 +171,10 @@ until the owner supplies the exact reviewed commit SHA and its external-tool and
 golden-layout reference; P2 must record both before implementation begins. The
 NT51926 Common FW 1.4.1 cascade two-command case is the minimum public
 full-output parity anchor. Thirteen-command cases are count/timing evidence only
-until an independent pre-base and expected output are approved.
+until an independent pre-base and expected output are approved. The executable
+counter contract is one final successful full read per processor session, zero
+intermediate full reads by default, and only explicitly evidenced selective
+reads or normalization.
 
 ### Measurement and code size
 
@@ -191,8 +206,8 @@ The executable counter scope and remaining record fields are maintained in the
 - An in-session complete Hex Diff is unavailable after restart unless a future
   verified attachment contract is approved.
 - Report UI needs a focused read-only viewport and range index.
-- R3 Combiner readback cannot be claimed until the external-tool/golden layout,
-  full-output evidence, and firmware-owner review are available.
+- R3 Combiner final-read pipeline cannot be claimed until the external-tool/
+  golden layout, full-output evidence, and firmware-owner review are available.
 
 ## Compatibility and release impact
 
