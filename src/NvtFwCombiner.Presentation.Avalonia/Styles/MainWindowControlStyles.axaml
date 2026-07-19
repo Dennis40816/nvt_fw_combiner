@@ -400,9 +400,20 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />
   </Style>
-  <Style Selector="Border.reportHexDiffRow.changed">
+  <Style Selector="Border.reportHexDiffByte, Border.reportHexDiffAsciiByte, Border.reportHexDiffOriginalByte">
+    <Setter Property="MinWidth" Value="22" />
+    <Setter Property="Padding" Value="2,1" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="2" />
+  </Style>
+  <Style Selector="Border.reportHexDiffByte.changed, Border.reportHexDiffAsciiByte.changed">
     <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderBrush}" />
+  </Style>
+  <Style Selector="Border.reportHexDiffOriginalByte.changed">
+    <Setter Property="Background" Value="{DynamicResource NfcInfoSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcInfoBorderBrush}" />
   </Style>
   <Style Selector="Border.reportHexDiffReferenceRow">
     <Setter Property="Margin" Value="0,4,0,0" />
