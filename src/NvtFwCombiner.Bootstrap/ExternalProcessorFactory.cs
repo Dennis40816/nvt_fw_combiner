@@ -8,7 +8,14 @@ namespace NvtFwCombiner.Bootstrap;
 
 internal static class ExternalProcessorFactory
 {
-    internal static IExternalProcessor? CreateOrNull()
+    private static readonly ExternalProcessorLifetime ProcessLifetime = new(CreateUncachedOrNull);
+
+    internal static IExternalProcessor? GetOrCreateOrNull()
+    {
+        return ProcessLifetime.GetOrCreateOrNull();
+    }
+
+    private static ExternalProcessorRouter? CreateUncachedOrNull()
     {
         string? toolRoot = FindExternalToolsRoot();
         if (toolRoot is null)
@@ -122,5 +129,23 @@ internal static class ExternalProcessorFactory
         }
 
         return values;
+    }
+}
+
+internal sealed class ExternalProcessorLifetime
+{
+    private readonly Lazy<IExternalProcessor?> _processor;
+
+    internal ExternalProcessorLifetime(Func<IExternalProcessor?> processorFactory)
+    {
+        ArgumentNullException.ThrowIfNull(processorFactory);
+        _processor = new Lazy<IExternalProcessor?>(
+            processorFactory,
+            LazyThreadSafetyMode.ExecutionAndPublication);
+    }
+
+    internal IExternalProcessor? GetOrCreateOrNull()
+    {
+        return _processor.Value;
     }
 }

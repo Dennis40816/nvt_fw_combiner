@@ -183,6 +183,24 @@ counter contract is one final successful full read per processor session, zero
 intermediate full reads by default, and only explicitly evidenced selective
 tail reads for shortened-output normalization.
 
+### External processor environment lifetime
+
+Bootstrap owns one lazily initialized external-processor environment per OS
+process. The first applicable run locates the external-tools root, enumerates
+and parses manifests, builds the hash-pinned registry and router, and publishes
+that immutable environment with execution-and-publication thread safety.
+Concurrent and later calls reuse the same router. An unavailable root and an
+initialization exception are also retained, so a Build cannot repeatedly scan
+or switch to mutable manifest state during the same process.
+
+Installing, removing, or changing a manifest/tool layout therefore requires an
+application or CLI-process restart. This is the explicit refresh boundary; no
+physical root is embedded in source and no environment survives a restart.
+Per-run processor sessions, private staging directories, process launches, and
+output validation remain independent. The cached manifest registry does not
+cache executable trust: the resolver still checks executable existence and
+SHA-256 against the retained manifest before each transform.
+
 ### Measurement and code size
 
 Node B and C use the same reconciled source, inputs, expected hashes, tool

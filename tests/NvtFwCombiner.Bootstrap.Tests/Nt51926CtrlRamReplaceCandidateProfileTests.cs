@@ -454,7 +454,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         string runId)
     {
         IExternalProcessor processor = Assert.IsType<IExternalProcessor>(
-            ExternalProcessorFactory.CreateOrNull(),
+            ExternalProcessorFactory.GetOrCreateOrNull(),
             exactMatch: false);
         var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
         return await CompositionEngine.ExecuteAsync(
