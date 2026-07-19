@@ -60,6 +60,20 @@ function Get-TreeDigest {
     return [Convert]::ToHexString($Digest).ToLowerInvariant()
 }
 
+function Write-PackageHashList {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageRoot,
+        [Parameter(Mandatory = $true)][string[]]$RelativePaths,
+        [Parameter(Mandatory = $true)][string]$DestinationPath
+    )
+
+    $HashLines = foreach ($RelativePath in $RelativePaths) {
+        $Path = Join-Path $PackageRoot $RelativePath
+        "$(Get-LowerSha256 -Path $Path)  $RelativePath"
+    }
+    $HashLines | Set-Content -LiteralPath $DestinationPath -Encoding utf8NoBOM
+}
+
 function Save-SourcePackageLocks {
     $Snapshots = @{}
     Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'src') -Filter 'packages.lock.json' -File -Recurse |
@@ -439,9 +453,33 @@ function Invoke-ExternalToolPolicyDryRun {
             throw 'Unexpected runtime catalog file was not rejected by the package allowlist.'
         }
 
+        $UnicodeRelativePath = 'reference/多語/請先看.md'
+        $UnicodeFixturePath = Join-Path $DryRunPackageRoot $UnicodeRelativePath
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $UnicodeFixturePath) | Out-Null
+        '多語 release hash-list fixture' | Set-Content -LiteralPath $UnicodeFixturePath -Encoding utf8NoBOM
+        $DryRunHashListPath = Join-Path $DryRunPackageRoot 'SHA256SUMS.txt'
+        Write-PackageHashList `
+            -PackageRoot $DryRunPackageRoot `
+            -RelativePaths @($UnicodeRelativePath) `
+            -DestinationPath $DryRunHashListPath
+        $ExpectedHashLine = "$(Get-LowerSha256 -Path $UnicodeFixturePath)  $UnicodeRelativePath"
+        $PersistedHashBytes = [IO.File]::ReadAllBytes($DryRunHashListPath)
+        if ($PersistedHashBytes.Length -ge 3 -and
+            $PersistedHashBytes[0] -eq 0xef -and
+            $PersistedHashBytes[1] -eq 0xbb -and
+            $PersistedHashBytes[2] -eq 0xbf) {
+            throw 'Release hash list must be UTF-8 without a byte-order mark.'
+        }
+        $StrictUtf8 = [Text.UTF8Encoding]::new($false, $true)
+        $PersistedHashText = $StrictUtf8.GetString($PersistedHashBytes)
+        if ($PersistedHashText -cne "$ExpectedHashLine$([Environment]::NewLine)") {
+            throw 'Unicode release hash-list path did not round-trip through UTF-8.'
+        }
+
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included and unexpected file rejected.'
         Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
+        Write-Host 'Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8.'
     }
     finally {
         if (Test-Path -LiteralPath $ProbeSourcePath) {
@@ -806,11 +844,10 @@ $Provenance = [ordered]@{
 $Provenance | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $ReleaseRoot $ProvenanceName) -Encoding utf8NoBOM
 
 $HashTargets = @($FileEntries.path) + @('RELEASE-MANIFEST.json')
-$HashLines = foreach ($Name in $HashTargets) {
-    $Path = Join-Path $PackageRoot $Name
-    "$(Get-LowerSha256 -Path $Path)  $Name"
-}
-$HashLines | Set-Content -LiteralPath (Join-Path $PackageRoot 'SHA256SUMS.txt') -Encoding ascii
+Write-PackageHashList `
+    -PackageRoot $PackageRoot `
+    -RelativePaths $HashTargets `
+    -DestinationPath (Join-Path $PackageRoot 'SHA256SUMS.txt')
 
 $Expected = (@(
     'LICENSE.txt',
