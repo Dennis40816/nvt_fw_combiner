@@ -92,6 +92,9 @@ public readonly record struct WorkbenchCmiDpCodeMetadata(
     ushort JiraNumber,
     long Register16Offset)
 {
+    /// <summary>Four uppercase hex digits used by FlashCode naming: DP major byte then minor nibble.</summary>
+    public string VersionToken => FormattableString.Invariant($"{MajorVersionByte:X2}{MinorVersionNibble:X2}");
+
     /// <summary>Technical AUTO_PRJ badge, or <see langword="null"/> when Jira is zero.</summary>
     public string? JiraBadge => JiraNumber == 0 ? null : $"AUTO_PRJ-{JiraNumber}";
 }

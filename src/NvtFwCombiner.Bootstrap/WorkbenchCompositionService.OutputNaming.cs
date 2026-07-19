@@ -60,7 +60,8 @@ public static partial class WorkbenchCompositionService
             ? WorkbenchOutputNameCandidateKind.Dp : WorkbenchOutputNameCandidateKind.Base;
         return candidates
             .Where(candidate => candidate.Kind == sourceKind)
-            .Select(static candidate => candidate.Inspection?.DpVersion?.VersionToken)
+            .Select(static candidate => candidate.Inspection?.DpVersion?.VersionToken ??
+                candidate.Inspection?.CmiDpCode?.VersionToken)
             .FirstOrDefault(static versionToken => !string.IsNullOrWhiteSpace(versionToken));
     }
 
@@ -93,6 +94,11 @@ public static partial class WorkbenchCompositionService
     {
         WorkbenchOutputNameCandidateKind sourceKind = candidates.Any(static candidate => candidate.Kind == WorkbenchOutputNameCandidateKind.Dp)
             ? WorkbenchOutputNameCandidateKind.Dp : WorkbenchOutputNameCandidateKind.Base;
+        string? cmiTpPath = candidates
+            .Where(static candidate => candidate.Kind is WorkbenchOutputNameCandidateKind.Tp or WorkbenchOutputNameCandidateKind.Base)
+            .OrderBy(static candidate => candidate.Kind == WorkbenchOutputNameCandidateKind.Tp ? 0 : 1)
+            .Select(static candidate => candidate.Path)
+            .FirstOrDefault(static path => !string.IsNullOrWhiteSpace(path));
         foreach (WorkbenchOutputNameCandidate candidate in candidates.Where(candidate => candidate.Kind == sourceKind))
         {
             if (string.IsNullOrWhiteSpace(candidate.Path))
@@ -105,6 +111,15 @@ public static partial class WorkbenchCompositionService
                 !string.IsNullOrWhiteSpace(value.VersionToken))
             {
                 return value.VersionToken;
+            }
+
+            WorkbenchCmiDpCodeMetadata? cmiMetadata = TryReadCmiDpCodeMetadata(
+                icId,
+                candidate.Path,
+                candidate.Kind == WorkbenchOutputNameCandidateKind.Base ? candidate.Path : cmiTpPath);
+            if (cmiMetadata is WorkbenchCmiDpCodeMetadata cmi)
+            {
+                return cmi.VersionToken;
             }
         }
 

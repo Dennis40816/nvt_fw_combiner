@@ -59,6 +59,52 @@ public sealed class WorkbenchOutputNamingTests
         Assert.Equal(pathBacked, inspected);
     }
 
+    /// <summary>NT51950 uses TP ChipNumber to decode its CMI DP token for both path and inspection naming.</summary>
+    [Fact]
+    public void Nt51950OutputNameUsesSingleIcCmiDpVersion()
+    {
+        string dpPath = GoldenArtifactPath("51950", "dp-input");
+        string tpPath = GoldenArtifactPath("51950", "tp-input");
+        DateOnly date = new(2026, 7, 20);
+        WorkbenchOutputFileNameSuggestion pathBacked = WorkbenchCompositionService.CreateFlashCodeOutputFileName(
+            "NT51950",
+            [
+                new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Dp, dpPath),
+                new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Tp, tpPath),
+            ],
+            date);
+        WorkbenchFirmwareInspection dpInspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51950",
+            dpPath,
+            tpPath);
+        WorkbenchOutputFileNameSuggestion inspected =
+            WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(
+                "NT51950",
+                [new WorkbenchOutputNameInspectionCandidate(WorkbenchOutputNameCandidateKind.Dp, dpInspection)],
+                date);
+
+        Assert.Equal("CC00", pathBacked.DpVersionToken);
+        Assert.Equal("NT51950_FlashCode_DCC00T0400_20260720.bin", pathBacked.FileName);
+        Assert.Equal("CC00", inspected.DpVersionToken);
+        Assert.True(inspected.HasDpVersion);
+    }
+
+    /// <summary>NT51951 uses its fixed CMI location without requiring an IC-count context.</summary>
+    [Fact]
+    public void Nt51951OutputNameUsesFixedCmiDpVersion()
+    {
+        string dpPath = GoldenArtifactPath("51951", "dp-input");
+
+        WorkbenchOutputFileNameSuggestion suggestion = WorkbenchCompositionService.CreateFlashCodeOutputFileName(
+            "NT51951",
+            [new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Dp, dpPath)],
+            new DateOnly(2026, 7, 20));
+
+        Assert.Equal("0500", suggestion.DpVersionToken);
+        Assert.Equal("NT51951_FlashCode_D0500Txxxx_20260720.bin", suggestion.FileName);
+        Assert.True(suggestion.HasDpVersion);
+    }
+
     /// <summary>CtrlRAM-style workflows preserve DP, so their base is the version source when no DP input exists.</summary>
     [Fact]
     public void FlashCodeOutputNameUsesBaseDpVersionOnlyWhenNoDpInputExists()

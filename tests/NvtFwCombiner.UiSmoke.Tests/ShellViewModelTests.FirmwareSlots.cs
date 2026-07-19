@@ -126,12 +126,14 @@ public sealed partial class ShellViewModelTests
         string basePath = workspace.Write("nt51951-no-nvt-backup.bin", bytes);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51951";
+        viewModel.SelectedReplaceMode = "CtrlRAM";
 
         viewModel.SetSlotFile("replace-base", basePath);
 
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "DP" && fact.Value == "DCC-00");
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira" && fact.Value == "AUTO_PRJ-576");
         Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label is "TP" or "Common FW" or "PID");
+        Assert.StartsWith("NT51951_FlashCode_DCC00Txxxx_", viewModel.ReplaceOutputFileName, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies DP BIN slots expose gen_flash DP version facts and mark missing evidence.</summary>
@@ -182,6 +184,7 @@ public sealed partial class ShellViewModelTests
             fact.Label == "Jira" &&
             fact.Value == "AUTO_PRJ-576" &&
             !fact.IsWarning);
+        Assert.StartsWith("NT51950_FlashCode_DCC00T0400_", viewModel.MergeOutputFileName, StringComparison.Ordinal);
     }
 
     /// <summary>Output naming publishes unknown at selection start, latest completion, and no stale result.</summary>
