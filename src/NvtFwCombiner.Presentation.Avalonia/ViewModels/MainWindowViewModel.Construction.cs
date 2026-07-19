@@ -140,6 +140,7 @@ public sealed partial class MainWindowViewModel
         SelectCtrlRamFirmwareVersionPreserveCommand = new RelayCommand(SelectCtrlRamFirmwareVersionPreserve);
         SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
         CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);
+        CloseBuildCompletedModalCommand = new RelayCommand(CloseBuildCompletedModal);
         HexEditorWorkspace.PropertyChanged += HexEditorWorkspace_OnPropertyChanged;
 
         AddGeneralReplaceMapping();

@@ -19,6 +19,18 @@ public sealed partial class ShellTextResources
 
     public string SaveReportLabel { get; private init; } = string.Empty;
 
+    public string BuildCompletedTitle { get; private init; } = string.Empty;
+
+    public string BuildCompletedDetail { get; private init; } = string.Empty;
+
+    public string BuildCompletedOutputLabel { get; private init; } = string.Empty;
+
+    public string BuildCompletedOpenFolderLabel { get; private init; } = string.Empty;
+
+    public string BuildCompletedOkLabel { get; private init; } = string.Empty;
+
+    public string BuildCompletedOpenFolderError { get; private init; } = string.Empty;
+
     public string CloseReportTooltip { get; private init; } = string.Empty;
 
     public string ReportHistoryTitle { get; private init; } = string.Empty;

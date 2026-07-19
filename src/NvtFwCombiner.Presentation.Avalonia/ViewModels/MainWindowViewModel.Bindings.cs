@@ -334,6 +334,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that closes the CtrlRAM firmware-version confirmation modal.</summary>
     public IRelayCommand CloseCtrlRamFirmwareVersionCommand { get; }
 
+    /// <summary>Command that dismisses the successful Build confirmation.</summary>
+    public IRelayCommand CloseBuildCompletedModalCommand { get; }
+
     /// <summary>Gets selected replace mode.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedReplaceModeDescription))]

@@ -198,6 +198,7 @@ public sealed partial class MainWindowViewModel
             result.Succeeded ? result.CommittedOutputId ?? result.OutputFileName : "No output",
             result.Succeeded);
         OnPropertyChanged(nameof(LastRunResult));
+        _ = TryShowBuildCompleted(result, build);
 
         if (!publishReport)
         {

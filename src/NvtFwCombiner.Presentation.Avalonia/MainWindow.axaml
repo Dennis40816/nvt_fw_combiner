@@ -316,5 +316,7 @@
         IsVisible="{Binding IsSaveConfirmationOpen}" />
 
     <views:ReportModal Grid.RowSpan="4" IsVisible="{Binding IsReportModalOpen}" />
+
+    <views:BuildCompletedModal Grid.RowSpan="4" IsVisible="{Binding IsBuildCompletedModalOpen}" />
   </Grid>
 </Window>

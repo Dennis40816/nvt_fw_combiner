@@ -175,6 +175,16 @@ public sealed partial class ShellTextResources
             RequiredBeforeBuildTitle = Pick("Required before Build", "Build 前必填"),
             CloseLabel = Pick("Close", "關閉"),
             SaveReportLabel = Pick("Save report", "儲存 report"),
+            BuildCompletedTitle = Pick("Build complete", "Build 完成"),
+            BuildCompletedDetail = Pick(
+                "The output BIN is ready. You can close this message or open its folder now.",
+                "輸出 BIN 已經完成。你可以關閉此訊息，或立即開啟所在資料夾。"),
+            BuildCompletedOutputLabel = Pick("Output BIN", "輸出 BIN"),
+            BuildCompletedOpenFolderLabel = Pick("Open output folder", "開啟輸出資料夾"),
+            BuildCompletedOkLabel = Pick("OK", "確定"),
+            BuildCompletedOpenFolderError = Pick(
+                "The output folder could not be opened. The BIN path is still shown above.",
+                "無法開啟輸出資料夾；上方仍保留完整 BIN 路徑。"),
             CloseReportTooltip = Pick("Close report", "關閉 report"),
             ReportHistoryTitle = "Report history",
             BackToReportLabel = Pick("Back to report", "回到 report"),

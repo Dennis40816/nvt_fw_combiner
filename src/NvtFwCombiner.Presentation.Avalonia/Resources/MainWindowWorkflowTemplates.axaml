@@ -40,6 +40,11 @@
             ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
 
         <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="{DynamicResource NfcSpace12}" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotGroupTemplate" />
           </ItemsControl.ItemTemplate>
