@@ -11,6 +11,7 @@ public sealed partial class ReportReviewViewModel
     private ReportReviewViewModel(
         bool isEmpty,
         string sourceName,
+        long? reportJsonUtf8ByteCount,
         string profileId,
         string icId,
         string modeId,
@@ -37,6 +38,7 @@ public sealed partial class ReportReviewViewModel
     {
         IsEmpty = isEmpty;
         SourceName = sourceName;
+        ReportJsonUtf8ByteCount = reportJsonUtf8ByteCount;
         ProfileId = profileId;
         IcId = icId;
         ModeId = modeId;
@@ -115,6 +117,7 @@ public sealed partial class ReportReviewViewModel
     public static ReportReviewViewModel Empty { get; } = new(
         true,
         string.Empty,
+        null,
         string.Empty,
         string.Empty,
         string.Empty,
@@ -137,4 +140,7 @@ public sealed partial class ReportReviewViewModel
         [],
         OutputDifferenceProjection.Empty,
         []);
+
+    /// <summary>UTF-8 report size already observed by the background JSON projection.</summary>
+    internal long? ReportJsonUtf8ByteCount { get; }
 }

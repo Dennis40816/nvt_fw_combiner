@@ -101,6 +101,7 @@ public sealed partial class ReportReviewViewModel
         return new ReportReviewViewModel(
             false,
             sourceName,
+            utf8.LongLength,
             profileId,
             icId,
             modeId,
@@ -137,6 +138,7 @@ public sealed partial class ReportReviewViewModel
         return new ReportReviewViewModel(
             false,
             sourceName,
+            null,
             string.Empty,
             string.Empty,
             string.Empty,
