@@ -1,7 +1,6 @@
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Profiles;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -321,13 +320,38 @@ public static partial class WorkbenchCompositionService
     private static string? DetectFirmwareIcHintFromHeader(ReadOnlySpan<byte> image)
     {
         int length = Math.Min(image.Length, FirmwareIcHintHeaderProbeLength);
-        if (length == 0)
+        ReadOnlySpan<byte> probe = image[..length];
+        for (int index = 0; index <= probe.Length - 5; index++)
         {
-            return null;
+            if (probe[index] != (byte)'5' ||
+                probe[index + 1] != (byte)'1' ||
+                probe[index + 2] != (byte)'9' ||
+                !IsAsciiDigit(probe[index + 3]) ||
+                !IsAsciiDigit(probe[index + 4]))
+            {
+                continue;
+            }
+
+            if (index > 0 && IsAsciiDigit(probe[index - 1]))
+            {
+                continue;
+            }
+
+            int endExclusive = index + 5;
+            if (endExclusive < probe.Length && IsAsciiDigit(probe[endExclusive]))
+            {
+                continue;
+            }
+
+            return $"NT519{(char)probe[index + 3]}{(char)probe[index + 4]}";
         }
 
-        Match headerMatch = FirmwareIcHintMarker().Match(Encoding.ASCII.GetString(image[..length]));
-        return headerMatch.Success ? $"NT{headerMatch.Groups["ic"].Value}" : null;
+        return null;
+    }
+
+    private static bool IsAsciiDigit(byte value)
+    {
+        return value is >= (byte)'0' and <= (byte)'9';
     }
 
     [GeneratedRegex(@"(?<!\d)(?:NT)?(?<ic>519\d{2})(?:TT)?(?!\d)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
