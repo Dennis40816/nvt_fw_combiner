@@ -4,11 +4,34 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.9.8` development targets verified legacy convergence, patch closure, firmware-owner evidence, and the UI-driven IC intake toolchain.
+Changes after `0.9.9` will be documented here.
+
+## [0.9.9] - 2026-07-19
+
+### Added
+
+- Canonical, manifest-pinned direct and fact-scoped golden evidence for the reviewed Standard Merge, DP Replace, and CtrlRAM Replace cases, including the final 2026-07-18 owner intake and exact provenance, size, and SHA-256 identities.
+- Exact V2 CtrlRAM routes for the admitted owner cases, with ordered postbuild commands, declared processor read/write ranges, immutable inputs, output hashes, and replacement-versus-header/CRC difference classification locked by regression tests.
+- Closed canonical golden inventory validation under `IC/workflow/variant-or-version/topology/case/{inputs,expected,provenance}`, with diagnostics separated from expected outputs and link/junction escapes rejected.
 
 ### Changed
 
+- Retired the production V1 composition compiler and its remaining runtime authority after exact V2 route and fail-closed coverage; the constrained Legacy Combiner executable and runner remain the deliberate exception.
+- CtrlRAM replacement inputs now follow the physical Postbuild model and copy at most the declared section maximum while accepting shorter immutable sources; oversized sources still fail closed, and section expected/maximum byte facts are projected to the workbench.
+- DP Replace requires the same-IC canonical Standard Merge map and a complete compatible Reference FlashCode. AB FlashCode remains a separate evidence-gated profile concern and is not inferred from Standard Merge offsets.
+- Kept NT51931 Replace unavailable while preserving its reproducible evidence-only Combiner investigation; non-exact or release-excluded shapes remain fail closed rather than being promoted from family similarity.
+- Consolidated the owner-approved canonical golden and external-tool inventories without changing runtime routes, profile facts, firmware bytes, expected outputs, or support status.
 - Moved the generated CRC Worker 0.1.0 payload from the release root to the closed `external-tools/crc-worker/0.1.0/` package path while preserving Protocol 1.0, its manifest hash, and the packaged `123456789` self-test.
+
+### Security
+
+- External processors remain hash-pinned, package-allowlisted, staged, and independently diff-constrained. DiffNFMerge is repository evidence only: it is not runtime-registered, executed, or included in the release ZIP.
+- Production C#/AXAML remains below the owner-approved 54,000-nonblank-line ceiling without removing required safety, evidence, range, CRC/header, or fail-closed checks.
+
+### Notes
+
+- Exact golden verification and runtime availability remain distinct from product-support promotion; R3 firmware-owner review continues to gate promotion.
+- The earlier `v0.9.9` tag incorrectly pointed to an internal milestone tree that still reported version `0.9.8`. The owner explicitly approved replacing that tag only after this metadata-aligned tree passes review and required CI and is merged to `main`; `v0.9.9.5` remains an internal predecessor tag and is not stable package authority.
 
 ## [0.9.8] - 2026-07-16
 
