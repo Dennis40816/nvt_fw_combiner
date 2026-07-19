@@ -21,6 +21,7 @@ public sealed class ReportWindowedListViewModelTests
 
         Assert.Equal(0, navigator.PageIndex);
         Assert.Equal(3, navigator.PageCount);
+        Assert.True(navigator.HasMultiplePages);
         Assert.Equal(64, navigator.VisibleCount);
         Assert.Equal(0, navigator.Items[0]);
         Assert.Equal("Showing 1-64 of 130", navigator.PageStatus);
@@ -53,6 +54,39 @@ public sealed class ReportWindowedListViewModelTests
         Assert.Equal(64, navigator.Items[0]);
     }
 
+    /// <summary>Direct item navigation jumps to the containing window without retaining preceding pages.</summary>
+    [Fact]
+    public void DirectItemNavigationShowsOnlyTheContainingWindow()
+    {
+        int projectedRowCount = 0;
+        var source = new FactoryReadOnlyList<int>(
+            10_000,
+            index =>
+            {
+                projectedRowCount++;
+                return index;
+            });
+        var navigator = ReportWindowedListViewModel.Create(
+            source,
+            pageSize: 64,
+            ShellLanguage.English);
+
+        Assert.Equal(64, projectedRowCount);
+
+        navigator.ShowItemAt(9_999);
+
+        Assert.Equal(156, navigator.PageIndex);
+        Assert.Equal(16, navigator.VisibleCount);
+        Assert.Equal(9_984, navigator.Items[0]);
+        Assert.Equal(9_999, navigator.Items[^1]);
+        Assert.Equal("Showing 9985-10000 of 10000", navigator.PageStatus);
+        Assert.Equal(80, projectedRowCount);
+
+        navigator.ShowItemAt(9_998);
+
+        Assert.Equal(80, projectedRowCount);
+    }
+
     /// <summary>Window controls expose bilingual labels without requiring shell-owned translations.</summary>
     [Fact]
     public void NavigationLabelsFollowTheSelectedShellLanguage()
@@ -67,6 +101,7 @@ public sealed class ReportWindowedListViewModelTests
         Assert.Equal("下一頁", navigator.NextPageLabel);
         Assert.Equal("沒有項目", navigator.PageStatus);
         Assert.Equal(0, navigator.VisibleCount);
+        Assert.False(navigator.HasMultiplePages);
         Assert.True(navigator.NextPageCommand.CanExecute(null));
 
         navigator.NextPageCommand.Execute(null);
