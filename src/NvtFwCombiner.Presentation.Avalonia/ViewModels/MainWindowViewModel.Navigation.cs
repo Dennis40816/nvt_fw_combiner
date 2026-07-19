@@ -21,6 +21,12 @@ public sealed partial class MainWindowViewModel
     /// <summary>True when the selected page or active run needs the captured device context.</summary>
     public bool IsDeviceContextVisible => IsRunInProgress || SelectedPage is ShellPage.Merge or ShellPage.Replace;
 
+    /// <summary>True when the fixed composition action rail belongs to the active page.</summary>
+    public bool IsCompositionActionRailVisible => SelectedPage is ShellPage.Merge or ShellPage.Replace;
+
+    /// <summary>True when the current composition page can reopen the latest committed output.</summary>
+    public bool IsLatestOutputActionVisible => IsCompositionActionRailVisible && HasLatestCommittedOutput;
+
     /// <summary>True when the shared context row should expose the IC Number selector.</summary>
     public bool IsNumberSelectorVisible => IsRunInProgress
         ? ActiveRunShowsNumberSelector

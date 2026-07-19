@@ -181,6 +181,7 @@ public sealed partial class ShellTextResources
                 "輸出 BIN 已經完成。你可以關閉此訊息，或立即開啟所在資料夾。"),
             BuildCompletedOutputLabel = Pick("Output BIN", "輸出 BIN"),
             BuildCompletedOpenFolderLabel = Pick("Open output folder", "開啟輸出資料夾"),
+            LatestOutputOpenFolderLabel = Pick("Open latest output folder", "開啟最新輸出資料夾"),
             BuildCompletedOkLabel = Pick("OK", "確定"),
             BuildCompletedOpenFolderError = Pick(
                 "The output folder could not be opened. The BIN path is still shown above.",

@@ -10,6 +10,12 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the committed BIN path shown in the successful Build confirmation.</summary>
     public string BuildCompletedOutputPath { get; private set; } = string.Empty;
 
+    /// <summary>Gets the most recent successfully committed BIN path for the fixed action rail.</summary>
+    public string LatestCommittedOutputPath { get; private set; } = string.Empty;
+
+    /// <summary>True after this application session has committed at least one output BIN.</summary>
+    public bool HasLatestCommittedOutput => !string.IsNullOrWhiteSpace(LatestCommittedOutputPath);
+
     /// <summary>Gets the localized failure shown when the output folder could not be opened.</summary>
     public string BuildCompletedOpenFolderError { get; private set; } = string.Empty;
 
@@ -24,7 +30,8 @@ public sealed partial class MainWindowViewModel
             return false;
         }
 
-        BuildCompletedOutputPath = result.CommittedOutputId;
+        LatestCommittedOutputPath = result.CommittedOutputId;
+        BuildCompletedOutputPath = LatestCommittedOutputPath;
         BuildCompletedOpenFolderError = string.Empty;
         IsBuildCompletedModalOpen = true;
         NotifyBuildCompletedChanged();
@@ -45,6 +52,19 @@ public sealed partial class MainWindowViewModel
         NotifyBuildCompletedChanged();
     }
 
+    internal void ShowLatestOutputFolderOpenFailed()
+    {
+        if (!HasLatestCommittedOutput)
+        {
+            return;
+        }
+
+        BuildCompletedOutputPath = LatestCommittedOutputPath;
+        BuildCompletedOpenFolderError = Text.BuildCompletedOpenFolderError;
+        IsBuildCompletedModalOpen = true;
+        NotifyBuildCompletedChanged();
+    }
+
     internal void NotifyBuildCompletedOpenFolderFailed()
     {
         BuildCompletedOpenFolderError = Text.BuildCompletedOpenFolderError;
@@ -56,6 +76,9 @@ public sealed partial class MainWindowViewModel
     {
         OnPropertyChanged(nameof(IsBuildCompletedModalOpen));
         OnPropertyChanged(nameof(BuildCompletedOutputPath));
+        OnPropertyChanged(nameof(LatestCommittedOutputPath));
+        OnPropertyChanged(nameof(HasLatestCommittedOutput));
+        OnPropertyChanged(nameof(IsLatestOutputActionVisible));
         OnPropertyChanged(nameof(BuildCompletedOpenFolderError));
         OnPropertyChanged(nameof(HasBuildCompletedOpenFolderError));
     }

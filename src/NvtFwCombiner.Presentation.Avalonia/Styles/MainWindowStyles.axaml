@@ -2,6 +2,14 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:input="using:Avalonia.Input">
+  <Style Selector="Border.compositionActionRail">
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+    <Setter Property="BoxShadow" Value="{DynamicResource NfcWorkflowCardHoverShadow}" />
+  </Style>
   <Style Selector="Border.runProgressNode">
     <Setter Property="Height" Value="22" />
     <Setter Property="CornerRadius" Value="4" />

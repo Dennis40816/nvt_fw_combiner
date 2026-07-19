@@ -177,6 +177,8 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsReplaceVisible));
         OnPropertyChanged(nameof(IsHexEditorVisible));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
+        OnPropertyChanged(nameof(IsCompositionActionRailVisible));
+        OnPropertyChanged(nameof(IsLatestOutputActionVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
         OnPropertyChanged(nameof(DeviceContextStatus));

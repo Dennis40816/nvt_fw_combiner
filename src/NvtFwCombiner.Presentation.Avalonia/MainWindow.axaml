@@ -174,7 +174,7 @@
               </StackPanel>
               <Grid
                   Grid.Column="1"
-                  ColumnDefinitions="Auto,Auto,Auto"
+                  ColumnDefinitions="Auto,Auto"
                   ColumnSpacing="{DynamicResource NfcSpace12}"
                   VerticalAlignment="Center">
                 <StackPanel Spacing="3">
@@ -216,18 +216,6 @@
                     </Grid>
                   </Button>
                 </StackPanel>
-                <StackPanel Grid.Column="2" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-                  <Button
-                      Classes="toolbarAction"
-                      Click="BuildReplaceButton_OnClick"
-                      IsEnabled="{Binding CanBuildReplace}"
-                      ToolTip.Tip="{Binding ReplaceBuildActionTip}">
-                    <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
-                       <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
-                    </StackPanel>
-                  </Button>
-                </StackPanel>
               </Grid>
             </Grid>
 
@@ -253,25 +241,13 @@
                 <TextBlock Classes="pageTitle" Text="{Binding MergePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding MergePreview.Subtitle}" />
               </StackPanel>
-              <Grid Grid.Column="1" ColumnDefinitions="170,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" VerticalAlignment="Center">
+              <Grid Grid.Column="1" ColumnDefinitions="170" ColumnSpacing="{DynamicResource NfcSpace12}" VerticalAlignment="Center">
                 <StackPanel Spacing="3" ToolTip.Tip="{Binding Text.MergeModeTooltip}">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
                   <ComboBox
                       MinHeight="32"
                       ItemsSource="{Binding MergeModeChoices}"
                       SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-                  <Button
-                      Classes="toolbarAction"
-                      Click="BuildMergeButton_OnClick"
-                      IsEnabled="{Binding CanBuildMerge}"
-                      ToolTip.Tip="{Binding MergeBuildActionTip}">
-                    <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
-                      <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
-                    </StackPanel>
-                  </Button>
                 </StackPanel>
               </Grid>
             </Grid>
@@ -288,6 +264,65 @@
         </Grid>
       </Grid>
     </ScrollViewer>
+
+    <Border
+        Grid.RowSpan="4"
+        Margin="0,0,24,24"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Bottom"
+        Classes="compositionActionRail"
+        IsVisible="{Binding IsCompositionActionRailVisible}">
+      <StackPanel Spacing="{DynamicResource NfcSpace8}">
+        <Button
+            Width="52"
+            Height="52"
+            Classes="floatingAction"
+            AutomationProperties.Name="{Binding Text.LatestOutputOpenFolderLabel}"
+            Click="OpenLatestOutputFolderButton_OnClick"
+            IsVisible="{Binding IsLatestOutputActionVisible}"
+            ToolTip.Tip="{Binding Text.LatestOutputOpenFolderLabel}">
+          <Path
+              Width="22"
+              Height="22"
+              Data="M2.5 5.5H8L10 8H21.5V18.5H2.5Z M7 12H17 M14 9L17 12L14 15"
+              Fill="Transparent"
+              Stroke="{DynamicResource NfcTextStrongBrush}"
+              StrokeLineCap="Round"
+              StrokeJoin="Round"
+              StrokeThickness="1.7" />
+        </Button>
+        <Button
+            Width="52"
+            Height="52"
+            Classes="floatingAction build"
+            AutomationProperties.Name="{Binding Text.BuildActionLabel}"
+            Click="BuildMergeButton_OnClick"
+            IsEnabled="{Binding CanBuildMerge}"
+            IsVisible="{Binding IsMergeVisible}"
+            ToolTip.Tip="{Binding MergeBuildActionTip}">
+          <Path
+              Width="22"
+              Height="22"
+              Data="M5 3.5V20.5L19 12Z"
+              Fill="{DynamicResource NfcSurfaceBrush}" />
+        </Button>
+        <Button
+            Width="52"
+            Height="52"
+            Classes="floatingAction build"
+            AutomationProperties.Name="{Binding Text.BuildActionLabel}"
+            Click="BuildReplaceButton_OnClick"
+            IsEnabled="{Binding CanBuildReplace}"
+            IsVisible="{Binding IsReplaceVisible}"
+            ToolTip.Tip="{Binding ReplaceBuildActionTip}">
+          <Path
+              Width="22"
+              Height="22"
+              Data="M5 3.5V20.5L19 12Z"
+              Fill="{DynamicResource NfcSurfaceBrush}" />
+        </Button>
+      </StackPanel>
+    </Border>
 
     <ContentControl
         Grid.Row="1"

@@ -16,6 +16,32 @@ public sealed partial class BuildCompletedModal : UserControl
 
     internal static DirectoryInfo? TryGetOutputDirectory(string outputPath)
     {
+        return OutputFolderLauncher.TryGetOutputDirectory(outputPath);
+    }
+
+    private async void OpenOutputFolderButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (await OutputFolderLauncher.TryOpenAsync(
+                TopLevel.GetTopLevel(this)?.Launcher,
+                viewModel.BuildCompletedOutputPath))
+        {
+            viewModel.CloseBuildCompletedModal();
+            return;
+        }
+
+        viewModel.NotifyBuildCompletedOpenFolderFailed();
+    }
+}
+
+internal static class OutputFolderLauncher
+{
+    internal static DirectoryInfo? TryGetOutputDirectory(string outputPath)
+    {
         if (string.IsNullOrWhiteSpace(outputPath) || !Path.IsPathFullyQualified(outputPath))
         {
             return null;
@@ -35,38 +61,24 @@ public sealed partial class BuildCompletedModal : UserControl
         }
     }
 
-    private async void OpenOutputFolderButton_OnClick(object? sender, RoutedEventArgs e)
+    internal static async Task<bool> TryOpenAsync(ILauncher? launcher, string outputPath)
     {
-        if (DataContext is not MainWindowViewModel viewModel)
+        if (launcher is null || TryGetOutputDirectory(outputPath) is not { } outputDirectory)
         {
-            return;
-        }
-
-        if (TopLevel.GetTopLevel(this) is not { Launcher: { } launcher } ||
-            TryGetOutputDirectory(viewModel.BuildCompletedOutputPath) is not { } outputDirectory)
-        {
-            viewModel.NotifyBuildCompletedOpenFolderFailed();
-            return;
+            return false;
         }
 
         try
         {
-            if (await launcher.LaunchDirectoryInfoAsync(outputDirectory))
-            {
-                viewModel.CloseBuildCompletedModal();
-            }
-            else
-            {
-                viewModel.NotifyBuildCompletedOpenFolderFailed();
-            }
+            return await launcher.LaunchDirectoryInfoAsync(outputDirectory);
         }
         catch (IOException)
         {
-            viewModel.NotifyBuildCompletedOpenFolderFailed();
+            return false;
         }
         catch (UnauthorizedAccessException)
         {
-            viewModel.NotifyBuildCompletedOpenFolderFailed();
+            return false;
         }
     }
 }

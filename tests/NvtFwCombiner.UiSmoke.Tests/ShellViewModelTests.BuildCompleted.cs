@@ -21,9 +21,11 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.IsBuildCompletedModalOpen);
         Assert.Equal(outputPath, viewModel.BuildCompletedOutputPath);
+        Assert.Equal(outputPath, viewModel.LatestCommittedOutputPath);
+        Assert.True(viewModel.HasLatestCommittedOutput);
     }
 
-    /// <summary>A committed Build opens one actionable confirmation and OK clears its state.</summary>
+    /// <summary>A committed Build opens one confirmation while OK retains the latest-output shortcut.</summary>
     [Fact]
     public void CommittedBuildShowsOutputConfirmation()
     {
@@ -33,11 +35,14 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
         Assert.True(viewModel.IsBuildCompletedModalOpen);
         Assert.Equal(outputPath, viewModel.BuildCompletedOutputPath);
+        Assert.Equal(outputPath, viewModel.LatestCommittedOutputPath);
 
         viewModel.CloseBuildCompletedModalCommand.Execute(null);
 
         Assert.False(viewModel.IsBuildCompletedModalOpen);
         Assert.Equal(string.Empty, viewModel.BuildCompletedOutputPath);
+        Assert.Equal(outputPath, viewModel.LatestCommittedOutputPath);
+        Assert.True(viewModel.HasLatestCommittedOutput);
     }
 
     /// <summary>Preview, blocked Build, and uncommitted success cannot claim that a BIN is ready.</summary>
@@ -51,6 +56,28 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: false, outputPath), build: true));
         Assert.False(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath: null), build: true));
         Assert.False(viewModel.IsBuildCompletedModalOpen);
+        Assert.False(viewModel.HasLatestCommittedOutput);
+    }
+
+    /// <summary>The latest-output shortcut is scoped to composition pages and survives later failed runs.</summary>
+    [Fact]
+    public void LatestOutputActionTracksCommittedOutputAndCompositionPage()
+    {
+        string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
+
+        Assert.False(viewModel.IsLatestOutputActionVisible);
+        Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
+        viewModel.CloseBuildCompletedModal();
+
+        Assert.True(viewModel.IsLatestOutputActionVisible);
+        Assert.False(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: false, outputPath: "another.bin"), build: true));
+        Assert.Equal(outputPath, viewModel.LatestCommittedOutputPath);
+
+        viewModel.ShowHomeCommand.Execute(null);
+
+        Assert.False(viewModel.IsLatestOutputActionVisible);
     }
 
     /// <summary>The folder action derives only a fully qualified parent directory from the committed BIN path.</summary>
