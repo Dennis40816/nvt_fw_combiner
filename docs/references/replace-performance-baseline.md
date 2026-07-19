@@ -496,9 +496,9 @@ Commit `7185c0e2` bounds retained best-effort local history by both 12 entries
 and a 16 MiB UTF-8 soft budget. The newest report is never dropped; older
 entries are evicted from the tail until the budget is met. A single newest
 report may exceed the soft budget so active review is not lost. Persisted
-history files above 64 MiB are rejected from file metadata before their JSON
-text is read, bounding legacy/corrupt startup input. The machine-readable run
-report and local history schema are unchanged. This is a deterministic
+history files above 64 MiB are rejected from the opened file before BOM
+inspection or JSON deserialization, bounding legacy/corrupt startup input. The
+machine-readable run report and local history schema are unchanged. This is a deterministic
 retention/I/O bound; packaged startup working set remains open.
 
 ## Startup report restoration baseline
@@ -537,14 +537,41 @@ single-initialization contract; packaged first-frame evidence remains open.
 
 Commit `69a59441` bounds the remaining intentional synchronous preference read
 before ViewModel construction. `ShellPreferenceFileStore` rejects a local
-preference file above 64 KiB from metadata before calling `ReadAllText`; the
-same valid UTF-8 JSON loads at exactly 65,536 bytes and falls back to
+preference file above 64 KiB from the opened file before payload
+deserialization; the same valid UTF-8 JSON loads at exactly 65,536 bytes and falls back to
 System/English/reduced-motion off at 65,537 bytes. Normal version-1 preference
 files, async atomic save, cancellation, and post-construction switching are
 unchanged. Focused preferences pass `4/4`, full UI `229/229`, Architecture
 `94/94`, and independent R1 UI/architecture review reports no P0/P1. This is a
 corrupt or abnormal local-state bound, not a packaged startup-latency claim;
 final preference interaction/restoration remains in the Windows manual gate.
+
+Commit `c47b28c9` removes the whole-file text intermediate from local-state
+restore. Current UTF-8 history/preferences deserialize directly from the
+bounded opened stream. Legacy UTF-16 LE/BE and UTF-32 LE/BE BOM documents are
+identified before the overlapping UTF-16 prefix, positioned after the exact
+BOM, and streamed through a UTF-8 transcoder; compatibility no longer requires
+`ReadToEnd`. UTF-8 BOM remains on the direct serializer path.
+
+The warmed 4 MiB current-format history observation allocated `25,227,920`
+bytes before this slice. The committed regression preserves the complete
+report string and requires both current UTF-8 and legacy UTF-16 restore to
+allocate no more than `12,582,912` current-thread bytes. This is a steady-state
+allocation ceiling, not a retained-memory or startup-latency measurement.
+
+The same opened snapshot shares delete but never write. A deterministic
+Windows-target regression keeps the old reader open while async atomic save
+publishes the latest path, then proves that the reader contains only the old
+complete snapshot, a subsequent load contains only the latest snapshot, and
+no temporary file remains. Deserialization completes before the handle closes;
+schema projection begins afterward. Missing, malformed, oversized and valid
+unsupported-schema inputs still use the best-effort fallback. Five BOM
+encodings, the held-reader replacement, focused local persistence `14/14`,
+full UI `237/237`, Architecture `94/94`, Polytail, and independent R2 UI and
+architecture review pass with no P0-P3 finding. Local schema, latest-wins
+persistence, dispatcher ownership, report content, and firmware behavior are
+unchanged. The exact packaged 12-entry cold-start and working-set rows remain
+open in the Windows manual gate.
 
 ## Pinned catalog discovery baseline
 
