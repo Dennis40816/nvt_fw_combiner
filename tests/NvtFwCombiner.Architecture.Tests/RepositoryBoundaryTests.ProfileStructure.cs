@@ -128,6 +128,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51926-ctrlram-replace-candidate",
             "nt51917-ctrlram-replace-alias-candidate",
             "nt51927-ctrlram-replace-candidate",
+            "nt51928-ctrlram-replace-candidate",
             "nt51929-ctrlram-replace-candidate",
             "nt51930-ctrlram-replace-candidate",
             "nt51931-ctrlram-replace-candidate",
@@ -177,6 +178,7 @@ public sealed partial class RepositoryBoundaryTests
                          "nt51926-ctrlram-replace-candidate" or
                          "nt51917-ctrlram-replace-alias-candidate" or
                          "nt51927-ctrlram-replace-candidate" or
+                         "nt51928-ctrlram-replace-candidate" or
                          "nt51929-ctrlram-replace-candidate" or
                          "nt51930-ctrlram-replace-candidate" or
                          "nt51931-ctrlram-replace-candidate" or

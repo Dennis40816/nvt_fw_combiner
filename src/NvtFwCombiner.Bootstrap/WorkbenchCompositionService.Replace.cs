@@ -28,7 +28,10 @@ public static partial class WorkbenchCompositionService
         LegacyCombinerPostbuildBranch branch,
         TpCtrlRamPostbuildSource source)
     {
-        bool requiresDiffNfMerge = RequiresDiffNfMergeOutput(icId, branch, source);
+        bool requiresDiffNfMerge = source.SourceId == "nf" &&
+            IcSupportCatalog.NormalizeIcId(icId) is
+                "NT51919" or "NT51929" or "NT51932" or "NT51950" or "NT51951" &&
+            branch == LegacyCombinerPostbuildBranch.Cascade;
         string title = source.Regions.Count == 1
             ? source.Regions[0].DisplayName
             : $"{DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(source.SourceId)} (Shared)";
@@ -51,17 +54,6 @@ public static partial class WorkbenchCompositionService
             true,
             slotId,
             source.SourceId);
-    }
-
-    private static bool RequiresDiffNfMergeOutput(
-        string icId,
-        LegacyCombinerPostbuildBranch branch,
-        TpCtrlRamPostbuildSource source)
-    {
-        return source.SourceId == "nf" &&
-            IcSupportCatalog.NormalizeIcId(icId) is
-                "NT51919" or "NT51929" or "NT51932" or "NT51950" or "NT51951" &&
-            branch == LegacyCombinerPostbuildBranch.Cascade;
     }
 
     private static string CtrlRamSlotId(string regionId)

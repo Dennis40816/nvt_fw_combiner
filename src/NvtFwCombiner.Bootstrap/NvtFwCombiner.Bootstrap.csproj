@@ -66,6 +66,9 @@
     <BuiltInProfileBundle Include="nt51927-ctrlram-replace-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51928-ctrlram-replace-candidate">
+      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
+    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51929-ctrlram-replace-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
