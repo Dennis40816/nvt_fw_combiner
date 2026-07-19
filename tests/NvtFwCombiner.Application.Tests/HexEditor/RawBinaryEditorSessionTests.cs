@@ -502,6 +502,42 @@ public sealed class RawBinaryEditorSessionTests
             $"lookups=101 elapsedMs={timer.Elapsed.TotalMilliseconds:F3} allocated={allocated}");
     }
 
+    /// <summary>Reuses unchanged immutable range records when one byte changes inside a fragmented document.</summary>
+    [Fact]
+    public void FragmentedSingleByteEditReusesUnchangedRangeRecords()
+    {
+        const int documentLength = 20_000;
+        const int expectedRangeCount = documentLength / 2;
+        var session = new RawBinaryEditorSession();
+        _ = session.Load(new byte[documentLength]);
+        string alternatingValues = string.Join(
+            ' ',
+            Enumerable.Range(0, documentLength).Select(static index => index % 2 == 0 ? "FF" : "00"));
+        Assert.True(session.OverwriteRange("0x0", "0x4E1F", alternatingValues).Succeeded);
+        IReadOnlyList<RawBinaryEditorChangedRange> before = session.GetChangedRanges();
+        Assert.Equal(expectedRangeCount, before.Count);
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        Assert.True(session.OverwriteByte("0x0", "FE").Succeeded);
+        IReadOnlyList<RawBinaryEditorChangedRange> after = session.GetChangedRanges();
+        timer.Stop();
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.NotSame(before, after);
+        Assert.Equal(expectedRangeCount, after.Count);
+        Assert.NotSame(before[0], after[0]);
+        Assert.Equal((byte)0xFF, before[0].ValueChanges[0].FirstCurrentValue);
+        Assert.Equal((byte)0xFE, after[0].ValueChanges[0].FirstCurrentValue);
+        Assert.Same(before[1], after[1]);
+        Assert.Same(before[^1], after[^1]);
+        Assert.Same(after, session.GetChangedRanges());
+        Assert.InRange(allocated, 0, 128 * 1024);
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"RAW_EDITOR_FRAGMENTED_RANGES ranges={expectedRangeCount} " +
+            $"elapsedMs={timer.Elapsed.TotalMilliseconds:F3} allocated={allocated}");
+    }
+
     /// <summary>Bounds the retained source-address map to one compact integer per document byte.</summary>
     [Fact]
     public void LoadUsesCompactOriginalOffsetMap()
