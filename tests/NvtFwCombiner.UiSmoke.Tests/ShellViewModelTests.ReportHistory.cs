@@ -91,6 +91,29 @@ public sealed partial class ShellViewModelTests
         Assert.Empty(viewModel.ExportReportHistory());
     }
 
+    /// <summary>Large local reports keep the newest review without allowing older history to exceed its byte budget.</summary>
+    [Fact]
+    public void ReportHistoryKeepsNewestEntryWithinStorageBudget()
+    {
+        int paddingLength = checked((int)(MainWindowViewModel.MaximumReportHistoryStorageBytes / 2) + 1024);
+        string firstBase = ReportJsonSamples.Succeeded(runId: "first-large");
+        string secondBase = ReportJsonSamples.Succeeded(runId: "second-large");
+        string first = firstBase.Insert(
+            firstBase.LastIndexOf('}'),
+            $",\"Padding\":\"{new string('A', paddingLength)}\"");
+        string second = secondBase.Insert(
+            secondBase.LastIndexOf('}'),
+            $",\"Padding\":\"{new string('B', paddingLength)}\"");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportJson(first, "first-large.json");
+        viewModel.LoadReportJson(second, "second-large.json");
+
+        ReportHistoryEntryViewModel entry = Assert.Single(viewModel.ReportHistoryEntries);
+        Assert.Equal("second-large.json", entry.SourceName);
+        Assert.Equal(second, entry.ReportJson);
+    }
+
     /// <summary>Successful JSON projection supplies the history size without a second full JSON scan.</summary>
     [Fact]
     public void ReportHistoryReusesProjectedUtf8ByteCount()

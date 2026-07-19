@@ -7,6 +7,7 @@ public static class ReportHistoryFileStore
 {
     private const int SchemaVersion = 1;
     private const string HistoryFileName = "report-history.v1.json";
+    internal const long MaximumHistoryFileBytes = 64L * 1024 * 1024;
 
     /// <summary>Gets the default local report history path for the current user.</summary>
     public static string DefaultHistoryPath => BestEffortLocalJsonFileStore.GetDefaultPath(HistoryFileName);
@@ -40,7 +41,8 @@ public static class ReportHistoryFileStore
             [],
             file => file?.SchemaVersion == SchemaVersion
                 ? [.. file.Entries.Select(entry => entry.ToSnapshot()).OfType<ReportHistorySnapshot>()]
-                : []);
+                : [],
+            MaximumHistoryFileBytes);
     }
 
     /// <summary>Loads the default history on a worker so local storage cannot delay the UI dispatcher.</summary>
