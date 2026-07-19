@@ -140,7 +140,7 @@ public static partial class CliApplication
         AtomicFileCompositionOutputWriter? writer = action == "build"
             ? new AtomicFileCompositionOutputWriter(outputTarget.OutputDirectory, options.Flags.Contains("--overwrite"))
             : null;
-        var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
+        var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.GetOrCreateOrNull());
         var request = new CompositionRunRequest(
             CreateRunId(action),
             compiledComposition,
