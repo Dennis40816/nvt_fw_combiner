@@ -77,7 +77,7 @@ trust-boundary copy, SHA, normalization, validation, report, and output commit
 logic. Replacement artifacts remain physical reads. This is not a UI or
 cross-run cache and does not change B0's Application-level two-input counter.
 
-## Raw Hex Editor memory baseline
+## Raw Hex Editor memory and change-range baseline
 
 The editable Raw Hex Editor must retain original bytes, working bytes, and one
 source-address identity per current byte so insert/delete and undo/redo remain
@@ -101,6 +101,23 @@ identity/value comparison still runs. The 1 MiB insert one-sample observation
 changes from `13.007` to `3.151` ms (`75.8%`). This is not a universal timing
 claim; exact dirty, insert/delete, undo/redo, and equal-length restoration
 behavior remains the executable gate.
+
+Before commit `d056c829`, every successful value-only edit was followed by a
+change-range query that separately derived value changes, structural changes,
+and structural boundaries, amounting to approximately three complete-document
+scans on the common equal-length path. The session now updates only the edited
+or touching value span and rebuilds immutable descriptors in proportion to the
+current changed-run count. Insert/delete retains the complete structural
+derivation and caches that result once for the document revision; exact undo
+can return to incremental value tracking without changing range semantics.
+
+The maximum-length regression loads an 8 MiB document, applies one one-byte
+edit, and performs 101 change-range lookups. The latest local single
+observation was `6.681` ms and `976` current-thread allocated bytes, with every
+lookup reusing the same immutable snapshot. Split, merge, overlapping edit,
+undo/redo, caller-mutation rejection, and structural fallback are executable
+tests rather than timing assumptions. This observation is not p50/p95 and does
+not close the final packaged A8 interaction or working-set gate.
 
 ## Fragmented report microbaseline
 
