@@ -143,6 +143,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "Canonical golden package policy direct/alias drift and strict-type rejection passed",
             result.stdout,
         )
+        self.assertIn(
+            "Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8",
+            result.stdout,
+        )
         self.assertFalse(
             probe_path.exists(), "packager did not clean its source policy probe"
         )
