@@ -378,4 +378,23 @@ public sealed class RawBinaryEditorSessionTests
             $"RAW_EDITOR_LOAD bytes={byteCount} allocated={allocated}");
         Assert.InRange(allocated, 0, (byteCount * 7L) + 32_768);
     }
+
+    /// <summary>Records a non-gating large-document structural edit observation while locking dirty state.</summary>
+    [Fact]
+    public void LengthChangingEditPreservesLargeDocumentState()
+    {
+        const int byteCount = 1024 * 1024;
+        var session = new RawBinaryEditorSession();
+        _ = session.Load(new byte[byteCount]);
+
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        RawBinaryEditorOperationResult result = session.InsertZeroAfter("0x0");
+        timer.Stop();
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(byteCount + 1, result.State.WorkingLength);
+        Assert.True(result.State.HasUnsavedChanges);
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"RAW_EDITOR_INSERT bytes={byteCount} elapsedMs={timer.Elapsed.TotalMilliseconds:F3}");
+    }
 }
