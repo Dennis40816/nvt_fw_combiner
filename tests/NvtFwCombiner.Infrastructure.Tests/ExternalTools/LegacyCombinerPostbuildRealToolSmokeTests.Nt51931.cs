@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
@@ -27,25 +28,17 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
 
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string toolRoot = Path.Combine(repositoryRoot, "external-tools");
-        string caseRoot = Path.Combine(
-            repositoryRoot,
-            "testdata",
-            "golden",
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
-            "fixtures",
-            "20260718",
-            "NT51931",
-            "replace",
-            "ctrlram",
-            "1.3.0",
-            "cascade",
-            "case-01");
-        byte[] ownerExpected = File.ReadAllBytes(Path.Combine(
-            caseRoot,
-            "expected_output",
-            "NT51931_FlashCode_D8DT83_20260718.bin"));
+            "nt51931-fw130-cascade6-auto-prj-158-20260718");
+        var artifactPaths = goldenCase.GetProperty("artifacts")
+            .EnumerateArray()
+            .ToDictionary(
+                artifact => artifact.GetProperty("artifactId").GetString()!,
+                CanonicalGoldenTestData.ArtifactPath,
+                StringComparer.Ordinal);
+        byte[] ownerExpected = File.ReadAllBytes(artifactPaths["expected-output"]);
         byte[] ownerExpectedSnapshot = [.. ownerExpected];
-        string postbuildInputRoot = Path.Combine(caseRoot, "postbuild_inputs");
         ExternalCombinerToolManifest manifest = LoadManifest(
             Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
         Assert.Equal(
@@ -62,11 +55,11 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
 
         ExternalProcessorStagedArtifact[] artifacts =
         [
-            Artifact("postbuild-nf-ctrlram", "NF_Ctrlram.bin"),
-            Artifact("postbuild-normal-ctrlram", "Normal_Ctrlram.bin"),
-            Artifact("postbuild-mp-ctrlram", "MP_Ctrlram.bin"),
-            Artifact("postbuild-vn-ctrlram", "VN_Ctrlram.bin"),
-            Artifact("postbuild-diffdlm", "DiffDLM.bin"),
+            Artifact("postbuild-nf-ctrlram", "nf-ctrlram-input"),
+            Artifact("postbuild-normal-ctrlram", "normal-ctrlram-input"),
+            Artifact("postbuild-mp-ctrlram", "mp-ctrlram-input"),
+            Artifact("postbuild-vn-ctrlram", "vn-ctrlram-input"),
+            Artifact("postbuild-diffdlm", "diffdlm-input"),
         ];
         byte[][] artifactSnapshots = [.. artifacts.Select(artifact => artifact.Bytes.ToArray())];
         ByteRange[] expectedChangedRanges =
@@ -123,11 +116,11 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             }
         }
 
-        ExternalProcessorStagedArtifact Artifact(string artifactId, string fileName)
+        ExternalProcessorStagedArtifact Artifact(string artifactId, string canonicalArtifactId)
         {
             return new ExternalProcessorStagedArtifact(
                 artifactId,
-                File.ReadAllBytes(Path.Combine(postbuildInputRoot, fileName)));
+                File.ReadAllBytes(artifactPaths[canonicalArtifactId]));
         }
     }
 }
