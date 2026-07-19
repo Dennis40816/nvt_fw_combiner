@@ -1,7 +1,9 @@
 {
   "schemaVersion": "0.1",
-  "payloadClass": "owner-approved-golden-firmware",
+  "payloadClass": "repository-only-diagnostic-evidence",
   "binaryPayloadsIncluded": true,
+  "canonicalExpected": false,
+  "releaseRedistributionApproved": false,
   "runtimeSupportPromotion": false,
   "sourceArchive": {
     "fileName": "NVT_Golden_Evidence_v0.9.9_20260717.7z",
@@ -10,7 +12,7 @@
     "recoveredAtTaipei": "2026-07-17T17:18:00+08:00"
   },
   "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
-  "evidenceScope": "Remaining diagnostic and cross-workflow duplicate artifacts only. Nine direct CtrlRAM cases moved byte-for-byte to the canonical inventory; this legacy manifest will be retired by the diagnostics/dedup slice.",
+  "evidenceScope": "Remaining diagnostic and cross-workflow duplicate artifacts only. Nine direct CtrlRAM cases moved byte-for-byte to the canonical inventory. Physical payload relocation is frozen; this manifest is the hash-pinned legacy quarantine inventory referenced by testdata/diagnostics/golden-evidence/manifest.json and is not canonical expected evidence.",
   "externalToolCoverage": [
     {
       "id": "diff-nf-merge",

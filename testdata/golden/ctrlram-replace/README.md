@@ -8,8 +8,11 @@ controls; the two NT51927 2026-07-05 direct-input cases, nine direct 2026-07-17
 cases, and all final 2026-07-18 direct cases live under `../canonical/`. The
 canonical verifier checks every inventory, size, SHA-256 value, direct-evidence
 and alias relationship without promoting runtime support. `manifest.20260717.json`
-lists only the remaining diagnostic and cross-workflow duplicate artifacts
-pending their separate migration slice.
+is now the hash-pinned legacy quarantine inventory for the remaining diagnostic
+and cross-workflow duplicate artifacts. The authoritative diagnostic
+classification lives at `../../diagnostics/golden-evidence/manifest.json`;
+physical payload relocation is frozen and these files are not canonical expected
+evidence or release inputs.
 
 Do not commit new private firmware BIN files by default. Put unapproved
 local/private payloads under `private/`, update `private/manifest.json` from

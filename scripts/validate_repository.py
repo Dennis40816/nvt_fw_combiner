@@ -17,6 +17,7 @@ from urllib.parse import unquote
 from ab_merge_fixture_validation import validate_ab_merge_golden_fixtures
 from canonical_golden_validation import (
     validate_canonical_golden,
+    validate_diagnostic_golden_separation,
     validate_standard_merge_release_allowlist,
 )
 from code_size_policy import validate_code_size_policy
@@ -43,6 +44,7 @@ REQUIRED_FILES = {
     "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py", "external-tools/README.md",
     "external-tools/legacy-combiner/README.md", "external-tools/legacy-combiner/1.13.0/manifest.json",
     "testdata/golden/canonical/manifest.json", "testdata/golden/release-standard-merge-v1.json",
+    "testdata/diagnostics/golden-evidence/README.md", "testdata/diagnostics/golden-evidence/manifest.json",
     "docs/adr/0003-unified-composition-engine.md",
     "docs/adr/0004-orthogonal-experience-access-policy.md",
     "docs/adr/0005-replace-personas-and-general-mapping.md",
@@ -717,6 +719,7 @@ def validate() -> list[str]:
     validate_markdown_links(files, errors)
     validate_ab_merge_golden_fixtures(ROOT, load_json, validate_golden_manifest_entry, errors)
     validate_canonical_golden(ROOT, errors)
+    validate_diagnostic_golden_separation(ROOT, errors)
     validate_standard_merge_release_allowlist(ROOT, errors)
     validate_ctrlram_replace_golden_fixtures(errors)
     validate_skills(errors)
