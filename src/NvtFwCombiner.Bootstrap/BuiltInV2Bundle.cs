@@ -65,6 +65,30 @@ internal sealed class BuiltInV2Bundle
 
     internal string ContentHash { get; }
 
+    internal void PrewarmCatalog()
+    {
+        try
+        {
+            _ = _catalog.Value;
+        }
+        catch (Exception exception) when (IsBundleLoadFailure(exception))
+        {
+            // The Lazy retains the failure; the selected workflow later projects it as a typed issue.
+        }
+    }
+
+    internal void PrewarmRuntimeReferenceReplaceCompiler()
+    {
+        try
+        {
+            TrustedV2CompositionCompiler.PrewarmRuntimeReferenceReplace(_catalog.Value);
+        }
+        catch (Exception exception) when (IsBundleLoadFailure(exception))
+        {
+            // The Lazy retains the failure; the selected workflow later projects it as a typed issue.
+        }
+    }
+
     internal static string FormatCapacities(IEnumerable<long> capacities)
     {
         return string.Join(" / ", capacities.Select(static capacity => $"0x{capacity:X}"));
