@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Reports;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -12,7 +13,9 @@ public sealed partial class ShellViewModelTests
     {
         using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
         Assert.NotNull(fixtures);
-        JsonElement fixtureCase = fixtures.CaseById("nt51927-2chip-self-20260705");
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace",
+            "nt51927-2chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "2";
@@ -49,7 +52,9 @@ public sealed partial class ShellViewModelTests
     {
         using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
         Assert.NotNull(fixtures);
-        JsonElement fixtureCase = fixtures.CaseById("nt51927-3chip-self-20260705");
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace",
+            "nt51927-3chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
@@ -93,7 +98,9 @@ public sealed partial class ShellViewModelTests
     {
         using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
         Assert.NotNull(fixtures);
-        JsonElement fixtureCase = fixtures.CaseById("nt51927-3chip-self-20260705");
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace",
+            "nt51927-3chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
@@ -129,7 +136,9 @@ public sealed partial class ShellViewModelTests
     {
         using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
         Assert.NotNull(fixtures);
-        JsonElement fixtureCase = fixtures.CaseById("nt51927-3chip-self-20260705");
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace",
+            "nt51927-3chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";

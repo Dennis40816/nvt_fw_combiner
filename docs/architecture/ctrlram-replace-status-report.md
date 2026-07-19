@@ -191,7 +191,16 @@ The NT51929 AB case is intentionally recorded separately. Its tracked 512 KiB ex
 
 ### 3. Workbench self-replacement with committed 2026-07-05 CtrlRAM fixtures
 
-Owner supplied NT51926/NT51927 CtrlRAM Replace fixtures on 2026-07-05. The payloads are committed under `testdata/golden/ctrlram-replace/fixtures/20260705`. The owner-confirmed NT51917 perfect-family scope reuses those NT51927 exact facts without copying the golden payloads: NT51917 V1 and V2 outputs match the corresponding NT51927 hashes for single (`fdb8fef0...20ab9`), two-chip (`6f0bbde7...5f58`), and three-chip (`dc1ee892...fe16`), while process evidence retains the IC-specific `nt51917_fw.bin` staged name.
+Owner supplied NT51926/NT51927 CtrlRAM Replace fixtures on 2026-07-05. The
+NT51927 two-/three-chip direct-input cases now live under
+`testdata/golden/canonical/NT51927/ctrlram-replace/`; the remaining NT51926
+controls stay in the dated fixture root until diagnostics separation. The
+owner-confirmed NT51917 perfect-family scope reuses those NT51927 exact facts
+through canonical fact-scoped aliases without copying payloads: NT51917 V2
+outputs match the corresponding NT51927 hashes for single
+(`fdb8fef0...20ab9`), two-chip (`6f0bbde7...5f58`), and three-chip
+(`dc1ee892...fe16`), while process evidence retains the IC-specific
+`nt51917_fw.bin` staged name.
 
 | Case | Workbench result | Diff classification | Current conclusion |
 | --- | --- | --- | --- |

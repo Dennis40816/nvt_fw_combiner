@@ -71,6 +71,17 @@
           "NT51951 Combiner 1.11 and 1.13 equivalence is an owner-authorized compatibility hypothesis that must be resolved by direct 1.11-expected versus registered-1.13 parity."
         ]
       }
+    },
+    {
+      "legacyRoot": "testdata/golden/ctrlram-replace/fixtures/20260705",
+      "source": {
+        "id": "owner-update-20260705",
+        "sha256": "f4b9a72374e66fd09a03fd874f8c7e9e8bf9fa3710f67b9e0211c23b939f021e",
+        "lastWriteTimeTaipei": "2026-07-05T00:08:41+08:00",
+        "sourceClassification": "owner-approved-golden-firmware",
+        "approval": "Repository owner explicitly approved committing these golden firmware fixtures to Git on 2026-07-05.",
+        "evidenceScope": "Two NT51927 direct input-evidence cases plus fact-scoped same-workflow aliases; no independent expected output or support/release promotion is inferred."
+      }
     }
   ],
   "cases": [
@@ -213,6 +224,34 @@
     {
       "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
       "manifestPath": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/provenance/case.json"
+    },
+    {
+      "caseId": "nt51927-2chip-self-20260705",
+      "manifestPath": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/provenance/case.json"
+    },
+    {
+      "caseId": "nt51927-3chip-self-20260705",
+      "manifestPath": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/provenance/case.json"
+    },
+    {
+      "caseId": "nt51917-fw141-single-nt51927-alias",
+      "manifestPath": "NT51917/ctrlram-replace/fw1.4.1/single/nt51917-fw141-single-nt51927-alias/provenance/case.json"
+    },
+    {
+      "caseId": "nt51917-fw132-cascade2-nt51927-alias",
+      "manifestPath": "NT51917/ctrlram-replace/fw1.3.2/cascade-2/nt51917-fw132-cascade2-nt51927-alias/provenance/case.json"
+    },
+    {
+      "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+      "manifestPath": "NT51917/ctrlram-replace/fw1.4.0/cascade-3/nt51917-fw140-cascade3-nt51927-alias/provenance/case.json"
+    },
+    {
+      "caseId": "nt51919-fw200-single-nt51929-alias",
+      "manifestPath": "NT51919/ctrlram-replace/fw2.0.0/single/nt51919-fw200-single-nt51929-alias/provenance/case.json"
+    },
+    {
+      "caseId": "nt51928-fw132-non-nb-cascade2-nt51927-alias",
+      "manifestPath": "NT51928/ctrlram-replace/fw1.3.2-non-nb/cascade-2/nt51928-fw132-non-nb-cascade2-nt51927-alias/provenance/case.json"
     }
   ]
 }

@@ -114,14 +114,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     public async Task Nt51927ThreeChipNfInputUsesApprovedSourceOffsets()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-nt51927-physical-nf");
-        string basePath = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "ctrlram-replace",
-            "fixtures",
-            "20260705",
-            "base",
-            "nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin");
+        string basePath = Nt51927ThreeChipBasePath();
         byte[] nfBytes = [.. Enumerable.Range(0, 0x2F50).Select(index => unchecked((byte)((index * 37) + 11)))];
         string nfPath = workspace.Write("NF_Ctrlram.bin", nfBytes);
         var processor = new InspectingProcessor(request =>
@@ -158,14 +151,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     public async Task ShortCtrlRamSourceOnUnreviewedShapeFailsClosed()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-short-ctrlram-authority");
-        string basePath = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "ctrlram-replace",
-            "fixtures",
-            "20260705",
-            "base",
-            "nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin");
+        string basePath = Nt51927ThreeChipBasePath();
         byte[] baseBytes = File.ReadAllBytes(basePath);
         byte[] nfBytes = [0x10, 0x21, 0x32, 0x43, 0x54, 0x65, 0x76, 0x87];
         string nfPath = workspace.Write("NF_Ctrlram.bin", nfBytes);
@@ -206,5 +192,15 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         Assert.Equal(
             sourceBytes[sourceOffset..(sourceOffset + length)],
             request.InputBytes.Slice(firmwareStart, length).ToArray());
+    }
+
+    private static string Nt51927ThreeChipBasePath()
+    {
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace",
+            "nt51927-3chip-self-20260705");
+        JsonElement baseArtifact = goldenCase.GetProperty("artifacts").EnumerateArray().Single(item =>
+            item.GetProperty("slotId").GetString() == WorkbenchSlotIds.ReplaceBase);
+        return CanonicalGoldenTestData.ArtifactPath(baseArtifact);
     }
 }

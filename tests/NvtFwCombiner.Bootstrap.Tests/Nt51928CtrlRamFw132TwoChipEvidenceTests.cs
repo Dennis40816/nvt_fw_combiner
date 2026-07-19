@@ -215,19 +215,17 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
 
     private static OwnerArtifact[] ReadReplacementInputs()
     {
-        string root = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "manifest.json")));
-        JsonElement fixtureCase = manifest.RootElement.GetProperty("cases").EnumerateArray()
-            .Single(item => item.GetProperty("id").GetString() == "nt51927-2chip-self-20260705");
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace",
+            "nt51927-2chip-self-20260705");
         return [
-            .. fixtureCase.GetProperty("replacementInputs").EnumerateArray().Select(input =>
+            .. fixtureCase.GetProperty("artifacts").EnumerateArray()
+                .Where(item => item.GetProperty("slotId").GetString() != WorkbenchSlotIds.ReplaceBase)
+                .Select(item =>
             {
-                JsonElement file = input.GetProperty("file");
-                string path = RepositoryPaths.ManifestPath(root, file);
+                string path = CanonicalGoldenTestData.ArtifactPath(item);
                 byte[] bytes = File.ReadAllBytes(path);
-                Assert.Equal(file.GetProperty("size").GetInt64(), bytes.LongLength);
-                Assert.Equal(file.GetProperty("sha256").GetString(), Hash(bytes));
-                return new OwnerArtifact(input.GetProperty("slotId").GetString(), path, bytes);
+                return new OwnerArtifact(item.GetProperty("slotId").GetString(), path, bytes);
             }),
         ];
     }

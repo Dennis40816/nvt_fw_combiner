@@ -51,11 +51,38 @@ public static class CanonicalGoldenTestData
     /// <summary>Loads one raw direct canonical case after validating all physical artifacts.</summary>
     public static JsonElement LoadDirectCase(string workflow, string caseId)
     {
-        return LoadDirectCase(workflow, caseId, Root);
+        return LoadPhysicalCase(workflow, caseId, Root, directEvidence: false);
     }
 
     /// <summary>Loads one direct case from an explicit canonical root for focused contract tests.</summary>
     public static JsonElement LoadDirectCase(string workflow, string caseId, string root)
+    {
+        return LoadPhysicalCase(workflow, caseId, root, directEvidence: false);
+    }
+
+    /// <summary>Loads one input-only direct evidence case after validating all physical artifacts.</summary>
+    public static JsonElement LoadDirectEvidenceCase(string workflow, string caseId)
+    {
+        return LoadPhysicalCase(workflow, caseId, Root, directEvidence: true);
+    }
+
+    /// <summary>Loads one input-only direct evidence case from an explicit canonical root.</summary>
+    public static JsonElement LoadDirectEvidenceCase(string workflow, string caseId, string root)
+    {
+        return LoadPhysicalCase(workflow, caseId, root, directEvidence: true);
+    }
+
+    /// <summary>Gets one validated physical artifact path from a raw canonical case.</summary>
+    public static string ArtifactPath(JsonElement artifact)
+    {
+        return ValidatedArtifactPath(artifact);
+    }
+
+    private static JsonElement LoadPhysicalCase(
+        string workflow,
+        string caseId,
+        string root,
+        bool directEvidence)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workflow);
         ArgumentException.ThrowIfNullOrWhiteSpace(caseId);
@@ -73,11 +100,15 @@ public static class CanonicalGoldenTestData
             using var document = JsonDocument.Parse(
                 File.ReadAllText(RepositoryPaths.PathFromRelative(root, manifestPath)));
             JsonElement goldenCase = document.RootElement;
-            if (!goldenCase.GetProperty("directGolden").GetBoolean() ||
+            bool isDirectEvidence =
+                goldenCase.TryGetProperty("directEvidence", out JsonElement evidence) &&
+                evidence.ValueKind == JsonValueKind.True;
+            if ((directEvidence ? !isDirectEvidence : !goldenCase.GetProperty("directGolden").GetBoolean()) ||
                 !StringComparer.Ordinal.Equals(goldenCase.GetProperty("workflow").GetString(), workflow))
             {
                 throw new InvalidDataException(
-                    $"Canonical case '{caseId}' is not a direct {workflow} golden.");
+                    $"Canonical case '{caseId}' is not direct {workflow} " +
+                    (directEvidence ? "input evidence." : "golden evidence."));
             }
 
             foreach (JsonElement artifact in goldenCase.GetProperty("artifacts").EnumerateArray())

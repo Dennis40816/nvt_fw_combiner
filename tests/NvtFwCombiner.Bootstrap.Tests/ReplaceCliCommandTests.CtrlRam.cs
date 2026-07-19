@@ -240,20 +240,21 @@ public sealed partial class ReplaceCliCommandTests
     public async Task CtrlRamReplacePreviewAcceptsRepeatedWorkbenchSlotInputs()
     {
         using var workspace = TempWorkspace.Create();
-        string fixtureRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
-        JsonElement fixtureCase = manifestDocument.RootElement.GetProperty("cases")
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace",
+            "nt51927-2chip-self-20260705");
+        JsonElement baseArtifact = fixtureCase.GetProperty("artifacts")
             .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("id").GetString() == "nt51927-2chip-self-20260705");
-        string basePath = ManifestPath(fixtureRoot, fixtureCase.GetProperty("base").GetProperty("path"));
-        JsonElement normalMaster = fixtureCase.GetProperty("replacementInputs")
+            .Single(item => item.GetProperty("slotId").GetString() == WorkbenchSlotIds.ReplaceBase);
+        string basePath = CanonicalGoldenTestData.ArtifactPath(baseArtifact);
+        JsonElement normalMaster = fixtureCase.GetProperty("artifacts")
             .EnumerateArray()
             .Single(input => input.GetProperty("slotId").GetString() == "replace-ctrlram-normal-master");
-        JsonElement vn = fixtureCase.GetProperty("replacementInputs")
+        JsonElement vn = fixtureCase.GetProperty("artifacts")
             .EnumerateArray()
             .Single(input => input.GetProperty("slotId").GetString() == "replace-ctrlram-vn");
-        string normalMasterPath = ManifestPath(fixtureRoot, normalMaster.GetProperty("file").GetProperty("path"));
-        string vnPath = ManifestPath(fixtureRoot, vn.GetProperty("file").GetProperty("path"));
+        string normalMasterPath = CanonicalGoldenTestData.ArtifactPath(normalMaster);
+        string vnPath = CanonicalGoldenTestData.ArtifactPath(vn);
         string report = workspace.PathFor("ctrlram-report.json");
 
         CliRunResult result = await RunCliAsync([

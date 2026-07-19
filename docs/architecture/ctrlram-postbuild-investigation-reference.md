@@ -134,7 +134,10 @@ Interpretation:
 - The workbench staging path and Combiner execution are viable for these private fixtures after declaring the observed source-header and CRC-only integrity write ranges.
 - These self-replacement checks do not promote byte parity. The base images cannot be treated as expected outputs unless the owner confirms the matching postbuild version and whether recalculated header/integrity drift is expected.
 - NT51926 now has a strong version-mismatch explanation: the base has an initialized header-copy area at the `1.4.1` target `0x32F50`, while the `2.0.0` target `0x32A70` still contains mostly `0xFE`.
-- The owner-approved payloads are committed under `testdata/golden/ctrlram-replace/fixtures/20260705`; parity observations remain documented separately from support claims.
+- The NT51927 two-/three-chip owner-approved inputs are canonical direct
+  evidence under `testdata/golden/canonical/NT51927/ctrlram-replace/`. The
+  NT51926 controls remain under the dated fixture root pending diagnostics
+  separation; parity observations stay separate from support claims.
 
 ### NT51926
 

@@ -108,6 +108,11 @@ public sealed class CanonicalGoldenTestDataTests
             "ctrlram-replace",
             root);
         Assert.Empty(directGoldens.RootElement.GetProperty("cases").EnumerateArray());
+        JsonElement directEvidence = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace",
+            sourceCaseId,
+            root);
+        Assert.Equal(sourceCaseId, directEvidence.GetProperty("caseId").GetString());
         _ = Assert.Throws<InvalidDataException>(
             () => CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", sourceCaseId, root));
     }
