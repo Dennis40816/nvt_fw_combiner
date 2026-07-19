@@ -137,6 +137,31 @@ public sealed class CompositionRunProgressViewModelTests
         Assert.Null(progress.CommittedOutputId);
     }
 
+    /// <summary>A late snapshot from the owning run cannot downgrade completed report delivery.</summary>
+    [Fact]
+    public void ReportReadySurvivesLateSameRunSnapshots()
+    {
+        var progress = new CompositionRunProgressViewModel();
+        _ = progress.TryApply(
+            "late-build-delivery",
+            CompositionRunPhase.PreparingReport,
+            FullBuildPhases,
+            FullBuildPhases[..^1],
+            "C:\\output\\firmware.bin");
+        progress.MarkReportReady(reportPublished: true);
+
+        bool accepted = progress.TryApply(
+            "late-build-delivery",
+            CompositionRunPhase.PreparingReport,
+            FullBuildPhases,
+            FullBuildPhases[..^1]);
+
+        Assert.True(accepted);
+        Assert.Equal(CompositionRunDeliveryState.ReportReady, progress.DeliveryState);
+        Assert.Equal("C:\\output\\firmware.bin", progress.CommittedOutputId);
+        Assert.Equal("Report ready", progress.CurrentStepLabel);
+    }
+
     /// <summary>Reduced motion changes animation policy without changing truthful or accessible state.</summary>
     [Fact]
     public void ReducedMotionKeepsStepAndAccessibleStateStatic()
