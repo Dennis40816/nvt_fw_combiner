@@ -34,6 +34,7 @@ public sealed partial class MainWindowViewModel
         isOptional: true);
     private int _generalReplaceMappingCounter;
     private int _generalMergeMappingCounter;
+    private readonly bool _isInitializing = true;
     private string _selectedMergeMode = NormalMergeMode;
 
     /// <summary>Initializes the main workbench view model.</summary>
@@ -84,6 +85,9 @@ public sealed partial class MainWindowViewModel
         AppVersion = appVersion;
         HexEditorWorkspace = new HexEditorWorkspaceViewModel(Text);
         CompositionProgress = new CompositionRunProgressViewModel(language);
+        SelectedLanguage = language == ShellLanguage.ChineseTraditional
+            ? "Traditional Chinese"
+            : "English";
         _relocalizeLoadedReportCommand = new AsyncRelayCommand(RelocalizeLoadedReportAsync);
         CompositionProgress.PropertyChanged += CompositionProgress_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
@@ -143,5 +147,6 @@ public sealed partial class MainWindowViewModel
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         RefreshContextState();
         RefreshSettingsState();
+        _isInitializing = false;
     }
 }

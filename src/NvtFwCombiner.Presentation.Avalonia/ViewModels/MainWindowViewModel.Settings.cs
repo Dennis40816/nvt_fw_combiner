@@ -118,7 +118,10 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedLanguageChanged(string value)
     {
-        ApplyTextResources(ShellTextResources.LanguageFromPreference(value));
+        if (!_isInitializing)
+        {
+            ApplyTextResources(ShellTextResources.LanguageFromPreference(value));
+        }
     }
 
     partial void OnIsReducedMotionEnabledChanged(bool value)
