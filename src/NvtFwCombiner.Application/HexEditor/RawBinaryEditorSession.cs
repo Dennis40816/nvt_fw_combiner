@@ -12,6 +12,7 @@ public sealed partial class RawBinaryEditorSession
     private const int BytesPerRow = 16;
     private const int ViewportRowCount = 32;
     private const int ViewportContextRows = 4;
+    private const int InsertedOriginalOffset = -1;
 
     /// <summary>Maximum zero-filled bytes accepted by one bounded insert operation.</summary>
     public const int MaximumInsertByteCount = 0x100000;
@@ -21,7 +22,7 @@ public sealed partial class RawBinaryEditorSession
 
     private readonly Stack<HistoryEntry> _redo = [];
     private readonly Stack<HistoryEntry> _undo = [];
-    private List<int?>? _originalOffsets;
+    private List<int>? _originalOffsets;
     private byte[]? _original;
     private List<byte>? _working;
     private int _differenceCount;
@@ -43,7 +44,7 @@ public sealed partial class RawBinaryEditorSession
 
         _original = source.ToArray();
         _working = [.. source];
-        _originalOffsets = [.. Enumerable.Range(0, source.Length).Select(index => (int?)index)];
+        _originalOffsets = [.. Enumerable.Range(0, source.Length)];
         _undo.Clear();
         _redo.Clear();
         _differenceCount = 0;
@@ -137,7 +138,7 @@ public sealed partial class RawBinaryEditorSession
     private RawBinaryEditorViewport CreateViewportWindow(int start, int length)
     {
         byte[] originalDocument = _original ?? throw new InvalidOperationException("A raw BIN source must be loaded before rendering.");
-        List<int?> originalOffsets = _originalOffsets ?? throw new InvalidOperationException("Raw BIN source offsets must be loaded before rendering.");
+        List<int> originalOffsets = _originalOffsets ?? throw new InvalidOperationException("Raw BIN source offsets must be loaded before rendering.");
         List<byte> workingDocument = _working ?? throw new InvalidOperationException("A raw BIN work buffer must be loaded before rendering.");
         var rows = new List<RawBinaryEditorViewportRow>();
         for (int offset = 0; offset < length; offset += BytesPerRow)
@@ -149,9 +150,10 @@ public sealed partial class RawBinaryEditorSession
             for (int index = 0; index < rowLength; index++)
             {
                 int documentIndex = start + offset + index;
-                int? originalIndex = originalOffsets[documentIndex];
-                bool hasOriginal = originalIndex is not null;
-                byte original = hasOriginal ? originalDocument[originalIndex!.Value] : (byte)0x00;
+                int originalIndex = originalOffsets[documentIndex];
+                bool hasOriginal = originalIndex != InsertedOriginalOffset;
+                byte original = hasOriginal ? originalDocument[originalIndex] : (byte)0x00;
+                long? originalAddress = hasOriginal ? originalIndex : null;
                 byte? originalAtAddress = documentIndex < originalDocument.Length
                     ? originalDocument[documentIndex]
                     : null;
@@ -163,7 +165,7 @@ public sealed partial class RawBinaryEditorSession
                     originalDocument);
                 bytes.Add(new RawBinaryEditorByte(
                     documentIndex,
-                    originalIndex,
+                    originalAddress,
                     original,
                     originalAtAddress,
                     current,
@@ -289,7 +291,7 @@ public sealed partial class RawBinaryEditorSession
 
         int offset = checked((int)parsed);
         byte removed = _working[offset];
-        int? removedOriginalOffset = _originalOffsets![offset];
+        int removedOriginalOffset = _originalOffsets![offset];
         var entry = new HistoryEntry(
             new DeleteAction(offset, 1),
             new InsertAction(offset, [removed], [removedOriginalOffset]));
@@ -389,7 +391,8 @@ public sealed partial class RawBinaryEditorSession
 
         int index = checked((int)offset + (before ? 0 : 1));
         byte[] insertedBytes = new byte[count];
-        int?[] insertedOffsets = new int?[count];
+        int[] insertedOffsets = new int[count];
+        insertedOffsets.AsSpan().Fill(InsertedOriginalOffset);
         var entry = new HistoryEntry(
             new InsertAction(index, insertedBytes, insertedOffsets),
             new DeleteAction(index, count));
@@ -602,7 +605,7 @@ public sealed partial class RawBinaryEditorSession
 
     private sealed record ReplaceAction(int Start, byte[] Bytes) : EditAction;
 
-    private sealed record InsertAction(int Start, byte[] Bytes, int?[] OriginalOffsets) : EditAction;
+    private sealed record InsertAction(int Start, byte[] Bytes, int[] OriginalOffsets) : EditAction;
 
     private sealed record DeleteAction(int Start, int Length) : EditAction;
 }

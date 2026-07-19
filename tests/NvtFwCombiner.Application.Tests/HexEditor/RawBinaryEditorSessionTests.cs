@@ -361,4 +361,21 @@ public sealed class RawBinaryEditorSessionTests
         Assert.True(session.TryCopyWorkingBytes(out byte[]? bytes));
         Assert.Equal([0xA5, 0x5A, 0x01, 0xFF, 0x12, 0x34], bytes);
     }
+
+    /// <summary>Bounds the retained source-address map to one compact integer per document byte.</summary>
+    [Fact]
+    public void LoadUsesCompactOriginalOffsetMap()
+    {
+        const int byteCount = 1024 * 1024;
+        byte[] source = new byte[byteCount];
+        var session = new RawBinaryEditorSession();
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        _ = session.Load(source);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"RAW_EDITOR_LOAD bytes={byteCount} allocated={allocated}");
+        Assert.InRange(allocated, 0, (byteCount * 7L) + 32_768);
+    }
 }

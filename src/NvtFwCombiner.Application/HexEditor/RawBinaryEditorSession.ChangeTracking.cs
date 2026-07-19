@@ -11,7 +11,7 @@ public sealed partial class RawBinaryEditorSession
         }
 
         byte[] original = _original!;
-        List<int?> originalOffsets = _originalOffsets!;
+        List<int> originalOffsets = _originalOffsets!;
         List<byte> working = _working!;
         List<RawBinaryEditorValueChange> valueChanges = GetValueChanges(original, originalOffsets, working);
         List<RawBinaryEditorStructuralChange> structuralChanges = GetStructuralChanges(original, originalOffsets, working);
@@ -77,12 +77,12 @@ public sealed partial class RawBinaryEditorSession
 
     private static RawBinaryEditorChangeKind GetChangeKind(
         int displayAddress,
-        int? originalAddress,
+        int originalAddress,
         byte currentValue,
         byte[] originalDocument)
     {
         RawBinaryEditorChangeKind result = RawBinaryEditorChangeKind.None;
-        if (originalAddress is int sourceAddress && originalDocument[sourceAddress] != currentValue)
+        if (originalAddress != InsertedOriginalOffset && originalDocument[originalAddress] != currentValue)
         {
             result |= RawBinaryEditorChangeKind.Data;
         }
@@ -97,7 +97,7 @@ public sealed partial class RawBinaryEditorSession
 
     private static List<RawBinaryEditorValueChange> GetValueChanges(
         byte[] original,
-        List<int?> originalOffsets,
+        List<int> originalOffsets,
         List<byte> working)
     {
         var result = new List<RawBinaryEditorValueChange>();
@@ -106,11 +106,12 @@ public sealed partial class RawBinaryEditorSession
         byte firstCurrent = 0;
         for (int index = 0; index < working.Count; index++)
         {
-            bool changed = originalOffsets[index] is int sourceAddress && original[sourceAddress] != working[index];
+            int sourceAddress = originalOffsets[index];
+            bool changed = sourceAddress != InsertedOriginalOffset && original[sourceAddress] != working[index];
             if (changed && runStart is null)
             {
                 runStart = index;
-                firstOriginal = original[originalOffsets[index]!.Value];
+                firstOriginal = original[sourceAddress];
                 firstCurrent = working[index];
             }
             else if (!changed && runStart is int start)
@@ -130,7 +131,7 @@ public sealed partial class RawBinaryEditorSession
 
     private static List<RawBinaryEditorStructuralChange> GetStructuralChanges(
         byte[] original,
-        List<int?> originalOffsets,
+        List<int> originalOffsets,
         List<byte> working)
     {
         var result = new List<RawBinaryEditorStructuralChange>();
@@ -138,10 +139,10 @@ public sealed partial class RawBinaryEditorSession
         int index = 0;
         while (index < originalOffsets.Count)
         {
-            if (originalOffsets[index] is null)
+            if (originalOffsets[index] == InsertedOriginalOffset)
             {
                 int insertedAt = index;
-                while (index < originalOffsets.Count && originalOffsets[index] is null)
+                while (index < originalOffsets.Count && originalOffsets[index] == InsertedOriginalOffset)
                 {
                     index++;
                 }
@@ -153,7 +154,7 @@ public sealed partial class RawBinaryEditorSession
                 continue;
             }
 
-            int sourceAddress = originalOffsets[index]!.Value;
+            int sourceAddress = originalOffsets[index];
             int expectedSourceAddress = previousSourceAddress + 1;
             if (sourceAddress > expectedSourceAddress)
             {
