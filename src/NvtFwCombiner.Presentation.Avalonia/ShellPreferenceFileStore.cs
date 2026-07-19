@@ -7,6 +7,7 @@ public static class ShellPreferenceFileStore
 {
     private const int SchemaVersion = 1;
     private const string PreferencesFileName = "preferences.v1.json";
+    internal const long MaximumPreferencesFileBytes = 64L * 1024;
 
     /// <summary>Gets the default local preference path for the current user.</summary>
     public static string DefaultPreferencesPath => BestEffortLocalJsonFileStore.GetDefaultPath(PreferencesFileName);
@@ -33,7 +34,8 @@ public static class ShellPreferenceFileStore
             ShellPreferenceSnapshot.Default,
             (ShellPreferenceFile? file) => file?.SchemaVersion == SchemaVersion
                 ? file.Preferences.ToSnapshot()
-                : ShellPreferenceSnapshot.Default);
+                : ShellPreferenceSnapshot.Default,
+            MaximumPreferencesFileBytes);
     }
 
     /// <summary>Saves shell preferences to a specific path.</summary>

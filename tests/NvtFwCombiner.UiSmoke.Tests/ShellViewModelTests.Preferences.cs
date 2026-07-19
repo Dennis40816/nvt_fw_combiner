@@ -1,3 +1,4 @@
+using System.Text;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -58,6 +59,30 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("System", defaultViewModel.SelectedTheme);
         Assert.Equal("English", defaultViewModel.SelectedLanguage);
         Assert.False(defaultViewModel.IsReducedMotionEnabled);
+    }
+
+    /// <summary>Bounds the synchronous startup preference read before constructing the localized shell.</summary>
+    [Fact]
+    public void ShellPreferenceFileStoreRejectsValidJsonAboveStartupLimit()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-shell-preferences-size-limit");
+        string preferencesPath = workspace.PathFor(Path.Combine("state", "preferences.v1.json"));
+        var preferences = new ShellPreferenceSnapshot("Dark", "Traditional Chinese", true);
+        var utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+        ShellPreferenceFileStore.Save(preferencesPath, preferences);
+        string json = File.ReadAllText(preferencesPath);
+        int paddingLength = checked((int)(
+            ShellPreferenceFileStore.MaximumPreferencesFileBytes - utf8.GetByteCount(json)));
+        Assert.True(paddingLength > 0);
+        File.WriteAllText(preferencesPath, json + new string(' ', paddingLength), utf8);
+
+        Assert.Equal(ShellPreferenceFileStore.MaximumPreferencesFileBytes, new FileInfo(preferencesPath).Length);
+        Assert.Equal(preferences, ShellPreferenceFileStore.Load(preferencesPath));
+
+        File.AppendAllText(preferencesPath, " ", utf8);
+
+        Assert.Equal(ShellPreferenceFileStore.MaximumPreferencesFileBytes + 1, new FileInfo(preferencesPath).Length);
+        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
     }
 
     /// <summary>Async preference persistence keeps the previous file when cancelled and atomically publishes the latest snapshot.</summary>
