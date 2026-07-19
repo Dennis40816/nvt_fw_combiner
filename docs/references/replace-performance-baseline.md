@@ -178,6 +178,15 @@ last-top-level-property semantics, cancellation, output identity, bounded
 materialization, and jump behavior remain locked. Repeated same-source p50/p95,
 packaged first-page evidence, and Windows working-set observation remain open.
 
+Commit `64a45efd` also reuses the UTF-8 byte count already produced by a
+successful JSON projection when the active report is captured or relocalized
+in history. This removes the prior second full-string UTF-8 sizing scan from
+the dispatcher after report publication. Older persisted metadata entries and
+parse-error reports retain the original fallback scan, and the small artifact
+path is still counted. The history schema, JSON payload, warning threshold,
+entry order, and reopen behavior are unchanged. This is a source-audited
+whole-report scan removal; packaged click-to-history timing remains open.
+
 ## Startup report restoration baseline
 
 Commit `7b6f1ab6` removes persisted-history and explicit startup-report work
