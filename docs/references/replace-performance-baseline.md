@@ -559,6 +559,15 @@ schema projection begins afterward. Missing, malformed, oversized and valid unsu
 focused local persistence `14/14`, full UI `237/237`, Architecture `94/94`, Polytail, and independent R2 UI and architecture review pass with no P0-P3 finding. Local schema, latest-wins persistence,
 dispatcher ownership, report content, and firmware behavior are unchanged. The exact packaged 12-entry cold-start and working-set rows remain open in the Windows manual gate.
 
+## Firmware inspection header-probe allocation
+
+Commit `7aa09be3` replaces the bounded 256 KiB header's whole ASCII-to-UTF-16 text
+projection with a direct span scan. The warmed full-inspection observation was
+`525,680` allocated bytes; the committed gate is at most `65,536` bytes. Outgoing
+regex-oracle parity, focused inspection `9/9`, Bootstrap `467/467`, Architecture
+`94/94`, Polytail, and independent R2 reviews pass. Filename-first/read-once,
+advisory-only IC hints, firmware bytes, and file-read/latency gates are unchanged.
+
 ## Pinned catalog discovery baseline
 
 Commit `d7bd4ddc` removes document-sized canonicalization allocations from the
