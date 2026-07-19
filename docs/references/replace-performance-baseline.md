@@ -1,9 +1,9 @@
 # v0.9.10 Replace Performance Baseline
 
 Status: deterministic orchestration/count baseline on the reviewed `v0.9.9`
-source line plus local fragmented-report allocation evidence; wall-clock,
-Infrastructure staging-read, and final same-source node B/C evidence remain
-open.
+source line plus local fragmented-report allocation and layout-neutral staging
+evidence; wall-clock, final physical-tool layout, and same-source Node B/C
+evidence remain open.
 
 Captured: 2026-07-18. Executable owner:
 `tests/NvtFwCombiner.Bootstrap.Tests/CompositionRunExecutionMetricsTests.cs`.
@@ -305,24 +305,41 @@ run count. Record:
 - output SHA, mutations, report facts, process-window behavior, cancellation,
   and atomic-failure parity.
 
-Legacy Combiner final-read implementation and any physical tool/golden layout
-dependency wait for the owner-coordinated `0.9.9.5` predecessor-layout
-convergence gate. This is not a release tag or assumed branch: P2 remains
-blocked until the owner supplies the exact reviewed commit SHA and its
-external-tool/golden-layout reference. The target is already fixed: one private
-sequential pipeline, zero intermediate full reads by default, one full read
-after the final successful command, final diff against the pre-pipeline bytes
-and the union of declared write ranges, and only evidenced selective reads or
-normalization. Intermediate full-image values are not parity evidence. No final
-performance or release claim is made until the same-source B/C record,
-Polytail, architecture/UI review, required golden and firmware-owner gates, and
-canonical verification are complete.
+The layout-neutral Legacy Combiner runner now executes one private sequential
+pipeline with zero intermediate complete-file reads and one complete read after
+the final successful command. It retains process, artifact, staging-tree, and
+length gates after each launch. Only `MERGE_MODE` shortened-output handling
+captures a selective tail after the command's minimum declared coverage, then
+appends the exact predecessor tail if the tool actually shortens the file;
+other shortened command families fail closed. The final host diff still uses
+the pre-pipeline bytes and union of declared write ranges. Intermediate
+full-image values are not parity evidence.
 
-The same `0.9.9.5` input gate owns external-processor discovery lifetime.
+The later predecessor reconciliation supplies the reviewed physical
+external-tool/golden layout and repeats the exact two-command golden plus
+13-command count/timing evidence. No final performance or release claim is made
+until that same-source B/C record, Polytail, architecture review, required
+golden and firmware-owner gates, and canonical verification are complete.
+
+The layout-neutral counter surface executes two- and thirteen-command plans
+through the real Infrastructure processor with one sequential session and the
+exact launch count. A source audit locks one complete staging-file read in the
+pipeline, located at final import, and rejects a synchronous full-read
+substitute. Focused processor tests pass `26/26`; full Infrastructure passes
+`234/234` with two platform-specific skips; Architecture passes `93/93`; and
+the B0 harness plus both tracked NT51926 owner-golden-backed Legacy Combiner
+cases pass `9/9` on the current development layout. The golden run is
+development evidence only and must be repeated after the physical layout is
+reconciled. Independent R3 architecture review reports no P0/P1 finding and
+passes with the final firmware-owner, layout-reconciliation, Node B/C, and
+canonical-verification gates still mandatory.
+
+External-processor discovery lifetime remains the next layout-neutral slice.
 Current source calls `ExternalProcessorFactory.CreateOrNull()` per applicable
 run, including parent-root search, recursive manifest enumeration/parsing, and
 registry/router construction. Node B/C must therefore add discovery,
 manifest-read, and registry-build counts. The optimized lifetime may be bound
-only to the reviewed tool-layout identity; it must preserve pinned hashes,
-missing/invalid-manifest behavior, process isolation, and explicit
+only to an explicit tool-layout identity; later predecessor reconciliation
+binds the reviewed physical root and repeats parity. It must preserve pinned
+hashes, missing/invalid-manifest behavior, process isolation, and explicit
 restart/refresh semantics without embedding the provisional physical path.

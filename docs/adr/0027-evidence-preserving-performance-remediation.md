@@ -164,17 +164,24 @@ No output is promoted after an intermediate failure. The owner clarification
 on 2026-07-18 explicitly makes final pipeline state authoritative; intermediate
 full-image values are not product evidence and are not retained as a gate.
 
-This slice is R3. It waits for the owner-coordinated `0.9.9.5`
-predecessor-layout convergence gate and the same-source node B baseline. That
-identifier is not a release tag or an assumed branch. The gate is unresolved
-until the owner supplies the exact reviewed commit SHA and its external-tool and
-golden-layout reference; P2 must record both before implementation begins. The
-NT51926 Common FW 1.4.1 cascade two-command case is the minimum public
+This slice is R3. Its path-independent pipeline semantics are implemented and
+tested without an external-tool or golden physical path. Before a `MERGE_MODE`
+command that is allowed to return a shortened file, the adapter snapshots only
+the tail after that command's minimum declared block coverage. A full-length
+result discards that snapshot; a valid shortened result appends the exact tail
+from the preceding pipeline state. Other command families fail closed on a
+shortened result. No command output is otherwise materialized between launches,
+and the final import contains the only complete staging-file read.
+
+The later predecessor-layout reconciliation supplies the exact reviewed commit
+and external-tool/golden-layout reference for physical execution and final
+parity closure; it is not evidence that intermediate images need observation.
+The NT51926 Common FW 1.4.1 cascade two-command case remains the minimum public
 full-output parity anchor. Thirteen-command cases are count/timing evidence only
 until an independent pre-base and expected output are approved. The executable
 counter contract is one final successful full read per processor session, zero
 intermediate full reads by default, and only explicitly evidenced selective
-reads or normalization.
+tail reads for shortened-output normalization.
 
 ### Measurement and code size
 
