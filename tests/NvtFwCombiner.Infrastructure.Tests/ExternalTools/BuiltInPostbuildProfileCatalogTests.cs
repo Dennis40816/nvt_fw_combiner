@@ -44,6 +44,42 @@ public sealed class BuiltInPostbuildProfileCatalogTests
         Assert.Equal(14, BuiltInPostbuildProfileCatalog.Load(crlfBytes, Hash(lfBytes)).Count);
     }
 
+    /// <summary>Canonical repository bytes do not create document-sized hash-normalization buffers.</summary>
+    [Fact]
+    public void CanonicalAsciiLfHashDoesNotAllocateWithDocumentSize()
+    {
+        const int byteCount = 256 * 1024;
+        byte[] bytes = new byte[byteCount];
+        Array.Fill(bytes, (byte)' ');
+        for (int index = 79; index < bytes.Length; index += 80)
+        {
+            bytes[index] = (byte)'\n';
+        }
+
+        string expected = Hash(bytes);
+        _ = PinnedJsonCatalogLoader.ComputeCanonicalSha256(bytes);
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        string actual = PinnedJsonCatalogLoader.ComputeCanonicalSha256(bytes);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"PINNED_CATALOG_HASH bytes={byteCount} allocated={allocated}");
+        Assert.Equal(expected, actual);
+        Assert.InRange(allocated, 0, 1024);
+    }
+
+    /// <summary>Noncanonical and Unicode input retains the complete line-ending normalization contract.</summary>
+    [Fact]
+    public void CanonicalHashNormalizesEverySupportedLineEndingOutsideFastPath()
+    {
+        const string source = "é\r\nCR\rFF\fNEL\u0085LS\u2028PS\u2029end";
+        byte[] bytes = Encoding.UTF8.GetBytes(source);
+        byte[] canonicalBytes = Encoding.UTF8.GetBytes(source.ReplaceLineEndings("\n"));
+
+        Assert.Equal(Hash(canonicalBytes), PinnedJsonCatalogLoader.ComputeCanonicalSha256(bytes));
+    }
+
     /// <summary>Unknown config fields fail closed after their exact bytes are explicitly trusted.</summary>
     [Fact]
     public void LoadRejectsUnknownFields()
