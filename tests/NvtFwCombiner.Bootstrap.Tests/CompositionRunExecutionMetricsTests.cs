@@ -356,7 +356,7 @@ public sealed class CompositionRunExecutionMetricsTests
             profile.Initialization,
             profile.AddressSpaces,
             profile.Operations);
-        CompiledComposition composition = CompiledComposition.CreateLegacy(
+        var composition = CompiledComposition.CreateLegacy(
             plan,
             new LegacyCompiledCompositionIdentity(
                 profile.ProfileId,
