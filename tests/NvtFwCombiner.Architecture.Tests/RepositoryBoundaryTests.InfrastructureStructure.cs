@@ -2,6 +2,32 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Locks the one private bundle snapshot fast path without weakening general caller isolation.</summary>
+    [Fact]
+    public void ProfileBundleJsonParsingKeepsExplicitBufferOwnership()
+    {
+        string reader = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Bundles/StrictJsonDocumentReader.cs");
+        string bundleSnapshot = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleFileSnapshot.cs");
+        string infrastructureSource = string.Concat(
+            Directory.EnumerateFiles(
+                    Path.Combine(Root.FullName, "src", "NvtFwCombiner.Infrastructure"),
+                    "*.cs",
+                    SearchOption.AllDirectories)
+                .Select(File.ReadAllText));
+
+        Assert.Contains("byte[] snapshot = utf8Json.ToArray();", reader, StringComparison.Ordinal);
+        Assert.Contains("The caller must keep the memory unchanged", reader, StringComparison.Ordinal);
+        Assert.Contains(
+            "StrictJsonDocumentReader.ParseOwnedSnapshot(",
+            bundleSnapshot,
+            StringComparison.Ordinal);
+        Assert.Equal(
+            1,
+            CountOccurrences(infrastructureSource, "StrictJsonDocumentReader.ParseOwnedSnapshot("));
+    }
+
     /// <summary>Verifies the external combiner adapter root stays focused on staged execution flow.</summary>
     [Fact]
     public void ExternalCombinerProcessorsShareConstrainedToolResolution()

@@ -12,15 +12,29 @@ internal static class StrictJsonDocumentReader
         int maximumBytes,
         int maximumDepth)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDepth);
-        if (utf8Json.Length > maximumBytes)
-        {
-            throw new JsonException($"JSON input exceeds the {maximumBytes}-byte limit.");
-        }
-
+        ValidateBounds(utf8Json, maximumBytes, maximumDepth);
         byte[] snapshot = utf8Json.ToArray();
-        if (snapshot.AsSpan().StartsWith(Utf8Bom))
+        return ParseValidatedImmutableSnapshot(snapshot, maximumDepth);
+    }
+
+    /// <summary>
+    /// Parses bytes already held by a private immutable snapshot without making another complete copy.
+    /// The caller must keep the memory unchanged for the returned document's lifetime.
+    /// </summary>
+    internal static JsonDocument ParseOwnedSnapshot(
+        ReadOnlyMemory<byte> utf8Json,
+        int maximumBytes,
+        int maximumDepth)
+    {
+        ValidateBounds(utf8Json, maximumBytes, maximumDepth);
+        return ParseValidatedImmutableSnapshot(utf8Json, maximumDepth);
+    }
+
+    private static JsonDocument ParseValidatedImmutableSnapshot(
+        ReadOnlyMemory<byte> utf8Json,
+        int maximumDepth)
+    {
+        if (utf8Json.Span.StartsWith(Utf8Bom))
         {
             throw new JsonException("UTF-8 JSON input must not contain a byte-order mark.");
         }
@@ -31,13 +45,26 @@ internal static class StrictJsonDocumentReader
             CommentHandling = JsonCommentHandling.Disallow,
             MaxDepth = maximumDepth,
         };
-        RejectDuplicateKeys(snapshot, readerOptions);
-        return JsonDocument.Parse(snapshot, new JsonDocumentOptions
+        RejectDuplicateKeys(utf8Json.Span, readerOptions);
+        return JsonDocument.Parse(utf8Json, new JsonDocumentOptions
         {
             AllowTrailingCommas = false,
             CommentHandling = JsonCommentHandling.Disallow,
             MaxDepth = maximumDepth,
         });
+    }
+
+    private static void ValidateBounds(
+        ReadOnlyMemory<byte> utf8Json,
+        int maximumBytes,
+        int maximumDepth)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDepth);
+        if (utf8Json.Length > maximumBytes)
+        {
+            throw new JsonException($"JSON input exceeds the {maximumBytes}-byte limit.");
+        }
     }
 
     private static void RejectDuplicateKeys(ReadOnlySpan<byte> utf8Json, JsonReaderOptions options)
