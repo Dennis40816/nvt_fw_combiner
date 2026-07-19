@@ -38,8 +38,11 @@ public sealed partial class MainWindow : Window, IDisposable
         InitializeComponent();
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        ShellPreferenceFileStore.LoadInto(viewModel);
+        ShellPreferenceSnapshot preferences = ShellPreferenceFileStore.Load(
+            ShellPreferenceFileStore.DefaultPreferencesPath);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create(
+            ShellTextResources.LanguageFromPreference(preferences.Language));
+        viewModel.LoadShellPreferences(preferences);
         DataContext = viewModel;
         ApplyThemePreference(viewModel.SelectedTheme);
 

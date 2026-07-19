@@ -6,6 +6,20 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    /// <summary>The factory language initializes the matching persisted selector without a second relocalization pass.</summary>
+    [Fact]
+    public void ShellFactoryInitialLanguageAndSelectorStayAligned()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create(ShellLanguage.ChineseTraditional);
+
+        Assert.Equal("Traditional Chinese", viewModel.SelectedLanguage);
+        Assert.Equal("設定", viewModel.SettingsPreview.Title);
+
+        viewModel.SelectedLanguage = "English";
+
+        Assert.Equal("Settings", viewModel.SettingsPreview.Title);
+    }
+
     /// <summary>Verifies local shell preferences round-trip and invalid values keep fail-closed defaults.</summary>
     [Fact]
     public void ShellPreferenceFileStoreRoundTripsAndInvalidValuesFallBack()

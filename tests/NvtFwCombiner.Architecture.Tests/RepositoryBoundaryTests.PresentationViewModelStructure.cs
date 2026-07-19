@@ -283,6 +283,10 @@ public sealed partial class RepositoryBoundaryTests
         string helper = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/BestEffortLocalJsonFileStore.cs");
         string mainWindow = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string settings = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Settings.cs");
         string persistenceCoordinator = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/LatestSnapshotPersistenceCoordinator.cs");
         string stores = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs") +
@@ -297,6 +301,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("UnauthorizedAccessException", helper, StringComparison.Ordinal);
         Assert.Contains("_reportHistoryPersistence.Queue", mainWindow, StringComparison.Ordinal);
         Assert.Contains("_shellPreferencePersistence.Queue", mainWindow, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShellPreferenceFileStore.LoadInto(viewModel)", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("ShellTextResources.LanguageFromPreference(preferences.Language)", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("private readonly bool _isInitializing = true;", construction, StringComparison.Ordinal);
+        Assert.Contains("_isInitializing = false;", construction, StringComparison.Ordinal);
+        Assert.Contains("if (!_isInitializing)", settings, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportHistoryFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);
         Assert.DoesNotContain("ShellPreferenceFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);
         Assert.Contains("e.Cancel = true", mainWindow, StringComparison.Ordinal);
