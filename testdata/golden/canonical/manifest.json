@@ -22,6 +22,17 @@
           "approval": "Repository owner supplied merge_bin.7z for remaining Standard Merge golden fixtures on 2026-07-03."
         }
       ]
+    },
+    {
+      "legacyRoot": "testdata/golden/ab-merge",
+      "source": {
+        "archive": "ab_code_golden_20260714-125634.7z",
+        "archiveSha256": "cb7cdc563d2ba9400774bf73b0a64dea71e285d16f88f54e47c44e6fe581b9c9",
+        "transfer": "HackMD CJK14 numbered-note transfer",
+        "sourceClassification": "private-owner-approved-golden",
+        "approval": "Repository owner supplied the archive and directed AB golden BIN fixtures to be tracked on 2026-07-14.",
+        "evidenceApplicabilityApproval": "On 2026-07-18 the repository owner approved NT51929 AB evidence as fact-scoped NT51919 and NT51932 family aliases, and NT51950 AB evidence as fact-scoped NT51951 workflow-logic evidence; none promotes runtime support."
+      }
     }
   ],
   "cases": [
@@ -76,6 +87,34 @@
     {
       "caseId": "51951-dp-512k",
       "manifestPath": "NT51951/standard-merge/dp-512k/topology-unscoped/51951-dp-512k/provenance/case.json"
+    },
+    {
+      "caseId": "nt51919-ab-t05-d06-alias",
+      "manifestPath": "NT51919/ab-merge/t05-d06/topology-unscoped/nt51919-ab-t05-d06-alias/provenance/case.json"
+    },
+    {
+      "caseId": "nt51929-ab-t05-d06",
+      "manifestPath": "NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/provenance/case.json"
+    },
+    {
+      "caseId": "nt51932-ab-t05-d06-alias",
+      "manifestPath": "NT51932/ab-merge/t05-d06/topology-unscoped/nt51932-ab-t05-d06-alias/provenance/case.json"
+    },
+    {
+      "caseId": "nt51950-ab-boe-d82t80",
+      "manifestPath": "NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/provenance/case.json"
+    },
+    {
+      "caseId": "nt51950-ab-hiway-d82t80",
+      "manifestPath": "NT51950/ab-merge/hiway-d82t80/topology-unscoped/nt51950-ab-hiway-d82t80/provenance/case.json"
+    },
+    {
+      "caseId": "nt51951-ab-boe-d82t80-workflow-alias",
+      "manifestPath": "NT51951/ab-merge/boe-d82t80/topology-unscoped/nt51951-ab-boe-d82t80-workflow-alias/provenance/case.json"
+    },
+    {
+      "caseId": "nt51951-ab-hiway-d82t80-workflow-alias",
+      "manifestPath": "NT51951/ab-merge/hiway-d82t80/topology-unscoped/nt51951-ab-hiway-d82t80-workflow-alias/provenance/case.json"
     }
   ]
 }

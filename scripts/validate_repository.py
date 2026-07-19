@@ -164,7 +164,6 @@ EXPECTED_SKILLS = {
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
 ALLOWED_GOLDEN_BIN_ROOTS = {
-    PurePosixPath("testdata/golden/ab-merge"),
     PurePosixPath("testdata/golden/canonical"),
     PurePosixPath("testdata/golden/ctrlram-replace/fixtures"),
 }

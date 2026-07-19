@@ -29,8 +29,8 @@ public sealed class AbMergeGoldenRegressionTests
             goldenCase,
             "NT51929");
 
-        Dictionary<string, byte[]> inputs = ReadInputs(goldenCase.GetProperty("inputs"));
-        byte[] expected = ReadFixture(goldenCase.GetProperty("expectedOutput"));
+        Dictionary<string, byte[]> inputs = ReadInputs(goldenCase);
+        byte[] expected = ReadExpected(goldenCase);
         byte[] originalTpB = [.. inputs["tp-b-input"]];
         CompositionExecutionResult result = CompositionEngine.Execute(
             composition.Plan,
@@ -61,13 +61,17 @@ public sealed class AbMergeGoldenRegressionTests
             ["NT51919", "NT51932"],
             applicability.GetProperty("factScopedAliasMemberIds").EnumerateArray().Select(static item => item.GetString()));
         Assert.Empty(applicability.GetProperty("notEstablishedMemberIds").EnumerateArray());
+        CanonicalGoldenAlias alias = CanonicalGoldenTestData.LoadWorkflowAliases("ab-merge")
+            .Single(item => StringComparer.Ordinal.Equals(item.Ic, icId));
+        Assert.Equal("nt51929-ab-t05-d06", alias.SourceCaseId);
+        Assert.Equal("NT51929", alias.SourceIc);
         CompiledComposition composition = CompileCandidate(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(Nt51929BundleDirectory, Nt51929BundleContentHash),
             goldenCase,
             icId,
             profileId);
-        Dictionary<string, byte[]> inputs = ReadInputs(goldenCase.GetProperty("inputs"));
-        byte[] expected = ReadFixture(goldenCase.GetProperty("expectedOutput"));
+        Dictionary<string, byte[]> inputs = ReadInputs(goldenCase);
+        byte[] expected = ReadExpected(goldenCase);
 
         CompositionExecutionResult result = CompositionEngine.Execute(
             composition.Plan,
@@ -149,6 +153,11 @@ public sealed class AbMergeGoldenRegressionTests
             ["NT51951"],
             applicability.GetProperty("factScopedAliasMemberIds").EnumerateArray().Select(static item => item.GetString()));
         Assert.Empty(applicability.GetProperty("notEstablishedMemberIds").EnumerateArray());
+        CanonicalGoldenAlias alias = CanonicalGoldenTestData.LoadWorkflowAliases("ab-merge")
+            .Single(item =>
+                StringComparer.Ordinal.Equals(item.Ic, "NT51951") &&
+                StringComparer.Ordinal.Equals(item.SourceCaseId, caseId));
+        Assert.Equal("NT51950", alias.SourceIc);
         using var workspace = TempWorkspace.Create($"nfc-{caseId}");
         CompiledComposition composition = CompileCandidate(
             AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
@@ -157,8 +166,8 @@ public sealed class AbMergeGoldenRegressionTests
                 Nt51950BundleContentHash),
             goldenCase,
             "NT51950");
-        Dictionary<string, byte[]> inputs = ReadInputs(goldenCase.GetProperty("inputs"));
-        byte[] expected = ReadFixture(goldenCase.GetProperty("expectedOutput"));
+        Dictionary<string, byte[]> inputs = ReadInputs(goldenCase);
+        byte[] expected = ReadExpected(goldenCase);
         byte[] originalTpB = [.. inputs["tp-b-input"]];
         using var referenceWorkspace = TempWorkspace.Create($"nfc-{caseId}-python-reference");
         byte[] pythonReferenceOutput = await RunPythonReferenceAsync(
@@ -219,7 +228,7 @@ public sealed class AbMergeGoldenRegressionTests
             Assert.Empty(result.Issues);
             Assert.Equal(expected, result.OutputBytes.ToArray());
             Assert.Equal(pythonReferenceOutput, result.OutputBytes.ToArray());
-            Assert.Equal(goldenCase.GetProperty("expectedOutput").GetProperty("sha256").GetString(), Hash(result.OutputBytes.Span));
+            Assert.Equal(ExpectedArtifact(goldenCase).GetProperty("sha256").GetString(), Hash(result.OutputBytes.Span));
             Assert.Equal(originalTpB, inputs["tp-b-input"]);
 
             ExternalProcessorResult toolResult = Assert.IsType<ExternalProcessorResult>(externalResult);
@@ -394,24 +403,35 @@ public sealed class AbMergeGoldenRegressionTests
 
     private static JsonElement ReadGoldenCase(string caseId)
     {
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(FixtureRoot, "manifest.json")));
-        return manifest.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(item => StringComparer.Ordinal.Equals(item.GetProperty("caseId").GetString(), caseId))
-            .Clone();
+        return CanonicalGoldenTestData.LoadDirectCase("ab-merge", caseId);
     }
 
-    private static Dictionary<string, byte[]> ReadInputs(JsonElement inputs)
+    private static Dictionary<string, byte[]> ReadInputs(JsonElement goldenCase)
     {
-        return inputs.EnumerateObject().ToDictionary(
-            static item => item.Name,
-            static item => ReadFixture(item.Value),
+        return goldenCase.GetProperty("artifacts")
+            .EnumerateArray()
+            .Where(static artifact => artifact.GetProperty("role").GetString() == "input")
+            .ToDictionary(
+            static artifact => artifact.GetProperty("artifactId").GetString()!,
+            static artifact => ReadFixture(artifact),
             StringComparer.Ordinal);
+    }
+
+    private static byte[] ReadExpected(JsonElement goldenCase)
+    {
+        return ReadFixture(ExpectedArtifact(goldenCase));
+    }
+
+    private static JsonElement ExpectedArtifact(JsonElement goldenCase)
+    {
+        return goldenCase.GetProperty("artifacts")
+            .EnumerateArray()
+            .Single(static artifact => artifact.GetProperty("role").GetString() == "expected");
     }
 
     private static byte[] ReadFixture(JsonElement entry)
     {
-        byte[] bytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(FixtureRoot, entry));
+        byte[] bytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(CanonicalGoldenTestData.Root, entry));
         Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
         Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
         return bytes;
@@ -554,8 +574,6 @@ public sealed class AbMergeGoldenRegressionTests
         BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(0xA110, sizeof(uint)), 0x00011000);
         BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(0xA120, sizeof(uint)), 0x0001A000);
     }
-
-    private static string FixtureRoot => RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ab-merge");
 
     private static string Hash(ReadOnlySpan<byte> bytes)
     {

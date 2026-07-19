@@ -1,7 +1,9 @@
 # NT51951 AB Merge Handoff
 
-This folder accepts private R3 evidence only. The candidate profile and its
-regression already pin the following non-promoted binding:
+No BIN upload is currently requested for the approved workflow-logic scope.
+This folder remains available only if a direct NT51951 product case is
+intentionally opened. The candidate profile and its regression already pin the
+following non-promoted binding:
 
 ```text
 Combiner.exe 1.13.0
@@ -34,7 +36,12 @@ Therefore the experiment establishes that Combiner replaces Python's TPB
 header/CRC work for the declared command binding. It does not imply that the
 same binding is approved for a different 51951 owner case.
 
-Provide these files under `inputs/`:
+The firmware owner approved the two NT51950 direct cases as fact-scoped
+NT51951 workflow-logic evidence on 2026-07-18. This covers the full-DP
+initializer, command family, no-`map.txt` rule, and Combiner-owned header CRC;
+it does not make either NT51950 output a direct NT51951 product golden.
+
+Only for a newly opened direct NT51951 case, provide these files under `inputs/`:
 
 - `dp-ab.bin`, `tpa.bin`, `tpb.bin`, and `expected.bin`;
 - `provenance.json` listing each original filename, SHA-256, source
@@ -48,5 +55,5 @@ different command, tool version, executable hash, or staging order, provide
 candidate and cannot be compared to this one by assumption.
 
 The Combiner alone owns AB header CRC mutation, and this AB command does not
-consume `map.txt`. Do not copy NT51950's input/output result into this case
-without direct owner evidence and review.
+consume `map.txt`. Do not copy NT51950's input/output bytes into a direct
+NT51951 product case; the approved alias is workflow-logic evidence only.

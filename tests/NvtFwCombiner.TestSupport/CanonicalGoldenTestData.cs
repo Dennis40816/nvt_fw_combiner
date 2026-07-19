@@ -41,6 +41,42 @@ public static class CanonicalGoldenTestData
         return JsonDocument.Parse(new JsonObject { ["cases"] = cases }.ToJsonString());
     }
 
+    /// <summary>Loads one raw direct canonical case after validating all physical artifacts.</summary>
+    public static JsonElement LoadDirectCase(string workflow, string caseId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workflow);
+        ArgumentException.ThrowIfNullOrWhiteSpace(caseId);
+
+        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "manifest.json")));
+        foreach (JsonElement entry in inventory.RootElement.GetProperty("cases").EnumerateArray())
+        {
+            if (!StringComparer.Ordinal.Equals(entry.GetProperty("caseId").GetString(), caseId))
+            {
+                continue;
+            }
+
+            string manifestPath = entry.GetProperty("manifestPath").GetString()!;
+            using var document = JsonDocument.Parse(
+                File.ReadAllText(RepositoryPaths.PathFromRelative(Root, manifestPath)));
+            JsonElement goldenCase = document.RootElement;
+            if (!goldenCase.GetProperty("directGolden").GetBoolean() ||
+                !StringComparer.Ordinal.Equals(goldenCase.GetProperty("workflow").GetString(), workflow))
+            {
+                throw new InvalidDataException(
+                    $"Canonical case '{caseId}' is not a direct {workflow} golden.");
+            }
+
+            foreach (JsonElement artifact in goldenCase.GetProperty("artifacts").EnumerateArray())
+            {
+                _ = ValidatedArtifactPath(artifact);
+            }
+
+            return goldenCase.Clone();
+        }
+
+        throw new InvalidDataException($"Canonical {workflow} case '{caseId}' was not found.");
+    }
+
     /// <summary>Loads fact-scoped aliases for one workflow and resolves each direct source IC.</summary>
     public static IReadOnlyList<CanonicalGoldenAlias> LoadWorkflowAliases(string workflow)
     {

@@ -20,14 +20,17 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         }
 
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "ab-merge");
         string toolRoot = Path.Combine(repositoryRoot, "external-tools");
-        string expectedPath = Path.Combine(
-            goldenRoot,
-            "expected",
-            "nt51929",
-            "NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin");
-        string tpPath = Path.Combine(goldenRoot, "inputs", "nt51929", "nt51929_TPFW_T05_20260611.bin");
+        string expectedPath = CanonicalGoldenTestData.ArtifactPath(
+            "ab-merge",
+            "NT51929",
+            "expected-output",
+            "t05-d06");
+        string tpPath = CanonicalGoldenTestData.ArtifactPath(
+            "ab-merge",
+            "NT51929",
+            "tp-a-input",
+            "t05-d06");
 
         byte[] abBytes = File.ReadAllBytes(expectedPath);
         byte[] baseBytes = abBytes[..0x40000];

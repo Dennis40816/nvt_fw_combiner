@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-from copy import deepcopy
 from pathlib import Path, PurePosixPath
 from types import ModuleType
 from typing import Any
@@ -12,7 +11,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 VALIDATOR_PATH = ROOT / "scripts" / "ab_merge_fixture_validation.py"
-MANIFEST_PATH = ROOT / "testdata" / "golden" / "ab-merge" / "manifest.json"
+CANONICAL_ROOT = ROOT / "testdata" / "golden" / "canonical"
+MANIFEST_PATH = CANONICAL_ROOT / "manifest.json"
 
 
 def load_validator_module() -> ModuleType:
@@ -33,12 +33,20 @@ VALIDATOR = load_validator_module()
 class AbMergeFixtureValidationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        self.documents: dict[Path, dict[str, Any]] = {
+            MANIFEST_PATH.resolve(): self.manifest
+        }
+        for entry in self.manifest["cases"]:
+            if "/ab-merge/" not in entry["manifestPath"]:
+                continue
+            path = CANONICAL_ROOT / entry["manifestPath"]
+            self.documents[path.resolve()] = json.loads(path.read_text(encoding="utf-8"))
 
-    def validate(self, manifest: dict[str, Any]) -> list[str]:
+    def validate(self) -> list[str]:
         errors: list[str] = []
 
-        def load_json(_: Path, __: list[str]) -> dict[str, Any]:
-            return manifest
+        def load_json(path: Path, _: list[str]) -> dict[str, Any]:
+            return self.documents[path.resolve()]
 
         def validate_entry(
             _: Path,
@@ -57,15 +65,15 @@ class AbMergeFixtureValidationTests(unittest.TestCase):
         return errors
 
     def test_accepts_the_closed_owner_approved_fixture_inventory(self) -> None:
-        self.assertEqual([], self.validate(self.manifest))
+        self.assertEqual([], self.validate())
 
     def test_rejects_nt51932_fact_scoped_alias_removal(self) -> None:
-        manifest = deepcopy(self.manifest)
-        manifest["cases"][0]["evidenceApplicability"][
-            "factScopedAliasMemberIds"
-        ].remove("NT51932")
+        direct_case = self.case("nt51929-ab-t05-d06")
+        direct_case["evidenceApplicability"]["factScopedAliasMemberIds"].remove(
+            "NT51932"
+        )
 
-        errors = self.validate(manifest)
+        errors = self.validate()
 
         self.assertTrue(
             any("factScopedAliasMemberIds" in error for error in errors),
@@ -73,25 +81,42 @@ class AbMergeFixtureValidationTests(unittest.TestCase):
         )
 
     def test_rejects_nt51951_fact_scoped_alias_removal(self) -> None:
-        manifest = deepcopy(self.manifest)
-        manifest["cases"][1]["evidenceApplicability"][
-            "factScopedAliasMemberIds"
-        ].clear()
+        direct_case = self.case("nt51950-ab-boe-d82t80")
+        direct_case["evidenceApplicability"]["factScopedAliasMemberIds"].clear()
 
-        errors = self.validate(manifest)
+        errors = self.validate()
 
         self.assertTrue(
             any("factScopedAliasMemberIds" in error for error in errors),
             errors,
         )
 
+    def test_rejects_nt51932_canonical_alias_source_drift(self) -> None:
+        alias_case = self.case("nt51932-ab-t05-d06-alias")
+        alias_case["alias"]["sourceCaseId"] = "nt51950-ab-boe-d82t80"
+
+        errors = self.validate()
+
+        self.assertTrue(any("source drift" in error for error in errors), errors)
+
+    def test_rejects_nt51951_workflow_alias_scope_promotion(self) -> None:
+        alias_case = self.case("nt51951-ab-boe-d82t80-workflow-alias")
+        alias_case["alias"]["factScope"][-1] = (
+            "direct NT51951 product bytes and runtime support"
+        )
+
+        errors = self.validate()
+
+        self.assertTrue(any("factScope drift" in error for error in errors), errors)
+
     def test_rejects_nt51929_first_half_promoted_to_single_golden(self) -> None:
-        manifest = deepcopy(self.manifest)
-        evidence = manifest["cases"][0]["ctrlRamFirstHalfSelfReplacementEvidence"]
+        evidence = self.case("nt51929-ab-t05-d06")[
+            "ctrlRamFirstHalfSelfReplacementEvidence"
+        ]
         evidence["standaloneSingleGolden"] = True
         evidence["fullByteParity"] = True
 
-        errors = self.validate(manifest)
+        errors = self.validate()
 
         self.assertTrue(
             any("CtrlRAM first-half evidence drift" in error for error in errors),
@@ -99,14 +124,21 @@ class AbMergeFixtureValidationTests(unittest.TestCase):
         )
 
     def test_rejects_nt51950_reference_configuration_drift(self) -> None:
-        manifest = deepcopy(self.manifest)
-        manifest["cases"][1]["referenceParity"]["configuration"] = "51951"
+        self.case("nt51950-ab-boe-d82t80")["referenceParity"][
+            "configuration"
+        ] = "51951"
 
-        errors = self.validate(manifest)
+        errors = self.validate()
 
         self.assertTrue(
             any("referenceParity drift" in error for error in errors), errors
         )
+
+    def case(self, case_id: str) -> dict[str, Any]:
+        entry = next(
+            entry for entry in self.manifest["cases"] if entry["caseId"] == case_id
+        )
+        return self.documents[(CANONICAL_ROOT / entry["manifestPath"]).resolve()]
 
 
 if __name__ == "__main__":

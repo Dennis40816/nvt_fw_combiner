@@ -15,6 +15,10 @@ STANDARD_MERGE_RELEASE_ALLOWLIST = PurePosixPath(
     "testdata/golden/release-standard-merge-v1.json"
 )
 ROOT_FILES = {PurePosixPath("README.md"), PurePosixPath("manifest.json")}
+LEGACY_GOLDEN_ROOTS = {
+    PurePosixPath("testdata/golden/ab-merge"),
+    PurePosixPath("testdata/golden/standard-merge-gen-flash"),
+}
 ALLOWED_WORKFLOWS = {
     "ab-merge",
     "ctrlram-replace",
@@ -167,8 +171,9 @@ def _validate_artifact(
         errors.append(
             f"{label} path must stay below {expected_parent}: {relative_path}"
         )
-    if relative_path in declared_files:
-        errors.append(f"canonical file is declared more than once: {relative_path}")
+    # A single direct case may bind one immutable physical payload to multiple
+    # logical argv roles (for example AB TPA and TPB). The case-directory check
+    # above still prevents a different case from reaching across case roots.
     declared_files.add(relative_path)
     payload = _read_confined_file(
         canonical_root / Path(relative_path),
@@ -219,6 +224,10 @@ def _validate_artifact(
 
 def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
     """Validate canonical case manifests, payload hashes, aliases, and closed inventory."""
+    for legacy_root in LEGACY_GOLDEN_ROOTS:
+        if (repository_root / Path(legacy_root)).exists():
+            errors.append(f"canonical migration legacy root must be removed: {legacy_root}")
+
     canonical_root = repository_root / Path(CANONICAL_ROOT)
     try:
         resolved_repository_root = repository_root.resolve(strict=True)

@@ -191,6 +191,49 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
     def test_accepts_hash_pinned_direct_case(self) -> None:
         self.assertEqual([], self.validate())
 
+    def test_accepts_one_case_binding_one_payload_to_multiple_logical_roles(self) -> None:
+        shared_input = dict(self.case_manifest["artifacts"][0])
+        shared_input["artifactId"] = "tp-b-input"
+        self.case_manifest["artifacts"].append(shared_input)
+        self.rewrite_case()
+
+        self.assertEqual([], self.validate())
+
+    def test_rejects_a_second_case_reaching_into_the_first_case_payload(self) -> None:
+        case_id = "nt51950-ab-cross-case-reference"
+        manifest_path = (
+            "NT51950/ab-merge/test/topology-unscoped/"
+            f"{case_id}/provenance/case.json"
+        )
+        foreign_input = dict(self.case_manifest["artifacts"][0])
+        foreign_expected = dict(foreign_input)
+        foreign_expected["artifactId"] = "expected-output"
+        foreign_expected["role"] = "expected"
+        (self.canonical / manifest_path).parent.mkdir(parents=True)
+        self.write_json(
+            self.canonical / manifest_path,
+            {
+                "schemaVersion": "1.0",
+                "caseId": case_id,
+                "ic": "NT51950",
+                "workflow": "ab-merge",
+                "variantOrVersion": "test",
+                "topology": "topology-unscoped",
+                "directGolden": True,
+                "sourceClassification": "owner-approved",
+                "ownerApproval": "test fixture",
+                "artifacts": [foreign_input, foreign_expected],
+            },
+        )
+        self.root_manifest["cases"].append(
+            {"caseId": case_id, "manifestPath": manifest_path}
+        )
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("path must stay below" in error for error in errors))
+
     def test_accepts_explicit_standard_merge_release_artifact_facts(self) -> None:
         self.assertEqual([], self.validate_release_allowlist())
 
@@ -359,7 +402,6 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         errors = self.validate()
 
         self.assertTrue(any("duplicate artifactId" in error for error in errors))
-        self.assertTrue(any("declared more than once" in error for error in errors))
 
     def test_rejects_malformed_sha(self) -> None:
         self.case_manifest["artifacts"][0]["sha256"] = "not-a-sha"
