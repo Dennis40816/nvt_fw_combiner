@@ -42,6 +42,15 @@ def normalize_console_output(output: str) -> str:
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
 
+    def test_packager_cleans_publish_state_and_smoke_requires_window(self) -> None:
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        smoke_script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("& $DotNet clean $AppProject -c Release -r win-x64", package_script)
+        self.assertIn("$application.MainWindowHandle -eq 0", smoke_script)
+        self.assertIn("$application.Responding", smoke_script)
+        self.assertIn("$application.Dispose()", smoke_script)
+
     def test_distribution_metadata_uses_non_personal_owner_identity(self) -> None:
         distribution_metadata_paths = (
             ROOT / "LICENSE",

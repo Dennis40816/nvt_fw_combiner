@@ -5,7 +5,7 @@ param(
     [string]$PackagePath,
 
     [ValidateRange(1, 30)]
-    [int]$StartupWaitSeconds = 3,
+    [int]$StartupWaitSeconds = 15,
 
     [switch]$SkipUiLaunch,
 
@@ -334,14 +334,43 @@ try {
     }
 
     if (-not $SkipUiLaunch) {
-        $application = Start-Process -FilePath (Join-Path $packageRoot 'NvtFwCombiner.exe') -PassThru
-        Start-Sleep -Seconds $StartupWaitSeconds
-        if ($application.HasExited) {
-            throw "Bundled application exited during startup with code $($application.ExitCode)."
-        }
+        $application = $null
+        try {
+            $application = Start-Process `
+                -FilePath (Join-Path $packageRoot 'NvtFwCombiner.exe') `
+                -WorkingDirectory $packageRoot `
+                -PassThru
+            $startupDeadline = [DateTime]::UtcNow.AddSeconds($StartupWaitSeconds)
+            do {
+                Start-Sleep -Milliseconds 100
+                $application.Refresh()
+            }
+            while (
+                -not $application.HasExited -and
+                $application.MainWindowHandle -eq 0 -and
+                [DateTime]::UtcNow -lt $startupDeadline
+            )
 
-        Stop-Process -Id $application.Id -Force
-        $application.WaitForExit()
+            if ($application.HasExited) {
+                throw "Bundled application exited during startup with code $($application.ExitCode)."
+            }
+            if ($application.MainWindowHandle -eq 0) {
+                throw "Bundled application did not create a main window within $StartupWaitSeconds seconds."
+            }
+            if (-not $application.Responding) {
+                throw 'Bundled application main window is not responding.'
+            }
+        }
+        finally {
+            if ($null -ne $application) {
+                $application.Refresh()
+                if (-not $application.HasExited) {
+                    Stop-Process -Id $application.Id -Force
+                    $application.WaitForExit()
+                }
+                $application.Dispose()
+            }
+        }
     }
 
     Write-Host "Release smoke passed: $(Split-Path -Leaf $fullPackagePath)"
