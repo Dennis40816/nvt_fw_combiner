@@ -2,9 +2,9 @@
 
 Status: deterministic orchestration/count baseline on the reviewed `v0.9.9`
 source line plus local fragmented-report, Hex Diff, allocation, and
-layout-neutral staging evidence. Path-independent component Node B/C replay is
-recorded below; final physical-tool/golden-layout and packaged Windows evidence
-remain open.
+layout-neutral staging evidence. Path-independent component Node B/C replay and
+the final annotated-`v0.9.9` upstream report replay are recorded below; final
+physical-tool/golden-layout and packaged Windows evidence remain open.
 
 Captured: 2026-07-18. Executable owner:
 `tests/NvtFwCombiner.Bootstrap.Tests/CompositionRunExecutionMetricsTests.cs`.
@@ -430,6 +430,58 @@ which agrees with the prior shared-pool attribution and does not justify a new
 serializer or schema. Packaged first-page, dispatcher heartbeat,
 click-to-first-step, accessibility, physical Legacy Combiner, and clean-machine
 working-set evidence remain separate gates.
+
+## Final annotated-v0.9.9 upstream report replay
+
+On 2026-07-19, the unchanged initial
+`FragmentedReplaceReportPreservesTenThousandDifferenceFacts` harness from
+`fbd7ee7c374458ecba84dd9b34493f28ee1adb5a` was applied as a test-only overlay
+to two detached worktrees. Node B's production source was the commit selected
+by the annotated `v0.9.9` tag,
+`270e803e1f043ffd56d8568c7e80c7f771a35d7e`; Node C's production source was
+`4a2b6c0a04a8aac302830cabf60ba8080a39a8d8`. Both nodes compiled the same test
+without a production adapter or physical fixture/tool path, and used separate
+project-local `bin`/`obj` trees.
+
+The machine/runtime/power settings match the component replay above. Each node
+ran one exact-filter validation/warm-up sample that was discarded. Ten recorded
+B/C pairs then alternated without concurrency; every `--no-build --no-restore`
+invocation created a fresh testhost. The p50 is the median and p95 is the
+nearest-rank value, which is the observed maximum for ten samples. These are
+local comparison values, not portable CI thresholds.
+
+Every recorded sample preserved 10,000 exact one-byte differences, output
+SHA-256
+`e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4`,
+`11,720,520` JSON characters, and JSON SHA-256
+`16d46159b46bcb3acdd27783321b21504a721f01e4dddef43f10fc336a49c937`.
+The 20,000-byte reference and replacement inputs therefore remain the same
+deterministic values recorded for the component replay; no expected output was
+regenerated.
+
+| Final predecessor report observation | Annotated `v0.9.9` | `v0.9.10` Node C | Observation |
+| --- | ---: | ---: | --- |
+| Application run through complete report, p50 / p95 | `118.581 / 145.196 ms` | `88.037 / 96.553 ms` | p50 `25.76%` lower; p95 `33.50%` lower |
+| Run-through current-thread allocation, p50 / p95 | `20,181,656 / 20,181,656` bytes | `7,541,912 / 7,591,112` bytes | p50 `62.63%` lower |
+| First indented serialization, p50 / p95 | `160.803 / 200.909 ms` | `166.777 / 190.699 ms` | p50 `3.72%` higher; p95 `5.08%` lower; no serialization improvement claim |
+
+The ten run-through samples were B
+`127.298, 113.255, 121.888, 145.196, 132.099, 115.889, 109.565, 108.087,
+121.273, 108.250` ms and C
+`77.594, 88.305, 92.144, 96.553, 87.769, 95.060, 91.600, 80.551, 87.006,
+86.659` ms. The ten first-serialization samples were B
+`200.909, 147.008, 164.270, 192.806, 186.073, 157.336, 155.165, 154.841,
+165.134, 154.059` ms and C
+`159.708, 165.109, 176.550, 190.699, 164.368, 168.445, 173.832, 154.325,
+156.183, 177.772` ms.
+
+Node B reported `20,181,656` run-through allocated bytes in every recorded
+sample. Node C reported `7,541,912` bytes in nine samples and `7,591,112` bytes
+in one sample. The exact output/report digests make this a valid final
+predecessor comparison for upstream report creation. It does not create a
+`v0.9.9` Hex Diff baseline, because that UI did not exist at the predecessor;
+Hex Diff before/after remains the same-source component comparison above.
+Physical Legacy Combiner parity and packaged UI timings remain separate gates.
 
 Commit `64a45efd` also reuses the UTF-8 byte count already produced by a
 successful JSON projection when the active report is captured or relocalized
