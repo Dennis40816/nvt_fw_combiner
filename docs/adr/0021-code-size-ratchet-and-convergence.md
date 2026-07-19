@@ -39,13 +39,35 @@ ratchets at 4,405 lines for `WorkbenchCompositionService` and 4,069 lines for
 `MainWindowViewModel`; the exact duplicate-JSON ratchet is 1,055 lines, and the
 general 2,500-line partial ceiling also remains in force.
 
-The exception is time-bounded. `v0.9.10` added measured progress,
-accessibility, report/Hex Diff, cancellation, persistence, inspection, and
-performance evidence while preserving firmware semantics. A dedicated
-code-size convergence phase starts only after `v0.9.11`; it will establish a
-new measured baseline and lower descending ratchets instead of treating unused
-space below 60,000 as a permanent budget. The final reviewed `v0.9.10` tree must
-remain at or below 60,000 and must not exceed either named partial ratchet.
+The exception is time-bounded through final `v0.9.10`. `v0.9.10` added
+measured progress, accessibility, report/Hex Diff, cancellation, persistence,
+inspection, and performance evidence while preserving firmware semantics. The
+final reviewed `v0.9.10` tree must remain at or below 60,000 and must not exceed
+either named partial ratchet.
+
+### v0.9.11 owner amendment
+
+Owner decision, 2026-07-19: `v0.9.11` is the dedicated code-size convergence
+milestone. It also carries the capability-driven shared Hex viewport described
+by [ADR 0028](0028-capability-driven-shared-hex-viewport.md), because retiring
+the duplicate inner renderers is a measured Presentation convergence target.
+The migration may not merge Raw Editor document/history semantics with Change
+Report snapshot/semantic semantics.
+
+The 59,429-line `6f3698dd` measurement remains a candidate planning baseline,
+not the final predecessor. U0 must start from the exact final `v0.9.10`
+protected-main/tag predecessor, remeasure every governed target, and record the
+before evidence. The `v0.9.11` planning release gate is at most 58,500
+production lines, with at most 58,000 retained as an evidence-dependent stretch
+goal. U0 may propose a different descending number only when final-predecessor
+drift is explicit and owner-reviewed.
+
+The current 60,000 ceiling and named partial ratchets remain upper bounds during
+U1-U4; rollback code for the old Hex renderers does not authorize temporary
+ratchet growth. U5 removes the proven duplicate renderer/template/styles,
+finishes the viewport slice net negative, and lowers the achieved total and
+named ratchets in the same commit. Exact duplicate built-in JSON remains a
+separate convergence target and is not traded for new Presentation growth.
 
 This is a convergence control, not permission to delete safety. Tests, golden
 vectors, evidence manifests, documentation, firmware-owner gates, and useful
