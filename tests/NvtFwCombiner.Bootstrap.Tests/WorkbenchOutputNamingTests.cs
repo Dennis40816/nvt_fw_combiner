@@ -9,8 +9,8 @@ public sealed class WorkbenchOutputNamingTests
     [Fact]
     public void FlashCodeOutputNameUsesCatalogBackedDpAndTpMetadata()
     {
-        string dpPath = GoldenPath("inputs/51926/dp.bin");
-        string tpPath = GoldenPath("inputs/51926/tp.bin");
+        string dpPath = GoldenArtifactPath("51926", "dp-input");
+        string tpPath = GoldenArtifactPath("51926", "tp-input");
 
         WorkbenchOutputFileNameSuggestion suggestion = WorkbenchCompositionService.CreateFlashCodeOutputFileName(
             "51926",
@@ -32,8 +32,8 @@ public sealed class WorkbenchOutputNamingTests
     [Fact]
     public void FlashCodeOutputNameInspectionProjectionMatchesPathBackedSuggestion()
     {
-        string dpPath = GoldenPath("inputs/51926/dp.bin");
-        string tpPath = GoldenPath("inputs/51926/tp.bin");
+        string dpPath = GoldenArtifactPath("51926", "dp-input");
+        string tpPath = GoldenArtifactPath("51926", "tp-input");
         DateOnly date = new(2026, 7, 8);
         WorkbenchOutputFileNameSuggestion pathBacked =
             WorkbenchCompositionService.CreateFlashCodeOutputFileName(

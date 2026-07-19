@@ -16,7 +16,8 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-snapshot");
         string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)'A', LargeDocumentLength)]);
         int searchCallCount = 0;
-        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        var editor = new RawBinaryEditorSession();
+        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
@@ -59,7 +60,8 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-result");
         string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)'A', LargeDocumentLength)]);
         int searchCallCount = 0;
-        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        var editor = new RawBinaryEditorSession();
+        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
@@ -102,7 +104,8 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-query-key");
         string sourcePath = workspace.Write("source.bin", "ABAB"u8.ToArray());
         int searchCallCount = 0;
-        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        var editor = new RawBinaryEditorSession();
+        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
@@ -126,14 +129,15 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         Assert.Equal(1, different.Address);
     }
 
-    /// <summary>Applies the same retained-result reuse to the synchronous search entry point.</summary>
+    /// <summary>Applies the same retained-result reuse to repeated adapter-owned background searches.</summary>
     [Fact]
-    public async Task SynchronousSearchReusesCompletedResult()
+    public async Task RepeatedBackgroundSearchReusesCompletedResult()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-sync-result");
         string sourcePath = workspace.Write("source.bin", "AAAA"u8.ToArray());
         int searchCallCount = 0;
-        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        var editor = new RawBinaryEditorSession();
+        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
@@ -143,8 +147,14 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
             TestContext.Current.CancellationToken);
         Assert.True(load.Succeeded, load.ErrorMessage);
 
-        RawBinaryEditorSearchResult first = session.FindAscii("A", 0);
-        RawBinaryEditorSearchResult next = session.FindAscii("A", 1);
+        RawBinaryEditorSearchResult first = await session.FindAsciiAsync(
+            "A",
+            0,
+            TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult next = await session.FindAsciiAsync(
+            "A",
+            1,
+            TestContext.Current.CancellationToken);
 
         Assert.Equal(1, Volatile.Read(ref searchCallCount));
         Assert.Equal(0, first.Address);
@@ -159,7 +169,8 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-immutable-result");
         string sourcePath = workspace.Write("source.bin", "AAAA"u8.ToArray());
         int searchCallCount = 0;
-        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        var editor = new RawBinaryEditorSession();
+        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
@@ -173,7 +184,7 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
             "A",
             0,
             TestContext.Current.CancellationToken);
-        IList<long>? exposed = first.Matches as IList<long>;
+        var exposed = first.Matches as IList<long>;
         Assert.NotNull(exposed);
 
         _ = Assert.Throws<NotSupportedException>(() => exposed[0] = 99);
@@ -196,7 +207,8 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         int documentLength = RawBinaryEditorSearch.MaximumRetainedMatches + 16;
         string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)'A', documentLength)]);
         int searchCallCount = 0;
-        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        var editor = new RawBinaryEditorSession();
+        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
@@ -230,7 +242,8 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-invalidation");
         string sourcePath = workspace.Write("source.bin", Encoding.ASCII.GetBytes("AAAA"));
         int searchCallCount = 0;
-        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        var editor = new RawBinaryEditorSession();
+        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
@@ -248,7 +261,7 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
             1,
             TestContext.Current.CancellationToken);
 
-        RawBinaryEditorOperationResult edit = session.OverwriteByte("0x0", "42");
+        RawBinaryEditorOperationResult edit = editor.OverwriteByte("0x0", "42");
         RawBinaryEditorSearchResult after = await session.FindAsciiAsync(
             "B",
             0,
@@ -263,13 +276,14 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         Assert.Equal(2, session.AsciiSearchSnapshotCaptureCount);
     }
 
-    /// <summary>Verifies every edit attempt invalidates before its outcome can publish across revisions.</summary>
+    /// <summary>A rejected Application edit leaves the unchanged adapter search snapshot reusable.</summary>
     [Fact]
-    public async Task FailedEditAttemptAlsoInvalidatesSearchSnapshot()
+    public async Task FailedEditAttemptKeepsSearchSnapshot()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-failed-edit");
         string sourcePath = workspace.Write("source.bin", Encoding.ASCII.GetBytes("AAAA"));
-        var session = new WorkbenchRawBinaryEditorSession();
+        var editor = new RawBinaryEditorSession();
+        var session = new WorkbenchRawBinaryEditorSession(editor);
         WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
@@ -279,7 +293,7 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
             0,
             TestContext.Current.CancellationToken);
 
-        RawBinaryEditorOperationResult invalidEdit = session.OverwriteByte("not-an-address", "42");
+        RawBinaryEditorOperationResult invalidEdit = editor.OverwriteByte("not-an-address", "42");
         RawBinaryEditorSearchResult after = await session.FindAsciiAsync(
             "A",
             0,
@@ -288,7 +302,7 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         Assert.True(before.Succeeded);
         Assert.False(invalidEdit.Succeeded);
         Assert.True(after.Succeeded);
-        Assert.Equal(2, session.AsciiSearchSnapshotCaptureCount);
+        Assert.Equal(1, session.AsciiSearchSnapshotCaptureCount);
     }
 
     /// <summary>Verifies cancellation is observed before a full-document search snapshot is captured.</summary>
@@ -297,7 +311,8 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-canceled");
         string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)'A', LargeDocumentLength)]);
-        var session = new WorkbenchRawBinaryEditorSession();
+        var editor = new RawBinaryEditorSession();
+        var session = new WorkbenchRawBinaryEditorSession(editor);
         WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
@@ -320,7 +335,8 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
     [Fact]
     public async Task CanceledSearchWithoutDocumentKeepsTypedIssue()
     {
-        var session = new WorkbenchRawBinaryEditorSession();
+        var editor = new RawBinaryEditorSession();
+        var session = new WorkbenchRawBinaryEditorSession(editor);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -338,7 +354,8 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         string sourcePath = workspace.Write("source.bin", Encoding.ASCII.GetBytes("AAAA"));
         using var searchStarted = new ManualResetEventSlim();
         using var releaseSearch = new ManualResetEventSlim();
-        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        var editor = new RawBinaryEditorSession();
+        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             searchStarted.Set();
             releaseSearch.Wait(cancellationToken);
@@ -356,7 +373,7 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         Assert.True(
             searchStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken),
             "Background search did not start.");
-        RawBinaryEditorOperationResult edit = session.OverwriteByte("0x0", "42");
+        RawBinaryEditorOperationResult edit = editor.OverwriteByte("0x0", "42");
         releaseSearch.Set();
 
         Assert.True(edit.Succeeded);

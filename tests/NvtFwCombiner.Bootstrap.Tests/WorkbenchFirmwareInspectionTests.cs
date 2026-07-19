@@ -12,7 +12,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
     [Fact]
     public void InspectionMatchesExistingFirmwareAndCtrlRamDisplayReaders()
     {
-        string basePath = GoldenPath("expected/51926/flash.bin");
+        string basePath = GoldenArtifactPath("51926", "expected-output");
         var ctrlRamRequest = new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.Cascade);
 
         WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
@@ -60,9 +60,9 @@ public sealed partial class WorkbenchFirmwareInspectionTests
     [Fact]
     public void InspectionReadsEachDistinctPathAtMostOnce()
     {
-        byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
-        byte[] dpBytes = File.ReadAllBytes(GoldenPath("inputs/51950/dp-256k/dp.bin"));
-        byte[] tpBytes = File.ReadAllBytes(GoldenPath("inputs/51950/dp-256k/tp.bin"));
+        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        byte[] dpBytes = File.ReadAllBytes(GoldenArtifactPath("51950", "dp-input", "dp-256k"));
+        byte[] tpBytes = File.ReadAllBytes(GoldenArtifactPath("51950", "tp-input", "dp-256k"));
         var artifacts = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             ["base.bin"] = baseBytes,
@@ -227,7 +227,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
     [Fact]
     public void InspectionRejectsInvalidVersionBarForMultiProfileDisplaySelection()
     {
-        byte[] validBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        byte[] validBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         WorkbenchFirmwareInspection validInspection = WorkbenchCompositionService.InspectFirmware(
             "NT51926",
             "base.bin",
@@ -279,8 +279,8 @@ public sealed partial class WorkbenchFirmwareInspectionTests
     [Fact]
     public void InspectionBatchReadsEveryDistinctPathOnce()
     {
-        byte[] dpBytes = File.ReadAllBytes(GoldenPath("inputs/51950/dp-256k/dp.bin"));
-        byte[] tpBytes = File.ReadAllBytes(GoldenPath("inputs/51950/dp-256k/tp.bin"));
+        byte[] dpBytes = File.ReadAllBytes(GoldenArtifactPath("51950", "dp-input", "dp-256k"));
+        byte[] tpBytes = File.ReadAllBytes(GoldenArtifactPath("51950", "tp-input", "dp-256k"));
         var artifacts = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             ["dp.bin"] = dpBytes,
