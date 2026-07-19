@@ -22,17 +22,19 @@
         <ToggleButton
             Classes="segment"
             Command="{Binding SelectCtrlRamFirmwareVersionPreserveCommand}"
-            Content="{Binding Text.CtrlRamFirmwareVersionKeepLabel}"
             IsChecked="{Binding IsCtrlRamFirmwareVersionPreserveSelected, Mode=OneWay}"
-            ToolTip.Tip="{Binding Text.CtrlRamFirmwareVersionKeepLabel}" />
+            ToolTip.Tip="{Binding Text.CtrlRamFirmwareVersionKeepLabel}">
+          <TextBlock Text="{Binding Text.CtrlRamFirmwareVersionKeepLabel}" />
+        </ToggleButton>
         <ToggleButton
             Grid.Column="1"
             Classes="segment"
             Command="{Binding SelectCtrlRamFirmwareVersionEditCommand}"
-            Content="{Binding Text.CtrlRamFirmwareVersionEditLabel}"
             IsChecked="{Binding IsCtrlRamFirmwareVersionEditSelected, Mode=OneWay}"
             IsEnabled="{Binding CanEditCtrlRamFirmwareVersion}"
-            ToolTip.Tip="{Binding Text.CtrlRamFirmwareVersionEditLabel}" />
+            ToolTip.Tip="{Binding Text.CtrlRamFirmwareVersionEditLabel}">
+          <TextBlock Text="{Binding Text.CtrlRamFirmwareVersionEditLabel}" />
+        </ToggleButton>
       </Grid>
 
       <StackPanel Grid.Row="2" Spacing="10">

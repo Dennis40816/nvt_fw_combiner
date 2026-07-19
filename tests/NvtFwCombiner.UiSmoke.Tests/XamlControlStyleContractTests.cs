@@ -328,6 +328,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsVisible=\"{Binding IsCtrlRamFirmwareVersionModalOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionPreserveCommand", modal, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionEditCommand", modal, StringComparison.Ordinal);
+        Assert.Contains("<TextBlock Text=\"{Binding Text.CtrlRamFirmwareVersionKeepLabel}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("<TextBlock Text=\"{Binding Text.CtrlRamFirmwareVersionEditLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("TryCreateCtrlRamFirmwareVersionEdit", ReadPresentationFile("Views/CtrlRamFirmwareVersionModal.axaml.cs"), StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionByteLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareSubVersionByteLabel}\"", modal, StringComparison.Ordinal);

@@ -59,6 +59,64 @@ public sealed class WorkbenchOutputNamingTests
         Assert.Equal(pathBacked, inspected);
     }
 
+    /// <summary>CtrlRAM-style workflows preserve DP, so their base is the version source when no DP input exists.</summary>
+    [Fact]
+    public void FlashCodeOutputNameUsesBaseDpVersionOnlyWhenNoDpInputExists()
+    {
+        static WorkbenchFirmwareInspection Inspection(string? dpVersion)
+        {
+            return new WorkbenchFirmwareInspection(
+                null,
+                null,
+                dpVersion is null ? null : new WorkbenchDpVersionMetadata(dpVersion),
+                null,
+                null,
+                null);
+        }
+
+        DateOnly date = new(2026, 7, 20);
+        WorkbenchOutputFileNameSuggestion ctrlRam =
+            WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(
+                "NT51923",
+                [
+                    new WorkbenchOutputNameInspectionCandidate(
+                        WorkbenchOutputNameCandidateKind.Base,
+                        Inspection("8102")),
+                    new WorkbenchOutputNameInspectionCandidate(
+                        WorkbenchOutputNameCandidateKind.CtrlRam,
+                        Inspection(null)),
+                ],
+                date);
+        WorkbenchOutputFileNameSuggestion unreadableDp =
+            WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(
+                "NT51923",
+                [
+                    new WorkbenchOutputNameInspectionCandidate(
+                        WorkbenchOutputNameCandidateKind.Base,
+                        Inspection("8102")),
+                    new WorkbenchOutputNameInspectionCandidate(
+                        WorkbenchOutputNameCandidateKind.Dp,
+                        Inspection(null)),
+                ],
+                date);
+        WorkbenchOutputFileNameSuggestion pathBackedCtrlRam =
+            WorkbenchCompositionService.CreateFlashCodeOutputFileName(
+                "NT51926",
+                [
+                    new WorkbenchOutputNameCandidate(
+                        WorkbenchOutputNameCandidateKind.Base,
+                        GoldenArtifactPath("51926", "expected-output")),
+                ],
+                date);
+
+        Assert.Equal("8102", ctrlRam.DpVersionToken);
+        Assert.True(ctrlRam.HasDpVersion);
+        Assert.Equal("xxxx", unreadableDp.DpVersionToken);
+        Assert.False(unreadableDp.HasDpVersion);
+        Assert.Equal("0102", pathBackedCtrlRam.DpVersionToken);
+        Assert.True(pathBackedCtrlRam.HasDpVersion);
+    }
+
     /// <summary>Inspection candidates preserve role priority, valid-bar fallback, and unknown behavior.</summary>
     [Fact]
     public void FlashCodeOutputNameInspectionProjectionPreservesTpCandidatePriority()

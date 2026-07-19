@@ -56,8 +56,12 @@ public static partial class WorkbenchCompositionService
     private static string? FindInspectedDpVersionToken(
         IReadOnlyList<WorkbenchOutputNameInspectionCandidate> candidates)
     {
+        bool hasDpInput = candidates.Any(static candidate =>
+            candidate.Kind == WorkbenchOutputNameCandidateKind.Dp);
         return candidates
-            .Where(static candidate => candidate.Kind == WorkbenchOutputNameCandidateKind.Dp)
+            .Where(candidate => candidate.Kind == (hasDpInput
+                ? WorkbenchOutputNameCandidateKind.Dp
+                : WorkbenchOutputNameCandidateKind.Base))
             .Select(static candidate => candidate.Inspection?.DpVersion?.VersionToken)
             .FirstOrDefault(static versionToken => !string.IsNullOrWhiteSpace(versionToken));
     }
@@ -91,8 +95,12 @@ public static partial class WorkbenchCompositionService
         string icId,
         IReadOnlyList<WorkbenchOutputNameCandidate> candidates)
     {
+        bool hasDpInput = candidates.Any(static candidate =>
+            candidate.Kind == WorkbenchOutputNameCandidateKind.Dp);
         foreach (WorkbenchOutputNameCandidate candidate in candidates.Where(candidate =>
-                     candidate.Kind == WorkbenchOutputNameCandidateKind.Dp))
+                     candidate.Kind == (hasDpInput
+                         ? WorkbenchOutputNameCandidateKind.Dp
+                         : WorkbenchOutputNameCandidateKind.Base)))
         {
             if (string.IsNullOrWhiteSpace(candidate.Path))
             {
