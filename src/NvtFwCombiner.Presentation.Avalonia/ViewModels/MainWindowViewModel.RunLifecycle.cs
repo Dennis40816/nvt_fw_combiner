@@ -211,8 +211,8 @@ public sealed partial class MainWindowViewModel
         ApplyRunResult(
             result,
             build,
-            report, publishReport: IsCurrentReportProjection(reportProjectionGeneration));
-        CompositionProgress.MarkReportReady();
+            report,
+            publishReport: IsCurrentReportProjection(reportProjectionGeneration));
     }
 
     private async Task ObserveRunProgressAsync(

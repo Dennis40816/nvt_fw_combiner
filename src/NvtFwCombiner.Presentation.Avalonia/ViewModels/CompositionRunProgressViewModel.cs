@@ -16,22 +16,6 @@ public enum CompositionRunProgressStepState
     Completed,
 }
 
-/// <summary>UI delivery boundary between composition, committed output, and complete report projection.</summary>
-public enum CompositionRunDeliveryState
-{
-    /// <summary>No active or retained delivery state exists.</summary>
-    Idle,
-
-    /// <summary>Composition is running and no committed Build artifact has been announced.</summary>
-    Running,
-
-    /// <summary>The Build artifact is committed while nonessential report work continues.</summary>
-    ArtifactCommitted,
-
-    /// <summary>The complete report model is ready for review and history capture.</summary>
-    ReportReady,
-}
-
 /// <summary>Localized, accessible projection of one applicable composition lifecycle phase.</summary>
 public sealed class CompositionRunProgressStepViewModel
 {
@@ -109,12 +93,6 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
     /// <summary>Application-owned phase that currently owns the run.</summary>
     public CompositionRunPhase? CurrentPhase { get; private set; }
 
-    /// <summary>Gets the current artifact/report delivery boundary.</summary>
-    public CompositionRunDeliveryState DeliveryState { get; private set; }
-
-    /// <summary>Gets the committed output identity while its report finishes in the background.</summary>
-    public string? CommittedOutputId { get; private set; }
-
     /// <summary>One-based lifecycle ordinal within the applicable phase sequence.</summary>
     public int CurrentStep => CurrentPhase is { } phase
         ? Array.IndexOf(_applicablePhases, phase) + 1
@@ -125,9 +103,7 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
 
     /// <summary>Localized label for the current Application phase.</summary>
     public string CurrentStepLabel => CurrentPhase is { } phase
-        ? DeliveryState == CompositionRunDeliveryState.ArtifactCommitted
-            ? _text.GetCompositionArtifactCommittedLabel()
-            : _text.GetCompositionRunPhaseLabel(phase)
+        ? _text.GetCompositionRunPhaseLabel(phase)
         : string.Empty;
 
     /// <summary>Localized lifecycle ordinal; this is not a byte percentage.</summary>
@@ -154,8 +130,7 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
             snapshot.RunId,
             snapshot.CurrentPhase,
             snapshot.ApplicablePhases,
-            snapshot.CompletedPhases,
-            snapshot.CommittedOutputId);
+            snapshot.CompletedPhases);
     }
 
     /// <summary>Updates localized labels without changing lifecycle state.</summary>
@@ -183,7 +158,7 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
     /// <summary>Releases run ownership after the normal result/report surface takes over.</summary>
     public void Reset()
     {
-        if (RunId is null && !HasTypedProgress && DeliveryState == CompositionRunDeliveryState.Idle)
+        if (RunId is null && !HasTypedProgress)
         {
             return;
         }
@@ -191,8 +166,6 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
         RunId = null;
         _applicablePhases = [];
         CurrentPhase = null;
-        DeliveryState = CompositionRunDeliveryState.Idle;
-        CommittedOutputId = null;
         Steps = EmptySteps;
         OnPropertyChanged(nameof(RunId));
         NotifyProjectionChanged();
@@ -202,8 +175,7 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
         string runId,
         CompositionRunPhase currentPhase,
         IReadOnlyList<CompositionRunPhase> applicablePhases,
-        IReadOnlyList<CompositionRunPhase> completedPhases,
-        string? committedOutputId = null)
+        IReadOnlyList<CompositionRunPhase> completedPhases)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(applicablePhases);
@@ -227,26 +199,9 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
         }
 
         CurrentPhase = currentPhase;
-        CommittedOutputId = committedOutputId;
-        DeliveryState = committedOutputId is null
-            ? CompositionRunDeliveryState.Running
-            : CompositionRunDeliveryState.ArtifactCommitted;
         RebuildSteps(completedPhases);
         NotifyProjectionChanged();
         return true;
-    }
-
-    internal void MarkReportReady()
-    {
-        if (RunId is null || DeliveryState == CompositionRunDeliveryState.ReportReady)
-        {
-            return;
-        }
-
-        DeliveryState = CompositionRunDeliveryState.ReportReady;
-        OnPropertyChanged(nameof(DeliveryState));
-        OnPropertyChanged(nameof(CurrentStepLabel));
-        OnPropertyChanged(nameof(AccessibleStatus));
     }
 
     private static void ValidateSnapshot(
@@ -317,8 +272,6 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
         OnPropertyChanged(nameof(Steps));
         OnPropertyChanged(nameof(HasTypedProgress));
         OnPropertyChanged(nameof(CurrentPhase));
-        OnPropertyChanged(nameof(DeliveryState));
-        OnPropertyChanged(nameof(CommittedOutputId));
         OnPropertyChanged(nameof(CurrentStep));
         OnPropertyChanged(nameof(StepCount));
         OnPropertyChanged(nameof(CurrentStepLabel));

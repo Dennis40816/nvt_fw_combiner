@@ -105,35 +105,6 @@ public sealed class CompositionRunProgressViewModelTests
         Assert.Equal("Step 7 of 7: Preparing report", progress.AccessibleStatus);
     }
 
-    /// <summary>A committed artifact is usable before nonessential report projection becomes ready.</summary>
-    [Fact]
-    public void ArtifactCommitAndReportReadyRemainDistinctTypedStates()
-    {
-        var progress = new CompositionRunProgressViewModel();
-
-        _ = progress.TryApply(
-            "build-delivery",
-            CompositionRunPhase.PreparingReport,
-            FullBuildPhases,
-            FullBuildPhases[..^1],
-            "C:\\output\\firmware.bin");
-
-        Assert.Equal(CompositionRunDeliveryState.ArtifactCommitted, progress.DeliveryState);
-        Assert.Equal("C:\\output\\firmware.bin", progress.CommittedOutputId);
-        Assert.Equal("Output ready; preparing report in background", progress.CurrentStepLabel);
-        progress.ApplyLanguage(ShellLanguage.ChineseTraditional);
-        Assert.Equal("輸出已就緒，正在背景整理報告", progress.CurrentStepLabel);
-
-        progress.MarkReportReady();
-
-        Assert.Equal(CompositionRunDeliveryState.ReportReady, progress.DeliveryState);
-        Assert.Equal("C:\\output\\firmware.bin", progress.CommittedOutputId);
-
-        progress.Reset();
-        Assert.Equal(CompositionRunDeliveryState.Idle, progress.DeliveryState);
-        Assert.Null(progress.CommittedOutputId);
-    }
-
     /// <summary>Reduced motion changes animation policy without changing truthful or accessible state.</summary>
     [Fact]
     public void ReducedMotionKeepsStepAndAccessibleStateStatic()

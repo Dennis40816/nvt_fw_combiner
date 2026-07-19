@@ -105,40 +105,6 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsRunInProgress);
     }
 
-    /// <summary>Build announces the committed artifact before background report projection becomes ready.</summary>
-    [Fact]
-    public async Task BuildSeparatesArtifactCommitFromReportReadiness()
-    {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-artifact-report-boundary");
-        MainWindowViewModel viewModel = ConfigureRunnableGeneralMerge(workspace);
-        string outputPath = workspace.PathFor("output.bin");
-        List<CompositionRunDeliveryState> states = [];
-        string? committedLabel = null;
-        viewModel.CompositionProgress.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName != nameof(CompositionRunProgressViewModel.DeliveryState))
-            {
-                return;
-            }
-
-            states.Add(viewModel.CompositionProgress.DeliveryState);
-            if (viewModel.CompositionProgress.DeliveryState == CompositionRunDeliveryState.ArtifactCommitted)
-            {
-                committedLabel = viewModel.CompositionProgress.CurrentStepLabel;
-            }
-        };
-
-        await viewModel.BuildMergeAsync(outputPath);
-
-        Assert.Contains(CompositionRunDeliveryState.ArtifactCommitted, states);
-        Assert.Equal(CompositionRunDeliveryState.ReportReady, states[^1]);
-        Assert.Equal("Output ready; preparing report in background", committedLabel);
-        Assert.Equal(outputPath, viewModel.CompositionProgress.CommittedOutputId);
-        Assert.Equal(CompositionRunDeliveryState.ReportReady, viewModel.CompositionProgress.DeliveryState);
-        Assert.True(File.Exists(outputPath));
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-    }
-
     /// <summary>Cancelling a planning-stage run stops its unattached observer and releases command ownership.</summary>
     [Fact]
     public async Task CancellingPlanningRunStopsProgressObserver()
