@@ -66,6 +66,16 @@ shared successful artifact to one read with two independent outputs, and the
 same missing artifact to two attempted reads and two issues. This is a
 deterministic count reduction, not a universal elapsed-time claim.
 
+Commit `9d65e219` applies the same one-run snapshot rule across the Bootstrap
+runtime-reference boundary for the routed NT51926 Common FW 1.4.1 V2 CtrlRAM
+case. Its V2 compiler must inspect the base bytes to resolve the map; those
+exact host-read bytes now overlay the same physical artifact id for the
+immediately following Application run. Physical base reads therefore change
+from two to one, while Application still performs its normal binding read,
+trust-boundary copy, SHA, normalization, validation, report, and output commit
+logic. Replacement artifacts remain physical reads. This is not a UI or
+cross-run cache and does not change B0's Application-level two-input counter.
+
 ## Raw Hex Editor memory baseline
 
 The editable Raw Hex Editor must retain original bytes, working bytes, and one
