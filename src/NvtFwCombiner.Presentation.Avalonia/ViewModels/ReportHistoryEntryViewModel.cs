@@ -9,9 +9,18 @@ public sealed class ReportHistoryEntryViewModel
 
     /// <summary>Creates a report history entry.</summary>
     public ReportHistoryEntryViewModel(int sequence, ReportHistorySnapshot snapshot)
+        : this(sequence, snapshot, reportJsonUtf8ByteCount: null)
+    {
+    }
+
+    internal ReportHistoryEntryViewModel(
+        int sequence,
+        ReportHistorySnapshot snapshot,
+        long? reportJsonUtf8ByteCount)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sequence);
         ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentOutOfRangeException.ThrowIfNegative(reportJsonUtf8ByteCount ?? 0);
         if (snapshot.Metadata == ReportHistoryMetadataSnapshot.Empty)
         {
             throw new ArgumentException("Report history metadata must be materialized before creating an entry.", nameof(snapshot));
@@ -28,7 +37,7 @@ public sealed class ReportHistoryEntryViewModel
         CommandSummary = snapshot.Metadata.CommandSummary;
         IssueSummary = snapshot.Metadata.IssueSummary;
         EvidenceSummary = snapshot.Metadata.EvidenceSummary;
-        StoredByteCount = (long)Encoding.UTF8.GetByteCount(snapshot.ReportJson) +
+        StoredByteCount = (reportJsonUtf8ByteCount ?? Encoding.UTF8.GetByteCount(snapshot.ReportJson)) +
             Encoding.UTF8.GetByteCount(snapshot.OutputArtifactPath);
     }
 
