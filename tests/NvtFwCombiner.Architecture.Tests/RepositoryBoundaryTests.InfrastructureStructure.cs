@@ -15,6 +15,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs");
         string legacyStaging = ReadText(
             "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.Staging.cs");
+        string stagedArtifactVerifier = ReadText(
+            "src/NvtFwCombiner.Infrastructure/ExternalTools/StagedArtifactFileVerifier.cs");
         string normalizedLegacyRoot = legacyRoot.ReplaceLineEndings("\n");
         int legacyCommandLoopStart = legacyRoot.IndexOf(
             "foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)",
@@ -50,6 +52,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("File.WriteAllBytesAsync(path, artifact.Bytes,", staging, StringComparison.Ordinal);
         Assert.DoesNotContain("InputBytes.ToArray()", root, StringComparison.Ordinal);
         Assert.DoesNotContain("artifact.Bytes.ToArray()", staging, StringComparison.Ordinal);
+        Assert.Contains("StagedArtifactFileVerifier", staging, StringComparison.Ordinal);
+        Assert.Contains("StagedArtifactFileVerifier", legacyStaging, StringComparison.Ordinal);
+        Assert.Contains(".MatchesAsync", staging, StringComparison.Ordinal);
+        Assert.Contains(".MatchesAsync", legacyStaging, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.ReadAllBytesAsync(path", staging, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.ReadAllBytesAsync(artifactPath", legacyStaging, StringComparison.Ordinal);
+        Assert.Contains("ArrayPool<byte>.Shared.Rent", stagedArtifactVerifier, StringComparison.Ordinal);
+        Assert.Contains("ArrayPool<byte>.Shared.Return(buffer, clearArray: true)", stagedArtifactVerifier, StringComparison.Ordinal);
+        Assert.Contains("stream.Length != expectedBytes.Length", stagedArtifactVerifier, StringComparison.Ordinal);
         Assert.Contains("internal sealed class ExternalCombinerToolResolver", toolResolution, StringComparison.Ordinal);
         Assert.Contains("_toolResolver.TryResolve", root, StringComparison.Ordinal);
         Assert.Contains("_toolResolver.TryResolve", legacyRoot, StringComparison.Ordinal);
