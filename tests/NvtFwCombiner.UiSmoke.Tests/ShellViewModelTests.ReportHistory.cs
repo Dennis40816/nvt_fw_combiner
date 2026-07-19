@@ -91,6 +91,20 @@ public sealed partial class ShellViewModelTests
         Assert.Empty(viewModel.ExportReportHistory());
     }
 
+    /// <summary>Successful JSON projection supplies the history size without a second full JSON scan.</summary>
+    [Fact]
+    public void ReportHistoryReusesProjectedUtf8ByteCount()
+    {
+        string json = ReportJsonSamples.Succeeded(runId: "多位元組-report");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportJson(json, "report.json");
+
+        long expected = Encoding.UTF8.GetByteCount(json);
+        Assert.Equal(expected, viewModel.LoadedReport.ReportJsonUtf8ByteCount);
+        Assert.Equal(expected, Assert.Single(viewModel.ReportHistoryEntries).StoredByteCount);
+    }
+
     /// <summary>Verifies persisted report history snapshots restore report metadata and artifact path context.</summary>
     [Fact]
     public void ReportHistorySnapshotsRestoreAcrossViewModels()

@@ -151,7 +151,10 @@ public sealed partial class MainWindowViewModel
                 continue;
             }
 
-            entries.Add(new ReportHistoryEntryViewModel(++sequence, normalizedSnapshot));
+            entries.Add(new ReportHistoryEntryViewModel(
+                ++sequence,
+                normalizedSnapshot,
+                materializedReport?.ReportJsonUtf8ByteCount));
             if (materializeAsCurrent && materializedReport is not null)
             {
                 loadedReport = materializedReport;
@@ -370,7 +373,8 @@ public sealed partial class MainWindowViewModel
             0,
             new ReportHistoryEntryViewModel(
                 ++_reportHistorySequence,
-                CreateReportHistorySnapshot(LoadedReport, LoadedReportJson)));
+                CreateReportHistorySnapshot(LoadedReport, LoadedReportJson),
+                LoadedReport.ReportJsonUtf8ByteCount));
         while (ReportHistoryEntries.Count > MaxReportHistoryEntries)
         {
             ReportHistoryEntries.RemoveAt(ReportHistoryEntries.Count - 1);
@@ -491,7 +495,8 @@ public sealed partial class MainWindowViewModel
 
             ReportHistoryEntries[index] = new ReportHistoryEntryViewModel(
                 entry.Sequence,
-                CreateReportHistorySnapshot(LoadedReport, entry.ReportJson));
+                CreateReportHistorySnapshot(LoadedReport, entry.ReportJson),
+                LoadedReport.ReportJsonUtf8ByteCount);
             break;
         }
 
