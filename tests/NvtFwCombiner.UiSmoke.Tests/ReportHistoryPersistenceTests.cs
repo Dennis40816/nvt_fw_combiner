@@ -1,3 +1,4 @@
+using System.Text;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -135,6 +136,81 @@ public sealed class ReportHistoryPersistenceTests
         {
             stream.SetLength(ReportHistoryFileStore.MaximumHistoryFileBytes + 1);
         }
+
+        Assert.Empty(ReportHistoryFileStore.Load(historyPath));
+    }
+
+    /// <summary>Restoring a large history does not allocate a second whole-file text value.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LoadLargeHistoryAvoidsWholeFileTextAllocation(bool useLegacyUtf16Encoding)
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-report-history-allocation");
+        string historyPath = workspace.PathFor(Path.Combine("state", "report-history.v1.json"));
+        const int reportCharacterCount = 4 * 1024 * 1024;
+        string reportJson = $"\"{new string('A', reportCharacterCount - 2)}\"";
+        ReportHistoryFileStore.Save(
+            historyPath,
+            [new ReportHistorySnapshot("large.json", reportJson, string.Empty)]);
+        if (useLegacyUtf16Encoding)
+        {
+            string persistedJson = File.ReadAllText(historyPath);
+            File.WriteAllText(historyPath, persistedJson, Encoding.Unicode);
+        }
+
+        _ = ReportHistoryFileStore.Load(historyPath);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        ReportHistorySnapshot loaded = Assert.Single(ReportHistoryFileStore.Load(historyPath));
+        long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(reportJson, loaded.ReportJson);
+        Assert.InRange(allocatedBytes, 0, reportCharacterCount * 3L);
+    }
+
+    /// <summary>An atomic save can replace the path while an existing reader keeps a complete old snapshot.</summary>
+    [Fact]
+    public async Task AsyncSaveReplacesSnapshotHeldByReader()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-report-history-concurrent-save");
+        string historyPath = workspace.PathFor(Path.Combine("state", "report-history.v1.json"));
+        ReportHistorySnapshot original = CreateSnapshot("original.json");
+        ReportHistorySnapshot latest = CreateSnapshot("latest.json");
+        ReportHistoryFileStore.Save(historyPath, [original]);
+        using FileStream originalReader = BestEffortLocalJsonFileStore.OpenSnapshotForRead(historyPath);
+
+        await ReportHistoryFileStore.SaveAsync(
+            historyPath,
+            [latest],
+            TestContext.Current.CancellationToken);
+
+        using var textReader = new StreamReader(
+            originalReader,
+            Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: true,
+            bufferSize: 1024,
+            leaveOpen: true);
+        string originalJson = textReader.ReadToEnd();
+        Assert.Contains("original.json", originalJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("latest.json", originalJson, StringComparison.Ordinal);
+        Assert.Equal("latest.json", Assert.Single(ReportHistoryFileStore.Load(historyPath)).SourceName);
+        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(historyPath)!, "*.tmp"));
+    }
+
+    /// <summary>Missing state and a valid unsupported schema both fail back to empty history.</summary>
+    [Fact]
+    public void LoadFallsBackForMissingFileAndUnsupportedSchema()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-report-history-schema");
+        string historyPath = workspace.PathFor(Path.Combine("state", "report-history.v1.json"));
+        Assert.Empty(ReportHistoryFileStore.Load(historyPath));
+        ReportHistoryFileStore.Save(historyPath, [CreateSnapshot("unsupported.json")]);
+        string unsupportedJson = File.ReadAllText(historyPath).Replace(
+            "\"SchemaVersion\": 1",
+            "\"SchemaVersion\": 2",
+            StringComparison.Ordinal);
+        File.WriteAllText(historyPath, unsupportedJson);
 
         Assert.Empty(ReportHistoryFileStore.Load(historyPath));
     }
