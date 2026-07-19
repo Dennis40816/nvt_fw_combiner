@@ -119,6 +119,33 @@ undo/redo, caller-mutation rejection, and structural fallback are executable
 tests rather than timing assumptions. This observation is not p50/p95 and does
 not close the final packaged A8 interaction or working-set gate.
 
+Before commit `300dd235`, Presentation immediately converted every changed
+range into a row ViewModel and bound the complete collection to a
+non-virtualized inspector. Its viewport also searched the complete changed
+range set for every visible cell and original-row decision. A deterministic
+20,000-byte alternating overwrite therefore exposed 10,000 complete row
+ViewModels after one edit even though only a small inspector window was
+visible.
+
+The inspector now projects one replace-on-page 64-row window from the complete
+typed range snapshot. A factory counter proves that the first page creates 64
+rows, a direct jump to the 16-row tail creates only those 16 additional rows,
+and a same-page jump creates none. Total count, reason, address, global index,
+page navigation, `63 -> 64`, and `9999 -> 0` Next traversal remain exact. The
+viewport uses a lower-bound value-range lookup and separately retained
+structural indices, so data-only fragmentation is no longer multiplied by each
+visible cell. A compact two-row pager, auto-width index, EN/ZH action-plus-total
+automation name, keyboard buttons, and polite page status preserve the review
+surface in its 336-DIP inspector.
+
+The latest local single command observation for that 10,000-range fixture was
+`10.600` ms and `3,015,056` current-thread allocated bytes. Focused UI passes
+`34/34`, full UI passes `231/231`, and Architecture passes `94/94`. The
+materialization count is the deterministic performance gate; the timing and
+allocation are observations rather than p50/p95 or release thresholds. Final
+packaged 8 MiB responsiveness, render layout, accessibility, and process
+working set remain in A8.
+
 ## Fragmented report microbaseline
 
 `CompositionReportPerformanceBaselineTests` executes one real Application
