@@ -334,12 +334,26 @@ reconciled. Independent R3 architecture review reports no P0/P1 finding and
 passes with the final firmware-owner, layout-reconciliation, Node B/C, and
 canonical-verification gates still mandatory.
 
-External-processor discovery lifetime remains the next layout-neutral slice.
-Current source calls `ExternalProcessorFactory.CreateOrNull()` per applicable
-run, including parent-root search, recursive manifest enumeration/parsing, and
-registry/router construction. Node B/C must therefore add discovery,
-manifest-read, and registry-build counts. The optimized lifetime may be bound
-only to an explicit tool-layout identity; later predecessor reconciliation
-binds the reviewed physical root and repeats parity. It must preserve pinned
-hashes, missing/invalid-manifest behavior, process isolation, and explicit
-restart/refresh semantics without embedding the provisional physical path.
+External-processor discovery now has one explicit OS-process lifetime. The
+first applicable call performs the parent-root search, recursive manifest
+enumeration/parsing, registry construction, and router construction; concurrent
+and later calls receive the same immutable environment. The deterministic
+lifetime tests prove successful, unavailable, and invalid initialization each
+invoke their factory once. A missing root remains unavailable and an invalid
+manifest remains fail closed until process restart. A restart is the explicit
+refresh boundary for any tool/manifest layout change.
+
+This does not cache process results, staging state, or executable trust. Each
+transform still creates a private run directory and the resolver rechecks the
+selected executable's existence and SHA-256 against the retained manifest. No
+physical tool path is embedded. Focused lifetime plus current-layout NT51926
+owner-golden-backed tests pass `5/5`, and Architecture passes `94/94`. The full
+Bootstrap run reaches `459/460`; its only failure is the pre-existing
+`ProfilesListOutputRemainsStable` expected string omitting the already
+registered NT51930 DP Replace row. It reproduces alone, and both the stale
+expected string and registration already exist at predecessor `358817cb`, so
+it is unrelated to processor construction. Final Node B/C records
+one discovery/manifest/registry build per process and repeats physical-layout
+parity after predecessor reconciliation. Independent R2 architecture review
+reports no P0/P1 finding and passes with the final Node B/C, reconciled-layout,
+domain-owner, and canonical-verification gates retained.

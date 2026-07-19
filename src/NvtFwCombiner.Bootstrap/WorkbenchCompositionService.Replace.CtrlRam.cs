@@ -26,7 +26,7 @@ public static partial class WorkbenchCompositionService
             build,
             outputPath,
             firmwareVersionEdit,
-            ExternalProcessorFactory.CreateOrNull(),
+            ExternalProcessorFactory.GetOrCreateOrNull(),
             progress,
             cancellationToken).ConfigureAwait(false);
     }

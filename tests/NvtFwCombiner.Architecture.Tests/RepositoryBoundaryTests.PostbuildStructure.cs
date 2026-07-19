@@ -117,4 +117,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ReadExactlyAsync(tailBytes", staging, StringComparison.Ordinal);
         Assert.Contains("FileMode.Append", staging, StringComparison.Ordinal);
     }
+
+    /// <summary>Locks manifest discovery and processor construction to one process lifetime.</summary>
+    [Fact]
+    public void ExternalProcessorDiscoveryUsesOneExplicitProcessLifetime()
+    {
+        string factory = ReadText("src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs");
+
+        Assert.Contains("ProcessLifetime = new(CreateUncachedOrNull)", factory, StringComparison.Ordinal);
+        Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", factory, StringComparison.Ordinal);
+        Assert.Equal(1, factory.Split("Directory.EnumerateFiles(", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("static IExternalProcessor? CreateOrNull()", factory, StringComparison.Ordinal);
+    }
 }

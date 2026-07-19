@@ -187,7 +187,7 @@ public static partial class WorkbenchCompositionService
             context.BasePath,
             build,
             outputPath,
-            externalProcessor: commandPlan is null ? null : ExternalProcessorFactory.CreateOrNull(),
+            externalProcessor: commandPlan is null ? null : ExternalProcessorFactory.GetOrCreateOrNull(),
             icNumberSelection: context.Selection,
             overwrite: true,
             cancellationToken,
