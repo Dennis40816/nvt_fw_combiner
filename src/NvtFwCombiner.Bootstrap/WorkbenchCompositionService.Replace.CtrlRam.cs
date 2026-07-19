@@ -160,7 +160,8 @@ public static partial class WorkbenchCompositionService
             V2CompositionPlanCompileResult v2Compile = CompileCtrlRamV2(
                 context,
                 v2ProfileId,
-                new(firmware!.ChipNumber, firmware.NumberToken, TopologySelectionSource.Requested, "ic-number"));
+                new(firmware!.ChipNumber, firmware.NumberToken, TopologySelectionSource.Requested, "ic-number"),
+                out byte[] referenceBytes);
             return !v2Compile.IsCompiled
                 ? Blocked(v2Compile.Issues, $"{icId.ToLowerInvariant()}-ctrlram-replace.bin")
                 : await RunCompiledCompositionAsync(
@@ -177,6 +178,10 @@ public static partial class WorkbenchCompositionService
                     icNumberSelection: context.Selection,
                     overwrite: true,
                     cancellationToken,
+                    virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)
+                    {
+                        [context.BasePath!] = referenceBytes,
+                    },
                     progress: progress).ConfigureAwait(false);
         }
 

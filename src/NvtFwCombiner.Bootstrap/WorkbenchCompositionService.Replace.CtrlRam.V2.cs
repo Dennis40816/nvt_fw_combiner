@@ -11,8 +11,10 @@ public static partial class WorkbenchCompositionService
     private static V2CompositionPlanCompileResult CompileCtrlRamV2(
         CtrlRamReplaceRunContext context,
         string profileId,
-        TopologySelection topology)
+        TopologySelection topology,
+        out byte[] referenceBytes)
     {
+        referenceBytes = File.ReadAllBytes(context.BasePath!);
         V2RuntimeReferenceReplaceInputBinding[] bindings =
         [
             new(
@@ -65,7 +67,7 @@ public static partial class WorkbenchCompositionService
             topology,
             [new FirmwareArtifactPayload(
                 CompositionAddressSpaceIds.ReferenceBase,
-                File.ReadAllBytes(context.BasePath!))],
+                referenceBytes)],
             new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings));
     }
 }
