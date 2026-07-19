@@ -58,6 +58,35 @@ public sealed class StrictJsonDocumentReaderTests
         Assert.Equal(/*lang=json,strict*/ "{\"value\":1}", document.RootElement.GetRawText());
     }
 
+    /// <summary>Verifies a private immutable snapshot avoids the defensive complete-buffer copy.</summary>
+    [Fact]
+    public void ParseOwnedSnapshotAvoidsSecondCompleteBufferAllocation()
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(
+            /*lang=json,strict*/ $"{{\"payload\":\"{new string('a', 1024 * 1024)}\"}}");
+        using (StrictJsonDocumentReader.ParseOwnedSnapshot(bytes, bytes.Length, 8))
+        {
+        }
+
+        using (StrictJsonDocumentReader.Parse(bytes, bytes.Length, 8))
+        {
+        }
+
+        long ownedAllocation = MeasureAllocation(
+            () => StrictJsonDocumentReader.ParseOwnedSnapshot(bytes, bytes.Length, 8));
+        long defensiveAllocation = MeasureAllocation(
+            () => StrictJsonDocumentReader.Parse(bytes, bytes.Length, 8));
+
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"STRICT_JSON_OWNERSHIP bytes={bytes.Length} " +
+            $"ownedAllocated={ownedAllocation} defensiveAllocated={defensiveAllocation}");
+
+        Assert.True(
+            defensiveAllocation - ownedAllocation >= bytes.Length,
+            $"Expected at least one {bytes.Length}-byte defensive copy; " +
+            $"owned={ownedAllocation}, defensive={defensiveAllocation}.");
+    }
+
     /// <summary>Verifies byte and depth bounds fail closed.</summary>
     [Fact]
     public void ParseRejectsInputsOutsideCallerBounds()
@@ -93,5 +122,13 @@ public sealed class StrictJsonDocumentReaderTests
     {
         byte[] bytes = Encoding.UTF8.GetBytes(json);
         return StrictJsonDocumentReader.Parse(bytes, 1024, 16);
+    }
+
+    private static long MeasureAllocation(Func<JsonDocument> parse)
+    {
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        using JsonDocument document = parse();
+        _ = document.RootElement.ValueKind;
+        return GC.GetAllocatedBytesForCurrentThread() - before;
     }
 }
