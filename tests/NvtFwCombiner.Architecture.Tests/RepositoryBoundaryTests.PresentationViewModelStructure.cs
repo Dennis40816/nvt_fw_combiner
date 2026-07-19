@@ -297,6 +297,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("File.Replace", stores, StringComparison.Ordinal);
         Assert.Contains("JsonSerializerOptions", helper, StringComparison.Ordinal);
         Assert.Contains("JsonSerializer.SerializeAsync", helper, StringComparison.Ordinal);
+        Assert.Contains("FileShare.Read | FileShare.Delete", helper, StringComparison.Ordinal);
+        Assert.DoesNotContain("FileShare.Write", helper, StringComparison.Ordinal);
         Assert.Contains("File.Replace", helper, StringComparison.Ordinal);
         Assert.Contains("UnauthorizedAccessException", helper, StringComparison.Ordinal);
         Assert.Contains("internal const long MaximumPreferencesFileBytes = 64L * 1024;", stores, StringComparison.Ordinal);
