@@ -283,19 +283,55 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         }
     }
 
-    private static async ValueTask<CompositionIssue?> NormalizeShortenedFirmwareAsync(
+    private static async ValueTask<ShortOutputTailSnapshot?> CaptureShortOutputTailAsync(
         string firmwarePath,
-        byte[] commandInputBytes,
         LegacyCombinerPostbuildCommand command,
+        long expectedLength,
         CancellationToken cancellationToken)
     {
-        byte[] commandOutputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
-        if (commandOutputBytes.LongLength == commandInputBytes.LongLength)
+        if (command.Family != LegacyCombinerCommandFamily.MergeMode)
         {
             return null;
         }
 
-        if (commandOutputBytes.LongLength > commandInputBytes.LongLength)
+        long minimumLength = GetMinimumCommandOutputLength(command, expectedLength);
+        if (minimumLength >= expectedLength)
+        {
+            return null;
+        }
+
+        byte[] tailBytes = new byte[checked((int)(expectedLength - minimumLength))];
+        await using var stream = new FileStream(
+            firmwarePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        if (stream.Length != expectedLength)
+        {
+            throw new IOException("The staged firmware length changed before short-output normalization capture.");
+        }
+
+        stream.Position = minimumLength;
+        await stream.ReadExactlyAsync(tailBytes, cancellationToken).ConfigureAwait(false);
+        return new ShortOutputTailSnapshot(minimumLength, tailBytes);
+    }
+
+    private static async ValueTask<CompositionIssue?> NormalizeShortenedFirmwareAsync(
+        string firmwarePath,
+        LegacyCombinerPostbuildCommand command,
+        long expectedLength,
+        ShortOutputTailSnapshot? tailSnapshot,
+        CancellationToken cancellationToken)
+    {
+        long outputLength = new FileInfo(firmwarePath).Length;
+        if (outputLength == expectedLength)
+        {
+            return null;
+        }
+
+        if (outputLength > expectedLength)
         {
             return new CompositionIssue(
                 "external-tool.output-length.changed",
@@ -303,8 +339,8 @@ public sealed partial class LegacyCombinerPostbuildProcessor
                 command.CommandId);
         }
 
-        long minimumLength = GetMinimumCommandOutputLength(command, commandInputBytes.LongLength);
-        if (commandOutputBytes.LongLength < minimumLength)
+        long minimumLength = GetMinimumCommandOutputLength(command, expectedLength);
+        if (outputLength < minimumLength || tailSnapshot is null)
         {
             return new CompositionIssue(
                 "external-tool.output-length.changed",
@@ -312,9 +348,15 @@ public sealed partial class LegacyCombinerPostbuildProcessor
                 command.CommandId);
         }
 
-        byte[] normalizedBytes = [.. commandInputBytes];
-        commandOutputBytes.CopyTo(normalizedBytes, 0);
-        await File.WriteAllBytesAsync(firmwarePath, normalizedBytes, cancellationToken).ConfigureAwait(false);
+        int tailOffset = checked((int)(outputLength - tailSnapshot.Start));
+        await using var stream = new FileStream(
+            firmwarePath,
+            FileMode.Append,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 4096,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        await stream.WriteAsync(tailSnapshot.Bytes.AsMemory(tailOffset), cancellationToken).ConfigureAwait(false);
         return null;
     }
 
@@ -454,4 +496,6 @@ public sealed partial class LegacyCombinerPostbuildProcessor
             return _allowedRelativeDirectories.Contains(relativePath);
         }
     }
+
+    private sealed record ShortOutputTailSnapshot(long Start, byte[] Bytes);
 }

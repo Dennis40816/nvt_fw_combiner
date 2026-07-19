@@ -212,6 +212,57 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.Equal("external-tool.write-range.violation", issue.Code);
     }
 
+    /// <summary>Rejects shortened output from command families without approved normalization semantics.</summary>
+    [Fact]
+    public async Task TransformRejectsShortenedNonMergeCommandOutput()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = CreateFirmwareImage();
+        var command = new LegacyCombinerPostbuildCommand(
+            "normal-mode-shortened",
+            LegacyCombinerCommandFamily.NormalMode,
+            "CRC_Enable",
+            null,
+            [
+                new LegacyCombinerBlockArgument(
+                    "prefix",
+                    LegacyCombinerBlockSourceKind.StagedFile,
+                    "Short.bin",
+                    0,
+                    new ByteRange(0, 0x20)),
+            ]);
+        var profile = new LegacyCombinerPostbuildProfile(
+            "nfc.test.non-merge-shortened-output-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "non_merge_shortened_fw.bin",
+            [command],
+            [command],
+            "test non-merge shortened output rejection");
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            string firmwarePath = startInfo.Arguments.First(argument =>
+                argument.EndsWith("non_merge_shortened_fw.bin", StringComparison.Ordinal));
+            File.WriteAllBytes(firmwarePath, File.ReadAllBytes(firmwarePath)[..0x20]);
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-non-merge-shortened",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.output-length.changed", Assert.Single(result.Issues).Code);
+        Assert.Equal(1, runner.RunCount);
+    }
+
     /// <summary>Retains successful command evidence when a later command fails before process launch.</summary>
     [Fact]
     public async Task TransformPreservesExecutedCommandsWhenLaterStagingFails()
