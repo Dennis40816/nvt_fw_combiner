@@ -188,6 +188,13 @@ queue cancellation, fault recovery, and close completion. This is a UI-thread
 I/O ownership improvement; no elapsed-time claim is made until the packaged
 rapid-settings row is recorded.
 
+Commit `1c0dc687` then resolves the persisted language before constructing the
+shell ViewModel. The language selector is aligned during guarded
+initialization, so a Traditional Chinese startup no longer builds the complete
+English projection and immediately relocalizes it a second time. Normal
+post-construction language changes remain active. This is a deterministic
+single-initialization contract; packaged first-frame evidence remains open.
+
 ## Firmware evidence scope
 
 The synthetic counter cases are process-contract evidence, not firmware
