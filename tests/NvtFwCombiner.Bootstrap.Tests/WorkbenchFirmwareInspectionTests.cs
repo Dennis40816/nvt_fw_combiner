@@ -1,11 +1,12 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using NvtFwCombiner.Application.FlashMaps;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Parity and read-count evidence for the shell firmware inspection facade.</summary>
-public sealed class WorkbenchFirmwareInspectionTests
+public sealed partial class WorkbenchFirmwareInspectionTests
 {
     /// <summary>The consolidated snapshot preserves existing metadata and CtrlRAM display projections.</summary>
     [Fact]
@@ -158,6 +159,70 @@ public sealed class WorkbenchFirmwareInspectionTests
                 property.PropertyType == typeof(ReadOnlyMemory<byte>));
     }
 
+    /// <summary>The bounded byte probe preserves the outgoing regex across boundary and randomized cases.</summary>
+    [Fact]
+    public void InspectionHeaderHintMatchesLegacyAsciiRegex()
+    {
+        Regex legacyMarker = LegacyFirmwareIcHintMarker();
+        byte[][] craftedSamples =
+        [
+            [],
+            Encoding.ASCII.GetBytes("51926"),
+            Encoding.ASCII.GetBytes("151926"),
+            Encoding.ASCII.GetBytes("519260"),
+            Encoding.ASCII.GetBytes("NT51927TT"),
+            Encoding.ASCII.GetBytes("151926 51928"),
+            Encoding.ASCII.GetBytes("51926TT7"),
+            Encoding.ASCII.GetBytes("a51920b51921"),
+            [0xFF, (byte)'5', (byte)'1', (byte)'9', (byte)'3', (byte)'2', 0x80],
+        ];
+        foreach (byte[] sample in craftedSamples)
+        {
+            AssertHeaderHintMatchesLegacyRegex(sample, legacyMarker);
+        }
+
+        var random = new Random(51910);
+        for (int index = 0; index < 128; index++)
+        {
+            byte[] sample = new byte[random.Next(0, 513)];
+            random.NextBytes(sample);
+            if (sample.Length >= 7 && index % 2 == 0)
+            {
+                int offset = random.Next(0, sample.Length - 6);
+                Encoding.ASCII.GetBytes($"519{index % 100:D2}").CopyTo(sample, offset);
+            }
+
+            AssertHeaderHintMatchesLegacyRegex(sample, legacyMarker);
+        }
+    }
+
+    /// <summary>A full 256 KiB header probe does not allocate a whole decoded text copy.</summary>
+    [Fact]
+    public void InspectionHeaderHintAvoidsWholeProbeTextAllocation()
+    {
+        const int probeLength = 256 * 1024;
+        byte[] headerBytes = new byte[probeLength];
+        Encoding.ASCII.GetBytes("NT51926").CopyTo(headerBytes, probeLength - "NT51926".Length);
+        _ = WorkbenchCompositionService.InspectFirmware(
+            "NT51926",
+            "payload.bin",
+            tpPath: null,
+            ctrlRamRequest: null,
+            _ => headerBytes);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51926",
+            "payload.bin",
+            tpPath: null,
+            ctrlRamRequest: null,
+            _ => headerBytes);
+        long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal("NT51926", inspection.DetectedIcId);
+        Assert.InRange(allocatedBytes, 0, 64 * 1024);
+    }
+
     /// <summary>Invalid multi-profile firmware metadata cannot select a postbuild display category.</summary>
     [Fact]
     public void InspectionRejectsInvalidVersionBarForMultiProfileDisplaySelection()
@@ -191,6 +256,24 @@ public sealed class WorkbenchFirmwareInspectionTests
         Assert.Null(invalidMetadata.PostbuildCategory);
         Assert.Empty(Assert.IsType<WorkbenchCtrlRamInspectionDisplay>(invalidInspection.CtrlRamDisplay).InputSlots);
     }
+
+    private static void AssertHeaderHintMatchesLegacyRegex(byte[] image, Regex legacyMarker)
+    {
+        Match expectedMatch = legacyMarker.Match(Encoding.ASCII.GetString(image));
+        string? expected = expectedMatch.Success ? $"NT{expectedMatch.Groups["ic"].Value}" : null;
+
+        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51926",
+            "payload.bin",
+            tpPath: null,
+            ctrlRamRequest: null,
+            _ => image);
+
+        Assert.Equal(expected, inspection.DetectedIcId);
+    }
+
+    [GeneratedRegex(@"(?<!\d)(?:NT)?(?<ic>519\d{2})(?:TT)?(?!\d)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex LegacyFirmwareIcHintMarker();
 
     /// <summary>Paired DP/TP projections share one physical read for every distinct selected path.</summary>
     [Fact]
