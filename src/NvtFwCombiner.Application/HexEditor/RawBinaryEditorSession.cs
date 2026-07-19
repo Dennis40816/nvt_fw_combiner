@@ -22,6 +22,10 @@ public sealed partial class RawBinaryEditorSession
 
     private readonly Stack<HistoryEntry> _redo = [];
     private readonly Stack<HistoryEntry> _undo = [];
+    private IReadOnlyList<RawBinaryEditorChangedRange> _cachedChangedRanges = [];
+    private bool _changedRangesDirty;
+    private bool _hasIdentityOriginalOffsets = true;
+    private List<RawBinaryEditorValueChange> _identityValueChanges = [];
     private List<int>? _originalOffsets;
     private byte[]? _original;
     private List<byte>? _working;
@@ -47,6 +51,10 @@ public sealed partial class RawBinaryEditorSession
         _originalOffsets = [.. Enumerable.Range(0, source.Length)];
         _undo.Clear();
         _redo.Clear();
+        _cachedChangedRanges = [];
+        _changedRangesDirty = false;
+        _hasIdentityOriginalOffsets = true;
+        _identityValueChanges = [];
         _differenceCount = 0;
         _hasUnsavedChanges = false;
         return GetState();
@@ -404,6 +412,7 @@ public sealed partial class RawBinaryEditorSession
     private void Apply(EditAction action)
     {
         bool hasComparableLength = _working!.Count == _original!.Length;
+        bool canUpdateChangedRangesIncrementally = action is ReplaceAction && _hasIdentityOriginalOffsets;
         int previousDifferenceCount = action is ReplaceAction beforeReplace && hasComparableLength
             ? CountDifferences(beforeReplace.Start, beforeReplace.Bytes.Length)
             : 0;
@@ -436,6 +445,21 @@ public sealed partial class RawBinaryEditorSession
         }
 
         _hasUnsavedChanges = _working.Count != _original.Length || _differenceCount > 0;
+        if (canUpdateChangedRangesIncrementally && action is ReplaceAction valueChange)
+        {
+            UpdateIdentityValueChanges(valueChange.Start, valueChange.Bytes.Length);
+        }
+        else
+        {
+            if (action is not ReplaceAction)
+            {
+                // A later cached structural rebuild can restore identity tracking after an exact undo.
+                _hasIdentityOriginalOffsets = false;
+                _identityValueChanges = [];
+            }
+
+            _changedRangesDirty = true;
+        }
     }
 
     private void Track(HistoryEntry entry)

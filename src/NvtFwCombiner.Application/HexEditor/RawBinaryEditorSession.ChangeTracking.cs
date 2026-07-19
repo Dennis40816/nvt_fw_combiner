@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace NvtFwCombiner.Application.HexEditor;
 
 public sealed partial class RawBinaryEditorSession
@@ -10,10 +12,36 @@ public sealed partial class RawBinaryEditorSession
             return [];
         }
 
+        if (!_changedRangesDirty)
+        {
+            return _cachedChangedRanges;
+        }
+
+        _cachedChangedRanges = BuildChangedRanges();
+        _changedRangesDirty = false;
+        return _cachedChangedRanges;
+    }
+
+    private ReadOnlyCollection<RawBinaryEditorChangedRange> BuildChangedRanges()
+    {
         byte[] original = _original!;
         List<int> originalOffsets = _originalOffsets!;
         List<byte> working = _working!;
-        List<RawBinaryEditorValueChange> valueChanges = GetValueChanges(original, originalOffsets, working);
+        List<RawBinaryEditorValueChange> valueChanges = GetValueChanges(
+            original,
+            originalOffsets,
+            working,
+            out bool hasIdentityOriginalOffsets);
+
+        if (hasIdentityOriginalOffsets)
+        {
+            _hasIdentityOriginalOffsets = true;
+            _identityValueChanges = valueChanges;
+            return CreateIdentityChangedRangeSnapshot();
+        }
+
+        _hasIdentityOriginalOffsets = false;
+        _identityValueChanges = [];
         List<RawBinaryEditorStructuralChange> structuralChanges = GetStructuralChanges(original, originalOffsets, working);
         var boundaries = new List<(int Start, int EndExclusive, RawBinaryEditorChangeKind Kind)>();
         int? rangeStart = null;
@@ -57,12 +85,121 @@ public sealed partial class RawBinaryEditorSession
             }
         }
 
-        return [.. boundaries.Select(boundary => new RawBinaryEditorChangedRange(
-            boundary.Start,
-            boundary.EndExclusive,
-            boundary.Kind,
-            [.. valueChanges.Where(change => change.Start < boundary.EndExclusive && change.EndExclusive > boundary.Start)],
-            [.. structuralChanges.Where(change => IsStructuralChangeInBoundary(change, boundary.Start, boundary.EndExclusive))]))];
+        var ranges = new RawBinaryEditorChangedRange[boundaries.Count];
+        for (int index = 0; index < boundaries.Count; index++)
+        {
+            (int start, int endExclusive, RawBinaryEditorChangeKind kind) = boundaries[index];
+            RawBinaryEditorValueChange[] rangeValueChanges = [.. valueChanges.Where(change =>
+                change.Start < endExclusive && change.EndExclusive > start)];
+            RawBinaryEditorStructuralChange[] rangeStructuralChanges = [.. structuralChanges.Where(change =>
+                IsStructuralChangeInBoundary(change, start, endExclusive))];
+            ranges[index] = new RawBinaryEditorChangedRange(
+                start,
+                endExclusive,
+                kind,
+                Array.AsReadOnly(rangeValueChanges),
+                Array.AsReadOnly(rangeStructuralChanges));
+        }
+
+        return Array.AsReadOnly(ranges);
+    }
+
+    private void UpdateIdentityValueChanges(int start, int length)
+    {
+        int endExclusive = checked(start + length);
+        int firstAffected = _identityValueChanges.FindIndex(change => change.EndExclusive >= start);
+        if (firstAffected < 0)
+        {
+            firstAffected = _identityValueChanges.Count;
+        }
+
+        int afterAffected = firstAffected;
+        int scanStart = start;
+        int scanEndExclusive = endExclusive;
+        // Include every touching cached run so restoring bytes can split a run and new differences
+        // can merge with either neighbor without inspecting the rest of the document.
+        while (afterAffected < _identityValueChanges.Count &&
+               _identityValueChanges[afterAffected].Start <= scanEndExclusive)
+        {
+            RawBinaryEditorValueChange existing = _identityValueChanges[afterAffected];
+            scanStart = Math.Min(scanStart, checked((int)existing.Start));
+            scanEndExclusive = Math.Max(scanEndExclusive, checked((int)existing.EndExclusive));
+            afterAffected++;
+        }
+
+        var next = new List<RawBinaryEditorValueChange>(
+            _identityValueChanges.Count - (afterAffected - firstAffected) + 2);
+        for (int index = 0; index < firstAffected; index++)
+        {
+            next.Add(_identityValueChanges[index]);
+        }
+
+        next.AddRange(GetIdentityValueChanges(scanStart, scanEndExclusive));
+        for (int index = afterAffected; index < _identityValueChanges.Count; index++)
+        {
+            next.Add(_identityValueChanges[index]);
+        }
+
+        _identityValueChanges = next;
+        _cachedChangedRanges = CreateIdentityChangedRangeSnapshot();
+        _changedRangesDirty = false;
+    }
+
+    private List<RawBinaryEditorValueChange> GetIdentityValueChanges(int start, int endExclusive)
+    {
+        byte[] original = _original!;
+        List<byte> working = _working!;
+        var result = new List<RawBinaryEditorValueChange>();
+        int? runStart = null;
+        byte firstOriginal = 0;
+        byte firstCurrent = 0;
+        for (int index = start; index < endExclusive; index++)
+        {
+            bool changed = original[index] != working[index];
+            if (changed && runStart is null)
+            {
+                runStart = index;
+                firstOriginal = original[index];
+                firstCurrent = working[index];
+            }
+            else if (!changed && runStart is int valueChangeStart)
+            {
+                result.Add(new RawBinaryEditorValueChange(
+                    valueChangeStart,
+                    index,
+                    firstOriginal,
+                    firstCurrent));
+                runStart = null;
+            }
+        }
+
+        if (runStart is int finalStart)
+        {
+            result.Add(new RawBinaryEditorValueChange(
+                finalStart,
+                endExclusive,
+                firstOriginal,
+                firstCurrent));
+        }
+
+        return result;
+    }
+
+    private ReadOnlyCollection<RawBinaryEditorChangedRange> CreateIdentityChangedRangeSnapshot()
+    {
+        var ranges = new RawBinaryEditorChangedRange[_identityValueChanges.Count];
+        for (int index = 0; index < ranges.Length; index++)
+        {
+            RawBinaryEditorValueChange change = _identityValueChanges[index];
+            ranges[index] = new RawBinaryEditorChangedRange(
+                change.Start,
+                change.EndExclusive,
+                RawBinaryEditorChangeKind.Data,
+                Array.AsReadOnly([change]),
+                Array.AsReadOnly<RawBinaryEditorStructuralChange>([]));
+        }
+
+        return Array.AsReadOnly(ranges);
     }
 
     private static bool IsStructuralChangeInBoundary(
@@ -98,15 +235,18 @@ public sealed partial class RawBinaryEditorSession
     private static List<RawBinaryEditorValueChange> GetValueChanges(
         byte[] original,
         List<int> originalOffsets,
-        List<byte> working)
+        List<byte> working,
+        out bool hasIdentityOriginalOffsets)
     {
         var result = new List<RawBinaryEditorValueChange>();
+        hasIdentityOriginalOffsets = original.Length == working.Count;
         int? runStart = null;
         byte firstOriginal = 0;
         byte firstCurrent = 0;
         for (int index = 0; index < working.Count; index++)
         {
             int sourceAddress = originalOffsets[index];
+            hasIdentityOriginalOffsets &= sourceAddress == index;
             bool changed = sourceAddress != InsertedOriginalOffset && original[sourceAddress] != working[index];
             if (changed && runStart is null)
             {
