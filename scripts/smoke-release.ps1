@@ -305,7 +305,7 @@ try {
         throw 'Release package files differ from the manifest closed allowlist.'
     }
 
-    foreach ($line in Get-Content -LiteralPath (Join-Path $packageRoot 'SHA256SUMS.txt')) {
+    foreach ($line in Get-Content -LiteralPath (Join-Path $packageRoot 'SHA256SUMS.txt') -Encoding utf8) {
         if ([string]::IsNullOrWhiteSpace($line)) {
             continue
         }
