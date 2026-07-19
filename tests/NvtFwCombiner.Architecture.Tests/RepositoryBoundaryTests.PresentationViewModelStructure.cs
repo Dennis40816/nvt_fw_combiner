@@ -156,7 +156,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("reportJson.AsMemory(slice.CharStart, slice.CharLength)", parser, StringComparison.Ordinal);
         Assert.DoesNotContain("JsonDocument.Parse(reportUtf8.Slice", parser, StringComparison.Ordinal);
         Assert.Contains("loadInitialPage: false", differenceGroups, StringComparison.Ordinal);
-        Assert.Contains("IsExpanded=\"{Binding IsExpanded, Mode=TwoWay}\"", changes, StringComparison.Ordinal);
+        Assert.Contains("ReportHexDiffRangeRowTemplate", changes, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportOutputDifferenceGroupTemplate", changes, StringComparison.Ordinal);
         Assert.DoesNotContain("OrderBy", parser, StringComparison.Ordinal);
         Assert.Contains("while (language != Text.Language);", report, StringComparison.Ordinal);
         Assert.Contains("long generation = BeginReportProjection();", report, StringComparison.Ordinal);

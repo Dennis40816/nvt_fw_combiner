@@ -24,7 +24,10 @@ public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
         ShellLanguage language,
         string evidence,
         string beforeSha256,
-        string afterSha256)
+        string afterSha256,
+        byte[] beforePreview,
+        byte[] afterPreview,
+        bool isPreviewComplete)
     {
         ArgumentNullException.ThrowIfNull(detail);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputSpaceId);
@@ -42,6 +45,17 @@ public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
         Evidence = evidence ?? string.Empty;
         BeforeSha256 = beforeSha256 ?? string.Empty;
         AfterSha256 = afterSha256 ?? string.Empty;
+        BeforePreview = beforePreview ?? [];
+        AfterPreview = afterPreview ?? [];
+        PreviewByteCount = Math.Min(BeforePreview.Length, AfterPreview.Length);
+        IsPreviewComplete = isPreviewComplete && PreviewByteCount == Length;
+        PreviewCoverage = IsPreviewComplete
+            ? language == ShellLanguage.ChineseTraditional
+                ? $"Report 已保留此區段全部 {PreviewByteCount} bytes。"
+                : $"The report retains all {PreviewByteCount} bytes in this range."
+            : language == ShellLanguage.ChineseTraditional
+                ? $"Report 僅保留前 {PreviewByteCount}/{Length} bytes；其餘內容不可用。"
+                : $"The report retains only the first {PreviewByteCount} of {Length} bytes; the remainder is unavailable.";
     }
 
     internal ReportHexDiffRangeDescriptor Descriptor { get; }
@@ -102,6 +116,19 @@ public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
     /// <summary>Output-range SHA-256.</summary>
     public string AfterSha256 { get; }
 
+    internal ReadOnlyMemory<byte> BeforePreview { get; }
+
+    internal ReadOnlyMemory<byte> AfterPreview { get; }
+
+    /// <summary>Number of comparable before/output preview bytes retained by the report.</summary>
+    public int PreviewByteCount { get; }
+
+    /// <summary>True when the report preview covers this entire difference range.</summary>
+    public bool IsPreviewComplete { get; }
+
+    /// <summary>Honest report-owned byte coverage for historical/CLI inspection.</summary>
+    public string PreviewCoverage { get; }
+
     /// <summary>Address-space-qualified accessible range label.</summary>
     public string AccessibleRange { get; }
 
@@ -121,16 +148,20 @@ internal sealed class ReportHexDiffSource
 
     internal static ReportHexDiffSource Empty { get; } = new(
         [],
+        "reported-output",
         static _ => throw new InvalidOperationException("An empty Hex Diff has no ranges."));
 
     internal ReportHexDiffSource(
         IReadOnlyList<ReportHexDiffRangeDescriptor> descriptors,
+        string outputSpaceId,
         Func<int, ReportHexDiffRangeViewModel> rowFactory)
     {
         ArgumentNullException.ThrowIfNull(descriptors);
         ArgumentNullException.ThrowIfNull(rowFactory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputSpaceId);
 
         _descriptors = [.. descriptors];
+        OutputSpaceId = outputSpaceId;
         _rowFactory = rowFactory;
         if (_descriptors.Where((descriptor, index) => descriptor.SourceIndex != index).Any())
         {
@@ -148,6 +179,8 @@ internal sealed class ReportHexDiffSource
     }
 
     internal IReadOnlyList<ReportHexDiffRangeViewModel> NavigatorRows { get; }
+
+    internal string OutputSpaceId { get; }
 
     internal int Count => _descriptors.Length;
 

@@ -286,7 +286,8 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("newer-report.json", viewModel.LoadedReport.SourceName);
         Assert.Equal(newerJson, viewModel.LoadedReportJson);
-        Assert.False(viewModel.LoadedReport.HexDiff.HasCompleteDifferenceWorkspace);
+        Assert.True(viewModel.LoadedReport.HexDiff.HasDifferenceWorkspace);
+        Assert.True(viewModel.LoadedReport.HexDiff.IsReportedRangeMode);
         ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.ReportHistoryEntries);
         Assert.Equal("newer-report.json", historyEntry.SourceName);
     }

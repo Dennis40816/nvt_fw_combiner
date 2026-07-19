@@ -21,7 +21,8 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
 
         Assert.True(report.HexDiff.IsAvailable);
-        Assert.True(report.HexDiff.HasCompleteDifferenceWorkspace);
+        Assert.True(report.HexDiff.HasDifferenceWorkspace);
+        Assert.False(report.HexDiff.IsReportedRangeMode);
         Assert.Equal("Complete Hex Diff", report.HexDiff.AvailabilityTitle);
         Assert.Equal(WorkbenchAddressSpaceIds.OutputImage, report.HexDiff.OutputSpaceId);
         Assert.Equal(WorkbenchAddressSpaceIds.ReferenceBase, report.HexDiff.ReferenceSpaceId);
@@ -96,9 +97,21 @@ public sealed partial class ShellViewModelTests
 
         var reopened = ReportReviewViewModel.FromJson(result.ReportJson, "persisted report");
         Assert.False(reopened.HexDiff.IsAvailable);
-        Assert.False(reopened.HexDiff.HasCompleteDifferenceWorkspace);
-        Assert.True(reopened.HexDiff.HasPreviewFallback);
-        Assert.Contains("not attached", reopened.HexDiff.AvailabilityDetail, StringComparison.Ordinal);
+        Assert.True(reopened.HexDiff.HasDifferenceWorkspace);
+        Assert.True(reopened.HexDiff.IsReportedRangeMode);
+        Assert.Equal("Reported-range Hex Diff", reopened.HexDiff.AvailabilityTitle);
+        Assert.Contains("stored before/output previews", reopened.HexDiff.AvailabilityDetail, StringComparison.Ordinal);
+        ReportHexDiffRangeViewModel reopenedRange = Assert.IsType<ReportHexDiffRangeViewModel>(
+            reopened.HexDiff.SelectedRange);
+        Assert.Equal(0x100, reopenedRange.Start);
+        Assert.True(reopenedRange.IsPreviewComplete);
+        Assert.Equal(2, reopenedRange.PreviewByteCount);
+        ReportHexDiffViewportRowViewModel reopenedRow = Assert.Single(reopened.HexDiff.VisibleRows);
+        Assert.Equal(0x100, reopenedRow.Start);
+        Assert.Contains("A5 5A", reopenedRow.OutputHex, StringComparison.Ordinal);
+        reopened.HexDiff.ShowOriginalRows = true;
+        Assert.True(reopenedRow.IsOriginalVisible);
+        Assert.Contains("original", reopenedRow.AccessibleLabel, StringComparison.Ordinal);
         Assert.DoesNotContain("InspectionSnapshot", result.ReportJson, StringComparison.Ordinal);
 
         string noDifferenceJson = ReportJsonSamples.Succeeded(
@@ -114,18 +127,17 @@ public sealed partial class ShellViewModelTests
             ShellLanguage.English,
             TestContext.Current.CancellationToken);
         Assert.True(noDifferenceReport.HexDiff.IsAvailable);
-        Assert.False(noDifferenceReport.HexDiff.HasCompleteDifferenceWorkspace);
-        Assert.False(noDifferenceReport.HexDiff.HasPreviewFallback);
+        Assert.False(noDifferenceReport.HexDiff.HasDifferenceWorkspace);
     }
 
-    /// <summary>Full-byte inspection fails closed for every report/snapshot identity and range invariant.</summary>
+    /// <summary>Unverified snapshots use report previews only when report ranges remain valid.</summary>
     [Fact]
     public async Task ReportHexDiffRejectsUnverifiedSnapshotAndRangeIdentity()
     {
         WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
         using var source = JsonDocument.Parse(result.ReportJson);
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
-        (string Name, string Json)[] invalidReports =
+        (string Name, string Json, bool HasReportedRangePreview)[] invalidReports =
         [
             (
                 "output SHA mismatch",
@@ -133,21 +145,24 @@ public sealed partial class ShellViewModelTests
                     runId,
                     result.OutputSize,
                     "different-output-sha",
-                    (0, 4, 4, 4))),
+                    (0, 4, 4, 4)),
+                true),
             (
                 "output size mismatch",
                 ReportJsonSamples.ReplaceWithOutputDifferenceRanges(
                     runId,
                     result.OutputSize - 1,
                     result.OutputSha256,
-                    (0, 4, 4, 4))),
+                    (0, 4, 4, 4)),
+                true),
             (
                 "out-of-bounds range",
                 ReportJsonSamples.ReplaceWithOutputDifferenceRanges(
                     runId,
                     result.OutputSize,
                     result.OutputSha256,
-                    (result.OutputSize - 1, result.OutputSize + 1, 2, 2))),
+                    (result.OutputSize - 1, result.OutputSize + 1, 2, 2)),
+                false),
             (
                 "overlapping ranges",
                 ReportJsonSamples.ReplaceWithOutputDifferenceRanges(
@@ -155,31 +170,35 @@ public sealed partial class ShellViewModelTests
                     result.OutputSize,
                     result.OutputSha256,
                     (0, 4, 4, 4),
-                    (3, 5, 2, 2))),
+                    (3, 5, 2, 2)),
+                false),
             (
                 "zero changed-byte count",
                 ReportJsonSamples.ReplaceWithOutputDifferenceRanges(
                     runId,
                     result.OutputSize,
                     result.OutputSha256,
-                    (0, 4, 4, 0))),
+                    (0, 4, 4, 0)),
+                false),
             (
                 "changed-byte count exceeds range",
                 ReportJsonSamples.ReplaceWithOutputDifferenceRanges(
                     runId,
                     result.OutputSize,
                     result.OutputSha256,
-                    (0, 4, 4, 5))),
+                    (0, 4, 4, 5)),
+                false),
             (
                 "inconsistent end-exclusive",
                 ReportJsonSamples.ReplaceWithOutputDifferenceRanges(
                     runId,
                     result.OutputSize,
                     result.OutputSha256,
-                    (0, 8, 4, 4))),
+                    (0, 8, 4, 4)),
+                false),
         ];
 
-        foreach ((string name, string json) in invalidReports)
+        foreach ((string name, string json, bool hasReportedRangePreview) in invalidReports)
         {
             var report = ReportReviewViewModel.FromJsonCancellable(
                 json,
@@ -190,8 +209,40 @@ public sealed partial class ShellViewModelTests
                 TestContext.Current.CancellationToken);
 
             Assert.False(report.HexDiff.IsAvailable);
-            Assert.True(report.HexDiff.HasPreviewFallback);
+            Assert.True(report.HexDiff.HasDifferenceWorkspace);
+            Assert.Equal(hasReportedRangePreview, report.HexDiff.IsReportedRangeMode);
+            Assert.Equal(hasReportedRangePreview, report.HexDiff.VisibleRows.Count > 0);
         }
+    }
+
+    /// <summary>Historical reports never fabricate bytes beyond their bounded preview.</summary>
+    [Fact]
+    public void ReportHexDiffMarksAndBoundsTruncatedHistoricalPreviews()
+    {
+        string json = ReportJsonSamples.ReplaceWithOutputDifferenceRanges(
+            "historical-range-preview",
+            outputSize: 0x400,
+            outputSha256: "historical-output-sha",
+            (0x100, 0x140, 0x40, 4));
+
+        var report = ReportReviewViewModel.FromJson(json, "historical report");
+
+        Assert.True(report.HexDiff.IsReportedRangeMode);
+        ReportHexDiffRangeViewModel range = Assert.IsType<ReportHexDiffRangeViewModel>(report.HexDiff.SelectedRange);
+        Assert.False(range.IsPreviewComplete);
+        Assert.Equal(4, range.PreviewByteCount);
+        Assert.Contains("first 4 of 64 bytes", range.PreviewCoverage, StringComparison.Ordinal);
+        ReportHexDiffViewportRowViewModel row = Assert.Single(report.HexDiff.VisibleRows);
+        Assert.Equal(0x100, row.Start);
+        Assert.Equal("11 22 33 44", row.OutputHex);
+
+        report.HexDiff.JumpAddress = "0x120";
+        report.HexDiff.JumpAddressCommand.Execute(null);
+
+        Assert.Same(range, report.HexDiff.SelectedRange);
+        Assert.Equal(0x100, report.HexDiff.FirstVisibleOffset);
+        Assert.Contains("not retained", report.HexDiff.JumpStatus, StringComparison.Ordinal);
+        _ = Assert.Single(report.HexDiff.VisibleRows);
     }
 
     /// <summary>A 10,000-range report indexes review-first rows without materializing the full list or image.</summary>

@@ -10,12 +10,10 @@ public sealed partial class XamlControlStyleContractTests
     {
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         string inputs = ReadPresentationFile("Resources/MainWindowReportInputTemplates.axaml");
-        string changes = ReadPresentationFile("Resources/MainWindowReportChangeTemplates.axaml");
         string headerStyle = ExtractStyle(styles, "Border.reportInputGroupHeader");
 
         Assert.Contains("Property=\"Margin\" Value=\"8\"", headerStyle, StringComparison.Ordinal);
         Assert.Contains("Classes=\"reportInputGroupHeader\"", inputs, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"reportInputGroupHeader\"", changes, StringComparison.Ordinal);
     }
 
     /// <summary>Ensures the Report raw payload uses the shared read-only text control.</summary>
@@ -47,9 +45,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding LoadMoreLabel}\"", templates, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding PreviousPageCommand}\"", templates, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding NextPageCommand}\"", templates, StringComparison.Ordinal);
-        Assert.Contains("RowsPage.Items", changes, StringComparison.Ordinal);
+        Assert.DoesNotContain("RowsPage.Items", changes, StringComparison.Ordinal);
         Assert.Contains("OutputDifferenceSummaryPage.Items", panels, StringComparison.Ordinal);
-        Assert.Contains("OutputDifferenceGroupPage.Items", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutputDifferenceGroupPage.Items", audit, StringComparison.Ordinal);
         Assert.Contains("HexDiff.NavigatorPage.Items", audit, StringComparison.Ordinal);
         Assert.Contains("HexDiff.VisibleRows", audit, StringComparison.Ordinal);
         Assert.Contains("MutationPage.Items", audit, StringComparison.Ordinal);
@@ -78,14 +76,16 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.HexDiffResizeAutomationName}\"", audit, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding LoadedReport.HexDiff.VisibleRows}\"", audit, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding LoadedReport.HexDiff.NavigatorPage.Items}\"", audit, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding LoadedReport.HexDiff.HasCompleteDifferenceWorkspace}\"", audit, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding LoadedReport.HexDiff.HasDifferenceWorkspace}\"", audit, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource ReportWindowedPagerTemplate}\"", audit, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding LoadedReport.HexDiff.PinnedSelectedRange}\"", audit, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding LoadedReport.HexDiff.HasPinnedSelectedRange}\"", audit, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"{Binding LoadedReport.HexDiff.ShowOriginalRows, Mode=TwoWay}\"", audit, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Enter\" Command=\"{Binding LoadedReport.HexDiff.JumpAddressCommand}\"", audit, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", audit, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding LoadedReport.HexDiff.HasPreviewFallback}\"", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("HasPreviewFallback", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportOutputDifferenceGroupTemplate", changes, StringComparison.Ordinal);
+        Assert.Contains("SelectedRange.PreviewCoverage", audit, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"ReportHexDiffViewportRowTemplate\"", changes, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleLabel}\"", changes, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsOriginalVisible}\"", changes, StringComparison.Ordinal);

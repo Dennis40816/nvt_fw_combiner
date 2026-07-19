@@ -18,6 +18,7 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
     private readonly CompositionRunInspectionSnapshot? _snapshot;
     private readonly ReportHexDiffSource _source;
     private readonly ShellLanguage _language;
+    private readonly bool _canInspectRanges;
     private readonly RelayCommand<ReportHexDiffRangeViewModel> _selectRangeCommand;
     private readonly RelayCommand _jumpAddressCommand;
 
@@ -25,40 +26,45 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         CompositionRunInspectionSnapshot? snapshot,
         ReportHexDiffSource source,
         ShellLanguage language,
-        bool isAvailable,
+        long reportOutputSize,
+        bool hasVerifiedSnapshot,
+        bool canInspectRanges,
         string availabilityDetail)
     {
         _snapshot = snapshot;
         _source = source;
         _language = language;
-        IsAvailable = isAvailable;
-        AvailabilityTitle = isAvailable
+        _canInspectRanges = canInspectRanges;
+        IsAvailable = hasVerifiedSnapshot;
+        IsReportedRangeMode = !hasVerifiedSnapshot && canInspectRanges;
+        AvailabilityTitle = hasVerifiedSnapshot
             ? T(language, "Complete Hex Diff", "完整 Hex Diff")
-            : T(language, "Complete Hex Diff unavailable", "無法使用完整 Hex Diff");
+            : canInspectRanges
+                ? T(language, "Reported-range Hex Diff", "Report 區段 Hex Diff")
+                : T(language, "Hex Diff unavailable", "無法使用 Hex Diff");
         AvailabilityDetail = availabilityDetail;
-        OutputSpaceId = isAvailable ? snapshot!.OutputSpaceId : string.Empty;
-        ReferenceSpaceId = isAvailable ? snapshot!.ReferenceSpaceId : string.Empty;
-        TotalByteCount = isAvailable ? snapshot!.OutputBytes.Length : 0;
-        TotalRowCount = isAvailable ? checked((TotalByteCount + BytesPerRow - 1) / BytesPerRow) : 0;
-        HasPreviewFallback = !isAvailable && source.Count > 0;
-        HasCompleteDifferenceWorkspace = isAvailable && source.Count > 0;
+        OutputSpaceId = snapshot?.OutputSpaceId ?? source.OutputSpaceId;
+        ReferenceSpaceId = snapshot?.ReferenceSpaceId ?? "reported-reference";
+        TotalByteCount = canInspectRanges ? checked((int)reportOutputSize) : 0;
+        TotalRowCount = canInspectRanges ? checked((TotalByteCount + BytesPerRow - 1) / BytesPerRow) : 0;
+        HasDifferenceWorkspace = source.Count > 0;
         NavigatorPage = ReportWindowedListViewModel.Create(
             source.NavigatorRows,
             pageSize: 64,
             language,
-            loadInitialPage: isAvailable);
+            loadInitialPage: canInspectRanges);
         NavigatorPage.PropertyChanged += NavigatorPage_OnPropertyChanged;
         _selectRangeCommand = new RelayCommand<ReportHexDiffRangeViewModel>(SelectRange, CanSelectRange);
-        _jumpAddressCommand = new RelayCommand(JumpToAddress, () => IsAvailable);
+        _jumpAddressCommand = new RelayCommand(JumpToAddress, () => canInspectRanges);
 
-        if (isAvailable)
+        if (canInspectRanges)
         {
             SelectedRange = NavigatorPage.Items.Count > 0
                 ? (ReportHexDiffRangeViewModel)NavigatorPage.Items[0]
                 : null;
             long initialOffset = SelectedRange?.Start ?? 0;
             JumpAddress = FormatAddress(initialOffset);
-            ShowRowsAtOffset(initialOffset, InitialVisibleRowCount);
+            ShowSelectedRows(initialOffset);
         }
     }
 
@@ -71,11 +77,11 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
     /// <summary>Why complete inspection is or is not available.</summary>
     public string AvailabilityDetail { get; }
 
-    /// <summary>True when stored report ranges and bounded previews remain available without full bytes.</summary>
-    public bool HasPreviewFallback { get; }
+    /// <summary>True when the workspace is backed only by report-retained range previews.</summary>
+    public bool IsReportedRangeMode { get; }
 
-    /// <summary>True when complete bytes and at least one reported difference can populate the workspace.</summary>
-    public bool HasCompleteDifferenceWorkspace { get; }
+    /// <summary>True when at least one reported difference belongs in the sole Hex Diff workspace.</summary>
+    public bool HasDifferenceWorkspace { get; }
 
     /// <summary>Application-owned compiled output address space.</summary>
     public string OutputSpaceId { get; }
@@ -153,44 +159,54 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         ShellLanguage language)
     {
         ArgumentNullException.ThrowIfNull(source);
-        string fallback = T(
-            language,
-            "This report keeps ranges, hashes, and bounded previews, but complete before/output bytes are not attached.",
-            "此 Report 保留 ranges、hashes 與有限 preview，但未附上完整變更前／輸出 bytes。");
-        if (snapshot is null)
-        {
-            return new ReportHexDiffViewModel(null, source, language, isAvailable: false, fallback);
-        }
-
-        bool identityMatches = string.Equals(snapshot.RunId, reportRunId, StringComparison.Ordinal) &&
+        bool reportBoundsValid = reportOutputSize is > 0 and <= int.MaxValue && source.IsWithin(reportOutputSize);
+        bool identityMatches = snapshot is not null && reportBoundsValid &&
+            string.Equals(snapshot.RunId, reportRunId, StringComparison.Ordinal) &&
             string.Equals(snapshot.OutputSha256, reportOutputSha256, StringComparison.OrdinalIgnoreCase) &&
             snapshot.OutputBytes.Length > 0 &&
-            reportOutputSize == snapshot.OutputBytes.Length &&
-            source.IsWithin(snapshot.OutputBytes.Length);
-        return !identityMatches
-            ? new ReportHexDiffViewModel(
-                null,
+            reportOutputSize == snapshot.OutputBytes.Length;
+        if (identityMatches)
+        {
+            return new ReportHexDiffViewModel(
+                snapshot,
                 source,
                 language,
-                isAvailable: false,
+                reportOutputSize,
+                hasVerifiedSnapshot: true,
+                canInspectRanges: true,
                 T(
                     language,
-                    "The in-session bytes do not match this report identity or output bounds; only stored evidence is shown.",
-                    "目前 session bytes 與此 Report identity 或 output bounds 不一致；僅顯示已儲存證據。"))
-            : new ReportHexDiffViewModel(
-            snapshot,
+                    $"Verified {snapshot!.OutputSpaceId} output against {snapshot.ReferenceSpaceId} from the same run.",
+                    $"已用同一次執行的 {snapshot.ReferenceSpaceId} 驗證 {snapshot.OutputSpaceId} output。"));
+        }
+
+        string detail = reportBoundsValid
+            ? snapshot is null
+                ? T(
+                    language,
+                    "Historical report: only its stored before/output previews are shown; bytes beyond each preview are unavailable.",
+                    "歷史 Report：僅顯示已儲存的變更前／輸出 preview；各 preview 以外的 bytes 不可用。")
+                : T(
+                    language,
+                    "The in-session bytes do not match this report; only its stored before/output previews are shown.",
+                    "目前 session bytes 與此 Report 不相符；僅顯示 Report 已儲存的變更前／輸出 preview。")
+            : T(
+                language,
+                "The reported ranges do not fit the declared output bounds, so no byte view is exposed.",
+                "已報告區段不符合宣告的輸出範圍，因此不顯示 byte view。 ");
+        return new ReportHexDiffViewModel(
+            null,
             source,
             language,
-            isAvailable: true,
-            T(
-                language,
-                $"Verified {snapshot.OutputSpaceId} output against {snapshot.ReferenceSpaceId} from the same run.",
-                $"已用同一次執行的 {snapshot.ReferenceSpaceId} 驗證 {snapshot.OutputSpaceId} output。"));
+            reportOutputSize,
+            hasVerifiedSnapshot: false,
+            canInspectRanges: reportBoundsValid,
+            detail);
     }
 
     private bool CanSelectRange(ReportHexDiffRangeViewModel? range)
     {
-        return IsAvailable && range is not null &&
+        return _canInspectRanges && range is not null &&
             string.Equals(range.OutputSpaceId, OutputSpaceId, StringComparison.Ordinal) &&
             range.Start >= 0 && range.Length > 0 && range.Start <= TotalByteCount - range.Length;
     }
@@ -199,14 +215,14 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
     {
         if (!CanSelectRange(range))
         {
-            JumpStatus = T(_language, "Range is outside the verified output space.", "Range 超出已驗證的 output space。");
+            JumpStatus = T(_language, "Range is outside the reported output space.", "Range 超出已報告的 output space。");
             return;
         }
 
         SelectedRange = range;
         JumpAddress = FormatAddress(range!.Start);
         JumpStatus = range.AccessibleRange;
-        ShowRowsAtOffset(range.Start, InitialVisibleRowCount);
+        ShowSelectedRows(range.Start);
     }
 
     private void JumpToAddress()
@@ -230,7 +246,71 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
                 _language,
                 string.Create(CultureInfo.InvariantCulture, $"{OutputSpaceId} address 0x{offset:X}"),
                 string.Create(CultureInfo.InvariantCulture, $"{OutputSpaceId} 位址 0x{offset:X}"));
-        ShowRowsAtOffset(offset, InitialVisibleRowCount);
+        if (IsAvailable)
+        {
+            ShowRowsAtOffset(offset, InitialVisibleRowCount);
+            return;
+        }
+
+        if (SelectedRange is null)
+        {
+            VisibleRows.ReplaceAll([]);
+            return;
+        }
+
+        if (IsReportedRangeMode && offset >= SelectedRange.Start + SelectedRange.PreviewByteCount)
+        {
+            JumpStatus = T(
+                _language,
+                string.Create(CultureInfo.InvariantCulture, $"Address 0x{offset:X} belongs to this range, but its byte was not retained in the report preview."),
+                string.Create(CultureInfo.InvariantCulture, $"位址 0x{offset:X} 屬於此區段，但該 byte 未保留在 Report preview。"));
+        }
+
+        ShowPreviewRows(SelectedRange, offset);
+    }
+
+    private void ShowSelectedRows(long offset)
+    {
+        if (IsAvailable)
+        {
+            ShowRowsAtOffset(offset, InitialVisibleRowCount);
+        }
+        else if (SelectedRange is not null)
+        {
+            ShowPreviewRows(SelectedRange, offset);
+        }
+    }
+
+    private void ShowPreviewRows(ReportHexDiffRangeViewModel range, long offset)
+    {
+        int available = range.PreviewByteCount;
+        if (available == 0)
+        {
+            FirstVisibleOffset = range.Start;
+            VisibleRows.ReplaceAll([]);
+            return;
+        }
+
+        int relativeOffset = checked((int)Math.Clamp(offset - range.Start, 0, available - 1));
+        int firstPreviewIndex = relativeOffset / BytesPerRow * BytesPerRow;
+        FirstVisibleOffset = checked(range.Start + firstPreviewIndex);
+        int rowCount = Math.Min(
+            InitialVisibleRowCount,
+            (available - firstPreviewIndex + BytesPerRow - 1) / BytesPerRow);
+        var rows = new ReportHexDiffViewportRowViewModel[rowCount];
+        ReadOnlySpan<byte> output = range.AfterPreview.Span;
+        ReadOnlySpan<byte> reference = range.BeforePreview.Span;
+        for (int index = 0; index < rowCount; index++)
+        {
+            int previewIndex = firstPreviewIndex + (index * BytesPerRow);
+            int length = Math.Min(BytesPerRow, available - previewIndex);
+            rows[index] = CreateRow(
+                checked(range.Start + previewIndex),
+                output.Slice(previewIndex, length),
+                reference.Slice(previewIndex, length));
+        }
+
+        VisibleRows.ReplaceAll(rows);
     }
 
     internal void ShowRowsAtOffset(long offset, int requestedRowCount)
@@ -265,10 +345,21 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         ReadOnlySpan<byte> reference = _snapshot.ReferenceBytes.Span;
         int rowStart = checked((int)start);
         int length = Math.Min(BytesPerRow, output.Length - rowStart);
+        return CreateRow(
+            start,
+            output.Slice(rowStart, length),
+            reference.Slice(rowStart, length));
+    }
+
+    private ReportHexDiffViewportRowViewModel CreateRow(
+        long start,
+        ReadOnlySpan<byte> output,
+        ReadOnlySpan<byte> reference)
+    {
         ushort changedMask = 0;
-        for (int index = 0; index < length; index++)
+        for (int index = 0; index < output.Length; index++)
         {
-            if (output[rowStart + index] != reference[rowStart + index])
+            if (output[index] != reference[index])
             {
                 changedMask |= checked((ushort)(1 << index));
             }
@@ -278,10 +369,10 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         return new ReportHexDiffViewportRowViewModel(
             start,
             $"{OutputSpaceId}:0x{start.ToString($"X{addressWidth}", CultureInfo.InvariantCulture)}",
-            FormatHex(output.Slice(rowStart, length)),
-            FormatAscii(output.Slice(rowStart, length)),
-            FormatHex(reference.Slice(rowStart, length)),
-            FormatAscii(reference.Slice(rowStart, length)),
+            FormatHex(output),
+            FormatAscii(output),
+            FormatHex(reference),
+            FormatAscii(reference),
             changedMask,
             ShowOriginalRows,
             _language);

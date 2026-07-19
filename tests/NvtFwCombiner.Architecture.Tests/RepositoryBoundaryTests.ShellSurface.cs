@@ -238,7 +238,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Header=\"{Binding Text.ReportTabPostbuild}\"", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("Header=\"{Binding Text.ReportTabIssues}\"", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("Header=\"{Binding Text.ReportTabRaw}\"", reportAuditTemplates, StringComparison.Ordinal);
-        Assert.Contains("ReportOutputDifferenceRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportHexDiffViewportRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportHexDiffRangeRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportOutputDifferenceRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.HexDiff.HasDifferenceWorkspace", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportInputGroupTemplate", reportInputTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportOperationFlowNodeTemplate", reportOperationTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportHistoryEntryTemplate", reportHistoryTemplates, StringComparison.Ordinal);

@@ -15,11 +15,8 @@ public sealed class ReportPresentationTemplateTests
         string auditTemplates = ReadPresentationFile("Resources/MainWindowReportAuditTemplates.axaml");
 
         Assert.Contains("<Expander Margin=\"0,0,0,10\" IsExpanded=\"False\">", inputTemplates, StringComparison.Ordinal);
-        Assert.Contains("ReportOutputDifferenceGroupTemplate", changeTemplates, StringComparison.Ordinal);
-        Assert.Contains(
-            "<Expander Margin=\"0,0,0,10\" IsExpanded=\"{Binding IsExpanded, Mode=TwoWay}\">",
-            changeTemplates,
-            StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportOutputDifferenceGroupTemplate", changeTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportOutputDifferenceRowTemplate", changeTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportOperationFlowNodeTemplate", operationTemplates, StringComparison.Ordinal);
         Assert.Contains("<Expander Grid.Column=\"1\" Margin=\"0,3,0,18\" IsExpanded=\"False\">", operationTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportPostbuildInvocationTemplate", operationTemplates, StringComparison.Ordinal);

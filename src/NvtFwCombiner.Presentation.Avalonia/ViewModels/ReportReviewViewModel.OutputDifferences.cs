@@ -150,7 +150,7 @@ public sealed partial class ReportReviewViewModel
             groups,
             summaryRows,
             acceptedCount,
-            new ReportHexDiffSource(hexDiffDescriptors, hexDiffRowFactory));
+            new ReportHexDiffSource(hexDiffDescriptors, outputSpaceId, hexDiffRowFactory));
     }
 
     private static ReportLineViewModel ParseOutputDifference(
@@ -246,6 +246,10 @@ public sealed partial class ReportReviewViewModel
         using var document = JsonDocument.Parse(reportJson.AsMemory(slice.CharStart, slice.CharLength));
         JsonElement difference = document.RootElement;
         ReportLineViewModel detail = ParseOutputDifference(difference, language);
+        byte[] beforePreview = ParseHexDiffPreview(difference, "BeforeHexPreview", "BeforeHex");
+        byte[] afterPreview = ParseHexDiffPreview(difference, "AfterHexPreview", "AfterHex");
+        bool usesBoundedPreview = !string.IsNullOrWhiteSpace(GetStringOrNull(difference, "BeforeHexPreview")) ||
+            !string.IsNullOrWhiteSpace(GetStringOrNull(difference, "AfterHexPreview"));
         return new ReportHexDiffRangeViewModel(
             descriptor,
             detail,
@@ -253,7 +257,32 @@ public sealed partial class ReportReviewViewModel
             language,
             GetString(difference, "Evidence"),
             GetString(difference, "BeforeSha256"),
-            GetString(difference, "AfterSha256"));
+            GetString(difference, "AfterSha256"),
+            beforePreview,
+            afterPreview,
+            GetBool(difference, "IsHexPreviewComplete") || !usesBoundedPreview);
+    }
+
+    private static byte[] ParseHexDiffPreview(JsonElement difference, string previewName, string fullName)
+    {
+        string preview = GetStringOrNull(difference, previewName) ?? string.Empty;
+        string hex = !string.IsNullOrWhiteSpace(preview)
+            ? preview
+            : GetStringOrNull(difference, fullName) ?? string.Empty;
+        string compact = string.Concat(hex.Where(static value => !char.IsWhiteSpace(value)));
+        if (compact.Length == 0 || compact.Length % 2 != 0 || compact.Length > MaximumRenderedHexPreviewBytes * 2)
+        {
+            return [];
+        }
+
+        try
+        {
+            return Convert.FromHexString(compact);
+        }
+        catch (FormatException)
+        {
+            return [];
+        }
     }
 
     private static string FormatDifferenceClassification(string classification, ShellLanguage language)

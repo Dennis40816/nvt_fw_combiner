@@ -68,7 +68,7 @@
                 MinHeight="0"
                 ColumnDefinitions="2*,Auto,*"
                 ColumnSpacing="{DynamicResource NfcSpace8}"
-                IsVisible="{Binding LoadedReport.HexDiff.HasCompleteDifferenceWorkspace}">
+                IsVisible="{Binding LoadedReport.HexDiff.HasDifferenceWorkspace}">
               <Border Classes="reportHexDiffViewport">
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
                   <Border Padding="12,10" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
@@ -163,6 +163,11 @@
                         <TextBlock Classes="bodyText" Text="{Binding LoadedReport.HexDiff.SelectedRange.Reason}" TextWrapping="Wrap" />
                         <TextBlock Classes="technicalCaption" Text="{Binding LoadedReport.HexDiff.SelectedRange.AccessibleRange}" TextWrapping="Wrap" />
                         <TextBlock Classes="captionText" Text="{Binding LoadedReport.HexDiff.SelectedRange.ChangedSummary}" />
+                        <TextBlock
+                            Classes="captionText"
+                            Text="{Binding LoadedReport.HexDiff.SelectedRange.PreviewCoverage}"
+                            TextWrapping="Wrap"
+                            IsVisible="{Binding LoadedReport.HexDiff.IsReportedRangeMode}" />
                         <TextBlock Classes="captionText" Text="{Binding LoadedReport.HexDiff.SelectedRange.SectionLabel}" TextWrapping="Wrap" />
                         <Grid ColumnDefinitions="76,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace8}" RowSpacing="6">
                           <TextBlock Classes="tableHeader" Text="{Binding Text.EvidenceTitle}" />
@@ -203,32 +208,6 @@
                 </Border>
               </Grid>
             </Grid>
-
-            <ScrollViewer
-                HorizontalScrollBarVisibility="Disabled"
-                VerticalScrollBarVisibility="Auto"
-                IsVisible="{Binding LoadedReport.HexDiff.HasPreviewFallback}">
-              <StackPanel Spacing="10">
-                <Border Classes="insetSurface contentPanel">
-                  <StackPanel Spacing="3">
-                    <TextBlock Classes="panelTitle" Text="{Binding LoadedReport.HexDiff.AvailabilityTitle}" />
-                    <TextBlock Classes="mutedText" Text="{Binding LoadedReport.HexDiff.AvailabilityDetail}" TextWrapping="Wrap" />
-                  </StackPanel>
-                </Border>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                  <TextBlock Classes="panelTitle" Text="{Binding Text.OutputChangesTitle}" />
-                  <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge success" Content="{Binding LoadedReport.OutputDifferenceCount}" />
-                </Grid>
-                <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferenceGroupPage.Items}">
-                  <ItemsControl.ItemTemplate>
-                    <StaticResource ResourceKey="ReportOutputDifferenceGroupTemplate" />
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <ContentControl
-                    Content="{Binding LoadedReport.OutputDifferenceGroupPage}"
-                    ContentTemplate="{StaticResource ReportPagerTemplate}" />
-              </StackPanel>
-            </ScrollViewer>
 
             <Expander Grid.Row="1" IsExpanded="False" IsVisible="{Binding LoadedReport.HasMutations}">
               <Expander.Header>
