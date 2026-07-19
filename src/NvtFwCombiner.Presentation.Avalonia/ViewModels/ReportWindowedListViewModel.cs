@@ -6,7 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Fixed-size replace-on-page navigator for large report collections.</summary>
+/// <summary>Fixed-size replace-on-page navigator for large Presentation collections.</summary>
 public sealed class ReportWindowedListViewModel : ObservableObject
 {
     private readonly IReadOnlyList<object> _allItems;
@@ -57,6 +57,9 @@ public sealed class ReportWindowedListViewModel : ObservableObject
     /// <summary>True when a following fixed-size window exists.</summary>
     public bool HasNextPage => VisibleCount == 0 ? PageCount > 0 : PageIndex + 1 < PageCount;
 
+    /// <summary>True when the complete collection requires more than one fixed-size window.</summary>
+    public bool HasMultiplePages => PageCount > 1;
+
     /// <summary>Localized current-window status.</summary>
     public string PageStatus
     {
@@ -101,6 +104,21 @@ public sealed class ReportWindowedListViewModel : ObservableObject
             loadInitialPage);
     }
 
+    /// <summary>Shows the fixed-size page containing one checked collection index.</summary>
+    internal void ShowItemAt(int index)
+    {
+        if ((uint)index >= (uint)TotalCount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
+        int pageIndex = index / _pageSize;
+        if (VisibleCount == 0 || PageIndex != pageIndex)
+        {
+            ShowPage(pageIndex);
+        }
+    }
+
     private void ShowPreviousPage()
     {
         if (HasPreviousPage)
@@ -135,6 +153,7 @@ public sealed class ReportWindowedListViewModel : ObservableObject
         OnPropertyChanged(nameof(PageIndex));
         OnPropertyChanged(nameof(HasPreviousPage));
         OnPropertyChanged(nameof(HasNextPage));
+        OnPropertyChanged(nameof(HasMultiplePages));
         OnPropertyChanged(nameof(PageStatus));
         _previousPageCommand.NotifyCanExecuteChanged();
         _nextPageCommand.NotifyCanExecuteChanged();

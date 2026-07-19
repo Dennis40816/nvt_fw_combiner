@@ -217,6 +217,8 @@ public sealed partial class ShellTextResources
 
     public string HexEditorSelectChangedBlockTooltip { get; private init; } = string.Empty;
 
+    public string HexEditorChangedBlockNavigationAccessibleTemplate { get; private init; } = string.Empty;
+
     public string HexEditorChangedBlockValueReasonSingleTemplate { get; private init; } = string.Empty;
 
     public string HexEditorChangedBlockValueReasonMultipleTemplate { get; private init; } = string.Empty;

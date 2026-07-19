@@ -290,6 +290,9 @@ public sealed partial class ShellTextResources
             HexEditorNoChangedBlocksDetail = Pick("Applied changes will appear here for quick navigation.", "套用修改後會列在這裡，方便快速跳轉。"),
             HexEditorChangedBlockSelectedDetail = Pick("Edited block {0}/{1}: {2} to {3}", "修改區塊 {0}/{1}：{2} 至 {3}"),
             HexEditorSelectChangedBlockTooltip = Pick("Jump to the next contiguous edited block", "跳至下一個連續修改區塊"),
+            HexEditorChangedBlockNavigationAccessibleTemplate = Pick(
+                "Jump to the next edited block; {0} edited blocks",
+                "跳至下一個修改區塊；共 {0} 個修改區塊"),
             HexEditorChangedBlockValueReasonSingleTemplate = Pick("Value changed at {0}: {1} -> {2}.", "{0} 的值由 {1} 變更為 {2}。"),
             HexEditorChangedBlockValueReasonMultipleTemplate = Pick("{0} values changed; first at {1}: {2} -> {3}.", "共 {0} 個值變更；第一筆位於 {1}：{2} -> {3}。"),
             HexEditorChangedBlockInsertReasonTemplate = Pick("Inserted {0} byte(s) at {1}; following addresses shifted right by {0}.", "在 {1} 插入 {0} bytes；後續位址向右偏移 {0}。"),

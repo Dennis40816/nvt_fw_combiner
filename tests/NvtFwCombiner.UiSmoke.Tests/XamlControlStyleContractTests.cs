@@ -268,12 +268,19 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"hexOriginalRowsToggle\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("SelectNextChangedBlockCommand", hexEditor, StringComparison.Ordinal);
         Assert.Contains("ChangedBlockCount", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding ChangedBlockNavigationAccessibleLabel}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding ChangedBlockPage.PageStatus}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding ApplyRangeEditCommand}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Classes=\"hexWriteModeToggle\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding CurrentWriteModeLabel}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Classes=\"iconButton hexInspectorAction\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Classes=\"primary hexApplyChange\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ChangedBlocks}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding ChangedBlockPage}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource HexEditorChangedBlockPagerTemplate}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding ChangedBlockPage.HasMultiplePages}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ChangedBlockPage.Items}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"Auto,*,Auto\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("MinWidth=\"48\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding ReasonTooltip}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding ReasonTooltip}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("TextAlignment=\"Left\"", hexEditor, StringComparison.Ordinal);
@@ -400,7 +407,9 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("<views:HexEditorViewportControl", hexEditor, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ViewportRows}\"", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("<ContentControl", hexEditor, StringComparison.Ordinal);
+        Assert.Equal(2, hexEditor.Split("<ContentControl", StringSplitOptions.None).Length);
+        Assert.Contains("Content=\"{Binding ChangedBlockPage}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource HexEditorChangedBlockPagerTemplate}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("public override void Render(DrawingContext context)", viewport, StringComparison.Ordinal);
         Assert.Contains("DrawByte(context", viewport, StringComparison.Ordinal);
         Assert.True(viewport.Split("_hoveredAddress,", StringSplitOptions.None).Length >= 3);
