@@ -15,37 +15,6 @@ internal static class TrustedV2CompositionCompiler
     private const string RuntimeReferenceResolutionArtifactInvalid =
         "profile.v2.runtime-reference-replace.resolution-artifact-invalid";
 
-    /// <summary>JIT-warms the trusted runtime-reference entry path without producing an executable plan.</summary>
-    internal static void PrewarmRuntimeReferenceReplace(TrustedProfileBundleCatalog catalog)
-    {
-        ArgumentNullException.ThrowIfNull(catalog);
-        TrustedCompositionProfileCatalogEntry? profileEntry = catalog.Profiles.FirstOrDefault(entry =>
-            StringComparer.Ordinal.Equals(entry.Profile.Experience.ExperienceId, ExperienceIds.CtrlRamReplace));
-        FirmwareImageMap? map = profileEntry?.Family.Family.ImageMaps.FirstOrDefault(candidate =>
-            profileEntry.Profile.MapBinding.MapIds.Contains(candidate.MapId, StringComparer.Ordinal) &&
-            candidate.Applicability.ModeIds.Contains(ExperienceIds.CtrlRamReplace, StringComparer.Ordinal));
-        string? memberId = map is { Applicability.MemberIds.Count: > 0 }
-            ? map.Applicability.MemberIds[0]
-            : null;
-        if (profileEntry is null || memberId is null)
-        {
-            return;
-        }
-
-        V2CompositionPlanCompileResult result = CompileRuntimeReferenceReplace(
-            catalog,
-            profileEntry.Profile.ProfileId,
-            profileEntry.Profile.ProfileVersion,
-            memberId,
-            ExperienceIds.CtrlRamReplace,
-            requestedTopology: null,
-            new V2RuntimeReferenceReplaceCompileRequest([], []));
-        if (result.CompiledComposition is not null)
-        {
-            throw new InvalidOperationException("An empty compiler prewarm request must not produce an executable plan.");
-        }
-    }
-
     /// <summary>Compiles one trusted logical-output General Merge request without resolving a physical image map.</summary>
     internal static V2CompositionPlanCompileResult CompileLogicalOutput(
         TrustedProfileBundleCatalog catalog,

@@ -15,11 +15,6 @@ internal static class ExternalProcessorFactory
         return ProcessLifetime.GetOrCreateOrNull();
     }
 
-    internal static Task<IExternalProcessor?> PrewarmAsync(CancellationToken cancellationToken)
-    {
-        return ProcessLifetime.PrewarmAsync(cancellationToken);
-    }
-
     private static ExternalProcessorRouter? CreateUncachedOrNull()
     {
         string? toolRoot = FindExternalToolsRoot();
@@ -152,10 +147,5 @@ internal sealed class ExternalProcessorLifetime
     internal IExternalProcessor? GetOrCreateOrNull()
     {
         return _processor.Value;
-    }
-
-    internal Task<IExternalProcessor?> PrewarmAsync(CancellationToken cancellationToken)
-    {
-        return Task.Run(GetOrCreateOrNull, cancellationToken);
     }
 }

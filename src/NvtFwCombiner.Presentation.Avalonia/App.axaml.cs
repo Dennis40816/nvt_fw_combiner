@@ -1,7 +1,5 @@
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Avalonia.Threading;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
@@ -10,9 +8,6 @@ public sealed partial class App : global::Avalonia.Application
 {
     /// <summary>Gets UI startup state parsed by the process entry point.</summary>
     internal static UiLaunchOptions StartupOptions { get; private set; } = UiLaunchOptions.Empty;
-
-    /// <summary>Gets the process-lifetime background prewarm started after the first window opens.</summary>
-    internal Task? ReplaceRuntimePrewarmTask { get; private set; }
 
     /// <summary>Sets UI startup state before the framework creates the main window.</summary>
     internal static void SetStartupOptions(UiLaunchOptions startupOptions)
@@ -33,12 +28,7 @@ public sealed partial class App : global::Avalonia.Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var mainWindow = new MainWindow(StartupOptions);
-            mainWindow.Opened += (_, _) => Dispatcher.UIThread.Post(
-                () => ReplaceRuntimePrewarmTask ??=
-                    WorkbenchRuntimePrewarmer.PrewarmAsync(),
-                DispatcherPriority.Background);
-            desktop.MainWindow = mainWindow;
+            desktop.MainWindow = new MainWindow(StartupOptions);
         }
 
         base.OnFrameworkInitializationCompleted();

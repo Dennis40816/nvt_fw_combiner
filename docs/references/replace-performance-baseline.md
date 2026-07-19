@@ -685,36 +685,6 @@ process launches dominate this small 240 KiB case. The release therefore
 claims deterministic full-read reduction, not physical-tool wall-clock
 improvement for this case.
 
-## Background Replace runtime prewarm observation
-
-The exact NT51927 Common FW 1.4.0 three-chip 13-command route was measured
-inside one Windows .NET 10 test process from the Workbench call to complete
-result, excluding testhost startup and file-picker time. An unprewarmed first
-Build took `2,537.474 ms`; the following ten calls ranged from `537.137` to
-`613.835 ms`. Prewarming only external-tool discovery took `57.167 ms` but left
-the first Build at `1,577.922 ms`, proving that bundle/compiler initialization,
-not processor discovery alone, dominated this cold path.
-
-The UI-started background prewarm now loads immutable CtrlRAM bundle and TP
-flash-map catalogs, enters the shared trusted compiler with an empty
-non-executable request, and
-initializes the process-lifetime processor environment without executing
-Combiner or reading user firmware. Five fresh Debug testhosts recorded prewarm
-at `2,667.010, 2,613.380, 2,882.520, 2,609.080, 2,612.080 ms`, entirely off the
-dispatcher. Atomic BIN commit completed at `734.590, 742.187, 774.782,
-735.330, 754.810 ms` (p50 `742.187 ms`, observed maximum `774.782 ms`); complete
-result/report return was `811.220, 818.530, 864.400, 812.990, 834.170 ms`.
-One fresh Release testhost committed by `738.261 ms` and returned by
-`813.080 ms`. Every output retained SHA-256
-`dc1ee8928977845fad334b75c60b3e7fa3989f0a7e177206f83104217bf3fe16`.
-
-The architecture-safe result is within about `6%` of the `0.7 s` median
-engineering target in Debug but does not yet prove that target. The exact
-release package must repeat the prewarm-complete click-to-committed-BIN
-observation and decide the target from packaged p50/p95 together with dispatcher
-heartbeat, output/report parity, and failure-path checks. This is not a
-firmware-support claim.
-
 ## Remaining release record
 
 The reconciled source, physical-tool/golden layout, output/report identity,

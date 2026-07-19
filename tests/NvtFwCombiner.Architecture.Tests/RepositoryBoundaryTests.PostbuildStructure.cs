@@ -123,18 +123,10 @@ public sealed partial class RepositoryBoundaryTests
     public void ExternalProcessorDiscoveryUsesOneExplicitProcessLifetime()
     {
         string factory = ReadText("src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs");
-        string workbench = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchRuntimePrewarmer.cs");
-        string app = ReadText("src/NvtFwCombiner.Presentation.Avalonia/App.axaml.cs");
 
         Assert.Contains("ProcessLifetime = new(CreateUncachedOrNull)", factory, StringComparison.Ordinal);
         Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", factory, StringComparison.Ordinal);
-        Assert.Contains("Task.Run(GetOrCreateOrNull", factory, StringComparison.Ordinal);
         Assert.Equal(1, factory.Split("Directory.EnumerateFiles(", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("static IExternalProcessor? CreateOrNull()", factory, StringComparison.Ordinal);
-        Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", workbench, StringComparison.Ordinal);
-        Assert.Contains("public static Task PrewarmAsync", workbench, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchRuntimePrewarmer.PrewarmAsync", app, StringComparison.Ordinal);
-        Assert.DoesNotContain("TransformAsync", workbench, StringComparison.Ordinal);
-        Assert.Contains("DispatcherPriority.Background", app, StringComparison.Ordinal);
     }
 }

@@ -193,15 +193,6 @@ Concurrent and later calls reuse the same router. An unavailable root and an
 initialization exception are also retained, so a Build cannot repeatedly scan
 or switch to mutable manifest state during the same process.
 
-The desktop host schedules a Replace runtime prewarm only after the first
-window opens. A worker loads the immutable CtrlRAM bundle and TP flash-map
-catalogs, enters the trusted compiler with an empty non-executable request, and races
-safely with the external-processor environment lazy. It never reads a user
-artifact, starts Combiner, creates a staging session, or commits an output. The
-CLI retains demand-driven initialization. A Build that races prewarm still
-uses the same catalog and processor lazies, and all per-run validation remains
-authoritative.
-
 Installing, removing, or changing a manifest/tool layout therefore requires an
 application or CLI-process restart. This is the explicit refresh boundary; no
 physical root is embedded in source and no environment survives a restart.
