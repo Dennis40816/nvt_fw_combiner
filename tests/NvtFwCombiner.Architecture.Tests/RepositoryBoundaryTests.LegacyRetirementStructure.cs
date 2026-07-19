@@ -12,10 +12,7 @@ public sealed partial class RepositoryBoundaryTests
         AssertProductionCallers(
             "CompositionProfileCompiler",
             "src/NvtFwCombiner.Profiles/CompositionProfileCompiler",
-            [
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs",
-            ]);
+            []);
         AssertProductionCallers(
             "BuiltInTpFlashMapCatalog",
             "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog",
@@ -26,7 +23,6 @@ public sealed partial class RepositoryBoundaryTests
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Planning.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Profile.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.cs",
             ]);
         AssertNoProductionText("IcMetadataFacade");
@@ -50,29 +46,23 @@ public sealed partial class RepositoryBoundaryTests
         AssertNoProductionText("TpBinaryAddressAnchor");
     }
 
-    /// <summary>Prevents dormant V1 profile compiler capabilities from regaining runtime authority.</summary>
+    /// <summary>Prevents the retired V1 profile compiler implementation from returning.</summary>
     [Fact]
     public void RetiredLegacyCompilerCapabilitiesStayAbsent()
     {
-        string compiler = ReadText("src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs");
-        string profileValidation = ReadText(
-            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ProfileValidation.cs");
-        string operationValidation = ReadText(
-            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.OperationValidation.cs");
-        string explicitCompilation = ReadText(
-            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ExplicitMappingCompilation.cs");
-        string explicitMappings = ReadText(
-            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ExplicitMappings.cs");
-
-        Assert.DoesNotContain("StandardMergeExperienceId", compiler, StringComparison.Ordinal);
-        Assert.Contains("profile.legacy-compiler.workflow-retired", profileValidation, StringComparison.Ordinal);
-        Assert.Contains("profile.ctrlram-replace.staged-processor-required", profileValidation, StringComparison.Ordinal);
-        Assert.DoesNotContain("IsStandardMergeDpExtraction", profileValidation, StringComparison.Ordinal);
-        Assert.DoesNotContain("ExtractDeclaredRange", profileValidation, StringComparison.Ordinal);
-        Assert.DoesNotContain("AllowsCtrlRamReplaceBeforeProcessor", operationValidation, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionOperation.CopyRange", explicitCompilation, StringComparison.Ordinal);
-        Assert.DoesNotContain("% mapping.Alignment", explicitMappings, StringComparison.Ordinal);
-        Assert.DoesNotContain("profile.Regions.FirstOrDefault", explicitMappings, StringComparison.Ordinal);
+        Assert.Empty(Directory.EnumerateFiles(
+            Path.Combine(Root.FullName, "src", "NvtFwCombiner.Profiles"),
+            "CompositionProfileCompiler*.cs"));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "ProfileCompileResult.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "LegacyProfileValidationRequirements.cs")));
     }
 
     private static void AssertNoProductionText(string token)

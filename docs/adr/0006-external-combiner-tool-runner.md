@@ -61,8 +61,9 @@ The temporary firmware file is an implementation detail of the host. Profiles sh
 
 ## Profile expression
 
-`composition-profile-v1` keeps its existing adapter shape only for compatibility migration.
-`composition-profile-v2` replaces arbitrary `processorInvocation.parameters` with a closed
+The `composition-profile-v1` production adapter was retired in v0.9.9; its schema remains only as
+a versioned migration/validation contract and is not a runtime fallback. `composition-profile-v2`
+replaces arbitrary `processorInvocation.parameters` with a closed
 `legacy-combiner-v1` stage. The stage references a trusted tool binding and registered invocation
 profile. The V2 profile itself never carries executable paths or command arguments; the registered
 invocation contract is host-owned and must bind to the resolved manifest's exact tool binding.

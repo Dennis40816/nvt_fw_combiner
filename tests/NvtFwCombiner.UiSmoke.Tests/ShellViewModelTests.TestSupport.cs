@@ -38,12 +38,6 @@ public sealed partial class ShellViewModelTests
         });
     }
 
-    private static void AssertNoOutputDifferences(JsonElement root)
-    {
-        AssertNoUnexpectedOutputDifferenceIssue(root);
-        Assert.Empty(root.GetProperty("OutputDifferences").EnumerateArray());
-    }
-
     private static void AssertNoUnexpectedOutputDifferenceIssue(JsonElement root)
     {
         Assert.DoesNotContain(root.GetProperty("Issues").EnumerateArray(), issue =>

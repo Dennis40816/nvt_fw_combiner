@@ -52,11 +52,11 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         (0x1DEDB, 0x1DEE0),
     ];
 
-    /// <summary>Proves the exact three-chip base produces identical V1 and V2 bytes and process evidence.</summary>
+    /// <summary>Proves the exact three-chip base produces the locked V2 bytes and process evidence.</summary>
     [Theory]
     [InlineData("NT51927", "nt51927-ctrlram-replace-fw140-threechip", "nfc.nt51927.ctrlram-postbuild-v1")]
     [InlineData("NT51917", "nt51917-ctrlram-replace-fw140-threechip", "nfc.nt51917.ctrlram-postbuild-v1")]
-    public async Task ExactExpectedDerivedCaseRunsThroughV2WithLegacyProcessParityAsync(
+    public async Task ExactExpectedDerivedCaseProducesLockedV2EvidenceAsync(
         string icId,
         string expectedProfileId,
         string expectedProcessorId)
@@ -83,18 +83,8 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
             static artifact => artifact.Path,
             static artifact => Hash(artifact.Bytes),
             StringComparer.Ordinal);
-        using var workspace = TempWorkspace.Create("nfc-nt51927-fw140-threechip-parity");
+        using var workspace = TempWorkspace.Create("nfc-nt51927-fw140-threechip-v2");
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase);
-        string legacyOutputPath = workspace.PathFor("legacy-output.bin");
-        WorkbenchRunResult legacy = await WorkbenchCompositionService.RunReplaceAsync(
-            icId,
-            "3",
-            WorkbenchReplaceModes.CtrlRam,
-            slots,
-            build: true,
-            TestContext.Current.CancellationToken,
-            legacyOutputPath,
-            new WorkbenchCtrlRamFirmwareVersionEdit(metadata.FirmwareVersion, metadata.FirmwareSubVersion));
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
             icId,
@@ -105,22 +95,15 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
             TestContext.Current.CancellationToken,
             v2OutputPath);
 
-        Assert.True(legacy.Succeeded, legacy.ReportJson);
         Assert.True(v2.Succeeded, v2.ReportJson);
-        byte[] legacyBytes = File.ReadAllBytes(legacyOutputPath);
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         const string outputSha256 = "dc1ee8928977845fad334b75c60b3e7fa3989f0a7e177206f83104217bf3fe16";
-        Assert.Equal(outputSha256, Hash(legacyBytes));
         Assert.Equal(outputSha256, Hash(v2Bytes));
-        Assert.Equal(legacyBytes, v2Bytes);
         AssertExactBaseDelta(ownerCase.Base.Bytes, v2Bytes);
 
-        using var legacyReport = JsonDocument.Parse(legacy.ReportJson);
         using var v2Report = JsonDocument.Parse(v2.ReportJson);
-        Assert.Equal($"{icId.ToLowerInvariant()}-ctrlram-replace-workbench", ReadProfileId(legacyReport.RootElement));
-        Assert.Equal(expectedProfileId, ReadProfileId(v2Report.RootElement));
-        AssertReportIdentity(legacyReport.RootElement, v2Report.RootElement);
-        AssertProcessParity(legacyReport.RootElement, v2Report.RootElement, expectedProcessorId, icId);
+        AssertReportIdentity(v2Report.RootElement, expectedProfileId, icId);
+        AssertProcessEvidence(v2Report.RootElement, expectedProcessorId, icId);
         JsonElement[] differences = [.. v2Report.RootElement.GetProperty("OutputDifferences").EnumerateArray()];
         Assert.Equal(CrcRanges.Length, differences.Count(IsPostbuildCrc));
         Assert.Equal(DeclaredReplacementRanges.Length, differences.Count(IsDeclaredReplacement));
@@ -140,11 +123,15 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
     [InlineData("NT51917", "pid")]
     [InlineData("NT51917", "version")]
     [InlineData("NT51917", "chip")]
-    public async Task UnreviewedShapeRetainsLegacyFallbackAsync(string icId, string mutation)
+    public async Task UnreviewedShapeFailsClosedAsync(string icId, string mutation)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
 
         OwnerCase ownerCase = ReadOwnerCase();
+        var immutableHashes = ownerCase.Artifacts.ToDictionary(
+            static artifact => artifact.Path,
+            static artifact => Hash(artifact.Bytes),
+            StringComparer.Ordinal);
         using var workspace = TempWorkspace.Create("nfc-nt51927-fw140-threechip-negative");
         byte[] reference = [.. ownerCase.Base.Bytes];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
@@ -172,20 +159,22 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         string referencePath = workspace.Write("reference.bin", reference);
         Dictionary<string, string> slots = CreateSlotPaths(ownerCase);
         slots[WorkbenchSlotIds.ReplaceBase] = referencePath;
+        string outputPath = workspace.PathFor("unsupported-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             icId,
             "3",
             slots,
             build: true,
-            workspace.PathFor("fallback-output.bin"),
+            outputPath,
             firmwareVersionEdit: null,
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        using var report = JsonDocument.Parse(result.ReportJson);
-        Assert.Equal($"{icId.ToLowerInvariant()}-ctrlram-replace-workbench", ReadProfileId(report.RootElement));
+        AssertWorkflowNotSupported(result, outputPath);
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
+        Assert.All(
+            ownerCase.Artifacts,
+            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
     }
 
     private static bool IsPostbuildCrc(JsonElement difference)
@@ -233,49 +222,37 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         return ranges.Any(range => index >= range.Start && index < range.EndExclusive);
     }
 
-    private static void AssertReportIdentity(JsonElement legacy, JsonElement v2)
+    private static void AssertReportIdentity(JsonElement report, string expectedProfileId, string icId)
     {
-        Assert.Equal(legacy.GetProperty("IcId").GetString(), v2.GetProperty("IcId").GetString());
-        Assert.Equal(legacy.GetProperty("ModeId").GetString(), v2.GetProperty("ModeId").GetString());
-        Assert.Equal(legacy.GetProperty("ExperienceId").GetString(), v2.GetProperty("ExperienceId").GetString());
-        Assert.Equal(legacy.GetProperty("CompositionKind").GetString(), v2.GetProperty("CompositionKind").GetString());
-        Assert.Equal(
-            legacy.GetProperty("Inputs").EnumerateArray().Select(ReadInputIdentity),
-            v2.GetProperty("Inputs").EnumerateArray().Select(ReadInputIdentity));
+        Assert.Equal(expectedProfileId, ReadProfileId(report));
+        Assert.Equal(icId, report.GetProperty("IcId").GetString());
+        Assert.Equal("ctrlram-replace", report.GetProperty("ModeId").GetString());
+        Assert.Equal("ctrlram-replace", report.GetProperty("ExperienceId").GetString());
+        Assert.Equal("Replace", report.GetProperty("CompositionKind").GetString());
     }
 
-    private static string ReadInputIdentity(JsonElement input)
+    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string outputPath)
     {
-        return string.Join(
-            '|',
-            input.GetProperty("AddressSpaceId").GetString(),
-            input.GetProperty("Size").GetInt64(),
-            input.GetProperty("Sha256").GetString());
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.Null(result.CommittedOutputId);
+        Assert.False(File.Exists(outputPath));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() == WorkbenchIssueCodes.ReplaceWorkflowNotSupported);
+        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
-    private static void AssertProcessParity(
-        JsonElement legacyReport,
-        JsonElement v2Report,
+    private static void AssertProcessEvidence(
+        JsonElement report,
         string expectedProcessorId,
         string icId)
     {
-        JsonElement legacySession = ReadProcessorSession(legacyReport);
-        JsonElement v2Session = ReadProcessorSession(v2Report);
-        Assert.Equal(expectedProcessorId, legacySession.GetProperty("ProcessorId").GetString());
-        Assert.Equal(expectedProcessorId, v2Session.GetProperty("ProcessorId").GetString());
-        Assert.Equal("legacy-combiner-1.13.0", legacySession.GetProperty("ToolBindingId").GetString());
-        Assert.Equal("legacy-combiner-1.13.0", v2Session.GetProperty("ToolBindingId").GetString());
-        Assert.Equal(
-            legacySession.GetProperty("ProcessorAllowedReadRanges").GetRawText(),
-            v2Session.GetProperty("ProcessorAllowedReadRanges").GetRawText());
-        Assert.Equal(
-            legacySession.GetProperty("ProcessorAllowedWriteRanges").GetRawText(),
-            v2Session.GetProperty("ProcessorAllowedWriteRanges").GetRawText());
-
-        string[][] legacyArguments = ReadArguments(legacySession);
-        string[][] v2Arguments = ReadArguments(v2Session);
-        Assert.Equal(ExpectedArguments(icId), legacyArguments);
-        Assert.Equal(legacyArguments, v2Arguments);
+        JsonElement session = ReadProcessorSession(report);
+        Assert.Equal(expectedProcessorId, session.GetProperty("ProcessorId").GetString());
+        Assert.Equal("legacy-combiner-1.13.0", session.GetProperty("ToolBindingId").GetString());
+        Assert.Equal("Succeeded", session.GetProperty("Status").GetString());
+        Assert.Equal(ExpectedArguments(icId), ReadArguments(session));
     }
 
     private static JsonElement ReadProcessorSession(JsonElement report)

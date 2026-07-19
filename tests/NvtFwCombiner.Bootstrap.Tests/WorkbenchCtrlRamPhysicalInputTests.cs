@@ -1,6 +1,6 @@
+using System.Text.Json;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -17,10 +17,13 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             _transform = transform;
         }
 
+        internal int CallCount { get; private set; }
+
         public ValueTask<ExternalProcessorResult> TransformAsync(
             ExternalProcessorRequest request,
             CancellationToken cancellationToken)
         {
+            CallCount++;
             return ValueTask.FromResult(_transform(request));
         }
     }
@@ -150,9 +153,9 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         Assert.True(result.Succeeded, result.ReportJson);
     }
 
-    /// <summary>A short zero-offset source grants pasteback authority only through its physical EOF.</summary>
+    /// <summary>A short source on a non-exact IC-number shape fails before processor invocation.</summary>
     [Fact]
-    public async Task ShortCtrlRamSourceNarrowsPostbuildWriteAuthorityToEof()
+    public async Task ShortCtrlRamSourceOnUnreviewedShapeFailsClosed()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-short-ctrlram-authority");
         string basePath = RepositoryPaths.FromRepositoryRoot(
@@ -163,20 +166,11 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             "20260705",
             "base",
             "nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin");
+        byte[] baseBytes = File.ReadAllBytes(basePath);
         byte[] nfBytes = [0x10, 0x21, 0x32, 0x43, 0x54, 0x65, 0x76, 0x87];
         string nfPath = workspace.Write("NF_Ctrlram.bin", nfBytes);
         var processor = new InspectingProcessor(request =>
-        {
-            AssertStagedSource(request, nfBytes, 0, 0x16800, nfBytes.Length);
-            Assert.Contains(new ByteRange(0x16800, nfBytes.Length), request.AllowedWriteRanges);
-            Assert.Contains(new ByteRange(0x23C, 4), request.AllowedWriteRanges);
-
-            ChangedRangeVerdict tailVerdict = new ChangedRangePolicy(request.AllowedWriteRanges)
-                .Evaluate([new ByteRange(0x16800 + nfBytes.Length, 1)]);
-            Assert.False(tailVerdict.IsAllowed);
-            Assert.Equal([new ByteRange(0x16800 + nfBytes.Length, 1)], tailVerdict.ViolatingRanges);
-            return ExternalProcessorResult.Success(request.InputBytes, []);
-        });
+            ExternalProcessorResult.Success(request.InputBytes, []));
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
             [WorkbenchSlotIds.ReplaceBase] = basePath,
@@ -193,19 +187,13 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             externalProcessor: processor,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-    }
-
-    private static void AssertStagedSource(
-        ExternalProcessorRequest request,
-        byte[] sourceBytes,
-        int sourceOffset,
-        int firmwareStart,
-        int length)
-    {
-        ExternalProcessorStagedSource stagedSource = request.StagedSources.Single(source =>
-            source.FirmwareRange == new ByteRange(firmwareStart, length));
-        Assert.Equal(sourceBytes[sourceOffset..(sourceOffset + length)], stagedSource.Bytes.ToArray());
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.Equal(0, processor.CallCount);
+        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        using var document = JsonDocument.Parse(result.ReportJson);
+        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal("replace.workflow.not-supported", issue.GetProperty("Code").GetString());
+        Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
     private static void AssertMappedBytes(

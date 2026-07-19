@@ -50,9 +50,9 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(JsonValueKind.Null, operation.GetProperty("ProcessorId").ValueKind);
     }
 
-    /// <summary>Verifies real IC General Replace CLI accepts repeated workbench mapping rows.</summary>
+    /// <summary>Verifies retired real-IC General Replace mappings fail closed without output.</summary>
     [Fact]
-    public async Task GeneralReplaceBuildAcceptsRepeatedWorkbenchMappings()
+    public async Task GeneralReplaceBuildWithRepeatedWorkbenchMappingsFailsClosed()
     {
         using var workspace = TempWorkspace.Create();
         byte[] baseBytes = CreatePattern(0x40000, 0x40);
@@ -81,30 +81,13 @@ public sealed partial class ReplaceCliCommandTests
             report,
         ]);
 
-        Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Experience: general-replace", result.Output, StringComparison.Ordinal);
-        Assert.Contains("nt51950-general-replace-workbench", result.Output, StringComparison.Ordinal);
-        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
-        Assert.Equal(baseBytes.Length, bytes.Length);
-        Assert.Equal(0xA5, bytes[0x100]);
-        Assert.Equal(0x5A, bytes[0x101]);
-        Assert.Equal(0xC3, bytes[0x38000]);
-        Assert.Equal(baseBytes[0x102], bytes[0x102]);
-
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
-            report,
-            TestContext.Current.CancellationToken));
-        JsonElement root = document.RootElement;
-        Assert.Equal("nt51950-general-replace-workbench", root.GetProperty("ProfileId").GetString());
-        Assert.Equal("general-replace", root.GetProperty("ExperienceId").GetString());
-        Assert.Equal(3, root.GetProperty("Inputs").GetArrayLength());
-        Assert.Equal(2, root.GetProperty("Operations").GetArrayLength());
+        await AssertGeneralReplaceWorkflowNotSupportedAsync(result, report, output);
+        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
     }
 
-    /// <summary>Verifies real IC General Replace CLI runs postbuild when a mapping touches TP/CtrlRAM.</summary>
+    /// <summary>Verifies retired TP-touching General Replace preview fails closed.</summary>
     [Fact]
-    public async Task GeneralReplacePreviewRunsPostbuildForWorkbenchTpMapping()
+    public async Task GeneralReplacePreviewWithWorkbenchTpMappingFailsClosed()
     {
         using var workspace = TempWorkspace.Create();
         string reference = GoldenPath("expected/51950/dp-256k/flash.bin");
@@ -127,24 +110,7 @@ public sealed partial class ReplaceCliCommandTests
             report,
         ]);
 
-        Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        Assert.Contains("postbuild-singlechip", result.Output, StringComparison.Ordinal);
-
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
-            report,
-            TestContext.Current.CancellationToken));
-        JsonElement root = document.RootElement;
-        Assert.Equal("general-replace", root.GetProperty("ExperienceId").GetString());
-        Assert.Collection(
-            root.GetProperty("Operations").EnumerateArray(),
-            operation => Assert.Equal("ReplaceRange", operation.GetProperty("Kind").GetString()),
-            operation =>
-            {
-                Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
-                Assert.Equal("nfc.nt51950.ctrlram-postbuild-v1", operation.GetProperty("ProcessorId").GetString());
-                Assert.Equal("legacy-combiner-1.13.0", operation.GetProperty("ToolBindingId").GetString());
-            });
+        await AssertGeneralReplaceWorkflowNotSupportedAsync(result, report, outputPath: null);
     }
 
     /// <summary>Verifies malformed real IC General Replace mapping paths are rejected before planning.</summary>
@@ -171,9 +137,9 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("--mapping path must not be empty", result.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies CLI hexadecimal patches use the same virtual General Replace workbench path.</summary>
+    /// <summary>Verifies valid CLI patches fail closed after legacy General Replace retirement.</summary>
     [Fact]
-    public async Task GeneralReplaceBuildAcceptsVirtualPatchAndFill()
+    public async Task GeneralReplaceBuildWithVirtualPatchAndFillFailsClosed()
     {
         using var workspace = TempWorkspace.Create();
         byte[] baseBytes = CreatePattern(0x40000, 0x60);
@@ -200,20 +166,8 @@ public sealed partial class ReplaceCliCommandTests
             report,
         ]);
 
-        Assert.Equal(0, result.ExitCode);
-        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
-        Assert.Equal([0xA5, 0x5A], bytes[0x100..0x102]);
-        Assert.Equal([0xFF, 0xFF, 0xFF], bytes[0x110..0x113]);
+        await AssertGeneralReplaceWorkflowNotSupportedAsync(result, report, output);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
-
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(report, TestContext.Current.CancellationToken));
-        Assert.Contains(
-            document.RootElement.GetProperty("Inputs").EnumerateArray(),
-            input => input.GetProperty("ArtifactId").GetString() == "general-patch-1");
-        Assert.Contains(
-            document.RootElement.GetProperty("Inputs").EnumerateArray(),
-            input => input.GetProperty("ArtifactId").GetString() == "general-fill-1");
-        Assert.Equal(2, document.RootElement.GetProperty("Operations").GetArrayLength());
     }
 
     /// <summary>Verifies a real IC General Replace build cannot overwrite its immutable base BIN.</summary>
@@ -315,5 +269,25 @@ public sealed partial class ReplaceCliCommandTests
 
         Assert.Equal(64, result.ExitCode);
         Assert.Contains($"unknown option '{option}'", result.Error, StringComparison.Ordinal);
+    }
+
+    private static async Task AssertGeneralReplaceWorkflowNotSupportedAsync(
+        CliRunResult result,
+        string reportPath,
+        string? outputPath)
+    {
+        Assert.Equal(1, result.ExitCode);
+        if (outputPath is not null)
+        {
+            Assert.False(File.Exists(outputPath));
+        }
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+            reportPath,
+            TestContext.Current.CancellationToken));
+        Assert.Contains(
+            document.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() == "replace.workflow.not-supported");
+        Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 }

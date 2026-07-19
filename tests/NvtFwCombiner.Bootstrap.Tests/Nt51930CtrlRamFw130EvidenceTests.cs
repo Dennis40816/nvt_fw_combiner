@@ -80,9 +80,9 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
             artifact => Assert.Equal(immutableInputHashes[artifact.FileName], Hash(File.ReadAllBytes(artifact.Path))));
     }
 
-    /// <summary>Proves the exact legacy and V2 routes produce the same full output from owner evidence.</summary>
+    /// <summary>Proves the exact V2 route produces the locked full output from owner evidence.</summary>
     [Fact]
-    public async Task V1AndV2MatchFromOwnerExpectedReferenceAsync()
+    public async Task V2MatchesLockedOutputFromOwnerExpectedReferenceAsync()
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -109,15 +109,6 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         Assert.Equal(0x110D, metadata.ProjectId);
 
         IReadOnlyDictionary<string, string> slotPaths = CreateSlotPaths(evidence, referencePath);
-        string legacyOutputPath = workspace.PathFor("legacy-output.bin");
-        WorkbenchRunResult legacy = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51930",
-            "3",
-            WorkbenchReplaceModes.CtrlRam,
-            slotPaths,
-            build: true,
-            TestContext.Current.CancellationToken,
-            legacyOutputPath);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51930",
@@ -128,24 +119,17 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
             TestContext.Current.CancellationToken,
             v2OutputPath);
 
-        Assert.True(legacy.Succeeded, legacy.ReportJson);
         Assert.True(v2.Succeeded, v2.ReportJson);
-        byte[] legacyBytes = File.ReadAllBytes(legacyOutputPath);
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
-        Assert.Equal(CurrentOutputSha256, Hash(legacyBytes));
         Assert.Equal(CurrentOutputSha256, Hash(v2Bytes));
-        Assert.Equal(CurrentOutputSha256, legacy.OutputSha256);
         Assert.Equal(CurrentOutputSha256, v2.OutputSha256);
-        Assert.True(legacyBytes.AsSpan().SequenceEqual(v2Bytes), FormatDiffFailure(legacyBytes, v2Bytes));
 
         AssertOwnerDifferenceClassification(evidence, v2Bytes);
         AssertPhysicalInputProjection(evidence, v2Bytes);
 
-        using var legacyReport = JsonDocument.Parse(legacy.ReportJson);
         using var v2Report = JsonDocument.Parse(v2.ReportJson);
-        AssertReportIdentity(legacyReport.RootElement, "nt51930-ctrlram-replace-workbench");
         AssertReportIdentity(v2Report.RootElement, "nt51930-ctrlram-replace-fw130-cascade3");
-        AssertProcessParity(legacyReport.RootElement, v2Report.RootElement, evidence.SuppliedTool.Sha256);
+        AssertProcessEvidence(v2Report.RootElement, evidence.SuppliedTool.Sha256);
 
         Assert.Equal(OwnerExpectedSha256, Hash(File.ReadAllBytes(referencePath)));
         Assert.All(
@@ -181,7 +165,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         Assert.DoesNotContain(diffNf, artifact => Hash(artifact.Bytes) == Hash(composite.Bytes));
     }
 
-    /// <summary>Proves wrong project, version, count, or selector shapes retain the V1 fallback.</summary>
+    /// <summary>Proves wrong project, version, count, or selector shapes fail closed.</summary>
     [Theory]
     [InlineData("cascade", 1, 3, 0, 3, 0xFFFF)]
     [InlineData("cascade", 1, 2, 0, 3, 0x110D)]
@@ -212,19 +196,18 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         string beforeSha256 = Hash(reference);
         var processor = new PassThroughProcessor();
 
+        string outputPath = workspace.PathFor("unsupported-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51930",
             number,
             CreateSlotPaths(evidence, referencePath),
             build: true,
-            workspace.PathFor("fallback-output.bin"),
+            outputPath,
             firmwareVersionEdit: null,
             processor,
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        using var report = JsonDocument.Parse(result.ReportJson);
-        AssertReportIdentity(report.RootElement, "nt51930-ctrlram-replace-workbench");
+        AssertWorkflowNotSupported(result, outputPath);
         Assert.Equal(beforeSha256, Hash(File.ReadAllBytes(referencePath)));
     }
 
@@ -291,29 +274,17 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         Assert.Equal(4087, CountDifferences(diff.Bytes.AsSpan(0, DiffLength), output.AsSpan(DiffStart, DiffLength)));
     }
 
-    private static void AssertProcessParity(JsonElement legacyReport, JsonElement v2Report, string suppliedToolSha256)
+    private static void AssertProcessEvidence(JsonElement report, string suppliedToolSha256)
     {
-        JsonElement legacySession = Assert.Single(ReadProcessorSessions(legacyReport));
-        JsonElement v2Session = Assert.Single(ReadProcessorSessions(v2Report));
-        _ = Assert.Single(legacySession.GetProperty("ExecutedCommands").EnumerateArray());
-        _ = Assert.Single(v2Session.GetProperty("ExecutedCommands").EnumerateArray());
-        Assert.Equal([ExpectedArguments()], ReadNormalizedArguments([legacySession]));
-        Assert.Equal([ExpectedArguments()], ReadNormalizedArguments([v2Session]));
-        AssertProcessorIdentity(legacySession);
-        AssertProcessorIdentity(v2Session);
-
-        Assert.Equal([new ByteRange(0, FullFlashCapacity)], ReadRanges(legacySession, "ProcessorAllowedReadRanges"));
-        Assert.Equal([new ByteRange(0, FullFlashCapacity)], ReadRanges(v2Session, "ProcessorAllowedReadRanges"));
-        Assert.Equal(ExpectedLegacyWriteRanges(), ReadRanges(legacySession, "ProcessorAllowedWriteRanges"));
-        Assert.Equal(ExpectedV2WriteRanges(), ReadRanges(v2Session, "ProcessorAllowedWriteRanges"));
-
-        string legacyExecutable = Assert.Single(legacySession.GetProperty("ExecutedCommands").EnumerateArray())
+        JsonElement session = Assert.Single(ReadProcessorSessions(report));
+        string executable = Assert.Single(session.GetProperty("ExecutedCommands").EnumerateArray())
             .GetProperty("ExecutablePath").GetString()!;
-        string v2Executable = Assert.Single(v2Session.GetProperty("ExecutedCommands").EnumerateArray())
-            .GetProperty("ExecutablePath").GetString()!;
-        Assert.Equal(legacyExecutable, v2Executable, ignoreCase: true);
-        Assert.Equal(RegisteredCombinerSha256, Hash(File.ReadAllBytes(legacyExecutable)));
-        Assert.NotEqual(suppliedToolSha256, Hash(File.ReadAllBytes(legacyExecutable)));
+        Assert.Equal([ExpectedArguments()], ReadNormalizedArguments([session]));
+        AssertProcessorIdentity(session);
+        Assert.Equal([new ByteRange(0, FullFlashCapacity)], ReadRanges(session, "ProcessorAllowedReadRanges"));
+        Assert.Equal(ExpectedV2WriteRanges(), ReadRanges(session, "ProcessorAllowedWriteRanges"));
+        Assert.Equal(RegisteredCombinerSha256, Hash(File.ReadAllBytes(executable)));
+        Assert.NotEqual(suppliedToolSha256, Hash(File.ReadAllBytes(executable)));
     }
 
     private static string[] ExpectedArguments()
@@ -327,20 +298,6 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
             "BIN/VN_Ctrlram.bin", "0x0", "0x27650", "6494",
             "output/nt51930_fw.bin", "0x7000", "0x28FB0", "256",
             "BIN/DiffDLM.bin", "0x0", "0x2F200", "65024",
-        ];
-    }
-
-    private static ByteRange[] ExpectedLegacyWriteRanges()
-    {
-        return [
-            new(0x7100, 4),
-            new(0x7118, 4),
-            new(NfStart, 577),
-            new(NormalStart, NormalLength),
-            new(MpStart, MpLength),
-            new(VnStart, VnLength),
-            new(HeaderCopyStart, HeaderCopyLength),
-            new(DiffStart, DiffLength),
         ];
     }
 
@@ -579,11 +536,15 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         return (differenceCount, [.. ranges]);
     }
 
-    private static string FormatDiffFailure(ReadOnlySpan<byte> expected, ReadOnlySpan<byte> actual)
+    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string outputPath)
     {
-        (long differenceCount, ByteRange[] ranges) = FindDifferences(expected, actual);
-        return $"Expected SHA {Hash(expected)}, actual SHA {Hash(actual)}, difference count {differenceCount}, ranges " +
-            string.Join(", ", ranges.Take(24).Select(static range => range.ToString()));
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(File.Exists(outputPath));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() == "replace.workflow.not-supported");
+        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

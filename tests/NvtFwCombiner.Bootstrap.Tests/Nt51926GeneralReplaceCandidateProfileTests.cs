@@ -56,9 +56,9 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         Assert.Contains(result.Issues, issue => issue.Code == issueCode);
     }
 
-    /// <summary>The routed candidate and forced V1 fallback produce identical DP-only bytes from immutable inputs.</summary>
+    /// <summary>The routed candidate produces the compiled V2 DP-only bytes from immutable inputs.</summary>
     [Fact]
-    public async Task CandidateMatchesCurrentGeneralReplaceDpOnlyOutputBytesAsync()
+    public async Task RoutedCandidateMatchesCompiledGeneralReplaceDpOnlyOutputBytesAsync()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-replace-v2-parity");
         byte[] baseBytes = CreatePattern(FullFlashCapacity, 0x26);
@@ -66,33 +66,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         byte[] replacement = [0xA5, 0x5A];
         string basePath = workspace.Write("base.bin", baseBytes);
         string sourcePath = workspace.Write("dp-source.bin", replacement);
-        string legacyOutputPath = workspace.PathFor("legacy.bin");
         const int targetStart = DpStart + 0x20;
-
-        WorkbenchRunResult legacy = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51926",
-            "cascade",
-            "General",
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["replace-base"] = basePath,
-            },
-            [new WorkbenchGeneralReplaceMappingInput(
-                "dp-map",
-                sourcePath,
-                $"0x{targetStart:X}",
-                $"0x{targetStart + replacement.Length - 1:X}")],
-            build: true,
-            TestContext.Current.CancellationToken,
-            legacyOutputPath);
-
-        Assert.True(legacy.Succeeded, legacy.ReportJson);
-        using (var legacyReport = JsonDocument.Parse(legacy.ReportJson))
-        {
-            Assert.Equal(
-                "nt51926-general-replace-workbench",
-                legacyReport.RootElement.GetProperty("ProfileId").GetString());
-        }
 
         V2CompositionPlanCompileResult candidate = CompileCandidate(
             FullFlashCapacity,
@@ -112,9 +86,9 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
-        Assert.Equal(
-            await File.ReadAllBytesAsync(legacyOutputPath, TestContext.Current.CancellationToken),
-            execution.OutputBytes.ToArray());
+        byte[] expected = [.. originalBase];
+        replacement.CopyTo(expected, targetStart);
+        Assert.Equal(expected, execution.OutputBytes.ToArray());
         Assert.Equal(originalBase, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
         Assert.Equal(originalBase, baseBytes);
 
@@ -146,13 +120,14 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
             routedReport.RootElement.GetProperty("ProfileId").GetString());
     }
 
-    /// <summary>Single-selector virtual patches remain on V1 until their separate contract is migrated.</summary>
+    /// <summary>Single-selector virtual patches fail closed until their V2 contract is migrated.</summary>
     [Fact]
-    public async Task DpVirtualPatchRetainsLegacyFallbackAsync()
+    public async Task DpVirtualPatchFailsClosedWithoutOutputAsync()
     {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-replace-patch-fallback");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-replace-patch-unsupported");
         string basePath = workspace.Write("base.bin", CreatePattern(FullFlashCapacity, 0x26));
 
+        string outputPath = workspace.PathFor("unsupported-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51926",
             "single",
@@ -168,14 +143,15 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 "0x3E021",
                 WorkbenchGeneralReplacePatchKind.Overwrite,
                 "A5 5A")],
-            build: false,
-            TestContext.Current.CancellationToken);
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.False(result.Succeeded, result.ReportJson);
         using var report = JsonDocument.Parse(result.ReportJson);
-        Assert.Equal(
-            "nt51926-general-replace-workbench",
-            report.RootElement.GetProperty("ProfileId").GetString());
+        JsonElement issue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal(WorkbenchIssueCodes.ReplaceWorkflowNotSupported, issue.GetProperty("Code").GetString());
+        Assert.False(File.Exists(outputPath));
     }
 
     private static V2CompositionPlanCompileResult CompileCandidate(

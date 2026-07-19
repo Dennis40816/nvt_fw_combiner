@@ -5,6 +5,8 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private const int GeneralReplaceMappingSequenceStart = 100;
+
     private static bool TryCreateGeneralReplaceMappings(
         WorkbenchGeneralReplaceMappingInput[] mappingInputs,
         WorkbenchGeneralReplacePatchInput[] patchInputs,

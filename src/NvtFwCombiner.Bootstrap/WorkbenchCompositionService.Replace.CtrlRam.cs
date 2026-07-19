@@ -1,9 +1,7 @@
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
-using NvtFwCombiner.Profiles;
 using V2CompositionPlanCompileResult = NvtFwCombiner.Profiles.V2.V2CompositionPlanCompileResult;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -135,74 +133,12 @@ public static partial class WorkbenchCompositionService
                     cancellationToken).ConfigureAwait(false);
         }
 
-        ExternalProcessorStagedSourceBinding[] stagedSourceBindings =
-        [
-            .. context.SelectedSources.SelectMany(source =>
-            {
-                string slotId = CtrlRamSlotId(source.SourceId);
-                long sourceLength = context.SelectedSourceLengths[source.SourceId];
-                return source.Blocks.Select(block =>
-                {
-                    long effectiveLength = Math.Min(
-                        block.FirmwareRange.Length,
-                        sourceLength - block.SourceOffset);
-                    return new ExternalProcessorStagedSourceBinding(
-                        slotId,
-                        new ByteRange(block.SourceOffset, effectiveLength),
-                        new ByteRange(block.FirmwareRange.Start, effectiveLength));
-                });
-            }),
-        ];
-        IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections =
-            LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForStagedSources(
-            context.CommandPlan!,
-            context.BaseLength,
-            stagedSourceBindings.Select(binding => binding.FirmwareRange),
-            context.Regions.Select(region => region.Range));
-        if (postbuildWriteRangeSections.Count == 0)
-        {
-            return Blocked(
-                [
-                    new CompositionIssue(
-                        WorkbenchIssueCodes.ReplaceCtrlRamPostbuildWriteRangeMissing,
-                        "No approved postbuild write range could be derived from the legacy Combiner command plan.",
-                        "postbuild"),
-                ]);
-        }
-
-        CompositionProfileDefinition profile = CreateCtrlRamReplaceProfile(
-            icId,
-            context.Selection,
-            context.BaseLength,
-            context.Regions,
-            context.SelectedSources,
-            context.SelectedSourceLengths,
-            stagedSourceBindings,
-            context.PostbuildProfile!,
-            context.CommandPlan!,
-            postbuildWriteRangeSections,
-            context.FirmwareVersionWritePlan);
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        if (!compile.IsSuccess)
-        {
-            return Blocked(compile.Issues, profile.DefaultOutputFileName);
-        }
-
-        InputArtifactBinding[] bindings = CreateCtrlRamReplaceBindings(
-            compile.CompiledComposition!,
-            context,
-            slotPaths);
-
-        return await RunCompiledCompositionAsync(
-            CtrlRamReplaceRunIdPrefix,
-            compile.CompiledComposition!,
-            bindings,
-            context.BasePath!,
-            build,
-            outputPath,
-            externalProcessor,
-            icNumberSelection: context.Selection,
-            overwrite: true,
-            cancellationToken).ConfigureAwait(false);
+        return Blocked(
+            [
+                new CompositionIssue(
+                    WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+                    "The selected CtrlRAM Replace shape has no exact evidence-backed V2 route.",
+                    "number"),
+            ]);
     }
 }

@@ -6,28 +6,23 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
-    /// <summary>Verifies CtrlRAM Replace build commits a real postbuild output file.</summary>
+    /// <summary>Verifies an exact V2 CtrlRAM Replace build commits a real postbuild output file.</summary>
     [Fact]
     public async Task CtrlRamReplaceBuildCommitsGoldenBackedSelfReplacementOutput()
     {
-        using var golden = StandardMergeGoldenManifest.Load();
-        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51927"));
+        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
+        Assert.NotNull(fixtures);
+        JsonElement fixtureCase = fixtures.CaseById("nt51927-2chip-self-20260705");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-build");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = "single";
+        viewModel.SelectedNumber = "2";
         OpenReplace(viewModel, "CtrlRAM");
 
-        FirmwareSlotViewModel vnSlot = viewModel.ReplaceSlots.Single(slot =>
-            slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
-        CtrlRamRegionViewModel vnRegion = viewModel.CtrlRamRegions.Single(region => region.Name == vnSlot.Title);
-        (int start, int length) = ParseCtrlRamRegion(vnRegion);
-        string basePath = workspace.Write("base-from-golden.bin", baseBytes);
-        string replacementPath = workspace.Write("self-vn-ctrlram.bin", baseBytes[start..(start + length)]);
         string outputPath = workspace.PathFor("ctrlram-build-output.bin");
 
-        viewModel.SetSlotFile("replace-base", basePath);
-        viewModel.SetSlotFile(vnSlot.SlotId, replacementPath);
+        fixtures.SetBaseSlot(viewModel, fixtureCase);
+        fixtures.SetReplacementSlots(viewModel, fixtureCase);
 
         Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildReplace);
@@ -42,39 +37,16 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.LastRunResult.Output);
         Assert.True(File.Exists(outputPath), outputPath);
-        Assert.Equal(baseBytes.Length, new FileInfo(outputPath).Length);
+        Assert.Equal(0x40000, new FileInfo(outputPath).Length);
         Assert.True(viewModel.HasLoadedReport);
         Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
         Assert.Equal(outputPath, viewModel.LoadedReport.OutputArtifactPath);
-        Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
-            operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
+        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
+        Assert.Equal(10, postbuild.RuntimeCommands.Count);
+        Assert.All(postbuild.RuntimeCommands, command =>
+            Assert.Contains("Combiner.exe", command.ArgumentListEvidence, StringComparison.OrdinalIgnoreCase));
         using var firstReportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
-        AssertAcceptedPostbuildOnlyOutputDifferences(firstReportDocument.RootElement, "postbuild-single");
-
-        byte[] postbuildCleanBytes = File.ReadAllBytes(outputPath);
-        string cleanBasePath = workspace.Write("postbuild-clean-base.bin", postbuildCleanBytes);
-        string cleanReplacementPath = workspace.Write("postbuild-clean-self-vn-ctrlram.bin", postbuildCleanBytes[start..(start + length)]);
-        string cleanOutputPath = workspace.PathFor("postbuild-clean-output.bin");
-
-        MainWindowViewModel cleanViewModel = ShellViewModelFactory.Create();
-        cleanViewModel.SelectedIc = "NT51927";
-        cleanViewModel.SelectedNumber = "single";
-        OpenReplace(cleanViewModel, "CtrlRAM");
-        FirmwareSlotViewModel cleanVnSlot = cleanViewModel.ReplaceSlots.Single(slot => slot.Title == vnSlot.Title);
-        cleanViewModel.SetSlotFile("replace-base", cleanBasePath);
-        cleanViewModel.SetSlotFile(cleanVnSlot.SlotId, cleanReplacementPath);
-
-        await cleanViewModel.PreviewReplaceCommand.ExecuteAsync(null);
-        Assert.True(cleanViewModel.CanBuildReplace);
-
-        await cleanViewModel.BuildReplaceAsync(cleanOutputPath);
-
-        Assert.True(cleanViewModel.LastRunResult.Succeeded, cleanViewModel.LastRunResult.Detail);
-        Assert.True(cleanViewModel.LoadedReport.HasOutputArtifactPath);
-        Assert.Equal(cleanOutputPath, cleanViewModel.LoadedReport.OutputArtifactPath);
-        Assert.Equal(postbuildCleanBytes, File.ReadAllBytes(cleanOutputPath));
-        using var cleanReportDocument = JsonDocument.Parse(cleanViewModel.LoadedReportJson);
-        AssertNoOutputDifferences(cleanReportDocument.RootElement);
+        AssertAcceptedPostbuildOnlyOutputDifferences(firstReportDocument.RootElement, "postbuild-twochip");
     }
 
     /// <summary>Verifies owner-approved CtrlRAM Replace fixtures when a manifest is present.</summary>

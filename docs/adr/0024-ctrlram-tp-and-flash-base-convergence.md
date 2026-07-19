@@ -68,9 +68,9 @@ the profile retains only the closed invocation profile id and processor authorit
   the processor, preserve the `0x4000` Flash tail, reject neighboring lengths,
   and execute against the hash-pinned Postbuild profile selected by id.
 - The routed 1.4.1 TP-base case matches the archived Legacy Combiner 1.13 full
-  output, and its full-Flash case matches a forced V1 run byte-for-byte.
+  output, and its full-Flash case matches the pre-retirement V1 control byte-for-byte.
 - The final owner 2.0.0 single/cascade cases build their reference from the
-  exact DP+TP inputs. Forced V1 and V2 outputs have identical full bytes and
+  exact DP+TP inputs. The pre-retirement V1 controls and V2 outputs have identical full bytes and
   SHA-256. Each differs from the owner expected by exactly 16 bytes at
   `[0x1C,0x20)`, `[0xFC,0x100)`, `[0x32A8C,0x32A90)`, and
   `[0x32B6C,0x32B70)`: the owner-approved Header CRC/Header Copy CRC words;

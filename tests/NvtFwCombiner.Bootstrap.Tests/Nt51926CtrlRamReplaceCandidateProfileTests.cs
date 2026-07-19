@@ -241,11 +241,11 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             CompositionIssueCodes.InputAddressSpaceTruncated));
     }
 
-    /// <summary>Proves TP and full-Flash candidates match the current Workbench route on the approved owner inputs.</summary>
+    /// <summary>Proves the routed V2 profile matches the compiled candidate on approved owner inputs.</summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task CandidateMatchesLegacyWorkbenchBytesForOwnerApprovedSelfReplacementAsync(bool fullFlashBase)
+    public async Task RoutedV2MatchesCompiledCandidateForOwnerApprovedSelfReplacementAsync(bool fullFlashBase)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -291,35 +291,31 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             static pair => pair.Key,
             static pair => pair.Value[..],
             StringComparer.Ordinal);
-        var legacySlotPaths = intakeFiles.ToDictionary(
+        var slotPaths = intakeFiles.ToDictionary(
             static pair => pair.Key,
             static pair => pair.Value.Path,
             StringComparer.Ordinal);
-        legacySlotPaths[WorkbenchSlotIds.ReplaceBase] = baseFile.Path;
-        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(referenceBase, out FirmwareConfigMetadata backup));
+        slotPaths[WorkbenchSlotIds.ReplaceBase] = baseFile.Path;
 
         using var workspace = TempWorkspace.Create("nfc-nt51926-ctrlram-v2-parity");
-        string legacyOutputPath = workspace.PathFor("legacy-workbench-output.bin");
-        WorkbenchRunResult legacy = await WorkbenchCompositionService.RunReplaceAsync(
+        string routedOutputPath = workspace.PathFor("routed-v2-output.bin");
+        WorkbenchRunResult routed = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51926",
             "cascade",
             WorkbenchReplaceModes.CtrlRam,
-            legacySlotPaths,
+            slotPaths,
             build: true,
             TestContext.Current.CancellationToken,
-            legacyOutputPath,
-            ctrlRamFirmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(
-                backup.FirmwareVersion,
-                backup.FirmwareSubVersion));
-        Assert.True(legacy.Succeeded, legacy.ReportJson);
-        using (var legacyReport = JsonDocument.Parse(legacy.ReportJson))
+            routedOutputPath);
+        Assert.True(routed.Succeeded, routed.ReportJson);
+        using (var routedReport = JsonDocument.Parse(routed.ReportJson))
         {
             Assert.Equal(
-                "nt51926-ctrlram-replace-workbench",
-                legacyReport.RootElement.GetProperty("ProfileId").GetString());
+                "nt51926-ctrlram-replace-fw141-runtime-cascade",
+                routedReport.RootElement.GetProperty("ProfileId").GetString());
         }
 
-        byte[] legacyOutput = File.ReadAllBytes(legacyOutputPath);
+        byte[] routedOutput = File.ReadAllBytes(routedOutputPath);
 
         Dictionary<string, byte[]> candidateInputs = new(StringComparer.Ordinal)
         {
@@ -340,8 +336,8 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.All(v2.Issues, static issue => Assert.Equal(
             CompositionIssueCodes.InputAddressSpaceTruncated,
             issue.Code));
-        Assert.Equal(legacyOutput, v2.OutputBytes.ToArray());
-        Assert.Equal(legacy.OutputSha256, Hash(v2.OutputBytes.Span));
+        Assert.Equal(routedOutput, v2.OutputBytes.ToArray());
+        Assert.Equal(routed.OutputSha256, Hash(v2.OutputBytes.Span));
         Assert.Equal(originalReference, referenceBase);
         if (fullFlashBase)
         {

@@ -1,7 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Reports;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -11,11 +10,9 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewReportsPostbuildCommandTrace()
     {
-        using var golden = StandardMergeGoldenManifest.Load();
-        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51927"));
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram");
-        string basePath = workspace.Write("base.bin", baseBytes);
-
+        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
+        Assert.NotNull(fixtures);
+        JsonElement fixtureCase = fixtures.CaseById("nt51927-2chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "2";
@@ -25,12 +22,9 @@ public sealed partial class ShellViewModelTests
             slot.Title == "Normal CtrlRAM (Master)");
         Assert.True(regionSlot.IsOptional);
         Assert.Contains("CtrlRAM", regionSlot.Title, StringComparison.Ordinal);
-        CtrlRamRegionViewModel region = viewModel.CtrlRamRegions.Single(item => item.Name == regionSlot.Title);
-        (int start, int length) = ParseCtrlRamRegion(region);
-        string regionPath = workspace.Write("ctrlram.bin", baseBytes[start..(start + length)]);
 
-        viewModel.SetSlotFile("replace-base", basePath);
-        viewModel.SetSlotFile(regionSlot.SlotId, regionPath);
+        fixtures.SetBaseSlot(viewModel, fixtureCase);
+        viewModel.SetSlotFile(regionSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, regionSlot.SlotId));
 
         Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
 
@@ -38,20 +32,14 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.HasLoadedReport);
-        Assert.NotEmpty(GetCommandOperations(viewModel.LoadedReport));
-        Assert.False(viewModel.LoadedReport.HasStepOperations);
-        Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
-            operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
-            operation.Meta.Contains("legacy Combiner postbuild", StringComparison.Ordinal) &&
-            !operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
-            !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
-            operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
-        Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-            operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
-            operation.Meta.Contains("legacy Combiner postbuild", StringComparison.Ordinal) &&
-            !operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
-            !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
-            operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
+        Assert.True(viewModel.LoadedReport.HasStepOperations);
+        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
+        Assert.Equal(10, postbuild.RuntimeCommands.Count);
+        Assert.Contains(postbuild.Facts, fact =>
+            fact.Label == "Processor" &&
+            fact.Value.Contains("nfc.nt51927.ctrlram-postbuild-v1", StringComparison.Ordinal));
+        Assert.All(postbuild.RuntimeCommands, command =>
+            Assert.Contains("Combiner.exe", command.ArgumentListEvidence, StringComparison.OrdinalIgnoreCase));
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.IsChanged);
     }
 
@@ -59,31 +47,23 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewReportsMultipleSelectedRegions()
     {
-        using var golden = StandardMergeGoldenManifest.Load();
-        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51927"));
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-multi");
-        string basePath = workspace.Write("base.bin", baseBytes);
-
+        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
+        Assert.NotNull(fixtures);
+        JsonElement fixtureCase = fixtures.CaseById("nt51927-3chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
-        viewModel.SetSlotFile("replace-base", basePath);
+        fixtures.SetBaseSlot(viewModel, fixtureCase);
 
         // The verified FWConfig may choose the base image's branch. This fixture deliberately
         // exercises the owner-selected three-chip branch afterwards.
         viewModel.SelectedNumber = "3";
         FirmwareSlotViewModel normalRight = viewModel.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
         FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
-        (int normalRightStart, int normalRightLength) = ParseCtrlRamRegion(
-            viewModel.CtrlRamRegions.Single(region => region.Name == normalRight.Title));
-        (int vnLeftStart, int vnLeftLength) = ParseCtrlRamRegion(
-            viewModel.CtrlRamRegions.Single(region => region.Name == "VN CtrlRAM (Slave L)"));
-        string normalRightPath = workspace.Write("normal-slave-r.bin", baseBytes[normalRightStart..(normalRightStart + normalRightLength)]);
-        string vnLeftPath = workspace.Write("vn-slave-l.bin", baseBytes[vnLeftStart..(vnLeftStart + vnLeftLength)]);
-        viewModel.SetSlotFile(normalRight.SlotId, normalRightPath);
-        viewModel.SetSlotFile(vn.SlotId, vnLeftPath);
+        viewModel.SetSlotFile(normalRight.SlotId, fixtures.ReplacementPathFor(fixtureCase, normalRight.SlotId));
+        viewModel.SetSlotFile(vn.SlotId, fixtures.ReplacementPathFor(fixtureCase, vn.SlotId));
 
         Assert.Equal("2 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
         Assert.Contains(viewModel.ReplaceSelectionRows, row => row.Title == "Normal CtrlRAM (Slave R)");
@@ -93,9 +73,12 @@ public sealed partial class ShellViewModelTests
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
-            operation.CodeBlock.Contains("Normal_Ctrlram_R.bin", StringComparison.Ordinal) &&
-            operation.CodeBlock.Contains("Normal_Ctrlram_L.bin", StringComparison.Ordinal));
+        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
+        Assert.Equal(13, postbuild.RuntimeCommands.Count);
+        Assert.Contains(postbuild.RuntimeCommands, command =>
+            command.ArgumentListEvidence.Contains("Normal_Ctrlram_R.bin", StringComparison.Ordinal));
+        Assert.Contains(postbuild.RuntimeCommands, command =>
+            command.ArgumentListEvidence.Contains("Normal_Ctrlram_L.bin", StringComparison.Ordinal));
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
             segment.SourceLabel == "Normal CtrlRAM (Slave R)" &&
             segment.RangeLabel == "0x207D0-0x237CF (len 0x3000)");
@@ -108,26 +91,21 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewAcceptsGoldenBackedVnSelfReplacement()
     {
-        using var golden = StandardMergeGoldenManifest.Load();
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-vn-ctrlram");
-        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51927"));
-        string basePath = workspace.Write("base-from-golden.bin", baseBytes);
-
+        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
+        Assert.NotNull(fixtures);
+        JsonElement fixtureCase = fixtures.CaseById("nt51927-3chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
-        viewModel.SetSlotFile("replace-base", basePath);
+        fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.SelectedNumber = "3";
         FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         Assert.Contains("VN_Ctrlram.bin", vn.Description, StringComparison.Ordinal);
         Assert.Contains("VN CtrlRAM (Master): max 5728 bytes", vn.Description, StringComparison.Ordinal);
         Assert.Contains("VN CtrlRAM (Slave L): max 5728 bytes", vn.Description, StringComparison.Ordinal);
-        (int start, int length) = ParseCtrlRamRegion(
-            viewModel.CtrlRamRegions.Single(region => region.Name == "VN CtrlRAM (Slave L)"));
-        string vnPath = workspace.Write("vn-ctrlram.bin", baseBytes[start..(start + length)]);
-        viewModel.SetSlotFile(vn.SlotId, vnPath);
+        viewModel.SetSlotFile(vn.SlotId, fixtures.ReplacementPathFor(fixtureCase, vn.SlotId));
 
         Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
 
@@ -135,36 +113,32 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.HasLoadedReport);
-        Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-            operation.HasCodeBlock &&
-            operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
+        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
+        Assert.Equal(13, postbuild.RuntimeCommands.Count);
+        Assert.Contains(postbuild.RuntimeCommands, command =>
+            command.ArgumentListEvidence.Contains("VN_Ctrlram.bin", StringComparison.Ordinal));
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
             segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
             segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
         Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Slave L");
     }
 
-    /// <summary>Verifies a CtrlRAM replacement sliced from the same base runs through the real postbuild path.</summary>
+    /// <summary>Verifies an exact V2 CtrlRAM replacement runs through the real postbuild path.</summary>
     [Fact]
     public async Task CtrlRamReplacePreviewSelfReplacementRunsPostbuild()
     {
-        using var golden = StandardMergeGoldenManifest.Load();
-        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51927"));
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-self");
+        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
+        Assert.NotNull(fixtures);
+        JsonElement fixtureCase = fixtures.CaseById("nt51927-3chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
-        string basePath = workspace.Write("base-from-golden.bin", baseBytes);
-        viewModel.SetSlotFile("replace-base", basePath);
+        fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.SelectedNumber = "3";
         FirmwareSlotViewModel vnSlot = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
-        CtrlRamRegionViewModel vnLeftRegion = viewModel.CtrlRamRegions.Single(region => region.Name == "VN CtrlRAM (Slave L)");
-        (int start, int length) = ParseCtrlRamRegion(vnLeftRegion);
-        string replacementPath = workspace.Write("self-vn-ctrlram.bin", baseBytes[start..(start + length)]);
-
-        viewModel.SetSlotFile(vnSlot.SlotId, replacementPath);
+        viewModel.SetSlotFile(vnSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, vnSlot.SlotId));
 
         Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
 
@@ -172,9 +146,10 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.HasLoadedReport);
-        Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-            operation.HasCodeBlock &&
-            operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
+        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
+        Assert.Equal(13, postbuild.RuntimeCommands.Count);
+        Assert.Contains(postbuild.RuntimeCommands, command =>
+            command.ArgumentListEvidence.Contains("VN_Ctrlram.bin", StringComparison.Ordinal));
         using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
         AssertNoUnexpectedOutputDifferenceIssue(reportDocument.RootElement);
         JsonElement[] differences = [.. reportDocument.RootElement.GetProperty("OutputDifferences").EnumerateArray()];
@@ -184,24 +159,39 @@ public sealed partial class ShellViewModelTests
             Assert.True(difference.GetProperty("Classification").GetString() is
                 OutputDifferenceClassifications.DeclaredReplacement or
                 OutputDifferenceClassifications.PostbuildCrcHeader);
-            Assert.Contains("postbuild-threechip", difference.GetProperty("Evidence").GetString(), StringComparison.Ordinal);
+            string evidence = difference.GetProperty("Evidence").GetString()!;
+            if (difference.GetProperty("Classification").GetString() == OutputDifferenceClassifications.DeclaredReplacement)
+            {
+                Assert.StartsWith("replace-vn-", evidence, StringComparison.Ordinal);
+            }
+            else
+            {
+                Assert.Contains("postbuild-threechip", evidence, StringComparison.Ordinal);
+            }
         });
         Assert.Contains(differences, difference =>
             difference.GetProperty("Classification").GetString() == OutputDifferenceClassifications.DeclaredReplacement);
         Assert.Contains(differences, difference =>
             difference.GetProperty("Classification").GetString() == OutputDifferenceClassifications.PostbuildCrcHeader);
         Assert.All(differences, difference => Assert.True(difference.TryGetProperty("Semantic", out _)));
-        Assert.Contains(differences, difference =>
-            difference.GetProperty("Semantic").GetProperty("CategoryId").GetString() == "tp-flash-header" &&
-            difference.GetProperty("Semantic").GetProperty("Explanation").GetString()!
-                .Contains("Header copy / master", StringComparison.Ordinal));
-        Assert.Contains(differences, difference =>
-            difference.GetProperty("Semantic").GetProperty("SubjectLabel").GetString() == "DLM CRC 0");
-        Assert.Contains(differences, difference =>
-            difference.GetProperty("Semantic").GetProperty("SubjectLabel").GetString() == "Header CRC 0");
-        Assert.Contains(differences, difference =>
-            difference.GetProperty("Semantic").GetProperty("SubjectLabel").GetString() == "ILM CRC 3");
-        Assert.Contains(differences, difference =>
-            difference.GetProperty("Semantic").GetProperty("SubjectLabel").GetString() == "Header CRC 3");
+        Assert.All(
+            differences.Where(difference =>
+                difference.GetProperty("Classification").GetString() == OutputDifferenceClassifications.PostbuildCrcHeader),
+            difference =>
+            {
+                JsonElement semantic = difference.GetProperty("Semantic");
+                Assert.Equal("other-documented-region", semantic.GetProperty("CategoryId").GetString());
+                Assert.Equal("postbuild-copy", semantic.GetProperty("SubjectId").GetString());
+                Assert.Equal("Header / CRC refresh", semantic.GetProperty("SubjectLabel").GetString());
+            });
+        Assert.All(
+            differences.Where(difference =>
+                difference.GetProperty("Classification").GetString() == OutputDifferenceClassifications.DeclaredReplacement),
+            difference =>
+            {
+                JsonElement semantic = difference.GetProperty("Semantic");
+                Assert.Equal("replacement-data", semantic.GetProperty("CategoryId").GetString());
+                Assert.Equal("VN CtrlRAM", semantic.GetProperty("SubjectLabel").GetString());
+            });
     }
 }

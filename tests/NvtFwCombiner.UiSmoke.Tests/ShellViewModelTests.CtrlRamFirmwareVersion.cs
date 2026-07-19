@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -44,7 +45,7 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsCtrlRamFirmwareVersionModalOpen);
     }
 
-    /// <summary>Verifies the user-confirmed CtrlRAM version edit reaches the Backup through the declared postbuild path.</summary>
+    /// <summary>Verifies a version edit cannot bypass exact evidence-backed V2 route admission.</summary>
     [Fact]
     public async Task CtrlRamBuildPropagatesConfirmedFirmwareVersionToOutputBackup()
     {
@@ -64,14 +65,15 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.BuildReplaceAsync(outputPath, edit);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(File.Exists(outputPath), outputPath);
-        WorkbenchFirmwareConfigMetadata? outputMetadata =
-            WorkbenchCompositionService.TryReadFirmwareConfigMetadata("NT51926", outputPath);
-        Assert.NotNull(outputMetadata);
-        Assert.True(outputMetadata.IsFirmwareVersionBarValid);
-        Assert.Equal((byte)0x2A, outputMetadata.FirmwareVersion);
-        Assert.Equal((byte)0x0C, outputMetadata.FirmwareSubVersion);
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Equal(
+            "The selected CtrlRAM Replace shape has no exact evidence-backed V2 route.",
+            viewModel.LastRunResult.Detail);
+        Assert.False(File.Exists(outputPath));
+        Assert.True(viewModel.HasLoadedReport);
+        using var report = JsonDocument.Parse(viewModel.LoadedReportJson);
+        JsonElement issue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal("replace.workflow.not-supported", issue.GetProperty("Code").GetString());
     }
 
     private static MainWindowViewModel CreateCtrlRamVersionReadyViewModel(byte[] baseBytes, TempWorkspace workspace)

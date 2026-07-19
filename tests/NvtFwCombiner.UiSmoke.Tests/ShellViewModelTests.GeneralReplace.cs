@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -65,7 +66,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(string.Empty, viewModel.GeneralReplaceMappings[0].DisplayDetail);
     }
 
-    /// <summary>Verifies General Replace UI runs a DP explicit mapping through Preview and Build.</summary>
+    /// <summary>Verifies a General Replace shape without an exact V2 route fails closed.</summary>
     [Fact]
     public async Task GeneralReplacePreviewAndBuildUseExplicitMappingRows()
     {
@@ -89,18 +90,24 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.CanBuildReplace, viewModel.ReplaceReadinessStatus);
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Equal(
+            "The selected General Replace shape has no exact evidence-backed V2 route.",
+            viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.HasLoadedReport);
+        using (var previewReport = JsonDocument.Parse(viewModel.LoadedReportJson))
+        {
+            JsonElement issue = Assert.Single(previewReport.RootElement.GetProperty("Issues").EnumerateArray());
+            Assert.Equal("replace.workflow.not-supported", issue.GetProperty("Code").GetString());
+        }
 
         await viewModel.BuildReplaceAsync(outputPath);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(0xA5, output[0x100]);
-        Assert.Equal(0x5A, output[0x101]);
-        Assert.Equal(baseBytes[0x102], output[0x102]);
-        Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-            operation.Title.Contains("general-map-1", StringComparison.Ordinal));
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Equal(
+            "The selected General Replace shape has no exact evidence-backed V2 route.",
+            viewModel.LastRunResult.Detail);
+        Assert.False(File.Exists(outputPath));
     }
 
     /// <summary>Verifies the shared UI reaches the NT51926 single full-Flash DP-only V2 route.</summary>
@@ -133,7 +140,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
     }
 
-    /// <summary>Verifies General Replace UI routes TP-touching explicit mappings through postbuild.</summary>
+    /// <summary>Verifies TP-touching General Replace remains fail-closed without an exact V2 route.</summary>
     [Fact]
     public async Task GeneralReplacePreviewRunsPostbuildForTpMapping()
     {
@@ -157,15 +164,16 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Equal(
+            "The selected General Replace shape has no exact evidence-backed V2 route.",
+            viewModel.LastRunResult.Detail);
         Assert.True(viewModel.HasLoadedReport);
-        Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-            operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
-            operation.HasCodeBlock &&
-            operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
-        Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
-            operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
-            operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
+        ReportLineViewModel issue = Assert.Single(viewModel.LoadedReport.Issues);
+        Assert.Contains("no exact evidence-backed V2 route", issue.Detail, StringComparison.Ordinal);
+        using var report = JsonDocument.Parse(viewModel.LoadedReportJson);
+        JsonElement reportIssue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal("replace.workflow.not-supported", reportIssue.GetProperty("Code").GetString());
     }
 
 }

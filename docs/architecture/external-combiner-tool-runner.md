@@ -100,6 +100,6 @@ Current remaining production gates:
 - declared allowed write ranges for every real postbuild parity claim;
 - private CtrlRAM Replace golden outputs and firmware-owner review;
 - clean-package smoke for any release payload that includes `external-tools/` and `reference/`;
-- NT51931's tool and exact-route gates are closed for AUTO_PRJ-158/PID `0x131B`/cascade 6: registered 1.13.0 `NT51931BASED_NORMAL_MODE CRC8` is byte-identical to both the retained V1 route and the owner 1.2.0.4 `NT51930BASED_NORMAL_MODE CRC8` control on the same staged case. The 1.2.0.4 binary remains evidence-only and is not packaged; the rejected 1.13.0/51930-based pairing still access-violates. Support remains neutral and other shapes do not enter this route.
+- NT51931's tool and exact-route gates are closed for AUTO_PRJ-158/PID `0x131B`/cascade 6: registered 1.13.0 `NT51931BASED_NORMAL_MODE CRC8` is byte-identical to both the pre-retirement V1 control and the owner 1.2.0.4 `NT51930BASED_NORMAL_MODE CRC8` control on the same staged case. The 1.2.0.4 binary remains evidence-only and is not packaged; the rejected 1.13.0/51930-based pairing still access-violates. Support remains neutral and other shapes fail closed.
 
 Legacy Combiner `MERGE_MODE` may shorten the staging work file to the command coverage. The postbuild adapter can overlay that command output onto the previous full-length staging image only when it still covers the command's declared write ranges. The imported output remains full length and remains subject to independent allowed-write-range diff verification.

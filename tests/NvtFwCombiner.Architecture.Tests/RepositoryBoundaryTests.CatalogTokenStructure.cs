@@ -54,8 +54,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string GeneralMerge = ExperienceIds.GeneralMerge", catalog, StringComparison.Ordinal);
         Assert.Contains("public const string GeneralReplace = ExperienceIds.GeneralReplace", catalog, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.GeneralMerge", catalog, StringComparison.Ordinal);
-        Assert.Contains("IcWorkflowIds.CtrlRamReplace", profilesWithoutCatalog, StringComparison.Ordinal);
-        Assert.Contains("IcWorkflowIds.GeneralReplace", profilesWithoutCatalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("IcWorkflowIds.CtrlRamReplace", profilesWithoutCatalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("IcWorkflowIds.GeneralReplace", profilesWithoutCatalog, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.StandardMerge", bootstrapSources, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.DpReplace", bootstrapSources, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.CtrlRamReplace", bootstrapSources, StringComparison.Ordinal);

@@ -257,7 +257,7 @@ public static class IcSupportCatalog
         Entry(
             "NT51931",
             workflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.GeneralMerge],
-            notes: "The exact AUTO_PRJ-158/PID 0x131B/cascade-6 V2 route is materialized and byte-equal to the retained V1 route, but Replace remains Not available under support-neutral/no-promotion policy. Registered Combiner 1.13.0 NT51931BASED_NORMAL_MODE matches the reviewed 1.2.0.4 NT51930-based control byte-for-byte; the shared output differs from the owner expected only in 108 classified header/header-copy CRC bytes."),
+            notes: "The exact AUTO_PRJ-158/PID 0x131B/cascade-6 V2 route is materialized and byte-equal to the pre-retirement V1 control, but Replace remains Not available under support-neutral/no-promotion policy. Registered Combiner 1.13.0 NT51931BASED_NORMAL_MODE matches the reviewed 1.2.0.4 NT51930-based control byte-for-byte; the shared output differs from the owner expected only in 108 classified header/header-copy CRC bytes. Every non-exact shape fails closed."),
         Entry(
             "NT51932",
             familyId: "nt51929-nt51932-family",

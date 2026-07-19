@@ -50,14 +50,4 @@ public static partial class WorkbenchCompositionService
         issue = null;
         return true;
     }
-
-    private static string FormatPostbuildCommandBlock(LegacyCombinerPostbuildCommandPlan commandPlan)
-    {
-        string firmwarePath = Path.Combine("output", commandPlan.Profile.FirmwareFileName);
-        const string binDirectory = "BIN";
-        return string.Join(
-            Environment.NewLine,
-            commandPlan.Commands.Select(command =>
-                $"Combiner.exe {string.Join(' ', LegacyCombinerPostbuildCommandLineBuilder.CreateArguments(command, firmwarePath, binDirectory))}"));
-    }
 }

@@ -24,6 +24,12 @@ internal sealed class CtrlRamReplaceFixtureManifest : IDisposable
 
     public IEnumerable<JsonElement> Cases => _document.RootElement.GetProperty("cases").EnumerateArray();
 
+    public JsonElement CaseById(string caseId)
+    {
+        return Cases.Single(candidate =>
+            StringComparer.Ordinal.Equals(candidate.GetProperty("id").GetString(), caseId));
+    }
+
     public static CtrlRamReplaceFixtureManifest? LoadIfPresent()
     {
         string root = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
@@ -55,6 +61,13 @@ internal sealed class CtrlRamReplaceFixtureManifest : IDisposable
             Assert.Contains(viewModel.ReplaceSlots, slot => slot.SlotId == slotId);
             viewModel.SetSlotFile(slotId, PathFor(replacement.GetProperty("file")));
         }
+    }
+
+    public string ReplacementPathFor(JsonElement fixtureCase, string slotId)
+    {
+        JsonElement replacement = fixtureCase.GetProperty("replacementInputs").EnumerateArray().Single(candidate =>
+            StringComparer.Ordinal.Equals(candidate.GetProperty("slotId").GetString(), slotId));
+        return PathFor(replacement.GetProperty("file"));
     }
 
     public bool TryGetExpectedOutputPath(JsonElement fixtureCase, out string? expectedOutputPath)

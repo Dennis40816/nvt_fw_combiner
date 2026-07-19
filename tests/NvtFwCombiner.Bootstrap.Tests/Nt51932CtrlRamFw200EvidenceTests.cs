@@ -64,9 +64,9 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         Assert.Equal(metadata.ProjectId, suggestion.ProjectId);
     }
 
-    /// <summary>Proves the exact legacy and V2 routes produce the same full output.</summary>
+    /// <summary>Proves the exact V2 route produces the locked full output.</summary>
     [Fact]
-    public async Task V1AndV2ProduceIdenticalExactOutputWithCrcOnlyOwnerDeviationAsync()
+    public async Task V2ProducesLockedExactOutputWithCrcOnlyOwnerDeviationAsync()
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -80,30 +80,20 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             StringComparer.Ordinal);
         using var workspace = TempWorkspace.Create("nfc-nt51932-fw200-parity");
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(evidence, evidence.Expected.Path);
-        string legacyPath = workspace.PathFor("legacy.bin");
-        WorkbenchRunResult legacy = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51932", "3", WorkbenchReplaceModes.CtrlRam, slots, true,
-            TestContext.Current.CancellationToken, legacyPath);
         string v2Path = workspace.PathFor("v2.bin");
         WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51932", "cascade", WorkbenchReplaceModes.CtrlRam, slots, true,
             TestContext.Current.CancellationToken, v2Path);
 
-        Assert.True(legacy.Succeeded, legacy.ReportJson);
         Assert.True(v2.Succeeded, v2.ReportJson);
-        byte[] legacyBytes = File.ReadAllBytes(legacyPath);
         byte[] v2Bytes = File.ReadAllBytes(v2Path);
-        Assert.Equal(CurrentOutputSha256, Hash(legacyBytes));
         Assert.Equal(CurrentOutputSha256, Hash(v2Bytes));
-        Assert.Equal(legacyBytes, v2Bytes);
         AssertOwnerDifferenceClassification(evidence.Expected.Bytes, v2Bytes);
         AssertPhysicalInputProjection(evidence, v2Bytes);
 
-        using var legacyReport = JsonDocument.Parse(legacy.ReportJson);
         using var v2Report = JsonDocument.Parse(v2.ReportJson);
-        AssertReportIdentity(legacyReport.RootElement, "nt51932-ctrlram-replace-workbench");
         AssertReportIdentity(v2Report.RootElement, "nt51932-ctrlram-replace-fw200-cascade3");
-        AssertProcessParity(legacyReport.RootElement, v2Report.RootElement);
+        AssertProcessEvidence(v2Report.RootElement);
         Assert.All(
             evidence.Artifacts,
             artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
@@ -145,7 +135,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         AssertBatCommandOrder(File.ReadAllText(batPath));
     }
 
-    /// <summary>Proves wrong project, version, count, or selector shapes retain V1 fallback.</summary>
+    /// <summary>Proves wrong project, version, count, or selector shapes fail closed.</summary>
     [Theory]
     [InlineData("cascade", 2, 0, 0, 3, 0xFFFF)]
     [InlineData("cascade", 1, 3, 0, 3, 0x5601)]
@@ -172,13 +162,12 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         BinaryPrimitives.WriteUInt16LittleEndian(reference.AsSpan(start + FirmwareConfigLayout.ProjectIdOffset), projectId);
         File.WriteAllBytes(referencePath, reference);
 
+        string outputPath = workspace.PathFor("unsupported.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932", number, CreateSlotPaths(evidence, referencePath), true,
-            workspace.PathFor("fallback.bin"), null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
+            outputPath, null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        using var report = JsonDocument.Parse(result.ReportJson);
-        AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-workbench");
+        AssertWorkflowNotSupported(result, outputPath);
     }
 
     /// <summary>Proves matching metadata cannot route a different base variant through the exact V2 path.</summary>
@@ -192,13 +181,12 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         reference[0x100] ^= 0x01;
         File.WriteAllBytes(referencePath, reference);
 
+        string outputPath = workspace.PathFor("unsupported.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932", "cascade", CreateSlotPaths(evidence, referencePath), true,
-            workspace.PathFor("fallback.bin"), null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
+            outputPath, null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        using var report = JsonDocument.Parse(result.ReportJson);
-        AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-workbench");
+        AssertWorkflowNotSupported(result, outputPath);
     }
 
     /// <summary>Proves accepted NT51932 identifiers select the same exact V2 route.</summary>
@@ -264,28 +252,32 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         }
     }
 
-    private static void AssertProcessParity(JsonElement legacyReport, JsonElement v2Report)
+    private static void AssertProcessEvidence(JsonElement report)
     {
-        JsonElement legacy = Assert.Single(ReadProcessorSessions(legacyReport));
-        JsonElement v2 = Assert.Single(ReadProcessorSessions(v2Report));
-        Assert.Equal(ExpectedArguments(), ReadNormalizedArguments(legacy));
-        Assert.Equal(ExpectedArguments(), ReadNormalizedArguments(v2));
-        Assert.Equal(2, legacy.GetProperty("ExecutedCommands").GetArrayLength());
-        Assert.Equal(2, v2.GetProperty("ExecutedCommands").GetArrayLength());
-        AssertProcessorIdentity(legacy);
-        AssertProcessorIdentity(v2);
-        Assert.Equal([new ByteRange(0, Capacity)], ReadRanges(legacy, "ProcessorAllowedReadRanges"));
-        Assert.Equal([new ByteRange(0, Capacity)], ReadRanges(v2, "ProcessorAllowedReadRanges"));
+        JsonElement session = Assert.Single(ReadProcessorSessions(report));
+        Assert.Equal(ExpectedArguments(), ReadNormalizedArguments(session));
+        Assert.Equal(2, session.GetProperty("ExecutedCommands").GetArrayLength());
+        AssertProcessorIdentity(session);
+        Assert.Equal([new ByteRange(0, Capacity)], ReadRanges(session, "ProcessorAllowedReadRanges"));
         ByteRange[] expectedWrites = [
             new(0x7100, 4), new(0x7118, 4), new(NfStart, 1758), new(NormalStart, NormalLength),
             new(VnStart, 4120), new(HeaderCopyStart, HeaderCopyLength), new(DiffStart, DiffLength),
         ];
-        Assert.Equal(expectedWrites, ReadRanges(legacy, "ProcessorAllowedWriteRanges"));
-        Assert.Equal(expectedWrites, ReadRanges(v2, "ProcessorAllowedWriteRanges"));
-        string executable = legacy.GetProperty("ExecutedCommands")[0].GetProperty("ExecutablePath").GetString()!;
+        Assert.Equal(expectedWrites, ReadRanges(session, "ProcessorAllowedWriteRanges"));
+        string executable = session.GetProperty("ExecutedCommands")[0].GetProperty("ExecutablePath").GetString()!;
         Assert.Equal(RegisteredCombinerSha256, Hash(File.ReadAllBytes(executable)));
-        Assert.DoesNotContain("DiffNFMerge", legacy.GetRawText(), StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("DiffNFMerge", v2.GetRawText(), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("DiffNFMerge", session.GetRawText(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string outputPath)
+    {
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(File.Exists(outputPath));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() == "replace.workflow.not-supported");
+        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
     private static string[][] ExpectedArguments()
