@@ -66,6 +66,22 @@ shared successful artifact to one read with two independent outputs, and the
 same missing artifact to two attempted reads and two issues. This is a
 deterministic count reduction, not a universal elapsed-time claim.
 
+## Raw Hex Editor memory baseline
+
+The editable Raw Hex Editor must retain original bytes, working bytes, and one
+source-address identity per current byte so insert/delete and undo/redo remain
+exact. Commit `703f5555` stores the internal identity as `int` with a private
+`-1` inserted-byte sentinel instead of `int?`; nullable original addresses are
+recreated only for the public bounded viewport.
+
+For the exact 1 MiB `Load` allocation test, the observed current-thread
+allocation changes from `10,486,120` to `6,299,752` bytes, a reduction of
+`4,186,368` bytes (`39.9%`). The per-byte mapping is four bytes smaller, so its
+retained saving is approximately 32 MiB at the existing 8 MiB document limit.
+Insert, delete, changed-range, viewport, undo/redo, and search cache behavior
+remain locked. Final packaged 8 MiB load/edit/search latency and process
+working set remain in the Windows manual gate.
+
 ## Fragmented report microbaseline
 
 `CompositionReportPerformanceBaselineTests` executes one real Application
