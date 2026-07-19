@@ -69,6 +69,12 @@ public sealed class CompositionReportPerformanceBaselineTests
         AssertDifference(result.Report.OutputDifferences[0], "diff-001", start: 0, afterPreview: "01");
         AssertDifference(result.Report.OutputDifferences[254], "diff-255", start: 508, afterPreview: "ff");
         AssertDifference(result.Report.OutputDifferences[^1], "diff-10000", start: 19_998, afterPreview: "37");
+        Assert.Same(
+            result.Report.OutputDifferences[0].BeforeSha256,
+            result.Report.OutputDifferences[1].BeforeSha256);
+        Assert.Same(
+            result.Report.OutputDifferences[0].AfterSha256,
+            result.Report.OutputDifferences[255].AfterSha256);
         Assert.Equal(20_000, result.Report.Output.Size);
         Assert.Equal(BaselineOutputSha256, result.Report.Output.Sha256);
         Assert.Equal(BaselineJsonCharacterCount, reportJson.Length);

@@ -5,6 +5,7 @@ namespace NvtFwCombiner.Application.Composition;
 public sealed partial class CompositionRunService
 {
     private const int OutputDifferenceHexPreviewBytes = 32;
+    private static readonly string?[] SingleByteSha256Hex = new string[byte.MaxValue + 1];
 
     private static IEnumerable<ByteRange> SplitRangeByExpectations(
         ByteRange changedRange,
@@ -76,7 +77,21 @@ public sealed partial class CompositionRunService
 
     private static string ToSliceSha256Hex(ReadOnlySpan<byte> bytes, ByteRange range)
     {
-        return ToSha256Hex(bytes.Slice(checked((int)range.Start), checked((int)range.Length)));
+        ReadOnlySpan<byte> slice = bytes.Slice(checked((int)range.Start), checked((int)range.Length));
+        if (slice.Length != 1)
+        {
+            return ToSha256Hex(slice);
+        }
+
+        byte value = slice[0];
+        string? cached = Volatile.Read(ref SingleByteSha256Hex[value]);
+        if (cached is not null)
+        {
+            return cached;
+        }
+
+        string computed = ToSha256Hex(slice);
+        return Interlocked.CompareExchange(ref SingleByteSha256Hex[value], computed, null) ?? computed;
     }
 
     private static string ToSliceHexPreview(ReadOnlySpan<byte> bytes, ByteRange range)
