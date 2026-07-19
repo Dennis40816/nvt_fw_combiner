@@ -124,6 +124,21 @@ public sealed class ReportHistoryPersistenceTests
         _ = Assert.IsType<InvalidOperationException>(coordinator.LastFailure);
     }
 
+    /// <summary>An oversized best-effort history file is rejected before its JSON payload is read.</summary>
+    [Fact]
+    public void LoadRejectsOversizedHistoryFile()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-report-history-size");
+        string historyPath = workspace.PathFor(Path.Combine("state", "report-history.v1.json"));
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(historyPath)!);
+        using (FileStream stream = File.Create(historyPath))
+        {
+            stream.SetLength(ReportHistoryFileStore.MaximumHistoryFileBytes + 1);
+        }
+
+        Assert.Empty(ReportHistoryFileStore.Load(historyPath));
+    }
+
     private static ReportHistorySnapshot CreateSnapshot(string sourceName)
     {
         return new ReportHistorySnapshot(

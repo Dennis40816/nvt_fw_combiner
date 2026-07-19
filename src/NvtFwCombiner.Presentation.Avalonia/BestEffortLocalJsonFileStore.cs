@@ -26,14 +26,21 @@ internal static class BestEffortLocalJsonFileStore
     public static TResult Load<TDocument, TResult>(
         string path,
         TResult fallback,
-        Func<TDocument?, TResult> project)
+        Func<TDocument?, TResult> project,
+        long? maximumFileBytes = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(project);
+        if (maximumFileBytes is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maximumFileBytes));
+        }
 
         try
         {
-            return File.Exists(path)
+            bool canLoad = File.Exists(path) &&
+                (maximumFileBytes is not long limit || new FileInfo(path).Length <= limit);
+            return canLoad
                 ? project(JsonSerializer.Deserialize<TDocument>(File.ReadAllText(path), JsonOptions))
                 : fallback;
         }

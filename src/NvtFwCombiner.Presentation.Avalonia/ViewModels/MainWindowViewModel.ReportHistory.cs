@@ -9,6 +9,7 @@ public sealed partial class MainWindowViewModel
 {
     private const int MaxReportHistoryEntries = 12;
     private const int ReportHistoryStorageWarningBytes = 1024 * 1024;
+    internal const long MaximumReportHistoryStorageBytes = 16L * 1024 * 1024;
     private int _reportHistorySequence;
 
     /// <summary>Gets session-local reports that can be reopened without re-running firmware workflows.</summary>
@@ -134,6 +135,7 @@ public sealed partial class MainWindowViewModel
         var entries = new List<ReportHistoryEntryViewModel>(MaxReportHistoryEntries);
         ReportReviewViewModel loadedReport = ReportReviewViewModel.Empty;
         string loadedReportJson = string.Empty;
+        long retainedBytes = 0;
         int sequence = 0;
         foreach (ReportHistorySnapshot snapshot in snapshots.Take(MaxReportHistoryEntries))
         {
@@ -151,10 +153,18 @@ public sealed partial class MainWindowViewModel
                 continue;
             }
 
-            entries.Add(new ReportHistoryEntryViewModel(
-                ++sequence,
+            var entry = new ReportHistoryEntryViewModel(
+                sequence + 1,
                 normalizedSnapshot,
-                materializedReport?.ReportJsonUtf8ByteCount));
+                materializedReport?.ReportJsonUtf8ByteCount);
+            if (entries.Count > 0 && ExceedsReportHistoryStorageBudget(retainedBytes, entry.StoredByteCount))
+            {
+                continue;
+            }
+
+            entries.Add(entry);
+            sequence++;
+            retainedBytes += entry.StoredByteCount;
             if (materializeAsCurrent && materializedReport is not null)
             {
                 loadedReport = materializedReport;
@@ -375,7 +385,8 @@ public sealed partial class MainWindowViewModel
                 ++_reportHistorySequence,
                 CreateReportHistorySnapshot(LoadedReport, LoadedReportJson),
                 LoadedReport.ReportJsonUtf8ByteCount));
-        while (ReportHistoryEntries.Count > MaxReportHistoryEntries)
+        while (ReportHistoryEntries.Count > MaxReportHistoryEntries ||
+               (ReportHistoryEntries.Count > 1 && ReportHistoryTotalBytes > MaximumReportHistoryStorageBytes))
         {
             ReportHistoryEntries.RemoveAt(ReportHistoryEntries.Count - 1);
         }
@@ -563,6 +574,12 @@ public sealed partial class MainWindowViewModel
             : byteCount >= kib
                 ? $"{(byteCount / kib).ToString("0.0", CultureInfo.InvariantCulture)} KB"
                 : $"{byteCount.ToString(CultureInfo.InvariantCulture)} B";
+    }
+
+    private static bool ExceedsReportHistoryStorageBudget(long retainedBytes, long candidateBytes)
+    {
+        return candidateBytes > MaximumReportHistoryStorageBytes ||
+               retainedBytes > MaximumReportHistoryStorageBytes - candidateBytes;
     }
 
     private sealed record PreparedReportHistory(
