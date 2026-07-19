@@ -36,6 +36,13 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(replaceMode);
         string? workflowId = GetReplaceWorkflowId(replaceMode);
+        bool isDpReplace = string.Equals(replaceMode, WorkbenchReplaceModes.Dp, StringComparison.Ordinal);
+        string unsupportedReason = isDpReplace
+            ? "No owner-approved DP Replace profile/map is registered for this IC."
+            : "No owner-approved executable and safety contract is registered for this IC and Replace mode.";
+        string openCondition = isDpReplace
+            ? "Add the IC-specific DP map/profile, full-byte golden parity, and firmware-owner review."
+            : "Owner must reactivate the scope with a safe executable contract, direct evidence, and firmware-owner review.";
         if (workflowId is null || !IcSupportCatalog.TryFind(icId, out IcSupportEntry? entry) || entry is null)
         {
             return new WorkbenchWorkflowReadiness(
@@ -64,9 +71,9 @@ public static partial class WorkbenchCompositionService
                 entry.SupportsWorkflow(IcWorkflowIds.DpReplace) ||
                     entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace) ||
                     entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace)
-                    ? GetUnsupportedReplaceReason(replaceMode)
-                    : entry.Notes ?? GetUnsupportedReplaceReason(replaceMode),
-                GetUnsupportedReplaceOpenCondition(replaceMode)),
+                    ? unsupportedReason
+                    : entry.Notes ?? unsupportedReason,
+                openCondition),
             _ => throw new InvalidOperationException($"Unknown workflow evidence status '{evidenceStatus}'."),
         };
     }
@@ -99,20 +106,6 @@ public static partial class WorkbenchCompositionService
             display.Issues.Count == 0
                 ? FormatV2DpReplaceCapacities(display)
                 : null;
-    }
-
-    private static string GetUnsupportedReplaceReason(string replaceMode)
-    {
-        return string.Equals(replaceMode, WorkbenchReplaceModes.Dp, StringComparison.Ordinal)
-            ? "No owner-approved DP Replace profile/map is registered for this IC."
-            : "No owner-approved executable and safety contract is registered for this IC and Replace mode.";
-    }
-
-    private static string GetUnsupportedReplaceOpenCondition(string replaceMode)
-    {
-        return string.Equals(replaceMode, WorkbenchReplaceModes.Dp, StringComparison.Ordinal)
-            ? "Add the IC-specific DP map/profile, full-byte golden parity, and firmware-owner review."
-            : "Owner must reactivate the scope with a safe executable contract, direct evidence, and firmware-owner review.";
     }
 
     /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>

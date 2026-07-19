@@ -1,6 +1,6 @@
 {
   "schemaVersion": "2.9",
-  "profileId": "nt51929-ctrlram-replace-fw200-single",
+  "profileId": "nt51919-ctrlram-replace-fw200-single",
   "profileVersion": "0.1.0",
   "promotion": {
     "stage": "executable-candidate",
@@ -9,7 +9,10 @@
         "blockerId": "support-neutral-no-promotion",
         "kind": "release",
         "reason": "The exact route is evidence-complete and intentionally remains support-neutral; this no-promotion policy is not a missing owner input or decision.",
-        "evidenceRefs": [ "nt51929-fw200-single-auto-prj-594-owner-golden-20260717" ]
+        "evidenceRefs": [
+          "nt51929-fw200-single-auto-prj-594-owner-golden-20260717",
+          "ctrlram-replace-perfect-family-51919-to-51929"
+        ]
       }
     ]
   },
@@ -21,7 +24,7 @@
     "layoutPolicy": "fixed",
     "inputPolicy": "fixed",
     "topologyAuthoring": "hidden",
-    "displayNameKey": "profile.nt51929.ctrlram-replace.fw200.single"
+    "displayNameKey": "profile.nt51919.ctrlram-replace.fw200.single"
   },
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
@@ -114,18 +117,18 @@
       "operationId": "postbuild-single",
       "sequence": 2147483647,
       "overlapPolicy": "replace-existing",
-      "reason": "Refresh the exact NT51929 Common FW 2.0.0 single header and integrity fields after all runtime CtrlRAM mappings.",
+      "reason": "Refresh the exact NT51919 perfect-family alias of the NT51929 Common FW 2.0.0 single header and integrity fields after all runtime CtrlRAM mappings.",
       "kind": "run-processor",
-      "processorStageId": "nt51929-fw200-single-combiner"
+      "processorStageId": "nt51919-fw200-single-combiner"
     }
   ],
   "validations": [],
   "processorStages": [
     {
-      "processorStageId": "nt51929-fw200-single-combiner",
+      "processorStageId": "nt51919-fw200-single-combiner",
       "kind": "legacy-combiner-v1",
       "toolBindingId": "legacy-combiner-1.13.0",
-      "invocationProfileId": "nfc.nt51929.ctrlram-postbuild-v1",
+      "invocationProfileId": "nfc.nt51919.ctrlram-postbuild-v1",
       "targetSpaceId": "output-image",
       "targetViewId": "processor-image",
       "authority": "transform",
@@ -147,12 +150,13 @@
     }
   ],
   "output": {
-    "fileNameTemplate": "nt51929-ctrlram-replace.bin",
+    "fileNameTemplate": "nt51919-ctrlram-replace.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "nt51929-fw200-single-auto-prj-594-owner-golden-20260717"
+    "nt51929-fw200-single-auto-prj-594-owner-golden-20260717",
+    "ctrlram-replace-perfect-family-51919-to-51929"
   ]
 }

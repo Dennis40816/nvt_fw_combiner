@@ -51,9 +51,12 @@ public static partial class WorkbenchCompositionService
                 }),
         ];
 
-        string bundleId = context.PostbuildProfile!.IcId is "NT51917"
-            ? "nt51917-ctrlram-replace-alias-candidate"
-            : $"{context.PostbuildProfile.IcId.ToLowerInvariant()}-ctrlram-replace-candidate";
+        string bundleId = context.PostbuildProfile!.IcId switch
+        {
+            "NT51917" => "nt51917-ctrlram-replace-alias-candidate",
+            "NT51919" => "nt51929-ctrlram-replace-candidate",
+            _ => $"{context.PostbuildProfile.IcId.ToLowerInvariant()}-ctrlram-replace-candidate",
+        };
         return BuiltInV2BundleRegistry.All[bundleId].CompileRuntimeReferenceReplace(
             profileId,
             "0.1.0",

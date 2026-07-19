@@ -65,6 +65,8 @@ public static partial class WorkbenchCompositionService
             firmware?.ChipNumber,
             firmware?.ProjectId) switch
         {
+            ("NT51919", "nfc.nt51919.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x4703) =>
+                ("nt51919-ctrlram-replace-fw200-single", "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910"),
             ("NT51917", "nfc.nt51917.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.4.1", 1, 0x5709) =>
                 ("nt51917-ctrlram-replace-fw141-single", "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"),
             ("NT51917", "nfc.nt51917.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.TwoChip, IcNumberInputMode.NumericSelector, "1.3.2", 2, 0x1615) =>

@@ -1,8 +1,12 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51929-ctrlram-replace",
-  "familyVersion": "0.1.0",
+  "familyVersion": "0.2.0",
   "members": [
+    {
+      "memberId": "NT51919",
+      "displayName": "NT51919"
+    },
     {
       "memberId": "NT51929",
       "displayName": "NT51929"
@@ -186,7 +190,7 @@
       "mapId": "nt51929-ctrlram-fw200-single-full-flash",
       "addressSpaceId": "flash",
       "applicability": {
-        "memberIds": [ "NT51929" ],
+        "memberIds": [ "NT51919", "NT51929" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "exact-count", "chipCount": 1 },
         "capacityBytes": 262144,
@@ -227,12 +231,14 @@
       "regionSetIds": [ "nt51929-ctrlram-fw200-full-flash" ],
       "metadataSetIds": [ "nt51929-fwconfig-locator" ],
       "evidenceRefs": [
-        "nt51929-fw200-single-auto-prj-594-owner-golden-20260717"
+        "nt51929-fw200-single-auto-prj-594-owner-golden-20260717",
+        "ctrlram-replace-perfect-family-51919-to-51929"
       ]
     }
   ],
   "factAliases": [],
   "evidenceRefs": [
-    "nt51929-fw200-single-auto-prj-594-owner-golden-20260717"
+    "nt51929-fw200-single-auto-prj-594-owner-golden-20260717",
+    "ctrlram-replace-perfect-family-51919-to-51929"
   ]
 }
