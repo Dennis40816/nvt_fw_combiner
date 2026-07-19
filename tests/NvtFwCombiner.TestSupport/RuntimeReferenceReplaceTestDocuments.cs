@@ -8,7 +8,8 @@ public static class RuntimeReferenceReplaceTestDocuments
     /// <summary>Builds one synthetic family with exact-capacity General Replace maps.</summary>
     public static string FamilyJson(
         IEnumerable<RuntimeReferenceReplaceMapDocument> mapDefinitions,
-        string writeConstraint)
+        string writeConstraint,
+        string modeId = "general-replace")
     {
         ArgumentNullException.ThrowIfNull(mapDefinitions);
         ArgumentException.ThrowIfNullOrWhiteSpace(writeConstraint);
@@ -16,7 +17,9 @@ public static class RuntimeReferenceReplaceTestDocuments
         if (maps.Length == 0 ||
             maps.Any(static map => string.IsNullOrWhiteSpace(map.MapId) || map.CapacityBytes <= 0) ||
             maps.Select(static map => map.MapId).Distinct(StringComparer.Ordinal).Count() != maps.Length ||
-            writeConstraint is not "explicit-range" and not "forbidden")
+            writeConstraint is not "explicit-range" and not "forbidden" ||
+            modeId is not "general-replace" and not "ctrlram-replace" ||
+            maps.Any(static map => map.TopologyKind is not "none" and not "single" and not "cascade"))
         {
             throw new ArgumentException(
                 "Runtime reference-replace fixtures require unique positive maps and explicit or forbidden write authority.",
@@ -42,8 +45,14 @@ public static class RuntimeReferenceReplaceTestDocuments
 
             JsonObject map = sourceMap.DeepClone().AsObject();
             map["mapId"] = definition.MapId;
-            map["applicability"]!.AsObject()["modeIds"] = new JsonArray("general-replace");
+            map["applicability"]!.AsObject()["modeIds"] = new JsonArray(modeId);
             map["applicability"]!.AsObject()["capacityBytes"] = definition.CapacityBytes;
+            map["applicability"]!.AsObject()["topologyRequirement"] = definition.TopologyKind switch
+            {
+                "single" => new JsonObject { ["kind"] = "single" },
+                "cascade" => new JsonObject { ["kind"] = "cascade", ["minimumChipCount"] = 2 },
+                _ => new JsonObject { ["kind"] = "none" },
+            };
             map["regionSetIds"] = new JsonArray(regionSetId);
             regionSets.Add(regionSet);
             imageMaps.Add(map);
@@ -56,14 +65,16 @@ public static class RuntimeReferenceReplaceTestDocuments
     public static string ProfileJson(
         string familyContentHash,
         string promotionStage,
-        IEnumerable<string> mapIds)
+        IEnumerable<string> mapIds,
+        string experienceId = "general-replace")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(familyContentHash);
         ArgumentException.ThrowIfNullOrWhiteSpace(promotionStage);
         ArgumentNullException.ThrowIfNull(mapIds);
         string[] maps = [.. mapIds];
         if (maps.Length == 0 || maps.Any(string.IsNullOrWhiteSpace) ||
-            maps.Distinct(StringComparer.Ordinal).Count() != maps.Length)
+            maps.Distinct(StringComparer.Ordinal).Count() != maps.Length ||
+            experienceId is not "general-replace" and not "ctrlram-replace")
         {
             throw new ArgumentException("Runtime reference-replace profiles require unique map ids.", nameof(mapIds));
         }
@@ -77,7 +88,7 @@ public static class RuntimeReferenceReplaceTestDocuments
         var profile = new JsonObject
         {
             ["schemaVersion"] = "2.6",
-            ["profileId"] = "runtime-general-replace",
+            ["profileId"] = $"runtime-{experienceId}",
             ["profileVersion"] = "1.0.0",
             ["promotion"] = new JsonObject
             {
@@ -88,12 +99,12 @@ public static class RuntimeReferenceReplaceTestDocuments
             ["icNumberInputMode"] = "single-selector",
             ["experience"] = new JsonObject
             {
-                ["experienceId"] = "general-replace",
+                ["experienceId"] = experienceId,
                 ["audience"] = "advanced",
-                ["layoutPolicy"] = "user-defined",
-                ["inputPolicy"] = "extensible",
+                ["layoutPolicy"] = experienceId == "ctrlram-replace" ? "fixed" : "user-defined",
+                ["inputPolicy"] = experienceId == "ctrlram-replace" ? "fixed" : "extensible",
                 ["topologyAuthoring"] = "hidden",
-                ["displayNameKey"] = "runtime-general-replace",
+                ["displayNameKey"] = $"runtime-{experienceId}",
             },
             ["compilationContext"] = new JsonObject { ["kind"] = "runtime-reference-replace" },
             ["mapBinding"] = new JsonObject
@@ -112,7 +123,11 @@ public static class RuntimeReferenceReplaceTestDocuments
                 {
                     ["kind"] = "exact-resolved-map-capacity",
                 }),
-                Slot("source", "auxiliary", "one-or-more", new JsonObject
+                Slot(
+                    "source",
+                    experienceId == "ctrlram-replace" ? "ctrlram-replacement" : "auxiliary",
+                    "one-or-more",
+                    new JsonObject
                 {
                     ["kind"] = "bounded",
                     ["minimumBytes"] = 1,
@@ -163,7 +178,7 @@ public static class RuntimeReferenceReplaceTestDocuments
             ["processorStages"] = new JsonArray(),
             ["output"] = new JsonObject
             {
-                ["fileNameTemplate"] = "runtime-general-replace.bin",
+                ["fileNameTemplate"] = $"runtime-{experienceId}.bin",
                 ["allowOverride"] = true,
                 ["invalidCharacterPolicy"] = "reject",
                 ["requiredTokenIds"] = new JsonArray(),
@@ -197,4 +212,7 @@ public static class RuntimeReferenceReplaceTestDocuments
 }
 
 /// <summary>One exact-capacity map fixture for runtime reference-replace tests.</summary>
-public sealed record RuntimeReferenceReplaceMapDocument(string MapId, int CapacityBytes);
+public sealed record RuntimeReferenceReplaceMapDocument(
+    string MapId,
+    int CapacityBytes,
+    string TopologyKind = "none");

@@ -15,11 +15,19 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$ApprovedPackageBaselineBytes = 57501699
+$MaximumPackageBytes = 58076715
 $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
+    'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
     'external-tools/legacy-combiner/README.md',
     'external-tools/legacy-combiner/1.13.0/Combiner.exe',
     'external-tools/legacy-combiner/1.13.0/manifest.json'
+) | Sort-Object
+
+$ApprovedRuntimeCatalogPackagePaths = @(
+    'profiles/built-in/ctrlram-postbuild-v2/catalog.json',
+    'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
 
 function Get-LowerSha256 {
@@ -170,6 +178,10 @@ if (-not (Test-Path -LiteralPath $fullPackagePath -PathType Leaf)) {
 if (-not $fullPackagePath.EndsWith('.zip', [StringComparison]::OrdinalIgnoreCase)) {
     throw 'Release smoke requires a .zip package.'
 }
+$packageBytes = (Get-Item -LiteralPath $fullPackagePath).Length
+if ($packageBytes -gt $MaximumPackageBytes) {
+    throw "Release package size $packageBytes exceeds the owner-approved maximum $MaximumPackageBytes bytes (v0.9.7 baseline $ApprovedPackageBaselineBytes bytes plus 1%)."
+}
 
 $smokeRoot = Join-Path ([IO.Path]::GetTempPath()) "nvt-fw-combiner-release-smoke-$([guid]::NewGuid().ToString('N'))"
 $extractRoot = Join-Path $smokeRoot 'extract'
@@ -188,7 +200,7 @@ try {
     $packageRoot = $topLevelDirectories[0].FullName
     foreach ($requiredPath in @(
         'NvtFwCombiner.exe',
-        'Nfc.CrcWorker.exe',
+        'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
         'RELEASE-MANIFEST.json',
         'SHA256SUMS.txt',
         'README.txt',
@@ -263,6 +275,17 @@ try {
     if ($BuiltInProfileBundleManifests.Count -eq 0) {
         throw 'Release manifest has no built-in profile bundle manifest.'
     }
+    $DeclaredRuntimeCatalogPaths = @(
+        $DeclaredBuiltInProfileEntries |
+            Where-Object {
+                ([string]$_.path).StartsWith('profiles/built-in/ctrlram-postbuild-v2/', [StringComparison]::Ordinal)
+            } |
+            ForEach-Object { [string]$_.path } |
+            Sort-Object
+    )
+    if (Compare-Object -ReferenceObject $ApprovedRuntimeCatalogPackagePaths -DifferenceObject $DeclaredRuntimeCatalogPaths) {
+        throw 'Release manifest runtime catalog files differ from the approved allowlist.'
+    }
 
     foreach ($entry in $manifest.files) {
         Assert-FileHash -Root $packageRoot -Entry $entry
@@ -298,7 +321,7 @@ try {
         }
     }
 
-    $workerPath = Join-Path $packageRoot 'Nfc.CrcWorker.exe'
+    $workerPath = Join-Path $packageRoot 'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe'
     $request = '{"protocolVersion":"1.0","requestId":"release-smoke","operation":"calculate","algorithmId":"crc-32-mpeg-2","payloadBase64":"MTIzNDU2Nzg5"}'
     $workerOutput = [string]::Join([Environment]::NewLine, @($request | & $workerPath))
     if ($LASTEXITCODE -ne 0) {

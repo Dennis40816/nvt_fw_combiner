@@ -1,5 +1,5 @@
 using System.Globalization;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.HexEditor;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -10,22 +10,22 @@ public sealed partial class HexEditorWorkspaceViewModel
         return string.Format(CultureInfo.InvariantCulture, Text.HexEditorSourceReadyDetail, _state.WorkingLength, _state.UndoCount);
     }
 
-    private string DescribeIssue(WorkbenchRawBinaryEditorIssue issue)
+    private string DescribeIssue(RawBinaryEditorIssue issue)
     {
         return issue.Code switch
         {
-            WorkbenchRawBinaryEditorIssueCode.NoDocument => Text.HexEditorSourceEmptyDetail,
-            WorkbenchRawBinaryEditorIssueCode.InvalidAddress => Text.HexEditorInvalidAddressDetail,
-            WorkbenchRawBinaryEditorIssueCode.AddressOutOfRange => Text.HexEditorInvalidAddressDetail,
-            WorkbenchRawBinaryEditorIssueCode.InvalidHexByte => Text.HexEditorInvalidByteDetail,
-            WorkbenchRawBinaryEditorIssueCode.InvalidHexBytes => Text.HexEditorInvalidByteDetail,
-            WorkbenchRawBinaryEditorIssueCode.InvalidRange => Text.HexEditorInvalidRangeDetail,
-            WorkbenchRawBinaryEditorIssueCode.InputExceedsRange => Text.HexEditorInputExceedsRangeDetail,
-            WorkbenchRawBinaryEditorIssueCode.InvalidByteCount => Text.HexEditorInvalidByteCountDetail,
-            WorkbenchRawBinaryEditorIssueCode.NothingToUndo => Text.HexEditorNothingToUndoDetail,
-            WorkbenchRawBinaryEditorIssueCode.NothingToRedo => Text.HexEditorNothingToRedoDetail,
-            WorkbenchRawBinaryEditorIssueCode.InvalidAsciiText => Text.HexEditorInvalidAsciiSearchDetail,
-            WorkbenchRawBinaryEditorIssueCode.AsciiTextNotFound => Text.HexEditorAsciiSearchNotFoundDetail,
+            RawBinaryEditorIssueCode.NoDocument => Text.HexEditorSourceEmptyDetail,
+            RawBinaryEditorIssueCode.InvalidAddress => Text.HexEditorInvalidAddressDetail,
+            RawBinaryEditorIssueCode.AddressOutOfRange => Text.HexEditorInvalidAddressDetail,
+            RawBinaryEditorIssueCode.InvalidHexByte => Text.HexEditorInvalidByteDetail,
+            RawBinaryEditorIssueCode.InvalidHexBytes => Text.HexEditorInvalidByteDetail,
+            RawBinaryEditorIssueCode.InvalidRange => Text.HexEditorInvalidRangeDetail,
+            RawBinaryEditorIssueCode.InputExceedsRange => Text.HexEditorInputExceedsRangeDetail,
+            RawBinaryEditorIssueCode.InvalidByteCount => Text.HexEditorInvalidByteCountDetail,
+            RawBinaryEditorIssueCode.NothingToUndo => Text.HexEditorNothingToUndoDetail,
+            RawBinaryEditorIssueCode.NothingToRedo => Text.HexEditorNothingToRedoDetail,
+            RawBinaryEditorIssueCode.InvalidAsciiText => Text.HexEditorInvalidAsciiSearchDetail,
+            RawBinaryEditorIssueCode.AsciiTextNotFound => Text.HexEditorAsciiSearchNotFoundDetail,
             _ => Text.HexEditorFileOperationFailedDetail,
         };
     }

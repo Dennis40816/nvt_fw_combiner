@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51950-ab-boe-d82t80",
+  "ic": "NT51950",
+  "workflow": "ab-merge",
+  "variantOrVersion": "boe-d82t80",
+  "topology": "topology-unscoped",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner supplied the AB archive and directed these golden BIN fixtures to be tracked on 2026-07-14.",
+  "profileId": "nt51950-ab-merge",
+  "profileVersion": "0.1.1",
+  "mapCapacity": 524288,
+  "artifacts": [
+    {
+      "artifactId": "dp-ab-input",
+      "role": "input",
+      "path": "NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin",
+      "size": 524288,
+      "sha256": "d544717e647e27868086947b8c401b33cf42823857be81d6bd8c9efd57bee408",
+      "legacyPaths": [
+        "testdata/golden/ab-merge/inputs/nt51950/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin"
+      ],
+      "originalFileName": "NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin",
+      "sourcePath": "togo/51950_ab_code_golden/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin"
+    },
+    {
+      "artifactId": "tp-a-input",
+      "role": "input",
+      "path": "NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs/nt51950_fw_T80.bin",
+      "size": 225280,
+      "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102",
+      "legacyPaths": [
+        "testdata/golden/ab-merge/inputs/nt51950/nt51950_fw_T80.bin"
+      ],
+      "originalFileName": "nt51950_fw_T80.bin",
+      "sourcePath": "togo/51950_ab_code_golden/nt51950_fw_T80.bin"
+    },
+    {
+      "artifactId": "tp-b-input",
+      "role": "input",
+      "path": "NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs/nt51950_fw_T80.bin",
+      "size": 225280,
+      "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102",
+      "legacyPaths": [
+        "testdata/golden/ab-merge/inputs/nt51950/nt51950_fw_T80.bin"
+      ],
+      "originalFileName": "nt51950_fw_T80.bin",
+      "sourcePath": "togo/51950_ab_code_golden/nt51950_fw_T80.bin"
+    },
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/expected/NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_BOE.bin",
+      "size": 524288,
+      "sha256": "d18db8dc02ab4ff52cb17b4b3b3b90f99047c9d1acd2a5c23627197cf32f8650",
+      "legacyPaths": [
+        "testdata/golden/ab-merge/expected/nt51950/NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_BOE.bin"
+      ],
+      "originalFileName": "NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_BOE.bin",
+      "sourcePath": "togo/51950_ab_code_golden/NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_BOE.bin"
+    }
+  ],
+  "referenceParity": {
+    "status": "full-byte-match-to-uploaded-python-reference-and-legacy-combiner-1.13.0",
+    "snapshot": "refcode/ab_code_combiner",
+    "configuration": "51950",
+    "observedOn": "2026-07-15"
+  },
+  "evidenceApplicability": {
+    "directMemberIds": [
+      "NT51950"
+    ],
+    "factScopedAliasMemberIds": [
+      "NT51951"
+    ],
+    "notEstablishedMemberIds": []
+  },
+  "promotion": "executable candidate only; full-byte Python/Combiner parity is tracked, but firmware-owner review remains required before runtime exposure"
+}

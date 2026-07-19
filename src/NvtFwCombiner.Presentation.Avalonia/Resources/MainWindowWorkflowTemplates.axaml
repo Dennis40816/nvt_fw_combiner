@@ -122,10 +122,10 @@
             <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralReplaceMappings}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:GeneralReplaceMappingViewModel">
-                  <views:GeneralReplaceMappingRow
+                  <views:GeneralMappingRow
                       BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}"
-                      RemoveRangeTooltip="{ReflectionBinding $parent[Window].DataContext.Text.RemoveRangeTooltip}"
-                      SelectReplacementBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectReplacementBinTooltip}" />
+                      RemoveMappingTooltip="{ReflectionBinding $parent[Window].DataContext.Text.RemoveRangeTooltip}"
+                      SelectBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectReplacementBinTooltip}" />
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -171,7 +171,7 @@
           <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace4}">
             <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputLengthLabel}" />
             <TextBox
-                Classes="addressInput"
+                Classes="technicalCenteredInput addressInput"
                 Text="{Binding GeneralMergeOutputLength, Mode=TwoWay}"
                 PlaceholderText="{Binding Text.OutputLengthPlaceholder}" />
           </StackPanel>
@@ -201,10 +201,10 @@
           <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralMergeMappings}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:GeneralMergeMappingViewModel">
-                <views:GeneralMergeMappingRow
+                <views:GeneralMappingRow
                     BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}"
                     RemoveMappingTooltip="{ReflectionBinding $parent[Window].DataContext.Text.RemoveMappingTooltip}"
-                    SelectSourceBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectSourceBinTooltip}" />
+                    SelectBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectSourceBinTooltip}" />
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>

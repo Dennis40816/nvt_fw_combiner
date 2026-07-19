@@ -5,31 +5,6 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
-    /// <summary>Sets the selected source BIN file for a General Merge mapping row.</summary>
-    public bool SetGeneralMergeMappingFile(string mappingId, string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(mappingId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        GeneralMergeMappingViewModel? mapping = GeneralMergeMappings.FirstOrDefault(row =>
-            string.Equals(row.MappingId, mappingId, StringComparison.Ordinal));
-        if (mapping is null)
-        {
-            return false;
-        }
-
-        mapping.FilePath = path;
-        RefreshMemoryMapState();
-        RefreshCommandState();
-        return true;
-    }
-
-    /// <summary>Removes a General Merge mapping row from the UI list.</summary>
-    public void RemoveGeneralMergeMappingRow(GeneralMergeMappingViewModel mapping)
-    {
-        RemoveGeneralMergeMapping(mapping);
-    }
-
     private void AddGeneralMergeMapping()
     {
         _generalMergeMappingCounter++;
@@ -38,24 +13,6 @@ public sealed partial class MainWindowViewModel
             GeneralMergeMappings.Count + 1);
         mapping.PropertyChanged += GeneralMergeMappingPropertyChanged;
         GeneralMergeMappings.Add(mapping);
-        RefreshMemoryMapState();
-        RefreshCommandState();
-    }
-
-    private void RemoveGeneralMergeMapping(GeneralMergeMappingViewModel? mapping)
-    {
-        if (mapping is null || GeneralMergeMappings.Count <= 1)
-        {
-            return;
-        }
-
-        mapping.PropertyChanged -= GeneralMergeMappingPropertyChanged;
-        _ = GeneralMergeMappings.Remove(mapping);
-        for (int index = 0; index < GeneralMergeMappings.Count; index++)
-        {
-            GeneralMergeMappings[index].SetIndex(index + 1);
-        }
-
         RefreshMemoryMapState();
         RefreshCommandState();
     }

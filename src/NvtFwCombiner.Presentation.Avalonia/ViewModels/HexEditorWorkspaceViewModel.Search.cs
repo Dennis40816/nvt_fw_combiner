@@ -1,5 +1,5 @@
 using System.Globalization;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.HexEditor;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -38,10 +38,10 @@ public sealed partial class HexEditorWorkspaceViewModel
         }
 
         string searchText = AsciiSearchText;
-        WorkbenchRawBinaryEditorSearchResult result;
+        RawBinaryEditorSearchResult result;
         try
         {
-            result = await _session.FindAsciiAsync(searchText, startOffset, cancellationToken);
+            result = await _files.FindAsciiAsync(searchText, startOffset, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

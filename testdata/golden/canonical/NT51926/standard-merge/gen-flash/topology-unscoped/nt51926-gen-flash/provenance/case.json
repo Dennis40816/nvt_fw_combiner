@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51926-gen-flash",
+  "ic": "NT51926",
+  "workflow": "standard-merge",
+  "variantOrVersion": "gen-flash",
+  "topology": "topology-unscoped",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner requested gen_flash_bin_v2 test BIN files be tracked as golden fixtures on 2026-06-30.",
+  "profileId": "nt51926-standard-merge-gen-flash",
+  "artifacts": [
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/inputs/dp-input.bin",
+      "size": 262144,
+      "sha256": "2853828a2bafaf9b7611ca18008c2a3866b5d566f97ce116ecb15864e652259b",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51926/dp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51926TT_Initial Code_CSOT_1920x1080_14.0_D01_20251003.bin",
+      "sourceBlobSha": "2a464295ea326469d5425df3cf996a6941361767"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/inputs/tp-input.bin",
+      "size": 245760,
+      "sha256": "9e5321fb7673736c6c52e61549e33347e3852488bd253088db7239d4d0f371fc",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51926/tp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/NT51926_FW_CSOT_14_00_PID5102_v01_20251003.bin",
+      "sourceBlobSha": "8d5323030adb0f5241498805cf6e4bcf7d7588bc"
+    },
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/expected/flash.bin",
+      "size": 262144,
+      "sha256": "910c302495ef037bad232b6c8e50fca58db643540bf0e5871a34a33ea907c305",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/expected/51926/flash.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51926_FlashCode_D01T01_20251027.bin",
+      "sourceBlobSha": "30eb9a1c1d9f1aa087dc408b8b29d87816d78a1a"
+    }
+  ]
+}

@@ -5,15 +5,56 @@ namespace NvtFwCombiner.Bootstrap;
 
 /// <summary>Catalog and tool status used by the Settings page.</summary>
 public sealed record WorkbenchSettingsSnapshot(
+    int CatalogIcCount,
     int StandardMergeProfileCount,
-    int ReplaceProfileCount,
-    int FlashMapIcCount,
-    int PostbuildProfileCount,
-    string ToolBindingIds,
-    string ToolManifestPath);
+    int DpReplaceProfileCount,
+    int CtrlRamReplaceAvailableIcCount);
 
 /// <summary>One stable workbench IC-number choice projected from compatibility catalogs.</summary>
 public sealed record WorkbenchIcNumberChoice(string Token, string DisplayLabel);
+
+/// <summary>Golden-evidence state shown without implying a product support promise.</summary>
+public enum WorkbenchWorkflowEvidenceStatus
+{
+    /// <summary>Direct or owner-approved fact-scoped golden parity exists.</summary>
+    GoldenVerified,
+
+    /// <summary>The workflow is available while golden/owner review remains open.</summary>
+    EvidenceGated,
+
+    /// <summary>No approved executable/safety contract exists for the selected IC/workflow.</summary>
+    NotAvailable,
+}
+
+/// <summary>Selected workflow availability plus its evidence reason and opening condition.</summary>
+public sealed record WorkbenchWorkflowReadiness(
+    bool IsAvailable,
+    WorkbenchWorkflowEvidenceStatus EvidenceStatus,
+    string Reason,
+    string OpenCondition);
+
+/// <summary>Owner-defined IC-family relation projected without exposing Profiles types.</summary>
+public enum WorkbenchIcFamilyRelationship
+{
+    /// <summary>No cross-IC family fact is declared.</summary>
+    Standalone,
+
+    /// <summary>The IC is the canonical family source.</summary>
+    Canonical,
+
+    /// <summary>All facts in the declared family scope are reusable.</summary>
+    PerfectAlias,
+
+    /// <summary>Only the explicitly declared family scope is reusable.</summary>
+    PartialAlias,
+}
+
+/// <summary>Owner-defined perfect/partial IC family fact exposed to UI and audit surfaces.</summary>
+public sealed record WorkbenchIcFamilySummary(
+    string? FamilyId,
+    string? CanonicalIcId,
+    WorkbenchIcFamilyRelationship Relationship,
+    string? Scope);
 
 /// <summary>One compiled built-in profile summary exposed without its legacy profile model.</summary>
 public sealed record WorkbenchProfileSummary(
@@ -39,6 +80,20 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     string? PostbuildCategory,
     FirmwareConfigHardwareMetadata Hardware);
 
+/// <summary>DP version token projected without exposing the application flash-map catalog type.</summary>
+public readonly record struct WorkbenchDpVersionMetadata(string VersionToken);
+
+/// <summary>CMI DP facts projected for output naming and shell display.</summary>
+public readonly record struct WorkbenchCmiDpCodeMetadata(
+    byte MajorVersionByte,
+    byte MinorVersionNibble,
+    ushort JiraNumber,
+    long Register16Offset)
+{
+    /// <summary>Technical AUTO_PRJ badge, or <see langword="null"/> when Jira is zero.</summary>
+    public string? JiraBadge => JiraNumber == 0 ? null : $"AUTO_PRJ-{JiraNumber}";
+}
+
 /// <summary>Build-only TP FW version override requested for a CtrlRAM Replace output.</summary>
 public sealed record WorkbenchCtrlRamFirmwareVersionEdit(byte FirmwareVersion, byte FirmwareSubVersion);
 
@@ -52,37 +107,6 @@ public sealed record WorkbenchFirmwareContextSuggestion(
     byte ChipNumber,
     string CommonFwVersion,
     ushort ProjectId);
-
-/// <summary>DP version facts read using gen_flash standard-merge contiguous main/sub version-byte rules.</summary>
-public sealed record WorkbenchDpVersionMetadata(
-    string IcId,
-    string Prefix,
-    string VersionToken,
-    string DisplayVersion,
-    long MainInputReadOffset,
-    long SubInputReadOffset,
-    long OutputMainAbsoluteAddress,
-    long OutputSubAbsoluteAddress,
-    string EvidenceSource);
-
-/// <summary>CMI DP register facts used for Jira traceability and non-blocking payload-size diagnostics.</summary>
-public sealed record WorkbenchCmiDpCodeMetadata(
-    string IcId,
-    byte MajorVersionByte,
-    byte MinorVersionNibble,
-    ushort JiraNumber,
-    string? JiraBadge,
-    int PayloadLength,
-    IReadOnlyList<int> ExpectedPayloadLengths,
-    bool HasPayloadLengthWarning,
-    long Register16Offset,
-    long Register18Offset,
-    string EvidenceSource);
-
-/// <summary>Profile-owned normal Standard Merge DP source-length facts used for non-blocking slot diagnostics.</summary>
-public sealed record WorkbenchStandardMergeDpInputLengthPolicy(
-    long RequiredLength,
-    IReadOnlyList<long> ExpectedInputLengths);
 
 /// <summary>One selected firmware path candidate used by output naming metadata policy.</summary>
 public sealed record WorkbenchOutputNameCandidate(
@@ -133,6 +157,12 @@ public sealed record WorkbenchMemoryCoverageSegment(
     string Fill,
     double BarWidth,
     bool IsChanged);
+
+/// <summary>One coherent range, row, and coverage projection from a single compiled workflow state.</summary>
+public sealed record WorkbenchMemoryDisplay(
+    string RangeLabel,
+    IReadOnlyList<WorkbenchMemoryMapRow> MemoryMapRows,
+    IReadOnlyList<WorkbenchMemoryCoverageSegment> CoverageSegments);
 
 /// <summary>One file slot declared by the selected Replace workflow.</summary>
 public sealed record WorkbenchReplaceInputSlot(

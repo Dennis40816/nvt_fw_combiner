@@ -153,14 +153,12 @@ public sealed record ProfileRegion
 public sealed record RegionAccessRule
 {
     /// <summary>Creates a region access rule.</summary>
-    public RegionAccessRule(string regionId, RegionAccessKind access, string reason)
+    public RegionAccessRule(string regionId, RegionAccessKind access)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
 
         RegionId = regionId;
         Access = access;
-        Reason = reason;
     }
 
     /// <summary>Region governed by this access rule.</summary>
@@ -168,7 +166,4 @@ public sealed record RegionAccessRule
 
     /// <summary>Authoring access granted to this region.</summary>
     public RegionAccessKind Access { get; }
-
-    /// <summary>Human-readable policy reason.</summary>
-    public string Reason { get; }
 }

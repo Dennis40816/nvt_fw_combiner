@@ -67,6 +67,43 @@ public readonly record struct ByteRange
         return start < end ? FromStartEndExclusive(start, end) : null;
     }
 
+    /// <summary>Returns the ordered portions of this range not covered by any supplied range.</summary>
+    public IReadOnlyList<ByteRange> Subtract(IReadOnlyList<ByteRange> removedRanges)
+    {
+        ArgumentNullException.ThrowIfNull(removedRanges);
+        ByteRange[] overlaps =
+        [
+            .. removedRanges
+                .Select(Intersect)
+                .Where(static overlap => overlap is not null)
+                .Select(static overlap => overlap!.Value),
+        ];
+        if (overlaps.Length == 0)
+        {
+            return [this];
+        }
+
+        SortedSet<long> splitPoints = [Start, EndExclusive];
+        foreach (ByteRange overlap in overlaps)
+        {
+            _ = splitPoints.Add(overlap.Start);
+            _ = splitPoints.Add(overlap.EndExclusive);
+        }
+
+        long[] points = [.. splitPoints];
+        List<ByteRange> remaining = [];
+        for (int index = 0; index < points.Length - 1; index++)
+        {
+            ByteRange segment = FromStartEndExclusive(points[index], points[index + 1]);
+            if (!overlaps.Any(overlap => overlap.Overlaps(segment)))
+            {
+                remaining.Add(segment);
+            }
+        }
+
+        return remaining;
+    }
+
     /// <inheritdoc />
     public override string ToString()
     {

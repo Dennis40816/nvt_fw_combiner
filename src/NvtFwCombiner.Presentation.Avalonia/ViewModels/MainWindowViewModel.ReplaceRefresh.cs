@@ -14,46 +14,37 @@ public sealed partial class MainWindowViewModel
         {
             CtrlRamRegions.Add(region);
         }
-
-        OnPropertyChanged(nameof(HasCtrlRamRegions));
-        OnPropertyChanged(nameof(CtrlRamRegionSummary));
     }
 
     private void RefreshMemoryMapState()
     {
         long? selectedMergeDpInputLength = GetSelectedMergeDpInputLength();
-        if (IsGeneralMergeModeSelected)
-        {
-            IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings = CreateGeneralMergeMappingInputs();
-            ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetGeneralMergeMemoryMapRows(
+        (
+            string rangeLabel,
+            IReadOnlyList<MemoryMapRowViewModel> rows,
+            IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) = IsGeneralMergeModeSelected
+            ? UiCompositionRunner.GetGeneralMergeMemoryDisplay(
                 GeneralMergeOutputLength,
-                mappings));
-            ReplaceRows(MergeCoverageSegments, UiCompositionRunner.GetGeneralMergeCoverageSegments(
-                GeneralMergeOutputLength,
-                mappings));
-        }
-        else
-        {
-            ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetStandardMergeMemoryMapRows(
+                CreateGeneralMergeMappingInputs())
+            : UiCompositionRunner.GetStandardMergeMemoryDisplay(
                 SelectedIc,
-                selectedMergeDpInputLength));
-            ReplaceRows(MergeCoverageSegments, UiCompositionRunner.GetStandardMergeCoverageSegments(
-                SelectedIc,
-                selectedMergeDpInputLength));
-        }
+                selectedMergeDpInputLength);
+        MergeMemoryRangeLabel = rangeLabel;
+        ReplaceRows(MergeMemoryRows, rows);
+        ReplaceRows(MergeCoverageSegments, coverageSegments);
 
-        ReplaceRows(ReplaceMemoryRows, UiCompositionRunner.GetReplaceMemoryMapRows(
+        (
+            string replaceRangeLabel,
+            IReadOnlyList<MemoryMapRowViewModel> replaceRows,
+            IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverageSegments) = UiCompositionRunner.GetReplaceMemoryDisplay(
             SelectedIc,
             SelectedNumber,
             SelectedReplaceMode,
             GetSelectedReplaceBaseLength(),
-            GetSelectedCtrlRamBasePath()));
-        ReplaceRows(ReplaceCoverageSegments, UiCompositionRunner.GetReplaceCoverageSegments(
-            SelectedIc,
-            SelectedNumber,
-            SelectedReplaceMode,
-            GetSelectedReplaceBaseLength(),
-            GetSelectedCtrlRamBasePath()));
+            GetSelectedCtrlRamBasePath());
+        ReplaceMemoryRangeLabel = replaceRangeLabel;
+        ReplaceRows(ReplaceMemoryRows, replaceRows);
+        ReplaceRows(ReplaceCoverageSegments, replaceCoverageSegments);
         RefreshReplaceCoverageGroups();
 
         OnPropertyChanged(nameof(MergeMemoryRangeLabel));
@@ -61,15 +52,13 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReplaceOutputFileName));
         OnPropertyChanged(nameof(MergeMemorySummary));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
-        OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
-        OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
     }
 
     private long? GetSelectedMergeDpInputLength()
     {
-        return UiCompositionRunner.IsDpPerspectiveIc(SelectedIc) &&
+        return WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
             !string.IsNullOrWhiteSpace(_mergeDpSlot.FilePath) &&
             File.Exists(_mergeDpSlot.FilePath)
                 ? new FileInfo(_mergeDpSlot.FilePath).Length
@@ -79,7 +68,7 @@ public sealed partial class MainWindowViewModel
     private long? GetSelectedReplaceBaseLength()
     {
         return SelectedReplaceMode == DpReplaceMode &&
-            UiCompositionRunner.IsDpPerspectiveIc(SelectedIc) &&
+            WorkbenchCompositionService.HasBuiltInV2DpReplace(SelectedIc) &&
             !string.IsNullOrWhiteSpace(ReplaceBaseSlot.FilePath) &&
             File.Exists(ReplaceBaseSlot.FilePath)
                 ? new FileInfo(ReplaceBaseSlot.FilePath).Length
@@ -103,59 +92,30 @@ public sealed partial class MainWindowViewModel
                 .ToDictionary(slot => slot.SlotId, slot => slot.FilePath, StringComparer.Ordinal)
             : new Dictionary<string, string?>(StringComparer.Ordinal);
         ReplaceSlots.Clear();
-        ActiveReplaceRows.Clear();
-        switch (SelectedReplaceMode)
+        if (IsSelectedReplaceModeSupported &&
+            SelectedReplaceMode is DpReplaceMode or CtrlRamReplaceMode)
         {
-            case DpReplaceMode:
-                ReplaceSlots.Add(ReplaceBaseSlot);
-                foreach (FirmwareSlotViewModel slot in UiCompositionRunner.GetReplaceInputSlots(
-                    SelectedIc,
-                    SelectedNumber,
-                    SelectedReplaceMode))
-                {
-                    RestorePreservedSlotFile(slot, preservedSlotFiles);
-                    ReplaceSlots.Add(slot);
-                }
-
-                AddRows(
-                    $"{SelectedIc} / {SelectedNumber}: DP Replace input policy is active.",
-                    UiCompositionRunner.GetDpReplacePolicySummary(SelectedIc),
-                    "Visible DP Replace slots come from approved profile/catalog evidence.");
-                break;
-            case CtrlRamReplaceMode:
-                ReplaceSlots.Add(ReplaceBaseSlot);
-                foreach (FirmwareSlotViewModel slot in UiCompositionRunner.GetReplaceInputSlots(
-                    SelectedIc,
-                    SelectedNumber,
-                    SelectedReplaceMode,
-                    GetSelectedCtrlRamBasePath()))
-                {
-                    RestorePreservedSlotFile(slot, preservedSlotFiles);
-                    ReplaceSlots.Add(slot);
-                }
-
-                AddRows(
-                    $"{SelectedIc} / {SelectedNumber}: {Math.Max(ReplaceSlots.Count - 1, 0)} replaceable CtrlRAM regions.",
-                    "Each CtrlRAM region slot may receive its own replacement BIN; empty slots stay from base.",
-                    "Build validates first, then runs the staged Combiner postbuild command sequence.",
-                    "Private golden outputs are still required before support parity is claimed.");
-                break;
-            case GeneralReplaceMode:
-                AddRows(
-                    $"{SelectedIc} / {SelectedNumber}: General Replace input policy is active.",
-                    "Base firmware stays separate; mapping rows define replacement ranges.",
-                    "The compiler must approve each explicit range before build.",
-                    "Any TP-range mapping must compile with an approved Combiner CRC/header refresh.");
-                break;
-            default:
-                AddRows("Select a replace mode.");
-                break;
+            ReplaceSlots.Add(ReplaceBaseSlot);
+            foreach (FirmwareSlotViewModel slot in UiCompositionRunner.GetReplaceInputSlots(
+                SelectedIc,
+                SelectedNumber,
+                SelectedReplaceMode,
+                GetSelectedCtrlRamBasePath()))
+            {
+                RestorePreservedSlotFile(slot, preservedSlotFiles);
+                ReplaceSlots.Add(slot);
+            }
         }
 
         ApplyFirmwareSlotText();
         RefreshReplaceSlotGroups();
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
-        OnPropertyChanged(nameof(IsDpReplaceModeSelected));
+        OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeGoldenVerified));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeEvidenceGated));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeUnavailable));
         OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
         OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
         OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));

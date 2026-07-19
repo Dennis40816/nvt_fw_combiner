@@ -39,7 +39,10 @@ public sealed class ExternalProcessorInvocation
                 .ThenBy(binding => binding.FirmwareRange.Length)
                 .ThenBy(binding => binding.SourceSpaceId, StringComparer.Ordinal),
         ];
-        ExternalProcessorStagedArtifactBinding[] artifactBindings = [.. stagedArtifactBindings ?? []];
+        ExternalProcessorStagedArtifactBinding[] artifactBindings = ImmutableReferenceSnapshot.Create(
+            stagedArtifactBindings ?? [],
+            "External processor staged artifact bindings must be non-null with unique artifact ids.",
+            parameterName: nameof(stagedArtifactBindings));
         if (_allowedReadRanges.Length == 0)
         {
             throw new ArgumentException("External processor allowed read ranges must not be empty.", nameof(allowedReadRanges));
@@ -60,8 +63,7 @@ public sealed class ExternalProcessorInvocation
             }
         }
 
-        if (artifactBindings.Any(static binding => binding is null) ||
-            artifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
+        if (artifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
             artifactBindings.Length)
         {
             throw new ArgumentException(
@@ -70,13 +72,10 @@ public sealed class ExternalProcessorInvocation
         }
 
         _stagedArtifactBindings = [.. artifactBindings.OrderBy(binding => binding.ArtifactId, StringComparer.Ordinal)];
-        ExternalProcessorOutputAssertion[] assertions = [.. outputAssertions ?? []];
-        if (assertions.Any(static assertion => assertion is null))
-        {
-            throw new ArgumentException(
-                "External processor output assertions must not contain null entries.",
-                nameof(outputAssertions));
-        }
+        ExternalProcessorOutputAssertion[] assertions = ImmutableReferenceSnapshot.Create(
+            outputAssertions ?? [],
+            "External processor output assertions must not contain null entries.",
+            parameterName: nameof(outputAssertions));
 
         Array.Sort(assertions, static (left, right) =>
         {

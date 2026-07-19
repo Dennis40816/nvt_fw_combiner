@@ -1,14 +1,14 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.HexEditor;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class HexEditorWorkspaceViewModel
 {
     private const double HexViewportRowHeight = 25;
-    private IReadOnlyList<WorkbenchRawBinaryEditorChangedRange> _changedRanges = [];
+    private IReadOnlyList<RawBinaryEditorChangedRange> _changedRanges = [];
     private int _currentViewportRowCapacity = CurrentViewportRowCount;
     private int _selectedChangedRangeIndex = -1;
 
@@ -68,7 +68,7 @@ public sealed partial class HexEditorWorkspaceViewModel
 
     private void RefreshChangeTracking()
     {
-        _changedRanges = HasDocument ? _session.GetChangedRanges() : [];
+        _changedRanges = HasDocument ? _editor.GetChangedRanges() : [];
         ChangedBlocks = [.. _changedRanges.Select(CreateChangedBlock)];
         if (_selectedChangedRangeIndex >= _changedRanges.Count)
         {
@@ -85,7 +85,7 @@ public sealed partial class HexEditorWorkspaceViewModel
     }
 
     private HexEditorChangedBlockViewModel CreateChangedBlock(
-        WorkbenchRawBinaryEditorChangedRange range,
+        RawBinaryEditorChangedRange range,
         int index)
     {
         HexEditorStructuralBoundaryInfo boundary = GetStructuralBoundary(range);
@@ -169,7 +169,7 @@ public sealed partial class HexEditorWorkspaceViewModel
     {
         long rowStart = checked((long)rowIndex * BytesPerRow);
         long rowEnd = rowStart + BytesPerRow;
-        foreach (WorkbenchRawBinaryEditorChangedRange range in _changedRanges)
+        foreach (RawBinaryEditorChangedRange range in _changedRanges)
         {
             if (range.ValueChanges.Any(change => change.Start < rowEnd && change.EndExclusive > rowStart))
             {
@@ -192,7 +192,7 @@ public sealed partial class HexEditorWorkspaceViewModel
     {
         for (int index = 0; index < _changedRanges.Count; index++)
         {
-            WorkbenchRawBinaryEditorChangedRange range = _changedRanges[index];
+            RawBinaryEditorChangedRange range = _changedRanges[index];
             HexEditorStructuralBoundaryInfo boundary = GetStructuralBoundary(range);
             if (boundary.IsValid && address >= boundary.StartAddress && address <= boundary.EndAddress)
             {
@@ -209,9 +209,9 @@ public sealed partial class HexEditorWorkspaceViewModel
         return HexEditorStructuralBoundaryInfo.None;
     }
 
-    private HexEditorStructuralBoundaryInfo GetStructuralBoundary(WorkbenchRawBinaryEditorChangedRange range)
+    private HexEditorStructuralBoundaryInfo GetStructuralBoundary(RawBinaryEditorChangedRange range)
     {
-        if ((range.ChangeKind & WorkbenchRawBinaryEditorChangeKind.Structural) == 0 || _state.WorkingLength == 0)
+        if ((range.ChangeKind & RawBinaryEditorChangeKind.Structural) == 0 || _state.WorkingLength == 0)
         {
             return HexEditorStructuralBoundaryInfo.None;
         }
@@ -226,13 +226,13 @@ public sealed partial class HexEditorWorkspaceViewModel
             string.Empty);
     }
 
-    private string CreateChangedBlockReason(WorkbenchRawBinaryEditorChangedRange range)
+    private string CreateChangedBlockReason(RawBinaryEditorChangedRange range)
     {
         var reasons = new List<string>();
         long valueChangeCount = range.ValueChanges.Sum(change => change.Length);
         if (valueChangeCount > 0)
         {
-            WorkbenchRawBinaryEditorValueChange first = range.ValueChanges[0];
+            RawBinaryEditorValueChange first = range.ValueChanges[0];
             string address = FormatAddress(first.Start);
             string before = first.FirstOriginalValue.ToString("X2", CultureInfo.InvariantCulture);
             string after = first.FirstCurrentValue.ToString("X2", CultureInfo.InvariantCulture);
@@ -241,9 +241,9 @@ public sealed partial class HexEditorWorkspaceViewModel
                 : string.Format(CultureInfo.InvariantCulture, Text.HexEditorChangedBlockValueReasonMultipleTemplate, valueChangeCount, address, before, after));
         }
 
-        foreach (WorkbenchRawBinaryEditorStructuralChange change in range.StructuralChanges)
+        foreach (RawBinaryEditorStructuralChange change in range.StructuralChanges)
         {
-            string template = change.Kind == WorkbenchRawBinaryEditorStructuralChangeKind.Insert
+            string template = change.Kind == RawBinaryEditorStructuralChangeKind.Insert
                 ? Text.HexEditorChangedBlockInsertReasonTemplate
                 : Text.HexEditorChangedBlockDeleteReasonTemplate;
             reasons.Add(string.Format(
@@ -320,7 +320,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         }
 
         _selectedChangedRangeIndex = index;
-        WorkbenchRawBinaryEditorChangedRange range = _changedRanges[index];
+        RawBinaryEditorChangedRange range = _changedRanges[index];
         long selectedAddress = Math.Clamp(range.Start, 0, _state.WorkingLength - 1);
         int row = checked((int)(selectedAddress / BytesPerRow));
         SetViewportStartRow(Math.Max(0, row - 4));
@@ -346,7 +346,7 @@ public sealed record HexEditorChangedBlockViewModel(
     string StartAddress,
     string EndAddress,
     string LengthLabel,
-    WorkbenchRawBinaryEditorChangeKind ChangeKind,
+    RawBinaryEditorChangeKind ChangeKind,
     string ReasonTooltip)
 {
     /// <summary>One-based compact row identifier.</summary>
@@ -356,10 +356,10 @@ public sealed record HexEditorChangedBlockViewModel(
     public string RangeLabel => $"{StartAddress} - {EndAddress}";
 
     /// <summary>True when this block includes same-address byte value differences.</summary>
-    public bool HasDataChanges => (ChangeKind & WorkbenchRawBinaryEditorChangeKind.Data) != 0;
+    public bool HasDataChanges => (ChangeKind & RawBinaryEditorChangeKind.Data) != 0;
 
     /// <summary>True when this block includes insert/delete source-address shifting.</summary>
-    public bool HasStructuralChanges => (ChangeKind & WorkbenchRawBinaryEditorChangeKind.Structural) != 0;
+    public bool HasStructuralChanges => (ChangeKind & RawBinaryEditorChangeKind.Structural) != 0;
 }
 
 internal sealed record HexEditorStructuralBoundaryInfo(

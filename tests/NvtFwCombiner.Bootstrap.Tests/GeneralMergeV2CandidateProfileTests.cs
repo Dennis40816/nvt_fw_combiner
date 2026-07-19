@@ -59,7 +59,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51928-general-merge-logical-candidate")]
     [InlineData(
         "nt51930-general-merge-logical-candidate",
-        "dd94152806731536a7641b06b33ed177cc17e141032b705ed5b89956e3affc39",
+        "0baa3c4829da28540fd93be7b8afae23ce5a23521361976a2dddf2267e18b9e3",
         "nt51930-standard-merge",
         "nt51930.json",
         "nt51930",
@@ -131,7 +131,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         ArgumentNullException.ThrowIfNull(profileId);
 
         using var workspace = TempWorkspace.Create();
-        TrustedProfileBundleCatalog catalog = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
+        TrustedProfileBundleCatalog catalog = BuiltInProfileMaterializationTestSupport.LoadSourceCandidateCatalog(
             workspace,
             bundleDirectory,
             bundleContentHash);
@@ -174,11 +174,6 @@ public sealed class GeneralMergeV2CandidateProfileTests
                 sourceBundleDirectory,
                 "families",
                 familyFileName)),
-            File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
-                "profiles",
-                "built-in",
-                bundleDirectory,
-                "families",
-                familyFileName)));
+            File.ReadAllBytes(Path.Combine(workspace.Root, "families", familyFileName)));
     }
 }

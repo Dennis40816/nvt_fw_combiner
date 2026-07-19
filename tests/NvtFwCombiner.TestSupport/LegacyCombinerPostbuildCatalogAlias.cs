@@ -1,0 +1,1 @@
+global using LegacyCombinerPostbuildCatalog = NvtFwCombiner.TestSupport.PostbuildTestCatalog;

@@ -32,7 +32,6 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
 
         string testName = $"{icId}/{selectionToken}";
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         string toolRoot = Path.Combine(repositoryRoot, "external-tools");
         ExternalCombinerToolManifest manifest = LoadManifest(
             Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
@@ -43,7 +42,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         IcNumberSelection selection = new(mode, [selectionToken]);
         TpFlashMapRegion[] mappedRegions =
         [
-            .. TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection)
+            .. BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, profile)
                 .OrderBy(region => region.Range.Start)
                 .ThenBy(region => region.RegionId, StringComparer.Ordinal),
         ];
@@ -51,7 +50,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             mappedRegions.Length >= 2,
             $"{testName} must expose multiple postbuild-mapped CtrlRAM regions.");
 
-        byte[] baseBytes = File.ReadAllBytes(FindGoldenExpectedOutput(goldenRoot, manifestIc));
+        byte[] baseBytes = File.ReadAllBytes(FindGoldenExpectedOutput(manifestIc));
         byte[] singleRegionBytes = CreateSelfReplacementBytes(baseBytes, [mappedRegions[0]]);
         byte[] multipleRegionBytes = CreateSelfReplacementBytes(baseBytes, mappedRegions);
         Assert.Equal(baseBytes, singleRegionBytes);

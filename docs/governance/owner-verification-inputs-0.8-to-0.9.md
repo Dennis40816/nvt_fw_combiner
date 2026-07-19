@@ -1,6 +1,17 @@
 # Owner Verification Inputs: v0.8.x to v0.9.x
 
-Status: active owner checklist.
+Status: superseded historical checklist for the stable v0.9.9 final intake.
+
+Do not use this document to request more v0.9.9 owner data. The current,
+owner-complete authority is:
+
+- `testdata/golden/canonical/manifest.json` 的 `ctrlram-replace` direct cases；
+- `docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md`.
+
+The final intake has no remaining owner-input or owner-decision gate. Any older
+"missing" language below is retained only to explain the pre-intake workflow;
+remaining parity, tool experiments, route convergence, retirement, code-size,
+review, and release verification are agent-owned.
 
 This checklist identifies data the owner may provide for verification. It does
 not ask for secrets, and it does not authorize a profile, an IC, or a release
@@ -108,16 +119,16 @@ case explicitly proves a narrower rule.
 
 Tracked commit-approved fixtures currently cover NT51929 (`nt51929-ab-t05-d06`)
 and NT51950 (`nt51950-ab-boe-d82t80` and `nt51950-ab-hiway-d82t80`) in
-[`testdata/golden/ab-merge/manifest.json`](../../testdata/golden/ab-merge/manifest.json).
+the [canonical golden inventory](../../testdata/golden/canonical/manifest.json).
 They establish only the named V2/reference parity facts. They do not grant
 runtime support or replace the remaining map, command-trace, alias, or
 firmware-owner review requirements below.
 
 | AB group | Additional required evidence |
 | --- | --- |
-| NT51919 / NT51929 / NT51932 | An owner-approved fact-scoped AB alias/parity matrix. It must identify each effective member/map/capacity and provide direct output hashes for every reused member. A shared source payload is acceptable only when the matrix and member-specific expected results prove parity. |
+| NT51919 / NT51929 / NT51932 | Closed for duplicate-product intake by the 2026-07-18 owner-approved NT51929 fact scope. Keep the member/map/capacity declaration and independent NT51932 named-configuration test; firmware-owner promotion review remains. |
 | NT51950 | The tracked candidate already pins the source-verified `Combiner.exe` 1.13.0 binding, command, tool hash, and declared writes. Supply direct inputs, expected output, provenance, and owner approval for each release case; no `map.txt` is used. Submit command/tool sidecars only when the owner case differs from the pinned binding. Combiner, not C#, owns AB header CRC mutation. |
-| NT51951 | The candidate pins the same command family with the verified final `0x80000` argument and full Python/Combiner synthetic parity. Supply direct inputs, expected output, provenance, and owner approval for its own case; do not copy NT51950's output. No `map.txt` or duplicate command/tool sidecar is needed unless the owner case differs from the pinned binding, version, hash, or staging order. |
+| NT51951 | Closed for duplicate-product AB intake by the 2026-07-18 owner-approved NT51950 workflow-logic scope. Keep the distinct `0x80000` Python/Combiner synthetic test. No `map.txt` is used, C# does not write header CRC, and firmware-owner promotion review remains. |
 
 The existing 256 KiB NT51929 `initial code` / `TPFW` / `FlashCode` archive is a
 Normal case, not this AB evidence. Existing V2 candidate profiles and reference
@@ -133,7 +144,6 @@ it is not a request for another Combiner source copy.
 For every IC/IC-number/postbuild branch selected for release, provide:
 
 ```text
-base.bin
 one replacement BIN for each selected CtrlRAM region/group
 expected-preserve.bin
 expected-edit.bin
@@ -142,17 +152,28 @@ combiner-tool.json
 provenance.json
 ```
 
-Record the source and final NVT Backup metadata, requested FW major/sub-version
-for the edit case, expected output name, exact Combiner command order, and
-declared read/write/diff ranges. Repository intake calculates output SHA-256
-values. `expected-preserve.bin` and
+The official owner system is not expected to export a separate pre-replacement
+`base.bin`. The expected output is the authoritative firmware artifact. Intake
+may create a temporary expected-derived sentinel work image for range/processor
+parity, but that method cannot independently prove base selection or unchanged
+bytes and still requires the R3 decisions recorded in the
+[v0.9.9 owner CtrlRAM evidence audit](v0.9.9-owner-ctrlram-evidence-audit.md).
+
+Record the source and final NVT Backup metadata that is available, requested FW
+major/sub-version for the edit case, expected output name, exact Combiner
+command order, and declared read/write/diff ranges. Repository intake
+calculates output SHA-256 values. `expected-preserve.bin` and
 `expected-edit.bin` must use the same base/replacement input set. The edit case
 must prove that the source image remains immutable, the staged source changes
 before postbuild, and the final version is read through the NVT Backup.
 
-Current high-priority missing CtrlRAM cases include NT51927 single/2-chip/3-chip
-and the selected NT51919/NT51929/NT51932/NT51950/NT51951 branches. A real
-expected output is required; a successful Combiner exit code is not parity.
+Historical pre-final-intake requests in this section are superseded. The final
+manifest accepts the corrected NT51951 single and the exact NT51930 INX,
+NT51931, NT51932, and NT51926 2.0.0 cases. NT51950 cascade has no product case
+and NT51951 cascade has no project, so both are v0.9.9 release-scope exclusions,
+not missing owner evidence. Existing approved aliases and NT51927 evidence also
+must not be re-requested. A successful Combiner exit code still is not parity;
+the repository must now prove the supplied expected bytes.
 
 ### DP and General Replace
 
@@ -189,8 +210,8 @@ the replacement covers every current consumer:
 | --- | --- |
 | Standard Merge V2 registrations | Additional capacity golden inputs/outputs, naming/report parity, and owner approval for any release-support expansion. Legacy C# profiles are not retained as a runtime or test oracle. |
 | Legacy `CompositionProfileCompiler` authority | Per-workflow V2 input/output/report/CLI/UI parity, including invalid cases and every selected processor path. |
-| `TpFlashMapCatalog` / `IcMetadataFacade` projections | Source-map provenance and UI/CLI metadata/number-selection parity for every consumer, with no copied firmware semantics. |
-| `LegacyCombinerPostbuildCatalog` | V2 processor declaration, exact tool binding, staging/read/write ranges, command trace, real expected output, and firmware-owner review. |
+| Config-backed flash-map query | Source-map provenance and UI/CLI map parity for every consumer, with no copied firmware semantics. Static C# region/base-shape authority and the forwarding `IcMetadataFacade` are retired. |
+| Hash-pinned CtrlRAM postbuild profile data | Exact tool binding, staging/read/write ranges, command trace, real expected output, and firmware-owner review before any support promotion. Static C# command authority is retired. |
 
 ## v0.9.6: Support and Release Consolidation
 
@@ -208,17 +229,13 @@ Before a support or release claim, provide:
   report/history, and Combiner readiness; and
 - PR/review/CI evidence or the documented local-verification exception.
 
-## Current Highest-Priority Owner Inputs
+## Current Owner Input Status
 
-1. AB product evidence for NT51919, NT51929, NT51932, NT51950, and NT51951 as
-   specified above. NT51950/NT51951 reuse their pinned candidate Combiner
-   binding unless the submitted owner case changes it.
-2. Real CtrlRAM Replace Preserve/Edit expected outputs and postbuild evidence
-   for the release-selected IC/count branches.
-3. General Replace safety envelopes and TP/CtrlRAM expected-output cases if
-   those workflows are selected for support.
-4. A signed-off release support matrix before `v0.9.6`; package/signing data
-   is needed only when a release is prepared.
+There are no remaining owner inputs for stable v0.9.9. Do not request another
+golden package, corrected single/cascade output, InsertSID script, Combiner 1.13
+output, or DiffNFMerge package. Use the final manifest and close the remaining
+hash/command/full-byte parity, exact V2 route, caller-zero retirement, code-size,
+R2/R3 review, structure, and `verify --all` gates in the repository.
 
 ## Do Not Send
 

@@ -30,41 +30,6 @@ public sealed partial class CompositionRunService
         }
     }
 
-    private static List<ByteRange> SubtractRanges(ByteRange source, IReadOnlyList<ByteRange> removedRanges)
-    {
-        ByteRange[] overlaps =
-        [
-            .. removedRanges
-                .Select(source.Intersect)
-                .Where(overlap => overlap is not null)
-                .Select(overlap => overlap!.Value),
-        ];
-        if (overlaps.Length == 0)
-        {
-            return [source];
-        }
-
-        SortedSet<long> splitPoints = [source.Start, source.EndExclusive];
-        foreach (ByteRange overlap in overlaps)
-        {
-            _ = splitPoints.Add(overlap.Start);
-            _ = splitPoints.Add(overlap.EndExclusive);
-        }
-
-        long[] points = [.. splitPoints];
-        List<ByteRange> ranges = [];
-        for (int index = 0; index < points.Length - 1; index++)
-        {
-            var segment = ByteRange.FromStartEndExclusive(points[index], points[index + 1]);
-            if (!overlaps.Any(overlap => overlap.Overlaps(segment)))
-            {
-                ranges.Add(segment);
-            }
-        }
-
-        return ranges;
-    }
-
     private static IEnumerable<ByteRange> SplitRangeByWriteSectionBoundaries(
         ByteRange source,
         IReadOnlyList<ExternalProcessorWriteRangeSection> sections)

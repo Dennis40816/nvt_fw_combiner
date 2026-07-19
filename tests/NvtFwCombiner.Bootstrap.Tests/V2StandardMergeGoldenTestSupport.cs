@@ -34,8 +34,7 @@ internal static class V2StandardMergeGoldenTestSupport
 
     private static TrustedProfileBundleCatalog LoadCatalogRoot(string bundleRoot, string bundleContentHash)
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        AssertSchemaSnapshotsMatchManifest(repositoryRoot, bundleRoot);
+        AssertSchemaSnapshotsMatchManifest(bundleRoot);
         TrustedProfileBundle bundle = LoadBundle(bundleRoot, bundleContentHash);
         return TrustedProfileBundleCatalogProjection.Create(bundle.CreateDocumentProjection());
     }
@@ -75,7 +74,7 @@ internal static class V2StandardMergeGoldenTestSupport
     internal static JsonElement ReadGoldenCase(string referenceIc)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(referenceIc);
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(GoldenRoot, "manifest.json")));
+        using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         return manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(item => StringComparer.Ordinal.Equals(item.GetProperty("ic").GetString(), referenceIc))
@@ -132,13 +131,9 @@ internal static class V2StandardMergeGoldenTestSupport
         Assert.Equal(compiledComposition.CompilationFingerprint, result.Report.CompilationFingerprint);
     }
 
-    internal static string GoldenRoot => Path.Combine(
-        RepositoryPaths.FindRepositoryRoot(),
-        "testdata",
-        "golden",
-        "standard-merge-gen-flash");
+    internal static string GoldenRoot => CanonicalGoldenTestData.Root;
 
-    private static void AssertSchemaSnapshotsMatchManifest(string repositoryRoot, string bundleRoot)
+    private static void AssertSchemaSnapshotsMatchManifest(string bundleRoot)
     {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundleRoot, "profile-bundle.json")));
         foreach (JsonElement entry in manifest.RootElement.GetProperty("entries").EnumerateArray().Where(static entry =>
@@ -147,15 +142,22 @@ internal static class V2StandardMergeGoldenTestSupport
             string schemaFileName = Path.GetFileName(entry.GetProperty("path").GetString()!);
             string contentHash = entry.GetProperty("contentHash").GetString()!;
             Assert.Equal(
-                File.ReadAllBytes(Path.Combine(
-                    repositoryRoot,
-                    "profiles",
-                    "schema-source",
-                    "sha256",
-                    contentHash,
-                    schemaFileName)),
+                File.ReadAllBytes(ResolveContractSchemaPath(schemaFileName, contentHash)),
                 File.ReadAllBytes(Path.Combine(bundleRoot, "schemas", schemaFileName)));
         }
+    }
+
+    internal static string ResolveContractSchemaPath(string schemaPath, string contentHash)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(schemaPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentHash);
+        string contractRoot = RepositoryPaths.FromRepositoryRoot("docs", "contracts");
+        string[] matches =
+        [
+            .. Directory.EnumerateFiles(contractRoot, "*.schema.json", SearchOption.TopDirectoryOnly)
+                .Where(path => StringComparer.Ordinal.Equals(Hash(File.ReadAllBytes(path)), contentHash)),
+        ];
+        return Assert.Single(matches);
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

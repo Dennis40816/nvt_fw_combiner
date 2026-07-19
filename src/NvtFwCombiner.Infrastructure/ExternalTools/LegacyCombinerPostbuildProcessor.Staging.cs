@@ -65,6 +65,41 @@ public sealed partial class LegacyCombinerPostbuildProcessor
             .ThenBy(block => block.SourceOffset)
             .ThenBy(block => block.FirmwareRange.Start))
         {
+            if (block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile &&
+                block.StagedArtifactId is not null &&
+                artifactsById!.TryGetValue(block.StagedArtifactId, out ExternalProcessorStagedArtifact? fileArtifact))
+            {
+                if (block.SourceOffset > 0 &&
+                    checked(block.SourceOffset + block.FirmwareRange.Length) > fileArtifact.Bytes.Length)
+                {
+                    return new CompositionIssue(
+                        "external-tool.staged-file.range-outside-artifact",
+                        $"Postbuild block '{block.BlockId}' reads outside staged file artifact '{block.StagedArtifactId}'.",
+                        block.BlockId);
+                }
+
+                byte[] exactFileBytes = fileArtifact.Bytes.ToArray();
+                if (files.TryGetValue(block.SourceFileName, out byte[]? existingFileBytes))
+                {
+                    if (!existingFileBytes.AsSpan().SequenceEqual(exactFileBytes))
+                    {
+                        return new CompositionIssue(
+                            "legacy-combiner.staging.projection-conflict",
+                            $"Postbuild staged file '{block.SourceFileName}' has conflicting exact artifacts.",
+                            block.BlockId);
+                    }
+                }
+                else
+                {
+                    files.Add(block.SourceFileName, exactFileBytes);
+                    bool[] exactWrittenBytes = new bool[exactFileBytes.Length];
+                    Array.Fill(exactWrittenBytes, true);
+                    written.Add(block.SourceFileName, exactWrittenBytes);
+                }
+
+                continue;
+            }
+
             ReadOnlySpan<byte> sourceBytes;
             if (block.SourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
             {
@@ -140,13 +175,13 @@ public sealed partial class LegacyCombinerPostbuildProcessor
             return artifactIndexIssue;
         }
 
-        HashSet<string> requestedArtifactIds = [
+        HashSet<string> requiredArtifactIds = [
             .. commandPlan.Commands
                 .SelectMany(command => command.Blocks)
                 .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
                 .Select(block => block.StagedArtifactId!),
         ];
-        foreach (string artifactId in requestedArtifactIds)
+        foreach (string artifactId in requiredArtifactIds)
         {
             if (!artifactsById!.ContainsKey(artifactId))
             {
@@ -156,8 +191,14 @@ public sealed partial class LegacyCombinerPostbuildProcessor
             }
         }
 
+        HashSet<string> acceptedArtifactIds = [
+            .. commandPlan.Commands
+                .SelectMany(command => command.Blocks)
+                .Where(block => block.StagedArtifactId is not null)
+                .Select(block => block.StagedArtifactId!),
+        ];
         ExternalProcessorStagedArtifact? unusedArtifact = stagedArtifacts.FirstOrDefault(
-            artifact => !requestedArtifactIds.Contains(artifact.ArtifactId));
+            artifact => !acceptedArtifactIds.Contains(artifact.ArtifactId));
         return unusedArtifact is null
             ? null
             : new CompositionIssue(
@@ -172,17 +213,22 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         CancellationToken cancellationToken)
     {
         foreach (LegacyCombinerBlockArgument block in blocks
-            .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
+            .Where(block => block.StagedArtifactId is not null)
             .DistinctBy(block => block.StagedArtifactId, StringComparer.Ordinal))
         {
             ExternalProcessorStagedArtifact? artifact = stagedArtifacts.FirstOrDefault(
                 candidate => string.Equals(candidate.ArtifactId, block.StagedArtifactId, StringComparison.Ordinal));
             if (artifact is null)
             {
-                return new CompositionIssue(
-                    "external-tool.staged-artifact.unknown",
-                    $"Postbuild block '{block.BlockId}' requires staged artifact '{block.StagedArtifactId}'.",
-                    block.BlockId);
+                if (block.SourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
+                {
+                    return new CompositionIssue(
+                        "external-tool.staged-artifact.unknown",
+                        $"Postbuild block '{block.BlockId}' requires staged artifact '{block.StagedArtifactId}'.",
+                        block.BlockId);
+                }
+
+                continue;
             }
 
             string artifactPath = Path.Combine(binDirectory, block.SourceFileName);

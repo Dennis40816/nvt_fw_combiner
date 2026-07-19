@@ -8,7 +8,7 @@ internal static partial class ReplaceCliCommandHandler
         string icId,
         string icNumber,
         string basePath,
-        ParsedOptions options,
+        ParsedCliOptions options,
         TextWriter error,
         [NotNullWhen(true)] out Dictionary<string, string>? slotPaths)
     {
@@ -38,7 +38,7 @@ internal static partial class ReplaceCliCommandHandler
             if (separatorIndex <= 0 || separatorIndex == value.Length - 1)
             {
                 error.WriteLine(
-                    $"error: real IC CtrlRAM Replace expects --ctrlram <slot-id=path>; example: --ctrlram {WorkbenchSlotIds.ReplaceCtrlRamPrefix}vn-master=C:\\path\\vn.bin");
+                    $"error: real IC CtrlRAM Replace expects --ctrlram <slot-id=path>; example: --ctrlram {WorkbenchSlotIds.ReplaceCtrlRamPrefix}vn=C:\\path\\vn.bin");
                 slotPaths = null;
                 return false;
             }

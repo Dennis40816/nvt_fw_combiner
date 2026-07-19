@@ -1,6 +1,7 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.HexEditor;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -14,8 +15,9 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 {
     private const int BytesPerRow = 16;
     private const int CurrentViewportRowCount = 12;
-    private readonly WorkbenchRawBinaryEditorSession _session = UiCompositionRunner.CreateRawBinaryEditorSession();
-    private WorkbenchRawBinaryEditorState _state = new(false, 0, 0, 0, 0, false);
+    private readonly RawBinaryEditorSession _editor = new();
+    private readonly WorkbenchRawBinaryEditorSession _files;
+    private RawBinaryEditorState _state = new(false, 0, 0, 0, 0, false);
     private HexEditorByteCellViewModel? _activeInlineEdit;
     private HexEditorByteCellViewModel? _selectedCell;
     private HexEditorViewportRowViewModel? _selectedRow;
@@ -25,6 +27,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(text);
 
+        _files = new WorkbenchRawBinaryEditorSession(_editor);
         Text = text;
         ColumnHeaders = [.. Enumerable.Range(0, 16).Select(index => new HexEditorColumnHeaderViewModel(index))];
         GoToCommand = new RelayCommand(GoToViewport);
@@ -48,8 +51,6 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         SelectChangedBlockCommand = new RelayCommand<HexEditorChangedBlockViewModel>(SelectChangedBlock);
         GoToChangedBlockStartCommand = new RelayCommand<HexEditorChangedBlockViewModel>(GoToChangedBlockStart);
         GoToChangedBlockEndCommand = new RelayCommand<HexEditorChangedBlockViewModel>(GoToChangedBlockEnd);
-        SelectOverwriteModeCommand = new RelayCommand(() => RangeWriteMode = HexEditorRangeWriteMode.Overwrite);
-        SelectFillModeCommand = new RelayCommand(() => RangeWriteMode = HexEditorRangeWriteMode.Fill);
         ApplyRangeEditCommand = new RelayCommand(ApplyRangeEdit, CanApplyRangeEdit);
         ApplyOverwriteRangeCommand = new RelayCommand(ApplyOverwriteRange, CanApplyRangeEdit);
         ApplyFillRangeCommand = new RelayCommand(ApplyFillRange, CanApplyRangeEdit);
@@ -159,7 +160,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     public int ChangeCount => _state.UndoCount;
 
     /// <summary>Suggested non-destructive output file name.</summary>
-    public string SuggestedOutputFileName => _session.SuggestedOutputFileName;
+    public string SuggestedOutputFileName => _files.SuggestedOutputFileName;
 
     /// <summary>Explicit navigation command for a requested address.</summary>
     public IRelayCommand GoToCommand { get; }
@@ -315,7 +316,6 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 
         SelectByte(cell);
         cell.EditValue = cell.ValueHex;
-        cell.InlineValidationMessage = string.Empty;
         cell.IsEditing = true;
         _activeInlineEdit = cell;
         OnPropertyChanged(nameof(IsInlineEditActive));
@@ -328,10 +328,9 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
             return;
         }
 
-        WorkbenchRawBinaryEditorOperationResult result = _session.OverwriteByte(cell.Address, cell.EditValue);
+        RawBinaryEditorOperationResult result = _editor.OverwriteByte(cell.Address, cell.EditValue);
         if (!result.Succeeded)
         {
-            cell.InlineValidationMessage = DescribeIssue(result.Issue!);
             return;
         }
 
@@ -349,7 +348,6 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         }
 
         cell.EditValue = cell.ValueHex;
-        cell.InlineValidationMessage = string.Empty;
         cell.IsEditing = false;
         if (ReferenceEquals(_activeInlineEdit, cell))
         {
@@ -362,7 +360,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     {
         if (cell is not null && cell.IsEditable)
         {
-            ApplyOperation(_session.InsertZeroBefore(cell.Address), cell.Address);
+            ApplyOperation(_editor.InsertZeroBefore(cell.Address), cell.Address);
         }
     }
 
@@ -373,7 +371,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
             string selectedAddress = TryParseAddressLabel(cell.Address, out long anchor)
                 ? FormatAddress(checked(anchor + 1))
                 : cell.Address;
-            ApplyOperation(_session.InsertZeroAfter(cell.Address), selectedAddress);
+            ApplyOperation(_editor.InsertZeroAfter(cell.Address), selectedAddress);
         }
     }
 
@@ -381,7 +379,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     {
         if (cell is not null && cell.IsEditable)
         {
-            ApplyOperation(_session.DeleteByte(cell.Address), cell.Address);
+            ApplyOperation(_editor.DeleteByte(cell.Address), cell.Address);
         }
     }
 
@@ -389,7 +387,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     {
         if (cell is not null && cell.IsEditable)
         {
-            ApplyOperation(_session.OverwriteByte(cell.Address, "00"), cell.Address);
+            ApplyOperation(_editor.OverwriteByte(cell.Address, "00"), cell.Address);
         }
     }
 
@@ -397,24 +395,24 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     {
         if (cell is not null && cell.IsEditable)
         {
-            ApplyOperation(_session.OverwriteByte(cell.Address, "FF"), cell.Address);
+            ApplyOperation(_editor.OverwriteByte(cell.Address, "FF"), cell.Address);
         }
     }
 
     private void ApplyOverwriteRange()
     {
-        ApplyRangeOperation(_session.OverwriteRange(RangeStartAddress, RangeEndAddress, RangeValue), RangeStartAddress);
+        ApplyRangeOperation(_editor.OverwriteRange(RangeStartAddress, RangeEndAddress, RangeValue), RangeStartAddress);
     }
 
     private void ApplyFillRange()
     {
-        ApplyRangeOperation(_session.FillRange(RangeStartAddress, RangeEndAddress, RangeValue), RangeStartAddress);
+        ApplyRangeOperation(_editor.FillRange(RangeStartAddress, RangeEndAddress, RangeValue), RangeStartAddress);
     }
 
     private void Undo()
     {
         IReadOnlyDictionary<string, VisibleByteFingerprint> before = CaptureVisibleByteFingerprints();
-        WorkbenchRawBinaryEditorOperationResult result = _session.Undo();
+        RawBinaryEditorOperationResult result = _editor.Undo();
         ApplyOperation(result, SelectedByteAddress);
         if (result.Succeeded)
         {
@@ -425,7 +423,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     private void Redo()
     {
         IReadOnlyDictionary<string, VisibleByteFingerprint> before = CaptureVisibleByteFingerprints();
-        WorkbenchRawBinaryEditorOperationResult result = _session.Redo();
+        RawBinaryEditorOperationResult result = _editor.Redo();
         ApplyOperation(result, SelectedByteAddress);
         if (result.Succeeded)
         {
@@ -446,7 +444,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         IsSaveConfirmationOpen = false;
     }
 
-    private void ApplyOperation(WorkbenchRawBinaryEditorOperationResult result, string? selectedAddress)
+    private void ApplyOperation(RawBinaryEditorOperationResult result, string? selectedAddress)
     {
         if (!result.Succeeded)
         {
@@ -457,7 +455,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         ApplySuccessfulOperation(result, selectedAddress);
     }
 
-    private void ApplySuccessfulOperation(WorkbenchRawBinaryEditorOperationResult result, string? selectedAddress)
+    private void ApplySuccessfulOperation(RawBinaryEditorOperationResult result, string? selectedAddress)
     {
         FindAsciiCommand.Cancel();
         UpdateState(result.State);
@@ -495,7 +493,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         }
 
         long address = checked((long)ViewportStartRow * BytesPerRow);
-        WorkbenchRawBinaryEditorViewport viewport = _session.CreatePage(address, ViewportRowCount);
+        RawBinaryEditorViewport viewport = _editor.CreatePage(address, ViewportRowCount);
         if (!viewport.Succeeded)
         {
             ViewportRows.ReplaceAll([]);
@@ -527,7 +525,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         return true;
     }
 
-    private HexEditorViewportRowViewModel CreateCurrentRow(WorkbenchRawBinaryEditorViewportRow row)
+    private HexEditorViewportRowViewModel CreateCurrentRow(RawBinaryEditorViewportRow row)
     {
         IReadOnlyList<HexEditorByteCellViewModel> bytes = [.. row.Bytes.Select(value => CreateViewportByte(value, isReference: false))];
         IReadOnlyList<HexEditorByteCellViewModel> originalBytes = row.HasChanges
@@ -547,7 +545,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         };
     }
 
-    private HexEditorByteCellViewModel CreateViewportByte(WorkbenchRawBinaryEditorByte value, bool isReference)
+    private HexEditorByteCellViewModel CreateViewportByte(RawBinaryEditorByte value, bool isReference)
     {
         HexEditorStructuralBoundaryInfo boundary = GetStructuralBoundary(value.Address);
         string original = value.OriginalValueAtAddress is byte originalAtAddress
@@ -650,7 +648,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         }
     }
 
-    private void UpdateState(WorkbenchRawBinaryEditorState state)
+    private void UpdateState(RawBinaryEditorState state)
     {
         _state = state;
         OnPropertyChanged(nameof(HasDocument));

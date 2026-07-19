@@ -77,24 +77,13 @@ public static partial class FirmwareFamilyResolutionNormalizer
             mapApplicabilities,
             aliasApplicabilities);
 
-        try
-        {
-            return new FirmwareFamilyResolutionDefinition(
+        return TranslateInvariant("$", () => new FirmwareFamilyResolutionDefinition(
                 document.FamilyId,
                 document.FamilyVersion,
                 familyContentHash,
                 normalizedMaps,
                 metadataSetsById.Values,
-                capabilities);
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error("$", exception.Message, exception);
-        }
-        catch (OverflowException exception)
-        {
-            throw Error("$", exception.Message, exception);
-        }
+                capabilities));
     }
 
     private static MapInput[] CreateMaps(
@@ -379,9 +368,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
             MapInput map = maps[index];
             FirmwareMapApplicability mapApplicability = mapApplicabilities[map.Document.MapId];
             var factApplicability = FirmwareFactApplicability.FromMap(mapApplicability);
-            try
-            {
-                result[index] = new FirmwareImageMap(
+            result[index] = TranslateInvariant(map.Path, () => new FirmwareImageMap(
                     map.Document.MapId,
                     map.Document.AddressSpaceId,
                     mapApplicability,
@@ -402,16 +389,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
                         metadata,
                         factApplicability,
                         aliasApplicabilities),
-                    map.Document.EvidenceRefs);
-            }
-            catch (ArgumentException exception)
-            {
-                throw Error(map.Path, exception.Message, exception);
-            }
-            catch (OverflowException exception)
-            {
-                throw Error(map.Path, exception.Message, exception);
-            }
+                    map.Document.EvidenceRefs));
         }
 
         return result;

@@ -12,20 +12,25 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs,
         IReadOnlyList<WorkbenchGeneralReplacePatchInput> patchInputs,
-        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot,
         bool build,
         out GeneralReplaceRunContext? context,
         out WorkbenchRunResult? failure)
     {
-        Dictionary<string, string> reportSlotPaths = CreateGeneralReplaceReportSlotPaths(slotPaths, mappingInputs);
+        Dictionary<string, string> reportSlotPaths = new(slotPaths, StringComparer.Ordinal);
+        foreach (WorkbenchGeneralReplaceMappingInput mapping in mappingInputs)
+        {
+            if (!string.IsNullOrWhiteSpace(mapping.FilePath))
+            {
+                reportSlotPaths[mapping.MappingId] = mapping.FilePath;
+            }
+        }
         IcNumberSelection selection = ToIcNumberSelection(number);
 
-        if (!TpFlashMapCatalog.IsNumberSelectionSupported(icId, selection))
+        if (!IcNumberChoicePolicy.IsNumberSelectionSupported(selection, GetPostbuildProfiles(icId)))
         {
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -40,7 +45,6 @@ public static partial class WorkbenchCompositionService
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -50,26 +54,11 @@ public static partial class WorkbenchCompositionService
         }
 
         string fullBasePath = Path.GetFullPath(basePath);
-        if (baseSnapshot is not null && !baseSnapshot.IsForSourcePath(fullBasePath))
+        if (!File.Exists(fullBasePath))
         {
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
-                WorkbenchReplaceModes.General,
-                reportSlotPaths,
-                build,
-                WorkbenchIssueCodes.InputArtifactReadFailed,
-                "General Replace base snapshot does not match the selected base flash BIN path.");
-            return false;
-        }
-
-        if (baseSnapshot is null && !File.Exists(fullBasePath))
-        {
-            context = null;
-            failure = CreatePlanningRunResult(
-                icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -88,7 +77,6 @@ public static partial class WorkbenchCompositionService
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -97,13 +85,12 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        long capacity = baseSnapshot?.Length ?? new FileInfo(fullBasePath).Length;
+        long capacity = new FileInfo(fullBasePath).Length;
         if (capacity <= 0)
         {
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -116,22 +103,10 @@ public static partial class WorkbenchCompositionService
             selection,
             reportSlotPaths,
             fullBasePath,
-            baseSnapshot?.ArtifactId ?? fullBasePath,
-            baseSnapshot,
             capacity,
             selectedMappings,
             selectedPatches);
         failure = null;
         return true;
     }
-
-    private sealed record GeneralReplaceRunContext(
-        IcNumberSelection Selection,
-        IReadOnlyDictionary<string, string> ReportSlotPaths,
-        string BasePath,
-        string ReferenceArtifactId,
-        WorkbenchGeneralReplaceBaseSnapshot? BaseSnapshot,
-        long Capacity,
-        WorkbenchGeneralReplaceMappingInput[] SelectedMappings,
-        WorkbenchGeneralReplacePatchInput[] SelectedPatches);
 }

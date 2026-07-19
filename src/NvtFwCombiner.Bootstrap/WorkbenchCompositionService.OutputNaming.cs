@@ -1,4 +1,5 @@
 using System.Globalization;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -15,7 +16,7 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(candidates);
 
-        string normalizedIc = NormalizeOutputIcId(icId);
+        string normalizedIc = IcSupportCatalog.NormalizeIcId(icId);
         string dpVersion = FindDpVersionToken(normalizedIc, candidates) ?? UnknownVersionToken;
         string tpVersion = FindTpVersionToken(normalizedIc, candidates) ?? UnknownVersionToken;
         string dateToken = (date ?? DateOnly.FromDateTime(DateTime.Now)).ToString("yyyyMMdd", CultureInfo.InvariantCulture);
@@ -41,9 +42,10 @@ public static partial class WorkbenchCompositionService
             }
 
             WorkbenchDpVersionMetadata? metadata = TryReadDpVersionMetadata(icId, candidate.Path);
-            if (!string.IsNullOrWhiteSpace(metadata?.VersionToken))
+            if (metadata is WorkbenchDpVersionMetadata value &&
+                !string.IsNullOrWhiteSpace(value.VersionToken))
             {
-                return metadata.VersionToken;
+                return value.VersionToken;
             }
         }
 
@@ -77,13 +79,5 @@ public static partial class WorkbenchCompositionService
         }
 
         return null;
-    }
-
-    private static string NormalizeOutputIcId(string icId)
-    {
-        string trimmed = icId.Trim();
-        return trimmed.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
-            ? $"NT{trimmed[2..]}"
-            : $"NT{trimmed}";
     }
 }

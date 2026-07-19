@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
 using NvtFwCombiner.Presentation.Avalonia;
@@ -37,28 +38,48 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void HexInputBehaviorNormalizesAddressesBytesAndExcelPaste()
     {
-        Assert.Equal("0xAB12", HexTextInputBehavior.NormalizeText("0Xab12g", HexTextInputMode.Address));
-        Assert.Equal("0x123A", HexTextInputBehavior.NormalizeText("123a", HexTextInputMode.Address));
-        Assert.Equal("C5", HexTextInputBehavior.NormalizeText("c5z", HexTextInputMode.Byte));
+        Assert.Equal("0xAB12", NormalizeHexText("0Xab12g", HexTextInputMode.Address));
+        Assert.Equal("0x123A", NormalizeHexText("123a", HexTextInputMode.Address));
+        Assert.Equal("C5", NormalizeHexText("c5z", HexTextInputMode.Byte));
         Assert.Equal(
             "A5\t5A\r\n01,FF",
-            HexTextInputBehavior.NormalizeText("a5\t5a\r\n01,ffz", HexTextInputMode.ByteSequence));
+            NormalizeHexText("a5\t5a\r\n01,ffz", HexTextInputMode.ByteSequence));
+    }
+
+    private static string NormalizeHexText(string text, HexTextInputMode mode)
+    {
+        var textBox = new TextBox { Text = text, CaretIndex = text.Length };
+        HexTextInputBehavior.SetMode(textBox, mode);
+        return textBox.Text;
     }
 
     /// <summary>Ensures badge alignment and raw-text scrolling remain centralized.</summary>
     [Fact]
     public void SharedControlStylesDefineTheBadgeAndReadOnlyRawContracts()
     {
-        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string controlStyles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string windowStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
+        string compactBadge = ExtractStyle(controlStyles, "Label.compactBadge");
+        string neutralBadge = ExtractStyle(controlStyles, "Label.neutralBadge");
+        string reportBadge = ExtractStyle(controlStyles, "Label.reportBadge");
+        string countBadge = ExtractStyle(controlStyles, "Label.countBadge");
+        string technicalInput = ExtractStyle(windowStyles, "TextBox.technicalCenteredInput");
+        string addressInput = ExtractStyle(windowStyles, "TextBox.addressInput");
+        string hexByteInput = ExtractStyle(windowStyles, "TextBox.hexByteInput");
 
-        Assert.Contains("Selector=\"Label.reportBadge\"", styles, StringComparison.Ordinal);
-        Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", styles, StringComparison.Ordinal);
-        Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", styles, StringComparison.Ordinal);
-        Assert.Contains("MinHeight\" Value=\"22\"", styles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"TextBox.readOnlyRaw\"", styles, StringComparison.Ordinal);
-        Assert.Contains("IsReadOnly\" Value=\"True\"", styles, StringComparison.Ordinal);
-        Assert.Contains("ScrollViewer.HorizontalScrollBarVisibility\" Value=\"Auto\"", styles, StringComparison.Ordinal);
-        Assert.Contains("ScrollViewer.VerticalScrollBarVisibility\" Value=\"Auto\"", styles, StringComparison.Ordinal);
+        Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", compactBadge, StringComparison.Ordinal);
+        Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", compactBadge, StringComparison.Ordinal);
+        Assert.Contains("MinHeight\" Value=\"22\"", compactBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceSubtleBrush", neutralBadge, StringComparison.Ordinal);
+        Assert.DoesNotContain("MinHeight", reportBadge, StringComparison.Ordinal);
+        Assert.DoesNotContain("MinHeight", countBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcTechnicalFontFamily", technicalInput, StringComparison.Ordinal);
+        Assert.DoesNotContain("FontFamily", addressInput, StringComparison.Ordinal);
+        Assert.DoesNotContain("FontFamily", hexByteInput, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"TextBox.readOnlyRaw\"", controlStyles, StringComparison.Ordinal);
+        Assert.Contains("IsReadOnly\" Value=\"True\"", controlStyles, StringComparison.Ordinal);
+        Assert.Contains("ScrollViewer.HorizontalScrollBarVisibility\" Value=\"Auto\"", controlStyles, StringComparison.Ordinal);
+        Assert.Contains("ScrollViewer.VerticalScrollBarVisibility\" Value=\"Auto\"", controlStyles, StringComparison.Ordinal);
     }
 
     /// <summary>Ensures General mapping rows use shared surface roles instead of repeating visual setters.</summary>
@@ -66,18 +87,16 @@ public sealed partial class XamlControlStyleContractTests
     public void GeneralMappingRowsUseSharedSurfaceTokens()
     {
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
-        string merge = ReadPresentationFile("Views/GeneralMergeMappingRow.axaml");
-        string replace = ReadPresentationFile("Views/GeneralReplaceMappingRow.axaml");
+        string mappingRow = ReadPresentationFile("Views/GeneralMappingRow.axaml");
         string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string reportHistoryTemplates = ReadPresentationFile("Resources/MainWindowReportHistoryTemplates.axaml");
 
         Assert.Contains("Selector=\"Border.fileDropZone\"", styles, StringComparison.Ordinal);
-        foreach (string row in new[] { merge, replace })
-        {
-            Assert.Contains("Classes=\"subtleSurface\"", row, StringComparison.Ordinal);
-            Assert.Contains("Classes=\"fileDropZone\"", row, StringComparison.Ordinal);
-            Assert.DoesNotContain("Background=\"#F8FAFC\"", row, StringComparison.Ordinal);
-        }
+        Assert.Contains("Classes=\"subtleSurface\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"fileDropZone\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding SelectBinTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding RemoveMappingTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
+        Assert.DoesNotContain("Background=\"#F8FAFC\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"surface\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactSurface\"", reportHistoryTemplates, StringComparison.Ordinal);
     }
@@ -102,7 +121,7 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("Styles/MainWindowControlStyles.axaml", application, StringComparison.Ordinal);
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
     }
 
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
@@ -316,10 +335,29 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionByteLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareSubVersionByteLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBox.hexByteInput\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"technicalCenteredInput hexByteInput\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactBadge neutralBadge\"", modal, StringComparison.Ordinal);
+        Assert.Contains("FontFamily=\"{DynamicResource NfcTechnicalFontFamily}\"", modal, StringComparison.Ordinal);
         Assert.Contains("behaviors:HexTextInputBehavior.Mode\" Value=\"ByteSequence\"", styles, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigLayout", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("Combiner.exe", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("0x", modal, StringComparison.Ordinal);
+    }
+
+    /// <summary>Every composition run exposes one truthful indeterminate progress surface.</summary>
+    [Fact]
+    public void CompositionRunShowsGlobalWorkflowProgress()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+        string contextPanel = ReadPresentationFile("Resources/MainWindowShellPanels.axaml");
+
+        Assert.Contains("<ProgressBar", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsIndeterminate=\"True\"", shell, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding RunProgressAccessibleLabel}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("AutomationProperties.Name=\"{Binding DeviceContextStatus}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("<ProgressBar", contextPanel, StringComparison.Ordinal);
+        Assert.DoesNotContain("Value=\"{Binding RunProgress", shell, StringComparison.Ordinal);
     }
 
     /// <summary>Keeps each byte value centered on the calculated 16-column viewport geometry.</summary>
@@ -372,8 +410,20 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("VirtualizingStackPanel", hexEditor, StringComparison.Ordinal);
         Assert.Contains("new ContextMenu()", codeBehind, StringComparison.Ordinal);
         Assert.Contains("_hexByteContextMenu.Open(HexViewport)", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("RequestInsertBytesBeforeCommand.Execute", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("RequestInsertBytesAfterCommand.Execute", codeBehind, StringComparison.Ordinal);
+        string[] byteContextBindings =
+        [
+            "BindContextCommand(_contextInsertBefore, viewModel.Text.HexEditorContextInsertZeroBeforeLabel, viewModel.InsertZeroBeforeCommand, e.Cell);",
+            "BindContextCommand(_contextInsertAfter, viewModel.Text.HexEditorContextInsertZeroAfterLabel, viewModel.InsertZeroAfterCommand, e.Cell);",
+            "BindContextCommand(_contextInsertManyBefore, viewModel.Text.HexEditorContextInsertBytesBeforeLabel, viewModel.RequestInsertBytesBeforeCommand, e.Cell);",
+            "BindContextCommand(_contextInsertManyAfter, viewModel.Text.HexEditorContextInsertBytesAfterLabel, viewModel.RequestInsertBytesAfterCommand, e.Cell);",
+            "BindContextCommand(_contextDeleteByte, viewModel.Text.HexEditorContextDeleteByteLabel, viewModel.DeleteByteCommand, e.Cell);",
+            "BindContextCommand(_contextSetToZero, viewModel.Text.HexEditorContextSetToZeroLabel, viewModel.SetByteToZeroCommand, e.Cell);",
+            "BindContextCommand(_contextSetToFf, viewModel.Text.HexEditorContextSetToFfLabel, viewModel.SetByteToFfCommand, e.Cell);",
+        ];
+        Assert.All(byteContextBindings, binding => Assert.Contains(binding, codeBehind, StringComparison.Ordinal));
+        Assert.Contains("menuItem.Header = header", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("menuItem.Command = command", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("menuItem.CommandParameter = parameter", codeBehind, StringComparison.Ordinal);
         Assert.Contains("StructuralBlockContextMenuRequested", viewport, StringComparison.Ordinal);
         Assert.Contains("TryHitTestStructuralAscii", viewportStructuralBlocks, StringComparison.Ordinal);
         Assert.Contains("ContainsStructuralPoint", viewportStructuralBlocks, StringComparison.Ordinal);
@@ -382,8 +432,14 @@ public sealed partial class XamlControlStyleContractTests
         Assert.True(
             codeBehind.IndexOf("HexViewport.TryGetStructuralBlockAt", StringComparison.Ordinal) <
             codeBehind.IndexOf("HexViewport.TryGetCellAt(point", StringComparison.Ordinal));
-        Assert.Contains("GoToChangedBlockStartCommand.Execute", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("GoToChangedBlockEndCommand.Execute", codeBehind, StringComparison.Ordinal);
+        Assert.Contains(
+            "BindContextCommand(_structuralGoToStart, viewModel.Text.HexEditorContextGoToBlockStartLabel, viewModel.GoToChangedBlockStartCommand, block);",
+            codeBehind,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "BindContextCommand(_structuralGoToEnd, viewModel.Text.HexEditorContextGoToBlockEndLabel, viewModel.GoToChangedBlockEndCommand, block);",
+            codeBehind,
+            StringComparison.Ordinal);
         Assert.Contains("NormalizeAddress", hexInputBehavior, StringComparison.Ordinal);
         Assert.Contains("NormalizeByteSequence", hexInputBehavior, StringComparison.Ordinal);
         Assert.DoesNotContain("KeepAsciiHexOnly", codeBehind, StringComparison.Ordinal);
@@ -446,18 +502,19 @@ public sealed partial class XamlControlStyleContractTests
         Assert.NotEqual(0, new FileInfo(icon).Length);
     }
 
-    /// <summary>Ensures the local fixture is Debug-only and never changes the default landing page.</summary>
+    /// <summary>Ensures startup never loads a repository fixture without an explicit launch option.</summary>
     [Fact]
-    public void DebugHexFixturePreloadsWithoutForcingHexEditorNavigation()
+    public void PresentationStartupHasNoImplicitDebugFixtureLoading()
     {
-        string debugDemo = ReadPresentationFile("MainWindow.DebugDemo.cs");
         string startup = ReadPresentationFile("MainWindow.Report.cs");
+        string presentation = RepositoryPaths.FromRepositoryRoot(
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia");
 
-        Assert.StartsWith("#if DEBUG", debugDemo, StringComparison.Ordinal);
-        Assert.Contains("SetSlotFile(WorkbenchSlotIds.ReplaceBase, basePath)", debugDemo, StringComparison.Ordinal);
-        Assert.Contains("HexEditorWorkspace.LoadAsync(basePath)", debugDemo, StringComparison.Ordinal);
-        Assert.DoesNotContain("ShowHexEditorCommand.Execute", debugDemo, StringComparison.Ordinal);
-        Assert.Contains("#if DEBUG", startup, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(presentation, "DebugDemoFixture.cs")));
+        Assert.False(File.Exists(Path.Combine(presentation, "MainWindow.DebugDemo.cs")));
+        Assert.DoesNotContain("ApplyDebugDemoWhenNoLaunchOptions", startup, StringComparison.Ordinal);
+        Assert.DoesNotContain("#if DEBUG", startup, StringComparison.Ordinal);
     }
 
     /// <summary>Prevents repeated shell, panel, row, and text property bundles from drifting back into templates.</summary>

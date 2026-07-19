@@ -26,8 +26,7 @@ public static partial class WorkbenchCompositionService
         IcNumberSelection? icNumberSelection,
         bool overwrite,
         CancellationToken cancellationToken,
-        IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
-        string? additionalProtectedInputPath = null)
+        IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null)
     {
         string[] inputRoots =
         [
@@ -43,20 +42,10 @@ public static partial class WorkbenchCompositionService
             compiledComposition.DefaultOutputFileName);
         if (build)
         {
-            List<ProtectedPathGuard.ProtectedPath> protectedPaths = ProtectedPathGuard.CreateProtectedPaths(
-                bindings,
-                outputPath: null);
-            if (!string.IsNullOrWhiteSpace(additionalProtectedInputPath))
-            {
-                protectedPaths.Add(new ProtectedPathGuard.ProtectedPath(
-                    additionalProtectedInputPath,
-                    "loaded base flash BIN"));
-            }
-
             ProtectedPathGuard.EnsureDoesNotAlias(
                 ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
                 "Output path",
-                protectedPaths,
+                ProtectedPathGuard.CreateProtectedPaths(bindings, outputPath: null),
                 nameof(outputPath));
         }
 
@@ -93,11 +82,6 @@ public static partial class WorkbenchCompositionService
     {
         string suffix = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
         return $"{prefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}-{suffix}";
-    }
-
-    private static string CreateWorkbenchReportRunId(string prefix, bool build, DateTimeOffset timestamp)
-    {
-        return $"{prefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}";
     }
 
     private static string GetReplaceRunIdPrefix(string replaceMode)

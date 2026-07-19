@@ -1,4 +1,3 @@
-using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -6,57 +5,38 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
-    /// <summary>Verifies DP Replace build accepts separate DP and LD replacement inputs.</summary>
-    [Fact]
-    public async Task DpReplaceBuildWritesSeparateDpAndLdPayloads()
+    /// <summary>Verifies every NT51930 selector reaches the canonical-map V2 DP Replace route.</summary>
+    [Theory]
+    [InlineData("NT51930")]
+    [InlineData("51930")]
+    [InlineData("nt51930-dp-replace-flashmap")]
+    public async Task DpReplaceBuildUsesNt51930CanonicalDpRange(string profileSelector)
     {
         using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", [0, 0, 0, 0, 0, 0, 0, 0]);
-        string dp = workspace.Write("dp.bin", [0x11, 0x22]);
-        string ld = workspace.Write("ld.bin", [0x33]);
-        string output = workspace.PathFor("out.bin");
-        string report = workspace.PathFor("report.json");
-
+        string output = workspace.PathFor("nt51930-dp-replace.bin");
         CliRunResult result = await RunCliAsync([
             "dp-replace",
             "build",
             "--profile",
-            "synthetic-dp-replace",
+            profileSelector,
             "--ic-num",
-            "51920",
+            "single",
             "--base",
-            reference,
+            workspace.Write("reference.bin", [.. Enumerable.Repeat((byte)0xA5, 0x40000)]),
             "--dp",
-            dp,
-            "--ld",
-            ld,
+            workspace.Write("dp.bin", [.. Enumerable.Repeat((byte)0x11, 0x40000)]),
             "--output",
             output,
-            "--report",
-            report,
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Committed:", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Report:", result.Output, StringComparison.Ordinal);
-        Assert.Contains("replace-dp", result.Output, StringComparison.Ordinal);
-        Assert.Contains("replace-ld", result.Output, StringComparison.Ordinal);
-        Assert.DoesNotContain("Issues:", result.Error, StringComparison.Ordinal);
+        Assert.Contains("nt51930-dp-replace-flashmap", result.Output, StringComparison.Ordinal);
         byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
-        Assert.Equal([0x11, 0x22, 0xFF, 0xFF, 0, 0, 0x33, 0xFF], bytes);
-
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
-            report,
-            TestContext.Current.CancellationToken));
-        JsonElement root = document.RootElement;
-        Assert.Equal("synthetic-dp-replace", root.GetProperty("ProfileId").GetString());
-        JsonElement operation = root.GetProperty("Operations")[0];
-        Assert.Equal("replace-dp", operation.GetProperty("OperationId").GetString());
-        Assert.Equal("dp-replacement", operation.GetProperty("SourceSpaceId").GetString());
-        Assert.Equal("output-image", operation.GetProperty("TargetSpaceId").GetString());
-        Assert.Equal(4, operation.GetProperty("TargetRange").GetProperty("Length").GetInt64());
-        Assert.Equal("Replace synthetic DP declared partition.", operation.GetProperty("Reason").GetString());
+        Assert.Equal(0x40000, bytes.Length);
+        Assert.Equal(0x11, bytes[0]);
+        Assert.Equal(0x11, bytes[0x5FFF]);
+        Assert.Equal(0xA5, bytes[0x6000]);
+        Assert.Equal(0xA5, bytes[^1]);
     }
 
     /// <summary>Verifies NT51950 DP Replace restores TP only while customer information follows replacement DP.</summary>
@@ -159,7 +139,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("--ic-family is used only by cascade IC num profiles", result.Error, StringComparison.Ordinal);
+        Assert.Contains("unknown option '--ic-family'", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51950 DP Replace rejects numeric IC number input before workbench execution.</summary>

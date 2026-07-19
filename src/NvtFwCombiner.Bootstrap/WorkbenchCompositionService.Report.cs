@@ -37,19 +37,72 @@ public static partial class WorkbenchCompositionService
         bool build,
         IReadOnlyList<OperationRunSummary> operations,
         IReadOnlyList<CompositionIssue> issues,
-        string outputFileName,
-        bool succeeded)
+        string outputFileName)
     {
-        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         string profileId = $"{icId.ToLowerInvariant()}-{replaceMode.ToLowerInvariant()}-replace-workbench";
-        var report = new CompositionRunReport(
-            CreateWorkbenchReportRunId(GetReplaceRunIdPrefix(replaceMode), build, timestamp),
+        return CreateBlockedReportRunResult(
+            GetReplaceRunIdPrefix(replaceMode),
             profileId,
             "0.5.0",
             icId,
             $"{replaceMode.ToLowerInvariant()}-replace",
             $"{replaceMode.ToLowerInvariant()}-replace",
             CompositionKind.Replace,
+            slotPaths,
+            build,
+            operations,
+            issues,
+            outputFileName);
+    }
+
+    private static IReadOnlyList<OperationRunSummary> CreateExplicitMappingPlanningOperations(
+        IReadOnlyList<ExplicitMapping> explicitMappings,
+        CompositionOperationKind operationKind)
+    {
+        return
+        [
+            .. explicitMappings.Select(mapping => new OperationRunSummary(
+                mapping.MappingId,
+                mapping.Sequence,
+                operationKind,
+                OperationRunStatus.Skipped,
+                mapping.SourceBindingId,
+                mapping.SourceRange,
+                mapping.TargetSpaceId,
+                mapping.TargetRange,
+                mapping.OverlapPolicy,
+                null,
+                null,
+                [],
+                [],
+                mapping.Reason,
+                mapping.Provenance)),
+        ];
+    }
+
+    private static WorkbenchRunResult CreateBlockedReportRunResult(
+        string runIdPrefix,
+        string profileId,
+        string profileVersion,
+        string icId,
+        string modeId,
+        string experienceId,
+        CompositionKind compositionKind,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        IReadOnlyList<OperationRunSummary> operations,
+        IReadOnlyList<CompositionIssue> issues,
+        string outputFileName)
+    {
+        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+        var report = new CompositionRunReport(
+            $"{runIdPrefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}",
+            profileId,
+            profileVersion,
+            icId,
+            modeId,
+            experienceId,
+            compositionKind,
             timestamp,
             timestamp,
             CreateInputSummaries(slotPaths),
@@ -59,8 +112,8 @@ public static partial class WorkbenchCompositionService
             new OutputArtifactSummary(outputFileName, 0, EmptySha256, committed: false));
         string reportJson = JsonSerializer.Serialize(report, ReportJsonOptions);
         return new WorkbenchRunResult(
-            succeeded,
-            succeeded ? "Succeeded" : "Blocked",
+            false,
+            "Blocked",
             profileId,
             0,
             EmptySha256,

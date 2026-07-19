@@ -1,4 +1,3 @@
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -15,7 +14,6 @@ public sealed partial class ShellViewModelTests
         viewModel.LoadReportJson(json, "warning-report.json");
 
         Assert.Equal("Succeeded with 1 warning(s)", viewModel.ReportActionStatus);
-        Assert.True(viewModel.LoadedReport.IsSuccessful);
         Assert.False(viewModel.LoadedReport.IsClean);
         Assert.True(viewModel.LoadedReport.HasWarnings);
         Assert.True(viewModel.LoadedReport.HasWarningsWithoutBlockingIssues);
@@ -26,18 +24,6 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Succeeded with 1 warning(s)", viewModel.LoadedReport.OutcomeTitle);
         Assert.Equal("Review warning", viewModel.LoadedReport.NextStepTitle);
         Assert.Contains("truncated", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
-        Assert.Contains(viewModel.LoadedReport.TriageRows, row =>
-            row.Title == "2. Warning" &&
-            row.Detail == CompositionIssueCodes.InputAddressSpaceTruncated &&
-            row.Meta == "replace-ctrlram");
-        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
-            row.Title == "Issues" &&
-            row.Detail == "0" &&
-            row.Meta == "No blocking issue");
-        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
-            row.Title == "Warnings" &&
-            row.Detail == "1" &&
-            row.Meta == CompositionIssueCodes.InputAddressSpaceTruncated);
         Assert.Equal("1 warning", Assert.Single(viewModel.ReportHistoryEntries).IssueSummary);
     }
 

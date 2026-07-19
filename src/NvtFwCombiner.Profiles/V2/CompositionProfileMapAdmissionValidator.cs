@@ -234,12 +234,7 @@ internal sealed class CompositionProfileMapAdmissionResult
         CompositionProfileMapAdmission? admission,
         IEnumerable<CompositionIssue> issues)
     {
-        ArgumentNullException.ThrowIfNull(issues);
-        _issues = [.. issues];
-        if (_issues.Any(static issue => issue is null))
-        {
-            throw new ArgumentException("Map-admission issues cannot contain null.", nameof(issues));
-        }
+        _issues = ImmutableReferenceSnapshot.Create(issues, "Map-admission issues cannot contain null.");
 
         Array.Sort(_issues, static (left, right) =>
         {
@@ -292,10 +287,10 @@ internal sealed class CompositionProfileMapAdmission
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(family);
         ArgumentNullException.ThrowIfNull(resolvedMap);
-        ArgumentNullException.ThrowIfNull(requiredCapabilities);
-        _requiredCapabilities = [.. requiredCapabilities];
-        if (_requiredCapabilities.Any(static capability => capability is null) ||
-            _requiredCapabilities.Select(static capability => capability.RequiredCapabilityId)
+        _requiredCapabilities = ImmutableReferenceSnapshot.Create(
+            requiredCapabilities,
+            "Admitted capability evidence must be non-null and unique by required capability id.");
+        if (_requiredCapabilities.Select(static capability => capability.RequiredCapabilityId)
                 .Distinct(StringComparer.Ordinal).Count() != _requiredCapabilities.Length)
         {
             throw new ArgumentException(

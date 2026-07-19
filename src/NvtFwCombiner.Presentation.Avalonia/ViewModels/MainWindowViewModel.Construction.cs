@@ -20,18 +20,18 @@ public sealed partial class MainWindowViewModel
         MergeDpSlotId,
         "DP BIN",
         "Display payload for Standard Merge",
-        kind: FirmwareSlotKind.Dp);
+        FirmwareSlotKind.Dp);
     private readonly FirmwareSlotViewModel _mergeTpSlot = new(
         MergeTpSlotId,
         "TP BIN",
         "Touch payload for Standard Merge",
-        kind: FirmwareSlotKind.Tp);
+        FirmwareSlotKind.Tp);
     private readonly FirmwareSlotViewModel _mergeLdSlot = new(
         MergeLdSlotId,
         "LD BIN",
         "Required only when the selected profile uses LD",
-        isOptional: true,
-        kind: FirmwareSlotKind.Dp);
+        FirmwareSlotKind.Dp,
+        isOptional: true);
     private int _generalReplaceMappingCounter;
     private int _generalMergeMappingCounter;
     private string _selectedMergeMode = NormalMergeMode;
@@ -51,9 +51,6 @@ public sealed partial class MainWindowViewModel
         ShowMergeCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Merge));
         ShowReplaceCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Replace));
         GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);
-        ShowDpReplaceCommand = new RelayCommand(() => SelectReplaceMode(DpReplaceMode));
-        ShowCtrlRamReplaceCommand = new RelayCommand(() => SelectReplaceMode(CtrlRamReplaceMode));
-        ShowGeneralReplaceCommand = new RelayCommand(() => SelectReplaceMode(GeneralReplaceMode));
         BeginDpReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
         BeginCtrlRamReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
         BeginGeneralReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
@@ -61,8 +58,6 @@ public sealed partial class MainWindowViewModel
         RequestHexEditorSaveCommand = new RelayCommand(RequestHexEditorSave, CanRequestHexEditorSave);
         RequestHexEditorUndoCommand = new RelayCommand(RequestHexEditorUndo, CanRequestHexEditorUndo);
         RequestHexEditorRedoCommand = new RelayCommand(RequestHexEditorRedo, CanRequestHexEditorRedo);
-        ShowNormalMergeCommand = new RelayCommand(() => SelectMergeMode(NormalMergeMode));
-        ShowGeneralMergeCommand = new RelayCommand(() => SelectMergeMode(GeneralMergeMode));
         BeginNormalMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
         BeginGeneralMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
@@ -70,11 +65,7 @@ public sealed partial class MainWindowViewModel
         AcceptFirmwareIcMismatchCommand = new RelayCommand(AcceptFirmwareIcMismatch);
         DismissFirmwareIcMismatchCommand = new RelayCommand(DismissFirmwareIcMismatch);
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
-        RemoveGeneralReplaceMappingCommand = new RelayCommand<GeneralReplaceMappingViewModel>(
-            RemoveGeneralReplaceMapping);
         AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
-        RemoveGeneralMergeMappingCommand = new RelayCommand<GeneralMergeMappingViewModel>(
-            RemoveGeneralMergeMapping);
         PreviewMergeCommand = new AsyncRelayCommand(
             () => RunMergeAsync(build: false),
             CanRunMerge);

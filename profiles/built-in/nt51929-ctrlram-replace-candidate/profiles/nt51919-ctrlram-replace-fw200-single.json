@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "2.9",
+  "profileId": "nt51919-ctrlram-replace-fw200-single",
+  "profileVersion": "0.1.0",
+  "promotion": {
+    "stage": "executable-candidate",
+    "blockers": [
+      {
+        "blockerId": "support-neutral-no-promotion",
+        "kind": "release",
+        "reason": "The exact route is evidence-complete and intentionally remains support-neutral; this no-promotion policy is not a missing owner input or decision.",
+        "evidenceRefs": [
+          "nt51929-fw200-single-auto-prj-594-owner-golden-20260717",
+          "ctrlram-replace-perfect-family-51919-to-51929"
+        ]
+      }
+    ]
+  },
+  "compositionKind": "replace",
+  "icNumberInputMode": "single-selector",
+  "experience": {
+    "experienceId": "ctrlram-replace",
+    "audience": "ctrlram",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51919.ctrlram-replace.fw200.single"
+  },
+  "compilationContext": { "kind": "runtime-reference-replace" },
+  "mapBinding": {
+    "familyId": "nt51929-ctrlram-replace",
+    "familyVersion": "0.2.0",
+    "familyContentHash": "4f61baff700480a53b164a710b8ca32e1265ad77a9e26ea5e7eff9369b906126",
+    "mapIds": [ "nt51929-ctrlram-fw200-single-full-flash" ],
+    "requiredRegionIds": [
+      "flash-image",
+      "header-crc-7100",
+      "header-crc-7118",
+      "nf-ctrlram",
+      "normal-ctrlram",
+      "vn-ctrlram",
+      "header-copy"
+    ],
+    "requiredMetadataStructureIds": [ "nt51929-fwconfig-envelope" ],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "reference-base",
+      "role": "reference-base",
+      "artifactClass": "reference-image",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-resolved-map-capacity" },
+        "normalization": { "kind": "none" }
+      }
+    },
+    {
+      "slotId": "ctrlram-source",
+      "role": "ctrlram-source",
+      "artifactClass": "ctrlram-replacement",
+      "required": true,
+      "cardinality": "one-or-more",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "bounded", "minimumBytes": 1, "maximumBytes": 2147483647 },
+        "normalization": {
+          "kind": "truncate-ctrlram",
+          "warningIssueCode": "CTRLRAM_SIZE_WARNING",
+          "evidenceRef": "nt51929-fw200-single-auto-prj-594-owner-golden-20260717"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "reference-base",
+      "kind": "input-artifact",
+      "slotId": "reference-base",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "ctrlram-source-template",
+      "kind": "input-artifact",
+      "slotId": "ctrlram-source",
+      "instancePolicy": "per-binding"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": { "kind": "runtime-request" },
+      "initializer": { "kind": "clone", "sourceSlotId": "reference-base" }
+    }
+  ],
+  "views": [
+    { "viewId": "processor-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "header-crc-7100-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-7100" } },
+    { "viewId": "header-crc-7118-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-7118" } },
+    { "viewId": "nf-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "nf-ctrlram" } },
+    { "viewId": "normal-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "normal-ctrlram" } },
+    { "viewId": "vn-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-ctrlram" } },
+    { "viewId": "header-copy-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy" } }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    { "regionId": "header-crc-7100", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
+    { "regionId": "header-crc-7118", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
+    { "regionId": "nf-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x1F90 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "normal-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x4A00 bytes; oversized immutable input is truncated by the profile-declared CtrlRAM rule." },
+    { "regionId": "vn-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x1960 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "header-copy", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the 0x200-byte TP header copy and its CRC words." }
+  ],
+  "operations": [
+    {
+      "operationId": "postbuild-single",
+      "sequence": 2147483647,
+      "overlapPolicy": "replace-existing",
+      "reason": "Refresh the exact NT51919 perfect-family alias of the NT51929 Common FW 2.0.0 single header and integrity fields after all runtime CtrlRAM mappings.",
+      "kind": "run-processor",
+      "processorStageId": "nt51919-fw200-single-combiner"
+    }
+  ],
+  "validations": [],
+  "processorStages": [
+    {
+      "processorStageId": "nt51919-fw200-single-combiner",
+      "kind": "legacy-combiner-v1",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "invocationProfileId": "nfc.nt51919.ctrlram-postbuild-v1",
+      "targetSpaceId": "output-image",
+      "targetViewId": "processor-image",
+      "authority": "transform",
+      "purpose": "header-and-integrity",
+      "integrityDisposition": "recalculate-and-write",
+      "allowedReadViewIds": [ "processor-image" ],
+      "allowedWriteViewIds": [
+        "header-crc-7100-output",
+        "header-crc-7118-output",
+        "nf-ctrlram-output",
+        "normal-ctrlram-output",
+        "vn-ctrlram-output",
+        "header-copy-output"
+      ],
+      "stagedSourceBindings": [],
+      "stagedArtifactBindings": [],
+      "evidenceRef": "nt51929-fw200-single-auto-prj-594-owner-golden-20260717",
+      "failurePolicy": "fail-closed"
+    }
+  ],
+  "output": {
+    "fileNameTemplate": "nt51919-ctrlram-replace.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "nt51929-fw200-single-auto-prj-594-owner-golden-20260717",
+    "ctrlram-replace-perfect-family-51919-to-51929"
+  ]
+}

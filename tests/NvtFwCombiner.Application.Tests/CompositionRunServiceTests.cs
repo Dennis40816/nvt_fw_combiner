@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests;
@@ -122,19 +121,14 @@ public sealed partial class CompositionRunServiceTests
     [Fact]
     public async Task MissingStandardMergeBindingFailsClosed()
     {
-        CompositionProfileDefinition profile = SyntheticCompositionProfiles.CreateStandardMerge();
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
         {
             ["dp-artifact"] = [1, 2, 3, 4],
         });
         var writer = new FakeOutputWriter();
         var service = new CompositionRunService(reader, new FakeClock([FirstTimestamp, SecondTimestamp]), writer);
-        var request = new CompositionRunRequest(
-            "run-missing",
-            compile.CompiledComposition!,
+        CompositionRunRequest request = CreateRequest(
             [new InputArtifactBinding("dp-input", "dp-input", "dp-artifact")],
-            profile.DefaultOutputFileName,
             approvedPreviewToken: "approved-preview-token");
 
         CompositionRunResult result = await service.BuildAsync(request, CancellationToken.None);
@@ -327,14 +321,11 @@ public sealed partial class CompositionRunServiceTests
     [Fact]
     public void ReplaceRunRequestRequiresIcNumberSelection()
     {
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticDpReplace;
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-
         ArgumentException exception = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
             "run-missing-ic",
-            compile.CompiledComposition!,
+            CreateDpReplaceCompiledComposition(),
             CreateDpReplaceBindings(),
-            profile.DefaultOutputFileName));
+            "synthetic-dp-replace.bin"));
 
         Assert.Contains("IC number selection", exception.Message, StringComparison.Ordinal);
     }

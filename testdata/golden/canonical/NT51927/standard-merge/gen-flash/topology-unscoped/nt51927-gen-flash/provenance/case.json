@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51927-gen-flash",
+  "ic": "NT51927",
+  "workflow": "standard-merge",
+  "variantOrVersion": "gen-flash",
+  "topology": "topology-unscoped",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner requested gen_flash_bin_v2 test BIN files be tracked as golden fixtures on 2026-06-30.",
+  "profileId": "nt51927-standard-merge-gen-flash",
+  "artifacts": [
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/inputs/dp-input.bin",
+      "size": 2097152,
+      "sha256": "866bff2ed5759ec45c2343630e77b74c1b906b77d4ed2beba62d955cf13e1d18",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51927/dp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51927TT_Initial Code_Tianma_TE103UVKS01_D54_20250717.bin",
+      "sourceBlobSha": "a78d6582ab7483d1301db3ca0b012c82f0cf089d"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/inputs/tp-input.bin",
+      "size": 217088,
+      "sha256": "ad80a708579cfce8954c9a46e8d82846aff12f2659f0e81ff55a8d5c9f77f265",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51927/tp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/NT51927TT_Tianma_TE103UVKS01_T02_20251023.bin",
+      "sourceBlobSha": "9f2fde5342a24cb7b88358b3017dc2c5163e851c"
+    },
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/expected/flash.bin",
+      "size": 262144,
+      "sha256": "8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/expected/51927/flash.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51927_FlashCode_TM_1025_TE103UVKS01_D54T02_20251023.bin",
+      "sourceBlobSha": "47fdc6e3fb1cd9e71cad0911a62d207cc85e6b46"
+    }
+  ]
+}

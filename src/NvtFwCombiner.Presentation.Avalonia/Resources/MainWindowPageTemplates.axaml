@@ -192,134 +192,70 @@
   </StackPanel>
 </DataTemplate>
 
+<DataTemplate x:Key="SettingsSummaryRowTemplate" DataType="vm:SettingSummaryViewModel">
+  <Border Classes="settingRow" Margin="0,0,0,8">
+    <StackPanel Spacing="{DynamicResource NfcSpace2}">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+        <TextBlock Classes="panelTitle" Text="{Binding Title}" />
+        <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
+      </Grid>
+      <TextBlock Classes="technicalDetail" Text="{Binding Value}" TextWrapping="Wrap" />
+      <TextBlock Classes="captionText" Text="{Binding Description}" TextWrapping="Wrap" />
+    </StackPanel>
+  </Border>
+</DataTemplate>
+
 <DataTemplate x:Key="SettingsPageTemplate" DataType="vm:MainWindowViewModel">
-  <Grid
-      ColumnDefinitions="1.6*,360"
-      ColumnSpacing="18">
-    <StackPanel Spacing="{DynamicResource NfcSpace16}">
-      <StackPanel Spacing="{DynamicResource NfcSpace4}">
-        <TextBlock Classes="pageTitle" Text="{Binding SettingsPreview.Title}" />
-        <TextBlock Classes="pageSubtitle" Text="{Binding SettingsPreview.Subtitle}" TextWrapping="Wrap" />
-      </StackPanel>
-      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace12}">
+  <StackPanel Spacing="{DynamicResource NfcSpace16}">
+    <StackPanel Spacing="{DynamicResource NfcSpace4}">
+      <TextBlock Classes="pageTitle" Text="{Binding SettingsPreview.Title}" />
+      <TextBlock Classes="pageSubtitle" Text="{Binding SettingsPreview.Subtitle}" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <Grid ColumnDefinitions="1.2*,*" ColumnSpacing="{DynamicResource NfcSpace12}">
+      <Border Classes="panelSurface roomyPanel">
+        <StackPanel Spacing="{DynamicResource NfcSpace12}">
+          <StackPanel Spacing="{DynamicResource NfcSpace4}">
+            <TextBlock Classes="strongText" Text="{Binding Text.SettingsOverviewTitle}" />
+            <TextBlock Classes="supportingText" Text="{Binding Text.SettingsOverviewSubtitle}" TextWrapping="Wrap" />
+          </StackPanel>
+          <ItemsControl
+              ItemTemplate="{StaticResource SettingsSummaryRowTemplate}"
+              ItemsSource="{Binding SettingsOverviewRows}" />
+        </StackPanel>
+      </Border>
+
+      <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace12}">
         <Border Classes="panelSurface roomyPanel">
           <StackPanel Spacing="{DynamicResource NfcSpace12}">
             <StackPanel Spacing="{DynamicResource NfcSpace4}">
-              <TextBlock Classes="strongText" Text="{Binding Text.SettingsCatalogTitle}" />
-              <TextBlock Classes="supportingText" Text="{Binding Text.SettingsCatalogSubtitle}" TextWrapping="Wrap" />
+              <TextBlock Classes="strongText" Text="{Binding Text.SettingsCapabilitiesTitle}" />
+              <TextBlock Classes="supportingText" Text="{Binding Text.SettingsCapabilitiesSubtitle}" TextWrapping="Wrap" />
             </StackPanel>
-            <ItemsControl ItemsSource="{Binding SettingsProfileRows}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:SettingSummaryViewModel">
-                  <Border Classes="settingRow" Margin="0,0,0,8">
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace2}">
-                      <TextBlock Classes="panelTitle" Text="{Binding Title}" />
-                      <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
-                      <TextBlock Grid.Row="1" Classes="technicalDetail" Text="{Binding Value}" TextWrapping="Wrap" />
-                      <TextBlock Grid.Row="1" Grid.Column="1" MaxWidth="170" Classes="captionText" Text="{Binding Description}" TextWrapping="Wrap" />
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <ItemsControl
+                ItemTemplate="{StaticResource SettingsSummaryRowTemplate}"
+                ItemsSource="{Binding SettingsCapabilityRows}" />
           </StackPanel>
         </Border>
-        <Border Grid.Column="1" Classes="panelSurface roomyPanel">
-          <StackPanel Spacing="{DynamicResource NfcSpace12}">
-            <StackPanel Spacing="{DynamicResource NfcSpace4}">
-              <TextBlock Classes="strongText" Text="{Binding Text.SettingsRuntimeChecksTitle}" />
-              <TextBlock Classes="supportingText" Text="{Binding Text.SettingsRuntimeChecksSubtitle}" TextWrapping="Wrap" />
-            </StackPanel>
-            <ItemsControl ItemsSource="{Binding SettingsToolRows}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:SettingSummaryViewModel">
-                  <Border Classes="settingRow" Margin="0,0,0,8">
-                    <StackPanel Spacing="{DynamicResource NfcSpace2}">
-                      <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="panelTitle" Text="{Binding Title}" />
-                        <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
-                      </Grid>
-                      <TextBlock Classes="technicalDetail" Text="{Binding Value}" TextWrapping="Wrap" />
-                      <TextBlock Classes="captionText" Text="{Binding Description}" TextWrapping="Wrap" />
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-        </Border>
-        <Border Grid.Row="1" Classes="panelSurface roomyPanel">
-          <StackPanel Spacing="{DynamicResource NfcSpace12}">
-            <StackPanel Spacing="{DynamicResource NfcSpace4}">
-              <TextBlock Classes="strongText" Text="{Binding Text.SettingsDiagnosticsTitle}" />
-              <TextBlock Classes="supportingText" Text="{Binding Text.SettingsDiagnosticsSubtitle}" TextWrapping="Wrap" />
-            </StackPanel>
-            <ItemsControl ItemsSource="{Binding SettingsDiagnosticsRows}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:SettingSummaryViewModel">
-                  <Border Classes="settingRow" Margin="0,0,0,8">
-                    <StackPanel Spacing="{DynamicResource NfcSpace2}">
-                      <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="panelTitle" Text="{Binding Title}" />
-                        <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
-                      </Grid>
-                      <TextBlock Classes="technicalDetail" Text="{Binding Value}" TextWrapping="Wrap" />
-                      <TextBlock Classes="captionText" Text="{Binding Description}" TextWrapping="Wrap" />
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-        </Border>
-        <Border Grid.Row="1" Grid.Column="1" Classes="panelSurface roomyPanel">
+
+        <Border Classes="panelSurface roomyPanel">
           <StackPanel Spacing="{DynamicResource NfcSpace12}">
             <StackPanel Spacing="{DynamicResource NfcSpace4}">
               <TextBlock Classes="strongText" Text="{Binding Text.SettingsPreferencesTitle}" />
               <TextBlock Classes="supportingText" Text="{Binding Text.SettingsPreferencesSubtitle}" TextWrapping="Wrap" />
             </StackPanel>
-            <Grid ColumnDefinitions="92,180,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="10">
+            <Grid ColumnDefinitions="92,*" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="10">
               <TextBlock Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.ThemeLabel}" />
               <ComboBox Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" />
-              <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="captionText" Text="{Binding ThemePreferenceStatus}" TextWrapping="Wrap" />
 
-              <TextBlock Grid.Row="1" Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.StrictnessLabel}" />
-              <ComboBox Grid.Row="1" Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding StrictnessChoices}" SelectedItem="{Binding SelectedStrictness, Mode=TwoWay}" />
-              <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Classes="captionText" Text="{Binding StrictnessPreferenceStatus}" TextWrapping="Wrap" />
-
-              <TextBlock Grid.Row="2" Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.LanguageLabel}" />
-              <ComboBox Grid.Row="2" Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding LanguageChoices}" SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
-              <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" Classes="captionText" Text="{Binding LanguagePreferenceStatus}" TextWrapping="Wrap" />
+              <TextBlock Grid.Row="1" Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.LanguageLabel}" />
+              <ComboBox Grid.Row="1" Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding LanguageChoices}" SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
             </Grid>
           </StackPanel>
         </Border>
-      </Grid>
-    </StackPanel>
-
-    <Border Grid.Column="1" Classes="panelSurface roomyPanel">
-      <StackPanel Spacing="{DynamicResource NfcSpace12}">
-        <TextBlock Classes="sectionLabel" Text="{Binding Text.SettingsInspectorKicker}" />
-        <TextBlock Classes="modalTitle" Text="{Binding Text.SettingsReadinessTitle}" />
-        <TextBlock Classes="supportingText" Text="{Binding SettingsPreview.Status}" TextWrapping="Wrap" />
-        <ItemsControl ItemsSource="{Binding SettingsReadinessRows}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:SettingSummaryViewModel">
-              <Border Padding="0,0,0,10" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,0,0,1" Margin="0,0,0,8">
-                <StackPanel Spacing="3">
-                  <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Classes="panelTitle" Text="{Binding Title}" />
-                    <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
-                  </Grid>
-                  <TextBlock Classes="technicalDetail" Text="{Binding Value}" TextWrapping="Wrap" />
-                  <TextBlock Classes="captionText" Text="{Binding Description}" TextWrapping="Wrap" />
-                </StackPanel>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
       </StackPanel>
-    </Border>
-  </Grid>
+    </Grid>
+  </StackPanel>
 </DataTemplate>
 
 </ResourceDictionary>

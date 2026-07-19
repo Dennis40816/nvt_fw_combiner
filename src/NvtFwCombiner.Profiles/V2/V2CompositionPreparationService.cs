@@ -51,12 +51,7 @@ internal sealed class V2CompositionPreparationResult
             throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown V2 composition preparation status.");
         }
 
-        ArgumentNullException.ThrowIfNull(issues);
-        _issues = [.. issues];
-        if (_issues.Any(static issue => issue is null))
-        {
-            throw new ArgumentException("Preparation issues cannot contain null.", nameof(issues));
-        }
+        _issues = ImmutableReferenceSnapshot.Create(issues, "Preparation issues cannot contain null.");
 
         Array.Sort(_issues, static (left, right) =>
         {

@@ -149,6 +149,61 @@ public sealed partial class CompositionRunServiceTests
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
     }
 
+    private static CompositionRunRequest CreateMappedExternalProcessorRequest()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 4, AddressSpaceMutability.Immutable),
+            new("ctrlram-input", 2, AddressSpaceMutability.Immutable),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 4),
+            addressSpaces,
+            [
+                CompositionOperation.ReplaceRange(
+                    "replace-ctrlram",
+                    10,
+                    "ctrlram-input",
+                    new ByteRange(0, 2),
+                    "output-image",
+                    new ByteRange(1, 2),
+                    OverlapPolicy.Reject,
+                    "replace CtrlRAM payload"),
+                CompositionOperation.RunExternalProcessor(
+                    "run-postbuild",
+                    20,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "processor-v1",
+                        "tool-v1",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(0, 4)]),
+                    OverlapPolicy.ReplaceExisting,
+                    "refresh header and integrity"),
+            ]);
+        return new CompositionRunRequest(
+            "run-mapped-processor",
+            CreateCompiledComposition(
+                plan,
+                new LegacyCompiledCompositionIdentity(
+                    "mapped-processor-profile",
+                    "1.0.0",
+                    "NT-SYNTHETIC",
+                    "external",
+                    "ctrlram-replace",
+                    CompositionKind.Replace),
+                "mapped-processor.bin",
+                CompiledIcNumberPolicy.SingleSelector),
+            [
+                new InputArtifactBinding("reference-base", "reference-base", "reference-artifact"),
+                new InputArtifactBinding("ctrlram-input", "ctrlram-input", "ctrlram-artifact"),
+            ],
+            "mapped-processor.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+    }
+
     private static CompositionRunRequest CreateNt51926HeaderSemanticRequest()
     {
         const string ctrlRamSpaceId = "replace-ctrlram-normal";

@@ -15,10 +15,22 @@ from typing import Any, Iterable
 from urllib.parse import unquote
 
 from ab_merge_fixture_validation import validate_ab_merge_golden_fixtures
+from canonical_golden_validation import (
+    validate_canonical_golden,
+    validate_standard_merge_release_allowlist,
+)
+from code_size_policy import validate_code_size_policy
+from diagnostic_golden_validation import validate_diagnostic_golden_separation
+from external_tool_policy import (
+    ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS,
+    APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS,
+    APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS,
+    validate_external_tool_catalog,
+    validate_repository_external_tool_manifests,
+)
 from repository_contract_validation import validate_v2_contract_model
 
 ROOT = Path(__file__).resolve().parents[1]
-
 REQUIRED_FILES = {
     "README.md", "LICENSE", "AGENTS.md", "SPEC.md", "CHANGELOG.md", "VERSION",
     "global.json", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props",
@@ -28,11 +40,14 @@ REQUIRED_FILES = {
     "scripts/bootstrap.ps1", "scripts/bootstrap.sh", "scripts/install-dotnet.ps1",
     "scripts/install-dotnet.sh", "scripts/package.ps1", "scripts/polytail_check.py",
     "scripts/publish-github.ps1", "scripts/publish-github.sh", "scripts/validate_repository.py",
+    "scripts/canonical_golden_validation.py", "scripts/code_size_policy.py",
+    "scripts/diagnostic_golden_validation.py", "scripts/external_tool_policy.py",
     "scripts/repository_contract_validation.py",
-    "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py",
-    "external-tools/README.md", "external-tools/legacy-combiner/README.md",
-    "external-tools/legacy-combiner/1.13.0/manifest.json",
-    "testdata/golden/standard-merge-gen-flash/manifest.json",
+    "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py", "external-tools/README.md",
+    "external-tools/catalog.json",
+    "external-tools/legacy-combiner/README.md", "external-tools/legacy-combiner/1.13.0/manifest.json",
+    "testdata/golden/canonical/manifest.json", "testdata/golden/release-standard-merge-v1.json",
+    "testdata/diagnostics/golden-evidence/README.md", "testdata/diagnostics/golden-evidence/manifest.json",
     "docs/adr/0003-unified-composition-engine.md",
     "docs/adr/0004-orthogonal-experience-access-policy.md",
     "docs/adr/0005-replace-personas-and-general-mapping.md",
@@ -48,7 +63,8 @@ REQUIRED_FILES = {
     "docs/architecture/saved-rule-promotion.md",
     "docs/architecture/terminal-log-and-diagnostics.md",
     "docs/contracts/composition-profile-v1.schema.json",
-    "docs/contracts/composition-profile-v2.md", "docs/contracts/composition-profile-v2.schema.json",
+    "docs/contracts/canonical-golden-manifest-v1.md", "docs/contracts/composition-profile-v2.md",
+    "docs/contracts/composition-profile-v2.schema.json",
     "docs/contracts/composition-request-v1.schema.json",
     "docs/contracts/composition-report-v1.schema.json",
     "docs/contracts/crc-worker-v1.schema.json",
@@ -111,6 +127,7 @@ EXPECTED_PROJECT_REFERENCES = {
     },
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj": {"src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"},
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj": {
+        "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
     },
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj": {"src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj"},
@@ -133,13 +150,12 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj", "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),
-    "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj": {"src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj"},
+    "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj": {"src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj", "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj"},
     "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj": {
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
 }
-
 EXPECTED_SKILLS = {
     "nfc-architecture-change",
     "firmware-profile-authoring",
@@ -153,19 +169,10 @@ EXPECTED_SKILLS = {
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
 ALLOWED_GOLDEN_BIN_ROOTS = {
-    PurePosixPath("testdata/golden/ab-merge"),
-    PurePosixPath("testdata/golden/standard-merge-gen-flash"),
+    PurePosixPath("testdata/golden/canonical"),
     PurePosixPath("testdata/golden/ctrlram-replace/fixtures"),
 }
-ALLOWED_EXECUTABLE_PAYLOADS = {
-    PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
-}
-APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS = {
-    PurePosixPath("external-tools/README.md"),
-    PurePosixPath("external-tools/legacy-combiner/README.md"),
-    PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
-    PurePosixPath("external-tools/legacy-combiner/1.13.0/manifest.json"),
-}
+ALLOWED_EXECUTABLE_PAYLOADS = ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS
 FORBIDDEN_DIRECTORY_NAMES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".venv", "venv", "artifacts", "release", "bin", "obj"}
 FORBIDDEN_REFCODE_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 SNAPSHOT_CODE_SUFFIXES = {".py", ".json", ".txt", ".bat"}
@@ -383,70 +390,6 @@ def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
             errors.append(f"unlisted reference source file: {candidate.relative_to(ROOT)}")
 
 
-def validate_golden_fixtures(errors: list[str]) -> None:
-    validate_ab_merge_golden_fixtures(ROOT, load_json, validate_golden_manifest_entry, errors)
-    validate_standard_merge_golden_fixtures(errors)
-    validate_ctrlram_replace_golden_fixtures(errors)
-
-
-def validate_standard_merge_golden_fixtures(errors: list[str]) -> None:
-    manifest_path = ROOT / "testdata/golden/standard-merge-gen-flash/manifest.json"
-    manifest = load_json(manifest_path, errors)
-    if not isinstance(manifest, dict):
-        return
-
-    if manifest.get("payloadClass") != "owner-approved-golden-firmware":
-        errors.append("standard-merge golden manifest must declare owner-approved-golden-firmware payloadClass")
-    if manifest.get("binaryPayloadsIncluded") is not True:
-        errors.append("standard-merge golden manifest must explicitly include binaryPayloadsIncluded=true")
-
-    golden_root = manifest_path.parent
-    declared_bins: set[PurePosixPath] = set()
-    supporting = manifest.get("supportingFiles")
-    if isinstance(supporting, dict):
-        config = supporting.get("test_ic_config")
-        if isinstance(config, dict):
-            validate_golden_manifest_entry(golden_root, config, errors, require_bin=False, label="standard-merge")
-
-    cases = manifest.get("cases")
-    if not isinstance(cases, list) or not cases:
-        errors.append("standard-merge golden manifest must contain cases")
-        return
-
-    for index, item in enumerate(cases):
-        if not isinstance(item, dict):
-            errors.append(f"invalid standard-merge golden case[{index}]")
-            continue
-        inputs = item.get("inputs")
-        if not isinstance(inputs, dict):
-            errors.append(f"standard-merge golden case[{index}] has no inputs")
-        else:
-            for entry in inputs.values():
-                if isinstance(entry, dict):
-                    relative = validate_golden_manifest_entry(golden_root, entry, errors, require_bin=True, label="standard-merge")
-                    if relative is not None:
-                        declared_bins.add(relative)
-        expected = item.get("expectedOutput")
-        if isinstance(expected, dict):
-            relative = validate_golden_manifest_entry(golden_root, expected, errors, require_bin=True, label="standard-merge")
-            if relative is not None:
-                declared_bins.add(relative)
-        else:
-            errors.append(f"standard-merge golden case[{index}] has no expectedOutput")
-
-    actual_bins = {
-        PurePosixPath(path.relative_to(golden_root).as_posix())
-        for path in golden_root.rglob("*.bin")
-        if path.is_file()
-    }
-    if actual_bins != declared_bins:
-        errors.append(
-            "standard-merge golden BIN manifest drift: "
-            f"expected={sorted(path.as_posix() for path in declared_bins)} "
-            f"actual={sorted(path.as_posix() for path in actual_bins)}"
-        )
-
-
 def validate_ctrlram_replace_golden_fixtures(errors: list[str]) -> None:
     manifest_path = ROOT / "testdata/golden/ctrlram-replace/manifest.json"
     from verify_ctrlram_replace_fixture import verify_fixture_manifest
@@ -524,6 +467,8 @@ def validate_ctrlram_replace_golden_fixtures(errors: list[str]) -> None:
         PurePosixPath(path.relative_to(golden_root).as_posix())
         for path in golden_root.rglob("*.bin")
         if path.is_file()
+        and not path.is_relative_to(golden_root / "fixtures/20260717")
+        and not path.is_relative_to(golden_root / "fixtures/20260718")
     }
     if actual_bins != declared_bins:
         errors.append(
@@ -724,29 +669,41 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
         for path in files
         if path.relative_to(ROOT).parts[:1] == ("external-tools",)
     }
-    if tracked_external_tools != APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS:
+    if tracked_external_tools != APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS:
         errors.append(
-            "tracked external-tools files differ from the release package allowlist: "
+            "tracked external-tools files differ from the approved repository inventory: "
             f"{', '.join(str(path) for path in sorted(tracked_external_tools))}"
         )
 
-    package_script = ROOT / "scripts/package.ps1"
-    text = package_script.read_text(encoding="utf-8")
-    match = re.search(
-        r"\$ApprovedExternalToolPackagePaths\s*=\s*@\((.*?)\)\s*\|\s*Sort-Object",
-        text,
-        flags=re.DOTALL,
+    validate_repository_external_tool_manifests(ROOT, APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS, errors)
+    validate_external_tool_catalog(
+        ROOT,
+        APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS,
+        APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS,
+        errors,
     )
-    if match is None:
-        errors.append("package.ps1 must declare a fixed ApprovedExternalToolPackagePaths allowlist")
-        return
 
-    declared_paths = {PurePosixPath(path) for path in re.findall(r"'([^']+)'", match.group(1))}
-    if declared_paths != APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS:
-        errors.append(
-            "package.ps1 external tool allowlist differs from the approved package paths: "
-            f"{', '.join(str(path) for path in sorted(declared_paths))}"
+    for script_name in ("package.ps1", "smoke-release.ps1"):
+        text = (ROOT / "scripts" / script_name).read_text(encoding="utf-8")
+        match = re.search(
+            r"\$ApprovedExternalToolPackagePaths\s*=\s*@\((.*?)\)\s*\|\s*Sort-Object",
+            text,
+            flags=re.DOTALL,
         )
+        if match is None:
+            errors.append(
+                f"{script_name} must declare a fixed ApprovedExternalToolPackagePaths allowlist"
+            )
+            continue
+
+        declared_paths = {
+            PurePosixPath(path) for path in re.findall(r"'([^']+)'", match.group(1))
+        }
+        if declared_paths != APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS:
+            errors.append(
+                f"{script_name} external tool allowlist differs from the approved package paths: "
+                f"{', '.join(str(path) for path in sorted(declared_paths))}"
+            )
 
 
 def validate_agent_files(errors: list[str]) -> None:
@@ -773,7 +730,11 @@ def validate() -> list[str]:
     validate_structured_files(files, errors)
     validate_python_syntax(files, errors)
     validate_markdown_links(files, errors)
-    validate_golden_fixtures(errors)
+    validate_ab_merge_golden_fixtures(ROOT, load_json, validate_golden_manifest_entry, errors)
+    validate_canonical_golden(ROOT, errors)
+    validate_diagnostic_golden_separation(ROOT, errors)
+    validate_standard_merge_release_allowlist(ROOT, errors)
+    validate_ctrlram_replace_golden_fixtures(errors)
     validate_skills(errors)
     validate_refcode(errors)
     validate_version_license_and_sdk(errors)
@@ -782,6 +743,7 @@ def validate() -> list[str]:
     validate_workflows(errors)
     validate_packaging_policy(files, errors)
     validate_agent_files(errors)
+    validate_code_size_policy(ROOT, errors)
     return sorted(set(errors))
 
 

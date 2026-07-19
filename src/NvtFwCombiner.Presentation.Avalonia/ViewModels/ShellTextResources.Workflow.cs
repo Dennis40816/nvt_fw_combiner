@@ -57,23 +57,7 @@ public sealed partial class ShellTextResources
 
     public string MergeLdSlotDescription { get; private init; } = string.Empty;
 
-    public string BaseFlashBinTitle { get; private init; } = string.Empty;
-
-    public string BaseFlashBinDescription { get; private init; } = string.Empty;
-
     public string DpReplacementBinTitle { get; private init; } = string.Empty;
-
-    public string DpReplacementBinDescription { get; private init; } = string.Empty;
-
-    public string TpReplacementBinTitle { get; private init; } = string.Empty;
-
-    public string TpReplacementBinDescription { get; private init; } = string.Empty;
-
-    public string LdReplacementBinTitle { get; private init; } = string.Empty;
-
-    public string LdReplacementBinDescription { get; private init; } = string.Empty;
-
-    public string CtrlRamReplacementBinDescription { get; private init; } = string.Empty;
 
     public string SelectReplacementBinTooltip { get; private init; } = string.Empty;
 
@@ -99,9 +83,6 @@ public sealed partial class ShellTextResources
 
     public string GeneralReplaceMappingsDetail { get; private init; } = string.Empty;
 
-    /// <summary>Label for the confirmed safe export action in the raw-BIN Hex Editor.</summary>
-    public string HexEditorSaveLabel { get; private init; } = string.Empty;
-
     /// <summary>Label for choosing a new output path in the raw-BIN Hex Editor.</summary>
     public string HexEditorSaveAsLabel { get; private init; } = string.Empty;
 
@@ -110,9 +91,6 @@ public sealed partial class ShellTextResources
 
     /// <summary>Explanation for the safe Hex Editor export confirmation.</summary>
     public string HexEditorSaveConfirmationDetail { get; private init; } = string.Empty;
-
-    /// <summary>Compact in-panel reminder that the raw editor never writes the opened source file.</summary>
-    public string HexEditorMemoryOnlyDetail { get; private init; } = string.Empty;
 
     /// <summary>Confirmation action label for the safe Hex Editor export dialog.</summary>
     public string HexEditorSaveConfirmationActionLabel { get; private init; } = string.Empty;
@@ -274,10 +252,6 @@ public sealed partial class ShellTextResources
     public string HexEditorApplyChangeLabel { get; private init; } = string.Empty;
 
     public string HexEditorHexBytesPlaceholder { get; private init; } = string.Empty;
-
-    public string HexEditorOverwriteRangeLabel { get; private init; } = string.Empty;
-
-    public string HexEditorFillRangeLabel { get; private init; } = string.Empty;
 
     public string HexEditorUndoLabel { get; private init; } = string.Empty;
 

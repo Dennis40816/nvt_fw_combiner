@@ -11,16 +11,9 @@ public sealed partial class MainWindowViewModel
         return RunMergeAsync(build: true, outputPath);
     }
 
-    /// <summary>Builds Standard Merge output to a user-selected path.</summary>
-    public Task BuildStandardMergeAsync(string outputPath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
-        return RunStandardMergeAsync(build: true, outputPath);
-    }
-
     private void RefreshMergeSlotRequirements()
     {
-        IReadOnlyList<string> required = UiCompositionRunner.GetStandardMergeRequiredAddressSpaces(SelectedIc);
+        IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
         _mergeDpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal);
         _mergeTpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal);
         _mergeLdSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.LdInput, StringComparer.Ordinal);
@@ -41,63 +34,12 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private void RefreshMergeModeState()
-    {
-        ActiveMergeRows.Clear();
-        if (IsGeneralMergeModeSelected)
-        {
-            AddMergeRows(
-                $"{SelectedIc}: General Merge input policy is active.",
-                "Output starts as reserved bytes; mapping rows copy explicit source ranges into it.",
-                "No postbuild command is invoked by General Merge.",
-                $"Output length: {GeneralMergeOutputLength}");
-            return;
-        }
-
-        if (IsAbCodeMergeModeSelected)
-        {
-            AddMergeRows(
-                "AB Code Merge is reserved.",
-                "This mode will need a dedicated profile because it has TP CRC/start-address behavior.",
-                "Use Standard Merge or General Merge for current 0.7.x workflows.");
-            return;
-        }
-
-        string? profileId = UiCompositionRunner.GetStandardMergeProfileId(SelectedIc);
-        if (profileId is null)
-        {
-            AddMergeRows(
-                $"Profile: not available for {SelectedIc}",
-                "Build stays disabled until a profile is added.",
-                $"{SelectedIc} / {SelectedNumber} still refreshes Replace region policy.");
-            return;
-        }
-
-        AddMergeRows(
-            $"Profile: {profileId}",
-            $"Required slots: {GetRequiredStandardMergeSlotLabels()}",
-            GetStandardMergeRangeSummary());
-    }
-
-    private void AddMergeRows(params string[] rows)
-    {
-        foreach (string row in rows)
-        {
-            ActiveMergeRows.Add(row);
-        }
-    }
-
     private string GetRequiredStandardMergeSlotLabels()
     {
-        IReadOnlyList<string> required = UiCompositionRunner.GetStandardMergeRequiredAddressSpaces(SelectedIc);
+        IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
         return required.Count == 0
             ? "none"
             : string.Join(", ", required.Select(AddressSpaceLabel));
-    }
-
-    private string GetStandardMergeRangeSummary()
-    {
-        return UiCompositionRunner.GetStandardMergePolicySummary(SelectedIc);
     }
 
     private static string AddressSpaceLabel(string addressSpaceId)
@@ -113,7 +55,8 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunStandardMerge()
     {
-        IReadOnlyList<string> requiredAddressSpaces = UiCompositionRunner.GetStandardMergeRequiredAddressSpaces(SelectedIc);
+        IReadOnlyList<string> requiredAddressSpaces =
+            WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
         return IsNormalMergeModeSelected && requiredAddressSpaces.Count > 0 && requiredAddressSpaces.All(addressSpace =>
             MergeSlotForAddressSpace(addressSpace) is { HasFile: true });
     }
@@ -150,100 +93,46 @@ public sealed partial class MainWindowViewModel
         };
     }
 
-    private async Task RunStandardMergeAsync(bool build, string? outputPath)
+    private Task RunStandardMergeAsync(bool build, string? outputPath)
     {
-        CancellationTokenSource? cancellationSource = null;
-        try
-        {
-            cancellationSource = BeginRun();
-            WorkbenchRunResult result = await UiCompositionRunner.RunStandardMergeAsync(
+        return RunCompositionAsync(
+            build,
+            cancellationToken => WorkbenchCompositionService.RunStandardMergeAsync(
                 SelectedIc,
                 CreateStandardMergeSlotPaths(),
                 build,
-                cancellationSource.Token,
-                outputPath);
-            ApplyRunResult(result, build);
-            RefreshCommandState();
-        }
-        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
-        {
-            RefreshCommandState();
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            RefreshCommandState();
-            string action = build ? "Build" : "Preview";
-            LastRunResult = new UiRunResultViewModel(
-                $"{action} failed",
-                exception.Message,
-                "No output",
-                succeeded: false);
-            OnPropertyChanged(nameof(LastRunResult));
-            LoadRunErrorReport(
+                cancellationToken,
+                outputPath),
+            (action, errorMessage) => LoadRunErrorReport(
                 action,
-                UiCompositionRunner.GetStandardMergeProfileId(SelectedIc) ?? WorkbenchWorkflowIds.StandardMerge,
+                WorkbenchCompositionService.GetStandardMergeProfileId(SelectedIc) ?? WorkbenchWorkflowIds.StandardMerge,
                 SelectedIc,
                 SelectedNumber,
-                exception.Message,
-                CreateStandardMergeSlotPaths());
-        }
-        finally
-        {
-            if (cancellationSource is not null)
-            {
-                CompleteRun(cancellationSource);
-            }
-        }
+                errorMessage,
+                CreateStandardMergeSlotPaths()));
     }
 
-    private async Task RunGeneralMergeAsync(bool build, string? outputPath)
+    private Task RunGeneralMergeAsync(bool build, string? outputPath)
     {
-        CancellationTokenSource? cancellationSource = null;
-        try
-        {
-            cancellationSource = BeginRun();
-            WorkbenchRunResult result = await UiCompositionRunner.RunGeneralMergeAsync(
+        return RunCompositionAsync(
+            build,
+            cancellationToken => WorkbenchCompositionService.RunGeneralMergeAsync(
                 SelectedIc,
                 GeneralMergeOutputLength,
                 CreateGeneralMergeMappingInputs(),
                 build,
-                cancellationSource.Token,
-                outputPath);
-            ApplyRunResult(result, build);
-            RefreshCommandState();
-        }
-        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
-        {
-            RefreshCommandState();
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            RefreshCommandState();
-            string action = build ? "Build" : "Preview";
-            LastRunResult = new UiRunResultViewModel(
-                $"{action} failed",
-                exception.Message,
-                "No output",
-                succeeded: false);
-            OnPropertyChanged(nameof(LastRunResult));
-            LoadRunErrorReport(
+                cancellationToken,
+                outputPath),
+            (action, errorMessage) => LoadRunErrorReport(
                 action,
-                UiCompositionRunner.GetGeneralMergeDefaultOutputFileName(SelectedIc),
+                WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(SelectedIc),
                 SelectedIc,
                 SelectedNumber,
-                exception.Message,
+                errorMessage,
                 CreateGeneralMergeSlotPaths(),
                 compositionKind: "Merge",
                 modeId: WorkbenchWorkflowIds.GeneralMerge,
-                experienceId: WorkbenchWorkflowIds.GeneralMerge);
-        }
-        finally
-        {
-            if (cancellationSource is not null)
-            {
-                CompleteRun(cancellationSource);
-            }
-        }
+                experienceId: WorkbenchWorkflowIds.GeneralMerge));
     }
 
     private Dictionary<string, string> CreateStandardMergeSlotPaths()
@@ -303,7 +192,6 @@ public sealed partial class MainWindowViewModel
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportGeneratedToast(action));
         NotifyReportChanged();
-        RefreshSettingsState();
     }
 
     private FirmwareSlotViewModel? MergeSlotForAddressSpace(string addressSpaceId)

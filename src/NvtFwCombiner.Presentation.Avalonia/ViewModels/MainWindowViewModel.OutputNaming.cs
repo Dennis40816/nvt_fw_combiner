@@ -7,9 +7,9 @@ public sealed partial class MainWindowViewModel
     private string CreateFlashCodeOutputFileName(IEnumerable<FirmwareSlotViewModel> candidateSlots)
     {
         ArgumentNullException.ThrowIfNull(candidateSlots);
-        return UiCompositionRunner.CreateFlashCodeOutputFileName(
+        return WorkbenchCompositionService.CreateFlashCodeOutputFileName(
             SelectedIc,
-            [.. candidateSlots.Select(ToOutputNameCandidate)]);
+            [.. candidateSlots.Select(ToOutputNameCandidate)]).FileName;
     }
 
     private static WorkbenchOutputNameCandidate ToOutputNameCandidate(FirmwareSlotViewModel slot)

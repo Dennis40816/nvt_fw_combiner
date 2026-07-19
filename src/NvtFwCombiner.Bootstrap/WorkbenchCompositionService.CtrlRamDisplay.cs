@@ -19,7 +19,7 @@ public static partial class WorkbenchCompositionService
                 : null;
         return
         [
-            .. TpFlashMapCatalog.GetCtrlRamRegions(icId, ToIcNumberSelection(number), postbuildProfile)
+            .. BuiltInTpFlashMapCatalog.GetRegions(icId, ToIcNumberSelection(number), postbuildProfile, TpFlashMapRegionKind.CtrlRam)
                 .Select(region => new WorkbenchCtrlRamRegion(
                     region.DisplayName,
                     region.Range.Start,

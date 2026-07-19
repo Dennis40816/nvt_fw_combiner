@@ -5,6 +5,8 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private const int GeneralReplaceMappingSequenceStart = 100;
+
     private static bool TryCreateGeneralReplaceMappings(
         WorkbenchGeneralReplaceMappingInput[] mappingInputs,
         WorkbenchGeneralReplacePatchInput[] patchInputs,
@@ -356,11 +358,6 @@ public static partial class WorkbenchCompositionService
 
         string compact = string.Concat(value.Where(character =>
             !char.IsWhiteSpace(character) && character is not '-' and not ',' and not '_'));
-        if (compact.Length == 0 || compact.Length % 2 != 0 || compact.Any(character => !IsHexDigit(character)))
-        {
-            return false;
-        }
-
         try
         {
             bytes = Convert.FromHexString(compact);
@@ -370,14 +367,6 @@ public static partial class WorkbenchCompositionService
         {
             return false;
         }
-    }
-
-    private static bool IsHexDigit(char character)
-    {
-        return character is
-            (>= '0' and <= '9') or
-            (>= 'A' and <= 'F') or
-            (>= 'a' and <= 'f');
     }
 
     private static bool TryRegisterGeneralReplaceId(
@@ -449,45 +438,6 @@ public static partial class WorkbenchCompositionService
         }
     }
 
-    private static IReadOnlyList<OperationRunSummary> CreateGeneralReplacePlanningOperations(
-        IReadOnlyList<ExplicitMapping> explicitMappings)
-    {
-        return
-        [
-            .. explicitMappings.Select(mapping => new OperationRunSummary(
-                mapping.MappingId,
-                mapping.Sequence,
-                CompositionOperationKind.ReplaceRange,
-                OperationRunStatus.Skipped,
-                mapping.SourceBindingId,
-                mapping.SourceRange,
-                mapping.TargetSpaceId,
-                mapping.TargetRange,
-                mapping.OverlapPolicy,
-                null,
-                null,
-                [],
-                [],
-                mapping.Reason,
-                mapping.Provenance)),
-        ];
-    }
-
-    private static Dictionary<string, string> CreateGeneralReplaceReportSlotPaths(
-        IReadOnlyDictionary<string, string> slotPaths,
-        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs)
-    {
-        Dictionary<string, string> paths = new(slotPaths, StringComparer.Ordinal);
-        foreach (WorkbenchGeneralReplaceMappingInput mapping in mappingInputs)
-        {
-            if (!string.IsNullOrWhiteSpace(mapping.FilePath))
-            {
-                paths[mapping.MappingId] = mapping.FilePath;
-            }
-        }
-
-        return paths;
-    }
 }
 
 /// <summary>One user-authored General Replace mapping row from the workbench surface.</summary>

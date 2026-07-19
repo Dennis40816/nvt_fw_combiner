@@ -27,8 +27,8 @@ public sealed partial class ShellTextResources
     {
         return language switch
         {
-            ShellLanguage.English => CreateEnglish(),
-            ShellLanguage.ChineseTraditional => CreateChineseTraditional(),
+            ShellLanguage.English => CreateLocalized(language),
+            ShellLanguage.ChineseTraditional => CreateLocalized(language),
             _ => throw new ArgumentOutOfRangeException(nameof(language), language, null),
         };
     }
@@ -41,11 +41,6 @@ public sealed partial class ShellTextResources
             : ShellLanguage.English;
     }
 
-    /// <summary>Gets the persisted language preference token for a resource language.</summary>
-    public static string PreferenceFromLanguage(ShellLanguage language)
-    {
-        return language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
-    }
 }
 
 #pragma warning restore CS1591

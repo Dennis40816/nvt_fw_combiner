@@ -2,36 +2,60 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies Replace CLI dispatch stays split from option parsing, usage text, and result printing.</summary>
+    /// <summary>Verifies Replace CLI dispatch stays split from parsing, usage, and Workbench reporting.</summary>
     [Fact]
     public void ReplaceCliCommandHandlerConcernsStaySplit()
     {
         string dispatch = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.cs");
-        string bindings = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Bindings.cs");
-        string profileCompile = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.ProfileCompile.cs");
         string options = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Options.cs");
+        string optionParser = ReadText("src/NvtFwCombiner.Bootstrap/CliOptionParser.cs");
         string result = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Result.cs");
         string usage = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Usage.cs");
+        string workbenchReport = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.WorkbenchReport.cs");
 
         Assert.Contains("RunAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryCreateBindings", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private const string GeneralReplaceInputAddressSpaceId", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private const string GeneralReplaceOperationId", dispatch, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryCreateBindings", bindings, StringComparison.Ordinal);
-        Assert.Contains("GeneralReplaceInputAddressSpaceId", profileCompile, StringComparison.Ordinal);
-        Assert.Contains("GeneralReplaceOperationId", profileCompile, StringComparison.Ordinal);
-        Assert.Contains("\"replacement-input\"", profileCompile, StringComparison.Ordinal);
-        Assert.Contains("\"replace-general\"", profileCompile, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static bool TryParseOptions", dispatch, StringComparison.Ordinal);
+        Assert.Contains("CliOptionParser.TryParse", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task PrintRunResultAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task WriteUsageAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private sealed record ParsedOptions", dispatch, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
         Assert.Contains("private static bool RequireOption", options, StringComparison.Ordinal);
-        Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
-        Assert.Contains("private static async Task PrintRunResultAsync", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryParse", options, StringComparison.Ordinal);
+        Assert.Contains("internal static bool TryParse", optionParser, StringComparison.Ordinal);
+        Assert.Contains("internal sealed record ParsedCliOptions", optionParser, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static async Task PrintRunResultAsync", result, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> UnknownReplaceProfileAsync", result, StringComparison.Ordinal);
+        Assert.Contains("private static async Task PrintWorkbenchRunResultAsync", workbenchReport, StringComparison.Ordinal);
         Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);
+        Assert.DoesNotContain("synthetic-", usage, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies every Workbench Replace command shares one CLI run lifecycle.</summary>
+    [Fact]
+    public void WorkbenchReplaceCommandsShareRunLifecycle()
+    {
+        string support = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.WorkbenchSupport.cs");
+        string dp = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs");
+        string ctrlRam = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
+        string general = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.GeneralWorkbench.cs");
+
+        Assert.Contains("private static async Task<int> RunWorkbenchReplaceAsync", support, StringComparison.Ordinal);
+        Assert.Contains("EnsureOutputDoesNotAliasInputs", support, StringComparison.Ordinal);
+        Assert.Contains("EnsureReportDoesNotAliasProtectedPaths", support, StringComparison.Ordinal);
+        Assert.Contains("CliCompositionRunSupport.WriteReportJsonAsync", support, StringComparison.Ordinal);
+        Assert.Contains("PrintWorkbenchRunResultAsync", support, StringComparison.Ordinal);
+        foreach (string workflow in new[] { dp, ctrlRam, general })
+        {
+            Assert.Equal(1, CountOccurrences(workflow, "RunWorkbenchReplaceAsync("));
+            Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("EnsureOutputDoesNotAliasInputs", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("EnsureReportDoesNotAliasProtectedPaths", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("output file already exists", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("WriteWorkbenchReportFileIfRequestedAsync", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("PrintWorkbenchRunResultAsync", workflow, StringComparison.Ordinal);
+        }
     }
 
     /// <summary>Verifies General Merge CLI dispatch stays split from parsing, mapping adaptation, usage text, and result printing.</summary>
@@ -61,6 +85,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintResultAsync", result, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintReportIssuesAsync", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("WriteReportAsync", result, StringComparison.Ordinal);
+        Assert.Contains("CliCompositionRunSupport.WriteReportJsonAsync", dispatch, StringComparison.Ordinal);
         Assert.Contains("private static Task WriteUsageAsync", usage, StringComparison.Ordinal);
     }
 
@@ -135,6 +161,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string root = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.cs");
         string options = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Options.cs");
+        string optionParser = ReadText("src/NvtFwCombiner.Bootstrap/CliOptionParser.cs");
         string profiles = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Profiles.cs");
         string result = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Result.cs");
         string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
@@ -146,8 +173,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static bool TryParseOptions", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task PrintRunResultAsync", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task WriteUsageAsync", root, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
-        Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryParse", options, StringComparison.Ordinal);
+        Assert.Contains("CliOptionParser.TryParse", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("internal static bool TryParse", optionParser, StringComparison.Ordinal);
+        Assert.Contains("internal sealed record ParsedCliOptions", optionParser, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> RunProfilesAsync", profiles, StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeProfileSummaries", profiles, StringComparison.Ordinal);
         Assert.Contains("GetReplaceProfileSummaries", profiles, StringComparison.Ordinal);
@@ -160,23 +189,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies built-in Replace CLI selection policy comes only from the compiled artifact.</summary>
+    /// <summary>Verifies Replace CLI no longer owns a legacy profile compiler or selector adapter.</summary>
     [Fact]
-    public void ReplaceCliConsumesCompiledIcNumberPolicy()
+    public void ReplaceCliUsesWorkbenchCompiledArtifactsOnly()
     {
         string handler = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.cs");
-        string icNumbers = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.IcNumbers.cs");
-        int compileIndex = handler.IndexOf("TryCompileProfile", StringComparison.Ordinal);
-        int selectionIndex = handler.IndexOf("TryCreateIcNumberSelection", StringComparison.Ordinal);
-        int compiledArgumentIndex = handler.IndexOf("compiledComposition,", selectionIndex, StringComparison.Ordinal);
 
-        Assert.True(compileIndex >= 0, "Replace CLI must compile the selected profile.");
-        Assert.True(selectionIndex > compileIndex, "Replace CLI must create IC-number selection after compilation.");
-        Assert.True(compiledArgumentIndex > selectionIndex, "Replace CLI must pass the compiled artifact to selection.");
-        Assert.Contains("CompiledComposition composition", icNumbers, StringComparison.Ordinal);
-        Assert.Contains("composition.IcNumberPolicy", icNumbers, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionProfileDefinition", icNumbers, StringComparison.Ordinal);
-        Assert.DoesNotContain("IcNumberInputMode", icNumbers, StringComparison.Ordinal);
+        Assert.Contains("RunWorkbenchDpReplaceAsync", handler, StringComparison.Ordinal);
+        Assert.Contains("RunWorkbenchCtrlRamReplaceAsync", handler, StringComparison.Ordinal);
+        Assert.Contains("RunWorkbenchGeneralReplaceAsync", handler, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryCompileProfile", handler, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryCreateIcNumberSelection", handler, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileDefinition", handler, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies Standard Merge CLI and Workbench Run share one compiled-resolution boundary.</summary>
@@ -185,16 +209,34 @@ public sealed partial class RepositoryBoundaryTests
     {
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
         string run = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
-        string displayProfile = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.DisplayProfile.cs");
         string display = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
-        string coverage = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Coverage.cs");
+        string generalMergeProfile = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
         string resolver = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Compilation.cs");
 
-        foreach (string runtimeSource in new[] { cli, run, displayProfile, display, coverage })
+        string[] compileSources =
+        [
+            .. Directory.EnumerateFiles(
+                    Path.Combine(Root.FullName, "src", "NvtFwCombiner.Bootstrap"),
+                    "*.cs",
+                    SearchOption.TopDirectoryOnly)
+                .Where(path => File.ReadAllText(path).Contains("TryCompileStandardMerge(", StringComparison.Ordinal))
+                .Select(static path => Path.GetFileName(path))
+                .Order(StringComparer.Ordinal),
+        ];
+        Assert.Equal(
+            [
+                "CliApplication.StandardMerge.cs",
+                "WorkbenchCompositionService.GeneralMerge.Profile.cs",
+                "WorkbenchCompositionService.StandardMerge.Compilation.cs",
+                "WorkbenchCompositionService.StandardMerge.Display.cs",
+                "WorkbenchCompositionService.StandardMerge.Run.cs",
+            ],
+            compileSources);
+
+        foreach (string runtimeSource in new[] { cli, run, display, generalMergeProfile })
         {
             Assert.Contains("TryCompileStandardMerge", runtimeSource, StringComparison.Ordinal);
             Assert.DoesNotContain("CompositionProfileDefinition", runtimeSource, StringComparison.Ordinal);
@@ -204,6 +246,10 @@ public sealed partial class RepositoryBoundaryTests
             Assert.DoesNotContain("NvtFwCombiner.Profiles", runtimeSource, StringComparison.Ordinal);
         }
 
+        Assert.Equal(2, CountOccurrences(cli, "TryCompileStandardMerge("));
+        Assert.Equal(1, CountOccurrences(run, "TryCompileStandardMerge("));
+        Assert.Equal(1, CountOccurrences(display, "TryCompileStandardMerge("));
+        Assert.Equal(1, CountOccurrences(generalMergeProfile, "TryCompileStandardMerge("));
         Assert.Contains("out CompiledComposition? composition", resolver, StringComparison.Ordinal);
         Assert.Contains("SequenceEqual", cli, StringComparison.Ordinal);
         Assert.Contains("TryGetBuiltInV2StandardMergeCompilation", resolver, StringComparison.Ordinal);

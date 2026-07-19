@@ -26,24 +26,13 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 regions[index] = NormalizeRegion(regionDocuments[index], $"{path}.regions[{index}]");
             }
 
-            try
-            {
-                normalized.Add(
+            TranslateInvariant(path, () => normalized.Add(
+                regionSetId,
+                new FirmwareRegionSet(
                     regionSetId,
-                    new FirmwareRegionSet(
-                        regionSetId,
-                        document.AddressSpaceId,
-                        regions,
-                        document.EvidenceRefs));
-            }
-            catch (ArgumentException exception)
-            {
-                throw Error(path, exception.Message, exception);
-            }
-            catch (OverflowException exception)
-            {
-                throw Error(path, exception.Message, exception);
-            }
+                    document.AddressSpaceId,
+                    regions,
+                    document.EvidenceRefs)));
         }
 
         return normalized;
@@ -51,25 +40,14 @@ public static partial class FirmwareFamilyResolutionNormalizer
 
     private static FirmwareRegion NormalizeRegion(FirmwareRegionDocument document, string path)
     {
-        try
-        {
-            return new FirmwareRegion(
+        return TranslateInvariant(path, () => new FirmwareRegion(
                 document.RegionId,
                 document.ParentRegionId,
                 NormalizeOwner(document.Owner, $"{path}.owner"),
                 NormalizeRegionKind(document.Kind, $"{path}.kind"),
                 NormalizeRange(document.Range, $"{path}.range"),
                 NormalizeWriteConstraint(document.WriteConstraint, $"{path}.writeConstraint"),
-                ReadInt32(document.Alignment, 1, int.MaxValue, $"{path}.alignment"));
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
-        catch (OverflowException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
+                ReadInt32(document.Alignment, 1, int.MaxValue, $"{path}.alignment")));
     }
 
     private static Dictionary<string, FirmwareMetadataSet> NormalizeMetadataSets(
@@ -94,20 +72,9 @@ public static partial class FirmwareFamilyResolutionNormalizer
                     $"{path}.structures[{index}]");
             }
 
-            try
-            {
-                normalized.Add(
-                    metadataSetId,
-                    new FirmwareMetadataSet(metadataSetId, structures, document.EvidenceRefs));
-            }
-            catch (ArgumentException exception)
-            {
-                throw Error(path, exception.Message, exception);
-            }
-            catch (OverflowException exception)
-            {
-                throw Error(path, exception.Message, exception);
-            }
+            TranslateInvariant(path, () => normalized.Add(
+                metadataSetId,
+                new FirmwareMetadataSet(metadataSetId, structures, document.EvidenceRefs)));
         }
 
         return normalized;
@@ -135,31 +102,20 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 $"{path}.assertions[{index}]");
         }
 
-        try
-        {
-            return new FirmwareMetadataStructure(
+        return TranslateInvariant(path, () => new FirmwareMetadataStructure(
                 document.StructureId,
                 document.ArtifactBindingId,
                 ReadInt64(document.Length, 1, long.MaxValue, $"{path}.length"),
                 NormalizeLocator(document.Locator, $"{path}.locator"),
                 fields,
-                assertions);
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
-        catch (OverflowException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
+                assertions));
     }
 
     private static FirmwareMetadataField NormalizeField(
         FirmwareMetadataFieldDocument document,
         string path)
     {
-        try
+        return TranslateInvariant(path, () =>
         {
             FirmwareMetadataEncoding encoding = document.Encoding switch
             {
@@ -193,15 +149,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 encoding,
                 byteOrder,
                 bitSlice);
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
-        catch (OverflowException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
+        });
     }
 
     private static FirmwareMetadataByteAssertion NormalizeAssertion(
@@ -210,23 +158,12 @@ public static partial class FirmwareFamilyResolutionNormalizer
     {
         long offset = ReadInt64(document.Offset, 0, long.MaxValue, $"{path}.offset");
         byte[] expectedBytes = ParseHex(document.ExpectedHex, $"{path}.expectedHex");
-        try
-        {
-            return document.MaskHex is { } maskHex
+        return TranslateInvariant(path, () => document.MaskHex is { } maskHex
                 ? FirmwareMetadataByteAssertion.Masked(
                     offset,
                     expectedBytes,
                     ParseHex(maskHex, $"{path}.maskHex"))
-                : FirmwareMetadataByteAssertion.Exact(offset, expectedBytes);
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
-        catch (OverflowException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
+                : FirmwareMetadataByteAssertion.Exact(offset, expectedBytes));
     }
 
     private static FirmwareMetadataLocator NormalizeLocator(
@@ -234,9 +171,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
         string path)
     {
         ArgumentNullException.ThrowIfNull(document);
-        try
-        {
-            return document.Kind switch
+        return TranslateInvariant<FirmwareMetadataLocator>(path, () => document.Kind switch
             {
                 "absolute-range" => new FirmwareAbsoluteRangeLocator(
                     NormalizeAddressedRange(
@@ -266,16 +201,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
                         $"{path}.resultOffset"),
                     document.AllowedResultRegionId),
                 _ => throw Error($"{path}.kind", "Unknown metadata locator kind."),
-            };
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
-        catch (OverflowException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
+            });
     }
 
     private static FirmwareMarkerSelection NormalizeMarkerSelection(

@@ -42,7 +42,12 @@ For every external combiner transform:
 4. Infrastructure computes the before SHA-256 and records the expected file length.
 5. Infrastructure resolves the exact `combiner.exe` from the manifest and verifies its SHA-256 before execution.
 6. Infrastructure expands only approved staging tokens such as `{staging.workBin}` and `{staging.outputBin}`.
-7. Infrastructure starts the process with `UseShellExecute = false`; no shell command string is assembled.
+7. Infrastructure starts every approved command with `UseShellExecute = false` and
+   `CreateNoWindow = true`; no shell command string is assembled and no console window is shown.
+   A multi-command owner Postbuild remains one logical staged processor run whose ordered Combiner
+   child processes share the same run directory and evolving staged firmware. Commands stay direct
+   and individually checked so timeout, exit code, shortened-output normalization, and audit evidence
+   remain attributable to the exact Postbuild step rather than being hidden inside a generated BAT.
 8. The combiner may mutate only files inside the staging directory.
 9. Infrastructure reads back `work.bin` or the declared output file.
 10. Infrastructure verifies file count, expected names, final imported length, after SHA-256, and byte diff.
@@ -56,8 +61,9 @@ The temporary firmware file is an implementation detail of the host. Profiles sh
 
 ## Profile expression
 
-`composition-profile-v1` keeps its existing adapter shape only for compatibility migration.
-`composition-profile-v2` replaces arbitrary `processorInvocation.parameters` with a closed
+The `composition-profile-v1` production adapter was retired in v0.9.9; its schema remains only as
+a versioned migration/validation contract and is not a runtime fallback. `composition-profile-v2`
+replaces arbitrary `processorInvocation.parameters` with a closed
 `legacy-combiner-v1` stage. The stage references a trusted tool binding and registered invocation
 profile. The V2 profile itself never carries executable paths or command arguments; the registered
 invocation contract is host-owned and must bind to the resolved manifest's exact tool binding.

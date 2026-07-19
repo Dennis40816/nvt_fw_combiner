@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.HexEditor;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -18,7 +18,6 @@ public sealed partial class HexEditorWorkspaceViewModel
 {
     /// <summary>Selected range-write behavior in the inspector.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsOverwriteModeSelected))]
     [NotifyPropertyChangedFor(nameof(IsFillModeSelected))]
     [NotifyPropertyChangedFor(nameof(CurrentWriteModeLabel))]
     [NotifyPropertyChangedFor(nameof(CurrentWriteModeTooltip))]
@@ -34,9 +33,6 @@ public sealed partial class HexEditorWorkspaceViewModel
 
     /// <summary>True when Edit Region has a validation message that needs direct attention.</summary>
     public bool HasEditFeedback => !string.IsNullOrWhiteSpace(EditFeedback);
-
-    /// <summary>True when the inspector writes an exact byte sequence.</summary>
-    public bool IsOverwriteModeSelected => RangeWriteMode == HexEditorRangeWriteMode.Overwrite;
 
     /// <summary>Gets or sets whether the inspector repeats one byte across the range.</summary>
     public bool IsFillModeSelected
@@ -70,12 +66,6 @@ public sealed partial class HexEditorWorkspaceViewModel
         ClearEditFeedback();
     }
 
-    /// <summary>Selects exact sequence overwrite mode.</summary>
-    public IRelayCommand SelectOverwriteModeCommand { get; }
-
-    /// <summary>Selects one-byte fill mode.</summary>
-    public IRelayCommand SelectFillModeCommand { get; }
-
     /// <summary>Applies the selected range-write mode to the in-memory work buffer.</summary>
     public IRelayCommand ApplyRangeEditCommand { get; }
 
@@ -90,7 +80,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         ApplyOverwriteRange();
     }
 
-    private void ApplyRangeOperation(WorkbenchRawBinaryEditorOperationResult result, string selectedAddress)
+    private void ApplyRangeOperation(RawBinaryEditorOperationResult result, string selectedAddress)
     {
         if (!result.Succeeded)
         {

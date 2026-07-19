@@ -47,7 +47,19 @@ public sealed class StandardMergeCompilationTests
         Assert.Equal(dpInputLength, composition.Plan.OutputInitialization.Capacity);
         WorkbenchProfileSummary baseline = WorkbenchCompositionService.GetStandardMergeProfileSummaries()
             .Single(summary => string.Equals(summary.IcId, icId, StringComparison.Ordinal));
+        Assert.Equal(baseline.ProfileId, composition.ProfileId);
+        Assert.Equal(baseline.CompositionKind, composition.CompositionKind);
         Assert.Equal(baseline.RequiredInputAddressSpaceIds, composition.Plan.RequiredInputAddressSpaceIds);
+        Assert.Equal(baseline.DefaultOutputFileName, composition.DefaultOutputFileName);
+        Assert.Equal(baseline.IcNumberPolicy, composition.IcNumberPolicy);
+        Assert.Equal(
+            new ByteRange(0x0A000, 0x2D000),
+            composition.V2Details!.Provenance.ResolvedMap.ImageMap.Regions
+                .Single(static region => region.RegionId == "tp-overlay").Range);
+        Assert.Equal(
+            new ByteRange(0x37000, 0x1000),
+            composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions
+                .Single(static region => region.RegionId == "customer-info").Range);
     }
 
     /// <summary>DP Perspective profiles wait for a selected DP length instead of selecting a maximum container.</summary>
@@ -111,18 +123,28 @@ public sealed class StandardMergeCompilationTests
         Assert.Equal(expectedLength, WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId));
     }
 
-    /// <summary>DP warning policy is projected from the compiled immutable input address space.</summary>
+    /// <summary>Every selectable General Merge IC has a compiled V2 capacity source.</summary>
     [Fact]
-    public void DpInputLengthPolicyUsesCompiledAddressSpaceFacts()
+    public void EverySelectableGeneralMergeIcHasACompiledV2CapacitySource()
     {
-        bool found = WorkbenchCompositionService.TryGetStandardMergeDpInputLengthPolicy(
-            "NT51929",
-            out WorkbenchStandardMergeDpInputLengthPolicy policy);
-
-        Assert.True(found);
-        Assert.Equal(0x6000, policy.RequiredLength);
-        Assert.Equal([0x40000], policy.ExpectedInputLengths);
-        Assert.False(WorkbenchCompositionService.TryGetStandardMergeDpInputLengthPolicy("NT51950", out _));
-        Assert.False(WorkbenchCompositionService.TryGetStandardMergeDpInputLengthPolicy("NT00000", out _));
+        foreach (string icId in WorkbenchCompositionService.GetSupportedIcIds())
+        {
+            Assert.True(WorkbenchCompositionService.IsStandardMergeSupported(icId));
+            Assert.StartsWith(
+                "0x",
+                WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId),
+                StringComparison.Ordinal);
+        }
     }
+
+    /// <summary>An unknown IC cannot obtain General Merge capacity from a compatibility catalog.</summary>
+    [Fact]
+    public void UnknownGeneralMergeIcHasNoCompatibilityCapacityFallback()
+    {
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+            () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength("NT00000"));
+
+        Assert.Contains("No compiled V2 Standard Merge profile", exception.Message, StringComparison.Ordinal);
+    }
+
 }

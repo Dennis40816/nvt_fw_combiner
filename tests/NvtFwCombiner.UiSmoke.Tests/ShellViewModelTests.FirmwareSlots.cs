@@ -11,7 +11,7 @@ public sealed partial class ShellViewModelTests
     public void FirmwareSlotCompletionToneHighlightsOnlyRequiredInputs()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-slot-tone");
-        FirmwareSlotViewModel required = new("merge-dp", "DP BIN", "Display payload");
+        FirmwareSlotViewModel required = new("merge-dp", "DP BIN", "Display payload", FirmwareSlotKind.Dp);
 
         Assert.False(required.IsOptional);
         Assert.False(required.HasFile);
@@ -30,7 +30,12 @@ public sealed partial class ShellViewModelTests
         AssertIconGeometry(required);
         Assert.Equal("Required", required.RequirementLabel);
 
-        FirmwareSlotViewModel optional = new("merge-ld", "LD BIN", "Optional payload", isOptional: true);
+        FirmwareSlotViewModel optional = new(
+            "merge-ld",
+            "LD BIN",
+            "Optional payload",
+            FirmwareSlotKind.Dp,
+            isOptional: true);
 
         Assert.True(optional.IsOptional);
         Assert.Equal(FirmwareSlotKind.Dp, optional.SlotKind);
@@ -59,16 +64,16 @@ public sealed partial class ShellViewModelTests
             HasDrawableIcon(slot));
         Assert.Equal(FirmwareSlotKind.Base, viewModel.ReplaceBaseSlot.SlotKind);
         AssertIconGeometry(viewModel.ReplaceBaseSlot);
-        Assert.Equal("Base firmware BIN", viewModel.ReplaceBaseSlot.SlotIconTooltip);
+        Assert.Equal("Reference firmware input", viewModel.ReplaceBaseSlot.SlotIconTooltip);
 
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
 
         Assert.Contains(viewModel.ReplaceSlots, slot =>
             slot.SlotId == "replace-dp" &&
             slot.SlotKind == FirmwareSlotKind.Dp &&
             HasDrawableIcon(slot));
 
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         Assert.All(
             viewModel.ReplaceSlots.Where(slot => !ReferenceEquals(slot, viewModel.ReplaceBaseSlot)),
@@ -80,7 +85,7 @@ public sealed partial class ShellViewModelTests
             });
     }
 
-    /// <summary>Verifies base BIN slots expose FWConfig facts decoded from the selected flash image.</summary>
+    /// <summary>Verifies a full FlashCode base exposes both DP and TP facts instead of treating it as TP-only.</summary>
     [Fact]
     public void BaseFirmwareSlotShowsFwConfigFacts()
     {
@@ -93,6 +98,12 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.ReplaceBaseSlot.HasFirmwareFacts);
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+            fact.Label == "DP" &&
+            fact.Value == "D01-02");
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+            fact.Label == "Jira" &&
+            fact.Value == "AUTO_PRJ-597");
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "Common FW" && fact.Value == "1.4.1");
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "TP" &&
@@ -100,6 +111,26 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "PID" && fact.Value == "0x5102");
         Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Refresh");
+    }
+
+    /// <summary>Verifies readable DP facts remain visible when a base has no canonical TP NVT Backup.</summary>
+    [Fact]
+    public void BaseFirmwareSlotKeepsDpFactsWithoutTpMetadata()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-base-dp-only-facts");
+        byte[] bytes = [.. Enumerable.Repeat((byte)0xFF, 0x80000)];
+        bytes[0x05016] = 0x40;
+        bytes[0x05017] = 0xCC;
+        bytes[0x05018] = 0x02;
+        string basePath = workspace.Write("nt51951-no-nvt-backup.bin", bytes);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51951";
+
+        viewModel.SetSlotFile("replace-base", basePath);
+
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "DP" && fact.Value == "DCC-00");
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira" && fact.Value == "AUTO_PRJ-576");
+        Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label is "TP" or "Common FW" or "PID");
     }
 
     /// <summary>Verifies DP BIN slots expose gen_flash DP version facts and mark missing evidence.</summary>

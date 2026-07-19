@@ -1,0 +1,1668 @@
+{
+  "schemaVersion": "1.0",
+  "profiles": [
+    {
+      "icId": "NT51917",
+      "overviewSource": "51927 \u0026 51928 (Not NB)",
+      "firmwareConfigPrimaryStart": 90112,
+      "tpPrefixLength": 217088,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "baseShapeEvidence": "Owner-declared NT51927 perfect-family alias plus canonical Standard Merge fixture shape.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming. Owner confirmation: NT51917 follows NT51927.",
+      "regions": [
+        {
+          "regionId": "nf-master",
+          "displayName": "NF CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 92160,
+          "length": 4048,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "normal-master",
+          "displayName": "Normal CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 96208,
+          "length": 12288,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "mp-master",
+          "displayName": "MP CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 108496,
+          "length": 9216,
+          "visibility": "always",
+          "postbuildFileName": "MP_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn-master",
+          "displayName": "VN CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 117712,
+          "length": 5728,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "nf-slave-r",
+          "displayName": "NF CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 129024,
+          "length": 4048,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "normal-slave-r",
+          "displayName": "Normal CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 133072,
+          "length": 12288,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "Normal_Ctrlram_R.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "mp-slave-r",
+          "displayName": "MP CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 145360,
+          "length": 9216,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "MP_Ctrlram_R.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "vn-slave-r",
+          "displayName": "VN CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 154576,
+          "length": 5728,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "nf-slave-l",
+          "displayName": "NF CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 165888,
+          "length": 4048,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "normal-slave-l",
+          "displayName": "Normal CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 169936,
+          "length": 12288,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "Normal_Ctrlram_L.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "mp-slave-l",
+          "displayName": "MP CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 182224,
+          "length": 9216,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "MP_Ctrlram_L.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "vn-slave-l",
+          "displayName": "VN CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 191440,
+          "length": 5728,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "header-backup",
+          "displayName": "FW Header Backup",
+          "kind": "other",
+          "start": 208320,
+          "length": 1120,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "fw-config-reg-backup",
+          "displayName": "FW Config/Reg Backup",
+          "kind": "other",
+          "start": 212992,
+          "length": 2048,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 241664,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "dp-initial-code",
+          "displayName": "DP Region (Initial Code)",
+          "kind": "dp",
+          "start": 245760,
+          "length": 16384,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "dp-ldc-51928",
+          "displayName": "DP Region (LDC) - NT51928 only",
+          "kind": "dp",
+          "start": 262144,
+          "length": 139264,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        }
+      ]
+    },
+    {
+      "icId": "NT51919",
+      "overviewSource": "51929 \u0026 51932",
+      "firmwareConfigPrimaryStart": 127488,
+      "tpPrefixLength": 262144,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "baseShapeEvidence": "Owner-declared NT51929 perfect-family alias plus canonical Standard Merge fixture shape.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming. Owner confirmation: NT51919 follows NT51929.",
+      "regions": [
+        {
+          "regionId": "dp",
+          "displayName": "DP Region",
+          "kind": "dp",
+          "start": 0,
+          "length": 24576,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 24576,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 130048,
+          "length": 8080,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "normal",
+          "displayName": "Normal CtrlRAM",
+          "kind": "ctrlram",
+          "start": 138128,
+          "length": 18944,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 157072,
+          "length": 6496,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "diff",
+          "displayName": "DIFF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 184576,
+          "length": 35840,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "DiffDLM.bin",
+          "tags": [
+            "diff"
+          ]
+        },
+        {
+          "regionId": "fw-information",
+          "displayName": "FW Information",
+          "kind": "other",
+          "start": 258048,
+          "length": 4092,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "fw-information",
+            "protected"
+          ]
+        }
+      ]
+    },
+    {
+      "icId": "NT51920",
+      "overviewSource": "51920",
+      "firmwareConfigPrimaryStart": 139264,
+      "tpPrefixLength": 196608,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "baseShapeEvidence": "Owner-approved canonical Standard Merge TP input and expected Flash output.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming.",
+      "regions": [
+        {
+          "regionId": "normal-master",
+          "displayName": "Normal CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 141184,
+          "length": 10240,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "mp-master",
+          "displayName": "MP CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 151424,
+          "length": 5888,
+          "visibility": "always",
+          "postbuildFileName": "MP_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "normal-slave",
+          "displayName": "Normal CtrlRAM (Slave)",
+          "kind": "ctrlram",
+          "start": 157568,
+          "length": 10240,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "Normal_Ctrlram_S.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "mp-slave",
+          "displayName": "MP CtrlRAM (Slave)",
+          "kind": "ctrlram",
+          "start": 167808,
+          "length": 5888,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "MP_Ctrlram_S.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 173952,
+          "length": 8080,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 182032,
+          "length": 4120,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vector",
+          "displayName": "Vector CtrlRAM",
+          "kind": "ctrlram",
+          "start": 186152,
+          "length": 600,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "Vector_Ctrlram.bin",
+          "tags": [
+            "vector"
+          ]
+        },
+        {
+          "regionId": "fw-config-backup",
+          "displayName": "FW Config Backup",
+          "kind": "other",
+          "start": 192512,
+          "length": 1920,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "dp",
+          "displayName": "DP Region",
+          "kind": "dp",
+          "start": 253952,
+          "length": 8192,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        }
+      ]
+    },
+    {
+      "icId": "NT51923",
+      "overviewSource": "51923",
+      "firmwareConfigPrimaryStart": 139264,
+      "tpPrefixLength": 245760,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "baseShapeEvidence": "Owner-approved canonical Standard Merge TP input and expected Flash output.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming.",
+      "regions": [
+        {
+          "regionId": "normal",
+          "displayName": "Normal CtrlRAM",
+          "kind": "ctrlram",
+          "start": 141312,
+          "length": 14336,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "mp",
+          "displayName": "MP CtrlRAM",
+          "kind": "ctrlram",
+          "start": 155648,
+          "length": 10240,
+          "visibility": "always",
+          "postbuildFileName": "MP_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "diff",
+          "displayName": "DIFF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 165888,
+          "length": 6144,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "DiffDLM.bin",
+          "tags": [
+            "diff"
+          ]
+        },
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 172032,
+          "length": 17584,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 190464,
+          "length": 5728,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "fw-config-backup",
+          "displayName": "FW Config",
+          "kind": "other",
+          "start": 241664,
+          "length": 2048,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "fw-config",
+            "postbuild",
+            "workbook-label-fw-config"
+          ]
+        },
+        {
+          "regionId": "project-id",
+          "displayName": "Project ID",
+          "kind": "project-id",
+          "start": 245760,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 249856,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "dp",
+          "displayName": "DP Region",
+          "kind": "dp",
+          "start": 253952,
+          "length": 8192,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        }
+      ]
+    },
+    {
+      "icId": "NT51926",
+      "overviewSource": "51926",
+      "firmwareConfigPrimaryStart": 139264,
+      "tpPrefixLength": 245760,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "baseShapeEvidence": "Owner-approved canonical Standard Merge fixture plus direct CtrlRAM TP/full-Flash candidate parity.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming.",
+      "regions": [
+        {
+          "regionId": "normal",
+          "displayName": "Normal CtrlRAM",
+          "kind": "ctrlram",
+          "start": 141312,
+          "length": 11264,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "mp",
+          "displayName": "MP CtrlRAM",
+          "kind": "ctrlram",
+          "start": 152576,
+          "length": 9216,
+          "visibility": "always",
+          "postbuildFileName": "MP_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "diff",
+          "displayName": "DIFF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 161792,
+          "length": 10240,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "DiffDLM.bin",
+          "tags": [
+            "diff"
+          ]
+        },
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 182272,
+          "length": 11728,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 202192,
+          "length": 5278,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "fw-config-backup",
+          "displayName": "FW Config Backup",
+          "kind": "other",
+          "start": 241664,
+          "length": 1920,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "project-id",
+          "displayName": "Project ID",
+          "kind": "project-id",
+          "start": 245760,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 249856,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "dp",
+          "displayName": "DP Region",
+          "kind": "dp",
+          "start": 253952,
+          "length": 8192,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        }
+      ]
+    },
+    {
+      "icId": "NT51927",
+      "overviewSource": "51927 \u0026 51928 (Not NB)",
+      "firmwareConfigPrimaryStart": 90112,
+      "tpPrefixLength": 217088,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "baseShapeEvidence": "Owner-approved canonical Standard Merge TP input and expected Flash output.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming.",
+      "regions": [
+        {
+          "regionId": "nf-master",
+          "displayName": "NF CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 92160,
+          "length": 4048,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "normal-master",
+          "displayName": "Normal CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 96208,
+          "length": 12288,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "mp-master",
+          "displayName": "MP CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 108496,
+          "length": 9216,
+          "visibility": "always",
+          "postbuildFileName": "MP_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn-master",
+          "displayName": "VN CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 117712,
+          "length": 5728,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "nf-slave-r",
+          "displayName": "NF CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 129024,
+          "length": 4048,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "normal-slave-r",
+          "displayName": "Normal CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 133072,
+          "length": 12288,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "Normal_Ctrlram_R.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "mp-slave-r",
+          "displayName": "MP CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 145360,
+          "length": 9216,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "MP_Ctrlram_R.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "vn-slave-r",
+          "displayName": "VN CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 154576,
+          "length": 5728,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "nf-slave-l",
+          "displayName": "NF CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 165888,
+          "length": 4048,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "normal-slave-l",
+          "displayName": "Normal CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 169936,
+          "length": 12288,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "Normal_Ctrlram_L.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "mp-slave-l",
+          "displayName": "MP CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 182224,
+          "length": 9216,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "MP_Ctrlram_L.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "vn-slave-l",
+          "displayName": "VN CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 191440,
+          "length": 5728,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "header-backup",
+          "displayName": "FW Header Backup",
+          "kind": "other",
+          "start": 208320,
+          "length": 1120,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "fw-config-reg-backup",
+          "displayName": "FW Config/Reg Backup",
+          "kind": "other",
+          "start": 212992,
+          "length": 2048,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 241664,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "dp-initial-code",
+          "displayName": "DP Region (Initial Code)",
+          "kind": "dp",
+          "start": 245760,
+          "length": 16384,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "dp-ldc-51928",
+          "displayName": "DP Region (LDC) - NT51928 only",
+          "kind": "dp",
+          "start": 262144,
+          "length": 139264,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        }
+      ]
+    },
+    {
+      "icId": "NT51928",
+      "overviewSource": "51927 \u0026 51928 (Not NB)",
+      "firmwareConfigPrimaryStart": 90112,
+      "tpPrefixLength": 217088,
+      "fullFlashCapacities": [
+        524288
+      ],
+      "baseShapeEvidence": "Owner-approved canonical Standard Merge TP input and expected Flash output.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming. NT51928 non-NB follows NT51927. NT51928 NB is not covered.",
+      "regions": [
+        {
+          "regionId": "nf-master",
+          "displayName": "NF CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 92160,
+          "length": 4048,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "normal-master",
+          "displayName": "Normal CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 96208,
+          "length": 12288,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "mp-master",
+          "displayName": "MP CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 108496,
+          "length": 9216,
+          "visibility": "always",
+          "postbuildFileName": "MP_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn-master",
+          "displayName": "VN CtrlRAM (Master)",
+          "kind": "ctrlram",
+          "start": 117712,
+          "length": 5728,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "nf-slave-r",
+          "displayName": "NF CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 129024,
+          "length": 4048,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "normal-slave-r",
+          "displayName": "Normal CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 133072,
+          "length": 12288,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "Normal_Ctrlram_R.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "mp-slave-r",
+          "displayName": "MP CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 145360,
+          "length": 9216,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "MP_Ctrlram_R.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "vn-slave-r",
+          "displayName": "VN CtrlRAM (Slave R)",
+          "kind": "ctrlram",
+          "start": 154576,
+          "length": 5728,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "nf-slave-l",
+          "displayName": "NF CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 165888,
+          "length": 4048,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "normal-slave-l",
+          "displayName": "Normal CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 169936,
+          "length": 12288,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "Normal_Ctrlram_L.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "mp-slave-l",
+          "displayName": "MP CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 182224,
+          "length": 9216,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "MP_Ctrlram_L.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "vn-slave-l",
+          "displayName": "VN CtrlRAM (Slave L)",
+          "kind": "ctrlram",
+          "start": 191440,
+          "length": 5728,
+          "visibility": "three-chip-and-above",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "header-backup",
+          "displayName": "FW Header Backup",
+          "kind": "other",
+          "start": 208320,
+          "length": 1120,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "fw-config-reg-backup",
+          "displayName": "FW Config/Reg Backup",
+          "kind": "other",
+          "start": 212992,
+          "length": 2048,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 241664,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "dp-initial-code",
+          "displayName": "DP Region (Initial Code)",
+          "kind": "dp",
+          "start": 245760,
+          "length": 16384,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "dp-ldc-51928",
+          "displayName": "DP Region (LDC) - NT51928 only",
+          "kind": "dp",
+          "start": 262144,
+          "length": 139264,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        }
+      ]
+    },
+    {
+      "icId": "NT51929",
+      "overviewSource": "51929 \u0026 51932",
+      "firmwareConfigPrimaryStart": 127488,
+      "tpPrefixLength": 262144,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "baseShapeEvidence": "Owner-approved canonical Standard Merge TP input and expected Flash output.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming. Owner confirmation: NT51929 follows NT51932 postbuild.",
+      "regions": [
+        {
+          "regionId": "dp",
+          "displayName": "DP Region",
+          "kind": "dp",
+          "start": 0,
+          "length": 24576,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 24576,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 130048,
+          "length": 8080,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "normal",
+          "displayName": "Normal CtrlRAM",
+          "kind": "ctrlram",
+          "start": 138128,
+          "length": 18944,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 157072,
+          "length": 6496,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "diff",
+          "displayName": "DIFF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 184576,
+          "length": 35840,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "DiffDLM.bin",
+          "tags": [
+            "diff"
+          ]
+        },
+        {
+          "regionId": "fw-information",
+          "displayName": "FW Information",
+          "kind": "other",
+          "start": 258048,
+          "length": 4092,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "fw-information",
+            "protected"
+          ]
+        }
+      ]
+    },
+    {
+      "icId": "NT51930",
+      "overviewSource": "51930",
+      "firmwareConfigPrimaryStart": 127488,
+      "tpPrefixLength": 262144,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "baseShapeEvidence": "Owner-approved canonical Standard Merge TP input and expected Flash output.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming.",
+      "regions": [
+        {
+          "regionId": "dp",
+          "displayName": "DP Region",
+          "kind": "dp",
+          "start": 0,
+          "length": 24576,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 24576,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "normal",
+          "displayName": "Normal CtrlRAM",
+          "kind": "ctrlram",
+          "start": 136784,
+          "length": 11264,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "mp",
+          "displayName": "MP CtrlRAM",
+          "kind": "ctrlram",
+          "start": 148048,
+          "length": 13312,
+          "visibility": "always",
+          "postbuildFileName": "MP_Ctrlram.bin",
+          "tags": [
+            "overview-only"
+          ]
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 161360,
+          "length": 6496,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "diff",
+          "displayName": "DIFF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 193024,
+          "length": 65024,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "DiffDLM.bin",
+          "tags": [
+            "diff",
+            "\u003C=13ic"
+          ]
+        },
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 130048,
+          "length": 6736,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "fw-information-host",
+          "displayName": "FW Information For Host",
+          "kind": "other",
+          "start": 258048,
+          "length": 4092,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "fw-information",
+            "host",
+            "protected"
+          ]
+        }
+      ]
+    },
+    {
+      "icId": "NT51931",
+      "overviewSource": "51931",
+      "firmwareConfigPrimaryStart": 90112,
+      "tpPrefixLength": 245760,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "baseShapeEvidence": "Owner-approved canonical Standard Merge shape retained as evidence only; Replace remains Not Supported.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming.",
+      "regions": [
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 92160,
+          "length": 4048,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "normal",
+          "displayName": "Normal CtrlRAM",
+          "kind": "ctrlram",
+          "start": 96208,
+          "length": 10240,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "mp",
+          "displayName": "MP CtrlRAM",
+          "kind": "ctrlram",
+          "start": 106448,
+          "length": 9216,
+          "visibility": "always",
+          "postbuildFileName": "MP_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 115664,
+          "length": 5728,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "dlm",
+          "displayName": "DLM CtrlRAM",
+          "kind": "ctrlram",
+          "start": 141312,
+          "length": 97280,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "DiffDLM.bin",
+          "tags": [
+            "diff",
+            "dlm"
+          ]
+        },
+        {
+          "regionId": "fw-config-backup",
+          "displayName": "FW Config Backup",
+          "kind": "other",
+          "start": 241664,
+          "length": 2048,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "dp",
+          "displayName": "DP Region",
+          "kind": "dp",
+          "start": 253952,
+          "length": 8192,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        }
+      ]
+    },
+    {
+      "icId": "NT51932",
+      "overviewSource": "51929 \u0026 51932",
+      "firmwareConfigPrimaryStart": 127488,
+      "tpPrefixLength": 262144,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "baseShapeEvidence": "Owner-approved canonical Standard Merge TP input and expected Flash output.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming.",
+      "regions": [
+        {
+          "regionId": "dp",
+          "displayName": "DP Region",
+          "kind": "dp",
+          "start": 0,
+          "length": 24576,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 24576,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 130048,
+          "length": 8080,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "normal",
+          "displayName": "Normal CtrlRAM",
+          "kind": "ctrlram",
+          "start": 138128,
+          "length": 18944,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 157072,
+          "length": 6496,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "diff",
+          "displayName": "DIFF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 184576,
+          "length": 35840,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "DiffDLM.bin",
+          "tags": [
+            "diff"
+          ]
+        },
+        {
+          "regionId": "fw-information",
+          "displayName": "FW Information",
+          "kind": "other",
+          "start": 258048,
+          "length": 4092,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "fw-information",
+            "protected"
+          ]
+        }
+      ]
+    },
+    {
+      "icId": "NT51950",
+      "overviewSource": "51950 (No Backup EN)",
+      "firmwareConfigPrimaryStart": 139776,
+      "tpPrefixLength": 225280,
+      "fullFlashCapacities": [
+        262144,
+        524288,
+        1048576
+      ],
+      "baseShapeEvidence": "Canonical DP-perspective map capacities; CtrlRAM runtime promotion remains evidence-gated.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming.",
+      "regions": [
+        {
+          "regionId": "dp-initial-code",
+          "displayName": "DP Region (Initial Code)",
+          "kind": "dp",
+          "start": 0,
+          "length": 40960,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 142336,
+          "length": 10768,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "normal",
+          "displayName": "Normal CtrlRAM",
+          "kind": "ctrlram",
+          "start": 153104,
+          "length": 23552,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 176656,
+          "length": 8444,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "diff",
+          "displayName": "DIFF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 209408,
+          "length": 5120,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "DiffDLM.bin",
+          "tags": [
+            "diff"
+          ]
+        },
+        {
+          "regionId": "fw-information-host",
+          "displayName": "FW Information for Host",
+          "kind": "other",
+          "start": 221184,
+          "length": 4092,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "fw-information",
+            "host",
+            "protected"
+          ]
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 225280,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "dp-1-or-2ic",
+          "displayName": "DP Region (1IC or 2IC)",
+          "kind": "dp",
+          "start": 229376,
+          "length": 32768,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "dp-2ic-only",
+          "displayName": "DP Region (2IC only)",
+          "kind": "dp",
+          "start": 262144,
+          "length": 40960,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "dp-ldc-51951",
+          "displayName": "DP Region (LDC) - NT51951",
+          "kind": "dp",
+          "start": 266240,
+          "length": 114688,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": null,
+          "tags": []
+        }
+      ]
+    },
+    {
+      "icId": "NT51951",
+      "overviewSource": "51951 (No Back Up EN)",
+      "firmwareConfigPrimaryStart": 139776,
+      "tpPrefixLength": 225280,
+      "fullFlashCapacities": [
+        262144,
+        524288,
+        1048576
+      ],
+      "baseShapeEvidence": "Canonical DP-perspective map capacities; CtrlRAM runtime promotion remains evidence-gated.",
+      "evidence": "IC_FlashMap.xlsx TP Overview and postbuild naming. Owner confirmation: NT51951 follows NT51950 postbuild.",
+      "regions": [
+        {
+          "regionId": "dp-initial-code",
+          "displayName": "DP Region (Initial Code)",
+          "kind": "dp",
+          "start": 0,
+          "length": 40960,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 142336,
+          "length": 10768,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "normal",
+          "displayName": "Normal CtrlRAM",
+          "kind": "ctrlram",
+          "start": 153104,
+          "length": 23552,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 176656,
+          "length": 8444,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "diff",
+          "displayName": "DIFF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 209408,
+          "length": 5120,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "DiffDLM.bin",
+          "tags": [
+            "diff"
+          ]
+        },
+        {
+          "regionId": "fw-information-host",
+          "displayName": "FW Information for Host",
+          "kind": "other",
+          "start": 221184,
+          "length": 4092,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "fw-information",
+            "host",
+            "protected"
+          ]
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 225280,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "dp-1-or-2ic",
+          "displayName": "DP Region (1IC or 2IC)",
+          "kind": "dp",
+          "start": 229376,
+          "length": 32768,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "dp-2ic-only",
+          "displayName": "DP Region (2IC only)",
+          "kind": "dp",
+          "start": 262144,
+          "length": 40960,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": null,
+          "tags": []
+        },
+        {
+          "regionId": "dp-ldc-51951",
+          "displayName": "DP Region (LDC) - NT51951",
+          "kind": "dp",
+          "start": 266240,
+          "length": 114688,
+          "visibility": "two-chip-and-above",
+          "postbuildFileName": null,
+          "tags": []
+        }
+      ]
+    }
+  ]
+}

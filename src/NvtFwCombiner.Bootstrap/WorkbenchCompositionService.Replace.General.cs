@@ -2,7 +2,7 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
+using V2CompositionPlanCompileResult = NvtFwCombiner.Profiles.V2.V2CompositionPlanCompileResult;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -14,7 +14,6 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs,
         IReadOnlyList<WorkbenchGeneralReplacePatchInput> patchInputs,
-        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot,
         bool build,
         string? outputPath,
         CancellationToken cancellationToken)
@@ -25,12 +24,26 @@ public static partial class WorkbenchCompositionService
                 slotPaths,
                 mappingInputs,
                 patchInputs,
-                baseSnapshot,
                 build,
                 out GeneralReplaceRunContext? context,
                 out WorkbenchRunResult? failure))
         {
             return failure!;
+        }
+
+        WorkbenchRunResult Blocked(
+            IReadOnlyList<CompositionIssue> issues,
+            IReadOnlyList<OperationRunSummary>? operations = null,
+            string? outputFileName = null)
+        {
+            return CreateReplaceReportRunResult(
+                icId,
+                WorkbenchReplaceModes.General,
+                context!.ReportSlotPaths,
+                build,
+                operations ?? [],
+                issues,
+                outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General));
         }
 
         if (!TryCreateGeneralReplaceMappings(
@@ -43,29 +56,15 @@ public static partial class WorkbenchCompositionService
                 out IReadOnlyList<GeneralReplacePatchArtifact> patchArtifacts,
                 out IReadOnlyList<CompositionIssue> mappingIssues))
         {
-            return CreateReplaceReportRunResult(
-                icId,
-                WorkbenchReplaceModes.General,
-                context.ReportSlotPaths,
-                build,
-                [],
-                mappingIssues,
-                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
-                succeeded: false);
+            return Blocked(mappingIssues);
         }
 
-        bool postbuildProfileResolved = context.BaseSnapshot is null
-            ? TryGetPostbuildProfile(
-                icId,
-                context.BasePath,
-                out LegacyCombinerPostbuildProfile? postbuildProfile,
-                out CompositionIssue? postbuildIssue)
-            : TryGetPostbuildProfile(
-                icId,
-                context.BaseSnapshot,
-                out postbuildProfile,
-                out postbuildIssue);
-        IReadOnlyList<TpFlashMapRegion> regionsForMappingPolicy = TpFlashMapCatalog.GetRegions(
+        bool postbuildProfileResolved = TryGetPostbuildProfile(
+            icId,
+            context.BasePath,
+            out LegacyCombinerPostbuildProfile? postbuildProfile,
+            out CompositionIssue? postbuildIssue);
+        IReadOnlyList<TpFlashMapRegion> regionsForMappingPolicy = BuiltInTpFlashMapCatalog.GetRegions(
             icId,
             context.Selection,
             postbuildProfileResolved ? postbuildProfile : null);
@@ -76,15 +75,9 @@ public static partial class WorkbenchCompositionService
         {
             if (!postbuildProfileResolved)
             {
-                return CreateReplaceReportRunResult(
-                    icId,
-                    WorkbenchReplaceModes.General,
-                    context.ReportSlotPaths,
-                    build,
-                    CreateGeneralReplacePlanningOperations(explicitMappings),
+                return Blocked(
                     [postbuildIssue!],
-                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
-                    succeeded: false);
+                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
             }
 
             try
@@ -93,39 +86,27 @@ public static partial class WorkbenchCompositionService
             }
             catch (ArgumentException exception)
             {
-                return CreateReplaceReportRunResult(
-                    icId,
-                    WorkbenchReplaceModes.General,
-                    context.ReportSlotPaths,
-                    build,
-                    CreateGeneralReplacePlanningOperations(explicitMappings),
+                return Blocked(
                     [
                         new CompositionIssue(
                             WorkbenchIssueCodes.ReplaceGeneralIcNumberUnsupported,
                             exception.Message,
                             "number"),
                     ],
-                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
-                    succeeded: false);
+                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
             }
 
             long requiredCapacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(commandPlan, []);
             if (context.Capacity < requiredCapacity)
             {
-                return CreateReplaceReportRunResult(
-                    icId,
-                    WorkbenchReplaceModes.General,
-                    context.ReportSlotPaths,
-                    build,
-                    CreateGeneralReplacePlanningOperations(explicitMappings),
+                return Blocked(
                     [
                         new CompositionIssue(
                             CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                             $"Base flash BIN is too short for {icId} / {number} General Replace postbuild (actual {context.Capacity} bytes, required at least {requiredCapacity} bytes).",
                             WorkbenchSlotIds.ReplaceBase),
                     ],
-                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
-                    succeeded: false);
+                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
             }
 
             postbuildWriteRangeSections =
@@ -134,45 +115,45 @@ public static partial class WorkbenchCompositionService
             ];
             if (postbuildWriteRangeSections.Count == 0)
             {
-                return CreateReplaceReportRunResult(
-                    icId,
-                    WorkbenchReplaceModes.General,
-                    context.ReportSlotPaths,
-                    build,
-                    CreateGeneralReplacePlanningOperations(explicitMappings),
+                return Blocked(
                     [
                         new CompositionIssue(
                             WorkbenchIssueCodes.ReplaceGeneralPostbuildWriteRangeMissing,
                             "No approved postbuild write range could be derived for TP-touching General Replace.",
                             "postbuild"),
                     ],
-                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
-                    succeeded: false);
+                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
             }
         }
 
-        CompositionProfileDefinition profile = CreateGeneralReplaceProfile(
+        bool useNt51926DpV2 = IsNt51926GeneralReplaceDpV2Route(
             icId,
-            context.Selection,
-            context.Capacity,
-            postbuildProfileResolved ? postbuildProfile : null,
-            commandPlan,
-            postbuildWriteRangeSections);
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(
-            profile,
-            explicitMappings,
-            requestAddressSpaces);
-        if (!compile.IsSuccess)
+            context,
+            regionsForMappingPolicy,
+            explicitMappings);
+        if (!useNt51926DpV2)
         {
-            return CreateReplaceReportRunResult(
-                icId,
-                WorkbenchReplaceModes.General,
-                context.ReportSlotPaths,
-                build,
-                CreateGeneralReplacePlanningOperations(explicitMappings),
+            return Blocked(
+                [
+                    new CompositionIssue(
+                        WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+                        "The selected General Replace shape has no exact evidence-backed V2 route.",
+                        "mapping"),
+                ],
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
+        }
+
+        V2CompositionPlanCompileResult compile = CompileNt51926GeneralReplaceDpV2(
+            context,
+            requestAddressSpaces,
+            explicitMappings);
+        CompiledComposition? compiledComposition = compile.CompiledComposition;
+        if (compiledComposition is null)
+        {
+            return Blocked(
                 compile.Issues,
-                profile.DefaultOutputFileName,
-                succeeded: false);
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange),
+                "nt51926-general-replace.bin");
         }
 
         if (!TryMaterializeGeneralReplacePatchArtifacts(
@@ -180,32 +161,27 @@ public static partial class WorkbenchCompositionService
                 out IReadOnlyDictionary<string, byte[]> patchVirtualArtifacts,
                 out IReadOnlyList<CompositionIssue> materializationIssues))
         {
-            return CreateReplaceReportRunResult(
-                icId,
-                WorkbenchReplaceModes.General,
-                context.ReportSlotPaths,
-                build,
-                CreateGeneralReplacePlanningOperations(explicitMappings),
+            return Blocked(
                 materializationIssues,
-                profile.DefaultOutputFileName,
-                succeeded: false);
-        }
-
-        Dictionary<string, byte[]> virtualArtifacts = new(patchVirtualArtifacts, StringComparer.Ordinal);
-        if (context.BaseSnapshot is not null)
-        {
-            virtualArtifacts.Add(context.ReferenceArtifactId, context.BaseSnapshot.CopyForArtifactReader());
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange),
+                "nt51926-general-replace.bin");
         }
 
         InputArtifactBinding[] bindings =
         [
-            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, context.ReferenceArtifactId),
-            .. mappingBindings,
+            CompiledCompositionInputBindingFactory.Create(
+                compiledComposition,
+                Nt51926GeneralReplaceReferenceSpaceId,
+                context.BasePath),
+            .. mappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
+                compiledComposition,
+                binding.AddressSpaceId,
+                binding.ArtifactId)),
         ];
 
         return await RunCompiledCompositionAsync(
             GeneralReplaceRunIdPrefix,
-            compile.CompiledComposition!,
+            compiledComposition,
             bindings,
             context.BasePath,
             build,
@@ -214,8 +190,19 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: context.Selection,
             overwrite: true,
             cancellationToken,
-            virtualArtifacts,
-            context.BaseSnapshot?.SourcePath).ConfigureAwait(false);
+            patchVirtualArtifacts).ConfigureAwait(false);
+    }
+
+    private static bool GeneralReplaceTouchesTpRegion(
+        IReadOnlyList<TpFlashMapRegion> regions,
+        IReadOnlyList<ExplicitMapping> explicitMappings)
+    {
+        return explicitMappings.Any(mapping => regions.Any(region =>
+            (region.Kind == TpFlashMapRegionKind.CtrlRam ||
+                region.Tags.Any(tag =>
+                    string.Equals(tag, "tp", StringComparison.OrdinalIgnoreCase) ||
+                    tag.StartsWith("tp-", StringComparison.OrdinalIgnoreCase))) &&
+            region.Range.Overlaps(mapping.TargetRange)));
     }
 
 }

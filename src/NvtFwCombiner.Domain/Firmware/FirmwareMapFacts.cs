@@ -74,18 +74,24 @@ public sealed class FirmwareFactApplicability
         IEnumerable<string>? commonFirmwareCategoryIds = null,
         IEnumerable<FirmwareMetadataPredicate>? metadataPredicates = null)
     {
-        _modeIds = SnapshotIds(modeIds, nameof(modeIds), requireValue: true);
+        _modeIds = ImmutableStringSnapshot.Create(
+            modeIds,
+            nameof(modeIds),
+            "At least one identifier is required.",
+            "Identifiers cannot contain null or whitespace.",
+            "Identifiers must be ordinally unique.");
         ArgumentNullException.ThrowIfNull(topologyRequirement);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacityBytes);
-        _commonFirmwareCategoryIds = SnapshotIds(
+        _commonFirmwareCategoryIds = ImmutableStringSnapshot.Create(
             commonFirmwareCategoryIds ?? [],
             nameof(commonFirmwareCategoryIds),
-            requireValue: false);
-        _metadataPredicates = [.. metadataPredicates ?? []];
-        if (_metadataPredicates.Any(static predicate => predicate is null))
-        {
-            throw new ArgumentException("Metadata predicates cannot contain null.", nameof(metadataPredicates));
-        }
+            null,
+            "Identifiers cannot contain null or whitespace.",
+            "Identifiers must be ordinally unique.");
+        _metadataPredicates = Composition.ImmutableReferenceSnapshot.Create(
+            metadataPredicates ?? [],
+            "Metadata predicates cannot contain null.",
+            parameterName: nameof(metadataPredicates));
 
         ModeIds = Array.AsReadOnly(_modeIds);
         TopologyRequirement = topologyRequirement;
@@ -119,17 +125,6 @@ public sealed class FirmwareFactApplicability
             applicability.CapacityBytes,
             applicability.CommonFirmwareCategoryIds,
             applicability.MetadataPredicates);
-    }
-
-    /// <summary>Returns whether this binding shape exactly equals the non-member portion of one map.</summary>
-    public bool MatchesMapApplicability(FirmwareMapApplicability applicability)
-    {
-        ArgumentNullException.ThrowIfNull(applicability);
-        return CapacityBytes == applicability.CapacityBytes &&
-            TopologyRequirement == applicability.TopologyRequirement &&
-            ModeIds.SequenceEqual(applicability.ModeIds, StringComparer.Ordinal) &&
-            CommonFirmwareCategoryIds.SequenceEqual(applicability.CommonFirmwareCategoryIds, StringComparer.Ordinal) &&
-            HaveSamePredicates(MetadataPredicates, applicability.MetadataPredicates);
     }
 
     /// <summary>
@@ -194,75 +189,6 @@ public sealed class FirmwareFactApplicability
             : FirmwareApplicabilityResult.Match;
     }
 
-    /// <summary>Returns whether two fact applicability values have one exact physical binding shape.</summary>
-    public bool HasSameShape(FirmwareFactApplicability other)
-    {
-        ArgumentNullException.ThrowIfNull(other);
-        return CapacityBytes == other.CapacityBytes &&
-            TopologyRequirement == other.TopologyRequirement &&
-            ModeIds.SequenceEqual(other.ModeIds, StringComparer.Ordinal) &&
-            CommonFirmwareCategoryIds.SequenceEqual(other.CommonFirmwareCategoryIds, StringComparer.Ordinal) &&
-            HaveSamePredicates(MetadataPredicates, other.MetadataPredicates);
-    }
-
-    private static bool HaveSamePredicates(
-        IReadOnlyList<FirmwareMetadataPredicate> left,
-        IReadOnlyList<FirmwareMetadataPredicate> right)
-    {
-        if (left.Count != right.Count)
-        {
-            return false;
-        }
-
-        List<FirmwareMetadataPredicate> unmatched = [.. right];
-        foreach (FirmwareMetadataPredicate predicate in left)
-        {
-            int matchIndex = unmatched.FindIndex(candidate => SamePredicate(predicate, candidate));
-            if (matchIndex < 0)
-            {
-                return false;
-            }
-
-            unmatched.RemoveAt(matchIndex);
-        }
-
-        return true;
-    }
-
-    private static bool SamePredicate(FirmwareMetadataPredicate left, FirmwareMetadataPredicate right)
-    {
-        return StringComparer.Ordinal.Equals(left.MetadataStructureId, right.MetadataStructureId) &&
-            StringComparer.Ordinal.Equals(left.FieldId, right.FieldId) &&
-            left.Comparison == right.Comparison &&
-            left.ExpectedValues.Count == right.ExpectedValues.Count &&
-            left.ExpectedValues.All(value => right.ExpectedValues.Contains(value));
-    }
-
-    private static string[] SnapshotIds(
-        IEnumerable<string> values,
-        string parameterName,
-        bool requireValue)
-    {
-        ArgumentNullException.ThrowIfNull(values, parameterName);
-        string[] snapshot = [.. values];
-        if (requireValue && snapshot.Length == 0)
-        {
-            throw new ArgumentException("At least one identifier is required.", parameterName);
-        }
-
-        if (snapshot.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Identifiers cannot contain null or whitespace.", parameterName);
-        }
-
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Identifiers must be ordinally unique.", parameterName);
-        }
-
-        Array.Sort(snapshot, StringComparer.Ordinal);
-        return snapshot;
-    }
 }
 
 /// <summary>One target-to-source alias edge retained by immutable fact provenance.</summary>
@@ -294,7 +220,12 @@ public sealed class FirmwareFactAliasHop
             throw new ArgumentException("An alias cannot point to the same fact key.", nameof(sourceKey));
         }
 
-        _evidenceRefs = SnapshotEvidenceRefs(evidenceRefs);
+        _evidenceRefs = ImmutableStringSnapshot.Create(
+            evidenceRefs,
+            nameof(evidenceRefs),
+            "Alias evidence references must be non-empty values.",
+            "Alias evidence references must be non-empty values.",
+            "Alias evidence references must be ordinally unique.");
         AliasId = aliasId;
         TargetKey = targetKey;
         SourceKey = sourceKey;
@@ -321,23 +252,6 @@ public sealed class FirmwareFactAliasHop
     /// <summary>Alias-specific evidence references.</summary>
     public IReadOnlyList<string> EvidenceRefs { get; }
 
-    private static string[] SnapshotEvidenceRefs(IEnumerable<string> evidenceRefs)
-    {
-        ArgumentNullException.ThrowIfNull(evidenceRefs);
-        string[] snapshot = [.. evidenceRefs];
-        if (snapshot.Length == 0 || snapshot.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Alias evidence references must be non-empty values.", nameof(evidenceRefs));
-        }
-
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Alias evidence references must be ordinally unique.", nameof(evidenceRefs));
-        }
-
-        Array.Sort(snapshot, StringComparer.Ordinal);
-        return snapshot;
-    }
 }
 
 /// <summary>Immutable effective-to-direct fact history used by reports and future fingerprints.</summary>
@@ -360,17 +274,12 @@ public sealed class FirmwareFactProvenance
             throw new ArgumentException("Effective and direct source keys must have the same fact kind.", nameof(directSourceKey));
         }
 
-        ArgumentNullException.ThrowIfNull(aliasChain);
-        _aliasChain = [.. aliasChain];
-        if (_aliasChain.Any(static hop => hop is null))
-        {
-            throw new ArgumentException("Alias chains cannot contain null.", nameof(aliasChain));
-        }
-
-        if (_aliasChain.Select(static hop => hop.AliasId).Distinct(StringComparer.Ordinal).Count() != _aliasChain.Length)
-        {
-            throw new ArgumentException("Alias chains cannot repeat an alias id.", nameof(aliasChain));
-        }
+        _aliasChain = Composition.ImmutableReferenceSnapshot.CreateUnique(
+            aliasChain,
+            static hop => hop.AliasId,
+            "Alias chains cannot contain null.",
+            "Alias chains cannot repeat an alias id.",
+            StringComparer.Ordinal);
 
         ValidateChain(effectiveKey, directSourceKey, _aliasChain);
         _directEvidenceRefs = SnapshotDirectEvidenceRefs(directEvidenceRefs);

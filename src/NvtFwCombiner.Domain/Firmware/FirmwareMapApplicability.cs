@@ -39,11 +39,10 @@ public sealed class FirmwareMapApplicability
         ArgumentNullException.ThrowIfNull(topologyRequirement);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacityBytes);
 
-        _metadataPredicates = [.. metadataPredicates ?? []];
-        if (_metadataPredicates.Any(static predicate => predicate is null))
-        {
-            throw new ArgumentException("Metadata predicates cannot contain null.", nameof(metadataPredicates));
-        }
+        _metadataPredicates = Composition.ImmutableReferenceSnapshot.Create(
+            metadataPredicates ?? [],
+            "Metadata predicates cannot contain null.",
+            parameterName: nameof(metadataPredicates));
 
         MemberIds = Array.AsReadOnly(_memberIds);
         ModeIds = Array.AsReadOnly(_modeIds);
@@ -118,24 +117,11 @@ public sealed class FirmwareMapApplicability
         string parameterName,
         bool requireValue)
     {
-        ArgumentNullException.ThrowIfNull(values, parameterName);
-        string[] snapshot = [.. values];
-        if (requireValue && snapshot.Length == 0)
-        {
-            throw new ArgumentException("At least one identifier is required.", parameterName);
-        }
-
-        if (snapshot.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Identifiers cannot contain null or whitespace values.", parameterName);
-        }
-
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Identifiers must be ordinally unique.", parameterName);
-        }
-
-        Array.Sort(snapshot, StringComparer.Ordinal);
-        return snapshot;
+        return ImmutableStringSnapshot.Create(
+            values,
+            parameterName,
+            requireValue ? "At least one identifier is required." : null,
+            "Identifiers cannot contain null or whitespace values.",
+            "Identifiers must be ordinally unique.");
     }
 }

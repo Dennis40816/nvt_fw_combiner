@@ -1,40 +1,10 @@
 using System.Globalization;
 using System.Text.Json;
-using NvtFwCombiner.Application.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class ReplaceCliCommandHandler
 {
-    private static async Task WriteWorkbenchReportFileIfRequestedAsync(
-        WorkbenchRunResult result,
-        ParsedOptions options,
-        IReadOnlyList<InputArtifactBinding> bindings,
-        string? outputFullPath,
-        TextWriter output,
-        CancellationToken cancellationToken)
-    {
-        if (!options.Values.TryGetValue("--report", out string? reportPath))
-        {
-            return;
-        }
-
-        string fullPath = Path.GetFullPath(reportPath);
-        ProtectedPathGuard.EnsureDoesNotAlias(
-            fullPath,
-            "Report path",
-            ProtectedPathGuard.CreateProtectedPaths(bindings, outputFullPath),
-            nameof(reportPath));
-        string? directory = Path.GetDirectoryName(fullPath);
-        if (!string.IsNullOrWhiteSpace(directory))
-        {
-            _ = Directory.CreateDirectory(directory);
-        }
-
-        await File.WriteAllTextAsync(fullPath, result.ReportJson, cancellationToken).ConfigureAwait(false);
-        await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
-    }
-
     private static async Task PrintWorkbenchRunResultAsync(
         WorkbenchRunResult result,
         string icId,

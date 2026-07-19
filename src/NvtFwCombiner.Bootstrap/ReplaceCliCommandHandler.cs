@@ -1,7 +1,3 @@
-using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Infrastructure.Files;
-using NvtFwCombiner.Infrastructure.Time;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -33,34 +29,40 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        List<string> valueOptions = [
+        List<string> valueOptions =
+        [
             "--profile",
-            "--ic-family",
             "--ic-num",
             "--base",
-            "--dp",
-            "--ld",
-            "--ctrlram",
-            "--input",
-            "--source-start",
-            "--target-start",
-            "--length",
             "--output",
             "--report",
         ];
-        if (command == IcWorkflowIds.GeneralReplace)
+        List<string> repeatableValueOptions = [];
+        switch (command)
         {
-            valueOptions.AddRange(["--mapping", "--patch", "--fill"]);
+            case IcWorkflowIds.DpReplace:
+                valueOptions.Add("--dp");
+                break;
+            case IcWorkflowIds.CtrlRamReplace:
+                valueOptions.Add("--ctrlram");
+                repeatableValueOptions.Add("--ctrlram");
+                break;
+            case IcWorkflowIds.GeneralReplace:
+                valueOptions.AddRange(["--mapping", "--patch", "--fill"]);
+                repeatableValueOptions.AddRange(["--mapping", "--patch", "--fill"]);
+                break;
+            default:
+                break;
         }
 
         string[] flagOptions = action == "build" ? ["--overwrite"] : [];
-        string[] repeatableValueOptions = command switch
-        {
-            IcWorkflowIds.CtrlRamReplace => ["--ctrlram"],
-            IcWorkflowIds.GeneralReplace => ["--mapping", "--patch", "--fill"],
-            _ => [],
-        };
-        if (!TryParseOptions(args[1..], [.. valueOptions], repeatableValueOptions, flagOptions, error, out ParsedOptions options))
+        if (!CliOptionParser.TryParse(
+                args[1..],
+                valueOptions,
+                repeatableValueOptions,
+                flagOptions,
+                error,
+                out ParsedCliOptions options))
         {
             return UsageError;
         }
@@ -71,126 +73,51 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        if (command == IcWorkflowIds.DpReplace &&
-            TryResolveDpPerspectiveDpReplaceIc(profileSelector, out string? dpWorkbenchIcId))
+        if (!TryResolveReplaceIc(command, profileSelector, out string? icId))
         {
-            return await RunWorkbenchDpReplaceAsync(
+            return await UnknownReplaceProfileAsync(command, profileSelector, error).ConfigureAwait(false);
+        }
+
+        string replaceMode = command switch
+        {
+            IcWorkflowIds.DpReplace => WorkbenchReplaceModes.Dp,
+            IcWorkflowIds.CtrlRamReplace => WorkbenchReplaceModes.CtrlRam,
+            _ => WorkbenchReplaceModes.General,
+        };
+        if (!WorkbenchCompositionService.IsReplaceWorkflowSupported(icId, replaceMode))
+        {
+            await error.WriteLineAsync(
+                $"error: {WorkbenchIssueCodes.ReplaceWorkflowNotSupported}: {icId} {replaceMode} Replace is Not available.")
+                .ConfigureAwait(false);
+            return CompositionFailed;
+        }
+
+        return command == IcWorkflowIds.DpReplace
+            ? await RunWorkbenchDpReplaceAsync(
                     action,
-                    dpWorkbenchIcId,
+                    icId,
+                    options,
+                    output,
+                    error,
+                    cancellationToken)
+                .ConfigureAwait(false)
+            : command == IcWorkflowIds.CtrlRamReplace
+            ? await RunWorkbenchCtrlRamReplaceAsync(
+                    action,
+                    icId,
+                    options,
+                    output,
+                    error,
+                    cancellationToken)
+                .ConfigureAwait(false)
+            : await RunWorkbenchGeneralReplaceAsync(
+                    action,
+                    icId,
                     options,
                     output,
                     error,
                     cancellationToken)
                 .ConfigureAwait(false);
-        }
-
-        if (!TryFindReplaceProfile(command, profileSelector, out CompositionProfileDefinition? selectedProfile))
-        {
-            return command switch
-            {
-                IcWorkflowIds.CtrlRamReplace => await RunWorkbenchCtrlRamReplaceAsync(
-                        action,
-                        profileSelector,
-                        options,
-                        output,
-                        error,
-                        cancellationToken)
-                    .ConfigureAwait(false),
-                IcWorkflowIds.GeneralReplace => await RunWorkbenchGeneralReplaceAsync(
-                        action,
-                        profileSelector,
-                        options,
-                        output,
-                        error,
-                        cancellationToken)
-                    .ConfigureAwait(false),
-                _ => await UnknownReplaceProfileAsync(command, profileSelector, error).ConfigureAwait(false),
-            };
-        }
-
-        if (command == IcWorkflowIds.CtrlRamReplace && options.GetValues("--ctrlram").Count > 1)
-        {
-            await error.WriteLineAsync(
-                    "error: built-in CtrlRAM profiles accept one --ctrlram path; use --profile <IC> with repeated --ctrlram <slot-id=path> for multi-region replacement.")
-                .ConfigureAwait(false);
-            return UsageError;
-        }
-
-        if (!RequireOption(options, "--ic-num", error, out string? icNumber))
-        {
-            return UsageError;
-        }
-
-        if (!TryCompileProfile(selectedProfile, options, error, out ProfileCompileResult compile))
-        {
-            return UsageError;
-        }
-
-        if (!compile.IsSuccess)
-        {
-            await CliCompositionRunSupport.PrintIssuesAsync(error, compile.Issues).ConfigureAwait(false);
-            return SoftwareError;
-        }
-
-        CompiledComposition compiledComposition = compile.CompiledComposition!;
-        if (!TryCreateIcNumberSelection(
-                compiledComposition,
-                options,
-                icNumber,
-                error,
-                out IcNumberSelection? icNumberSelection))
-        {
-            return UsageError;
-        }
-
-        CompositionPlan plan = compiledComposition.Plan;
-        if (!TryCreateBindings(plan, options, error, out IReadOnlyList<InputArtifactBinding> bindings))
-        {
-            return UsageError;
-        }
-
-        CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
-            options.Values.GetValueOrDefault("--output"),
-            compiledComposition.DefaultOutputFileName);
-        if (action == "build")
-        {
-            CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
-        }
-
-        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            options.Values.GetValueOrDefault("--report"),
-            bindings,
-            outputTarget,
-            action == "build");
-
-        string[] inputRoots = [.. bindings.Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)];
-        var reader = new FileArtifactReader(inputRoots);
-        AtomicFileCompositionOutputWriter? writer = action == "build"
-            ? new AtomicFileCompositionOutputWriter(outputTarget.OutputDirectory, options.Flags.Contains("--overwrite"))
-            : null;
-        var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
-        var request = new CompositionRunRequest(
-            CreateRunId(command, action),
-            compiledComposition,
-            bindings,
-            outputTarget.FileName,
-            icNumberSelection: icNumberSelection);
-
-        CompositionRunResult result = await CompositionRunExecutionSupport
-            .PreviewOrBuildAsync(service, request, action == "build", cancellationToken)
-            .ConfigureAwait(false);
-        await CliCompositionRunSupport.WriteReportFileIfRequestedAsync(
-                result,
-                options.Values.GetValueOrDefault("--report"),
-                bindings,
-                outputTarget,
-                action == "build",
-                output,
-                cancellationToken)
-            .ConfigureAwait(false);
-        await PrintRunResultAsync(result, output, error).ConfigureAwait(false);
-        return result.Status == CompositionExecutionStatus.Succeeded ? Success : CompositionFailed;
     }
 
 }

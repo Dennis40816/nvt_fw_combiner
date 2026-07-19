@@ -9,17 +9,10 @@ public sealed partial class MainWindowViewModel
         Text = ShellTextResources.For(language);
         WorkspaceTitle = Text.WorkspaceTitle;
         WorkspaceSummary = Text.WorkspaceSummary;
-        PreviewActionLabel = Text.PreviewActionLabel;
-        BuildActionLabel = Text.BuildActionLabel;
-        ReportModalActionLabel = Text.ReportModalActionLabel;
-        DeviceContextTitle = Text.DeviceContextTitle;
-        IcLabel = Text.IcLabel;
-        NumberLabel = Text.NumberLabel;
         DeviceContextRefreshSummary = Text.DeviceContextStatus;
-        SettingsPreview = CreatePlanningCard(Text.SettingsPreview);
-        MergePreview = CreatePlanningCard(Text.MergePreview);
-        ReplacePreview = CreatePlanningCard(Text.ReplacePreview);
-        FooterStatus = Text.FooterStatus;
+        SettingsPreview = Text.SettingsPreview;
+        MergePreview = Text.MergePreview;
+        ReplacePreview = Text.ReplacePreview;
         ApplyFirmwareSlotText();
         ApplyInitialRunResultText();
         HexEditorWorkspace.ApplyTextResources(Text);
@@ -32,22 +25,20 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(Text));
         OnPropertyChanged(nameof(WorkspaceTitle));
         OnPropertyChanged(nameof(WorkspaceSummary));
-        OnPropertyChanged(nameof(PreviewActionLabel));
-        OnPropertyChanged(nameof(BuildActionLabel));
-        OnPropertyChanged(nameof(ReportModalActionLabel));
-        OnPropertyChanged(nameof(DeviceContextTitle));
-        OnPropertyChanged(nameof(IcLabel));
-        OnPropertyChanged(nameof(NumberLabel));
+        OnPropertyChanged(nameof(RunProgressAccessibleLabel));
         OnPropertyChanged(nameof(DeviceContextStatus));
         OnPropertyChanged(nameof(SettingsPreview));
         OnPropertyChanged(nameof(MergePreview));
         OnPropertyChanged(nameof(ReplacePreview));
-        OnPropertyChanged(nameof(FooterStatus));
         OnPropertyChanged(nameof(LastRunResult));
         OnPropertyChanged(nameof(MergeMemorySummary));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
         OnPropertyChanged(nameof(StandardMergeSupportSummary));
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
+        OnPropertyChanged(nameof(SelectedIcFamilyLabel));
+        OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(MergeBuildActionTip));
@@ -64,7 +55,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(NavigationPath));
         RelocalizeLoadedReport();
         RefreshSettingsState();
-        RefreshMergeModeState();
         RefreshReplaceModeState(preserveSlotFiles: true);
         RefreshReplaceSelectionState();
     }
@@ -105,8 +95,10 @@ public sealed partial class MainWindowViewModel
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
         ReplaceBaseSlot.ApplyDisplayText(
-            Text.BaseFlashBinTitle,
-            Text.BaseFlashBinDescription,
+            Text.GetReplaceBaseTitle(SelectedReplaceMode),
+            Text.GetReplaceBaseDescription(
+                SelectedReplaceMode,
+                WorkbenchCompositionService.GetDpReplaceReferenceCapacityLabel(SelectedIc)),
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
@@ -123,7 +115,7 @@ public sealed partial class MainWindowViewModel
         {
             slot.ApplyDisplayText(
                 Text.DpReplacementBinTitle,
-                Text.DpReplacementBinDescription,
+                slot.Description,
                 Text.RequiredLabel,
                 Text.OptionalLabel,
                 Text.NoBinSelectedLabel);

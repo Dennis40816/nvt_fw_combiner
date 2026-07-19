@@ -170,7 +170,7 @@ public sealed partial class MainWindowViewModel
     {
         string? basePath = ReplaceBaseSlot.FilePath;
         return !string.IsNullOrWhiteSpace(basePath)
-            ? UiCompositionRunner.TryReadFirmwareConfigMetadata(SelectedIc, basePath)
+            ? WorkbenchCompositionService.TryReadFirmwareConfigMetadata(SelectedIc, basePath)
             : null;
     }
 

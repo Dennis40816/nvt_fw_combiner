@@ -41,5 +41,30 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Saved rules", resources, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("demo", resources, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("synthetic", resources, StringComparison.OrdinalIgnoreCase);
+
+        foreach (string retiredName in new[]
+                 {
+                     "FooterStatus",
+                     "ConfigureKicker",
+                     "OpenSettingsLabel",
+                     "TpReplacementBinTitle",
+                     "TpReplacementBinDescription",
+                     "LdReplacementBinTitle",
+                     "LdReplacementBinDescription",
+                     "CtrlRamReplacementBinDescription",
+                     "HexEditorSaveLabel",
+                     "HexEditorMemoryOnlyDetail",
+                     "DiffLabel",
+                     "ExplanationLabel",
+                     "ReasonLabel",
+                     "StepLabel",
+                     "TargetLabel",
+                     "ProcessorLabel",
+                     "HexEditorOverwriteRangeLabel",
+                     "HexEditorFillRangeLabel",
+                 })
+        {
+            Assert.DoesNotContain(retiredName, resources, StringComparison.Ordinal);
+        }
     }
 }

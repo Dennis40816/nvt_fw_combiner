@@ -12,9 +12,8 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
     private const string OutputDirectoryName = "output";
     private const string MapFileName = "map.txt";
 
-    private readonly ExternalCombinerToolRegistry _registry;
+    private readonly ExternalCombinerToolResolver _toolResolver;
     private readonly Dictionary<string, LegacyCombinerPostbuildProfile> _profilesByProcessorId;
-    private readonly string _toolRoot;
     private readonly string _stagingRoot;
     private readonly IExternalProcessRunner _processRunner;
 
@@ -32,9 +31,8 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         ArgumentException.ThrowIfNullOrWhiteSpace(stagingRoot);
         ArgumentNullException.ThrowIfNull(processRunner);
 
-        _registry = registry;
+        _toolResolver = new ExternalCombinerToolResolver(registry, toolRoot);
         _profilesByProcessorId = BuildProfileIndex(postbuildProfiles);
-        _toolRoot = Path.GetFullPath(toolRoot);
         _stagingRoot = Path.GetFullPath(stagingRoot);
         _processRunner = processRunner;
     }
@@ -60,15 +58,16 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 "External processor request tool binding does not match the postbuild profile.");
         }
 
-        if (!TryResolveManifest(request, out ExternalCombinerToolManifest? manifest, out CompositionIssue? manifestIssue))
+        if (!_toolResolver.TryResolve(
+                request.ToolBindingId,
+                out ExternalCombinerToolManifest? manifest,
+                out string? executablePath,
+                out CompositionIssue? toolIssue))
         {
-            return ExternalProcessorResult.Failed([manifestIssue!]);
+            return ExternalProcessorResult.Failed([toolIssue!]);
         }
 
-        if (!TryResolveExecutable(manifest!, out string? executablePath, out CompositionIssue? executableIssue))
-        {
-            return ExternalProcessorResult.Failed([executableIssue!]);
-        }
+        ExternalCombinerToolManifest resolvedManifest = manifest!;
 
         LegacyCombinerPostbuildCommandPlan commandPlan;
         try
@@ -81,7 +80,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         }
 
         string runDirectory = Path.GetFullPath(Path.Combine(_stagingRoot, request.RunId));
-        if (!IsInsideDirectory(_stagingRoot, runDirectory))
+        if (!ExternalCombinerToolResolver.IsInsideDirectory(_stagingRoot, runDirectory))
         {
             return Fail(
                 "external-tool.staging.path-escape",
@@ -152,7 +151,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     executablePath!,
                     runDirectory,
                     arguments,
-                    TimeSpan.FromSeconds(manifest!.TimeoutSeconds));
+                    TimeSpan.FromSeconds(resolvedManifest.TimeoutSeconds));
                 ExternalProcessResult processResult = await _processRunner.RunAsync(startInfo, cancellationToken).ConfigureAwait(false);
                 executedCommands.Add(startInfo.ToExecutedCommand());
                 if (processResult.TimedOut)
@@ -193,7 +192,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     return ExternalProcessorResult.Failed([lengthIssue], executedCommands);
                 }
 
-                CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, profile, manifest!, commandPlan);
+                CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, profile, resolvedManifest, commandPlan);
                 if (perCommandUnexpectedFileIssue is not null)
                 {
                     return ExternalProcessorResult.Failed([perCommandUnexpectedFileIssue], executedCommands);
@@ -208,7 +207,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     executedCommands);
             }
 
-            CompositionIssue? unexpectedFileIssue = ValidateStagingTree(runDirectory, profile, manifest!, commandPlan);
+            CompositionIssue? unexpectedFileIssue = ValidateStagingTree(runDirectory, profile, resolvedManifest, commandPlan);
             if (unexpectedFileIssue is not null)
             {
                 return ExternalProcessorResult.Failed([unexpectedFileIssue], executedCommands);

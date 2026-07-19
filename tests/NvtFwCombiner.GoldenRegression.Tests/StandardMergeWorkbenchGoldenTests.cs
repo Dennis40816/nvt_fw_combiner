@@ -11,23 +11,11 @@ public sealed class StandardMergeWorkbenchGoldenTests
     [Fact]
     public async Task WorkbenchBuildStandardMergeMatchesGoldenBytes()
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        using var configDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "test_ic_config.json")));
+        string goldenRoot = CanonicalGoldenTestData.Root;
+        using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-golden");
 
         JsonElement[] goldenCases = [.. manifestDocument.RootElement.GetProperty("cases").EnumerateArray()];
-        Assert.Equal(
-            configDocument.RootElement.EnumerateObject()
-                .Where(static property => property.Name != "global")
-                .Select(static property => property.Name)
-                .Order(StringComparer.Ordinal),
-            goldenCases
-                .Where(static goldenCase => goldenCase.GetProperty("profileId").GetString()!
-                    .EndsWith("-standard-merge-gen-flash", StringComparison.Ordinal))
-                .Select(static goldenCase => goldenCase.GetProperty("ic").GetString()!)
-                .Order(StringComparer.Ordinal));
 
         foreach (JsonElement goldenCase in goldenCases)
         {
@@ -37,13 +25,11 @@ public sealed class StandardMergeWorkbenchGoldenTests
 
     /// <summary>Verifies the workbench command path can build owner-confirmed Standard Merge aliases.</summary>
     [Theory]
-    [InlineData("51917", "51927")]
-    [InlineData("51919", "51929")]
+    [MemberData(nameof(StandardMergeAliases))]
     public async Task WorkbenchBuildStandardMergeAliasMatchesReferenceGoldenBytes(string aliasIc, string referenceIc)
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        string goldenRoot = CanonicalGoldenTestData.Root;
+        using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(item => item.GetProperty("ic").GetString() == referenceIc)
@@ -71,6 +57,18 @@ public sealed class StandardMergeWorkbenchGoldenTests
         Assert.Equal(
             File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
             File.ReadAllBytes(outputPath));
+    }
+
+    /// <inheritdoc/>
+    public static TheoryData<string, string> StandardMergeAliases()
+    {
+        TheoryData<string, string> cases = [];
+        foreach (CanonicalGoldenAlias alias in CanonicalGoldenTestData.LoadWorkflowAliases("standard-merge"))
+        {
+            cases.Add(alias.Ic[2..], alias.SourceIc[2..]);
+        }
+
+        return cases;
     }
 
     private static async ValueTask VerifyGoldenCaseAsync(

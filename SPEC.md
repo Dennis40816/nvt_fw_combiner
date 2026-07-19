@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.7 integration milestone`
-> 文件版本：`0.9.7`
-> 基準日期：`2026-07-15`
+> 文件狀態：`0.9.9 legacy-convergence stable release candidate`
+> 文件版本：`0.9.9`
+> 基準日期：`2026-07-19`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,7 +30,7 @@
 
 ## 0.1 Current owner priority
 
-As of 2026-07-15, the canonical firmware-map/profile/compiler migration is anchored by `v0.9.2`; `0.9.7` integrates the evidence-gated AB and CtrlRAM candidates, deterministic candidate intake, reviewed V2 convergence, release-package hardening, and audited UI token consolidation. Existing normal Merge and Replace behavior remains governed by its documented legacy comparison and golden evidence; this milestone does not promote IC support.
+As of 2026-07-19, `0.9.9` completes the feature-frozen legacy-convergence stable release candidate. Release-exposed composition routes use the reviewed V2/compiled-composition authority; the constrained Legacy Combiner executable and runner remain the sole legacy execution exception. Exact direct or fact-scoped golden evidence, support-neutral admission, and firmware-owner review remain separate from runtime availability, so this release does not infer or promote unsupported IC shapes.
 
 - AB Code architecture and evidence intake are reactivated. Executable AB behavior remains a separate R3 phase and no profile is promoted without its exact ranges, relocation fields, integrity contract, golden output, and firmware-owner approval.
 - NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919 may inherit the NT51929/NT51932 canonical AB facts only through owner-approved fact-scoped bindings and parity tests. This direction does not infer ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
@@ -683,6 +683,12 @@ The UI must make atomicity visible: whole-only, declared-parts, or explicit-rang
 Build automatically runs the same validation path as Preview before committing output. Build remains disabled only when required UI inputs are missing; profile compile, input validation, range policy, processor/tool readiness, and integrity disposition failures must produce a Preview/Build report instead of relying on a stale manual Preview gate.
 
 Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings. The initial default language is English.
+
+While Preview or Build is active, the shell shows one accessible, indeterminate progress bar beside
+the selected IC/mode context. It must not invent percentage completion when the
+composition/external-tool contracts do not expose byte-level progress. CtrlRAM Replace remains one
+logical run across validation, replacement, and the approved Postbuild sequence; approved external
+processes execute headlessly and never open user-visible console windows.
 
 ### 11.5 Typography and localization defaults
 

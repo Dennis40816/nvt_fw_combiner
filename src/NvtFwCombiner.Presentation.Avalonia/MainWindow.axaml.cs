@@ -118,7 +118,6 @@ public sealed partial class MainWindow : Window
     {
         return propertyName is
             nameof(MainWindowViewModel.SelectedTheme) or
-            nameof(MainWindowViewModel.SelectedStrictness) or
             nameof(MainWindowViewModel.SelectedLanguage);
     }
 
@@ -127,7 +126,7 @@ public sealed partial class MainWindow : Window
         RequestedThemeVariant = selectedTheme switch
         {
             "Light" => ThemeVariant.Light,
-            "Dark" or "High contrast" => ThemeVariant.Dark,
+            "Dark" => ThemeVariant.Dark,
             _ => ThemeVariant.Default,
         };
     }

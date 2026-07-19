@@ -9,14 +9,15 @@ internal static class CompiledCompositionInputBindingFactory
     internal static InputArtifactBinding Create(
         CompiledComposition compiledComposition,
         string addressSpaceId,
-        string artifactId)
+        string artifactId,
+        string? legacyBindingId = null)
     {
         ArgumentNullException.ThrowIfNull(compiledComposition);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
         if (compiledComposition.V2Details is not { } details)
         {
-            return new InputArtifactBinding(addressSpaceId, addressSpaceId, artifactId);
+            return new InputArtifactBinding(addressSpaceId, legacyBindingId ?? addressSpaceId, artifactId);
         }
 
         CompiledInputSpaceBinding spaceBinding = details.InputContract.SpaceBindings.SingleOrDefault(binding =>

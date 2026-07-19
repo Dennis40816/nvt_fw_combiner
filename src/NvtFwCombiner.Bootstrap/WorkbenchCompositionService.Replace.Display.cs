@@ -13,26 +13,41 @@ public static partial class WorkbenchCompositionService
         string replaceMode,
         string? basePath = null)
     {
-        return replaceMode switch
-        {
-            WorkbenchReplaceModes.Dp => GetDpReplaceInputSlots(icId),
-            WorkbenchReplaceModes.CtrlRam => GetCtrlRamReplaceInputSlots(icId, number, basePath),
-            _ => [],
-        };
+        return GetReplaceWorkflowId(replaceMode) is not null &&
+            !IsReplaceWorkflowSupported(icId, replaceMode)
+                ? []
+                : replaceMode switch
+                {
+                    WorkbenchReplaceModes.Dp => GetDpReplaceInputSlots(icId),
+                    WorkbenchReplaceModes.CtrlRam => GetCtrlRamReplaceInputSlots(icId, number, basePath),
+                    _ => [],
+                };
     }
 
-    /// <summary>Gets readable memory-map rows for the selected Replace mode.</summary>
-    public static IReadOnlyList<WorkbenchMemoryMapRow> GetReplaceMemoryMapRows(
+    /// <summary>Gets one coherent Replace range, row, and coverage snapshot.</summary>
+    public static WorkbenchMemoryDisplay GetReplaceMemoryDisplay(
         string icId,
         string number,
         string replaceMode,
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
-        if (replaceMode == WorkbenchReplaceModes.Dp &&
-            TryCreateV2DpReplaceMemoryMapRows(icId, dpBaseLength, out IReadOnlyList<WorkbenchMemoryMapRow> v2Rows))
+        if (GetReplaceWorkflowId(replaceMode) is not null &&
+            !IsReplaceWorkflowSupported(icId, replaceMode))
         {
-            return v2Rows;
+            return CreateMessageDisplay(
+                "Not available",
+                ("Policy", "Not available", "Blocked", "No target", $"{icId} {replaceMode} Replace is Not available under the current IC workflow policy."),
+                coverage: null);
+        }
+
+        if (replaceMode == WorkbenchReplaceModes.Dp)
+        {
+            return CreateV2DpReplaceMemoryDisplay(icId, dpBaseLength) ??
+                CreateMessageDisplay(
+                    "No DP Replace profile",
+                    ("Catalog", "No V2 profile", "Blocked", "No target", $"No trusted V2 DP Replace profile is registered for {icId}."),
+                    coverage: null);
         }
 
         IcNumberSelection selection = ToIcNumberSelection(number);
@@ -40,75 +55,55 @@ public static partial class WorkbenchCompositionService
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(
+        IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
             icId,
             selection,
             postbuildProfile);
-        return regions.Count == 0
-            ?
-            [
-                new WorkbenchMemoryMapRow(
-                    "Catalog",
-                    "No flash-map row",
-                    "Blocked",
-                    "No target",
-                    $"No TP Overview flash-map profile is available for {icId}."),
-            ]
-            : replaceMode switch
-            {
-                WorkbenchReplaceModes.Dp => CreateDpReplaceRows(icId, regions),
-                WorkbenchReplaceModes.CtrlRam => CreateCtrlRamReplaceRows(
-                    TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)),
-                WorkbenchReplaceModes.General =>
-                [
-                    new WorkbenchMemoryMapRow(
-                        "Runtime range",
-                        "Base flash",
-                        "Replace",
-                        "General BIN",
-                        "The selected explicit range must be approved by the compiled General Replace profile; TP ranges require Combiner CRC/header refresh."),
-                ],
-                _ =>
-                [
-                    new WorkbenchMemoryMapRow(
-                        "Mode",
-                        "Unknown",
-                        "Select",
-                        "No target",
-                        "Select DP, CtrlRAM, or General Replace."),
-                ],
-            };
-    }
-
-    /// <summary>Gets TP Overview address coverage text for the selected Replace context.</summary>
-    public static string GetReplaceMemoryRangeLabel(string icId, string number)
-    {
-        return GetReplaceMemoryRangeLabel(icId, number, replaceMode: string.Empty);
-    }
-
-    /// <summary>Gets TP Overview address coverage text for the selected Replace context and mode.</summary>
-    public static string GetReplaceMemoryRangeLabel(
-        string icId,
-        string number,
-        string replaceMode,
-        long? dpBaseLength = null,
-        string? ctrlRamBasePath = null)
-    {
-        if (replaceMode == WorkbenchReplaceModes.Dp &&
-            TryGetV2DpReplaceMemoryRangeLabel(icId, dpBaseLength, out string v2RangeLabel))
+        if (regions.Count == 0)
         {
-            return v2RangeLabel;
+            string detail = $"No TP Overview flash-map profile is available for {icId}.";
+            return CreateMessageDisplay(
+                "No flash-map profile",
+                ("Catalog", "No flash-map row", "Blocked", "No target", detail),
+                ("No range", "No profile", detail, "#CBD5E1"));
         }
 
-        IcNumberSelection selection = ToIcNumberSelection(number);
-        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
-            TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
-                ? profile
-                : null;
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection, postbuildProfile);
-        return regions.Count == 0
-            ? "No flash-map profile"
-            : FormatFullRange(regions.Max(region => region.Range.EndExclusive));
+        IReadOnlyList<WorkbenchMemoryMapRow> rows = replaceMode switch
+        {
+            WorkbenchReplaceModes.CtrlRam =>
+            [
+                .. BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)
+                    .OrderBy(region => region.Range.Start)
+                    .Select(region => new WorkbenchMemoryMapRow(
+                        FormatDisplayRange(region.Range),
+                        "Base firmware",
+                        "Replace + CRC",
+                        region.PostbuildFileName ?? "CtrlRAM BIN",
+                        $"{region.DisplayName} at {FormatDisplayRange(region.Range)} can use its own replacement BIN; the report shows the CRC/header refresh command.")),
+            ],
+            WorkbenchReplaceModes.General =>
+            [
+                new WorkbenchMemoryMapRow(
+                    "Runtime range",
+                    "Base flash",
+                    "Replace",
+                    "General BIN",
+                    "The selected explicit range must be approved by the compiled General Replace profile; TP ranges require Combiner CRC/header refresh."),
+            ],
+            _ =>
+            [
+                new WorkbenchMemoryMapRow(
+                    "Mode",
+                    "Unknown",
+                    "Select",
+                    "No target",
+                    "Select DP, CtrlRAM, or General Replace."),
+            ],
+        };
+        return new WorkbenchMemoryDisplay(
+            FormatFullRange(regions.Max(region => region.Range.EndExclusive)),
+            rows,
+            CreateReplaceCoverageSegments(icId, replaceMode, selection, postbuildProfile, regions));
     }
 
 }

@@ -106,6 +106,59 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(new ByteRange(1, 2), Assert.Single(result.ChangedRanges));
     }
 
+    /// <summary>Verifies source-offset-zero blocks preserve a shorter immutable BIN for Legacy Combiner EOF semantics.</summary>
+    [Fact]
+    public async Task TransformPreservesShortExactStagedFile()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        LegacyCombinerPostbuildProfile profile = CreateExactStagedFileProfile(sourceOffset: 0);
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            Assert.Equal(
+                [0xA1, 0xA2],
+                File.ReadAllBytes(Path.Combine(startInfo.WorkingDirectory, "BIN", "Replacement.bin")));
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-short-exact-staged-file",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            new byte[8],
+            [],
+            stagedArtifacts: [new ExternalProcessorStagedArtifact("replacement", new byte[] { 0xA1, 0xA2 })]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.Equal(1, runner.RunCount);
+    }
+
+    /// <summary>Verifies nonzero source-offset blocks fail closed when the declared range exceeds a short BIN.</summary>
+    [Fact]
+    public async Task TransformRejectsShortExactStagedFileAtNonzeroSourceOffset()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        LegacyCombinerPostbuildProfile profile = CreateExactStagedFileProfile(sourceOffset: 1);
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Process should not run."));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-short-offset-staged-file",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            new byte[8],
+            [],
+            stagedArtifacts: [new ExternalProcessorStagedArtifact("replacement", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 })]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.staged-file.range-outside-artifact", Assert.Single(result.Issues).Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
     /// <summary>Verifies Combiner BIN blocks can consume engine-created immutable artifacts without pre-pasting them into output.</summary>
     [Fact]
     public async Task TransformStagesImmutableArtifactsWithoutPrePaste()

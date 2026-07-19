@@ -16,7 +16,7 @@
           <TextBlock Classes="cardTitle" Text="{Binding Title}" />
           <TextBlock Classes="mutedText" Text="{Binding SelectionSummary}" TextWrapping="Wrap" />
         </StackPanel>
-        <Label Grid.Column="1" Classes="countBadge" FontSize="{DynamicResource NfcFontSize11}" Content="{Binding CountLabel}" />
+        <Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge" FontSize="{DynamicResource NfcFontSize11}" Content="{Binding CountLabel}" />
       </Grid>
     </Expander.Header>
     <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding Slots}">
@@ -52,7 +52,7 @@
             TextWrapping="Wrap" />
         <Label
             Grid.Column="2"
-            Classes="countBadge coverageChangeBadge"
+            Classes="compactBadge neutralBadge countBadge coverageChangeBadge"
             Classes.changed="{Binding IsChanged}"
             Padding="7,2"
             Content="{Binding ChangeLabel}" />
@@ -162,7 +162,7 @@
           <TextBlock Classes="panelTitle" Text="{Binding Title}" />
           <TextBlock Classes="captionText" Text="{Binding ChangeSummary}" TextWrapping="Wrap" />
         </StackPanel>
-        <Label Grid.Column="1" Classes="countBadge" Content="{Binding CountLabel}" />
+        <Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge" Content="{Binding CountLabel}" />
       </Grid>
     </Expander.Header>
     <ItemsControl

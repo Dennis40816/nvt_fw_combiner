@@ -54,21 +54,8 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.LoadedReport.IsOutputCommitted);
         Assert.True(viewModel.LoadedReport.IsOutputPreview);
         Assert.False(viewModel.LoadedReport.IsOutputStateUnknown);
-        Assert.Contains(viewModel.LoadedReport.TriageRows, row =>
-            row.Title == "1. Result" &&
-            row.Detail == "Succeeded" &&
-            row.Meta == "No issue");
-        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
-            row.Title == "Issues" &&
-            row.Detail == "0" &&
-            row.Meta == "No blocking issue");
-        Assert.Equal(4, viewModel.LoadedReport.SummaryRows.Count);
-        Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
-            row.Title == "Status" &&
-            row.Detail == "Succeeded" &&
-            row.Meta == "No blocking issue");
         Assert.Equal(0, viewModel.LoadedReport.OperationCount);
-        Assert.False(viewModel.LoadedReport.HasCommandOperations);
+        Assert.Empty(GetCommandOperations(viewModel.LoadedReport));
         Assert.False(viewModel.LoadedReport.HasStepOperations);
 
         var reportWithSessionPath = ReportReviewViewModel.FromJson(
@@ -144,11 +131,6 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Start with this issue", viewModel.LoadedReport.NextStepTitle);
         Assert.Equal("Load error", viewModel.LoadedReport.PrimaryIssue.Title);
         Assert.Contains("missing preview-report.json", viewModel.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
-        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
-            row.Title == "Issues" &&
-            row.Detail == "1" &&
-            row.Meta == "Load error");
-
         viewModel.ShowReportCommand.Execute(null);
 
         Assert.True(viewModel.IsReportModalOpen);

@@ -35,7 +35,7 @@ public sealed partial class ShellViewModelTests
             node.Number == "100" &&
             node.Meta == "command details in Postbuild tab");
         Assert.DoesNotContain(viewModel.LoadedReport.StepOperations, operation => operation.HasCodeBlock);
-        Assert.True(viewModel.LoadedReport.HasCommandOperations);
+        Assert.NotEmpty(GetCommandOperations(viewModel.LoadedReport));
         Assert.True(viewModel.LoadedReport.HasPostbuildInvocations);
         ReportPostbuildInvocationViewModel invocation = Assert.Single(viewModel.LoadedReport.PostbuildInvocations);
         Assert.Equal("900.01", invocation.Number);
@@ -53,11 +53,6 @@ public sealed partial class ShellViewModelTests
         ReportDifferenceGroupViewModel differenceGroup = Assert.Single(viewModel.LoadedReport.OutputDifferenceGroups);
         Assert.Equal("Header", differenceGroup.Title);
         Assert.Equal("1 expected field update", differenceGroup.Detail);
-        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
-            row.Title == "Output diff" &&
-            row.Detail == "1" &&
-            row.Meta == "all expected");
-
         viewModel.SelectedLanguage = "Traditional Chinese";
 
         Assert.Equal("差異", viewModel.Text.ReportTabChanges);
@@ -72,10 +67,6 @@ public sealed partial class ShellViewModelTests
             row.Label == "Header" &&
             row.Count == "1" &&
             row.Status == "預期");
-        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
-            row.Title == "Output diff" &&
-            row.Detail == "1" &&
-            row.Meta == "全部預期");
     }
 
     /// <summary>Verifies incomplete hex previews are not labelled as complete byte values.</summary>

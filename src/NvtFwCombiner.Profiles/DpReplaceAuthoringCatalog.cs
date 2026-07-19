@@ -30,14 +30,11 @@ public static class DpReplaceAuthoringCatalog
             .GroupBy(rule => rule.IcId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
 
-    /// <summary>All additional DP Replace payload authoring rules.</summary>
-    public static IReadOnlyList<DpReplaceAdditionalPayloadRule> AdditionalPayloads => AdditionalPayloadRules;
-
     /// <summary>Gets additional payload rules for one IC.</summary>
     public static IReadOnlyList<DpReplaceAdditionalPayloadRule> GetAdditionalPayloads(string icId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        return AdditionalPayloadRulesByIc.TryGetValue(NormalizeIcId(icId), out DpReplaceAdditionalPayloadRule[]? rules)
+        return AdditionalPayloadRulesByIc.TryGetValue(IcSupportCatalog.NormalizeIcId(icId), out DpReplaceAdditionalPayloadRule[]? rules)
             ? rules
             : [];
     }
@@ -58,13 +55,5 @@ public static class DpReplaceAuthoringCatalog
         rule = GetAdditionalPayloads(icId).FirstOrDefault(candidate =>
             string.Equals(candidate.RegionId, regionId, StringComparison.Ordinal));
         return rule is not null;
-    }
-
-    private static string NormalizeIcId(string icId)
-    {
-        string trimmed = icId.Trim();
-        return trimmed.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
-            ? $"NT{trimmed[2..]}"
-            : $"NT{trimmed}";
     }
 }

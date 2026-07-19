@@ -29,6 +29,12 @@ public static partial class UiCompositionRunner
         string replaceMode,
         string? basePath = null)
     {
+        FirmwareSlotKind kind = replaceMode switch
+        {
+            WorkbenchReplaceModes.Dp => FirmwareSlotKind.Dp,
+            WorkbenchReplaceModes.CtrlRam => FirmwareSlotKind.CtrlRam,
+            _ => FirmwareSlotKind.Unknown,
+        };
         return
         [
             .. WorkbenchCompositionService.GetReplaceInputSlots(icId, number, replaceMode, basePath)
@@ -36,134 +42,32 @@ public static partial class UiCompositionRunner
                     slot.SlotId,
                     slot.Title,
                     slot.Description,
+                    kind,
                     slot.IsOptional)),
         ];
     }
 
-    /// <summary>Gets the default Replace build output file name.</summary>
-    public static string GetReplaceDefaultOutputFileName(string icId, string replaceMode)
-    {
-        return WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, replaceMode);
-    }
-
-    /// <summary>Gets catalog-backed DP Replace policy text.</summary>
-    public static string GetDpReplacePolicySummary(string icId)
-    {
-        return WorkbenchCompositionService.GetDpReplacePolicySummary(icId);
-    }
-
-    /// <summary>Gets readable memory-map rows for the selected Replace mode.</summary>
-    public static IReadOnlyList<MemoryMapRowViewModel> GetReplaceMemoryMapRows(
+    /// <summary>Projects one Replace memory display snapshot.</summary>
+    public static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetReplaceMemoryDisplay(
         string icId,
         string number,
         string replaceMode,
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
-        return
-        [
-            .. WorkbenchCompositionService.GetReplaceMemoryMapRows(
-                    icId,
-                    number,
-                    replaceMode,
-                    dpBaseLength,
-                    ctrlRamBasePath)
-                .Select(ToMemoryMapRow),
-        ];
-    }
-
-    /// <summary>Gets TP Overview address coverage text for the selected Replace context.</summary>
-    public static string GetReplaceMemoryRangeLabel(string icId, string number)
-    {
-        return WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, number, replaceMode: string.Empty);
-    }
-
-    /// <summary>Gets TP Overview address coverage text for the selected Replace context and mode.</summary>
-    public static string GetReplaceMemoryRangeLabel(
-        string icId,
-        string number,
-        string replaceMode,
-        long? dpBaseLength = null,
-        string? ctrlRamBasePath = null)
-    {
-        return WorkbenchCompositionService.GetReplaceMemoryRangeLabel(
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
             icId,
             number,
             replaceMode,
             dpBaseLength,
             ctrlRamBasePath);
-    }
-
-    /// <summary>Gets visual coverage segments for the selected Replace mode.</summary>
-    public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetReplaceCoverageSegments(
-        string icId,
-        string number,
-        string replaceMode,
-        long? dpBaseLength = null,
-        string? ctrlRamBasePath = null)
-    {
-        return
-        [
-            .. WorkbenchCompositionService.GetReplaceCoverageSegments(
-                    icId,
-                    number,
-                    replaceMode,
-                    dpBaseLength,
-                    ctrlRamBasePath)
-                .Select(segment => new MemoryCoverageSegmentViewModel(
-                    segment.RangeLabel,
-                    segment.SourceLabel,
-                    segment.Detail,
-                    segment.Fill,
-                    segment.BarWidth,
-                    segment.IsChanged)),
-        ];
-    }
-
-    /// <summary>Runs Replace preview or build through the Bootstrap workbench facade.</summary>
-    public static ValueTask<WorkbenchRunResult> RunReplaceAsync(
-        string icId,
-        string number,
-        string replaceMode,
-        IReadOnlyDictionary<string, string> slotPaths,
-        bool build,
-        CancellationToken cancellationToken,
-        string? outputPath = null,
-        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
-    {
-        return WorkbenchCompositionService.RunReplaceAsync(
-            icId,
-            number,
-            replaceMode,
-            slotPaths,
-            build,
-            cancellationToken,
-            outputPath,
-            ctrlRamFirmwareVersionEdit);
-    }
-
-    /// <summary>Runs Replace preview or build with workbench-authored General Replace mappings.</summary>
-    public static ValueTask<WorkbenchRunResult> RunReplaceAsync(
-        string icId,
-        string number,
-        string replaceMode,
-        IReadOnlyDictionary<string, string> slotPaths,
-        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
-        bool build,
-        CancellationToken cancellationToken,
-        string? outputPath = null,
-        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
-    {
-        return WorkbenchCompositionService.RunReplaceAsync(
-            icId,
-            number,
-            replaceMode,
-            slotPaths,
-            generalReplaceMappings,
-            build,
-            cancellationToken,
-            outputPath,
-            ctrlRamFirmwareVersionEdit);
+        return (
+            display.RangeLabel,
+            [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
+            [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
     }
 
 }

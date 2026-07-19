@@ -4,7 +4,7 @@ Built-in IC profiles are added one mode per reviewed change with evidence and go
 
 `profiles/built-in` is an authoring source tree, not a runtime bundle root. It contains the
 manifest, family, and composition sources but no local schema copies. The Bootstrap build injects
-the manifest-pinned schema bytes from `profiles/schema-source/sha256` into a closed materialized
+the manifest-pinned schema bytes from the canonical `docs/contracts` files into a closed materialized
 root before tests, publish, or runtime loading; source trees must never be passed directly to the
 trusted loader.
 

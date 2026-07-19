@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -9,7 +7,7 @@ internal static partial class ReplaceCliCommandHandler
     private static async Task<int> RunWorkbenchDpReplaceAsync(
         string action,
         string icId,
-        ParsedOptions options,
+        ParsedCliOptions options,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
@@ -21,20 +19,9 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        if (options.Values.ContainsKey("--ic-family"))
-        {
-            error.WriteLine("error: --ic-family is used only by cascade IC num profiles");
-            return UsageError;
-        }
-
         if (!WorkbenchIcNumberTokens.IsSingle(icNumber))
         {
             error.WriteLine($"error: {WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()} DP Replace requires --ic-num {WorkbenchIcNumberTokens.SingleChip}");
-            return UsageError;
-        }
-
-        if (!RejectUnusedDpWorkbenchOptions(options, error))
-        {
             return UsageError;
         }
 
@@ -44,62 +31,24 @@ internal static partial class ReplaceCliCommandHandler
             [WorkbenchSlotIds.ReplaceDp] = Path.GetFullPath(dpPath),
         };
 
-        InputArtifactBinding[] bindings = CreateWorkbenchBindings(slotPaths);
-        CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
-            options.Values.GetValueOrDefault("--output"),
-            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.Dp));
-        string? outputPath = action == "build" ? outputTarget.FullPath : null;
-        if (action == "build")
-        {
-            CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
-            if (!options.Flags.Contains("--overwrite") && File.Exists(outputTarget.FullPath))
-            {
-                await error.WriteLineAsync(
-                        $"error: output file already exists: {outputTarget.FullPath}; pass --overwrite to replace it.")
-                    .ConfigureAwait(false);
-                return SoftwareError;
-            }
-        }
-
-        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            options.Values.GetValueOrDefault("--report"),
-            bindings,
-            outputTarget,
-            action == "build");
-
-        WorkbenchRunResult result = await WorkbenchCompositionService
-            .RunReplaceAsync(icId, icNumber, WorkbenchReplaceModes.Dp, slotPaths, action == "build", cancellationToken, outputPath)
-            .ConfigureAwait(false);
-        await WriteWorkbenchReportFileIfRequestedAsync(
-                result,
+        return await RunWorkbenchReplaceAsync(
+                action,
+                icId,
+                WorkbenchReplaceModes.Dp,
+                IcWorkflowIds.DpReplace,
                 options,
-                bindings,
-                action == "build" ? outputTarget.FullPath : null,
+                slotPaths,
+                (build, outputPath, token) => WorkbenchCompositionService.RunReplaceAsync(
+                    icId,
+                    icNumber,
+                    WorkbenchReplaceModes.Dp,
+                    slotPaths,
+                    build,
+                    token,
+                    outputPath),
                 output,
+                error,
                 cancellationToken)
             .ConfigureAwait(false);
-        await PrintWorkbenchRunResultAsync(result, icId, IcWorkflowIds.DpReplace, output, error).ConfigureAwait(false);
-        return result.Succeeded ? Success : CompositionFailed;
-    }
-
-    private static bool TryResolveDpPerspectiveDpReplaceIc(
-        string selector,
-        [NotNullWhen(true)] out string? icId)
-    {
-        return WorkbenchCompositionService.TryResolveDpPerspectiveDpReplaceSelector(selector, out icId);
-    }
-
-    private static bool RejectUnusedDpWorkbenchOptions(ParsedOptions options, TextWriter error)
-    {
-        foreach (string optionName in new[] { "--ld", "--ctrlram", "--input", "--source-start", "--target-start", "--length", "--mapping" })
-        {
-            if (options.Values.ContainsKey(optionName) || options.GetValues(optionName).Count > 0)
-            {
-                error.WriteLine($"error: option '{optionName}' is not used by {WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()} DP Replace");
-                return false;
-            }
-        }
-
-        return true;
     }
 }

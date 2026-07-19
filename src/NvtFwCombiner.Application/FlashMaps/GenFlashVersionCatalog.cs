@@ -33,12 +33,6 @@ public static class GenFlashVersionCatalog
     private static readonly Dictionary<string, GenFlashDpVersionRule> DpVersionRulesByIc = BuildDpVersionRules();
     private static readonly Dictionary<string, CmiDpCodeRule> CmiDpCodeRulesByIc = BuildCmiDpCodeRules();
 
-    /// <summary>All owner-evidenced DP main/sub version-byte rules in stable IC order.</summary>
-    public static IReadOnlyList<GenFlashDpVersionRule> AllDpVersionRules { get; } =
-    [
-        .. DpVersionRulesByIc.Values.OrderBy(rule => rule.IcId, StringComparer.Ordinal),
-    ];
-
     /// <summary>Returns the DP main/sub version-byte rule for an IC when gen_flash evidence defines one.</summary>
     public static bool TryGetDpVersionRule(string icId, out GenFlashDpVersionRule rule)
     {
@@ -87,12 +81,6 @@ public static class GenFlashVersionCatalog
             rule.EvidenceSource);
         return true;
     }
-
-    /// <summary>All owner-evidenced CMI DP register rules in stable IC order.</summary>
-    public static IReadOnlyList<CmiDpCodeRule> AllCmiDpCodeRules { get; } =
-    [
-        .. CmiDpCodeRulesByIc.Values.OrderBy(rule => rule.IcId, StringComparer.Ordinal),
-    ];
 
     /// <summary>Returns the CMI DP register rule for an IC when explicit evidence defines one.</summary>
     public static bool TryGetCmiDpCodeRule(string icId, out CmiDpCodeRule rule)
@@ -288,9 +276,6 @@ public sealed record CmiDpCodeRule(
     string EvidenceSource,
     long? CascadeRegister16Offset = null)
 {
-    /// <summary>Whether the TP NVT Backup FWConfig ChipNumber is required to select the CMI location.</summary>
-    public bool RequiresFirmwareConfigChipNumber => CascadeRegister16Offset is not null;
-
     /// <summary>Returns whether the payload length has golden evidence for this IC's CMI register location.</summary>
     public bool IsExpectedPayloadLength(int payloadLength)
     {

@@ -82,6 +82,32 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "test staged replacement pasteback profile");
     }
 
+    private static LegacyCombinerPostbuildProfile CreateExactStagedFileProfile(long sourceOffset)
+    {
+        var command = new LegacyCombinerPostbuildCommand(
+            "exact-staged-file",
+            LegacyCombinerCommandFamily.MergeMode,
+            "MERGE_MODE",
+            null,
+            [
+                new LegacyCombinerBlockArgument(
+                    "replacement",
+                    LegacyCombinerBlockSourceKind.StagedFile,
+                    "Replacement.bin",
+                    sourceOffset,
+                    new ByteRange(1, 4),
+                    "replacement"),
+            ]);
+        return new LegacyCombinerPostbuildProfile(
+            "nfc.test.exact-staged-file-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "test_fw.bin",
+            [command],
+            [command],
+            "test exact immutable staged file profile");
+    }
+
     private static LegacyCombinerPostbuildProfile CreateArtifactSourceProfile()
     {
         var command = new LegacyCombinerPostbuildCommand(
@@ -193,7 +219,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "test copy command followed by staged replacement restore");
     }
 
-    private static LegacyCombinerPostbuildProfile CreateCrcOnlyProfile(string processorId, string firmwareFileName)
+    private static LegacyCombinerPostbuildProfile CreateCrcOnlyProfile(
+        string processorId,
+        string firmwareFileName,
+        string toolBindingId = "legacy-combiner-1.13.0")
     {
         var command = new LegacyCombinerPostbuildCommand(
             "crc-only",
@@ -204,7 +233,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         return new LegacyCombinerPostbuildProfile(
             processorId,
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            toolBindingId,
             firmwareFileName,
             [command],
             [command],

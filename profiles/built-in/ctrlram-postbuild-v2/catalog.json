@@ -1,0 +1,6257 @@
+{
+  "schemaVersion": "2.0",
+  "profiles": [
+    {
+      "processorId": "nfc.nt51917.ctrlram-postbuild-v1",
+      "icId": "NT51917",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51917_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51917-single-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-single-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-single-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-single-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-single-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51917-single-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-single-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51917-3chip-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-master-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 4048,
+              "targetStart": 92176,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-copy-right-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-right-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 126976,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-right-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-right-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 129024,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-right-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 8080,
+              "targetStart": 129040,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 133072,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-r"
+            },
+            {
+              "blockId": "mp-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 145360,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-r"
+            },
+            {
+              "blockId": "vn-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 154576,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-copy-left-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-left-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 163840,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-left-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 165888,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 169936,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-l"
+            },
+            {
+              "blockId": "mp-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 182224,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-l"
+            },
+            {
+              "blockId": "vn-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 191440,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51917-3chip-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-header-refresh-right",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-right",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 160304,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-header-refresh-left",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-left",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 197168,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "twoChipCommands": [
+        {
+          "commandId": "nt51917-2chip-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-2chip-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-2chip-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-2chip-copy-right-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-right-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 126976,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-2chip-right-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-right-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 129024,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-right-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 4048,
+              "targetStart": 129040,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 133072,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-r"
+            },
+            {
+              "blockId": "mp-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 145360,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-r"
+            },
+            {
+              "blockId": "vn-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 154576,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-2chip-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-2chip-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51917-2chip-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-2chip-header-refresh-right",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-right",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 160304,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-2chip-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "threeChipCommands": [
+        {
+          "commandId": "nt51917-3chip-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-master-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 4048,
+              "targetStart": 92176,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-copy-right-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-right-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 126976,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-right-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-right-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 129024,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-right-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 8080,
+              "targetStart": 129040,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 133072,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-r"
+            },
+            {
+              "blockId": "mp-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 145360,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-r"
+            },
+            {
+              "blockId": "vn-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 154576,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-copy-left-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-left-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 163840,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-left-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 165888,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 169936,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-l"
+            },
+            {
+              "blockId": "mp-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 182224,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-l"
+            },
+            {
+              "blockId": "vn-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 191440,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51917-3chip-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-header-refresh-right",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-right",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 160304,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-header-refresh-left",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-left",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 197168,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51917-3chip-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "two-chip"
+        },
+        {
+          "token": "3",
+          "branch": "three-chip"
+        }
+      ],
+      "assemblyKind": "refreshed-tp-then-standard-merge",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51917 follows NT51927"
+    },
+    {
+      "processorId": "nfc.nt51919.ctrlram-postbuild-v1",
+      "icId": "NT51919",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51919_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51919-single-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 138128,
+              "targetLength": 18944,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 157072,
+              "targetLength": 6496,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 130048,
+              "targetLength": 8080,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51919-single-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51919-cascade-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 138128,
+              "targetLength": 18944,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "diff",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 0,
+              "targetStart": 184576,
+              "targetLength": 35840,
+              "stagedArtifactId": "postbuild-diffdlm"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 157072,
+              "targetLength": 6496,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 130048,
+              "targetLength": 8080,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51919-cascade-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "cascade"
+        },
+        {
+          "token": "3",
+          "branch": "cascade"
+        },
+        {
+          "token": "4",
+          "branch": "cascade"
+        },
+        {
+          "token": "5",
+          "branch": "cascade"
+        },
+        {
+          "token": "6",
+          "branch": "cascade"
+        },
+        {
+          "token": "7",
+          "branch": "cascade"
+        },
+        {
+          "token": "8",
+          "branch": "cascade"
+        },
+        {
+          "token": "9",
+          "branch": "cascade"
+        },
+        {
+          "token": "10",
+          "branch": "cascade"
+        },
+        {
+          "token": "11",
+          "branch": "cascade"
+        },
+        {
+          "token": "12",
+          "branch": "cascade"
+        },
+        {
+          "token": "13",
+          "branch": "cascade"
+        },
+        {
+          "token": "14",
+          "branch": "cascade"
+        },
+        {
+          "token": "15",
+          "branch": "cascade"
+        },
+        {
+          "token": "16",
+          "branch": "cascade"
+        },
+        {
+          "token": "17",
+          "branch": "cascade"
+        },
+        {
+          "token": "18",
+          "branch": "cascade"
+        },
+        {
+          "token": "19",
+          "branch": "cascade"
+        },
+        {
+          "token": "20",
+          "branch": "cascade"
+        },
+        {
+          "token": "21",
+          "branch": "cascade"
+        },
+        {
+          "token": "22",
+          "branch": "cascade"
+        },
+        {
+          "token": "23",
+          "branch": "cascade"
+        },
+        {
+          "token": "24",
+          "branch": "cascade"
+        },
+        {
+          "token": "25",
+          "branch": "cascade"
+        },
+        {
+          "token": "26",
+          "branch": "cascade"
+        },
+        {
+          "token": "27",
+          "branch": "cascade"
+        },
+        {
+          "token": "28",
+          "branch": "cascade"
+        },
+        {
+          "token": "29",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51919 follows NT51929"
+    },
+    {
+      "processorId": "nfc.nt51920.ctrlram-postbuild-v1",
+      "icId": "NT51920",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51920_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51920-single-merge-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 141184,
+              "targetLength": 10240,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 151424,
+              "targetLength": 5888,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 182032,
+              "targetLength": 4120,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 173952,
+              "targetLength": 8080,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 139264,
+              "targetStart": 192512,
+              "targetLength": 1920
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 157312,
+              "targetLength": 256
+            }
+          ]
+        },
+        {
+          "commandId": "nt51920-single-header-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 157312,
+              "targetLength": 256
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51920-cascade-merge-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 141184,
+              "targetLength": 10240,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "normal-slave",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_S.bin",
+              "sourceOffset": 0,
+              "targetStart": 157568,
+              "targetLength": 10240,
+              "stagedArtifactId": "postbuild-normal-ctrlram-s"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 151424,
+              "targetLength": 5888,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "mp-slave",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_S.bin",
+              "sourceOffset": 0,
+              "targetStart": 167808,
+              "targetLength": 5888,
+              "stagedArtifactId": "postbuild-mp-ctrlram-s"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 182032,
+              "targetLength": 4120,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 173952,
+              "targetLength": 8080,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "vector",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Vector_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 186152,
+              "targetLength": 600,
+              "stagedArtifactId": "postbuild-vector-ctrlram"
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 139264,
+              "targetStart": 192512,
+              "targetLength": 1920
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 157312,
+              "targetLength": 256
+            }
+          ]
+        },
+        {
+          "commandId": "nt51920-cascade-header-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 157312,
+              "targetLength": 256
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "0",
+          "branch": "single"
+        },
+        {
+          "token": "1",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51920_1.3.1.bat"
+    },
+    {
+      "processorId": "nfc.nt51923.ctrlram-postbuild-v1",
+      "icId": "NT51923",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51923_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51923-single-merge-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 141312,
+              "targetLength": 14336,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 155648,
+              "targetLength": 10240,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 190464,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 172032,
+              "targetLength": 17584,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 139264,
+              "targetStart": 241664,
+              "targetLength": 2048
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 197392,
+              "targetLength": 256
+            }
+          ]
+        },
+        {
+          "commandId": "nt51923-single-header-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 197392,
+              "targetLength": 256
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51923-cascade-merge-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 141312,
+              "targetLength": 14336,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "diff-0",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 0,
+              "targetStart": 165888,
+              "targetLength": 3072,
+              "stagedArtifactId": "postbuild-diffdlm"
+            },
+            {
+              "blockId": "diff-1",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 5120,
+              "targetStart": 168960,
+              "targetLength": 3072,
+              "stagedArtifactId": "postbuild-diffdlm"
+            },
+            {
+              "blockId": "mp",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 155648,
+              "targetLength": 10240,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 190464,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 172032,
+              "targetLength": 17584,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 139264,
+              "targetStart": 241664,
+              "targetLength": 2048
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 197392,
+              "targetLength": 256
+            }
+          ]
+        },
+        {
+          "commandId": "nt51923-cascade-header-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 197392,
+              "targetLength": 256
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "cascade"
+        },
+        {
+          "token": "3",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51923_1.4.1.bat"
+    },
+    {
+      "processorId": "nfc.nt51926.ctrlram-postbuild-v1",
+      "icId": "NT51926",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51926_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51926-single-merge-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 141312,
+              "targetLength": 11264,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 152576,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 202192,
+              "targetLength": 5278,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 182272,
+              "targetLength": 11728,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 139264,
+              "targetStart": 241664,
+              "targetLength": 1920
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 207472,
+              "targetLength": 256
+            }
+          ]
+        },
+        {
+          "commandId": "nt51926-single-header-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 207472,
+              "targetLength": 256
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51926-cascade-merge-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 141312,
+              "targetLength": 11264,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "diff",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 0,
+              "targetStart": 161792,
+              "targetLength": 10240,
+              "stagedArtifactId": "postbuild-diffdlm"
+            },
+            {
+              "blockId": "mp",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 152576,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 202192,
+              "targetLength": 5278,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 182272,
+              "targetLength": 11728,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 139264,
+              "targetStart": 241664,
+              "targetLength": 1920
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 207472,
+              "targetLength": 256
+            }
+          ]
+        },
+        {
+          "commandId": "nt51926-cascade-header-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 207472,
+              "targetLength": 256
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "cascade"
+        },
+        {
+          "token": "3",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "commonFwVersionRule": {
+        "matchKind": "exact",
+        "pattern": "2.0.0",
+        "description": "Common FW 2.0.0 =\u003E PostbuildSetup_51926_2.0.0"
+      },
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51926_2.0.0.bat"
+    },
+    {
+      "processorId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
+      "icId": "NT51926",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51926_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51926-fw141-single-merge-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 141312,
+              "targetLength": 11264,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 152576,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 202192,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 182272,
+              "targetLength": 11728,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 139264,
+              "targetStart": 241664,
+              "targetLength": 2048
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208720,
+              "targetLength": 256
+            }
+          ]
+        },
+        {
+          "commandId": "nt51926-fw141-single-header-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208720,
+              "targetLength": 256
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51926-fw141-cascade-merge-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 141312,
+              "targetLength": 11264,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "diff",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 0,
+              "targetStart": 161792,
+              "targetLength": 10240,
+              "stagedArtifactId": "postbuild-diffdlm"
+            },
+            {
+              "blockId": "mp",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 152576,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 202192,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 182272,
+              "targetLength": 11728,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 139264,
+              "targetStart": 241664,
+              "targetLength": 2048
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208720,
+              "targetLength": 256
+            }
+          ]
+        },
+        {
+          "commandId": "nt51926-fw141-cascade-header-crc",
+          "family": "normal-mode",
+          "modeArgument": "CRC_Enable",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208720,
+              "targetLength": 256
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "cascade"
+        },
+        {
+          "token": "3",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "commonFwVersionRule": {
+        "matchKind": "exact",
+        "pattern": "1.4.1",
+        "description": "Common FW 1.4.1 =\u003E PostbuildSetup_51926_1.4.1"
+      },
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51926_1.4.1.bat"
+    },
+    {
+      "processorId": "nfc.nt51927.ctrlram-postbuild-v1",
+      "icId": "NT51927",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51927_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51927-single-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-single-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-single-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-single-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-single-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51927-single-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-single-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51927-3chip-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-master-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 4048,
+              "targetStart": 92176,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-copy-right-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-right-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 126976,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-right-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-right-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 129024,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-right-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 8080,
+              "targetStart": 129040,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 133072,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-r"
+            },
+            {
+              "blockId": "mp-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 145360,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-r"
+            },
+            {
+              "blockId": "vn-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 154576,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-copy-left-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-left-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 163840,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-left-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 165888,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 169936,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-l"
+            },
+            {
+              "blockId": "mp-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 182224,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-l"
+            },
+            {
+              "blockId": "vn-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 191440,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51927-3chip-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-header-refresh-right",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-right",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 160304,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-header-refresh-left",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-left",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 197168,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "twoChipCommands": [
+        {
+          "commandId": "nt51927-2chip-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-2chip-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-2chip-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-2chip-copy-right-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-right-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 126976,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-2chip-right-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-right-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 129024,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-right-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 4048,
+              "targetStart": 129040,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 133072,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-r"
+            },
+            {
+              "blockId": "mp-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 145360,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-r"
+            },
+            {
+              "blockId": "vn-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 154576,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-2chip-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-2chip-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51927-2chip-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-2chip-header-refresh-right",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-right",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 160304,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-2chip-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "threeChipCommands": [
+        {
+          "commandId": "nt51927-3chip-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-master-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 4048,
+              "targetStart": 92176,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-copy-right-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-right-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 126976,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-right-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-right-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 129024,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-right-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 8080,
+              "targetStart": 129040,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 133072,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-r"
+            },
+            {
+              "blockId": "mp-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 145360,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-r"
+            },
+            {
+              "blockId": "vn-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 154576,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-copy-left-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-left-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 163840,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-left-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 165888,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 169936,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-l"
+            },
+            {
+              "blockId": "mp-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 182224,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-l"
+            },
+            {
+              "blockId": "vn-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 191440,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51927-3chip-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-header-refresh-right",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-right",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 160304,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-header-refresh-left",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-left",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 197168,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51927-3chip-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "two-chip"
+        },
+        {
+          "token": "3",
+          "branch": "three-chip"
+        }
+      ],
+      "assemblyKind": "refreshed-tp-then-standard-merge",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat"
+    },
+    {
+      "processorId": "nfc.nt51928.ctrlram-postbuild-v1",
+      "icId": "NT51928",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51928_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51928-single-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-single-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-single-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-single-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-single-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51928-single-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-single-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51928-3chip-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-master-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 4048,
+              "targetStart": 92176,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-copy-right-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-right-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 126976,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-right-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-right-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 129024,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-right-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 8080,
+              "targetStart": 129040,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 133072,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-r"
+            },
+            {
+              "blockId": "mp-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 145360,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-r"
+            },
+            {
+              "blockId": "vn-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 154576,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-copy-left-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-left-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 163840,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-left-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 165888,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 169936,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-l"
+            },
+            {
+              "blockId": "mp-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 182224,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-l"
+            },
+            {
+              "blockId": "vn-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 191440,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51928-3chip-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-header-refresh-right",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-right",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 160304,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-header-refresh-left",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-left",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 197168,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "twoChipCommands": [
+        {
+          "commandId": "nt51928-2chip-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-2chip-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-2chip-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-2chip-copy-right-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-right-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 126976,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-2chip-right-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-right-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 129024,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-right-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 4048,
+              "targetStart": 129040,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 133072,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-r"
+            },
+            {
+              "blockId": "mp-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 145360,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-r"
+            },
+            {
+              "blockId": "vn-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 154576,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-2chip-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-2chip-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51928-2chip-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-2chip-header-refresh-right",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-right",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 160304,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-2chip-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "threeChipCommands": [
+        {
+          "commandId": "nt51928-3chip-master-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-master-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-master-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 4048,
+              "targetStart": 92176,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 108496,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn-master",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 117712,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-fw-config-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 212992,
+              "targetLength": 2048
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-header-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-copy-right-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-right-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 126976,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-right-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-right-prefix",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 129024,
+              "targetLength": 16,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "nf-right-body",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 8080,
+              "targetStart": 129040,
+              "targetLength": 4032,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 133072,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-r"
+            },
+            {
+              "blockId": "mp-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_R.bin",
+              "sourceOffset": 0,
+              "targetStart": 145360,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-r"
+            },
+            {
+              "blockId": "vn-right",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 154576,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-copy-left-window",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "copy-left-window",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 163840,
+              "targetLength": 36864
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-left-ctrlram",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "nf-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 165888,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 169936,
+              "targetLength": 12288,
+              "stagedArtifactId": "postbuild-normal-ctrlram-l"
+            },
+            {
+              "blockId": "mp-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram_L.bin",
+              "sourceOffset": 0,
+              "targetStart": 182224,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram-l"
+            },
+            {
+              "blockId": "vn-left",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 191440,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-final-header-backup",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "final-header-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 208320,
+              "targetLength": 1120
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-crc-1",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        },
+        {
+          "commandId": "nt51928-3chip-header-refresh-master",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-master",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 123440,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-header-refresh-right",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-right",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 160304,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-header-refresh-left",
+          "family": "merge-mode",
+          "modeArgument": "MERGE_MODE",
+          "blocks": [
+            {
+              "blockId": "base",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 0,
+              "targetLength": 217088
+            },
+            {
+              "blockId": "header-refresh-left",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 512,
+              "targetStart": 197168,
+              "targetLength": 400
+            }
+          ]
+        },
+        {
+          "commandId": "nt51928-3chip-crc-2",
+          "family": "crc-only-mode",
+          "modeArgument": "NT51927BASED_GEN_CRC_MODE",
+          "crcArgument": "CRC32",
+          "blocks": []
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "two-chip"
+        },
+        {
+          "token": "3",
+          "branch": "three-chip"
+        }
+      ],
+      "assemblyKind": "refreshed-tp-then-standard-merge",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51928 follows NT51927; NT51928 NB is not covered"
+    },
+    {
+      "processorId": "nfc.nt51929.ctrlram-postbuild-v1",
+      "icId": "NT51929",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51929_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51929-single-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 138128,
+              "targetLength": 18944,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 157072,
+              "targetLength": 6496,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 130048,
+              "targetLength": 8080,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51929-single-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51929-cascade-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 138128,
+              "targetLength": 18944,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "diff",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 0,
+              "targetStart": 184576,
+              "targetLength": 35840,
+              "stagedArtifactId": "postbuild-diffdlm"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 157072,
+              "targetLength": 6496,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 130048,
+              "targetLength": 8080,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51929-cascade-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "cascade"
+        },
+        {
+          "token": "3",
+          "branch": "cascade"
+        },
+        {
+          "token": "4",
+          "branch": "cascade"
+        },
+        {
+          "token": "5",
+          "branch": "cascade"
+        },
+        {
+          "token": "6",
+          "branch": "cascade"
+        },
+        {
+          "token": "7",
+          "branch": "cascade"
+        },
+        {
+          "token": "8",
+          "branch": "cascade"
+        },
+        {
+          "token": "9",
+          "branch": "cascade"
+        },
+        {
+          "token": "10",
+          "branch": "cascade"
+        },
+        {
+          "token": "11",
+          "branch": "cascade"
+        },
+        {
+          "token": "12",
+          "branch": "cascade"
+        },
+        {
+          "token": "13",
+          "branch": "cascade"
+        },
+        {
+          "token": "14",
+          "branch": "cascade"
+        },
+        {
+          "token": "15",
+          "branch": "cascade"
+        },
+        {
+          "token": "16",
+          "branch": "cascade"
+        },
+        {
+          "token": "17",
+          "branch": "cascade"
+        },
+        {
+          "token": "18",
+          "branch": "cascade"
+        },
+        {
+          "token": "19",
+          "branch": "cascade"
+        },
+        {
+          "token": "20",
+          "branch": "cascade"
+        },
+        {
+          "token": "21",
+          "branch": "cascade"
+        },
+        {
+          "token": "22",
+          "branch": "cascade"
+        },
+        {
+          "token": "23",
+          "branch": "cascade"
+        },
+        {
+          "token": "24",
+          "branch": "cascade"
+        },
+        {
+          "token": "25",
+          "branch": "cascade"
+        },
+        {
+          "token": "26",
+          "branch": "cascade"
+        },
+        {
+          "token": "27",
+          "branch": "cascade"
+        },
+        {
+          "token": "28",
+          "branch": "cascade"
+        },
+        {
+          "token": "29",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51929 follows NT51932"
+    },
+    {
+      "processorId": "nfc.nt51930.ctrlram-postbuild-v1",
+      "icId": "NT51930",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "NT51930_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51930-single-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51930BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 136784,
+              "targetLength": 11264,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 161360,
+              "targetLength": 6496,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 130048,
+              "targetLength": 6736,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 167856,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51930-single-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51930BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 167856,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51930-cascade-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51930BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 136784,
+              "targetLength": 11264,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "diff",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 0,
+              "targetStart": 193024,
+              "targetLength": 65024,
+              "stagedArtifactId": "postbuild-diffdlm"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 161360,
+              "targetLength": 6496,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 130048,
+              "targetLength": 6736,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 167856,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51930-cascade-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51930BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 167856,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "cascade"
+        },
+        {
+          "token": "3",
+          "branch": "cascade"
+        },
+        {
+          "token": "4",
+          "branch": "cascade"
+        },
+        {
+          "token": "5",
+          "branch": "cascade"
+        },
+        {
+          "token": "6",
+          "branch": "cascade"
+        },
+        {
+          "token": "7",
+          "branch": "cascade"
+        },
+        {
+          "token": "8",
+          "branch": "cascade"
+        },
+        {
+          "token": "9",
+          "branch": "cascade"
+        },
+        {
+          "token": "10",
+          "branch": "cascade"
+        },
+        {
+          "token": "11",
+          "branch": "cascade"
+        },
+        {
+          "token": "12",
+          "branch": "cascade"
+        },
+        {
+          "token": "13",
+          "branch": "cascade"
+        },
+        {
+          "token": "14",
+          "branch": "cascade"
+        },
+        {
+          "token": "15",
+          "branch": "cascade"
+        },
+        {
+          "token": "16",
+          "branch": "cascade"
+        },
+        {
+          "token": "17",
+          "branch": "cascade"
+        },
+        {
+          "token": "18",
+          "branch": "cascade"
+        },
+        {
+          "token": "19",
+          "branch": "cascade"
+        },
+        {
+          "token": "20",
+          "branch": "cascade"
+        },
+        {
+          "token": "21",
+          "branch": "cascade"
+        },
+        {
+          "token": "22",
+          "branch": "cascade"
+        },
+        {
+          "token": "23",
+          "branch": "cascade"
+        },
+        {
+          "token": "24",
+          "branch": "cascade"
+        },
+        {
+          "token": "25",
+          "branch": "cascade"
+        },
+        {
+          "token": "26",
+          "branch": "cascade"
+        },
+        {
+          "token": "27",
+          "branch": "cascade"
+        },
+        {
+          "token": "28",
+          "branch": "cascade"
+        },
+        {
+          "token": "29",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "commonFwVersionRule": {
+        "matchKind": "exact",
+        "pattern": "2.0.0",
+        "description": "Common FW 2.0.0 =\u003E PostbuildSetup_51930_2.0.0"
+      },
+      "availability": "evidence-only",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51930_2.0.0.bat"
+    },
+    {
+      "processorId": "nfc.nt51930.ctrlram-postbuild-fw1.x",
+      "icId": "NT51930",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51930_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51930-fw1x-single-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51930BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 130048,
+              "targetLength": 6736,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 136784,
+              "targetLength": 11264,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 148048,
+              "targetLength": 13312,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 161360,
+              "targetLength": 6494,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 167856,
+              "targetLength": 256
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51930-fw1x-cascade-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51930BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 130048,
+              "targetLength": 6736,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 136784,
+              "targetLength": 11264,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 148048,
+              "targetLength": 13312,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 161360,
+              "targetLength": 6494,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 167856,
+              "targetLength": 256
+            },
+            {
+              "blockId": "diff",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 0,
+              "targetStart": 193024,
+              "targetLength": 65024,
+              "stagedArtifactId": "postbuild-diffdlm"
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "cascade"
+        },
+        {
+          "token": "3",
+          "branch": "cascade"
+        },
+        {
+          "token": "4",
+          "branch": "cascade"
+        },
+        {
+          "token": "5",
+          "branch": "cascade"
+        },
+        {
+          "token": "6",
+          "branch": "cascade"
+        },
+        {
+          "token": "7",
+          "branch": "cascade"
+        },
+        {
+          "token": "8",
+          "branch": "cascade"
+        },
+        {
+          "token": "9",
+          "branch": "cascade"
+        },
+        {
+          "token": "10",
+          "branch": "cascade"
+        },
+        {
+          "token": "11",
+          "branch": "cascade"
+        },
+        {
+          "token": "12",
+          "branch": "cascade"
+        },
+        {
+          "token": "13",
+          "branch": "cascade"
+        },
+        {
+          "token": "14",
+          "branch": "cascade"
+        },
+        {
+          "token": "15",
+          "branch": "cascade"
+        },
+        {
+          "token": "16",
+          "branch": "cascade"
+        },
+        {
+          "token": "17",
+          "branch": "cascade"
+        },
+        {
+          "token": "18",
+          "branch": "cascade"
+        },
+        {
+          "token": "19",
+          "branch": "cascade"
+        },
+        {
+          "token": "20",
+          "branch": "cascade"
+        },
+        {
+          "token": "21",
+          "branch": "cascade"
+        },
+        {
+          "token": "22",
+          "branch": "cascade"
+        },
+        {
+          "token": "23",
+          "branch": "cascade"
+        },
+        {
+          "token": "24",
+          "branch": "cascade"
+        },
+        {
+          "token": "25",
+          "branch": "cascade"
+        },
+        {
+          "token": "26",
+          "branch": "cascade"
+        },
+        {
+          "token": "27",
+          "branch": "cascade"
+        },
+        {
+          "token": "28",
+          "branch": "cascade"
+        },
+        {
+          "token": "29",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "commonFwVersionRule": {
+        "matchKind": "major",
+        "pattern": "1",
+        "description": "Common FW 1.x.x =\u003E PostbuildSetup_51930_1.4.0"
+      },
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51930_1.4.0.bat"
+    },
+    {
+      "processorId": "nfc.nt51931.ctrlram-postbuild-v1",
+      "icId": "NT51931",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51931_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51931-single-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51931BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 10240,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 106448,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 115664,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 121392,
+              "targetLength": 256
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 241664,
+              "targetLength": 2048
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51931-cascade-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51931BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 92160,
+              "targetLength": 4048,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 96208,
+              "targetLength": 10240,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "mp",
+              "sourceKind": "staged-file",
+              "sourceFileName": "MP_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 106448,
+              "targetLength": 9216,
+              "stagedArtifactId": "postbuild-mp-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 115664,
+              "targetLength": 5728,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 0,
+              "targetStart": 121392,
+              "targetLength": 256
+            },
+            {
+              "blockId": "fw-config-backup",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 90112,
+              "targetStart": 241664,
+              "targetLength": 2048
+            },
+            {
+              "blockId": "diff",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 0,
+              "targetStart": 141312,
+              "targetLength": 97280,
+              "stagedArtifactId": "postbuild-diffdlm"
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "0",
+          "branch": "single"
+        },
+        {
+          "token": "1",
+          "branch": "cascade"
+        },
+        {
+          "token": "2",
+          "branch": "cascade"
+        },
+        {
+          "token": "3",
+          "branch": "cascade"
+        },
+        {
+          "token": "4",
+          "branch": "cascade"
+        },
+        {
+          "token": "5",
+          "branch": "cascade"
+        },
+        {
+          "token": "6",
+          "branch": "cascade"
+        },
+        {
+          "token": "7",
+          "branch": "cascade"
+        },
+        {
+          "token": "8",
+          "branch": "cascade"
+        },
+        {
+          "token": "9",
+          "branch": "cascade"
+        },
+        {
+          "token": "10",
+          "branch": "cascade"
+        },
+        {
+          "token": "11",
+          "branch": "cascade"
+        },
+        {
+          "token": "12",
+          "branch": "cascade"
+        },
+        {
+          "token": "13",
+          "branch": "cascade"
+        },
+        {
+          "token": "14",
+          "branch": "cascade"
+        },
+        {
+          "token": "15",
+          "branch": "cascade"
+        },
+        {
+          "token": "16",
+          "branch": "cascade"
+        },
+        {
+          "token": "17",
+          "branch": "cascade"
+        },
+        {
+          "token": "18",
+          "branch": "cascade"
+        },
+        {
+          "token": "19",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "evidence": "Owner 2026-07-17 NT51931-based BAT plus 2026-07-19 full-byte parity: Combiner 1.13.0 NT51931-based equals Combiner 1.2.0.4 NT51930-based"
+    },
+    {
+      "processorId": "nfc.nt51932.ctrlram-postbuild-v1",
+      "icId": "NT51932",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51932_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51932-single-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 138128,
+              "targetLength": 18944,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 157072,
+              "targetLength": 6496,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 130048,
+              "targetLength": 8080,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51932-single-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51932-cascade-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 138128,
+              "targetLength": 18944,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "diff",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 0,
+              "targetStart": 184576,
+              "targetLength": 35840,
+              "stagedArtifactId": "postbuild-diffdlm"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 157072,
+              "targetLength": 6496,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 130048,
+              "targetLength": 8080,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51932-cascade-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51932BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 28672,
+              "targetStart": 163568,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "cascade"
+        },
+        {
+          "token": "3",
+          "branch": "cascade"
+        },
+        {
+          "token": "4",
+          "branch": "cascade"
+        },
+        {
+          "token": "5",
+          "branch": "cascade"
+        },
+        {
+          "token": "6",
+          "branch": "cascade"
+        },
+        {
+          "token": "7",
+          "branch": "cascade"
+        },
+        {
+          "token": "8",
+          "branch": "cascade"
+        },
+        {
+          "token": "9",
+          "branch": "cascade"
+        },
+        {
+          "token": "10",
+          "branch": "cascade"
+        },
+        {
+          "token": "11",
+          "branch": "cascade"
+        },
+        {
+          "token": "12",
+          "branch": "cascade"
+        },
+        {
+          "token": "13",
+          "branch": "cascade"
+        },
+        {
+          "token": "14",
+          "branch": "cascade"
+        },
+        {
+          "token": "15",
+          "branch": "cascade"
+        },
+        {
+          "token": "16",
+          "branch": "cascade"
+        },
+        {
+          "token": "17",
+          "branch": "cascade"
+        },
+        {
+          "token": "18",
+          "branch": "cascade"
+        },
+        {
+          "token": "19",
+          "branch": "cascade"
+        },
+        {
+          "token": "20",
+          "branch": "cascade"
+        },
+        {
+          "token": "21",
+          "branch": "cascade"
+        },
+        {
+          "token": "22",
+          "branch": "cascade"
+        },
+        {
+          "token": "23",
+          "branch": "cascade"
+        },
+        {
+          "token": "24",
+          "branch": "cascade"
+        },
+        {
+          "token": "25",
+          "branch": "cascade"
+        },
+        {
+          "token": "26",
+          "branch": "cascade"
+        },
+        {
+          "token": "27",
+          "branch": "cascade"
+        },
+        {
+          "token": "28",
+          "branch": "cascade"
+        },
+        {
+          "token": "29",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat"
+    },
+    {
+      "processorId": "nfc.nt51950.ctrlram-postbuild-v1",
+      "icId": "NT51950",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51950_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51950-single-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51950BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 153104,
+              "targetLength": 23552,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 176656,
+              "targetLength": 8444,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 142336,
+              "targetLength": 10768,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 40960,
+              "targetStart": 185100,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51950-single-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51950BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 40960,
+              "targetStart": 185100,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51950-cascade-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51950BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 153104,
+              "targetLength": 23552,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "diff",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 0,
+              "targetStart": 209408,
+              "targetLength": 5120,
+              "stagedArtifactId": "postbuild-diffdlm"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 176656,
+              "targetLength": 8444,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 142336,
+              "targetLength": 10768,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 40960,
+              "targetStart": 185100,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51950-cascade-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51950BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 40960,
+              "targetStart": 185100,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat"
+    },
+    {
+      "processorId": "nfc.nt51951.ctrlram-postbuild-v1",
+      "icId": "NT51951",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "firmwareFileName": "nt51951_fw.bin",
+      "singleCommands": [
+        {
+          "commandId": "nt51951-single-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51950BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 153104,
+              "targetLength": 23552,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 176656,
+              "targetLength": 8444,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 142336,
+              "targetLength": 10768,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 40960,
+              "targetStart": 185100,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51951-single-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51950BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 40960,
+              "targetStart": 185100,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "cascadeCommands": [
+        {
+          "commandId": "nt51951-cascade-merge-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51950BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "normal",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 153104,
+              "targetLength": 23552,
+              "stagedArtifactId": "postbuild-normal-ctrlram"
+            },
+            {
+              "blockId": "diff",
+              "sourceKind": "staged-file",
+              "sourceFileName": "DiffDLM.bin",
+              "sourceOffset": 0,
+              "targetStart": 209408,
+              "targetLength": 5120,
+              "stagedArtifactId": "postbuild-diffdlm"
+            },
+            {
+              "blockId": "vn",
+              "sourceKind": "staged-file",
+              "sourceFileName": "VN_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 176656,
+              "targetLength": 8444,
+              "stagedArtifactId": "postbuild-vn-ctrlram"
+            },
+            {
+              "blockId": "nf",
+              "sourceKind": "staged-file",
+              "sourceFileName": "NF_Ctrlram.bin",
+              "sourceOffset": 0,
+              "targetStart": 142336,
+              "targetLength": 10768,
+              "stagedArtifactId": "postbuild-nf-ctrlram"
+            },
+            {
+              "blockId": "header-copy",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 40960,
+              "targetStart": 185100,
+              "targetLength": 512
+            }
+          ]
+        },
+        {
+          "commandId": "nt51951-cascade-header-crc",
+          "family": "ntbased-normal-mode",
+          "modeArgument": "NT51950BASED_NORMAL_MODE",
+          "crcArgument": "CRC8",
+          "blocks": [
+            {
+              "blockId": "header-copy-final",
+              "sourceKind": "firmware-image",
+              "sourceFileName": "firmware",
+              "sourceOffset": 40960,
+              "targetStart": 185100,
+              "targetLength": 512
+            }
+          ]
+        }
+      ],
+      "branchRules": [
+        {
+          "token": "single",
+          "branch": "single"
+        },
+        {
+          "token": "cascade",
+          "branch": "cascade"
+        },
+        {
+          "token": "1",
+          "branch": "single"
+        },
+        {
+          "token": "2",
+          "branch": "cascade"
+        }
+      ],
+      "assemblyKind": "in-place-firmware-image",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat; owner confirmation: NT51951 follows NT51950"
+    }
+  ]
+}

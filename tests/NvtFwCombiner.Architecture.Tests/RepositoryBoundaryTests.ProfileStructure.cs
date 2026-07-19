@@ -1,62 +1,40 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using System.Xml.Linq;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies legacy built-in Replace profiles contain only synthetic test contracts.</summary>
+    /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>
     [Fact]
-    public void BuiltInReplaceProfileConcernsStaySplit()
+    public void SyntheticReplaceProfilesStayTestOnly()
     {
-        string root = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs");
-        string synthetic = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.Synthetic.cs");
-        string v2Registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
+        string synthetic = ReadText("tests/NvtFwCombiner.TestSupport/SyntheticReplaceProfiles.cs");
+        string v2Registration = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
 
-        Assert.Contains("public static partial class BuiltInReplaceProfiles", root, StringComparison.Ordinal);
-        Assert.Contains("public static IReadOnlyList<CompositionProfileDefinition> All", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("SyntheticIc", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("DpPerspective", root, StringComparison.Ordinal);
-        Assert.Contains("SyntheticDpReplace", synthetic, StringComparison.Ordinal);
-        Assert.Contains("SyntheticCtrlRamReplace", synthetic, StringComparison.Ordinal);
-        Assert.Contains("SyntheticGeneralReplace", synthetic, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInReplaceProfiles.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInReplaceProfiles.Synthetic.cs")));
+        Assert.DoesNotContain("synthetic-dp-replace", ReadProfileSources(), StringComparison.Ordinal);
+        Assert.DoesNotContain("synthetic-ctrlram-replace", ReadProfileSources(), StringComparison.Ordinal);
+        Assert.DoesNotContain("synthetic-general-replace", ReadProfileSources(), StringComparison.Ordinal);
+        Assert.Contains("public static class SyntheticReplaceProfiles", synthetic, StringComparison.Ordinal);
+        Assert.Contains("CompositionProfileDefinition General", synthetic, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", synthetic, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src",
             "NvtFwCombiner.Profiles",
             "BuiltInReplaceProfiles.DpPerspective.cs")));
-        Assert.Contains("BuiltInV2DpReplaceRegistration", v2Registration, StringComparison.Ordinal);
-    }
-
-    /// <summary>Verifies profile compiler shared region helpers stay separate from explicit-mapping policy.</summary>
-    [Fact]
-    public void ProfileCompilerRegionResolutionStaysShared()
-    {
-        string explicitMappings = ReadText(
-            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ExplicitMappings.cs");
-        string explicitCompilation = ReadText(
-            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ExplicitMappingCompilation.cs");
-        string processorPolicy = ReadText(
-            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ExplicitMappingProcessorPolicy.cs");
-        string regionResolution = ReadText(
-            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.RegionResolution.cs");
-        string operationValidation = ReadText(
-            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.OperationValidation.cs");
-        string profileValidation = ReadText(
-            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ProfileValidation.cs");
-
-        Assert.Contains("ValidateExplicitMappings", explicitMappings, StringComparison.Ordinal);
-        Assert.Contains("ResolveExplicitMappingTargetRegion", explicitMappings, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static ProfileRegion? ResolveTargetRegionByRange", explicitMappings, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static RegionAccessRule? FindAccessRule", explicitMappings, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static CompositionOperation CompileExplicitMapping", explicitMappings, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static bool HasExternalProcessorAfterMapping", explicitMappings, StringComparison.Ordinal);
-        Assert.Contains("private static CompositionOperation CompileExplicitMapping", explicitCompilation, StringComparison.Ordinal);
-        Assert.Contains("private static bool HasExternalProcessorAfterMapping", processorPolicy, StringComparison.Ordinal);
-        Assert.Contains("private static ProfileRegion? ResolveTargetRegionByRange", regionResolution, StringComparison.Ordinal);
-        Assert.Contains("private static RegionAccessRule? FindAccessRule", regionResolution, StringComparison.Ordinal);
-        Assert.Contains("ResolveTargetRegionByRange", operationValidation, StringComparison.Ordinal);
-        Assert.Contains("ResolveTargetRegionByRange", profileValidation, StringComparison.Ordinal);
+        Assert.Contains("BuiltInV2Registration", v2Registration, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies production Standard Merge facts live only in V2 bundles and registrations.</summary>
@@ -79,10 +57,18 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Profiles",
             "BuiltInStandardMergeProfiles.DpPerspective.cs")));
 
-        string synthetic = ReadText("src/NvtFwCombiner.Profiles/SyntheticCompositionProfiles.cs");
-        string registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
-        Assert.Contains("CreateStandardMerge", synthetic, StringComparison.Ordinal);
-        Assert.Contains("BuiltInV2StandardMergeRegistration", registration, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "SyntheticCompositionProfiles.cs")));
+        string registration = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "tests",
+            "NvtFwCombiner.TestSupport",
+            "SyntheticStandardMergeProfile.cs")));
+        Assert.Contains("BuiltInV2Registration", registration, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies built-in bundle materialization remains an explicit identity allowlist, never source discovery.</summary>
@@ -106,7 +92,18 @@ public sealed partial class RepositoryBoundaryTests
             "nt51930-general-merge-logical-candidate",
             "nt51931-general-merge-logical-candidate",
             "nt51950-nt51951-general-merge-logical-candidate",
+            "nt51920-ctrlram-replace-candidate",
+            "nt51923-ctrlram-replace-candidate",
             "nt51926-ctrlram-replace-candidate",
+            "nt51917-ctrlram-replace-alias-candidate",
+            "nt51927-ctrlram-replace-candidate",
+            "nt51928-ctrlram-replace-candidate",
+            "nt51929-ctrlram-replace-candidate",
+            "nt51930-ctrlram-replace-candidate",
+            "nt51931-ctrlram-replace-candidate",
+            "nt51932-ctrlram-replace-candidate",
+            "nt51950-ctrlram-replace-candidate",
+            "nt51951-ctrlram-replace-candidate",
             "nt51923-standard-merge",
             "nt51927-standard-merge",
             "nt51928-standard-merge",
@@ -141,17 +138,26 @@ public sealed partial class RepositoryBoundaryTests
                     StringComparer.Ordinal))
             {
                 Assert.Equal(
-                    "ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f",
-                    Assert.Single(bundle.Elements("CompositionProfileSchemaHash")).Value);
+                    "composition-profile-v2.5.schema.json",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
-            else if (string.Equals(
-                         "nt51926-ctrlram-replace-candidate",
-                         bundle.Attribute("Include")?.Value,
-                         StringComparison.Ordinal))
+            else if (bundle.Attribute("Include")?.Value is
+                         "nt51920-ctrlram-replace-candidate" or
+                         "nt51923-ctrlram-replace-candidate" or
+                         "nt51926-ctrlram-replace-candidate" or
+                         "nt51917-ctrlram-replace-alias-candidate" or
+                         "nt51927-ctrlram-replace-candidate" or
+                         "nt51928-ctrlram-replace-candidate" or
+                         "nt51929-ctrlram-replace-candidate" or
+                         "nt51930-ctrlram-replace-candidate" or
+                         "nt51931-ctrlram-replace-candidate" or
+                         "nt51932-ctrlram-replace-candidate" or
+                         "nt51950-ctrlram-replace-candidate" or
+                         "nt51951-ctrlram-replace-candidate")
             {
                 Assert.Equal(
-                    "61abe3f9eaa9d1821067788d08014868a81f42a01bd1eb75406aabb9c56df8a3",
-                    Assert.Single(bundle.Elements("CompositionProfileSchemaHash")).Value);
+                    "composition-profile-v2.9.schema.json",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
             else
             {
@@ -169,20 +175,126 @@ public sealed partial class RepositoryBoundaryTests
             project,
             StringComparison.Ordinal);
         Assert.Contains(
-            "<DefaultCompositionProfileSchemaHash>1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0</DefaultCompositionProfileSchemaHash>",
+            "<DefaultCompositionProfileSchemaFile>composition-profile-v2.schema.json</DefaultCompositionProfileSchemaFile>",
             project,
             StringComparison.Ordinal);
         Assert.Equal(
-            "$(DefaultCompositionProfileSchemaHash)",
+            "$(DefaultCompositionProfileSchemaFile)",
             Assert.Single(document.Descendants("ItemDefinitionGroup")
                 .Descendants("BuiltInProfileBundle"))
-                .Element("CompositionProfileSchemaHash")?.Value);
+                .Element("CompositionProfileSchemaFile")?.Value);
         Assert.Contains(
-            "$(ProfileSchemaSourceRoot)\\%(BuiltInProfileBundle.CompositionProfileSchemaHash)\\composition-profile-v2.schema.json",
+            "$(ProfileContractRoot)\\%(BuiltInProfileBundle.CompositionProfileSchemaFile)",
             project,
             StringComparison.Ordinal);
-        Assert.DoesNotContain("<SourceRoot>", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("ProfileSchemaSourceRoot", project, StringComparison.Ordinal);
+        string retiredSchemaSource = Path.Combine(Root.FullName, "profiles", "schema-source");
+        Assert.False(Directory.Exists(retiredSchemaSource) &&
+            Directory.EnumerateFiles(retiredSchemaSource, "*", SearchOption.AllDirectories).Any());
+        Assert.DoesNotContain(bundles, static bundle => bundle.Element("SourceRoot") is not null);
         Assert.DoesNotContain("**\\profile-bundle.json", project, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies each approved canonical firmware-family reuse is explicit and closed-root.</summary>
+    [Fact]
+    public void CandidateBundlesMaterializeOnlyApprovedCanonicalFirmwareFamilies()
+    {
+        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        var document = XDocument.Parse(project);
+        XElement candidate = Assert.Single(document.Descendants("BuiltInProfileBundle"), static bundle =>
+            StringComparer.Ordinal.Equals(
+                bundle.Attribute("Include")?.Value,
+                "nt51930-general-merge-logical-candidate"));
+
+        Assert.Equal(
+            "nt51930-standard-merge\\families\\nt51930.json",
+            candidate.Element("CanonicalFirmwareFamilySource")?.Value);
+        Assert.Equal(
+            "families\\nt51930.json",
+            candidate.Element("CanonicalFirmwareFamilyDestination")?.Value);
+        Assert.Equal(2, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
+            !string.IsNullOrWhiteSpace(element.Value)));
+        Assert.Equal(2, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
+            !string.IsNullOrWhiteSpace(element.Value)));
+
+        string canonicalFamilyPath = Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51930-standard-merge",
+            "families",
+            "nt51930.json");
+        string candidateFamilyPath = Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51930-general-merge-logical-candidate",
+            "families",
+            "nt51930.json");
+        Assert.True(File.Exists(canonicalFamilyPath));
+        Assert.False(File.Exists(candidateFamilyPath));
+
+        using var manifest = JsonDocument.Parse(ReadText(
+            "profiles/built-in/nt51930-general-merge-logical-candidate/profile-bundle.json"));
+        JsonElement familyEntry = Assert.Single(
+            manifest.RootElement.GetProperty("entries").EnumerateArray(),
+            static entry => StringComparer.Ordinal.Equals(
+                entry.GetProperty("kind").GetString(),
+                "firmware-family"));
+        Assert.Equal("families/nt51930.json", familyEntry.GetProperty("path").GetString());
+        Assert.Equal(
+            familyEntry.GetProperty("contentHash").GetString(),
+            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(canonicalFamilyPath))).ToLowerInvariant());
+
+        XElement nt51917Candidate = Assert.Single(document.Descendants("BuiltInProfileBundle"), static bundle =>
+            StringComparer.Ordinal.Equals(
+                bundle.Attribute("Include")?.Value,
+                "nt51917-ctrlram-replace-alias-candidate"));
+        Assert.Equal(
+            "nt51927-ctrlram-replace-candidate\\families\\nt51927-ctrlram-replace.json",
+            nt51917Candidate.Element("CanonicalFirmwareFamilySource")?.Value);
+        Assert.Equal(
+            "families\\nt51927-ctrlram-replace.json",
+            nt51917Candidate.Element("CanonicalFirmwareFamilyDestination")?.Value);
+        string canonicalCtrlRamFamilyPath = Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51927-ctrlram-replace-candidate",
+            "families",
+            "nt51927-ctrlram-replace.json");
+        string aliasFamilyPath = Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51917-ctrlram-replace-alias-candidate",
+            "families",
+            "nt51927-ctrlram-replace.json");
+        Assert.True(File.Exists(canonicalCtrlRamFamilyPath));
+        Assert.False(File.Exists(aliasFamilyPath));
+        using var aliasManifest = JsonDocument.Parse(ReadText(
+            "profiles/built-in/nt51917-ctrlram-replace-alias-candidate/profile-bundle.json"));
+        JsonElement aliasFamilyEntry = Assert.Single(
+            aliasManifest.RootElement.GetProperty("entries").EnumerateArray(),
+            static entry => StringComparer.Ordinal.Equals(
+                entry.GetProperty("kind").GetString(),
+                "firmware-family"));
+        Assert.Equal("families/nt51927-ctrlram-replace.json", aliasFamilyEntry.GetProperty("path").GetString());
+        Assert.Equal(
+            aliasFamilyEntry.GetProperty("contentHash").GetString(),
+            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(canonicalCtrlRamFamilyPath))).ToLowerInvariant());
+
+        Assert.Contains("Built-in profile canonical firmware-family metadata must declare both source and destination", project, StringComparison.Ordinal);
+        Assert.Contains("Built-in profile canonical firmware-family source escapes the approved source root", project, StringComparison.Ordinal);
+        Assert.Contains("Built-in profile canonical firmware-family destination escapes the bundle families root", project, StringComparison.Ordinal);
+        Assert.Contains("Built-in profile canonical firmware-family source is missing", project, StringComparison.Ordinal);
+        Assert.Contains("Built-in profile canonical firmware-family destination collides", project, StringComparison.Ordinal);
+        Assert.Contains("@(_BuiltInProfileCanonicalFamily->'%(SourceFile)')", project, StringComparison.Ordinal);
+        Assert.Contains("@(_BuiltInProfileCanonicalFamily->'%(DestinationFile)')", project, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CanonicalFirmwareFamily",
+            ReadText("src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleLoader.cs"),
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies retired DP Perspective C# facts cannot become a second oracle beside trusted V2 plans.</summary>
@@ -199,9 +311,11 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Profiles",
             "DpPerspectiveCatalog.cs")));
         Assert.DoesNotContain("BuiltInReplaceProfiles", registration, StringComparison.Ordinal);
-        Assert.Contains("TryResolveDpPerspectiveDpReplaceDisplay", registration, StringComparison.Ordinal);
+        Assert.Contains("TryResolveBuiltInV2DpReplaceDisplay", registration, StringComparison.Ordinal);
         Assert.Contains("composition.Plan.OrderedOperations", display, StringComparison.Ordinal);
-        Assert.Contains("IsBuiltInV2DpReplaceIc", planning, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInTpFlashMapCatalog", planning, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetDpReplaceRegions", planning, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionOperationKind", planning, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", ReadBootstrapSources(), StringComparison.Ordinal);
     }
 

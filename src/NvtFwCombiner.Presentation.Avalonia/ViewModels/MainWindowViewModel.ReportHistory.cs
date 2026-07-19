@@ -111,7 +111,6 @@ public sealed partial class MainWindowViewModel
 
         NotifyReportHistoryChanged();
         NotifyReportChanged();
-        RefreshSettingsState();
     }
 
     private void ShowReportHistory()
@@ -162,7 +161,6 @@ public sealed partial class MainWindowViewModel
         NotifyReportViewModeChanged();
         OnPropertyChanged(nameof(HasReportToast));
         OnPropertyChanged(nameof(ReportToastOpacity));
-        RefreshSettingsState();
     }
 
     private void ClearReportHistory()
@@ -174,7 +172,6 @@ public sealed partial class MainWindowViewModel
 
         ReportHistoryEntries.Clear();
         NotifyReportHistoryChanged();
-        RefreshSettingsState();
     }
 
     private void RemoveReportHistoryEntry(ReportHistoryEntryViewModel? entry)
@@ -191,7 +188,6 @@ public sealed partial class MainWindowViewModel
             NotifyReportViewModeChanged();
         }
 
-        RefreshSettingsState();
     }
 
     private void CaptureLoadedReportInHistory()

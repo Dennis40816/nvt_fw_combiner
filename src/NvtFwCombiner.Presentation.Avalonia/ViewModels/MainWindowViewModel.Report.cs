@@ -86,7 +86,6 @@ public sealed partial class MainWindowViewModel
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportLoadedToast(sourceName));
         NotifyReportChanged();
-        RefreshSettingsState();
     }
 
     /// <summary>Loads a report review error as the latest reopenable report.</summary>
@@ -100,7 +99,6 @@ public sealed partial class MainWindowViewModel
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportIssueToast(sourceName));
         NotifyReportChanged();
-        RefreshSettingsState();
     }
 
     /// <summary>Shows a compact notification after the report is written to disk.</summary>
@@ -179,7 +177,6 @@ public sealed partial class MainWindowViewModel
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportGeneratedToast(action));
         NotifyReportChanged();
-        RefreshSettingsState();
     }
 
     /// <summary>Updates toast opacity during the view-owned fade-out animation.</summary>

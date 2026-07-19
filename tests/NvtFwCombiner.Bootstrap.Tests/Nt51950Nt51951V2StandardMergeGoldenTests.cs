@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -12,6 +13,49 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
     private const int CustomerInfoLength = 0x1000;
+
+    /// <summary>Locks the omitted 2026-07-17 owner single package to the canonical NT51950 Standard Merge route.</summary>
+    [Fact]
+    public async Task OwnerIntakeSingleReconstructsFinalFlashCodeFromDpAndTpAsync()
+    {
+        const string caseId = "nt51950-fw200-single-auto-prj-676-20260717";
+        const string expectedSha256 = "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e";
+        string root = CanonicalGoldenTestData.Root;
+        System.Text.Json.JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            caseId);
+        System.Text.Json.JsonElement[] payloads = [
+            .. goldenCase.GetProperty("artifacts").EnumerateArray(),
+        ];
+        string PathForRole(string role)
+        {
+            System.Text.Json.JsonElement entry = Assert.Single(
+                payloads,
+                item => StringComparer.Ordinal.Equals(item.GetProperty("sourceRole").GetString(), role));
+            return RepositoryPaths.ManifestPath(root, entry);
+        }
+
+        using var workspace = TempWorkspace.Create("nfc-nt51950-owner-standard-merge");
+        string outputPath = workspace.PathFor("nt51950-standard-merge.bin");
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+            "NT51950",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [CompositionAddressSpaceIds.DpInput] = PathForRole("standard-merge-dp-input"),
+                [CompositionAddressSpaceIds.TpInput] = PathForRole("standard-merge-tp-input"),
+            },
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal("nt51950-standard-merge-dp-perspective", ReadProfileId(result.ReportJson));
+        byte[] expected = File.ReadAllBytes(PathForRole("expected-final-output"));
+        byte[] output = File.ReadAllBytes(outputPath);
+        Assert.Equal(expectedSha256, result.OutputSha256);
+        Assert.Equal(expectedSha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expected)).ToLowerInvariant());
+        Assert.Equal(expected, output);
+    }
 
     /// <summary>Runs the two owner-approved DP Perspective fixtures through the V2 compiler and shared engine.</summary>
     [Theory]
@@ -148,5 +192,11 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         Assert.Equal(
             expected.AsSpan(expectedStart, length).ToArray(),
             actual.AsSpan(actualStart, length).ToArray());
+    }
+
+    private static string ReadProfileId(string reportJson)
+    {
+        using var report = System.Text.Json.JsonDocument.Parse(reportJson);
+        return report.RootElement.GetProperty("ProfileId").GetString()!;
     }
 }

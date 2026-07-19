@@ -1,3 +1,4 @@
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -24,7 +25,6 @@ public sealed partial class HexEditorPanel : UserControl
     private readonly MenuItem _structuralGoToStart;
     private readonly ContextMenu _structuralBlockContextMenu;
     private HexEditorByteCellViewModel? _contextCell;
-    private HexEditorChangedBlockViewModel? _contextStructuralBlock;
     private HexEditorByteCellViewModel? _inlineEditCell;
     private bool _isCompletingInlineEdit;
     private bool _isDocumentScrollQueued;
@@ -45,13 +45,6 @@ public sealed partial class HexEditorPanel : UserControl
         _contextSetToZero = new MenuItem();
         _contextSetToFf = new MenuItem();
         _contextEdit.Click += ContextEdit_OnClick;
-        _contextInsertBefore.Click += ContextInsertBefore_OnClick;
-        _contextInsertAfter.Click += ContextInsertAfter_OnClick;
-        _contextInsertManyBefore.Click += ContextInsertManyBefore_OnClick;
-        _contextInsertManyAfter.Click += ContextInsertManyAfter_OnClick;
-        _contextDeleteByte.Click += ContextDeleteByte_OnClick;
-        _contextSetToZero.Click += ContextSetToZero_OnClick;
-        _contextSetToFf.Click += ContextSetToFf_OnClick;
         _hexByteContextMenu = new ContextMenu();
         _ = _hexByteContextMenu.Items.Add(_contextEdit);
         _ = _hexByteContextMenu.Items.Add(new Separator());
@@ -65,8 +58,6 @@ public sealed partial class HexEditorPanel : UserControl
         _ = _hexByteContextMenu.Items.Add(_contextSetToFf);
         _structuralGoToStart = new MenuItem();
         _structuralGoToEnd = new MenuItem();
-        _structuralGoToStart.Click += StructuralGoToStart_OnClick;
-        _structuralGoToEnd.Click += StructuralGoToEnd_OnClick;
         _structuralBlockContextMenu = new ContextMenu();
         _ = _structuralBlockContextMenu.Items.Add(_structuralGoToStart);
         _ = _structuralBlockContextMenu.Items.Add(_structuralGoToEnd);
@@ -201,11 +192,6 @@ public sealed partial class HexEditorPanel : UserControl
         }
     }
 
-    private void HexEditorSourceDrop_OnDragEnter(object? sender, DragEventArgs e)
-    {
-        DropZoneDragState.SetActive(sender, DropZoneDragState.ApplyFileDropEffect(e));
-    }
-
     private void HexEditorSourceDrop_OnDragOver(object? sender, DragEventArgs e)
     {
         DropZoneDragState.SetActive(sender, DropZoneDragState.ApplyFileDropEffect(e));
@@ -248,13 +234,13 @@ public sealed partial class HexEditorPanel : UserControl
 
         _contextCell = e.Cell;
         _contextEdit.Header = viewModel.Text.HexEditorEditByteLabel;
-        _contextInsertBefore.Header = viewModel.Text.HexEditorContextInsertZeroBeforeLabel;
-        _contextInsertAfter.Header = viewModel.Text.HexEditorContextInsertZeroAfterLabel;
-        _contextInsertManyBefore.Header = viewModel.Text.HexEditorContextInsertBytesBeforeLabel;
-        _contextInsertManyAfter.Header = viewModel.Text.HexEditorContextInsertBytesAfterLabel;
-        _contextDeleteByte.Header = viewModel.Text.HexEditorContextDeleteByteLabel;
-        _contextSetToZero.Header = viewModel.Text.HexEditorContextSetToZeroLabel;
-        _contextSetToFf.Header = viewModel.Text.HexEditorContextSetToFfLabel;
+        BindContextCommand(_contextInsertBefore, viewModel.Text.HexEditorContextInsertZeroBeforeLabel, viewModel.InsertZeroBeforeCommand, e.Cell);
+        BindContextCommand(_contextInsertAfter, viewModel.Text.HexEditorContextInsertZeroAfterLabel, viewModel.InsertZeroAfterCommand, e.Cell);
+        BindContextCommand(_contextInsertManyBefore, viewModel.Text.HexEditorContextInsertBytesBeforeLabel, viewModel.RequestInsertBytesBeforeCommand, e.Cell);
+        BindContextCommand(_contextInsertManyAfter, viewModel.Text.HexEditorContextInsertBytesAfterLabel, viewModel.RequestInsertBytesAfterCommand, e.Cell);
+        BindContextCommand(_contextDeleteByte, viewModel.Text.HexEditorContextDeleteByteLabel, viewModel.DeleteByteCommand, e.Cell);
+        BindContextCommand(_contextSetToZero, viewModel.Text.HexEditorContextSetToZeroLabel, viewModel.SetByteToZeroCommand, e.Cell);
+        BindContextCommand(_contextSetToFf, viewModel.Text.HexEditorContextSetToFfLabel, viewModel.SetByteToFfCommand, e.Cell);
         _hexByteContextMenu.Open(HexViewport);
     }
 
@@ -267,9 +253,9 @@ public sealed partial class HexEditorPanel : UserControl
             return;
         }
 
-        _contextStructuralBlock = viewModel.ChangedBlocks[e.Cell.StructuralBlockIndex];
-        _structuralGoToStart.Header = viewModel.Text.HexEditorContextGoToBlockStartLabel;
-        _structuralGoToEnd.Header = viewModel.Text.HexEditorContextGoToBlockEndLabel;
+        HexEditorChangedBlockViewModel block = viewModel.ChangedBlocks[e.Cell.StructuralBlockIndex];
+        BindContextCommand(_structuralGoToStart, viewModel.Text.HexEditorContextGoToBlockStartLabel, viewModel.GoToChangedBlockStartCommand, block);
+        BindContextCommand(_structuralGoToEnd, viewModel.Text.HexEditorContextGoToBlockEndLabel, viewModel.GoToChangedBlockEndCommand, block);
         _structuralBlockContextMenu.Open(HexViewport);
     }
 
@@ -358,82 +344,11 @@ public sealed partial class HexEditorPanel : UserControl
 
     private void ContextEdit_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (TryGetContextByte(out HexEditorWorkspaceViewModel? viewModel, out HexEditorByteCellViewModel? cell) &&
-            HexViewport.TryGetCellBounds(cell!, out Rect bounds))
+        if (DataContext is HexEditorWorkspaceViewModel viewModel &&
+            _contextCell is { } cell &&
+            HexViewport.TryGetCellBounds(cell, out Rect bounds))
         {
-            BeginInlineHexByteEdit(viewModel!, cell!, bounds);
-        }
-    }
-
-    private void ContextInsertBefore_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (TryGetContextByte(out HexEditorWorkspaceViewModel? viewModel, out HexEditorByteCellViewModel? cell))
-        {
-            viewModel!.InsertZeroBeforeCommand.Execute(cell);
-        }
-    }
-
-    private void ContextInsertAfter_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (TryGetContextByte(out HexEditorWorkspaceViewModel? viewModel, out HexEditorByteCellViewModel? cell))
-        {
-            viewModel!.InsertZeroAfterCommand.Execute(cell);
-        }
-    }
-
-    private void ContextInsertManyBefore_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (TryGetContextByte(out HexEditorWorkspaceViewModel? viewModel, out HexEditorByteCellViewModel? cell))
-        {
-            viewModel!.RequestInsertBytesBeforeCommand.Execute(cell);
-        }
-    }
-
-    private void ContextInsertManyAfter_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (TryGetContextByte(out HexEditorWorkspaceViewModel? viewModel, out HexEditorByteCellViewModel? cell))
-        {
-            viewModel!.RequestInsertBytesAfterCommand.Execute(cell);
-        }
-    }
-
-    private void ContextDeleteByte_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (TryGetContextByte(out HexEditorWorkspaceViewModel? viewModel, out HexEditorByteCellViewModel? cell))
-        {
-            viewModel!.DeleteByteCommand.Execute(cell);
-        }
-    }
-
-    private void ContextSetToZero_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (TryGetContextByte(out HexEditorWorkspaceViewModel? viewModel, out HexEditorByteCellViewModel? cell))
-        {
-            viewModel!.SetByteToZeroCommand.Execute(cell);
-        }
-    }
-
-    private void ContextSetToFf_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (TryGetContextByte(out HexEditorWorkspaceViewModel? viewModel, out HexEditorByteCellViewModel? cell))
-        {
-            viewModel!.SetByteToFfCommand.Execute(cell);
-        }
-    }
-
-    private void StructuralGoToStart_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is HexEditorWorkspaceViewModel viewModel && _contextStructuralBlock is not null)
-        {
-            viewModel.GoToChangedBlockStartCommand.Execute(_contextStructuralBlock);
-        }
-    }
-
-    private void StructuralGoToEnd_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is HexEditorWorkspaceViewModel viewModel && _contextStructuralBlock is not null)
-        {
-            viewModel.GoToChangedBlockEndCommand.Execute(_contextStructuralBlock);
+            BeginInlineHexByteEdit(viewModel, cell, bounds);
         }
     }
 
@@ -502,13 +417,11 @@ public sealed partial class HexEditorPanel : UserControl
         }
     }
 
-    private bool TryGetContextByte(
-        out HexEditorWorkspaceViewModel? viewModel,
-        out HexEditorByteCellViewModel? cell)
+    private static void BindContextCommand(MenuItem menuItem, string header, ICommand command, object parameter)
     {
-        viewModel = DataContext as HexEditorWorkspaceViewModel;
-        cell = _contextCell;
-        return viewModel is not null && cell is not null;
+        menuItem.Header = header;
+        menuItem.Command = command;
+        menuItem.CommandParameter = parameter;
     }
 
     private void HexDocumentScrollBar_OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e)

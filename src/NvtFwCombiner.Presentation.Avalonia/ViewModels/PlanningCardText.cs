@@ -4,28 +4,23 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Localized text for a planning card.</summary>
-public sealed class PlanningCardText
+public sealed class PlanningCardText(
+    string title,
+    string subtitle,
+    IReadOnlyList<string> rows,
+    string status)
 {
-    /// <summary>Initializes localized planning-card text.</summary>
-    public PlanningCardText(string title, string subtitle, IReadOnlyList<string> rows, string status)
-    {
-        Title = title;
-        Subtitle = subtitle;
-        Rows = rows;
-        Status = status;
-    }
-
     /// <summary>Gets the card title.</summary>
-    public string Title { get; }
+    public string Title { get; } = title;
 
     /// <summary>Gets the card subtitle.</summary>
-    public string Subtitle { get; }
+    public string Subtitle { get; } = subtitle;
 
     /// <summary>Gets the card detail rows.</summary>
-    public IReadOnlyList<string> Rows { get; }
+    public IReadOnlyList<string> Rows { get; } = rows;
 
     /// <summary>Gets the card status.</summary>
-    public string Status { get; }
+    public string Status { get; } = status;
 }
 
 #pragma warning restore CS1591

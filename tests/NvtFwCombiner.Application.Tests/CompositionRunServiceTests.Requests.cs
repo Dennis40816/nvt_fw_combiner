@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Application.Tests;
 
@@ -8,15 +7,58 @@ public sealed partial class CompositionRunServiceTests
 {
     private static CompositionRunRequest CreateRequest(
         IReadOnlyList<InputArtifactBinding>? bindings = null,
-        string? outputFileName = null)
+        string? outputFileName = null,
+        string? approvedPreviewToken = null)
     {
-        CompositionProfileDefinition profile = SyntheticCompositionProfiles.CreateStandardMerge();
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         return new CompositionRunRequest(
             "run-standard-synthetic",
-            compile.CompiledComposition!,
+            CreateStandardMergeCompiledComposition(),
             bindings ?? DefaultBindings(),
-            outputFileName ?? profile.DefaultOutputFileName);
+            outputFileName ?? "synthetic-standard-merge.bin",
+            approvedPreviewToken: approvedPreviewToken);
+    }
+
+    private static CompiledComposition CreateStandardMergeCompiledComposition()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("dp-input", 4, AddressSpaceMutability.Immutable),
+            new("tp-input", 4, AddressSpaceMutability.Immutable),
+            new("output-image", 8, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 8, 0xFF),
+            addressSpaces,
+            [
+                CompositionOperation.CopyRange(
+                    "copy-dp",
+                    100,
+                    "dp-input",
+                    new ByteRange(0, 4),
+                    "output-image",
+                    new ByteRange(0, 4),
+                    OverlapPolicy.Reject,
+                    "Copy synthetic DP input into the output DP range."),
+                CompositionOperation.CopyRange(
+                    "copy-tp",
+                    200,
+                    "tp-input",
+                    new ByteRange(0, 4),
+                    "output-image",
+                    new ByteRange(4, 4),
+                    OverlapPolicy.Reject,
+                    "Copy synthetic TP input into the output TP range."),
+            ]);
+        return CreateCompiledComposition(
+            plan,
+            new LegacyCompiledCompositionIdentity(
+                "synthetic-standard-merge",
+                "0.3.0",
+                "NT-SYNTHETIC",
+                "standard-merge",
+                "standard-merge",
+                CompositionKind.Merge),
+            "synthetic-standard-merge.bin");
     }
 
     private static CompositionRunRequest CreateScratchRequest(
@@ -243,14 +285,57 @@ public sealed partial class CompositionRunServiceTests
 
     private static CompositionRunRequest CreateDpReplaceRequest(string icNumber)
     {
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticDpReplace;
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         return new CompositionRunRequest(
             "run-dp-replace",
-            compile.CompiledComposition!,
+            CreateDpReplaceCompiledComposition(),
             CreateDpReplaceBindings(),
-            profile.DefaultOutputFileName,
+            "synthetic-dp-replace.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, [icNumber]));
+    }
+
+    private static CompiledComposition CreateDpReplaceCompiledComposition()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 8, AddressSpaceMutability.Immutable),
+            new("dp-replacement", 4, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
+            new("ld-replacement", 2, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
+            new("output-image", 8, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 8),
+            addressSpaces,
+            [
+                CompositionOperation.ReplaceRange(
+                    "replace-dp",
+                    100,
+                    "dp-replacement",
+                    new ByteRange(0, 4),
+                    "output-image",
+                    new ByteRange(0, 4),
+                    OverlapPolicy.Reject,
+                    "Replace synthetic DP declared partition."),
+                CompositionOperation.ReplaceRange(
+                    "replace-ld",
+                    110,
+                    "ld-replacement",
+                    new ByteRange(0, 2),
+                    "output-image",
+                    new ByteRange(6, 2),
+                    OverlapPolicy.Reject,
+                    "Replace synthetic LD declared partition under DP Replace."),
+            ]);
+        return CreateCompiledComposition(
+            plan,
+            new LegacyCompiledCompositionIdentity(
+                "synthetic-dp-replace",
+                "0.5.0",
+                "NT-SYNTHETIC",
+                "dp-replace",
+                "dp-replace",
+                CompositionKind.Replace),
+            "synthetic-dp-replace.bin",
+            CompiledIcNumberPolicy.SingleSelector);
     }
 
     private static CompositionRunRequest CreateNumericReplaceRequest(string icCount)

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
@@ -16,11 +17,14 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.Equal(13, icIds.Count);
         Assert.Equal(IcSupportCatalog.IcIds, icIds);
         Assert.Equal("NT51950", WorkbenchCompositionService.GetDefaultIcId());
+        Assert.Equal(
+            WorkbenchCompositionService.GetNumberSelectionChoices("NT51926"),
+            WorkbenchCompositionService.GetNumberSelectionChoices("51926"));
         foreach (string icId in icIds)
         {
-            Assert.Equal(TpFlashMapCatalog.GetNumberChoices(icId), WorkbenchCompositionService.GetNumberChoices(icId));
+            IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
             Assert.Equal(
-                TpFlashMapCatalog.GetNumberSelectionChoices(icId).Select(static choice => (
+                IcNumberChoicePolicy.GetNumberSelectionChoices(profiles).Select(static choice => (
                     choice.Token,
                     choice.DisplayLabel)),
                 WorkbenchCompositionService.GetNumberSelectionChoices(icId).Select(static choice => (
@@ -34,97 +38,38 @@ public sealed class WorkbenchCatalogProjectionTests
     public void CatalogProjectionsRejectMutation()
     {
         IReadOnlyList<string> supportedIcIds = WorkbenchCompositionService.GetSupportedIcIds();
-        IReadOnlyList<string> numberChoices = WorkbenchCompositionService.GetNumberChoices("NT51950");
+        IReadOnlyList<WorkbenchIcNumberChoice> numberChoices =
+            WorkbenchCompositionService.GetNumberSelectionChoices("NT51950");
         string originalIcId = supportedIcIds[0];
-        string originalNumberChoice = numberChoices[0];
+        WorkbenchIcNumberChoice originalNumberChoice = numberChoices[0];
 
         var mutableIcIds = (IList<string>)supportedIcIds;
-        var mutableNumberChoices = (IList<string>)numberChoices;
+        var mutableNumberChoices = (IList<WorkbenchIcNumberChoice>)numberChoices;
         Assert.True(mutableIcIds.IsReadOnly);
         Assert.True(mutableNumberChoices.IsReadOnly);
         _ = Assert.Throws<NotSupportedException>(() => mutableIcIds[0] = "NT00000");
-        _ = Assert.Throws<NotSupportedException>(() => mutableNumberChoices[0] = "invalid");
+        _ = Assert.Throws<NotSupportedException>(() =>
+            mutableNumberChoices[0] = new WorkbenchIcNumberChoice("invalid", "Invalid"));
 
         Assert.Equal(originalIcId, WorkbenchCompositionService.GetSupportedIcIds()[0]);
-        Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberChoices("NT51950")[0]);
+        Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberSelectionChoices("NT51950")[0]);
     }
 
-    /// <summary>Profile summaries retain executable facts after legacy production profiles are retired.</summary>
+    /// <summary>Replace summaries expose only manifest-pinned V2 runtime profiles.</summary>
     [Fact]
-    public void ProfileSummariesProjectCompiledArtifactsWithoutLegacyTypes()
+    public void ProfileSummariesExcludeSyntheticCompilerFixtures()
     {
-        CompositionProfileDefinition[] syntheticReplaceProfiles =
-        [
-            .. BuiltInReplaceProfiles.All
-                .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal),
-        ];
-
         IReadOnlyList<WorkbenchProfileSummary> standardSummaries = WorkbenchCompositionService.GetStandardMergeProfileSummaries();
+        IReadOnlyList<WorkbenchProfileSummary> replaceSummaries = WorkbenchCompositionService.GetReplaceProfileSummaries();
         AssertStandardMergeProfileSummaries(standardSummaries);
-        AssertProfileSummaries(
-            syntheticReplaceProfiles,
-            [.. WorkbenchCompositionService.GetReplaceProfileSummaries().Where(static summary => summary.IcId == "NT-SYNTHETIC")]);
-        AssertV2DpReplaceProfileSummaries(WorkbenchCompositionService.GetReplaceProfileSummaries());
+        AssertV2DpReplaceProfileSummaries(replaceSummaries);
+        Assert.DoesNotContain(replaceSummaries, static summary => summary.IcId == "NT-SYNTHETIC");
 
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
+        Assert.Equal(13, settings.CatalogIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
-        Assert.Equal(syntheticReplaceProfiles.Length + 2, settings.ReplaceProfileCount);
-        Assert.Equal(13, settings.FlashMapIcCount);
-    }
-
-    /// <summary>A failed compatibility compile remains visible with source identity and stable issue codes.</summary>
-    [Fact]
-    public void ProfileSummaryRetainsCompileFailureDiagnostics()
-    {
-        CompositionProfileDefinition source = SyntheticCompositionProfiles.CreateStandardMerge();
-        var invalid = new CompositionProfileDefinition(
-            source.ProfileId,
-            source.ProfileVersion,
-            source.IcId,
-            source.ModeId,
-            source.CompositionKind,
-            source.ExperienceId,
-            source.DefaultOutputFileName,
-            source.Initialization,
-            source.AddressSpaces,
-            source.Operations,
-            source.Regions,
-            source.RegionAccessRules,
-            IcNumberInputMode.SingleSelector);
-
-        WorkbenchProfileSummary summary = WorkbenchCompositionService.CreateProfileSummary(invalid);
-
-        Assert.False(summary.CompileSucceeded);
-        Assert.Equal(source.ProfileId, summary.ProfileId);
-        Assert.Equal(source.IcId, summary.IcId);
-        Assert.Equal(source.CompositionKind, summary.CompositionKind);
-        Assert.Equal(source.DefaultOutputFileName, summary.DefaultOutputFileName);
-        Assert.Empty(summary.RequiredInputAddressSpaceIds);
-        Assert.Null(summary.IcNumberPolicy);
-        Assert.Contains("profile.ic-number-mode.not-applicable", summary.IssueCodes);
-    }
-
-    private static void AssertProfileSummaries(
-        CompositionProfileDefinition[] profiles,
-        IReadOnlyList<WorkbenchProfileSummary> summaries)
-    {
-        Assert.Equal(profiles.Length, summaries.Count);
-        for (int index = 0; index < profiles.Length; index++)
-        {
-            CompositionProfileDefinition profile = profiles[index];
-            ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-            CompiledComposition composition = Assert.IsType<CompiledComposition>(compile.CompiledComposition);
-            WorkbenchProfileSummary summary = summaries[index];
-
-            Assert.True(summary.CompileSucceeded);
-            Assert.Empty(summary.IssueCodes);
-            Assert.Equal(composition.ProfileId, summary.ProfileId);
-            Assert.Equal(composition.IcId, summary.IcId);
-            Assert.Equal(composition.CompositionKind, summary.CompositionKind);
-            Assert.Equal(composition.Plan.RequiredInputAddressSpaceIds, summary.RequiredInputAddressSpaceIds);
-            Assert.Equal(composition.DefaultOutputFileName, summary.DefaultOutputFileName);
-            Assert.Equal(composition.IcNumberPolicy, summary.IcNumberPolicy);
-        }
+        Assert.Equal(3, settings.DpReplaceProfileCount);
+        Assert.Equal(12, settings.CtrlRamReplaceAvailableIcCount);
     }
 
     private static void AssertStandardMergeProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)
@@ -159,18 +104,14 @@ public sealed class WorkbenchCatalogProjectionTests
 
     private static void AssertV2DpReplaceProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)
     {
-        WorkbenchProfileSummary[] dpReplaceSummaries =
-        [
-            .. summaries.Where(static summary => summary.ProfileId.EndsWith(
-                "-dp-replace-dp-perspective",
-                StringComparison.Ordinal)),
-        ];
-        Assert.Equal(["NT51950", "NT51951"], dpReplaceSummaries.Select(static summary => summary.IcId));
+        Assert.Equal(
+            ["NT51930", "NT51950", "NT51951"],
+            summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
-        foreach (WorkbenchProfileSummary summary in dpReplaceSummaries)
+        foreach (WorkbenchProfileSummary summary in summaries)
         {
             Assert.True(
-                WorkbenchCompositionService.TryCompileDpPerspectiveDpReplace(
+                WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
                     summary.IcId,
                     0x40000,
                     out CompiledComposition? composition,

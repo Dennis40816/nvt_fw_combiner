@@ -14,7 +14,7 @@ public sealed partial class ShellViewModelTests
         string basePath = workspace.Write("base-40000.bin", new byte[0x40000]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
 
         Assert.True(viewModel.IsReplaceVisible);
@@ -31,9 +31,8 @@ public sealed partial class ShellViewModelTests
             segment.SourceLabel.Contains("Preserved", StringComparison.Ordinal));
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel is "Changed DP BIN" or "Changed LDC BIN");
         Assert.Equal(
-            "Build blocked: base BIN and required DP replacement inputs are required.",
-            viewModel.ReplacePreviewUnavailableReason);
-        Assert.Equal(viewModel.ReplacePreviewUnavailableReason, viewModel.ReplaceBuildUnavailableReason);
+            "Build blocked: Reference FlashCode and required DP replacement inputs are required.",
+            viewModel.ReplaceReadinessStatus);
     }
 
     /// <summary>Verifies NT51950 DP Replace does not draw a max-length range before the base BIN is selected.</summary>
@@ -43,14 +42,14 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
 
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.ReplaceCoverageSegments);
-        Assert.Equal("Base BIN length: 0x40000 / 0x80000 / 0x100000", viewModel.ReplaceMemoryRangeLabel);
-        Assert.Equal("Base length pending", segment.RangeLabel);
-        Assert.Equal("DP base required", segment.SourceLabel);
+        Assert.Equal("Reference FlashCode length: 0x40000 / 0x80000 / 0x100000", viewModel.ReplaceMemoryRangeLabel);
+        Assert.Equal("Reference length pending", segment.RangeLabel);
+        Assert.Equal("Reference FlashCode required", segment.SourceLabel);
         Assert.Equal(
-            "Output range will follow the selected base BIN length.",
+            "Output range will follow the selected Reference FlashCode length.",
             segment.CompactDetail);
         Assert.Contains("actual DP Replace length", segment.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("0x00000-0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
@@ -115,20 +114,23 @@ public sealed partial class ShellViewModelTests
         });
     }
 
-    /// <summary>Verifies DP Replace hides LDC except for the NT51928 evidence-backed slot.</summary>
+    /// <summary>Verifies Standard Merge LDC evidence does not promote NT51927/NT51928 to DP Replace support.</summary>
     [Fact]
-    public void DpReplaceSlotsExposeLdcOnlyForNt51928()
+    public void DpReplaceSlotsStayClosedForNonV2Ics()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = "NT51927";
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
 
-        Assert.DoesNotContain(viewModel.ReplaceSlots, slot => slot.Title.Contains("LDC", StringComparison.Ordinal));
+        Assert.Empty(viewModel.ReplaceSlots);
+        Assert.False(viewModel.IsStructuredReplaceModeSelected);
 
         viewModel.SelectedIc = "NT51928";
 
-        Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "LDC replacement BIN");
+        Assert.Empty(viewModel.ReplaceSlots);
+        Assert.False(viewModel.IsStructuredReplaceModeSelected);
+        Assert.Contains("Not available", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51950 DP Replace restores only TP bytes while customer information follows replacement DP.</summary>
@@ -148,11 +150,11 @@ public sealed partial class ShellViewModelTests
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.True(viewModel.BuildReplaceCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildReplace);
 
@@ -183,33 +185,22 @@ public sealed partial class ShellViewModelTests
 
     /// <summary>Verifies golden-backed NT51950/NT51951 DP Replace accepts the real 0x40000 and 0x80000 base lengths.</summary>
     [Theory]
-    [InlineData(
-        "NT51950",
-        "expected/51950/dp-256k/flash.bin",
-        "inputs/51950/dp-256k/dp.bin",
-        0x40000)]
-    [InlineData(
-        "NT51951",
-        "expected/51951/dp-512k/flash.bin",
-        "inputs/51951/dp-512k/dp.bin",
-        0x80000)]
+    [InlineData("NT51950", 0x40000)]
+    [InlineData("NT51951", 0x80000)]
     public async Task PreviewDpReplaceAcceptsGoldenBackedBaseLengths(
         string icId,
-        string baseRelativePath,
-        string dpRelativePath,
         int expectedLength)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseRelativePath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(dpRelativePath);
 
         using var golden = StandardMergeGoldenManifest.Load();
-        string basePath = golden.PathFromRelative(baseRelativePath);
-        string dpPath = golden.PathFromRelative(dpRelativePath);
+        JsonElement goldenCase = golden.CaseByIc(icId[2..]);
+        string basePath = golden.ExpectedOutputPath(goldenCase);
+        string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = icId;
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", dpPath);
 
@@ -242,16 +233,16 @@ public sealed partial class ShellViewModelTests
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildReplace);
 
         viewModel.SetSlotFile("replace-dp", replacementPath2);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildReplace);
         Assert.True(viewModel.BuildReplaceCommand.CanExecute(null));
 
@@ -274,7 +265,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
@@ -284,12 +275,12 @@ public sealed partial class ShellViewModelTests
         Assert.Contains("0x40000 / 0x80000 / 0x100000", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
         Assert.Contains(viewModel.ReplaceMemoryRows, row =>
             row.ActionLabel == "Replace" &&
-            row.RangeLabel == "Unsupported base BIN length 0x60000");
+            row.RangeLabel == "Unsupported Reference FlashCode length 0x60000");
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.ReplaceCoverageSegments);
         Assert.Equal("Unsupported 0x60000", segment.RangeLabel);
-        Assert.Equal("Unsupported base", segment.SourceLabel);
+        Assert.Equal("Unsupported reference", segment.SourceLabel);
         Assert.Equal(
-            "This base BIN length is blocked by profile policy.",
+            "This Reference FlashCode length is blocked by profile policy.",
             segment.CompactDetail);
         Assert.False(segment.IsChanged);
     }

@@ -15,7 +15,7 @@
       Padding="0"
       CornerRadius="{DynamicResource NfcSurfaceCornerRadius}"
       DragDrop.AllowDrop="True"
-      DragDrop.DragEnter="DropZone_OnDragEnter"
+      DragDrop.DragEnter="SlotDragOver_OnDragOver"
       DragDrop.DragOver="SlotDragOver_OnDragOver"
       DragDrop.DragLeave="DropZone_OnDragLeave"
       DragDrop.Drop="SlotDrop_OnDrop"
@@ -38,7 +38,7 @@
             </Border>
             <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize14}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextStrongBrush}" Text="{Binding Title}" />
             <Label
-                Classes="slotBadge firmwareSlotRequirement"
+                Classes="compactBadge slotBadge firmwareSlotRequirement"
                 Classes.hasFile="{Binding HasFile}"
                 Classes.optional="{Binding IsOptional}"
                 Content="{Binding RequirementLabel}" />

@@ -8,20 +8,9 @@ public sealed partial class MainWindowViewModel
 {
     private string DeviceContextRefreshSummary { get; set; } = string.Empty;
 
-    private static PlanningCardViewModel CreatePlanningCard(PlanningCardText text)
-    {
-        return new PlanningCardViewModel(
-            text.Title,
-            text.Subtitle,
-            text.Rows,
-            text.Status);
-    }
-
     private void RefreshNumberChoicesForSelectedIc()
     {
-        IReadOnlyList<string> nextChoices = UiCompositionRunner.GetNumberChoices(SelectedIc);
         IReadOnlyList<IcNumberChoiceViewModel> nextDisplayChoices = UiCompositionRunner.GetNumberSelectionChoices(SelectedIc);
-        NumberChoices = nextChoices;
         NumberSelectionChoices = nextDisplayChoices;
         if (!nextDisplayChoices.Any(choice =>
                 string.Equals(choice.Token, SelectedNumber, StringComparison.Ordinal)))
@@ -39,9 +28,7 @@ public sealed partial class MainWindowViewModel
         RefreshCtrlRamRegions();
         RefreshMemoryMapState();
         RefreshMergeSlotRequirements();
-        RefreshMergeModeState();
         RefreshReplaceModeState();
-        RefreshSettingsState();
         RefreshCommandState();
         NotifyContextTextChanged();
         if (resetRunResult)
@@ -80,14 +67,6 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private void AddRows(params string[] rows)
-    {
-        foreach (string row in rows)
-        {
-            ActiveReplaceRows.Add(row);
-        }
-    }
-
     private static void ReplaceRows<T>(
         ObservableCollection<T> target,
         IEnumerable<T> rows)
@@ -109,10 +88,18 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
-        OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
         OnPropertyChanged(nameof(ReplaceBuildActionTip));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
+        OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeGoldenVerified));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeEvidenceGated));
+        OnPropertyChanged(nameof(IsSelectedReplaceModeUnavailable));
+        OnPropertyChanged(nameof(SelectedIcFamilySummary));
+        OnPropertyChanged(nameof(SelectedIcFamilyLabel));
+        OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
+        OnPropertyChanged(nameof(HasSelectedIcFamily));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
@@ -129,7 +116,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(LastRunResult));
         OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(ReplaceBuildActionTip));
-        RefreshSettingsState();
     }
 
     private void SelectReplaceMode(string mode)
@@ -266,17 +252,11 @@ public sealed partial class MainWindowViewModel
         BuildReplaceCommand.NotifyCanExecuteChanged();
         ShowReportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsRunInProgress));
-        OnPropertyChanged(nameof(CanPreviewStandardMerge));
-        OnPropertyChanged(nameof(CanBuildStandardMerge));
-        OnPropertyChanged(nameof(CanPreviewMerge));
         OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(MergeBuildActionTip));
-        OnPropertyChanged(nameof(CanPreviewReplace));
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
-        OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
         OnPropertyChanged(nameof(ReplaceBuildActionTip));
         RefreshReplaceSelectionState();
     }
@@ -294,7 +274,7 @@ public sealed partial class MainWindowViewModel
     partial void OnSelectedIcChanged(string value)
     {
         RefreshNumberChoicesForSelectedIc();
-        GeneralMergeOutputLength = UiCompositionRunner.GetGeneralMergeDefaultOutputLength(value);
+        GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
         RefreshContextState(resetRunResult: true);
         RefreshAllSelectedSlotFirmwareFacts();
     }

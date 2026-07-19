@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -9,43 +8,15 @@ internal static partial class ReplaceCliCommandHandler
 {
     private static async Task<int> RunWorkbenchGeneralReplaceAsync(
         string action,
-        string profileSelector,
-        ParsedOptions options,
+        string icId,
+        ParsedCliOptions options,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        if (!TryResolveWorkbenchIc(profileSelector, out string? icId))
-        {
-            return await UnknownReplaceProfileAsync(IcWorkflowIds.GeneralReplace, profileSelector, error).ConfigureAwait(false);
-        }
-
         if (!RequireOption(options, "--ic-num", error, out string? icNumber) ||
             !RequireOption(options, "--base", error, out string? basePath))
         {
-            return UsageError;
-        }
-
-        string[] unsupportedOptions =
-        [
-            "--ic-family",
-            "--dp",
-            "--ld",
-            "--ctrlram",
-            "--input",
-            "--source-start",
-            "--target-start",
-            "--length",
-        ];
-        string[] suppliedUnsupportedOptions =
-        [
-            .. unsupportedOptions.Where(options.Values.ContainsKey),
-        ];
-        if (suppliedUnsupportedOptions.Length > 0)
-        {
-            await error.WriteLineAsync(
-                    $"error: real IC General Replace does not accept fixed-profile option(s): {string.Join(", ", suppliedUnsupportedOptions)}; use --mapping, --patch, or --fill")
-                .ConfigureAwait(false);
             return UsageError;
         }
 
@@ -68,55 +39,31 @@ internal static partial class ReplaceCliCommandHandler
             protectedInputPaths[mapping.MappingId] = Path.GetFullPath(mapping.FilePath);
         }
 
-        InputArtifactBinding[] bindings = CreateWorkbenchBindings(protectedInputPaths);
-        CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
-            options.Values.GetValueOrDefault("--output"),
-            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General));
-        string? outputPath = action == "build" ? outputTarget.FullPath : null;
-        if (action == "build")
-        {
-            CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
-            if (!options.Flags.Contains("--overwrite") && File.Exists(outputTarget.FullPath))
-            {
-                await error.WriteLineAsync(
-                        $"error: output file already exists: {outputTarget.FullPath}; pass --overwrite to replace it.")
-                    .ConfigureAwait(false);
-                return SoftwareError;
-            }
-        }
-
-        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            options.Values.GetValueOrDefault("--report"),
-            bindings,
-            outputTarget,
-            action == "build");
-
-        WorkbenchRunResult result = await WorkbenchCompositionService
-            .RunReplaceAsync(
+        return await RunWorkbenchReplaceAsync(
+                action,
                 icId,
-                icNumber,
                 WorkbenchReplaceModes.General,
-                slotPaths,
-                mappings,
-                patches,
-                action == "build",
-                cancellationToken,
-                outputPath)
-            .ConfigureAwait(false);
-        await WriteWorkbenchReportFileIfRequestedAsync(
-                result,
+                IcWorkflowIds.GeneralReplace,
                 options,
-                bindings,
-                action == "build" ? outputTarget.FullPath : null,
+                protectedInputPaths,
+                (build, outputPath, token) => WorkbenchCompositionService.RunReplaceAsync(
+                    icId,
+                    icNumber,
+                    WorkbenchReplaceModes.General,
+                    slotPaths,
+                    mappings,
+                    patches,
+                    build,
+                    token,
+                    outputPath),
                 output,
+                error,
                 cancellationToken)
             .ConfigureAwait(false);
-        await PrintWorkbenchRunResultAsync(result, icId, IcWorkflowIds.GeneralReplace, output, error).ConfigureAwait(false);
-        return result.Succeeded ? Success : CompositionFailed;
     }
 
     private static bool TryCreateWorkbenchGeneralAuthoringInputs(
-        ParsedOptions options,
+        ParsedCliOptions options,
         TextWriter error,
         [NotNullWhen(true)] out WorkbenchGeneralReplaceMappingInput[]? mappings,
         [NotNullWhen(true)] out WorkbenchGeneralReplacePatchInput[]? patches)

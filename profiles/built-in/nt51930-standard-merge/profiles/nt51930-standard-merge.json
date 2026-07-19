@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "profileId": "nt51930-standard-merge-flashmap",
-  "profileVersion": "0.5.0",
+  "profileVersion": "0.5.1",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -18,7 +18,7 @@
   "mapBinding": {
     "familyId": "nt51930",
     "familyVersion": "1.0.0",
-    "familyContentHash": "c67d954bfef9cd946b4fe8c4550e222fcbe8c0c4f6e92c0dfef652cc36e8c0a2",
+    "familyContentHash": "efc5b73a0bfa1d206d73748d63c0d95b340691ab1d7ce73cb48a82d347762f8f",
     "mapIds": [
       "nt51930-standard-merge-256k"
     ],

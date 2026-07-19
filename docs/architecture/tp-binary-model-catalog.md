@@ -1,8 +1,12 @@
-# TP Binary Model Catalog
+# TP Header Semantic Catalog
 
 ## Purpose
 
-This is the searchable reference for the Application-owned TP binary model introduced on 2026-07-10. It explains how a supported IC is arranged for inspection and Report semantics. It does not change firmware bytes, Combiner invocation, write permissions, profile access, or golden parity status.
+This is the searchable reference for the Application-owned TP header semantic
+catalog introduced on 2026-07-10 and converged in v0.9.9. It explains how a
+supported IC's approved postbuild changes receive report field names. It does
+not change firmware bytes, Combiner invocation, write permissions, profile
+access, or golden parity status.
 
 Related decision: [ADR 0013](../adr/0013-tp-binary-model-and-report-semantic-projection.md).
 
@@ -10,38 +14,36 @@ Evidence sources:
 
 - `docs/references/ic-flashmap/IC_FlashMap_20260705.xlsx` TP Overview rows;
 - `docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx` named header worksheets;
-- documented owner aliases already recorded in `TpFlashMapCatalog`.
+- documented owner aliases already recorded in hash-pinned
+  `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`.
 
 All ranges below use half-open notation. For example, `[0x0000, 0x0004)` means bytes `0x0000` through `0x0003`.
 
-## Stable Root
+## Stable Semantic Categories
 
-Every selectable IC exposes exactly this root and category order, even if a category has no documented region for that IC:
+Reports emit only the semantic categories required by actual output differences:
 
 ```text
-TP Flash Image (tp-flash-image)
-├─ TP Flash Header (tp-flash-header)
-├─ FW Configuration (firmware-configuration)
-├─ CtrlRAM (ctrlram)
-├─ Display / DP (display)
-├─ Project ID (project-identity)
-├─ Customer Information (customer-information)
-├─ FW Information (firmware-information)
-└─ Other documented regions (other-documented-region)
+TP Flash Header (tp-flash-header)
+FW Configuration (firmware-configuration)
+CtrlRAM (ctrlram)
+Other documented regions (other-documented-region)
 ```
 
-The root is inspection/report metadata. It does not replace `TpFlashMapRegionKind`:
+The earlier `TP Flash Image` root/category object graph was never consumed by
+UI, CLI, report serialization, or runtime execution and is retired in v0.9.9.
+Category ids remain report metadata and do not replace `TpFlashMapRegionKind`:
 
-| Existing TP Overview kind | Root category | Notes |
+| Existing TP Overview kind | Semantic category when reported | Notes |
 | --- | --- | --- |
-| `Dp` | Display / DP | Existing DP authoring behavior is unchanged. |
 | `CtrlRam` | CtrlRAM | Existing CtrlRAM Replace access and postbuild selection are unchanged. |
-| `CustomerInfo` | Customer Information | Preserve/protection behavior is unchanged. |
-| `ProjectId` | Project ID | Preserve/protection behavior is unchanged. |
 | `Other` with a header tag/id | TP Flash Header | Header backup rows are inspection metadata, not a new write rule. |
-| `Other` with FW Config tag/id | FW Configuration | Includes the primary FW Config anchor for TP Overview plus documented Backup rows; runtime metadata values come only from the NVT Backup. |
-| `Other` with `fw-information` tag | FW Information | Retains existing protection semantics. |
+| `Other` with FW Config tag/id | FW Configuration | Report classification covers documented postbuild Backup changes; the primary FW Config address remains TP Overview evidence only, and runtime metadata values come only from the NVT Backup. |
 | Remaining `Other` | Other documented regions | No access-policy change. |
+
+`Dp`, `CustomerInfo`, `ProjectId`, and `fw-information` rows retain their
+existing TP Overview access/protection behavior. They do not need a second
+Application category object until an actual report semantic emits one.
 
 ## Header Layout Coverage
 
@@ -336,6 +338,6 @@ This avoids falsely calling a copied header target `DLM CRC 0` before source-to-
 
 - `TpHeaderCatalogTests.Nt51926HeaderModelsIlmStartAddressInBin`
 - `TpHeaderCatalogTests.Nt51927HeaderModelsDlmCrcZero`
-- `TpHeaderCatalogTests.EveryIcExposesOneStableTopLevelBinaryCategoryStructure`
+- `TpHeaderCatalogTests.EveryIcExposesOneHeaderLayout`
 - `CompositionRunServiceTests.ReplaceReportNamesNt51926DlmCrcZero`
 - `ShellViewModelTests.ReportReviewShowsAcceptedOutputDifferences`

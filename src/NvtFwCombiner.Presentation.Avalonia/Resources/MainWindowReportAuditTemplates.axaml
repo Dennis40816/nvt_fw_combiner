@@ -11,7 +11,7 @@
           <TextBlock Classes="panelTitle" Text="{Binding Text.EvidenceTitle}" />
           <TextBlock Classes="captionText" Text="{Binding LoadedReport.AuditSummary}" TextWrapping="Wrap" />
         </StackPanel>
-        <Label Grid.Column="1" Classes="reportBadge" Content="{Binding Text.TraceLabel}" />
+        <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge" Content="{Binding Text.TraceLabel}" />
       </Grid>
 
       <TabControl Grid.Row="1" Margin="12,0,12,12" Classes="reportTabs" FontSize="{DynamicResource NfcFontSize12}">
@@ -22,7 +22,7 @@
                 <StackPanel Spacing="10">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <TextBlock Classes="panelTitle" Text="{Binding Text.InputsAndHashesTitle}" />
-                    <Label Grid.Column="1" Classes="reportBadge" Content="{Binding LoadedReport.InputCount}" />
+                    <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge" Content="{Binding LoadedReport.InputCount}" />
                   </Grid>
                   <ItemsControl ItemsSource="{Binding LoadedReport.InputGroups}">
                     <ItemsControl.ItemTemplate>
@@ -40,7 +40,7 @@
                 <StackPanel Spacing="10">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <TextBlock Classes="panelTitle" Text="{Binding Text.RunMetadataTitle}" />
-                    <Label Grid.Column="1" Classes="reportBadge" Content="{Binding LoadedReport.Status}" />
+                    <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge" Content="{Binding LoadedReport.Status}" />
                   </Grid>
                   <Grid ColumnDefinitions="96,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
                     <TextBlock Classes="fieldLabel" Text="{Binding Text.ReportFileLabel}" />
@@ -68,7 +68,7 @@
               <StackPanel Spacing="10" IsVisible="{Binding LoadedReport.HasOutputDifferences}">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                   <TextBlock Classes="panelTitle" Text="{Binding Text.OutputChangesTitle}" />
-                  <Label Grid.Column="1" Classes="reportBadge success" Content="{Binding LoadedReport.OutputDifferenceCount}" />
+                  <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge success" Content="{Binding LoadedReport.OutputDifferenceCount}" />
                 </Grid>
                 <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferenceGroups}">
                   <ItemsControl.ItemTemplate>
@@ -81,7 +81,7 @@
                 <Expander.Header>
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextSecondaryBrush}" Text="{Binding Text.ChangedRangesTitle}" />
-                    <Label Grid.Column="1" Classes="reportBadge" Content="{Binding LoadedReport.MutationCount}" />
+                    <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge" Content="{Binding LoadedReport.MutationCount}" />
                   </Grid>
                 </Expander.Header>
                 <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding LoadedReport.Mutations}">
@@ -105,7 +105,7 @@
                 <StackPanel Spacing="10">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <TextBlock Classes="panelTitle" Text="{Binding Text.OperationStepsTitle}" />
-                    <Label Grid.Column="1" Classes="reportBadge" Content="{Binding LoadedReport.OperationFlow.Count}" />
+                    <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge" Content="{Binding LoadedReport.OperationFlow.Count}" />
                   </Grid>
                   <ItemsControl ItemsSource="{Binding LoadedReport.OperationFlow}">
                     <ItemsControl.ItemTemplate>
@@ -119,7 +119,7 @@
                 <StackPanel Spacing="{DynamicResource NfcSpace8}">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <TextBlock Classes="panelTitle" Text="{Binding Text.DetailLabel}" />
-                    <Label Grid.Column="1" Classes="reportBadge" Content="{Binding LoadedReport.StepOperationCount}" />
+                    <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge" Content="{Binding LoadedReport.StepOperationCount}" />
                   </Grid>
                   <ItemsControl ItemsSource="{Binding LoadedReport.StepOperations}">
                     <ItemsControl.ItemTemplate>
@@ -142,7 +142,7 @@
               <StackPanel Spacing="{DynamicResource NfcSpace8}" IsVisible="{Binding LoadedReport.HasPostbuildInvocations}">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                   <TextBlock Classes="panelTitle" Text="{Binding Text.HeaderRefreshTraceTitle}" />
-                  <Label Grid.Column="1" Classes="reportBadge info" Content="{Binding LoadedReport.PostbuildInvocationCount}" />
+                  <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge info" Content="{Binding LoadedReport.PostbuildInvocationCount}" />
                 </Grid>
                 <ItemsControl ItemsSource="{Binding LoadedReport.PostbuildInvocations}">
                   <ItemsControl.ItemTemplate>
@@ -173,7 +173,7 @@
                 <StackPanel Spacing="10">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <TextBlock Classes="panelTitle" Text="{Binding Text.IssuesAndWarningsTitle}" />
-                    <Label Grid.Column="1" Classes="reportBadge review" Content="{Binding LoadedReport.IssueCount}" />
+                    <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge review" Content="{Binding LoadedReport.IssueCount}" />
                   </Grid>
                   <ItemsControl ItemsSource="{Binding LoadedReport.Issues}">
                     <ItemsControl.ItemTemplate>

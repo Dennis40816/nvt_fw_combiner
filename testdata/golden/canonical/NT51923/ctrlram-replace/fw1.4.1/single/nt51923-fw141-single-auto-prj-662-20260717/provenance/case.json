@@ -1,0 +1,189 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51923-fw141-single-auto-prj-662-20260717",
+  "ic": "NT51923",
+  "workflow": "ctrlram-replace",
+  "variantOrVersion": "fw1.4.1",
+  "topology": "single",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
+  "project": "AUTO_PRJ-662",
+  "icCount": 1,
+  "baseKind": "canonical-standard-merge-owner-output",
+  "profileId": "nt51923-ctrlram-replace-fw141-single",
+  "artifacts": [
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/expected/NT51923TT_Flashcode_TM_TL129VVKS05-00_BYD_V06_D80T81_20260601.bin",
+      "size": 262144,
+      "sha256": "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51923/replace/ctrlram/single/expected_output/NT51923TT_Flashcode_TM_TL129VVKS05-00_BYD_V06_D80T81_20260601.bin"
+      ],
+      "originalFileName": "NT51923TT_Flashcode_TM_TL129VVKS05-00_BYD_V06_D80T81_20260601.bin",
+      "sourceRole": "expected-final-output"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/NT51923_TPFW_T81_20260430.bin",
+      "size": 245760,
+      "sha256": "d91dd6470fe6084b0d0bbf855e4c443f2911995b028b370ec8dccbef2efc3e78",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51923/replace/ctrlram/single/NT51923_TPFW_T81_20260430.bin"
+      ],
+      "originalFileName": "NT51923_TPFW_T81_20260430.bin",
+      "sourceRole": "standard-merge-tp-input"
+    },
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/NT51923TT_Initial Code_TM_12.9VVKS05_1920x1080_V80_DE_MODE_20260529.bin",
+      "size": 262144,
+      "sha256": "97a79100cc0e574ce69d7c7e8c9f15edeaa00d16c90a7583bc462b496fac984b",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51923/replace/ctrlram/single/NT51923TT_Initial Code_TM_12.9VVKS05_1920x1080_V80_DE_MODE_20260529.bin"
+      ],
+      "originalFileName": "NT51923TT_Initial Code_TM_12.9VVKS05_1920x1080_V80_DE_MODE_20260529.bin",
+      "sourceRole": "standard-merge-dp-input"
+    },
+    {
+      "artifactId": "postbuild-diffdlm",
+      "role": "input",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/DiffDLM.bin",
+      "size": 10240,
+      "sha256": "979fa154e056cbbde36edb4e9b99b1357b34abf3cebf3acd709117857f5863a5",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51923/replace/ctrlram/single/postbuild_inputs/DiffDLM.bin"
+      ],
+      "originalFileName": "DiffDLM.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-mp-ctrlram",
+      "role": "input",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/MP_Ctrlram.bin",
+      "size": 655360,
+      "sha256": "1e5c60bfbe663938052a6c5c3b3db1fb8f67a80c7d5e32cd130c6306df737db5",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51923/replace/ctrlram/single/postbuild_inputs/MP_Ctrlram.bin"
+      ],
+      "originalFileName": "MP_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-nf-ctrlram",
+      "role": "input",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/NF_Ctrlram.bin",
+      "size": 17584,
+      "sha256": "5ca4457fda2e9ff7ff7c7f6beb8b2309eff50c6d6c08bde78de60c85e45f31fc",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51923/replace/ctrlram/single/postbuild_inputs/NF_Ctrlram.bin"
+      ],
+      "originalFileName": "NF_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-normal-ctrlram",
+      "role": "input",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/Normal_Ctrlram.bin",
+      "size": 655360,
+      "sha256": "1d50b896ec989b49bda3dd0ac8a65e3afefee1f13745e61179683202580bf22a",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51923/replace/ctrlram/single/postbuild_inputs/Normal_Ctrlram.bin"
+      ],
+      "originalFileName": "Normal_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-vn-ctrlram",
+      "role": "input",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/VN_Ctrlram.bin",
+      "size": 5728,
+      "sha256": "53e794e27a3bc359c5a6a6da05bda004c7733501a577f3a9cd08044022ac2aef",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51923/replace/ctrlram/single/postbuild_inputs/VN_Ctrlram.bin"
+      ],
+      "originalFileName": "VN_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "project-marker",
+      "role": "provenance",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/provenance/AUTO_PRJ-662, PID=0x6005.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51923/replace/ctrlram/single/AUTO_PRJ-662, PID=0x6005.txt"
+      ],
+      "originalFileName": "AUTO_PRJ-662, PID=0x6005.txt",
+      "sourceRole": "project-marker"
+    }
+  ],
+  "sourceIntake": {
+    "legacyManifest": "testdata/golden/ctrlram-replace/manifest.20260717.json",
+    "archive": {
+      "fileName": "NVT_Golden_Evidence_v0.9.9_20260717.7z",
+      "sha256": "9027e9038f51c5421f922afdf73d1f16fc5f7dd582e23e25547727fda585205c",
+      "transfer": "HackMD CJK14 numbered-note transfer",
+      "recoveredAtTaipei": "2026-07-17T17:18:00+08:00"
+    }
+  },
+  "promotion": {
+    "runtimeSupportPromotion": false,
+    "releaseRedistributionApproved": false
+  },
+  "pid": "0x6005",
+  "phaseBResult": {
+    "caseId": "nt51923-fw141-single-auto-prj-662-20260717",
+    "ic": "NT51923",
+    "workflow": "ctrlram-replace",
+    "variant": "Common FW 1.4.1",
+    "project": "AUTO_PRJ-662",
+    "pid": "0x6005",
+    "topology": "single",
+    "chipCount": 1,
+    "baseKind": "canonical-standard-merge-owner-output",
+    "ownerExpectedSha256": "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f",
+    "legacyOutputSha256": "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38",
+    "v2OutputSha256": "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38",
+    "differenceCounts": {
+      "legacyToV2": 0,
+      "ownerToLegacy": 16,
+      "ownerToV2": 16,
+      "ctrlRamPayload": 0
+    },
+    "allowedDifferenceRanges": [
+      {
+        "start": "0x1C",
+        "endExclusive": "0x20",
+        "classification": "header-crc-word"
+      },
+      {
+        "start": "0xFC",
+        "endExclusive": "0x100",
+        "classification": "header-crc-word"
+      },
+      {
+        "start": "0x3032C",
+        "endExclusive": "0x30330",
+        "classification": "header-copy-crc-word"
+      },
+      {
+        "start": "0x3040C",
+        "endExclusive": "0x30410",
+        "classification": "header-copy-crc-word"
+      }
+    ],
+    "routeProfileId": "nt51923-ctrlram-replace-fw141-single",
+    "processorId": "nfc.nt51923.ctrlram-postbuild-v1",
+    "toolBindingId": "legacy-combiner-1.13.0",
+    "sessionCount": 1,
+    "commandCount": 2,
+    "inputArtifactsUnchanged": true,
+    "reportAndOrderedArgvParityTest": "Nt51923CtrlRamFw141EvidenceTests.ExactOwnerCasesRunThroughV2WithLegacyProcessParityAsync",
+    "runtimeSupportPromotion": false
+  }
+}

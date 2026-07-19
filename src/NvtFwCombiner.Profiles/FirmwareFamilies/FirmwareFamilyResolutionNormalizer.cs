@@ -36,24 +36,13 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 $"{path}.metadataPredicates[{index}]");
         }
 
-        try
-        {
-            return new FirmwareMapApplicability(
+        return TranslateInvariant(path, () => new FirmwareMapApplicability(
                 document.MemberIds,
                 document.ModeIds,
                 NormalizeTopology(document.TopologyRequirement, $"{path}.topologyRequirement"),
                 ReadInt64(document.CapacityBytes, 1, long.MaxValue, $"{path}.capacityBytes"),
                 document.CommonFirmwareCategoryIds,
-                predicates);
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
-        catch (OverflowException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
+                predicates));
     }
 
     private static FirmwareFactApplicability NormalizeFactApplicability(
@@ -73,23 +62,12 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 $"{path}.metadataPredicates[{index}]");
         }
 
-        try
-        {
-            return new FirmwareFactApplicability(
+        return TranslateInvariant(path, () => new FirmwareFactApplicability(
                 document.ModeIds,
                 NormalizeTopology(document.TopologyRequirement, $"{path}.topologyRequirement"),
                 ReadInt64(document.CapacityBytes, 1, long.MaxValue, $"{path}.capacityBytes"),
                 document.CommonFirmwareCategoryIds,
-                predicates);
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
-        catch (OverflowException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
+                predicates));
     }
 
     private static FirmwareMetadataPredicate NormalizePredicate(
@@ -129,22 +107,11 @@ public static partial class FirmwareFamilyResolutionNormalizer
             _ => throw Error($"{path}.operator", "Unknown metadata predicate operator."),
         };
 
-        try
-        {
-            return new FirmwareMetadataPredicate(
+        return TranslateInvariant(path, () => new FirmwareMetadataPredicate(
                 document.MetadataStructureId,
                 document.FieldId,
                 comparison,
-                expectedValues);
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
-        catch (OverflowException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
+                expectedValues));
     }
 
     private static void ValidateMemberReferences(
@@ -186,6 +153,27 @@ public static partial class FirmwareFamilyResolutionNormalizer
     private static IReadOnlyList<T> RequireList<T>(IReadOnlyList<T>? values, string path)
     {
         return values ?? throw Error(path, "Required array is missing.");
+    }
+
+    private static T TranslateInvariant<T>(string path, Func<T> factory)
+    {
+        try
+        {
+            return factory();
+        }
+        catch (Exception exception) when (exception is ArgumentException or OverflowException)
+        {
+            throw Error(path, exception.Message, exception);
+        }
+    }
+
+    private static void TranslateInvariant(string path, Action action)
+    {
+        _ = TranslateInvariant(path, () =>
+        {
+            action();
+            return true;
+        });
     }
 
     private static FirmwareFamilyNormalizationException Error(

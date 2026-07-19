@@ -1,7 +1,5 @@
 using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -9,7 +7,6 @@ public static partial class WorkbenchCompositionService
 {
     private static WorkbenchRunResult CreatePlanningRunResult(
         string icId,
-        string number,
         string replaceMode,
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
@@ -21,51 +18,9 @@ public static partial class WorkbenchCompositionService
             replaceMode,
             slotPaths,
             build,
-            CreateReplacePlanningOperations(icId, number, replaceMode),
+            [],
             [new CompositionIssue(issueCode, issueMessage, replaceMode.ToLowerInvariant())],
-            GetReplaceDefaultOutputFileName(icId, replaceMode),
-            succeeded: false);
-    }
-
-    private static IReadOnlyList<OperationRunSummary> CreateReplacePlanningOperations(
-        string icId,
-        string number,
-        string replaceMode)
-    {
-        if (replaceMode == WorkbenchReplaceModes.Dp && IsBuiltInV2DpReplaceIc(icId))
-        {
-            return [];
-        }
-
-        IcNumberSelection selection = ToIcNumberSelection(number);
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection);
-        OperationRunStatus status = OperationRunStatus.Skipped;
-
-        return
-        [
-            .. GetDpReplaceRegions(icId, regions).Select((region, index) => new OperationRunSummary(
-                $"replace-{region.RegionId}",
-                100 + (index * 10),
-                CompositionOperationKind.ReplaceRange,
-                status,
-                GetDpReplaceSourceAddressSpaceId(icId, region),
-                new ByteRange(0, region.Range.Length),
-                CompositionAddressSpaceIds.OutputImage,
-                region.Range,
-                OverlapPolicy.ReplaceExisting,
-                null,
-                null,
-                [],
-                [],
-                $"{region.DisplayName} awaits per-IC DP Replace source mapping evidence.")),
-        ];
-    }
-
-    private static string GetDpReplaceSourceAddressSpaceId(string icId, TpFlashMapRegion region)
-    {
-        return DpReplaceAuthoringCatalog.TryGetAdditionalPayload(icId, region.RegionId, out DpReplaceAdditionalPayloadRule? rule)
-            ? rule.AddressSpaceId
-            : CompositionAddressSpaceIds.DpReplacement;
+            GetReplaceDefaultOutputFileName(icId, replaceMode));
     }
 
     private static List<InputArtifactSummary> CreateInputSummaries(

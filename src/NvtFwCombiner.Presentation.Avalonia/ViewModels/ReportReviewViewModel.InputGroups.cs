@@ -55,8 +55,6 @@ public sealed partial class ReportReviewViewModel
             title,
             detail,
             rows,
-            T(language, "Input", "輸入"),
-            T(language, "Role", "角色"),
             T(language, "Size", "大小"),
             T(language, "Address space", "位址空間")));
     }

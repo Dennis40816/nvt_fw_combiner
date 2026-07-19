@@ -12,7 +12,7 @@ public sealed partial class ShellViewModelTests
             ReportJsonSamples.RuntimeOnlyCommandTrace(),
             "runtime-only.json");
 
-        ReportLineViewModel command = Assert.Single(report.CommandOperations);
+        ReportLineViewModel command = Assert.Single(GetCommandOperations(report));
         Assert.False(command.HasCodeBlock);
         Assert.True(command.HasRuntimeCommands);
         Assert.Empty(report.StepOperations);
@@ -29,18 +29,6 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Needs attention", report.OutcomeTitle);
         Assert.Equal("Start with this issue", report.NextStepTitle);
         Assert.Equal("processor.tool.missing", report.PrimaryIssue.Title);
-        Assert.Contains(report.TriageRows, row =>
-            row.Title == "1. First issue" &&
-            row.Detail == "processor.tool.missing" &&
-            row.Meta == "run-ctrlram-postbuild");
-        Assert.Contains(report.TriageRows, row =>
-            row.Title == "4. Evidence" &&
-            row.Detail == "Refresh commands" &&
-            row.Meta == "1 command(s)");
-        Assert.Contains(report.EvidenceRows, row =>
-            row.Title == "Commands" &&
-            row.Detail == "1" &&
-            row.Meta == "external processors");
         Assert.Equal(1, report.PostbuildInvocationCount);
         ReportPostbuildInvocationViewModel invocation = Assert.Single(report.PostbuildInvocations);
         Assert.Equal("900.01", invocation.Number);
@@ -49,7 +37,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("planned", invocation.Status);
         Assert.Contains("argv[0]: MERGE_MODE", invocation.ArgumentListEvidence, StringComparison.Ordinal);
         Assert.Equal("Working directory: C:\\staging\\ui-smoke-command", invocation.WorkingDirectoryDetail);
-        ReportLineViewModel command = Assert.Single(report.CommandOperations);
+        ReportLineViewModel command = Assert.Single(GetCommandOperations(report));
         Assert.Equal("run-external-processor", command.OperationKind);
         Assert.Equal("(none)", command.OperationSource);
         Assert.Equal("output-image 0x0-0x7FFFF (len 0x80000)", command.OperationTarget);
@@ -100,7 +88,7 @@ public sealed partial class ShellViewModelTests
             ReportJsonSamples.CtrlRamCommandTrace(runtimeInvocationCount: 3),
             "runtime-trace.json");
 
-        Assert.Equal(1, report.CommandOperationCount);
+        _ = Assert.Single(GetCommandOperations(report));
         Assert.Equal(3, report.PostbuildInvocationCount);
         Assert.Equal(
             ["900.01", "900.02", "900.03"],

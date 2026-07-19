@@ -60,11 +60,6 @@ public sealed partial class RepositoryBoundaryTests
         string fingerprint = ReadText("src/NvtFwCombiner.Domain/Composition/CompiledComposition.Fingerprint.cs");
         string validationRequirement = ReadText(
             "src/NvtFwCombiner.Domain/Composition/CompiledValidationRequirement.cs");
-        string profileCompiler = ReadText("src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ValidationRequirements.cs");
-        string legacyValidationFactory = ReadText(
-            "src/NvtFwCombiner.Profiles/LegacyProfileValidationRequirements.cs");
-        string ctrlRamProfile = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Profile.cs");
         string bootstrapSources = ReadBootstrapSources();
 
         Assert.Contains(
@@ -79,13 +74,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CompiledFirmwareConfigBackupVersionValidation", finalOutputValidations, StringComparison.Ordinal);
         Assert.Contains("FirmwareConfigMetadataReader.TryReadBackup", finalOutputValidations, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Bootstrap", finalOutputValidations, StringComparison.Ordinal);
-        Assert.Contains(
-            "LegacyProfileValidationRequirements.FirmwareConfigBackupVersion",
-            ctrlRamProfile,
-            StringComparison.Ordinal);
-        Assert.Contains("ValidateRuntimeValidationRequirements", profileCompiler, StringComparison.Ordinal);
-        Assert.Contains("CompiledFirmwareConfigBackupVersionValidation", profileCompiler, StringComparison.Ordinal);
-        Assert.Contains("replace.ctrlram.fw-version-output-invalid", legacyValidationFactory, StringComparison.Ordinal);
+        Assert.DoesNotContain("LegacyProfileValidationRequirements", ReadProfileSources(), StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", ReadProfileSources(), StringComparison.Ordinal);
         Assert.DoesNotContain("replace.ctrlram", validationRequirement, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionOutputValidator", bootstrapSources, StringComparison.Ordinal);
         Assert.DoesNotContain("ValidateCtrlRamFirmwareVersionOutput", bootstrapSources, StringComparison.Ordinal);

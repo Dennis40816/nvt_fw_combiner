@@ -6,6 +6,24 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 /// <summary>Tests the centralized IC onboarding support catalog.</summary>
 public sealed class IcSupportCatalogTests
 {
+    /// <summary>IC identifiers have one catalog-owned canonical representation.</summary>
+    [Theory]
+    [InlineData("51950", "NT51950")]
+    [InlineData("nt51950", "NT51950")]
+    [InlineData(" NT51950 ", "NT51950")]
+    public void IcIdentifierNormalizationIsCatalogOwned(string value, string expected)
+    {
+        Assert.Equal(expected, IcSupportCatalog.NormalizeIcId(value));
+    }
+
+    /// <summary>Missing IC identifiers fail before a canonical token can be produced.</summary>
+    [Fact]
+    public void IcIdentifierNormalizationRejectsMissingValues()
+    {
+        _ = Assert.Throws<ArgumentNullException>(() => IcSupportCatalog.NormalizeIcId(null!));
+        _ = Assert.Throws<ArgumentException>(() => IcSupportCatalog.NormalizeIcId(" "));
+    }
+
     /// <summary>IC onboarding rows are unique and use only documented workflow ids.</summary>
     [Fact]
     public void IcSupportRowsAreUniqueAndUseKnownWorkflowIds()
@@ -66,6 +84,29 @@ public sealed class IcSupportCatalogTests
         Assert.Contains("Unknown IC workflow id 'unsupported-workflow'", unknown.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Golden-verified rows cannot promise evidence for a workflow they do not expose.</summary>
+    [Fact]
+    public void IcSupportEntryRejectsGoldenEvidenceForUnavailableWorkflow()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            new IcSupportEntry(
+                "NT51999",
+                [IcWorkflowIds.StandardMerge],
+                goldenVerifiedWorkflowIds: [IcWorkflowIds.DpReplace]));
+
+        Assert.Contains("must also be exposed", exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>DP Replace cannot exist without the same IC's canonical Standard Merge map.</summary>
+    [Fact]
+    public void DpReplaceRequiresStandardMerge()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            new IcSupportEntry("NT51999", [IcWorkflowIds.DpReplace]));
+
+        Assert.Contains("canonical Standard Merge map", exception.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>The shell default IC is a catalog-owned onboarding decision, not a UI constant.</summary>
     [Fact]
     public void DefaultIcIdIsSupportedByCatalog()
@@ -105,9 +146,9 @@ public sealed class IcSupportCatalogTests
             Assert.True(IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.StandardMerge), icId));
     }
 
-    /// <summary>Only NT51950/NT51951 currently expose DP Perspective DP Replace.</summary>
+    /// <summary>DP Replace exposure follows a canonical Standard Merge map; evidence readiness remains separate.</summary>
     [Fact]
-    public void DpReplaceExposureIsLimitedToDpPerspectiveIcs()
+    public void DpReplaceExposureRequiresCanonicalStandardMergeMap()
     {
         string[] dpReplaceIcIds =
         [
@@ -117,7 +158,24 @@ public sealed class IcSupportCatalogTests
                 .Order(StringComparer.Ordinal),
         ];
 
-        Assert.Equal(["NT51950", "NT51951"], dpReplaceIcIds);
+        Assert.Equal(["NT51930", "NT51950", "NT51951"], dpReplaceIcIds);
+        Assert.All(dpReplaceIcIds, icId =>
+            Assert.True(IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.StandardMerge), icId));
+    }
+
+    /// <summary>NT51931 keeps Merge support while the exact V2 Replace route is materialized.</summary>
+    [Fact]
+    public void Nt51931ReplaceIsNotSupportedWhileMergeRemainsAvailable()
+    {
+        Assert.True(IcSupportCatalog.TryFind("NT51931", out IcSupportEntry? entry));
+        Assert.True(entry!.SupportsWorkflow(IcWorkflowIds.StandardMerge));
+        Assert.True(entry.SupportsWorkflow(IcWorkflowIds.GeneralMerge));
+        Assert.False(entry.SupportsWorkflow(IcWorkflowIds.DpReplace));
+        Assert.False(entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace));
+        Assert.False(entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace));
+        Assert.Contains("matches", entry.Notes, StringComparison.Ordinal);
+        Assert.Contains("108 classified", entry.Notes, StringComparison.Ordinal);
+        Assert.Contains("Not available", entry.Notes, StringComparison.Ordinal);
     }
 
     /// <summary>Alias facts are explicit instead of being hidden in separate profile tables.</summary>
@@ -164,5 +222,53 @@ public sealed class IcSupportCatalogTests
                 Assert.NotEqual(entry.IcId, entry.CtrlRamPostbuildSourceIcId);
             }
         }
+    }
+
+    /// <summary>Reply.md perfect and partial IC families are explicit typed catalog facts.</summary>
+    [Theory]
+    [InlineData("NT51927", "nt51927-family", "NT51927", IcFamilyRelationship.Canonical)]
+    [InlineData("NT51917", "nt51927-family", "NT51927", IcFamilyRelationship.PerfectAlias)]
+    [InlineData("NT51928", "nt51927-family", "NT51927", IcFamilyRelationship.PartialAlias)]
+    [InlineData("NT51929", "nt51929-nt51932-family", "NT51929", IcFamilyRelationship.Canonical)]
+    [InlineData("NT51919", "nt51929-nt51932-family", "NT51929", IcFamilyRelationship.PerfectAlias)]
+    [InlineData("NT51932", "nt51929-nt51932-family", "NT51929", IcFamilyRelationship.PerfectAlias)]
+    public void OwnerDeclaredIcFamiliesAreTyped(
+        string icId,
+        string familyId,
+        string familySourceIcId,
+        IcFamilyRelationship relationship)
+    {
+        Assert.True(IcSupportCatalog.TryFind(icId, out IcSupportEntry? entry));
+
+        Assert.Equal(familyId, entry!.FamilyId);
+        Assert.Equal(familySourceIcId, entry.FamilySourceIcId);
+        Assert.Equal(relationship, entry.FamilyRelationship);
+        Assert.False(string.IsNullOrWhiteSpace(entry.FamilyScope));
+    }
+
+    /// <summary>Golden readiness is independent from authoring availability and product support.</summary>
+    [Fact]
+    public void WorkflowEvidenceStatusDoesNotBanEvidenceGatedAuthoring()
+    {
+        Assert.True(IcSupportCatalog.TryFind("NT51932", out IcSupportEntry? nt51932));
+        Assert.Equal(
+            IcWorkflowEvidenceStatus.GoldenVerified,
+            nt51932!.GetWorkflowEvidenceStatus(IcWorkflowIds.StandardMerge));
+        Assert.Equal(
+            IcWorkflowEvidenceStatus.EvidenceGated,
+            nt51932.GetWorkflowEvidenceStatus(IcWorkflowIds.CtrlRamReplace));
+        Assert.Equal(
+            IcWorkflowEvidenceStatus.NotAvailable,
+            nt51932.GetWorkflowEvidenceStatus(IcWorkflowIds.DpReplace));
+
+        Assert.True(IcSupportCatalog.TryFind("NT51950", out IcSupportEntry? nt51950));
+        Assert.Equal(
+            IcWorkflowEvidenceStatus.GoldenVerified,
+            nt51950!.GetWorkflowEvidenceStatus(IcWorkflowIds.DpReplace));
+
+        Assert.True(IcSupportCatalog.TryFind("NT51930", out IcSupportEntry? nt51930));
+        Assert.Equal(
+            IcWorkflowEvidenceStatus.EvidenceGated,
+            nt51930!.GetWorkflowEvidenceStatus(IcWorkflowIds.DpReplace));
     }
 }

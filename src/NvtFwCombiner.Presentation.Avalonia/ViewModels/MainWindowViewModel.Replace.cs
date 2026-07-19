@@ -4,17 +4,15 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private bool IsSelectedReplaceModeSupported => WorkbenchCompositionService.IsReplaceWorkflowSupported(SelectedIc, SelectedReplaceMode);
+
     /// <summary>Gets short Replace memory-map summary text.</summary>
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
     /// <summary>Status shown in the replace inspector.</summary>
-    public string ReplaceReadinessStatus => Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace());
-
-    /// <summary>Gets the compact reason shown on disabled Replace preview.</summary>
-    public string ReplacePreviewUnavailableReason => ReplaceReadinessStatus;
-
-    /// <summary>Gets the compact reason shown on disabled Replace build.</summary>
-    public string ReplaceBuildUnavailableReason => ReplaceReadinessStatus;
+    public string ReplaceReadinessStatus => IsSelectedReplaceModeSupported
+            ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
+            : Text.GetReplaceNotSupportedStatus(SelectedIc);
 
     /// <summary>Builds Replace output to a user-selected path.</summary>
     public Task BuildReplaceAsync(
@@ -27,81 +25,53 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunReplace()
     {
-        return !IsRunInProgress && (SelectedReplaceMode switch
-        {
-            DpReplaceMode => ReplaceSlots.Count > 0 &&
-                ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile),
-            CtrlRamReplaceMode => ReplaceBaseSlot.HasFile &&
-                ReplaceSlots.Any(slot => !ReferenceEquals(slot, ReplaceBaseSlot) && slot.HasFile),
-            GeneralReplaceMode => ReplaceBaseSlot.HasFile &&
-                GeneralReplaceMappings.Any(mapping => mapping.HasFile),
-            _ => false,
-        });
+        return !IsRunInProgress && IsSelectedReplaceModeSupported &&
+            (SelectedReplaceMode switch
+            {
+                DpReplaceMode => ReplaceSlots.Count > 0 &&
+                    ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile),
+                CtrlRamReplaceMode => ReplaceBaseSlot.HasFile &&
+                    ReplaceSlots.Any(slot => !ReferenceEquals(slot, ReplaceBaseSlot) && slot.HasFile),
+                GeneralReplaceMode => ReplaceBaseSlot.HasFile &&
+                    GeneralReplaceMappings.Any(mapping => mapping.HasFile),
+                _ => false,
+            });
     }
 
-    private async Task RunReplaceAsync(bool build)
+    private Task RunReplaceAsync(bool build)
     {
-        await RunReplaceAsync(build, outputPath: null, ctrlRamFirmwareVersionEdit: null);
+        return RunReplaceAsync(build, outputPath: null, ctrlRamFirmwareVersionEdit: null);
     }
 
-    private async Task RunReplaceAsync(
+    private Task RunReplaceAsync(
         bool build,
         string? outputPath,
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit)
     {
         CloseReplaceSelectionForRun();
-        CancellationTokenSource? cancellationSource = null;
-        try
-        {
-            cancellationSource = BeginRun();
-            WorkbenchRunResult result = await UiCompositionRunner.RunReplaceAsync(
+        return RunCompositionAsync(
+            build,
+            cancellationToken => WorkbenchCompositionService.RunReplaceAsync(
                 SelectedIc,
                 SelectedNumber,
                 SelectedReplaceMode,
                 CreateReplaceSlotPaths(),
                 CreateGeneralReplaceMappingInputs(),
                 build,
-                cancellationSource.Token,
+                cancellationToken,
                 outputPath,
-                ctrlRamFirmwareVersionEdit);
-            ApplyRunResult(result, build);
-            RefreshCommandState();
-        }
-        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
-        {
-            RefreshCommandState();
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            RefreshCommandState();
-            string action = build ? "Build" : "Preview";
-            LastRunResult = new UiRunResultViewModel(
-                $"{action} failed",
-                exception.Message,
-                "No output",
-                succeeded: false);
-            OnPropertyChanged(nameof(LastRunResult));
-            LoadRunErrorReport(
+                ctrlRamFirmwareVersionEdit),
+            (action, errorMessage) => LoadRunErrorReport(
                 action,
                 $"{SelectedIc.ToLowerInvariant()}-{SelectedReplaceMode.ToLowerInvariant()}-replace",
                 SelectedIc,
                 SelectedNumber,
-                exception.Message,
+                errorMessage,
                 CreateReplaceSlotPaths(),
                 compositionKind: "Replace",
                 modeId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace",
-                experienceId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace");
-        }
-        finally
-        {
-            if (cancellationSource is not null)
-            {
-                CompleteRun(cancellationSource);
-            }
-        }
+                experienceId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace"));
     }
-
-
     private Dictionary<string, string> CreateReplaceSlotPaths()
     {
         Dictionary<string, string> paths = new(StringComparer.Ordinal);

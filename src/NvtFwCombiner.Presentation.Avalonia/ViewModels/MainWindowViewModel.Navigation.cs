@@ -85,7 +85,6 @@ public sealed partial class MainWindowViewModel
         RequestHexEditorSaveCommand.NotifyCanExecuteChanged();
         RequestHexEditorUndoCommand.NotifyCanExecuteChanged();
         RequestHexEditorRedoCommand.NotifyCanExecuteChanged();
-        RefreshSettingsState();
     }
 
     private void RefreshNavigationTrail()

@@ -41,6 +41,8 @@ internal static class ReplaceRegionGroupBuilder
     {
         return label switch
         {
+            string value when value.Contains("(Shared)", StringComparison.OrdinalIgnoreCase) =>
+                ReplaceRegionGroupKeys.Shared,
             string value when value.Contains("(Master)", StringComparison.OrdinalIgnoreCase) =>
                 ReplaceRegionGroupKeys.Master,
             string value when value.Contains("(Slave R)", StringComparison.OrdinalIgnoreCase) =>
@@ -59,24 +61,26 @@ internal static class ReplaceRegionGroupBuilder
     {
         return key switch
         {
-            ReplaceRegionGroupKeys.Master => 0,
-            ReplaceRegionGroupKeys.SlaveRight => 1,
-            ReplaceRegionGroupKeys.SlaveLeft => 2,
-            ReplaceRegionGroupKeys.Single => 3,
-            ReplaceRegionGroupKeys.Base => 4,
-            _ => 5,
+            ReplaceRegionGroupKeys.Shared => 0,
+            ReplaceRegionGroupKeys.Master => 1,
+            ReplaceRegionGroupKeys.SlaveRight => 2,
+            ReplaceRegionGroupKeys.SlaveLeft => 3,
+            ReplaceRegionGroupKeys.Single => 4,
+            ReplaceRegionGroupKeys.Base => 5,
+            _ => 6,
         };
     }
 
     private static bool RegionGroupDefaultExpanded(string key)
     {
-        return key is ReplaceRegionGroupKeys.Master or ReplaceRegionGroupKeys.Single;
+        return key is ReplaceRegionGroupKeys.Shared or ReplaceRegionGroupKeys.Master or ReplaceRegionGroupKeys.Single;
     }
 
     private static string RegionGroupTitle(string key)
     {
         return key switch
         {
+            ReplaceRegionGroupKeys.Shared => "Shared inputs",
             ReplaceRegionGroupKeys.Master => "Master",
             ReplaceRegionGroupKeys.SlaveRight => "Slave R",
             ReplaceRegionGroupKeys.SlaveLeft => "Slave L",
@@ -91,6 +95,7 @@ internal static class ReplaceRegionGroupBuilder
         return key switch
         {
             ReplaceRegionGroupKeys.Base => "Original firmware used as the starting point.",
+            ReplaceRegionGroupKeys.Shared => $"{count} physical input files reused by the approved Postbuild.",
             _ => $"{count} replaceable areas. Add files only for areas you want to change.",
         };
     }
@@ -99,7 +104,7 @@ internal static class ReplaceRegionGroupBuilder
     {
         return key switch
         {
-            ReplaceRegionGroupKeys.Base => $"{count} areas retained from the base flash BIN.",
+            ReplaceRegionGroupKeys.Base => $"{count} areas retained from the base firmware BIN.",
             _ => $"{count} areas that can be replaced for this IC group.",
         };
     }

@@ -48,18 +48,21 @@ public sealed partial class RepositoryBoundaryTests
     public void IcWorkflowFlowchartReferenceCoversBuiltInIcLists()
     {
         string reference = ReadText("docs/architecture/ic-workflow-flowcharts.md");
+        string[] standardMergeIcIds = ReadStandardMergeIcIds();
         string[] builtInIcIds =
         [
-            .. ReadStandardMergeIcIds()
+            .. standardMergeIcIds
                 .Concat(ReadCtrlRamPostbuildIcIds())
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal),
         ];
 
+        Assert.Equal(13, standardMergeIcIds.Length);
+        Assert.Equal(standardMergeIcIds.Length, standardMergeIcIds.Distinct(StringComparer.Ordinal).Count());
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.StandardMerge.BuiltInV2.cs", reference, StringComparison.Ordinal);
-        Assert.Contains("BuiltInReplaceProfiles*.cs", reference, StringComparison.Ordinal);
-        Assert.Contains("explicit production Standard Merge registration list", reference, StringComparison.Ordinal);
+        Assert.Contains("BuiltInV2RegistrationRegistry.cs", reference, StringComparison.Ordinal);
+        Assert.Contains("BuiltInV2Bundle.cs", reference, StringComparison.Ordinal);
+        Assert.Contains("explicit production Standard Merge and DP Replace registration lists", reference, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowFlowchartReferenceCoversBuiltInIcLists", reference, StringComparison.Ordinal);
         Assert.Contains("NT51928 NB is not covered", reference, StringComparison.Ordinal);
         Assert.Contains("0x37000-0x37FFF (len 0x1000)", reference, StringComparison.Ordinal);

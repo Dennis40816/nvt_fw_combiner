@@ -152,7 +152,7 @@ public sealed class FirmwareMapFactsTests
     {
         FirmwareRegionSet regionSet = RegionSet();
         FirmwareMetadataSet metadataSet = MetadataSet();
-        var map = FirmwareImageMap.CreateDirect(
+        FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             "map",
             "flash",
             MapApplicability(["NT00001", "NT00002"]),

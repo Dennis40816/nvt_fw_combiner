@@ -11,8 +11,7 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
     private const string WorkFileName = "work.bin";
     private const string OutputFileName = "output.bin";
 
-    private readonly ExternalCombinerToolRegistry _registry;
-    private readonly string _toolRoot;
+    private readonly ExternalCombinerToolResolver _toolResolver;
     private readonly string _stagingRoot;
     private readonly IExternalProcessRunner _processRunner;
     private readonly Dictionary<string, ExternalCombinerInvocationProfile> _invocationsByProcessorId;
@@ -31,8 +30,7 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
         ArgumentNullException.ThrowIfNull(processRunner);
         ArgumentNullException.ThrowIfNull(invocationProfiles);
 
-        _registry = registry;
-        _toolRoot = Path.GetFullPath(toolRoot);
+        _toolResolver = new ExternalCombinerToolResolver(registry, toolRoot);
         _stagingRoot = Path.GetFullPath(stagingRoot);
         _processRunner = processRunner;
         _invocationsByProcessorId = CreateInvocationIndex(invocationProfiles);
@@ -45,17 +43,16 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (!TryResolveManifest(request, out ExternalCombinerToolManifest? manifest, out CompositionIssue? manifestIssue))
+        if (!_toolResolver.TryResolve(
+                request.ToolBindingId,
+                out ExternalCombinerToolManifest? manifest,
+                out string? executablePath,
+                out CompositionIssue? toolIssue))
         {
-            return ExternalProcessorResult.Failed([manifestIssue!]);
+            return ExternalProcessorResult.Failed([toolIssue!]);
         }
 
         ExternalCombinerToolManifest resolvedManifest = manifest!;
-
-        if (!TryResolveExecutable(resolvedManifest, out string? executablePath, out CompositionIssue? executableIssue))
-        {
-            return ExternalProcessorResult.Failed([executableIssue!]);
-        }
 
         if (!TryResolveInvocation(request, resolvedManifest, out ExternalCombinerInvocationProfile invocation, out CompositionIssue? invocationIssue))
         {
