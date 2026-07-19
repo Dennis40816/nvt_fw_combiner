@@ -546,6 +546,27 @@ unchanged. Focused preferences pass `4/4`, full UI `229/229`, Architecture
 corrupt or abnormal local-state bound, not a packaged startup-latency claim;
 final preference interaction/restoration remains in the Windows manual gate.
 
+## Pinned catalog discovery baseline
+
+Commit `d7bd4ddc` removes document-sized canonicalization allocations from the
+normal repository path used to hash-pin the built-in CtrlRAM Postbuild and TP
+flash-map catalogs. Those tracked files are respectively 192,703 and 46,947
+bytes, contain only ASCII bytes, and already use LF line endings. The loader now
+hashes that exact immutable span and writes the SHA-256 result into stack
+storage instead of decoding a complete UTF-8 string, normalizing an unchanged
+string, and encoding a second complete byte array.
+
+The warmed deterministic 262,144-byte regression changes from 786,688 to 152
+current-thread allocated bytes, removing 786,536 bytes (`99.98%`). The output
+hash is exact. This is an allocation bound, not a startup-latency percentile.
+CR/CRLF, form feed, every non-ASCII sequence including NEL/LS/PS and invalid
+UTF-8, hash mismatch, and strict JSON remain on the original normalization or
+fail-closed path. Focused catalog tests pass `26/26`, full Infrastructure passes
+`243/243` with two platform-specific skips, Bootstrap passes `465/465`, and
+Architecture passes `94/94`. Polytail and independent R2 review report no
+P0-P3 finding. Final packaged first-frame and process working-set evidence
+remain in the Windows manual gate.
+
 ## Immutable staged-artifact verification
 
 Commit `151310d8` removes the remaining full-size verification allocation for
