@@ -431,4 +431,17 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("NvtFwCombiner.Profiles", infrastructureProject, StringComparison.Ordinal);
     }
 
+    /// <summary>Locks NT51926 runtime-reference compilation and execution to one per-run base snapshot.</summary>
+    [Fact]
+    public void CtrlRamRuntimeReferenceRouteReusesItsCompilationBaseSnapshot()
+    {
+        string v2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
+        string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
+
+        Assert.Contains("out byte[] referenceBytes", v2, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(v2, "File.ReadAllBytes(context.BasePath!)"));
+        Assert.Contains("virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)", runner, StringComparison.Ordinal);
+        Assert.Contains("[context.BasePath!] = referenceBytes", runner, StringComparison.Ordinal);
+    }
+
 }

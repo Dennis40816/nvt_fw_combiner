@@ -20,9 +20,10 @@ public static partial class WorkbenchCompositionService
     }
 
     private static V2CompositionPlanCompileResult CompileNt51926Fw141CascadeV2(
-        CtrlRamReplaceRunContext context)
+        CtrlRamReplaceRunContext context,
+        out byte[] referenceBytes)
     {
-        byte[] referenceBytes = File.ReadAllBytes(context.BasePath!);
+        referenceBytes = File.ReadAllBytes(context.BasePath!);
         List<V2RuntimeReferenceReplaceInputBinding> bindings =
         [
             new(

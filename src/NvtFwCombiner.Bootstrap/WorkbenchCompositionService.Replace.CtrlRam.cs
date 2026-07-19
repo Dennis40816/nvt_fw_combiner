@@ -96,7 +96,9 @@ public static partial class WorkbenchCompositionService
 
         if (firmwareVersionEdit is null && IsNt51926Fw141CascadeV2Route(context))
         {
-            V2CompositionPlanCompileResult v2Compile = CompileNt51926Fw141CascadeV2(context);
+            V2CompositionPlanCompileResult v2Compile = CompileNt51926Fw141CascadeV2(
+                context,
+                out byte[] referenceBytes);
             return !v2Compile.IsCompiled
                 ? Blocked(v2Compile.Issues, "nt51926-ctrlram-replace.bin")
                 : await RunCompiledCompositionAsync(
@@ -110,6 +112,10 @@ public static partial class WorkbenchCompositionService
                     icNumberSelection: context.Selection,
                     overwrite: true,
                     cancellationToken,
+                    virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)
+                    {
+                        [context.BasePath!] = referenceBytes,
+                    },
                     progress: progress).ConfigureAwait(false);
         }
 
