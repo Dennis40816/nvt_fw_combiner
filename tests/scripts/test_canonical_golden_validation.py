@@ -1,0 +1,339 @@
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+import os
+import tempfile
+import unittest
+from pathlib import Path
+from types import ModuleType
+
+VALIDATOR_PATH = (
+    Path(__file__).resolve().parents[2] / "scripts" / "canonical_golden_validation.py"
+)
+
+
+def load_validator_module() -> ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        "canonical_golden_validation", VALIDATOR_PATH
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load canonical golden validator")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+VALIDATOR = load_validator_module()
+
+
+class CanonicalGoldenValidationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary_directory.name)
+        self.canonical = self.root / "testdata/golden/canonical"
+        self.case_directory = self.canonical / (
+            "NT51927/standard-merge/gen-flash/topology-unscoped/"
+            "nt51927-standard-merge-gen-flash"
+        )
+        input_path = self.case_directory / "inputs/dp.bin"
+        expected_path = self.case_directory / "expected/flash.bin"
+        input_path.parent.mkdir(parents=True)
+        expected_path.parent.mkdir(parents=True)
+        input_path.write_bytes(b"dp input")
+        expected_path.write_bytes(b"expected output")
+        provenance = self.case_directory / "provenance"
+        provenance.mkdir(parents=True)
+        case_id = "nt51927-standard-merge-gen-flash"
+        case_manifest_path = (
+            "NT51927/standard-merge/gen-flash/topology-unscoped/"
+            f"{case_id}/provenance/case.json"
+        )
+        self.case_manifest = {
+            "schemaVersion": "1.0",
+            "caseId": case_id,
+            "ic": "NT51927",
+            "workflow": "standard-merge",
+            "variantOrVersion": "gen-flash",
+            "topology": "topology-unscoped",
+            "directGolden": True,
+            "sourceClassification": "owner-approved",
+            "ownerApproval": "test fixture",
+            "artifacts": [
+                self.artifact(
+                    "dp-input",
+                    "input",
+                    input_path,
+                    "testdata/golden/standard-merge-gen-flash/inputs/51927/dp.bin",
+                ),
+                self.artifact(
+                    "expected-output",
+                    "expected",
+                    expected_path,
+                    "testdata/golden/standard-merge-gen-flash/expected/51927/flash.bin",
+                ),
+            ],
+        }
+        self.write_json(provenance / "case.json", self.case_manifest)
+        self.root_manifest = {
+            "schemaVersion": "1.0",
+            "payloadClass": "owner-approved-golden",
+            "binaryPayloadsIncluded": True,
+            "diagnosticsRoot": "testdata/diagnostics/golden-evidence",
+            "cases": [{"caseId": case_id, "manifestPath": case_manifest_path}],
+        }
+        self.write_json(self.canonical / "manifest.json", self.root_manifest)
+        (self.canonical / "README.md").write_text(
+            "canonical fixture\n", encoding="utf-8"
+        )
+
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
+    def artifact(
+        self, artifact_id: str, role: str, path: Path, legacy_path: str
+    ) -> dict[str, object]:
+        payload = path.read_bytes()
+        return {
+            "artifactId": artifact_id,
+            "role": role,
+            "path": path.relative_to(self.canonical).as_posix(),
+            "size": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "legacyPaths": [legacy_path],
+        }
+
+    @staticmethod
+    def write_json(path: Path, document: object) -> None:
+        path.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+
+    def validate(self) -> list[str]:
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_golden(self.root, errors)
+        return errors
+
+    def rewrite_case(self) -> None:
+        self.write_json(
+            self.case_directory / "provenance/case.json", self.case_manifest
+        )
+
+    def rewrite_root(self) -> None:
+        self.write_json(self.canonical / "manifest.json", self.root_manifest)
+
+    def add_alias(self, source_case_id: str) -> Path:
+        alias_id = "nt51917-standard-merge-gen-flash-alias"
+        alias_directory = self.canonical / (
+            "NT51917/standard-merge/gen-flash/topology-unscoped/" + alias_id
+        )
+        alias_directory.mkdir(parents=True)
+        alias_manifest_path = (
+            "NT51917/standard-merge/gen-flash/topology-unscoped/"
+            f"{alias_id}/provenance/case.json"
+        )
+        alias_provenance = alias_directory / "provenance"
+        alias_provenance.mkdir()
+        self.write_json(
+            alias_provenance / "case.json",
+            {
+                "schemaVersion": "1.0",
+                "caseId": alias_id,
+                "ic": "NT51917",
+                "workflow": "standard-merge",
+                "variantOrVersion": "gen-flash",
+                "topology": "topology-unscoped",
+                "directGolden": False,
+                "sourceClassification": "owner-approved-fact-alias",
+                "ownerApproval": "test fixture",
+                "alias": {
+                    "sourceCaseId": source_case_id,
+                    "factScope": ["standard-merge region set"],
+                    "evidenceRefs": ["owner decision"],
+                },
+            },
+        )
+        self.root_manifest["cases"].append(
+            {"caseId": alias_id, "manifestPath": alias_manifest_path}
+        )
+        self.rewrite_root()
+        return alias_provenance / "case.json"
+
+    def test_accepts_hash_pinned_direct_case(self) -> None:
+        self.assertEqual([], self.validate())
+
+    def test_rejects_payload_hash_drift(self) -> None:
+        (self.case_directory / "expected/flash.bin").write_bytes(b"changed")
+
+        errors = self.validate()
+
+        self.assertTrue(any("size mismatch" in error for error in errors))
+        self.assertTrue(any("SHA-256 mismatch" in error for error in errors))
+
+    def test_rejects_same_size_payload_hash_drift(self) -> None:
+        path = self.case_directory / "expected/flash.bin"
+        payload = bytearray(path.read_bytes())
+        payload[0] ^= 0xFF
+        path.write_bytes(payload)
+
+        errors = self.validate()
+
+        self.assertFalse(any("size mismatch" in error for error in errors))
+        self.assertTrue(any("SHA-256 mismatch" in error for error in errors))
+
+    def test_rejects_non_integer_size(self) -> None:
+        artifact = self.case_manifest["artifacts"][0]
+        for invalid_size in (True, float(artifact["size"])):
+            with self.subTest(size=invalid_size):
+                artifact["size"] = invalid_size
+                self.rewrite_case()
+
+                errors = self.validate()
+
+                self.assertTrue(
+                    any("non-negative integer" in error for error in errors)
+                )
+
+    def test_rejects_path_escape(self) -> None:
+        self.case_manifest["artifacts"][0]["path"] = "../outside.bin"
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("not a normalized confined path" in error for error in errors)
+        )
+
+    def test_rejects_windows_path_escape(self) -> None:
+        self.case_manifest["artifacts"][0]["path"] = "..\\outside.bin"
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("not a normalized confined path" in error for error in errors)
+        )
+
+    def test_rejects_windows_drive_path(self) -> None:
+        self.case_manifest["artifacts"][0]["path"] = "C:/outside.bin"
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("not a normalized confined path" in error for error in errors)
+        )
+
+    def test_rejects_symlinked_artifact(self) -> None:
+        path = self.case_directory / "expected/flash.bin"
+        outside = self.root / "outside.bin"
+        outside.write_bytes(path.read_bytes())
+        path.unlink()
+        try:
+            os.symlink(outside, path)
+        except OSError as error:
+            self.skipTest(f"symlink creation is unavailable: {error}")
+
+        errors = self.validate()
+
+        self.assertTrue(any("cannot contain a symlink" in error for error in errors))
+
+    def test_rejects_missing_declared_file(self) -> None:
+        (self.case_directory / "expected/flash.bin").unlink()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("cannot resolve canonical artifact" in error for error in errors)
+        )
+
+    def test_rejects_direct_case_without_expected_role(self) -> None:
+        self.case_manifest["artifacts"] = [self.case_manifest["artifacts"][0]]
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("requires input and expected" in error for error in errors))
+
+    def test_rejects_direct_case_without_input_role(self) -> None:
+        self.case_manifest["artifacts"] = [self.case_manifest["artifacts"][1]]
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("requires input and expected" in error for error in errors))
+
+    def test_rejects_diagnostic_path_as_canonical_artifact(self) -> None:
+        self.case_manifest["artifacts"][0]["path"] = (
+            "testdata/diagnostics/golden-evidence/payload.bin"
+        )
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("path must stay below" in error for error in errors))
+
+    def test_rejects_duplicate_artifact_declaration(self) -> None:
+        duplicate = dict(self.case_manifest["artifacts"][0])
+        self.case_manifest["artifacts"].append(duplicate)
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("duplicate artifactId" in error for error in errors))
+        self.assertTrue(any("declared more than once" in error for error in errors))
+
+    def test_rejects_malformed_sha(self) -> None:
+        self.case_manifest["artifacts"][0]["sha256"] = "not-a-sha"
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("invalid sha256" in error for error in errors))
+
+    def test_rejects_undeclared_file(self) -> None:
+        (self.case_directory / "inputs/extra.bin").write_bytes(b"extra")
+
+        errors = self.validate()
+
+        self.assertTrue(any("contains undeclared files" in error for error in errors))
+
+    def test_accepts_fact_scoped_alias_without_payload_copy(self) -> None:
+        self.add_alias("nt51927-standard-merge-gen-flash")
+
+        self.assertEqual([], self.validate())
+
+    def test_rejects_alias_without_direct_source(self) -> None:
+        self.add_alias("missing-direct-case")
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("must reference a direct canonical case" in error for error in errors)
+        )
+
+    def test_rejects_alias_with_physical_artifacts(self) -> None:
+        alias_manifest_path = self.add_alias("nt51927-standard-merge-gen-flash")
+        alias_manifest = json.loads(alias_manifest_path.read_text(encoding="utf-8"))
+        alias_manifest["artifacts"] = [self.case_manifest["artifacts"][0]]
+        self.write_json(alias_manifest_path, alias_manifest)
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any(
+                "alias case cannot contain physical artifacts" in error
+                for error in errors
+            )
+        )
+
+    def test_rejects_diagnostics_root_drift(self) -> None:
+        self.root_manifest["diagnosticsRoot"] = "testdata/golden/canonical/diagnostics"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("diagnosticsRoot must be" in error for error in errors))
+
+
+if __name__ == "__main__":
+    unittest.main()
