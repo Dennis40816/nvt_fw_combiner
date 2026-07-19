@@ -3,10 +3,11 @@
 This directory is reserved for owner-provided CtrlRAM Replace evidence.
 
 Owner-approved committed fixtures live under `fixtures/`. The original fixture
-set is listed by `manifest.json`; dated direct-evidence intakes are listed by
-`manifest.20260717.json` and `manifest.20260718.json`. The repository verifier
-checks every inventory, size, SHA-256 value, and the final intake's exact-case
-relationships without promoting runtime support.
+set is listed by `manifest.json`; the 2026-07-17 intake remains listed by
+`manifest.20260717.json` until its migration slice completes. The final
+2026-07-18 direct cases now live only under `../canonical/`, where the repository
+verifier checks every inventory, size, SHA-256 value, and exact-case relationship
+without promoting runtime support.
 
 Do not commit new private firmware BIN files by default. Put unapproved
 local/private payloads under `private/`, update `private/manifest.json` from
@@ -30,11 +31,13 @@ Current behavior:
   preserves technical project and `AUTO_PRJ` filenames. It is evidence intake,
   not a runtime-support promotion.
 - The official owner system may provide only the final expected firmware and physical CtrlRAM inputs. Do not ask the owner to fabricate or rename that final output as `base.bin`. Expected-only intake may use the documented expected-derived sentinel audit, but it is range/processor evidence rather than independent base-backed parity and cannot promote support by itself.
-- The 2026-07-18 final intake records exact NT51926, NT51930, NT51931,
+- The canonical 2026-07-18 final intake records exact NT51926, NT51930, NT51931,
   NT51932, and NT51951 cases. Most provide Standard Merge DP/TP inputs rather
-  than a pre-Replace FlashCode; only NT51931 includes a direct reference
-  FlashCode. The manifest keeps those base kinds distinct and lists every
-  unresolved tool/provenance gate.
+  than a pre-Replace FlashCode. NT51931 supplied a historical non-same-build
+  FlashCode, which remains outside the canonical case as diagnostic evidence
+  only; its exact route uses the documented expected-derived control. Each
+  canonical case keeps those base kinds distinct and lists every unresolved
+  tool/provenance gate.
 - The owner-authorized NT51926 TP-base self-test case lives under `fixtures/derived/20260717`; it archives the same-byte TP golden input and real-workflow output, plus exact half-open integrity ranges and the two-command Combiner 1.13.0 trace. Git deduplicates the copied TP input blob and keeps it distinct from the HackMD intake inventory.
 - Full-byte comparison and independent R3 review remain pending for the other
   cases before broader parity can be claimed.

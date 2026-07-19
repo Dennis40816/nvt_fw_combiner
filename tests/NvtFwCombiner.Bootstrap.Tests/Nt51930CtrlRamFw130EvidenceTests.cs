@@ -405,27 +405,18 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
 
     private static OwnerCase ReadOwnerCase()
     {
-        string goldenRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.20260718.json")));
-        JsonElement caseElement = manifest.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(candidate => StringComparer.Ordinal.Equals(candidate.GetProperty("caseId").GetString(), CaseId));
+        string goldenRoot = CanonicalGoldenTestData.Root;
+        JsonElement caseElement = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
         OwnerArtifact[] artifacts = [
-            .. manifest.RootElement.GetProperty("payloads")
+            .. caseElement.GetProperty("artifacts")
                 .EnumerateArray()
-                .Where(candidate => StringComparer.Ordinal.Equals(candidate.GetProperty("caseId").GetString(), CaseId))
                 .Select(candidate => ReadArtifact(goldenRoot, candidate)),
         ];
-        OwnerArtifact expected = artifacts.Single(artifact => StringComparer.Ordinal.Equals(
-            artifact.RelativePath,
-            caseElement.GetProperty("expectedOutput").GetString()));
-        JsonElement batEntry = manifest.RootElement.GetProperty("supportingFiles")
-            .EnumerateArray()
-            .Single(candidate => StringComparer.Ordinal.Equals(candidate.GetProperty("caseId").GetString(), CaseId));
-        OwnerArtifact bat = ReadArtifact(goldenRoot, batEntry);
-        JsonElement toolEntry = manifest.RootElement.GetProperty("externalToolObservations")
-            .EnumerateArray()
-            .Single(candidate => StringComparer.Ordinal.Equals(candidate.GetProperty("caseId").GetString(), CaseId));
+        OwnerArtifact expected = artifacts.Single(static artifact =>
+            StringComparer.Ordinal.Equals(artifact.Role, "expected-final-output"));
+        OwnerArtifact bat = artifacts.Single(static artifact =>
+            StringComparer.Ordinal.Equals(artifact.Role, "postbuild-command-evidence"));
+        JsonElement toolEntry = Assert.Single(caseElement.GetProperty("externalToolObservations").EnumerateArray());
         return new OwnerCase(
             artifacts,
             artifacts.Single(static artifact => StringComparer.Ordinal.Equals(artifact.Role, "standard-merge-dp-input")),
@@ -447,7 +438,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         return new OwnerArtifact(
             entry.GetProperty("originalFileName").GetString()!,
             entry.GetProperty("path").GetString()!,
-            entry.GetProperty("role").GetString()!,
+            entry.GetProperty("sourceRole").GetString()!,
             path,
             bytes);
     }

@@ -418,7 +418,7 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
         errors = self.validate()
 
-        self.assertTrue(any("requires input and expected" in error for error in errors))
+        self.assertTrue(any("exactly one expected" in error for error in errors))
 
     def test_rejects_direct_case_without_input_role(self) -> None:
         self.case_manifest["artifacts"] = [self.case_manifest["artifacts"][1]]
@@ -426,7 +426,22 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
         errors = self.validate()
 
-        self.assertTrue(any("requires input and expected" in error for error in errors))
+        self.assertTrue(any("requires input artifacts" in error for error in errors))
+
+    def test_rejects_direct_case_with_multiple_expected_roles(self) -> None:
+        duplicate_path = self.case_directory / "expected/flash-copy.bin"
+        duplicate_path.write_bytes(
+            (self.case_directory / "expected/flash.bin").read_bytes()
+        )
+        duplicate = dict(self.case_manifest["artifacts"][1])
+        duplicate["artifactId"] = "expected-output-copy"
+        duplicate["path"] = duplicate_path.relative_to(self.canonical).as_posix()
+        self.case_manifest["artifacts"].append(duplicate)
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("exactly one expected" in error for error in errors))
 
     def test_rejects_direct_input_evidence_with_expected_role(self) -> None:
         self.case_manifest["directGolden"] = False

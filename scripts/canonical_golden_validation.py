@@ -344,9 +344,11 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                     roles,
                     errors,
                 )
-            if direct and ("input" not in roles or "expected" not in roles):
+            if direct and "input" not in roles:
+                errors.append(f"{label} direct golden requires input artifacts")
+            if direct and roles.count("expected") != 1:
                 errors.append(
-                    f"{label} direct golden requires input and expected artifacts"
+                    f"{label} direct golden requires exactly one expected artifact"
                 )
             if direct_evidence and "input" not in roles:
                 errors.append(f"{label} direct evidence requires input artifacts")

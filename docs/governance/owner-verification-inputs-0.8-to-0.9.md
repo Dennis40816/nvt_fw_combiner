@@ -5,7 +5,7 @@ Status: superseded historical checklist for the stable v0.9.9 final intake.
 Do not use this document to request more v0.9.9 owner data. The current,
 owner-complete authority is:
 
-- `testdata/golden/ctrlram-replace/manifest.20260718.json`;
+- `testdata/golden/canonical/manifest.json` 的 `ctrlram-replace` direct cases；
 - `docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md`.
 
 The final intake has no remaining owner-input or owner-decision gate. Any older

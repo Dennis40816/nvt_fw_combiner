@@ -5,7 +5,7 @@
 
 目前唯一有效的收件與工程 gate 清單是：
 
-- `../ctrlram-replace/manifest.20260718.json`
+- `../canonical/manifest.json` 的 `ctrlram-replace` direct cases
 - `../../../docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md`
 
 `0718-missing-owner-evidence/` 與舊 per-IC `CASE.md` 只保留歷史追蹤用途，不能再

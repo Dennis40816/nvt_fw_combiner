@@ -373,8 +373,8 @@ If owner later insists on production behavior, treat it as R3 firmware behavior:
 
 ## Current Engineering Gates Before "CtrlRAM Replace OK"
 
-The final owner intake is pinned by
-`testdata/golden/ctrlram-replace/manifest.20260718.json`; its current execution
+The final owner intake is pinned by the `ctrlram-replace` direct cases in
+`testdata/golden/canonical/manifest.json`; its current execution
 matrix is `docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md`.
 There is no remaining owner-input or owner-decision gate. The rows below are
 agent-owned parity, tool, route, and review work.

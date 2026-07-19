@@ -229,29 +229,15 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
 
     private static OwnerCase ReadOwnerCase(string caseId)
     {
-        string goldenRoot = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(
-            goldenRoot,
-            "manifest.20260718.json")));
-        JsonElement caseElement = manifest.RootElement.GetProperty("cases")
+        string goldenRoot = CanonicalGoldenTestData.Root;
+        JsonElement caseElement = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        var artifacts = caseElement.GetProperty("artifacts")
             .EnumerateArray()
-            .Single(candidate => StringComparer.Ordinal.Equals(
-                candidate.GetProperty("caseId").GetString(),
-                caseId));
-        var artifacts = manifest.RootElement.GetProperty("payloads")
-            .EnumerateArray()
-            .Where(candidate => StringComparer.Ordinal.Equals(
-                candidate.GetProperty("caseId").GetString(),
-                caseId))
             .Select(candidate => ReadArtifact(goldenRoot, candidate))
             .ToDictionary(static artifact => artifact.FileName, StringComparer.Ordinal);
 
-        string expectedPath = caseElement.GetProperty("expectedOutput").GetString()!;
-        OwnerArtifact expected = artifacts.Values.Single(artifact =>
-            StringComparer.Ordinal.Equals(artifact.RelativePath, expectedPath));
+        OwnerArtifact expected = artifacts.Values.Single(static artifact =>
+            StringComparer.Ordinal.Equals(artifact.Role, "expected-final-output"));
         OwnerArtifact dp = artifacts.Values.Single(artifact =>
             StringComparer.Ordinal.Equals(artifact.Role, "standard-merge-dp-input"));
         OwnerArtifact tp = artifacts.Values.Single(artifact =>
@@ -268,7 +254,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         return new OwnerArtifact(
             entry.GetProperty("originalFileName").GetString()!,
             entry.GetProperty("path").GetString()!,
-            entry.GetProperty("role").GetString()!,
+            entry.GetProperty("sourceRole").GetString()!,
             path,
             bytes);
     }

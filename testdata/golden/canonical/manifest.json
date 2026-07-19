@@ -33,6 +33,32 @@
         "approval": "Repository owner supplied the archive and directed AB golden BIN fixtures to be tracked on 2026-07-14.",
         "evidenceApplicabilityApproval": "On 2026-07-18 the repository owner approved NT51929 AB evidence as fact-scoped NT51919 and NT51932 family aliases, and NT51950 AB evidence as fact-scoped NT51951 workflow-logic evidence; none promotes runtime support."
       }
+    },
+    {
+      "legacyRoot": "testdata/golden/ctrlram-replace/fixtures/20260718",
+      "source": {
+        "fileName": "Golden_最後一次_20260718_Reply.7z",
+        "sha256": "da32ae0acebcd89a5c2b548cd4e0863620cfc774010751f6e826bc9cbc0f4351",
+        "transfer": "HackMD CJK14 numbered-note transfer",
+        "inventoryFileName": "Golden_最後一次_20260718_SHA256.csv",
+        "inventoryFiles": 117,
+        "inventoryBins": 89,
+        "inventoryBytes": 12459915,
+        "recoveredDateTaipei": "2026-07-18",
+        "sourceClassification": "private-owner-approved-golden",
+        "approval": "Repository owner explicitly approved committing all golden payloads to Git on 2026-07-18. Technical project and AUTO_PRJ data is retained; personal data, placeholders, PDBs, and unapproved executable copies are excluded.",
+        "evidenceScope": "Direct exact-case evidence intake only. No additional owner input is required. No support promotion, range, processor, CRC, or runtime route change is authorized by this manifest.",
+        "ownerDecisions": [
+          "NT51950 currently has no cascade product case; no direct cascade support may be inferred from expected stable ranges.",
+          "NT51951 currently has only single product projects; this direct single golden replaces an earlier conflicting package.",
+          "NT51950 cascade and NT51951 cascade are excluded from the v0.9.9 release scope rather than treated as missing owner evidence.",
+          "General Replace must apply every replacement first and then run one complete postbuild in the same terminal/session.",
+          "TP firmware version editing must occur before postbuild so CRC is calculated from the staged value.",
+          "NT51931 InsertSID is an out-of-scope pre-step for this V1 retirement and does not block exact CtrlRAM/Postbuild full-byte parity.",
+          "NT51931 selects registered Combiner 1.13.0 NT51931BASED_NORMAL_MODE after its output matched the owner 1.2.0.4 NT51930BASED_NORMAL_MODE control byte-for-byte on 2026-07-19.",
+          "NT51951 Combiner 1.11 and 1.13 equivalence is an owner-authorized compatibility hypothesis that must be resolved by direct 1.11-expected versus registered-1.13 parity."
+        ]
+      }
     }
   ],
   "cases": [
@@ -115,6 +141,30 @@
     {
       "caseId": "nt51951-ab-hiway-d82t80-workflow-alias",
       "manifestPath": "NT51951/ab-merge/hiway-d82t80/topology-unscoped/nt51951-ab-hiway-d82t80-workflow-alias/provenance/case.json"
+    },
+    {
+      "caseId": "nt51926-fw200-single-auto-prj-597-20260718",
+      "manifestPath": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/provenance/case.json"
+    },
+    {
+      "caseId": "nt51926-fw200-cascade3-auto-prj-597-20260718",
+      "manifestPath": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/provenance/case.json"
+    },
+    {
+      "caseId": "nt51930-fw130-cascade3-auto-prj-302-inx-20260718",
+      "manifestPath": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/provenance/case.json"
+    },
+    {
+      "caseId": "nt51931-fw130-cascade6-auto-prj-158-20260718",
+      "manifestPath": "NT51931/ctrlram-replace/fw1.3.0/cascade-6/nt51931-fw130-cascade6-auto-prj-158-20260718/provenance/case.json"
+    },
+    {
+      "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+      "manifestPath": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/provenance/case.json"
+    },
+    {
+      "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
+      "manifestPath": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/provenance/case.json"
     }
   ]
 }
