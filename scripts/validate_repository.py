@@ -25,6 +25,7 @@ from external_tool_policy import (
     ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS,
     APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS,
     APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS,
+    validate_external_tool_catalog,
     validate_repository_external_tool_manifests,
 )
 from repository_contract_validation import validate_v2_contract_model
@@ -42,6 +43,7 @@ REQUIRED_FILES = {
     "scripts/canonical_golden_validation.py", "scripts/code_size_policy.py", "scripts/external_tool_policy.py",
     "scripts/repository_contract_validation.py",
     "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py", "external-tools/README.md",
+    "external-tools/catalog.json",
     "external-tools/legacy-combiner/README.md", "external-tools/legacy-combiner/1.13.0/manifest.json",
     "testdata/golden/canonical/manifest.json", "testdata/golden/release-standard-merge-v1.json",
     "testdata/diagnostics/golden-evidence/README.md", "testdata/diagnostics/golden-evidence/manifest.json",
@@ -673,24 +675,34 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
         )
 
     validate_repository_external_tool_manifests(ROOT, APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS, errors)
-
-    package_script = ROOT / "scripts/package.ps1"
-    text = package_script.read_text(encoding="utf-8")
-    match = re.search(
-        r"\$ApprovedExternalToolPackagePaths\s*=\s*@\((.*?)\)\s*\|\s*Sort-Object",
-        text,
-        flags=re.DOTALL,
+    validate_external_tool_catalog(
+        ROOT,
+        APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS,
+        APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS,
+        errors,
     )
-    if match is None:
-        errors.append("package.ps1 must declare a fixed ApprovedExternalToolPackagePaths allowlist")
-        return
 
-    declared_paths = {PurePosixPath(path) for path in re.findall(r"'([^']+)'", match.group(1))}
-    if declared_paths != APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS:
-        errors.append(
-            "package.ps1 external tool allowlist differs from the approved package paths: "
-            f"{', '.join(str(path) for path in sorted(declared_paths))}"
+    for script_name in ("package.ps1", "smoke-release.ps1"):
+        text = (ROOT / "scripts" / script_name).read_text(encoding="utf-8")
+        match = re.search(
+            r"\$ApprovedExternalToolPackagePaths\s*=\s*@\((.*?)\)\s*\|\s*Sort-Object",
+            text,
+            flags=re.DOTALL,
         )
+        if match is None:
+            errors.append(
+                f"{script_name} must declare a fixed ApprovedExternalToolPackagePaths allowlist"
+            )
+            continue
+
+        declared_paths = {
+            PurePosixPath(path) for path in re.findall(r"'([^']+)'", match.group(1))
+        }
+        if declared_paths != APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS:
+            errors.append(
+                f"{script_name} external tool allowlist differs from the approved package paths: "
+                f"{', '.join(str(path) for path in sorted(declared_paths))}"
+            )
 
 
 def validate_agent_files(errors: list[str]) -> None:
