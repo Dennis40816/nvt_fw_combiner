@@ -4,6 +4,20 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
+    /// <summary>Shared Report group headers remain visibly inset from the Expander frame.</summary>
+    [Fact]
+    public void ReportGroupHeadersKeepAnInsetFromTheExpanderFrame()
+    {
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string inputs = ReadPresentationFile("Resources/MainWindowReportInputTemplates.axaml");
+        string changes = ReadPresentationFile("Resources/MainWindowReportChangeTemplates.axaml");
+        string headerStyle = ExtractStyle(styles, "Border.reportInputGroupHeader");
+
+        Assert.Contains("Property=\"Margin\" Value=\"8\"", headerStyle, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"reportInputGroupHeader\"", inputs, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"reportInputGroupHeader\"", changes, StringComparison.Ordinal);
+    }
+
     /// <summary>Ensures the Report raw payload uses the shared read-only text control.</summary>
     [Fact]
     public void ReportRawPayloadUsesTheSharedReadOnlyTextBox()
