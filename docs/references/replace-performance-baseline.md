@@ -642,13 +642,13 @@ This does not cache process results, staging state, or executable trust. Each
 transform still creates a private run directory and the resolver rechecks the
 selected executable's existence and SHA-256 against the retained manifest. No
 physical tool path is embedded. Focused lifetime plus current-layout NT51926
-owner-golden-backed tests pass `5/5`, and Architecture passes `94/94`. The full
-Bootstrap run reaches `459/460`; its only failure is the pre-existing
-`ProfilesListOutputRemainsStable` expected string omitting the already
-registered NT51930 DP Replace row. It reproduces alone, and both the stale
-expected string and registration already exist at predecessor `358817cb`, so
-it is unrelated to processor construction. Final Node B/C records
-one discovery/manifest/registry build per process and repeats physical-layout
-parity after predecessor reconciliation. Independent R2 architecture review
-reports no P0/P1 finding and passes with the final Node B/C, reconciled-layout,
+owner-golden-backed tests pass `5/5`, and Architecture passes `94/94`. The
+unrelated profile-list regression expectation is reconciled at `2d227cb2` with
+the already registered NT51930 DP Replace row from annotated `v0.9.9`; the
+focused test passes `1/1`, full Bootstrap passes `465/465`, and Architecture
+passes `94/94`. The test blob exactly matches annotated `v0.9.9`, and
+independent review reports no P0-P3 finding. Final Node B/C records one
+discovery/manifest/registry build per process and repeats physical-layout parity
+after predecessor reconciliation. Independent R2 architecture review reports
+no P0/P1 finding and passes with the final Node B/C, reconciled-layout,
 domain-owner, and canonical-verification gates retained.
