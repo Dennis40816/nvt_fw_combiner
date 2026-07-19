@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-07-10
+- Amended: 2026-07-17 for the v0.9.9 code-size convergence gate
+- v0.9.9 amendment status: Proposed; architecture review required before merge
 - Risk class: R2
 
 ## Context
@@ -12,23 +14,18 @@ The UI must not infer a firmware field from an output address. Doing so would du
 
 ## Decision
 
-1. `NvtFwCombiner.Application.FlashMaps.TpBinaryModelCatalog` owns an inspection-only root model for every supported IC:
+1. `NvtFwCombiner.Application.FlashMaps.TpHeaderCatalog` owns one workbook-derived
+   `TpHeaderLayout` for every supported IC and the stable semantic category ids
+   actually emitted by output-difference reports. The previously materialized
+   `TpBinaryModelCatalog` root/category tree is retired in v0.9.9 because no
+   UI, CLI, report, or runtime consumer ever read it.
 
-   ```text
-   TP Flash Image
-   ├─ TP Flash Header
-   ├─ FW Configuration
-   ├─ CtrlRAM
-   ├─ Display / DP
-   ├─ Project ID
-   ├─ Customer Information
-   ├─ FW Information
-   └─ Other documented regions
-   ```
+2. Each layout contains named half-open header field ranges. TP Overview regions
+   remain owned by hash-pinned `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`;
+   report semantics do not duplicate their complete category tree or materialize
+   unused address anchors.
 
-2. Each model points to the existing TP Overview regions and, for `TP Flash Header`, to a workbook-derived `TpHeaderLayout` containing named half-open field ranges. The model may also contain a documented start-address anchor when the source provides a start but not a safe range length.
-
-3. Existing `TpFlashMapRegionKind`, region visibility, General Replace access, compiled mappings, Combiner command plans, external processor authority, and allowed write ranges remain unchanged. The new binary model is not an authorization input.
+3. Existing `TpFlashMapRegionKind`, region visibility, General Replace access, compiled mappings, Combiner command plans, external processor authority, and allowed write ranges remain unchanged. The semantic catalog is not an authorization input.
 
 4. `CompositionRunService` projects a nested `OutputDifferences[].Semantic` object after the output byte diff is calculated. It contains a category, a physical parent section, and a field/section subject. Presentation consumes it directly and retains a fallback for historical reports that do not include the object.
 
@@ -39,6 +36,9 @@ The UI must not infer a firmware field from an output address. Doing so would du
 ## Consequences
 
 - A normal NT51926 difference in `[0x001C, 0x0020)` is reported as `TP Flash Header` / `DLM CRC 0` rather than a generic CRC bucket.
+- Removing the unbound root/category object model does not remove any rendered
+  report field, semantic category, historical-report fallback, or authorization
+  rule. It removes only a public projection with no production caller.
 - The current report file remains backward-compatible because `Semantic` is optional when parsing older JSON.
 - Copy provenance is retained as report metadata on the existing processor write-section declaration. It grants no additional processor read/write authority and does not alter the selected Combiner command line.
 - The canonical `composition-report-v1` schema is not expanded by this ADR. `CompositionRunReport` is an Application/workbench report projection and must be documented separately from the versioned wire schema.
@@ -47,7 +47,7 @@ The UI must not infer a firmware field from an output address. Doing so would du
 
 ## Verification
 
-- Catalog tests require every supported IC to expose the stable root/category structure.
+- Catalog tests require every supported IC to expose one evidenced header layout.
 - Catalog tests pin NT51926 `[0x0000, 0x0004)` to `ILM start address in BIN` and NT51927 `[0x023C, 0x0240)` to `DLM CRC 0`.
 - An Application report test pins NT51926 `[0x001C, 0x0020)` postbuild output to semantic subject `DLM CRC 0`.
 - UI smoke tests pin semantic-first report parsing and historical-report fallback behavior.

@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests;
@@ -69,6 +68,25 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal([1, 2, 3, 4, 9, 8, 7, 6], writer.OutputBytes);
     }
 
+    /// <summary>Verifies automatic build commits the exact output from one authoritative execution.</summary>
+    [Fact]
+    public async Task AutomaticBuildCommitsSyntheticStandardMergeOutputFromOneRun()
+    {
+        CompositionRunService service = CreateService(out FakeOutputWriter writer);
+
+        CompositionRunResult result = await service.PreviewOrBuildAsync(
+            CreateRequest(),
+            build: true,
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal("committed:synthetic-standard-merge.bin", result.CommittedOutputId);
+        Assert.Null(result.PreviewToken);
+        Assert.True(result.Report.Output.Committed);
+        Assert.Equal("synthetic-standard-merge.bin", writer.FileName);
+        Assert.Equal([1, 2, 3, 4, 9, 8, 7, 6], writer.OutputBytes);
+    }
+
     /// <summary>Verifies build fails before reading or committing when no preview token is approved.</summary>
     [Fact]
     public async Task BuildRequiresApprovedPreviewTokenBeforeCommit()
@@ -122,19 +140,14 @@ public sealed partial class CompositionRunServiceTests
     [Fact]
     public async Task MissingStandardMergeBindingFailsClosed()
     {
-        CompositionProfileDefinition profile = SyntheticStandardMergeProfile.Create();
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
         {
             ["dp-artifact"] = [1, 2, 3, 4],
         });
         var writer = new FakeOutputWriter();
         var service = new CompositionRunService(reader, new FakeClock([FirstTimestamp, SecondTimestamp]), writer);
-        var request = new CompositionRunRequest(
-            "run-missing",
-            compile.CompiledComposition!,
+        CompositionRunRequest request = CreateRequest(
             [new InputArtifactBinding("dp-input", "dp-input", "dp-artifact")],
-            profile.DefaultOutputFileName,
             approvedPreviewToken: "approved-preview-token");
 
         CompositionRunResult result = await service.BuildAsync(request, CancellationToken.None);
@@ -323,18 +336,61 @@ public sealed partial class CompositionRunServiceTests
         Assert.All(result.Report.Issues, issue => Assert.Equal(CompositionIssueSeverity.Error, issue.Severity));
     }
 
+    /// <summary>One immutable artifact is read and hashed once while each address space keeps its own buffer.</summary>
+    [Fact]
+    public async Task PreviewSnapshotsSharedArtifactOncePerRun()
+    {
+        byte[] sharedBytes = [0x11, 0x22, 0x33, 0x44];
+        var reader = new CountingArtifactReader(sharedBytes);
+        var service = new CompositionRunService(
+            reader,
+            new FakeClock([FirstTimestamp, SecondTimestamp]));
+        CompositionRunRequest request = CreateRequest(bindings:
+        [
+            new InputArtifactBinding("dp-input", "dp-safe", "shared-artifact"),
+            new InputArtifactBinding("tp-input", "tp-safe", "shared-artifact"),
+        ]);
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(1, reader.ReadCount);
+        Assert.Equal([.. sharedBytes, .. sharedBytes], result.OutputBytes.ToArray());
+        Assert.Equal(["dp-input", "tp-input"], result.Report.Inputs.Select(input => input.AddressSpaceId));
+        _ = Assert.Single(result.Report.Inputs.Select(input => input.Sha256).Distinct(StringComparer.Ordinal));
+    }
+
+    /// <summary>A failed shared artifact read is retried so each missing binding keeps its own issue.</summary>
+    [Fact]
+    public async Task PreviewDoesNotCacheSharedArtifactReadFailure()
+    {
+        var reader = new CountingArtifactReader(bytes: null);
+        var service = new CompositionRunService(
+            reader,
+            new FakeClock([FirstTimestamp, SecondTimestamp]));
+        CompositionRunRequest request = CreateRequest(bindings:
+        [
+            new InputArtifactBinding("dp-input", "dp-safe", "missing-shared-artifact"),
+            new InputArtifactBinding("tp-input", "tp-safe", "missing-shared-artifact"),
+        ]);
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Equal(2, reader.ReadCount);
+        Assert.Equal(2, result.Report.Issues.Count);
+        Assert.All(result.Report.Issues, issue => Assert.Equal("input.artifact.read-failed", issue.Code));
+    }
+
     /// <summary>Verifies Replace requests require IC number context before execution.</summary>
     [Fact]
     public void ReplaceRunRequestRequiresIcNumberSelection()
     {
-        CompositionProfileDefinition profile = SyntheticReplaceProfiles.Dp;
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-
         ArgumentException exception = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
             "run-missing-ic",
-            compile.CompiledComposition!,
+            CreateDpReplaceCompiledComposition(),
             CreateDpReplaceBindings(),
-            profile.DefaultOutputFileName));
+            "synthetic-dp-replace.bin"));
 
         Assert.Contains("IC number selection", exception.Message, StringComparison.Ordinal);
     }

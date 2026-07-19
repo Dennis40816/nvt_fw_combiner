@@ -11,7 +11,7 @@ public static partial class WorkbenchCompositionService
         out LegacyCombinerPostbuildProfile? postbuildProfile,
         out CompositionIssue? issue)
     {
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
         if (profiles.Count == 0)
         {
             postbuildProfile = null;
@@ -23,7 +23,7 @@ public static partial class WorkbenchCompositionService
         }
 
         string? commonFwVersion = null;
-        if (profiles.Count > 1 &&
+        if (profiles.Any(static profile => profile.CommonFwVersionRule is not null) &&
             !TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion))
         {
             postbuildProfile = null;
@@ -34,7 +34,7 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        if (!IcMetadataFacade.TrySelectPostbuildProfile(
+        if (!TrySelectPostbuildProfileByCommonFwVersion(
                 icId,
                 commonFwVersion,
                 out postbuildProfile,
@@ -49,15 +49,5 @@ public static partial class WorkbenchCompositionService
 
         issue = null;
         return true;
-    }
-
-    private static string FormatPostbuildCommandBlock(LegacyCombinerPostbuildCommandPlan commandPlan)
-    {
-        string firmwarePath = Path.Combine("output", commandPlan.Profile.FirmwareFileName);
-        const string binDirectory = "BIN";
-        return string.Join(
-            Environment.NewLine,
-            commandPlan.Commands.Select(command =>
-                $"Combiner.exe {string.Join(' ', LegacyCombinerPostbuildCommandLineBuilder.CreateArguments(command, firmwarePath, binDirectory))}"));
     }
 }

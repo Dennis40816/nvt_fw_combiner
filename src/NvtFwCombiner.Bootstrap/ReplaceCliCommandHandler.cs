@@ -73,10 +73,27 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
+        if (!TryResolveReplaceIc(command, profileSelector, out string? icId))
+        {
+            return await UnknownReplaceProfileAsync(command, profileSelector, error).ConfigureAwait(false);
+        }
+
+        string replaceMode = command switch
+        {
+            IcWorkflowIds.DpReplace => WorkbenchReplaceModes.Dp,
+            IcWorkflowIds.CtrlRamReplace => WorkbenchReplaceModes.CtrlRam,
+            _ => WorkbenchReplaceModes.General,
+        };
+        if (!WorkbenchCompositionService.IsReplaceWorkflowSupported(icId, replaceMode))
+        {
+            await error.WriteLineAsync(
+                $"error: {WorkbenchIssueCodes.ReplaceWorkflowNotSupported}: {icId} {replaceMode} Replace is Not available.")
+                .ConfigureAwait(false);
+            return CompositionFailed;
+        }
+
         return command == IcWorkflowIds.DpReplace
-            ? !TryResolveDpPerspectiveDpReplaceIc(profileSelector, out string? icId)
-                ? await UnknownReplaceProfileAsync(command, profileSelector, error).ConfigureAwait(false)
-                : await RunWorkbenchDpReplaceAsync(
+            ? await RunWorkbenchDpReplaceAsync(
                     action,
                     icId,
                     options,
@@ -87,7 +104,7 @@ internal static partial class ReplaceCliCommandHandler
             : command == IcWorkflowIds.CtrlRamReplace
             ? await RunWorkbenchCtrlRamReplaceAsync(
                     action,
-                    profileSelector,
+                    icId,
                     options,
                     output,
                     error,
@@ -95,7 +112,7 @@ internal static partial class ReplaceCliCommandHandler
                 .ConfigureAwait(false)
             : await RunWorkbenchGeneralReplaceAsync(
                     action,
-                    profileSelector,
+                    icId,
                     options,
                     output,
                     error,

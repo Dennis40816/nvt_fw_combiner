@@ -119,12 +119,9 @@ public sealed class FirmwareMapResolutionResult
                 "Unknown map resolution rejection kind.");
         }
 
-        ArgumentNullException.ThrowIfNull(pendingRequirements);
-        _pendingRequirements = [.. pendingRequirements];
-        if (_pendingRequirements.Any(static requirement => requirement is null))
-        {
-            throw new ArgumentException("Pending map-resolution requirements cannot contain null.", nameof(pendingRequirements));
-        }
+        _pendingRequirements = Composition.ImmutableReferenceSnapshot.Create(
+            pendingRequirements,
+            "Pending map-resolution requirements cannot contain null.");
 
         if (_pendingRequirements.Distinct().Count() != _pendingRequirements.Length)
         {
@@ -306,15 +303,12 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         private static FirmwareArtifactIdentity[] SnapshotArtifactIdentities(
             IEnumerable<FirmwareArtifactIdentity> artifactIdentities)
         {
-            ArgumentNullException.ThrowIfNull(artifactIdentities);
-            FirmwareArtifactIdentity[] snapshot = [.. artifactIdentities];
-            if (snapshot.Any(static identity => identity is null) ||
-                snapshot.Select(static identity => identity.ArtifactId).Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-            {
-                throw new ArgumentException(
-                    "Resolved artifact identities must be non-null and ordinally unique.",
-                    nameof(artifactIdentities));
-            }
+            FirmwareArtifactIdentity[] snapshot = Composition.ImmutableReferenceSnapshot.CreateUnique(
+                artifactIdentities,
+                static identity => identity.ArtifactId,
+                "Resolved artifact identities must be non-null and ordinally unique.",
+                "Resolved artifact identities must be non-null and ordinally unique.",
+                StringComparer.Ordinal);
 
             Array.Sort(snapshot, static (left, right) =>
                 StringComparer.Ordinal.Compare(left.ArtifactId, right.ArtifactId));
@@ -327,14 +321,14 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             FirmwareMetadataStructure[] expectedStructures,
             IReadOnlyList<FirmwareArtifactIdentity> artifactIdentities)
         {
-            ArgumentNullException.ThrowIfNull(resolvedMetadataStructures);
             ArgumentNullException.ThrowIfNull(expectedStructures);
-            FirmwareResolvedMetadataStructure[] snapshot = [.. resolvedMetadataStructures];
+            FirmwareResolvedMetadataStructure[] snapshot = Composition.ImmutableReferenceSnapshot.Create(
+                resolvedMetadataStructures,
+                "Resolved maps may retain only unique successful metadata outcomes bound to selected identities.");
             Dictionary<string, FirmwareMetadataStructure> expectedById = expectedStructures.ToDictionary(
                 static structure => structure.StructureId,
                 StringComparer.Ordinal);
-            if (snapshot.Any(static structure => structure is null) ||
-                snapshot.Length != expectedStructures.Length ||
+            if (snapshot.Length != expectedStructures.Length ||
                 snapshot.Any(structure =>
                     !StringComparer.Ordinal.Equals(structure.MapId, imageMap.MapId) ||
                     !expectedById.TryGetValue(structure.DecodedStructure.MetadataStructureId, out FirmwareMetadataStructure? expected) ||

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "51951-dp-512k",
+  "ic": "NT51951",
+  "workflow": "standard-merge",
+  "variantOrVersion": "dp-512k",
+  "topology": "topology-unscoped",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner supplied merge_bin.7z for remaining Standard Merge golden fixtures on 2026-07-03.",
+  "profileId": "nt51951-standard-merge-dp-perspective",
+  "artifacts": [
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51951/standard-merge/dp-512k/topology-unscoped/51951-dp-512k/inputs/dp-input.bin",
+      "size": 524288,
+      "sha256": "ba4a61951b2da74cf7799885df7a0cbfefea4262ba6af56b34adc92691af1668",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51951/dp-512k/dp.bin"
+      ],
+      "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_512k/NT51951TT_Initial Code_CSOT 17.3inch_2880x1620_CCW _D05_20260625.bin",
+      "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51951/standard-merge/dp-512k/topology-unscoped/51951-dp-512k/inputs/tp-input.bin",
+      "size": 225280,
+      "sha256": "7a2ddf9b77558a3e3a32485c21aa62e900249cf473b7f1c67bb2f89dc1ad3f4a",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51951/dp-512k/tp.bin"
+      ],
+      "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_512k/nt51950_fw.bin",
+      "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c"
+    },
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51951/standard-merge/dp-512k/topology-unscoped/51951-dp-512k/expected/flash.bin",
+      "size": 524288,
+      "sha256": "3266fae2f4873a7f21afdbcfe1b1d234c58204a2b319ff3ed09353ee84ff0e6e",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/expected/51951/dp-512k/flash.bin"
+      ],
+      "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_512k/NT51951_FlashCode_CSOT_1730_CCW_BQ_2880x1620_D05T03_20260626.bin",
+      "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c"
+    }
+  ]
+}

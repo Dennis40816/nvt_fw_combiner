@@ -2,6 +2,35 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:input="using:Avalonia.Input">
+  <Style Selector="Border.runProgressNode">
+    <Setter Property="Height" Value="22" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Border.runProgressNode.completed">
+    <Setter Property="Background" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
+  </Style>
+  <Style Selector="Border.runProgressNode.active">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="TextBlock.runProgressMarker">
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="Border.runProgressNode.completed TextBlock.runProgressMarker">
+    <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
+  </Style>
+  <Style Selector="Border.runProgressNode.active TextBlock.runProgressMarker">
+    <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
+  </Style>
   <Style Selector="TabControl.reportTabs">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
   </Style>

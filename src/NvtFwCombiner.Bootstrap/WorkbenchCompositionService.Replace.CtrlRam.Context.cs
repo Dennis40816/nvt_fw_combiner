@@ -20,8 +20,40 @@ public static partial class WorkbenchCompositionService
         LegacyCombinerPostbuildCommandPlan? commandPlan = null;
         FirmwareConfigVersionWritePlan? firmwareVersionWritePlan = null;
         IReadOnlyList<TpFlashMapRegion> regions = [];
+        IReadOnlyList<TpCtrlRamPostbuildSource> sources = [];
 
-        (string? basePath, long baseLength) = ResolveCtrlRamBaseInput(slotPaths, validationIssues);
+        string? basePath = null;
+        long baseLength = 0;
+        if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? suppliedBasePath) ||
+            string.IsNullOrWhiteSpace(suppliedBasePath))
+        {
+            validationIssues.Add(new CompositionIssue(
+                WorkbenchIssueCodes.InputMissing,
+                "Base firmware BIN is required before CtrlRAM Replace can run.",
+                WorkbenchSlotIds.ReplaceBase));
+        }
+        else
+        {
+            basePath = Path.GetFullPath(suppliedBasePath);
+            if (!File.Exists(basePath))
+            {
+                validationIssues.Add(new CompositionIssue(
+                    WorkbenchIssueCodes.InputArtifactReadFailed,
+                    "Base firmware BIN path does not exist.",
+                    WorkbenchSlotIds.ReplaceBase));
+            }
+            else
+            {
+                baseLength = new FileInfo(basePath).Length;
+                if (baseLength <= 0)
+                {
+                    validationIssues.Add(new CompositionIssue(
+                        CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                        "Base firmware BIN must not be empty.",
+                        WorkbenchSlotIds.ReplaceBase));
+                }
+            }
+        }
 
         if (basePath is not null && baseLength > 0)
         {
@@ -44,7 +76,7 @@ public static partial class WorkbenchCompositionService
                 }
             }
         }
-        else if (IcMetadataFacade.GetPostbuildProfiles(icId).Count == 0)
+        else if (GetPostbuildProfiles(icId).Count == 0)
         {
             validationIssues.Add(new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamPostbuildProfileMissing,
@@ -52,13 +84,12 @@ public static partial class WorkbenchCompositionService
                 "postbuild"));
         }
 
-        if (postbuildProfile is not null)
+        if (postbuildProfile is not null || basePath is null)
         {
-            regions = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile);
-        }
-        else if (basePath is null)
-        {
-            regions = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection);
+            sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(postbuildProfile?.IcId ?? icId, selection, postbuildProfile);
+            regions = [.. sources.SelectMany(source => source.Regions)
+                .DistinctBy(region => region.RegionId, StringComparer.Ordinal)
+                .OrderBy(region => region.Range.Start)];
         }
 
         if (regions.Count == 0)
@@ -69,13 +100,13 @@ public static partial class WorkbenchCompositionService
                 IcWorkflowIds.CtrlRamReplace));
         }
 
-        List<TpFlashMapRegion> selectedRegions =
+        List<TpCtrlRamPostbuildSource> selectedSources =
         [
-            .. regions
-                .Where(region => IsSlotSupplied(slotPaths, CtrlRamSlotId(region.RegionId)))
-                .OrderBy(region => region.Range.Start),
+            .. sources
+                .Where(source => slotPaths.TryGetValue(CtrlRamSlotId(source.SourceId), out string? path) &&
+                    !string.IsNullOrWhiteSpace(path)),
         ];
-        if (selectedRegions.Count == 0)
+        if (selectedSources.Count == 0)
         {
             validationIssues.Add(new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamNoRegionInput,
@@ -83,16 +114,47 @@ public static partial class WorkbenchCompositionService
                 IcWorkflowIds.CtrlRamReplace));
         }
 
+        Dictionary<string, long> selectedSourceLengths = new(StringComparer.Ordinal);
+        foreach (TpCtrlRamPostbuildSource source in selectedSources)
+        {
+            string slotId = CtrlRamSlotId(source.SourceId);
+            string path = Path.GetFullPath(slotPaths[slotId]);
+            if (!File.Exists(path))
+            {
+                validationIssues.Add(new CompositionIssue(
+                    WorkbenchIssueCodes.InputArtifactReadFailed,
+                    $"CtrlRAM source '{source.SourceFileName}' does not exist.",
+                    slotId));
+                continue;
+            }
+
+            long length = new FileInfo(path).Length;
+            LegacyCombinerBlockArgument? unsafeBlock = source.Blocks.FirstOrDefault(block =>
+                block.SourceOffset > 0 && checked(block.SourceOffset + block.FirmwareRange.Length) > length);
+            if (length <= 0 || unsafeBlock is not null)
+            {
+                validationIssues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                    length <= 0
+                        ? $"CtrlRAM source '{source.SourceFileName}' must not be empty."
+                        : $"CtrlRAM source '{source.SourceFileName}' is too short for nonzero source offset 0x{unsafeBlock!.SourceOffset:X} and section length {unsafeBlock.FirmwareRange.Length} bytes.",
+                    slotId));
+                continue;
+            }
+
+            selectedSourceLengths.Add(source.SourceId, Math.Min(length, source.RequiredLength));
+        }
+
         if (commandPlan is not null && baseLength > 0)
         {
             long requiredCapacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(
                 commandPlan,
-                selectedRegions.Select(region => region.Range));
+                selectedSources.SelectMany(source => source.Regions).Select(region => region.Range));
             if (baseLength < requiredCapacity)
             {
                 validationIssues.Add(new CompositionIssue(
                     CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                    $"Base flash BIN is too short for {icId} / {number} CtrlRAM postbuild (actual {baseLength} bytes, required at least {requiredCapacity} bytes).",
+                    $"Base firmware BIN is too short for {icId} / {number} CtrlRAM postbuild (actual {baseLength} bytes, required at least {requiredCapacity} bytes).",
                     WorkbenchSlotIds.ReplaceBase));
             }
         }
@@ -126,69 +188,30 @@ public static partial class WorkbenchCompositionService
             commandPlan,
             firmwareVersionWritePlan,
             regions,
-            selectedRegions,
+            sources,
+            selectedSources,
+            selectedSourceLengths,
             validationIssues);
     }
 
-    private static (string? Path, long Length) ResolveCtrlRamBaseInput(
-        IReadOnlyDictionary<string, string> slotPaths,
-        List<CompositionIssue> validationIssues)
-    {
-        if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? suppliedBasePath) ||
-            string.IsNullOrWhiteSpace(suppliedBasePath))
-        {
-            validationIssues.Add(new CompositionIssue(
-                WorkbenchIssueCodes.InputMissing,
-                "Base flash BIN is required before CtrlRAM Replace can run.",
-                WorkbenchSlotIds.ReplaceBase));
-            return (null, 0);
-        }
-
-        string basePath = Path.GetFullPath(suppliedBasePath);
-        if (!File.Exists(basePath))
-        {
-            validationIssues.Add(new CompositionIssue(
-                WorkbenchIssueCodes.InputArtifactReadFailed,
-                "Base flash BIN path does not exist.",
-                WorkbenchSlotIds.ReplaceBase));
-            return (basePath, 0);
-        }
-
-        long baseLength = new FileInfo(basePath).Length;
-        if (baseLength <= 0)
-        {
-            validationIssues.Add(new CompositionIssue(
-                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                "Base flash BIN must not be empty.",
-                WorkbenchSlotIds.ReplaceBase));
-        }
-
-        return (basePath, baseLength);
-    }
-
-    private static bool IsSlotSupplied(
-        IReadOnlyDictionary<string, string> slotPaths,
-        string slotId)
-    {
-        return slotPaths.TryGetValue(slotId, out string? path) &&
-            !string.IsNullOrWhiteSpace(path);
-    }
-
     private static InputArtifactBinding[] CreateCtrlRamReplaceBindings(
+        CompiledComposition compiledComposition,
         CtrlRamReplaceRunContext context,
         IReadOnlyDictionary<string, string> slotPaths)
     {
-        List<InputArtifactBinding> bindings =
-        [
-            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, context.BasePath!),
+        return [
+            CompiledCompositionInputBindingFactory.Create(
+                compiledComposition,
+                CompositionAddressSpaceIds.ReferenceBase,
+                context.BasePath!,
+                WorkbenchSlotIds.ReplaceBase),
+            .. context.SelectedSources
+                .Select(source => CtrlRamSlotId(source.SourceId))
+                .Select(sourceSpaceId => CompiledCompositionInputBindingFactory.Create(
+                    compiledComposition,
+                    sourceSpaceId,
+                    Path.GetFullPath(slotPaths[sourceSpaceId]))),
         ];
-        foreach (TpFlashMapRegion region in context.SelectedRegions.OrderBy(region => region.Range.Start))
-        {
-            string slotId = CtrlRamSlotId(region.RegionId);
-            bindings.Add(CreateBinding(slotId, slotId, slotPaths));
-        }
-
-        return [.. bindings];
     }
 
     private sealed record CtrlRamReplaceRunContext(
@@ -199,13 +222,8 @@ public static partial class WorkbenchCompositionService
         LegacyCombinerPostbuildCommandPlan? CommandPlan,
         FirmwareConfigVersionWritePlan? FirmwareVersionWritePlan,
         IReadOnlyList<TpFlashMapRegion> Regions,
-        IReadOnlyList<TpFlashMapRegion> SelectedRegions,
-        IReadOnlyList<CompositionIssue> ValidationIssues)
-    {
-        public bool CanRun =>
-            ValidationIssues.Count == 0 &&
-            BasePath is not null &&
-            PostbuildProfile is not null &&
-            CommandPlan is not null;
-    }
+        IReadOnlyList<TpCtrlRamPostbuildSource> Sources,
+        IReadOnlyList<TpCtrlRamPostbuildSource> SelectedSources,
+        IReadOnlyDictionary<string, long> SelectedSourceLengths,
+        IReadOnlyList<CompositionIssue> ValidationIssues);
 }

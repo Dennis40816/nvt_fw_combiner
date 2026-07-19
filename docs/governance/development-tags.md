@@ -24,7 +24,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.9.7` — UI token consolidation and code-size discipline milestone: unify exactly equivalent visual, text, and spacing tokens; remove only proven duplicate UI or compatibility code while retaining UI behavior, accessibility, tests, and firmware boundaries.
 - `v0.9.8` — feature-frozen code-size convergence milestone: hold the owner-accepted 56,742-line final production ratchet and portable-package growth to at most 1% without expanding support or weakening trust-boundary checks.
 - `v0.9.9` — legacy convergence and patch-closure milestone: reduce production C#/AXAML to at most 54,000 nonblank lines, retire only exactly replaced legacy paths, preserve the Legacy Combiner executable/constrained runner exception, and close verified security gaps.
-- `v0.9.10` — UI-driven candidate IC intake milestone: normalize declared Excel, mmap, BAT, sample BIN, expected-output, and provenance evidence through the existing four-record candidate-intake boundary; no runtime registration or support promotion is implied.
+- `v0.9.10` — end-to-end performance and Change Report remediation milestone: preserve exact firmware/process/report evidence while reducing repeated execution, I/O, allocation, history, and UI-thread costs; add typed progress and a read-only Hex Diff without changing support truth.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.10` are maintained in
@@ -48,8 +48,8 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.6` integrates and releases after reviewed `0.9.5` and closes only release/support evidence and compatibility items whose matrix gates are complete. Candidate release-evidence work may begin earlier under the pre-tag policy.
 - `0.9.7` integrates and releases after reviewed `0.9.6` and consolidates UI tokens and exactly replaced duplication. Candidate token/code-size work may begin earlier under the pre-tag policy; it does not introduce firmware behavior, relax release evidence, or use line-count reduction as a reason to remove required tests or compatibility paths.
 - `0.9.8` integrates and releases after reviewed `0.9.7` and is feature-frozen and support-neutral. It enforces the reviewed production-line and package-size ceilings while retaining required validation, golden evidence, and tests.
-- `0.9.9` integrates and releases after reviewed `0.9.8` and retires only legacy paths with an exact reviewed replacement. The Legacy Combiner executable and constrained runner remain; moving `LegacyCombinerPostbuildCatalog` declarations into V2 processor data remains R3 evidence-gated.
-- `0.9.10` integrates and releases after reviewed `0.9.9` and adds UI-driven candidate intake over the existing four-record `create_candidate_ic_intake.py` boundary. Any new generated contract, profile bundle, runtime registration, or support promotion requires its own reviewed contract/evidence change.
+- `0.9.9` integrates and releases after reviewed `0.9.8` and retires only legacy paths with an exact reviewed replacement. The Legacy Combiner executable and constrained runner remain; its static command declarations are replaced by the hash-pinned typed data catalog without changing support claims. R3 evidence still gates IC/mode promotion.
+- `0.9.10` integrates and releases after reviewed `0.9.9` and performs measured end-to-end performance and Change Report remediation under ADRs 0026 and 0027. Candidate intake, new profile/runtime registration, support promotion, firmware ranges, and processor behavior remain outside this milestone unless separately reassigned and reviewed.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
@@ -66,7 +66,7 @@ This exception does not permit direct `main` merges, automatic tags, support pro
 
 ## Milestone scope
 
-Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB Merge candidate work is active for the `v0.9.3` evidence path, but it remains hidden from UI/CLI and is not a support claim until its per-IC golden, processor, and firmware-owner gates close. Standard Merge has executable profiles for the uploaded golden-backed gen_flash set, owner-confirmed NT51917/NT51919 aliases, NT51930 flash-map, and NT51950/NT51951 DP Perspective cases. NT51930 and NT51950/NT51951 now have owner golden fixtures recorded under `testdata/golden/standard-merge-gen-flash`; support exposure still requires firmware-owner sign-off. Replace now has NT51950/NT51951 DP Replace workbench execution and CtrlRAM per-region Preview/Build execution through staged Combiner postbuild; CtrlRAM parity still needs private golden outputs and firmware-owner review.
+Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB Merge candidate work is active for the `v0.9.3` evidence path, but it remains hidden from UI/CLI and is not a support claim until its per-IC golden, processor, and firmware-owner gates close. Standard Merge has executable profiles for the uploaded golden-backed gen_flash set, owner-confirmed NT51917/NT51919 aliases, NT51930 flash-map, and NT51950/NT51951 DP Perspective cases. NT51930 and NT51950/NT51951 now have owner golden fixtures indexed under `testdata/golden/canonical`; support exposure still requires firmware-owner sign-off. Replace now has NT51950/NT51951 DP Replace workbench execution and CtrlRAM per-region Preview/Build execution through staged Combiner postbuild; CtrlRAM parity still needs private golden outputs and firmware-owner review.
 
 | Milestone | Scope | Implementation boundary |
 | --- | --- | --- |
@@ -91,7 +91,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.7` | UI token consolidation and code-size discipline | Consolidate exact-equivalent UI tokens, remove only proven duplicate UI/compatibility code, and retain behavioral/accessibility coverage without adding firmware behavior. |
 | `v0.9.8` | Feature-frozen code-size convergence | Enforce the owner-accepted 56,742-line final ratchet and 1%-package ceiling without support expansion or safety-check removal. |
 | `v0.9.9` | Legacy convergence and patch closure | Enforce the 54,000-line and 1%-package ceilings, retire exactly replaced legacy paths except Legacy Combiner, and close evidence-backed security gaps. |
-| `v0.9.10` | UI-driven candidate IC intake | Produce the existing deterministic four-record candidate intake from declared source evidence; contract expansion and runtime promotion remain separately reviewed. |
+| `v0.9.10` | End-to-end performance and Change Report remediation | Keep byte/process/report parity while delivering one authoritative Build, typed progress, scalable reports/history, and a read-only virtualized Hex Diff. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -137,7 +137,7 @@ v0.9.6          support/release consolidation
 v0.9.7          UI token consolidation and code-size discipline
 v0.9.8          feature-frozen code-size convergence
 v0.9.9          legacy convergence and verified patch closure
-v0.9.10         UI-driven candidate IC intake
+v0.9.10         end-to-end performance and Change Report remediation
 v1.0.0          stable
 ```
 

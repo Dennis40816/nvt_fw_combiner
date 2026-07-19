@@ -64,7 +64,7 @@ public sealed class FirmwareImageMap
                 nameof(regionSetBindings));
         }
 
-        Array.Sort(_regions, CompareRegions);
+        Array.Sort(_regions, FirmwareRangeOrdering.Compare);
         ValidateRegionGraph(_regions, applicability.CapacityBytes);
         _metadataSetIds = DeriveCanonicalIds(_metadataSetBindings);
         _evidenceRefs = ImmutableStringSnapshot.Create(
@@ -84,32 +84,6 @@ public sealed class FirmwareImageMap
         Regions = Array.AsReadOnly(_regions);
         MetadataSetIds = Array.AsReadOnly(_metadataSetIds);
         EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
-    }
-
-    /// <summary>Creates direct member/map bindings for an alias-free physical image map.</summary>
-    public static FirmwareImageMap CreateDirect(
-        string mapId,
-        string addressSpaceId,
-        FirmwareMapApplicability applicability,
-        FirmwareImageMapCoveragePolicy coveragePolicy,
-        IEnumerable<FirmwareRegionSet> regionSets,
-        IEnumerable<FirmwareMetadataSet> metadataSets,
-        IEnumerable<string> evidenceRefs)
-    {
-        ArgumentNullException.ThrowIfNull(applicability);
-        ArgumentNullException.ThrowIfNull(regionSets);
-        ArgumentNullException.ThrowIfNull(metadataSets);
-        FirmwareRegionSet[] regionSnapshot = [.. regionSets];
-        FirmwareMetadataSet[] metadataSnapshot = [.. metadataSets];
-        var factApplicability = FirmwareFactApplicability.FromMap(applicability);
-        return new FirmwareImageMap(
-            mapId,
-            addressSpaceId,
-            applicability,
-            coveragePolicy,
-            CreateDirectBindings(mapId, applicability.MemberIds, regionSnapshot, factApplicability),
-            CreateDirectBindings(mapId, applicability.MemberIds, metadataSnapshot, factApplicability),
-            evidenceRefs);
     }
 
     /// <summary>Stable canonical image-map identifier.</summary>
@@ -152,17 +126,10 @@ public sealed class FirmwareImageMap
         bool requireValue)
         where TFact : class, IFirmwareMapFact
     {
-        ArgumentNullException.ThrowIfNull(bindings);
-        FirmwareMapFactBinding<TFact>[] snapshot = [.. bindings];
-        if (requireValue && snapshot.Length == 0)
-        {
-            throw new ArgumentException("Firmware image maps require a region-set binding.", nameof(bindings));
-        }
-
-        if (snapshot.Any(static binding => binding is null))
-        {
-            throw new ArgumentException("Firmware image-map bindings cannot contain null.", nameof(bindings));
-        }
+        FirmwareMapFactBinding<TFact>[] snapshot = ImmutableReferenceSnapshot.Create(
+            bindings,
+            "Firmware image-map bindings must be non-null and include required values.",
+            requireValue);
 
         foreach (FirmwareMapFactBinding<TFact> binding in snapshot)
         {
@@ -187,42 +154,6 @@ public sealed class FirmwareImageMap
 
         Array.Sort(snapshot, CompareBindings);
         return snapshot;
-    }
-
-    private static FirmwareMapFactBinding<TFact>[] CreateDirectBindings<TFact>(
-        string mapId,
-        IEnumerable<string> memberIds,
-        IEnumerable<TFact> facts,
-        FirmwareFactApplicability applicability)
-        where TFact : class, IFirmwareMapFact
-    {
-        ArgumentNullException.ThrowIfNull(memberIds);
-        ArgumentNullException.ThrowIfNull(facts);
-        ArgumentNullException.ThrowIfNull(applicability);
-        TFact[] factSnapshot = [.. facts];
-        if (factSnapshot.Any(static fact => fact is null))
-        {
-            throw new ArgumentException("Direct map facts cannot contain null.", nameof(facts));
-        }
-
-        var bindings = new List<FirmwareMapFactBinding<TFact>>();
-        foreach (string memberId in memberIds)
-        {
-            foreach (TFact fact in factSnapshot)
-            {
-                FirmwareMapFactKey key = new(memberId, mapId, fact.FactKind, fact.CanonicalFactId);
-                FirmwareFactProvenance provenance = new(key, key, [], fact.EvidenceRefs);
-                bindings.Add(new FirmwareMapFactBinding<TFact>(
-                    key,
-                    key,
-                    fact.CanonicalFactId,
-                    fact,
-                    applicability,
-                    provenance));
-            }
-        }
-
-        return [.. bindings];
     }
 
     private static void ValidateBindingCoverage<TFact>(
@@ -519,20 +450,6 @@ public sealed class FirmwareImageMap
                 $"Firmware children of {subject} must cover its exact range.",
                 nameof(regions));
         }
-    }
-
-    private static int CompareRegions(FirmwareRegion left, FirmwareRegion right)
-    {
-        int startComparison = left.Range.Start.CompareTo(right.Range.Start);
-        if (startComparison != 0)
-        {
-            return startComparison;
-        }
-
-        int lengthComparison = right.Range.Length.CompareTo(left.Range.Length);
-        return lengthComparison != 0
-            ? lengthComparison
-            : StringComparer.Ordinal.Compare(left.RegionId, right.RegionId);
     }
 
     private enum ParentVisitState

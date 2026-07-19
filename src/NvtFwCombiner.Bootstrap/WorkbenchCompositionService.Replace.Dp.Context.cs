@@ -2,12 +2,12 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static bool TryCreateDpPerspectiveDpReplaceRunContext(
+    private static bool TryCreateBuiltInV2DpReplaceRunContext(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
-        out DpPerspectiveDpReplaceRunContext? context,
+        out BuiltInV2DpReplaceRunContext? context,
         out WorkbenchRunResult? failure)
     {
         context = null;
@@ -17,12 +17,11 @@ public static partial class WorkbenchCompositionService
         {
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
                 WorkbenchIssueCodes.InputMissing,
-                $"Base flash BIN is required before {FormatBuiltInV2DpReplaceIcIds()} DP Replace can determine the DP base length.");
+                $"Reference FlashCode is required before {FormatBuiltInV2DpReplaceIcIds()} DP Replace can determine the output capacity.");
             return false;
         }
 
@@ -31,17 +30,16 @@ public static partial class WorkbenchCompositionService
         {
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
                 WorkbenchIssueCodes.InputArtifactReadFailed,
-                "Base flash BIN path does not exist.");
+                "Reference FlashCode path does not exist.");
             return false;
         }
 
         long baseLength = new FileInfo(fullBasePath).Length;
-        context = new DpPerspectiveDpReplaceRunContext(
+        context = new BuiltInV2DpReplaceRunContext(
             ToIcNumberSelection(number),
             fullBasePath,
             baseLength,

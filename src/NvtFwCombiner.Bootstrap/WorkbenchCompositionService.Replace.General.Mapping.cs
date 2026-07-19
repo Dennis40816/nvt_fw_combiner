@@ -5,6 +5,8 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private const int GeneralReplaceMappingSequenceStart = 100;
+
     private static bool TryCreateGeneralReplaceMappings(
         WorkbenchGeneralReplaceMappingInput[] mappingInputs,
         WorkbenchGeneralReplacePatchInput[] patchInputs,
@@ -436,21 +438,6 @@ public static partial class WorkbenchCompositionService
         }
     }
 
-    private static Dictionary<string, string> CreateGeneralReplaceReportSlotPaths(
-        IReadOnlyDictionary<string, string> slotPaths,
-        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs)
-    {
-        Dictionary<string, string> paths = new(slotPaths, StringComparer.Ordinal);
-        foreach (WorkbenchGeneralReplaceMappingInput mapping in mappingInputs)
-        {
-            if (!string.IsNullOrWhiteSpace(mapping.FilePath))
-            {
-                paths[mapping.MappingId] = mapping.FilePath;
-            }
-        }
-
-        return paths;
-    }
 }
 
 /// <summary>One user-authored General Replace mapping row from the workbench surface.</summary>

@@ -1,34 +1,44 @@
+using System.Text;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>One session-local report history entry that can reopen the existing report projection.</summary>
+/// <summary>One compact session-local report snapshot that materializes a full review only when opened.</summary>
 public sealed class ReportHistoryEntryViewModel
 {
+    private readonly ReportHistorySnapshot snapshot;
+
     /// <summary>Creates a report history entry.</summary>
-    public ReportHistoryEntryViewModel(int sequence, ReportReviewViewModel report, string reportJson)
+    public ReportHistoryEntryViewModel(int sequence, ReportHistorySnapshot snapshot)
+        : this(sequence, snapshot, reportJsonUtf8ByteCount: null)
+    {
+    }
+
+    internal ReportHistoryEntryViewModel(
+        int sequence,
+        ReportHistorySnapshot snapshot,
+        long? reportJsonUtf8ByteCount)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sequence);
-        ArgumentNullException.ThrowIfNull(report);
-        ArgumentNullException.ThrowIfNull(reportJson);
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentOutOfRangeException.ThrowIfNegative(reportJsonUtf8ByteCount ?? 0);
+        if (snapshot.Metadata == ReportHistoryMetadataSnapshot.Empty)
+        {
+            throw new ArgumentException("Report history metadata must be materialized before creating an entry.", nameof(snapshot));
+        }
 
+        this.snapshot = snapshot;
         Sequence = sequence;
-        Report = report;
-        ReportJson = reportJson;
         SequenceLabel = $"#{sequence}";
-        Title = report.Title;
-        Status = report.Status;
-        Context = CreateContext(report);
-        Output = string.IsNullOrWhiteSpace(report.OutputFileName)
-            ? "No output"
-            : $"{report.OutputFileName} / {report.OutputSize} bytes";
-        OutputHash = report.OutputHashLabel;
-        CommandSummary = report.HasPostbuildInvocations
-            ? FormatCount(report.PostbuildInvocationCount, "command")
-            : "No external command";
-        IssueSummary = report.HasPrimaryIssue
-            ? FormatCount(report.BlockingIssueCount, "issue")
-            : report.HasWarnings ? FormatCount(report.WarningCount, "warning") : "No issue";
-        ArtifactPath = report.OutputArtifactPath;
-        EvidenceSummary = $"{FormatCount(report.InputCount, "input")} / {FormatCount(report.OperationCount, "step")} / {FormatCount(report.MutationCount, "mutation")}";
+        Title = snapshot.Metadata.Title;
+        Status = snapshot.Metadata.Status;
+        Context = snapshot.Metadata.Context;
+        Output = snapshot.Metadata.Output;
+        OutputHash = snapshot.Metadata.OutputHash;
+        CommandSummary = snapshot.Metadata.CommandSummary;
+        IssueSummary = snapshot.Metadata.IssueSummary;
+        EvidenceSummary = snapshot.Metadata.EvidenceSummary;
+        StoredByteCount = (reportJsonUtf8ByteCount ?? Encoding.UTF8.GetByteCount(snapshot.ReportJson)) +
+            Encoding.UTF8.GetByteCount(snapshot.OutputArtifactPath);
     }
 
     /// <summary>Monotonic session sequence.</summary>
@@ -58,56 +68,24 @@ public sealed class ReportHistoryEntryViewModel
     /// <summary>Issue summary.</summary>
     public string IssueSummary { get; }
 
-    /// <summary>Session-local artifact path.</summary>
-    public string ArtifactPath { get; }
-
     /// <summary>Counts of report evidence sections.</summary>
     public string EvidenceSummary { get; }
 
-    /// <summary>Report projection to reopen.</summary>
-    public ReportReviewViewModel Report { get; }
+    /// <summary>File name or parser source label.</summary>
+    public string SourceName => snapshot.SourceName;
 
     /// <summary>Original report JSON for Save report.</summary>
-    public string ReportJson { get; }
+    public string ReportJson => snapshot.ReportJson;
+
+    /// <summary>Session-local artifact path.</summary>
+    public string ArtifactPath => snapshot.OutputArtifactPath;
+
+    /// <summary>UTF-8 bytes retained by this history entry's persisted string payloads.</summary>
+    public long StoredByteCount { get; }
 
     /// <summary>Exports this entry as a persistable local history snapshot.</summary>
     public ReportHistorySnapshot ToSnapshot()
     {
-        return new ReportHistorySnapshot(
-            Report.SourceName,
-            ReportJson,
-            Report.OutputArtifactPath,
-            new ReportHistoryMetadataSnapshot(
-                Title,
-                Status,
-                Context,
-                Output,
-                OutputHash,
-                CommandSummary,
-                IssueSummary,
-                EvidenceSummary,
-                Report.RunId,
-                Report.StartedAtUtc,
-                Report.IcId,
-                Report.ModeId,
-                Report.ExperienceId,
-                Report.CompositionKind));
-    }
-
-    private static string CreateContext(ReportReviewViewModel report)
-    {
-        string workflow = string.IsNullOrWhiteSpace(report.CompositionKind)
-            ? "Report"
-            : report.CompositionKind;
-        string experience = string.IsNullOrWhiteSpace(report.ExperienceId)
-            ? report.SourceName
-            : report.ExperienceId;
-        string ic = string.IsNullOrWhiteSpace(report.IcId) ? "unknown IC" : report.IcId;
-        return $"{workflow} / {experience} / {ic}";
-    }
-
-    private static string FormatCount(int count, string noun)
-    {
-        return count == 1 ? $"1 {noun}" : $"{count} {noun}s";
+        return snapshot;
     }
 }

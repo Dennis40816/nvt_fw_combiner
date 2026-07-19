@@ -12,7 +12,9 @@ This document expands the safety contract summarized in `SPEC.md` section 9. Ver
 
 ## Process and Filesystem Safety
 
-- Use `UseShellExecute = false`; never compose a shell command.
+- Use `UseShellExecute = false` and `CreateNoWindow = true`; never compose a shell command or show a
+  console window. An owner Postbuild command sequence is one logical staged run, while each approved
+  Combiner argv remains a directly launched, independently timed and audited child process.
 - Installation layout, tool manifest, and release manifest choose the executable; callers cannot supply a per-run executable path.
 - The host owns a private staging directory and accepts only approved relative staging tokens.
 - Reject separators, `..`, drive/UNC paths, symlink/junction/reparse traversal, extra files, and unexpected length changes.

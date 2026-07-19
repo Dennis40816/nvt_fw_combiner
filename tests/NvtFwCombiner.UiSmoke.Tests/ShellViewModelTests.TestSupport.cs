@@ -7,6 +7,17 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    private static void OpenReplace(MainWindowViewModel viewModel, string mode)
+    {
+        viewModel.SelectedReplaceMode = mode;
+        viewModel.ShowReplaceCommand.Execute(null);
+    }
+
+    private static IEnumerable<ReportLineViewModel> GetCommandOperations(ReportReviewViewModel report)
+    {
+        return report.Operations.Where(operation => operation.HasCodeBlock || operation.HasRuntimeCommands);
+    }
+
     private static void AssertAcceptedPostbuildOnlyOutputDifferences(
         JsonElement root,
         string expectedOperationId)
@@ -25,12 +36,6 @@ public sealed partial class ShellViewModelTests
             Assert.True(difference.GetProperty("ChangedByteCount").GetInt64() > 0);
             Assert.True(difference.GetProperty("Range").GetProperty("Length").GetInt64() > 0);
         });
-    }
-
-    private static void AssertNoOutputDifferences(JsonElement root)
-    {
-        AssertNoUnexpectedOutputDifferenceIssue(root);
-        Assert.Empty(root.GetProperty("OutputDifferences").EnumerateArray());
     }
 
     private static void AssertNoUnexpectedOutputDifferenceIssue(JsonElement root)

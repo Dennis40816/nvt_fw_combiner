@@ -79,13 +79,39 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal(["target-alias-evidence"], hops[0].EvidenceRefs);
         Assert.Equal("synthetic terminal metadata alias", hops[1].Reason);
         Assert.Equal(["middle-alias-evidence"], hops[1].EvidenceRefs);
-        Assert.True(hops[0].Applicability.HasSameShape(
-            FirmwareFactApplicability.FromMap(target.Applicability)));
-        Assert.True(hops[1].Applicability.HasSameShape(
-            FirmwareFactApplicability.FromMap(source.Applicability)));
+        AssertSameApplicabilityShape(
+            FirmwareFactApplicability.FromMap(target.Applicability),
+            hops[0].Applicability);
+        AssertSameApplicabilityShape(
+            FirmwareFactApplicability.FromMap(source.Applicability),
+            hops[1].Applicability);
         Assert.Equal(["metadata-evidence"], targetBinding.Provenance.DirectEvidenceRefs);
         Assert.Same(sourceBinding.Value, targetBinding.Value);
         Assert.Equal(sourceBinding.CanonicalFactId, targetBinding.CanonicalFactId);
+    }
+
+    private static void AssertSameApplicabilityShape(
+        FirmwareFactApplicability expected,
+        FirmwareFactApplicability actual)
+    {
+        Assert.Equal(expected.CapacityBytes, actual.CapacityBytes);
+        Assert.Equal(expected.TopologyRequirement, actual.TopologyRequirement);
+        Assert.Equal(expected.ModeIds, actual.ModeIds);
+        Assert.Equal(expected.CommonFirmwareCategoryIds, actual.CommonFirmwareCategoryIds);
+        Assert.Equal(expected.MetadataPredicates.Count, actual.MetadataPredicates.Count);
+
+        List<FirmwareMetadataPredicate> unmatched = [.. actual.MetadataPredicates];
+        foreach (FirmwareMetadataPredicate predicate in expected.MetadataPredicates)
+        {
+            int matchIndex = unmatched.FindIndex(candidate =>
+                StringComparer.Ordinal.Equals(predicate.MetadataStructureId, candidate.MetadataStructureId) &&
+                StringComparer.Ordinal.Equals(predicate.FieldId, candidate.FieldId) &&
+                predicate.Comparison == candidate.Comparison &&
+                predicate.ExpectedValues.Count == candidate.ExpectedValues.Count &&
+                predicate.ExpectedValues.All(candidate.ExpectedValues.Contains));
+            Assert.True(matchIndex >= 0, $"Missing applicability predicate for '{predicate.FieldId}'.");
+            unmatched.RemoveAt(matchIndex);
+        }
     }
 
     /// <summary>Verifies capability aliases remain evidence bindings and do not affect map selection.</summary>

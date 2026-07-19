@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0",
+  "payloadClass": "repository-only-diagnostic-evidence",
+  "canonicalExpected": false,
+  "runtimeSupportPromotion": false,
+  "releaseRedistributionApproved": false,
+  "physicalPayloadMovement": "frozen-after-9e15bc0f",
+  "records": [
+    {
+      "path": "standard-merge-gen-flash/README.md",
+      "size": 760,
+      "sha256": "5219454ddca5775fabbfc346ebe87cdb4d40fcfabbc43f0b43ab2f36fa945363"
+    },
+    {
+      "path": "standard-merge-gen-flash/test_ic_config.json",
+      "size": 4094,
+      "sha256": "3afeb76d677f8a9b153bbd8c67bf77d7dd6544078f51ad67616d53efd1a45973"
+    }
+  ],
+  "ctrlRamLegacyQuarantine": {
+    "artifactRoot": "testdata/golden/ctrlram-replace/fixtures/20260717",
+    "inventoryManifest": "testdata/golden/ctrlram-replace/manifest.20260717.json",
+    "payloadCount": 57,
+    "supportingFileCount": 6,
+    "sourceArchiveSha256": "9027e9038f51c5421f922afdf73d1f16fc5f7dd582e23e25547727fda585205c"
+  },
+  "ownerHandoff": {
+    "root": "testdata/golden/owner-handoff",
+    "fileCount": 77,
+    "treeSha256": "f16397955961f67188e5ace4ef25eb80e6d26f0607b841fb856b46aa49532f52",
+    "binaryPayloadsIncluded": false
+  },
+  "exclusions": [
+    "canonical golden expected artifacts",
+    "runtime support promotion",
+    "release reference payloads",
+    "release redistribution"
+  ]
+}

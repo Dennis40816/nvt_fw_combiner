@@ -1,8 +1,70 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.8 feature-frozen convergence candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.10 performance-remediation stable release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.8`
+Specification package version: `0.9.10`
+
+## 0.9.10 performance-remediation stable release candidate
+
+Stable Node B is protected-main `v0.9.9` commit
+`32c37e254271de507be49d0f5ef38faaa122dba6`; optimized production Node C is
+`6f3698ddeb0ec50a9ca46057af21e93bfbebd55f`. The 130-commit performance stack
+was replayed onto Node B with 130 equal range-diff patches and zero conflicts.
+Byte-identical external-tool/golden trees, DP and NT51926 filters, physical
+real-tool/headless tests, and command catalog/argv tests pass at both nodes.
+
+One authoritative Build replaces the prior duplicated execution. Legacy
+Combiner commands remain exact and sequential, while complete staging reads
+change from `2C+1` to one final read plus only the evidenced selective-tail
+short-output exception. The NT51926 two-command expected output SHA, the
+10,000-difference output/JSON hashes, mutations, validation, issue, command,
+and report facts remain unchanged. The release makes no support, profile,
+range, CRC/header, processor-command, or product-golden promotion.
+
+The frozen reviewed branch head
+`87a84ecd1f03e7257a40ddaf0b5531a3e66aaf30` passed
+`python scripts/verify.py --all` in a clean detached worktree in 186.8 seconds.
+Release build completed with zero warnings and errors: Domain 357, Application
+186, ProfileContract 350, Architecture 95, GoldenRegression 9, Infrastructure
+245 with 2 platform skips, Bootstrap 608, and UI Smoke 237 passed; Python CRC
+worker tests passed 28/28 at 98.88% coverage. Polytail and repository structure
+validation passed.
+
+The exact metadata-aligned package, clean-machine Narrator/NVDA and effective
+Windows contrast checks, explicit firmware-owner R3 approval, required PR/main
+CI, protected-main tag, and immutable GitHub Release verification remain
+release gates. Development-package observations do not substitute for them.
+
+## 0.9.9 legacy-convergence stable release candidate
+
+The reviewed `v0.9.9` code milestone retires the production V1 composition
+compiler after exact V2-route and fail-closed coverage. The constrained Legacy
+Combiner executable and runner remain the sole legacy execution exception.
+Production C#/AXAML is below the owner-approved 54,000-nonblank-line ceiling,
+and runtime availability, golden verification, and product-support promotion
+remain separate states.
+
+Independent clean-tag verification of code milestone commit
+`270e803e1f043ffd56d8568c7e80c7f771a35d7e` passed
+`python scripts/verify.py --all` in 165.2 seconds with zero build warnings and
+errors: Domain 351, Application 156, ProfileContract 350, Architecture 84,
+GoldenRegression 7, Infrastructure 221 with 2 platform skips, Bootstrap 575,
+and UI Smoke 131 all passed.
+
+The subsequent canonical golden and external-tool consolidation was reviewed
+through PR #147 and merged as
+`0589ba3a644bba149d7f42b222bcde68efc52bb2`. Required CI run 29678730641
+passed the .NET build/test, repository policy/Polytail, and Python verification
+jobs. Independent R3 review reported no P0-P3 findings. The consolidation does
+not change firmware bytes, expected outputs, runtime routes, profiles, package
+allowlists, or support status.
+
+The earlier `v0.9.9` tag incorrectly pointed to an internal milestone tree that
+still reported package version `0.9.8`. The owner explicitly approved replacing
+that tag only after this metadata-aligned tree passes review and required CI and
+is merged to `main`. The `v0.9.9.5` tag remains an internal predecessor node and
+is not stable package authority. The replacement `v0.9.9` tag must identify the
+exact reviewed `main` commit and pass the canonical release workflow.
 
 ## 0.9.8 convergence candidate
 

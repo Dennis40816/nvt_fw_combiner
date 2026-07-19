@@ -10,9 +10,10 @@ internal sealed class V2CompositionPlanCompileResult
 
     private V2CompositionPlanCompileResult(CompiledComposition? compiledComposition, IEnumerable<CompositionIssue> issues)
     {
-        ArgumentNullException.ThrowIfNull(issues);
-        _issues = [.. issues];
-        if (_issues.Any(static issue => issue is null) || (compiledComposition is null) != (_issues.Length != 0))
+        _issues = ImmutableReferenceSnapshot.Create(
+            issues,
+            "V2 plan compilation requires either one artifact or one or more issues.");
+        if ((compiledComposition is null) != (_issues.Length != 0))
         {
             throw new ArgumentException("V2 plan compilation requires either one artifact or one or more issues.", nameof(issues));
         }
@@ -126,44 +127,17 @@ internal static partial class V2CompositionPlanCompiler
             output.SpaceId,
             spaces.Values,
             operations);
-        var promotion = new CompiledProfilePromotion(
-            MapPromotionStage(profile.Promotion.Stage),
-            profile.Promotion.Blockers.Select(MapPromotionBlocker));
-        var provenance = new V2CompilationProvenance(
-            preparation.Selection.BundleIdentity,
-            preparation.Selection.ProfileEntryIdentity,
+        return Succeed(
+            profile,
+            preparation.Selection,
             new ResolvedMapV2CompilationContext(resolvedMap),
-            promotion,
-            profile.EvidenceRefs,
-            [],
-            preparation.Admission.RequiredCapabilities.Select(static capability => new CompiledCapabilityAdmission(
-                capability.RequiredCapabilityId,
-                capability.Binding)));
-        var inputContract = new CompiledInputContract(
+            plan,
             profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap)),
-            profile.Spaces.OfType<InputArtifactProfileSpace>().Select(MapInputSpaceBinding));
-        var outputNaming = new CompiledOutputNamingRequirement(
-            profile.Output.FileNameTemplate,
-            profile.Output.AllowOverride,
-            MapOutputPolicy(profile.Output.InvalidCharacterPolicy),
-            profile.Output.RequiredTokenIds);
-        var identity = new V2CompiledCompositionIdentity(
-            profile.ProfileId,
-            profile.ProfileVersion,
-            profile.Experience.ExperienceId,
-            profile.CompositionKind,
-            new V2CompiledCompositionDetails(provenance, inputContract, regionAccess.Contract, outputNaming));
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicies.From(profile.IcNumberInputMode);
-        CompiledComposition artifact = profile.Promotion.Stage == CompositionProfilePromotionStage.Supported
-            ? CompiledComposition.CreateV2RuntimeExecutable(
-                plan,
-                identity,
-                icNumberPolicy)
-            : CompiledComposition.CreateV2(
-                plan,
-                identity,
-                icNumberPolicy);
-        return V2CompositionPlanCompileResult.Succeeded(artifact);
+            profile.Spaces.OfType<InputArtifactProfileSpace>().Select(MapInputSpaceBinding),
+            regionAccess.Contract,
+            CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
+            preparation.Admission,
+            runtimeExecutable: profile.Promotion.Stage == CompositionProfilePromotionStage.Supported);
     }
 
     private static Dictionary<string, AddressSpace> LowerAddressSpaces(
@@ -504,6 +478,62 @@ internal static partial class V2CompositionPlanCompiler
                     issues,
                     operationId,
                     $"physical write constraint '{region.WriteConstraint}' for region '{region.RegionId}' does not authorize its target range");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool TryAuthorizeProcessorWrite(
+        string operationId,
+        string targetViewId,
+        ResolvedView target,
+        LoweredRegionAccess regionAccess,
+        List<CompositionIssue> issues)
+    {
+        ResolvedRegionAccessRule[] applicableRules =
+        [
+            .. regionAccess.Rules.Values.Where(rule => rule.Region.Range.Contains(target.Range)),
+        ];
+        if (target.GoverningRegionChain.Count == 0 ||
+            applicableRules.Length == 0)
+        {
+            AddAccessDenied(
+                issues,
+                operationId,
+                $"processor target view '{targetViewId}' has no declared physical profile region");
+            return false;
+        }
+
+        bool isAuthorableTpCtrlRam = target.GoverningRegionChain[^1] is
+        {
+            Owner: FirmwareRegionOwner.Tp,
+            Kind: FirmwareRegionKind.CtrlRam,
+        };
+        CompiledRegionAccessKind mostSpecificAccess = applicableRules
+            .OrderBy(static rule => rule.Region.Range.Length)
+            .ThenBy(static rule => rule.Region.RegionId, StringComparer.Ordinal)
+            .First()
+            .Requirement.Access;
+        if (!isAuthorableTpCtrlRam &&
+            mostSpecificAccess is not (CompiledRegionAccessKind.Hidden or CompiledRegionAccessKind.ReadOnly))
+        {
+            AddAccessDenied(
+                issues,
+                operationId,
+                $"processor target view '{targetViewId}' is not isolated from General Replace authoring");
+            return false;
+        }
+
+        foreach (FirmwareRegion region in target.GoverningRegionChain)
+        {
+            if (!AllowsPhysicalTarget(region, target.Range, regionAccess.RegionsById))
+            {
+                AddAccessDenied(
+                    issues,
+                    operationId,
+                    $"physical write constraint '{region.WriteConstraint}' for processor region '{region.RegionId}' does not authorize its target range");
                 return false;
             }
         }

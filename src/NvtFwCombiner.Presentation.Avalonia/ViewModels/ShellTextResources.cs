@@ -27,8 +27,8 @@ public sealed partial class ShellTextResources
     {
         return language switch
         {
-            ShellLanguage.English => CreateEnglish(),
-            ShellLanguage.ChineseTraditional => CreateChineseTraditional(),
+            ShellLanguage.English => CreateLocalized(language),
+            ShellLanguage.ChineseTraditional => CreateLocalized(language),
             _ => throw new ArgumentOutOfRangeException(nameof(language), language, null),
         };
     }

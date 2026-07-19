@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "51950-dp-256k",
+  "ic": "NT51950",
+  "workflow": "standard-merge",
+  "variantOrVersion": "dp-256k",
+  "topology": "topology-unscoped",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner supplied merge_bin.7z for remaining Standard Merge golden fixtures on 2026-07-03.",
+  "profileId": "nt51950-standard-merge-dp-perspective",
+  "artifacts": [
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51950/standard-merge/dp-256k/topology-unscoped/51950-dp-256k/inputs/dp-input.bin",
+      "size": 262144,
+      "sha256": "b9ac199003c86bb620d18cf08d9002678ef2e3e9b911020fbecdaa381fd887f1",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51950/dp-256k/dp.bin"
+      ],
+      "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_256k/NT51950TT_Initial Code_TM_TL161XVKS01_PRJ576 _DCC_20260428.bin",
+      "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51950/standard-merge/dp-256k/topology-unscoped/51950-dp-256k/inputs/tp-input.bin",
+      "size": 225280,
+      "sha256": "e76db49116af9502edd73a02df6eb0c86ed8bf2c74487d1917a1ce279bbaeab4",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51950/dp-256k/tp.bin"
+      ],
+      "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_256k/NT51951_fw_TM1610_V04_20260528.bin",
+      "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c"
+    },
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51950/standard-merge/dp-256k/topology-unscoped/51950-dp-256k/expected/flash.bin",
+      "size": 262144,
+      "sha256": "11932f352c3268dce75329eb80b57e3a20f31e7d1859d9ecf0700070c026f791",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/expected/51950/dp-256k/flash.bin"
+      ],
+      "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_256k/NT51951_Flashcode_TM1610_Platform_2880x1800_DCCT04_20260528.bin",
+      "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c"
+    }
+  ]
+}

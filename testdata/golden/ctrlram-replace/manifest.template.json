@@ -5,7 +5,7 @@
   "runnerStatus": "ready-for-private-golden",
   "cases": [
     {
-      "id": "nt51927-vn-slave-l-example",
+      "id": "nt51927-shared-vn-example",
       "ic": "NT51927",
       "icNum": "3",
       "mode": "CtrlRAM",
@@ -20,17 +20,17 @@
       },
       "replacementInputs": [
         {
-          "slotId": "replace-ctrlram-vn-slave-l",
-          "regionName": "VN CtrlRAM (Slave L)",
+          "slotId": "replace-ctrlram-vn",
+          "regionName": "VN CtrlRAM (Shared)",
           "file": {
-            "path": "inputs/vn-slave-l.bin",
+            "path": "inputs/vn.bin",
             "size": 0,
             "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
           }
         }
       ],
       "expectedOutput": {
-        "path": "expected/nt51927-vn-slave-l.bin",
+        "path": "expected/nt51927-shared-vn.bin",
         "size": 0,
         "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
       },

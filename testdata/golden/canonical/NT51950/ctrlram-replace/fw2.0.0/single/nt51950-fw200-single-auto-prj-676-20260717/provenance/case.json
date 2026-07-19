@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
+  "ic": "NT51950",
+  "workflow": "ctrlram-replace",
+  "variantOrVersion": "fw2.0.0",
+  "topology": "single",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
+  "project": "AUTO_PRJ-676",
+  "icCount": 1,
+  "baseKind": "canonical-standard-merge-owner-output",
+  "profileId": "nt51950-ctrlram-replace-fw200-single",
+  "artifacts": [
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/expected/NT51950_Flashcode_BOE1540_Faurecia_Chery_D86T80_20260709.bin",
+      "size": 262144,
+      "sha256": "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51950/replace/ctrlram/single/expected_output/NT51950_Flashcode_BOE1540_Faurecia_Chery_D86T80_20260709.bin"
+      ],
+      "originalFileName": "NT51950_Flashcode_BOE1540_Faurecia_Chery_D86T80_20260709.bin",
+      "sourceRole": "expected-final-output"
+    },
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/NT51950TT_Initial Code_BOE_2560x1600_D86_GOP_3MUX_20260708.bin",
+      "size": 262144,
+      "sha256": "36fad781c12e955439054e851d2c6813d3f154d5f206fac9555d1913f987d254",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51950/replace/ctrlram/single/NT51950TT_Initial Code_BOE_2560x1600_D86_GOP_3MUX_20260708.bin"
+      ],
+      "originalFileName": "NT51950TT_Initial Code_BOE_2560x1600_D86_GOP_3MUX_20260708.bin",
+      "sourceRole": "standard-merge-dp-input"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/nt51950_fw.bin",
+      "size": 225280,
+      "sha256": "0bd070b3d05939e01346deb1f1d40ffcc3431692524cd18c90171869485d3f22",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51950/replace/ctrlram/single/nt51950_fw.bin"
+      ],
+      "originalFileName": "nt51950_fw.bin",
+      "sourceRole": "standard-merge-tp-input"
+    },
+    {
+      "artifactId": "postbuild-nf-ctrlram",
+      "role": "input",
+      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/NF_Ctrlram.bin",
+      "size": 2816,
+      "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51950/replace/ctrlram/single/postbuild_inputs/NF_Ctrlram.bin"
+      ],
+      "originalFileName": "NF_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-normal-ctrlram",
+      "role": "input",
+      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/Normal_Ctrlram.bin",
+      "size": 655360,
+      "sha256": "f2db8a22f7e2ba5d46699e6b405412e9e804d679448b2aa5e61fa14e9b07b478",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51950/replace/ctrlram/single/postbuild_inputs/Normal_Ctrlram.bin"
+      ],
+      "originalFileName": "Normal_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-vn-ctrlram",
+      "role": "input",
+      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/VN_Ctrlram.bin",
+      "size": 8444,
+      "sha256": "3f1bd04de707ba7584dd860caa9069e4b66774b9c3b8a001eea1d69db62cb709",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51950/replace/ctrlram/single/postbuild_inputs/VN_Ctrlram.bin"
+      ],
+      "originalFileName": "VN_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "project-marker",
+      "role": "provenance",
+      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/provenance/AUTO_PRJ-676, PID=0x4A06.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51950/replace/ctrlram/single/AUTO_PRJ-676, PID=0x4A06.txt"
+      ],
+      "originalFileName": "AUTO_PRJ-676, PID=0x4A06.txt",
+      "sourceRole": "project-marker"
+    }
+  ],
+  "sourceIntake": {
+    "legacyManifest": "testdata/golden/ctrlram-replace/manifest.20260717.json",
+    "archive": {
+      "fileName": "NVT_Golden_Evidence_v0.9.9_20260717.7z",
+      "sha256": "9027e9038f51c5421f922afdf73d1f16fc5f7dd582e23e25547727fda585205c",
+      "transfer": "HackMD CJK14 numbered-note transfer",
+      "recoveredAtTaipei": "2026-07-17T17:18:00+08:00"
+    }
+  },
+  "promotion": {
+    "runtimeSupportPromotion": false,
+    "releaseRedistributionApproved": false
+  },
+  "pid": "0x4A06",
+  "phaseBResult": {
+    "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
+    "ic": "NT51950",
+    "workflow": "ctrlram-replace",
+    "variant": "Common FW 2.0.0",
+    "project": "AUTO_PRJ-676",
+    "pid": "0x4A06",
+    "topology": "single",
+    "chipCount": 1,
+    "baseKind": "canonical-standard-merge-owner-output",
+    "ownerExpectedSha256": "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e",
+    "legacyOutputSha256": "a32e6896b840d44e4933adb8827d66bfe642a1347835a1c5bda848cb33ecd5c4",
+    "v2OutputSha256": "a32e6896b840d44e4933adb8827d66bfe642a1347835a1c5bda848cb33ecd5c4",
+    "differenceCounts": {
+      "legacyToV2": 0,
+      "ownerToLegacy": 16,
+      "ownerToV2": 16,
+      "ctrlRamPayload": 0
+    },
+    "allowedDifferenceRanges": [
+      {
+        "start": "0xA11C",
+        "endExclusive": "0xA120",
+        "classification": "header-crc-word"
+      },
+      {
+        "start": "0xA130",
+        "endExclusive": "0xA134",
+        "classification": "header-crc-word"
+      },
+      {
+        "start": "0x2D428",
+        "endExclusive": "0x2D42C",
+        "classification": "header-copy-crc-word"
+      },
+      {
+        "start": "0x2D43C",
+        "endExclusive": "0x2D440",
+        "classification": "header-copy-crc-word"
+      }
+    ],
+    "routeProfileId": "nt51950-ctrlram-replace-fw200-single",
+    "processorId": "nfc.nt51950.ctrlram-postbuild-v1",
+    "toolBindingId": "legacy-combiner-1.13.0",
+    "sessionCount": 1,
+    "commandCount": 2,
+    "inputArtifactsUnchanged": true,
+    "reportAndOrderedArgvParityTest": "Nt51950CtrlRamFw200EvidenceTests.V1AndV2ProduceIdenticalOutputWithCrcOnlyOwnerDeviationAsync",
+    "runtimeSupportPromotion": false
+  }
+}

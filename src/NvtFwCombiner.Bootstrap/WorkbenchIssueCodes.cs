@@ -48,14 +48,14 @@ public static class WorkbenchIssueCodes
     /// <summary>General Replace fill values must contain exactly one hexadecimal byte.</summary>
     public const string GeneralReplacePatchFillByteInvalid = "ui.general-replace.patch-fill-byte-invalid";
 
-    /// <summary>Staged hexadecimal patches must not overlap before the General Replace compiler validates them.</summary>
-    public const string GeneralReplacePatchOverlap = "ui.general-replace.patch-overlap";
-
     /// <summary>DP Replace profile is intentionally pending for the selected IC.</summary>
     public const string ReplaceDpProfilePending = "replace.dp.profile-pending";
 
     /// <summary>Replace mode is not recognized by the workbench router.</summary>
     public const string ReplaceModeUnknown = "replace.mode.unknown";
+
+    /// <summary>The selected IC does not expose the requested Replace workflow.</summary>
+    public const string ReplaceWorkflowNotSupported = "replace.workflow.not-supported";
 
     /// <summary>CtrlRAM Replace IC-number selection is unsupported by the selected postbuild profile.</summary>
     public const string ReplaceCtrlRamIcNumberUnsupported = "replace.ctrlram.ic-number-unsupported";

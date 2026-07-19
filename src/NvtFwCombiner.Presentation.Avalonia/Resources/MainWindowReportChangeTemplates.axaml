@@ -35,8 +35,67 @@
   </Border>
 </DataTemplate>
 
+<DataTemplate x:Key="ReportHexDiffViewportRowTemplate" DataType="vm:ReportHexDiffViewportRowViewModel">
+  <Border
+      Classes="reportHexDiffRow"
+      Classes.changed="{Binding HasChanges}"
+      AutomationProperties.Name="{Binding AccessibleLabel}">
+    <StackPanel>
+      <Grid ColumnDefinitions="112,*,112,Auto" ColumnSpacing="10">
+        <TextBlock Classes="technicalCompactValue" Text="{Binding Address}" />
+        <TextBlock Grid.Column="1" Classes="technicalCompactValue" Text="{Binding OutputHex}" TextWrapping="NoWrap" />
+        <TextBlock Grid.Column="2" Classes="technicalCompactDetail" Text="{Binding OutputAscii}" TextWrapping="NoWrap" />
+        <Label
+            Grid.Column="3"
+            Classes="compactBadge neutralBadge reportBadge review"
+            Content="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffChangedRowLabel}"
+            IsVisible="{Binding HasChanges}" />
+      </Grid>
+      <Border
+          Classes="reportHexDiffReferenceRow"
+          IsVisible="{Binding IsOriginalVisible}">
+        <Grid ColumnDefinitions="112,*,112" ColumnSpacing="10">
+          <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffReferenceRowLabel}" />
+          <TextBlock Grid.Column="1" Classes="technicalCompactDetail" Text="{Binding OriginalHex}" TextWrapping="NoWrap" />
+          <TextBlock Grid.Column="2" Classes="technicalCompactDetail" Text="{Binding OriginalAscii}" TextWrapping="NoWrap" />
+        </Grid>
+      </Border>
+    </StackPanel>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportHexDiffRangeRowTemplate" DataType="vm:ReportHexDiffRangeViewModel">
+  <RadioButton
+      Classes="reportHexDiffRange"
+      AutomationProperties.Name="{Binding AccessibleLabel}"
+      AutomationProperties.HelpText="{Binding Reason}"
+      Command="{ReflectionBinding $parent[Window].DataContext.LoadedReport.HexDiff.SelectRangeCommand}"
+      CommandParameter="{Binding}"
+      GroupName="ReportHexDiffRangeNavigator"
+      IsChecked="{Binding IsSelected, Mode=OneWay}"
+      ToolTip.Tip="{Binding Reason}">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+      <StackPanel Spacing="3">
+        <TextBlock Classes="bodyStrongText" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+        <TextBlock Classes="technicalCaption" Text="{Binding AccessibleRange}" TextWrapping="Wrap" />
+        <TextBlock Classes="captionText" Text="{Binding ChangedSummary}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="3">
+        <Label
+            Classes="compactBadge neutralBadge reportBadge info"
+            Content="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}"
+            IsVisible="{Binding IsSelected}" />
+        <Label
+            Classes="compactBadge neutralBadge reportBadge success"
+            Classes.review="{Binding IsReviewRequired}"
+            Content="{Binding Status}" />
+      </StackPanel>
+    </Grid>
+  </RadioButton>
+</DataTemplate>
+
 <DataTemplate x:Key="ReportOutputDifferenceGroupTemplate" DataType="vm:ReportDifferenceGroupViewModel">
-  <Expander Margin="0,0,0,10" IsExpanded="False">
+  <Expander Margin="0,0,0,10" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
     <Expander.Header>
       <Border Classes="reportInputGroupHeader">
         <Grid ColumnDefinitions="4,*,Auto" ColumnSpacing="10">
@@ -53,11 +112,14 @@
         </Grid>
       </Border>
     </Expander.Header>
-    <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding Rows}">
-      <ItemsControl.ItemTemplate>
-        <StaticResource ResourceKey="ReportOutputDifferenceRowTemplate" />
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
+    <StackPanel>
+      <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding RowsPage.Items}">
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportOutputDifferenceRowTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <ContentControl Content="{Binding RowsPage}" ContentTemplate="{StaticResource ReportPagerTemplate}" />
+    </StackPanel>
   </Expander>
 </DataTemplate>
 

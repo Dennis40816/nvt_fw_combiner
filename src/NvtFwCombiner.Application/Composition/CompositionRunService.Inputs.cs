@@ -9,6 +9,7 @@ public sealed partial class CompositionRunService
         CancellationToken cancellationToken)
     {
         Dictionary<string, byte[]> inputBytes = new(StringComparer.Ordinal);
+        Dictionary<string, ArtifactReadSnapshot> artifactSnapshots = new(StringComparer.Ordinal);
         List<InputArtifactSummary> inputSummaries = [];
         List<CompositionIssue> issues = ValidateArtifactBindings(request);
         if (issues.Count > 0)
@@ -24,6 +25,7 @@ public sealed partial class CompositionRunService
                     "input.binding.missing",
                     inputBytes,
                     inputSummaries,
+                    artifactSnapshots,
                     issues,
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -119,6 +121,7 @@ public sealed partial class CompositionRunService
         string missingIssueCode,
         Dictionary<string, byte[]> inputBytes,
         List<InputArtifactSummary> inputSummaries,
+        Dictionary<string, ArtifactReadSnapshot> artifactSnapshots,
         List<CompositionIssue> issues,
         CancellationToken cancellationToken)
     {
@@ -134,6 +137,7 @@ public sealed partial class CompositionRunService
                 binding,
                 inputBytes,
                 inputSummaries,
+                artifactSnapshots,
                 issues,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -143,21 +147,35 @@ public sealed partial class CompositionRunService
         InputArtifactBinding binding,
         Dictionary<string, byte[]> inputBytes,
         List<InputArtifactSummary> inputSummaries,
+        Dictionary<string, ArtifactReadSnapshot> artifactSnapshots,
         List<CompositionIssue> issues,
         CancellationToken cancellationToken)
     {
         try
         {
-            ReadOnlyMemory<byte> bytes = await _artifactReader
-                .ReadAsync(binding.ArtifactId, cancellationToken)
-                .ConfigureAwait(false);
-            byte[] buffer = bytes.ToArray();
+            byte[] buffer;
+            string sha256;
+            if (artifactSnapshots.TryGetValue(binding.ArtifactId, out ArtifactReadSnapshot? snapshot))
+            {
+                buffer = [.. snapshot.Bytes];
+                sha256 = snapshot.Sha256;
+            }
+            else
+            {
+                ReadOnlyMemory<byte> bytes = await _artifactReader
+                    .ReadAsync(binding.ArtifactId, cancellationToken)
+                    .ConfigureAwait(false);
+                buffer = bytes.ToArray();
+                sha256 = ToSha256Hex(buffer);
+                artifactSnapshots.Add(binding.ArtifactId, new ArtifactReadSnapshot(buffer, sha256));
+            }
+
             inputBytes.Add(binding.AddressSpaceId, buffer);
             inputSummaries.Add(new InputArtifactSummary(
                 binding.AddressSpaceId,
                 binding.BindingId,
                 buffer.LongLength,
-                ToSha256Hex(buffer),
+                sha256,
                 binding.OriginalFileName));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -177,4 +195,6 @@ public sealed partial class CompositionRunService
         IReadOnlyDictionary<string, byte[]> InputBytes,
         IReadOnlyList<InputArtifactSummary> InputSummaries,
         IReadOnlyList<CompositionIssue> Issues);
+
+    private sealed record ArtifactReadSnapshot(byte[] Bytes, string Sha256);
 }

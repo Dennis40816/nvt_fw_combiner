@@ -19,19 +19,4 @@ public static partial class WorkbenchCompositionService
     {
         return FindStandardMergeProfileSummaryByIc(icId)?.RequiredInputAddressSpaceIds ?? [];
     }
-
-    /// <summary>Gets the profile-owned default Standard Merge output file name for the selected IC.</summary>
-    public static string GetStandardMergeDefaultOutputFileName(string icId)
-    {
-        return FindStandardMergeProfileSummaryByIc(icId)?.DefaultOutputFileName ??
-            StandardMergeFallbackOutputFileName;
-    }
-
-    /// <summary>Gets a compact, catalog-backed policy summary for the selected Standard Merge IC.</summary>
-    public static string GetStandardMergePolicySummary(string icId)
-    {
-        return TryGetBuiltInV2StandardMergeContainerPolicy(icId, out V2StandardMergeContainerPolicy? policy)
-            ? $"TP paste range: {FormatDisplayRange(policy.TpOverlayRange)}; {FormatDisplayRange(policy.CustomerInfoRange)} remains from the DP image."
-            : "Address ranges come from the built-in Standard Merge profile.";
-    }
 }

@@ -19,13 +19,12 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         }
 
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         string toolRoot = Path.Combine(repositoryRoot, "external-tools");
         string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-real-combiner-smoke-{Guid.NewGuid():N}");
 
         try
         {
-            byte[] goldenBytes = File.ReadAllBytes(FindGoldenExpectedOutput(goldenRoot, "51927"));
+            byte[] goldenBytes = File.ReadAllBytes(FindGoldenExpectedOutput("51927"));
             ExternalCombinerToolManifest manifest = LoadManifest(
                 Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
             Assert.Equal(

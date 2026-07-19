@@ -16,25 +16,15 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
         ArgumentException.ThrowIfNullOrWhiteSpace(regionSetId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
 
-        ArgumentNullException.ThrowIfNull(regions);
-        _regions = [.. regions];
-        if (_regions.Length == 0)
-        {
-            throw new ArgumentException("Firmware region sets cannot be empty.", nameof(regions));
-        }
+        _regions = Composition.ImmutableReferenceSnapshot.CreateUnique(
+            regions,
+            static region => region.RegionId,
+            "Firmware region sets require non-null regions.",
+            "Firmware region ids must be ordinally unique within a set.",
+            StringComparer.Ordinal,
+            requireValue: true);
 
-        if (_regions.Any(static region => region is null))
-        {
-            throw new ArgumentException("Firmware region sets cannot contain null.", nameof(regions));
-        }
-
-        if (_regions.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
-            _regions.Length)
-        {
-            throw new ArgumentException("Firmware region ids must be ordinally unique within a set.", nameof(regions));
-        }
-
-        Array.Sort(_regions, CompareRegions);
+        Array.Sort(_regions, FirmwareRangeOrdering.Compare);
         _evidenceRefs = ImmutableStringSnapshot.Create(
             evidenceRefs,
             nameof(evidenceRefs),
@@ -65,19 +55,4 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
 
     /// <summary>Evidence manifest ids in ordinal order.</summary>
     public IReadOnlyList<string> EvidenceRefs { get; }
-
-    private static int CompareRegions(FirmwareRegion left, FirmwareRegion right)
-    {
-        int startComparison = left.Range.Start.CompareTo(right.Range.Start);
-        if (startComparison != 0)
-        {
-            return startComparison;
-        }
-
-        int lengthComparison = right.Range.Length.CompareTo(left.Range.Length);
-        return lengthComparison != 0
-            ? lengthComparison
-            : StringComparer.Ordinal.Compare(left.RegionId, right.RegionId);
-    }
-
 }

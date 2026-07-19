@@ -14,10 +14,21 @@
     <EmbeddedResource
       Include="..\..\docs\contracts\profile-bundle-v1.schema.json"
       LogicalName="NvtFwCombiner.Infrastructure.Bundles.Schemas.profile-bundle-v1.schema.json" />
+    <Content
+      Include="..\..\profiles\built-in\ctrlram-postbuild-v2\catalog.json"
+      Link="profiles\built-in\ctrlram-postbuild-v2\catalog.json"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest" />
+    <Content
+      Include="..\..\profiles\built-in\ctrlram-postbuild-v2\flash-map.json"
+      Link="profiles\built-in\ctrlram-postbuild-v2\flash-map.json"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.TestSupport" />
   </ItemGroup>
 </Project>

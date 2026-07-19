@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "bundleId": "nt51929-ctrlram-replace-candidate",
+  "bundleVersion": "0.9.9-candidate.2",
+  "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
+  "contentHash": "29413c508fe1e396f9e8b8ffdd2211d7a466008efc50418306a05bb90b629a35",
+  "trustAnchorBindingId": "built-in-profile-bundle-v2",
+  "entries": [
+    {
+      "entryId": "composition-profile-v2-schema",
+      "kind": "schema",
+      "path": "schemas/composition-profile-v2.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "59fa0e240bdde76db530457219d5d41b2bcb47d90428fb48b8f94a83f516e051"
+    },
+    {
+      "entryId": "firmware-family-v1-schema",
+      "kind": "schema",
+      "path": "schemas/firmware-family-v1.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+    },
+    {
+      "entryId": "nt51929-ctrlram-replace-family",
+      "kind": "firmware-family",
+      "path": "families/nt51929-ctrlram-replace.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "4f61baff700480a53b164a710b8ca32e1265ad77a9e26ea5e7eff9369b906126"
+    },
+    {
+      "entryId": "nt51919-ctrlram-replace-fw200-single-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51919-ctrlram-replace-fw200-single.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "ac5dad80b9fad8e528992a11c0608a01f1f2a2ad41a4257e4f12cd9f9c614efb"
+    },
+    {
+      "entryId": "nt51929-ctrlram-replace-fw200-single-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51929-ctrlram-replace-fw200-single.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "5251e222435d7f45bb600dcbd67a81030b08b1e1edbee94bd83c16d20259a56e"
+    }
+  ]
+}

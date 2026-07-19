@@ -188,6 +188,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             LogicalTestMemberId,
                 LogicalRequest(outputCapacity: 7)).CompiledComposition);
 
+        Assert.Equal(
+            "e859723cdbca137445a9dc3e6113ac9806e9e63a2cde28982043e85e37dda763",
+            six.CompilationFingerprint);
         Assert.NotEqual(six.CompilationFingerprint, seven.CompilationFingerprint);
     }
 

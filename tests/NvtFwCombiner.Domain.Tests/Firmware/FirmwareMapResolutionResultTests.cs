@@ -230,7 +230,7 @@ public sealed class FirmwareMapResolutionResultTests
         IEnumerable<string>? commonFirmwareCategoryIds = null,
         string regionEvidence = "region-evidence")
     {
-        return FirmwareImageMap.CreateDirect(
+        return FirmwareImageMapTestFactory.CreateDirect(
             "map",
             "flash",
             new FirmwareMapApplicability(

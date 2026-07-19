@@ -13,6 +13,15 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 *.bin binary
+external-tools/**/*.config binary
+external-tools/**/*.dll binary
+external-tools/**/*.exe binary
 
 # Preserve immutable reference snapshots byte-for-byte.
 refcode/** binary
+testdata/golden/ctrlram-replace/fixtures/20260717/** binary
+testdata/golden/ctrlram-replace/fixtures/20260718/** binary
+
+# Preserve owner-supplied provenance payloads after canonical migration.
+testdata/golden/canonical/**/provenance/*.bat binary
+testdata/golden/canonical/**/provenance/*.txt binary

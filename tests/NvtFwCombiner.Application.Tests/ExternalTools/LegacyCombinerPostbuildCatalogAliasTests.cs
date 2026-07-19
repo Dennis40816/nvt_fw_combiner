@@ -169,6 +169,12 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
 
         Assert.Equal(LegacyCombinerPostbuildBranch.SingleChip, single.Branch);
         Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, cascade.Branch);
+        Assert.Equal("legacy-combiner-1.13.0", cascade.Profile.ToolBindingId);
+        Assert.All(cascade.Commands, command =>
+        {
+            Assert.Equal("NT51931BASED_NORMAL_MODE", command.ModeArgument);
+            Assert.Equal("CRC8", command.CrcArgument);
+        });
         Assert.Contains(cascade.Commands.SelectMany(command => command.Blocks), block => block.SourceFileName == "DiffDLM.bin");
     }
 

@@ -34,19 +34,6 @@ public static partial class WorkbenchCompositionService
         return WorkbenchIcNumberSelections.FromNumberToken(number);
     }
 
-    private static InputArtifactBinding CreateBinding(
-        CompiledComposition compiledComposition,
-        string addressSpaceId,
-        IReadOnlyDictionary<string, string> slotPaths)
-    {
-        return slotPaths.TryGetValue(addressSpaceId, out string? path) && !string.IsNullOrWhiteSpace(path)
-            ? CompiledCompositionInputBindingFactory.Create(
-                compiledComposition,
-                addressSpaceId,
-                Path.GetFullPath(path))
-            : throw new InvalidOperationException($"Input slot '{addressSpaceId}' is required.");
-    }
-
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)
     {
         return string.Join(Environment.NewLine, issues.Select(issue => $"{issue.Code}: {issue.Message}"));

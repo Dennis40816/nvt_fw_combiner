@@ -9,13 +9,13 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Regression coverage for virtual General Replace hexadecimal patch authoring.</summary>
 public sealed class WorkbenchGeneralReplacePatchTests
 {
-    /// <summary>Virtual overwrite patches must compile to the same output as file-backed mappings.</summary>
+    /// <summary>Retired General Replace mappings fail closed after both input forms validate.</summary>
     [Theory]
     [InlineData("A5 5A")]
     [InlineData("A5-5A")]
     [InlineData("A5,5A")]
     [InlineData("A5_5A")]
-    public async Task GeneralReplaceVirtualOverwriteMatchesEquivalentFileMappingAndKeepsBaseImmutable(string patchValue)
+    public async Task GeneralReplaceVirtualAndFileMappingsFailClosedAndKeepBaseImmutable(string patchValue)
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-patch-equivalence");
         byte[] baseBytes = CreatePattern(0x40000, 0x20);
@@ -51,27 +51,14 @@ public sealed class WorkbenchGeneralReplacePatchTests
             TestContext.Current.CancellationToken,
             patchOutput);
 
-        Assert.True(fileMapping.Succeeded, fileMapping.ReportJson);
-        Assert.True(virtualPatch.Succeeded, virtualPatch.ReportJson);
-        Assert.Equal(
-            await File.ReadAllBytesAsync(fileMappingOutput, TestContext.Current.CancellationToken),
-            await File.ReadAllBytesAsync(patchOutput, TestContext.Current.CancellationToken));
+        AssertWorkflowNotSupported(fileMapping, fileMappingOutput);
+        AssertWorkflowNotSupported(virtualPatch, patchOutput);
         Assert.Equal(originalBaseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
-
-        using var document = JsonDocument.Parse(virtualPatch.ReportJson);
-        Assert.Contains(
-            document.RootElement.GetProperty("Inputs").EnumerateArray(),
-            input => input.GetProperty("ArtifactId").GetString() == "hex-patch-1");
-        JsonElement operation = Assert.Single(document.RootElement.GetProperty("Operations").EnumerateArray());
-        Assert.Equal("hex-patch-1", operation.GetProperty("OperationId").GetString());
-        Assert.Equal("ReplaceRange", operation.GetProperty("Kind").GetString());
-        JsonElement difference = Assert.Single(document.RootElement.GetProperty("OutputDifferences").EnumerateArray());
-        Assert.Equal("Hex patch", difference.GetProperty("SectionLabel").GetString());
     }
 
-    /// <summary>Fill patches materialize a complete equal-length virtual source artifact.</summary>
+    /// <summary>Validated fill patches fail closed when no exact V2 General Replace route exists.</summary>
     [Fact]
-    public async Task GeneralReplaceVirtualFillWritesEverySelectedByte()
+    public async Task GeneralReplaceVirtualFillFailsClosedWithoutOutput()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-patch-fill");
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x50));
@@ -93,12 +80,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
-        Assert.Equal([0xFF, 0xFF, 0xFF], output[0x110..0x113]);
-        using var document = JsonDocument.Parse(result.ReportJson);
-        JsonElement operation = Assert.Single(document.RootElement.GetProperty("Operations").EnumerateArray());
-        Assert.Contains("Fill hexadecimal", operation.GetProperty("Reason").GetString(), StringComparison.Ordinal);
+        AssertWorkflowNotSupported(result, outputPath);
     }
 
     /// <summary>Malformed bytes and protected ranges are rejected before any output is committed.</summary>
@@ -144,7 +126,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
         Assert.False(File.Exists(malformedOutput));
         AssertReportHasIssue(malformed.ReportJson, "ui.general-replace.patch-hex-invalid");
         Assert.False(protectedRange.Succeeded);
-        AssertReportHasIssue(protectedRange.ReportJson, "profile.explicit-mapping.region-not-enabled");
+        AssertReportHasIssue(protectedRange.ReportJson, "replace.workflow.not-supported");
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
@@ -202,13 +184,15 @@ public sealed class WorkbenchGeneralReplacePatchTests
         AssertReportHasIssue(result.ReportJson, WorkbenchIssueCodes.ReplaceGeneralIcNumberUnsupported);
     }
 
-    /// <summary>TP virtual patches select the existing checked postbuild path rather than a patch-local processor.</summary>
+    /// <summary>TP virtual patches fail closed when the legacy General Replace compiler is retired.</summary>
     [Fact]
-    public async Task GeneralReplaceVirtualPatchRunsExistingPostbuildForTpRange()
+    public async Task GeneralReplaceVirtualTpPatchFailsClosed()
     {
-        string basePath = GoldenPath("expected/51950/dp-256k/flash.bin");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-general-tp-patch");
+        string basePath = GoldenArtifactPath("51950", "expected-output", "dp-256k");
         byte[] baseBytes = await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
 
+        string outputPath = workspace.PathFor("output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51950",
             "single",
@@ -221,30 +205,18 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 "0x22C01",
                 WorkbenchGeneralReplacePatchKind.Overwrite,
                 Convert.ToHexString(baseBytes[0x22C00..0x22C02]))],
-            build: false,
-            TestContext.Current.CancellationToken);
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        using var document = JsonDocument.Parse(result.ReportJson);
-        Assert.Collection(
-            document.RootElement.GetProperty("Operations").EnumerateArray(),
-            operation =>
-            {
-                Assert.Equal("ReplaceRange", operation.GetProperty("Kind").GetString());
-                Assert.Equal("hex-tp-1", operation.GetProperty("OperationId").GetString());
-            },
-            operation =>
-            {
-                Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
-                Assert.Equal("nfc.nt51950.ctrlram-postbuild-v1", operation.GetProperty("ProcessorId").GetString());
-            });
+        AssertWorkflowNotSupported(result, outputPath);
     }
 
-    /// <summary>Keeps postbuild strictly after every accepted General Replace mapping.</summary>
+    /// <summary>Many valid mappings still fail closed without a legacy General Replace compiler.</summary>
     [Fact]
-    public async Task GeneralReplaceManyMappingsRemainBeforePostbuild()
+    public async Task GeneralReplaceManyMappingsFailClosed()
     {
-        string basePath = GoldenPath("expected/51950/dp-256k/flash.bin");
+        string basePath = GoldenArtifactPath("51950", "expected-output", "dp-256k");
         byte[] baseBytes = await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
         WorkbenchGeneralReplacePatchInput[] patches =
         [
@@ -272,15 +244,8 @@ public sealed class WorkbenchGeneralReplacePatchTests
             build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        using var document = JsonDocument.Parse(result.ReportJson);
-        int[] sequences =
-        [
-            .. document.RootElement.GetProperty("Operations").EnumerateArray()
-                .Select(operation => operation.GetProperty("Sequence").GetInt32()),
-        ];
-        Assert.Equal(81, sequences.Count(sequence => sequence < 1_000_000));
-        Assert.Contains(1_000_000, sequences);
+        Assert.False(result.Succeeded, result.ReportJson);
+        AssertReportHasIssue(result.ReportJson, "replace.workflow.not-supported");
     }
 
     private static Dictionary<string, string> CreateBaseSlots(string basePath)
@@ -297,6 +262,15 @@ public sealed class WorkbenchGeneralReplacePatchTests
         Assert.Contains(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
             issue => issue.GetProperty("Code").GetString() == code);
+    }
+
+    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string outputPath)
+    {
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(File.Exists(outputPath));
+        AssertReportHasIssue(result.ReportJson, "replace.workflow.not-supported");
+        using var document = JsonDocument.Parse(result.ReportJson);
+        Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
 }

@@ -7,6 +7,33 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
     x:DataType="vm:HexEditorWorkspaceViewModel">
+  <UserControl.Resources>
+    <DataTemplate x:Key="HexEditorChangedBlockPagerTemplate" DataType="vm:ReportWindowedListViewModel">
+      <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace8}">
+        <TextBlock
+            HorizontalAlignment="Center"
+            Classes="captionText"
+            Text="{Binding PageStatus}"
+            TextWrapping="Wrap"
+            ToolTip.Tip="{Binding PageStatus}"
+            AutomationProperties.Name="{Binding PageStatus}"
+            AutomationProperties.LiveSetting="Polite" />
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+          <Button
+              Classes="secondary"
+              Command="{Binding PreviousPageCommand}"
+              Content="{Binding PreviousPageLabel}"
+              AutomationProperties.Name="{Binding PreviousPageLabel}" />
+          <Button
+              Grid.Column="1"
+              Classes="secondary"
+              Command="{Binding NextPageCommand}"
+              Content="{Binding NextPageLabel}"
+              AutomationProperties.Name="{Binding NextPageLabel}" />
+        </Grid>
+      </Grid>
+    </DataTemplate>
+  </UserControl.Resources>
   <UserControl.Styles>
     <Style Selector="Button.hexGoToAddress Path">
       <Setter Property="Width" Value="16" />
@@ -36,7 +63,7 @@
           Grid.Column="0"
           Classes="compactSurface fileDropZone"
           DragDrop.AllowDrop="True"
-          DragDrop.DragEnter="HexEditorSourceDrop_OnDragEnter"
+          DragDrop.DragEnter="HexEditorSourceDrop_OnDragOver"
           DragDrop.DragOver="HexEditorSourceDrop_OnDragOver"
           DragDrop.DragLeave="HexEditorSourceDrop_OnDragLeave"
           DragDrop.Drop="HexEditorSourceDrop_OnDrop">
@@ -345,21 +372,27 @@
             </StackPanel>
 
             <Border Grid.Row="2" Padding="14,12" Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,1,0,1">
-              <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace8}">
+              <Grid RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource NfcSpace8}">
                 <Grid ColumnDefinitions="*,Auto">
                   <TextBlock VerticalAlignment="Center" Classes="hexInspectorSection" Text="{Binding Text.HexEditorChangedBlocksLabel}" />
                   <Button
                       Grid.Column="1"
-                      Width="28"
                       Height="28"
                       Classes="hexChangedBlockNavigator"
                       Command="{Binding SelectNextChangedBlockCommand}"
                       Content="{Binding ChangedBlockCount}"
                       IsEnabled="{Binding HasChangedBlocks}"
+                      AutomationProperties.Name="{Binding ChangedBlockNavigationAccessibleLabel}"
+                      AutomationProperties.HelpText="{Binding ChangedBlockPage.PageStatus}"
                       ToolTip.Tip="{Binding Text.HexEditorSelectChangedBlockTooltip}" />
                 </Grid>
-                <TextBlock
+                <ContentControl
                     Grid.Row="1"
+                    Content="{Binding ChangedBlockPage}"
+                    ContentTemplate="{StaticResource HexEditorChangedBlockPagerTemplate}"
+                    IsVisible="{Binding ChangedBlockPage.HasMultiplePages}" />
+                <TextBlock
+                    Grid.Row="2"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Classes="captionText"
@@ -368,8 +401,8 @@
                     Text="{Binding Text.HexEditorNoChangedBlocksDetail}"
                     TextAlignment="Center"
                     TextWrapping="Wrap" />
-                <ScrollViewer Grid.Row="1" IsVisible="{Binding HasChangedBlocks}" VerticalScrollBarVisibility="Auto">
-                  <ItemsControl ItemsSource="{Binding ChangedBlocks}">
+                <ScrollViewer Grid.Row="2" IsVisible="{Binding HasChangedBlocks}" VerticalScrollBarVisibility="Auto">
+                  <ItemsControl ItemsSource="{Binding ChangedBlockPage.Items}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:HexEditorChangedBlockViewModel">
                         <Button
@@ -378,8 +411,8 @@
                             Command="{ReflectionBinding $parent[UserControl].DataContext.SelectChangedBlockCommand}"
                             CommandParameter="{Binding}"
                             ToolTip.Tip="{Binding ReasonTooltip}">
-                          <Grid ColumnDefinitions="32,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
-                            <TextBlock VerticalAlignment="Center" Classes="technicalValue" Text="{Binding IndexLabel}" />
+                          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+                            <TextBlock MinWidth="48" VerticalAlignment="Center" Classes="technicalValue" Text="{Binding IndexLabel}" TextAlignment="Right" />
                             <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="technicalCompactDetail" Text="{Binding RangeLabel}" />
                             <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="technicalCaption" Text="{Binding LengthLabel}" />
                           </Grid>

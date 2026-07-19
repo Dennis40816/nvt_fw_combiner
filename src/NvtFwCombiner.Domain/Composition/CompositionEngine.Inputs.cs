@@ -28,7 +28,7 @@ public static partial class CompositionEngine
         foreach (AddressSpace addressSpace in plan.AddressSpaces.Where(static space =>
                      space.Mutability == AddressSpaceMutability.Immutable))
         {
-            if (!input.TryGetBytes(addressSpace.AddressSpaceId, out ReadOnlyMemory<byte> bytes))
+            if (!input.TryGetImmutableBuffer(addressSpace.AddressSpaceId, out byte[] bytes))
             {
                 issues.Add(new CompositionIssue(
                     CompositionIssueCodes.InputAddressSpaceMissing,
@@ -95,50 +95,51 @@ public static partial class CompositionEngine
         foreach (AddressSpace addressSpace in plan.AddressSpaces.Where(static space =>
                      space.Mutability == AddressSpaceMutability.Immutable))
         {
-            if (!input.TryGetBytes(addressSpace.AddressSpaceId, out ReadOnlyMemory<byte> bytes))
+            if (!input.TryGetImmutableBuffer(addressSpace.AddressSpaceId, out byte[] immutableBytes))
             {
                 continue;
             }
 
-            byte[] buffer = bytes.Length > addressSpace.Length &&
-                addressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange
-                ? [.. bytes.Span[..checked((int)addressSpace.Length)]]
-                : bytes.ToArray();
-            if (buffer.LongLength > addressSpace.Length)
+            byte[] buffer;
+            if (immutableBytes.LongLength > addressSpace.Length &&
+                addressSpace.InputOversizePolicy == InputOversizePolicy.Reject)
             {
+                buffer = immutableBytes;
+            }
+            else if (immutableBytes.LongLength > addressSpace.Length)
+            {
+                buffer = [.. immutableBytes.AsSpan(0, checked((int)addressSpace.Length))];
                 if (addressSpace.InputOversizePolicy == InputOversizePolicy.TruncateWithWarning)
                 {
-                    long discardedByteCount = buffer.LongLength - addressSpace.Length;
-                    buffer = [.. buffer.AsSpan(0, checked((int)addressSpace.Length))];
+                    long discardedByteCount = immutableBytes.LongLength - addressSpace.Length;
                     issues.Add(new CompositionIssue(
                         CompositionIssueCodes.InputAddressSpaceTruncated,
-                        $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length and were truncated from {bytes.Length} to {addressSpace.Length} bytes; {discardedByteCount} trailing bytes were discarded.",
+                        $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length and were truncated from {immutableBytes.Length} to {addressSpace.Length} bytes; {discardedByteCount} trailing bytes were discarded.",
                         addressSpace.AddressSpaceId,
                         CompositionIssueSeverity.Warning));
                 }
-                else if (addressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange)
-                {
-                    buffer = [.. buffer.AsSpan(0, checked((int)addressSpace.Length))];
-                }
             }
-            else if (buffer.LongLength < addressSpace.Length)
+            else if (immutableBytes.LongLength < addressSpace.Length)
             {
-                byte[] padded = new byte[checked((int)addressSpace.Length)];
-                buffer.CopyTo(padded, 0);
+                buffer = new byte[checked((int)addressSpace.Length)];
+                immutableBytes.CopyTo(buffer, 0);
                 Array.Fill(
-                    padded,
+                    buffer,
                     addressSpace.InputPaddingByte!.Value,
-                    buffer.Length,
-                    padded.Length - buffer.Length);
-                buffer = padded;
+                    immutableBytes.Length,
+                    buffer.Length - immutableBytes.Length);
+            }
+            else
+            {
+                buffer = immutableBytes;
             }
 
             if (addressSpace.ExpectedInputLengths.Count > 0 &&
-                !addressSpace.ExpectedInputLengths.Contains(bytes.Length))
+                !addressSpace.ExpectedInputLengths.Contains(immutableBytes.Length))
             {
                 issues.Add(new CompositionIssue(
                     addressSpace.UnexpectedInputLengthIssueCode ?? CompositionIssueCodes.InputAddressSpaceLengthUnexpected,
-                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' have unexpected length {bytes.Length} bytes; expected {FormatAllowedLengths(addressSpace.ExpectedInputLengths)}. Execution uses only the declared source range [0x0, 0x{addressSpace.Length:X}).",
+                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' have unexpected length {immutableBytes.Length} bytes; expected {FormatAllowedLengths(addressSpace.ExpectedInputLengths)}. Execution uses only the declared source range [0x0, 0x{addressSpace.Length:X}).",
                     addressSpace.AddressSpaceId,
                     CompositionIssueSeverity.Warning));
             }

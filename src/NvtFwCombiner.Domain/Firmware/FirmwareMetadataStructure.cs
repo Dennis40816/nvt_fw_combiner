@@ -22,12 +22,9 @@ public sealed class FirmwareMetadataStructure
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lengthBytes);
         ArgumentNullException.ThrowIfNull(locator);
 
-        ArgumentNullException.ThrowIfNull(fields);
-        _fields = [.. fields];
-        if (_fields.Any(static field => field is null))
-        {
-            throw new ArgumentException("Metadata structures cannot contain null fields.", nameof(fields));
-        }
+        _fields = Composition.ImmutableReferenceSnapshot.Create(
+            fields,
+            "Metadata structures cannot contain null fields.");
 
         if (_fields.Select(static field => field.FieldId).Distinct(StringComparer.Ordinal).Count() !=
             _fields.Length)
@@ -47,12 +44,9 @@ public sealed class FirmwareMetadataStructure
 
         Array.Sort(_fields, CompareFields);
 
-        ArgumentNullException.ThrowIfNull(assertions);
-        _assertions = [.. assertions];
-        if (_assertions.Any(static assertion => assertion is null))
-        {
-            throw new ArgumentException("Metadata structures cannot contain null assertions.", nameof(assertions));
-        }
+        _assertions = Composition.ImmutableReferenceSnapshot.Create(
+            assertions,
+            "Metadata structures cannot contain null assertions.");
 
         foreach (FirmwareMetadataByteAssertion assertion in _assertions)
         {
@@ -172,15 +166,9 @@ public sealed class FirmwareMetadataStructure
 
     private static int CompareFields(FirmwareMetadataField left, FirmwareMetadataField right)
     {
-        int startComparison = left.Range.Start.CompareTo(right.Range.Start);
-        if (startComparison != 0)
-        {
-            return startComparison;
-        }
-
-        int lengthComparison = right.Range.Length.CompareTo(left.Range.Length);
-        return lengthComparison != 0
-            ? lengthComparison
+        int rangeComparison = FirmwareRangeOrdering.Compare(left.Range, right.Range);
+        return rangeComparison != 0
+            ? rangeComparison
             : StringComparer.Ordinal.Compare(left.FieldId, right.FieldId);
     }
 
@@ -188,16 +176,10 @@ public sealed class FirmwareMetadataStructure
         FirmwareMetadataByteAssertion left,
         FirmwareMetadataByteAssertion right)
     {
-        int startComparison = left.Range.Start.CompareTo(right.Range.Start);
-        if (startComparison != 0)
+        int rangeComparison = FirmwareRangeOrdering.Compare(left.Range, right.Range);
+        if (rangeComparison != 0)
         {
-            return startComparison;
-        }
-
-        int lengthComparison = right.Range.Length.CompareTo(left.Range.Length);
-        if (lengthComparison != 0)
-        {
-            return lengthComparison;
+            return rangeComparison;
         }
 
         int expectedComparison = StringComparer.Ordinal.Compare(

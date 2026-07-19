@@ -27,7 +27,10 @@ public static partial class WorkbenchCompositionService
             report.Output.Sha256,
             report.Output.FileName,
             result.CommittedOutputId,
-            reportJson);
+            reportJson)
+        {
+            InspectionSnapshot = result.InspectionSnapshot,
+        };
     }
 
     private static WorkbenchRunResult CreateReplaceReportRunResult(
@@ -96,7 +99,7 @@ public static partial class WorkbenchCompositionService
     {
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         var report = new CompositionRunReport(
-            CreateWorkbenchReportRunId(runIdPrefix, build, timestamp),
+            $"{runIdPrefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}",
             profileId,
             profileVersion,
             icId,

@@ -27,28 +27,10 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the workspace summary.</summary>
     public string WorkspaceSummary { get; private set; } = string.Empty;
 
-    /// <summary>Gets the preview action label.</summary>
-    public string PreviewActionLabel { get; private set; } = string.Empty;
-
-    /// <summary>Gets the build action label.</summary>
-    public string BuildActionLabel { get; private set; } = string.Empty;
-
-    /// <summary>Gets the report modal action label.</summary>
-    public string ReportModalActionLabel { get; private set; } = string.Empty;
-
-    /// <summary>Gets the shared device context heading.</summary>
-    public string DeviceContextTitle { get; private set; } = string.Empty;
-
-    /// <summary>Gets the IC field label.</summary>
-    public string IcLabel { get; private set; } = string.Empty;
-
-    /// <summary>Gets the IC count/variant field label.</summary>
-    public string NumberLabel { get; private set; } = string.Empty;
-
     /// <summary>Gets the shared device context status text.</summary>
     public string DeviceContextStatus => IsNumberSelectorVisible
-        ? $"{SelectedIc} / {SelectedNumber}: {DeviceContextRefreshSummary}"
-        : $"{SelectedIc}: {DeviceContextRefreshSummary}";
+        ? $"{DisplayedDeviceIc} / {DisplayedDeviceNumber}: {DisplayedDeviceContextRefreshSummary}"
+        : $"{DisplayedDeviceIc}: {DisplayedDeviceContextRefreshSummary}";
 
     /// <summary>Gets selectable IC choices from the current catalog.</summary>
     public IReadOnlyList<string> IcChoices { get; } = WorkbenchCompositionService.GetSupportedIcIds();
@@ -84,9 +66,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the independent General Replace base firmware slot.</summary>
     public FirmwareSlotViewModel ReplaceBaseSlot { get; } = new(
         ReplaceBaseSlotId,
-        "Base flash BIN",
-        "Reference firmware image before replacement",
-        kind: FirmwareSlotKind.Base);
+        "Reference firmware",
+        "Complete source image cloned before replacement",
+        FirmwareSlotKind.Base);
 
     /// <summary>Gets replace input slots for the selected replace mode.</summary>
     public ObservableCollection<FirmwareSlotViewModel> ReplaceSlots { get; } = [];
@@ -119,11 +101,7 @@ public sealed partial class MainWindowViewModel
     public ObservableCollection<GeneralMergeMappingViewModel> GeneralMergeMappings { get; } = [];
 
     /// <summary>Gets Merge memory coverage text for the selected IC.</summary>
-    public string MergeMemoryRangeLabel => IsGeneralMergeModeSelected
-        ? UiCompositionRunner.GetGeneralMergeMemoryRangeLabel(GeneralMergeOutputLength)
-        : WorkbenchCompositionService.GetStandardMergeMemoryRangeLabel(
-            SelectedIc,
-            GetSelectedMergeDpInputLength());
+    public string MergeMemoryRangeLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the profile-owned default Standard Merge output file name.</summary>
     public string StandardMergeOutputFileName => CreateFlashCodeOutputFileName(MergeSlots);
@@ -137,15 +115,11 @@ public sealed partial class MainWindowViewModel
         : StandardMergeOutputFileName;
 
     /// <summary>Gets Replace memory coverage text for the selected IC and Number.</summary>
-    public string ReplaceMemoryRangeLabel => WorkbenchCompositionService.GetReplaceMemoryRangeLabel(
-        SelectedIc,
-        SelectedNumber,
-        SelectedReplaceMode,
-        GetSelectedReplaceBaseLength(),
-        GetSelectedCtrlRamBasePath());
+    public string ReplaceMemoryRangeLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the default Replace output file name for the active mode.</summary>
-    public string ReplaceOutputFileName => CreateFlashCodeOutputFileName(ReplaceSlots.Concat([ReplaceBaseSlot]));
+    public string ReplaceOutputFileName => CreateFlashCodeOutputFileName(
+        ReplaceSlots.Concat([ReplaceBaseSlot]));
 
     /// <summary>Gets short Merge memory-map summary text.</summary>
     public string MergeMemorySummary => Text.GetMergeMemorySummary(
@@ -197,13 +171,13 @@ public sealed partial class MainWindowViewModel
     public bool IsHexEditorVisible => SelectedPage == ShellPage.HexEditor;
 
     /// <summary>True when CtrlRAM Replace is selected.</summary>
-    public bool IsCtrlRamReplaceModeSelected => string.Equals(SelectedReplaceMode, CtrlRamReplaceMode, StringComparison.Ordinal);
+    public bool IsCtrlRamReplaceModeSelected => IsSelectedReplaceModeSupported && string.Equals(SelectedReplaceMode, CtrlRamReplaceMode, StringComparison.Ordinal);
 
     /// <summary>True when General Replace is selected.</summary>
-    public bool IsGeneralReplaceModeSelected => string.Equals(SelectedReplaceMode, GeneralReplaceMode, StringComparison.Ordinal);
+    public bool IsGeneralReplaceModeSelected => IsSelectedReplaceModeSupported && string.Equals(SelectedReplaceMode, GeneralReplaceMode, StringComparison.Ordinal);
 
     /// <summary>True when the selected Replace mode uses the fixed slot-card input layout.</summary>
-    public bool IsStructuredReplaceModeSelected => !IsGeneralReplaceModeSelected;
+    public bool IsStructuredReplaceModeSelected => IsSelectedReplaceModeSupported && !string.Equals(SelectedReplaceMode, GeneralReplaceMode, StringComparison.Ordinal);
 
     /// <summary>True when the selected Replace mode uses the flat structured slot-card input layout.</summary>
     public bool IsNonCtrlRamStructuredReplaceModeSelected => IsStructuredReplaceModeSelected && !IsCtrlRamReplaceModeSelected;
@@ -229,13 +203,52 @@ public sealed partial class MainWindowViewModel
     /// <summary>Description shown under the selected replace mode.</summary>
     public string SelectedReplaceModeDescription => Text.GetReplaceModeDescription(SelectedReplaceMode);
 
+    /// <summary>Selected Replace workflow availability and golden-evidence state.</summary>
+    public WorkbenchWorkflowReadiness SelectedReplaceWorkflowReadiness =>
+        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode);
+
+    /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
+    public string SelectedReplaceModeEvidenceLabel =>
+        Text.GetWorkflowEvidenceLabel(SelectedReplaceWorkflowReadiness.EvidenceStatus);
+
+    /// <summary>Localized evidence reason and opening condition for the selected Replace workflow.</summary>
+    public string SelectedReplaceModeEvidenceTooltip =>
+        Text.GetWorkflowEvidenceTooltip(SelectedReplaceWorkflowReadiness);
+
+    /// <summary>True when selected Replace has golden parity evidence.</summary>
+    public bool IsSelectedReplaceModeGoldenVerified =>
+        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.GoldenVerified;
+
+    /// <summary>True when selected Replace is available with evidence still open.</summary>
+    public bool IsSelectedReplaceModeEvidenceGated =>
+        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.EvidenceGated;
+
+    /// <summary>True when selected Replace has no approved executable/safety contract.</summary>
+    public bool IsSelectedReplaceModeUnavailable =>
+        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.NotAvailable;
+
+    /// <summary>Owner-defined IC-family relationship shown without changing firmware maps.</summary>
+    public WorkbenchIcFamilySummary SelectedIcFamilySummary =>
+        WorkbenchCompositionService.GetIcFamilySummary(SelectedIc);
+
+    /// <summary>Localized label for an owner-defined IC family.</summary>
+    public string SelectedIcFamilyLabel => Text.GetIcFamilyLabel(SelectedIcFamilySummary.Relationship);
+
+    /// <summary>Localized boundary of reusable family facts.</summary>
+    public string SelectedIcFamilyTooltip => Text.GetIcFamilyTooltip(SelectedIcFamilySummary);
+
+    /// <summary>True when the selected IC has an owner-defined family relation.</summary>
+    public bool HasSelectedIcFamily => SelectedIcFamilySummary.FamilyId is not null;
+
     /// <summary>Status shown in the merge inspector.</summary>
-    public string MergeReadinessStatus => Text.GetMergeReadinessStatus(
-        SelectedMergeMode,
-        SelectedIc,
-        GetRequiredStandardMergeSlotLabels(),
-        IsStandardMergeSupported,
-        GeneralMergeMappings.Count(mapping => mapping.HasFile));
+    public string MergeReadinessStatus => IsFirmwareInspectionLoading
+        ? Text.FirmwareInspectionLoadingStatus
+        : Text.GetMergeReadinessStatus(
+            SelectedMergeMode,
+            SelectedIc,
+            GetRequiredStandardMergeSlotLabels(),
+            IsStandardMergeSupported,
+            GeneralMergeMappings.Count(mapping => mapping.HasFile));
 
     /// <summary>One-line Build action hint for Merge.</summary>
     public string MergeBuildActionTip => CreateBuildActionTip(MergeReadinessStatus, CanRunMerge());
@@ -247,7 +260,7 @@ public sealed partial class MainWindowViewModel
     public bool CanBuildMerge => CanRunMerge();
 
     /// <summary>True when Replace build can run for the active mode.</summary>
-    public bool CanBuildReplace => CanRunReplace();
+    public bool CanBuildReplace => CanRunReplace() && !IsCtrlRamFirmwareVersionMetadataLoading;
 
     /// <summary>Command that returns to the clean home view.</summary>
     public IRelayCommand ShowHomeCommand { get; }
@@ -261,20 +274,11 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that opens Replace.</summary>
     public IRelayCommand ShowReplaceCommand { get; }
 
-    /// <summary>Command that opens DP Replace.</summary>
-    public IRelayCommand ShowDpReplaceCommand { get; }
-
     /// <summary>Home entry command that collects Replace context before opening DP Replace.</summary>
     public IRelayCommand BeginDpReplaceFromHomeCommand { get; }
 
-    /// <summary>Command that opens CtrlRAM Replace.</summary>
-    public IRelayCommand ShowCtrlRamReplaceCommand { get; }
-
     /// <summary>Home entry command that collects Replace context before opening CtrlRAM Replace.</summary>
     public IRelayCommand BeginCtrlRamReplaceFromHomeCommand { get; }
-
-    /// <summary>Command that opens General Replace.</summary>
-    public IRelayCommand ShowGeneralReplaceCommand { get; }
 
     /// <summary>Home entry command that collects Replace context before opening General Replace.</summary>
     public IRelayCommand BeginGeneralReplaceFromHomeCommand { get; }
@@ -334,8 +338,6 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedReplaceModeDescription))]
     [NotifyPropertyChangedFor(nameof(ReplaceReadinessStatus))]
-    [NotifyPropertyChangedFor(nameof(ReplacePreviewUnavailableReason))]
-    [NotifyPropertyChangedFor(nameof(ReplaceBuildUnavailableReason))]
     [NotifyPropertyChangedFor(nameof(IsCtrlRamReplaceModeSelected))]
     [NotifyPropertyChangedFor(nameof(IsGeneralReplaceModeSelected))]
     [NotifyPropertyChangedFor(nameof(IsStructuredReplaceModeSelected))]
@@ -343,11 +345,6 @@ public sealed partial class MainWindowViewModel
     [NotifyPropertyChangedFor(nameof(IsReplaceCoverageGrouped))]
     [NotifyPropertyChangedFor(nameof(IsReplaceCoverageFlat))]
     public partial string SelectedReplaceMode { get; set; } = DpReplaceMode;
-
-    /// <summary>Gets supported IC count/variant choices for the selected IC.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
-    public partial IReadOnlyList<string> NumberChoices { get; set; } = UiCompositionRunner.GetNumberChoices(DefaultIcId);
 
     /// <summary>Gets grouped display choices for the IC-count control.</summary>
     [ObservableProperty]

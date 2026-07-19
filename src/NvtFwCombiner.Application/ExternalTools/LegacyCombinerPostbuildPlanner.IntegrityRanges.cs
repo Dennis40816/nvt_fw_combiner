@@ -13,6 +13,7 @@ public static partial class LegacyCombinerPostbuildPlanner
         long[] crcWordOffsets = command.ModeArgument switch
         {
             "NT51930BASED_NORMAL_MODE" or "NT51932BASED_NORMAL_MODE" => [0x100, 0x118],
+            "NT51931BASED_NORMAL_MODE" => [0x1C, 0xFC],
             "NT51950BASED_NORMAL_MODE" => [0x11C, 0x130],
             _ => [],
         };

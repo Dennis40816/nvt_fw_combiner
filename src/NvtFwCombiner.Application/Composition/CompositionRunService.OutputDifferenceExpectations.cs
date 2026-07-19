@@ -105,6 +105,7 @@ public sealed partial class CompositionRunService
         ByteRange segment,
         IReadOnlyList<OutputDifferenceExpectation> expectations)
     {
+        OutputDifferenceExpectation? processorExpectation = null;
         for (int index = expectations.Count - 1; index >= 0; index--)
         {
             OutputDifferenceExpectation expectation = expectations[index];
@@ -118,10 +119,15 @@ public sealed partial class CompositionRunService
                 break;
             }
 
-            return expectation;
+            if (string.Equals(expectation.Classification, OutputDifferenceClassifications.DeclaredReplacement, StringComparison.Ordinal))
+            {
+                return expectation;
+            }
+
+            processorExpectation ??= expectation;
         }
 
-        return new OutputDifferenceExpectation(
+        return processorExpectation ?? new OutputDifferenceExpectation(
             segment,
             OutputDifferenceClassifications.Unexpected,
             false,

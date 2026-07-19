@@ -16,7 +16,7 @@ public sealed partial class ExternalCombinerProcessor
         {
             string path = Path.Combine(runDirectory, $"artifact-{artifact.ArtifactId}.bin");
             _ = artifactPaths.TryAdd(artifact.ArtifactId, path);
-            await File.WriteAllBytesAsync(path, artifact.Bytes.ToArray(), cancellationToken).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(path, artifact.Bytes, cancellationToken).ConfigureAwait(false);
         }
 
         return artifactPaths;
@@ -132,8 +132,9 @@ public sealed partial class ExternalCombinerProcessor
                     $"External processor removed staging artifact '{artifact.ArtifactId}'.");
             }
 
-            byte[] actualBytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-            if (!actualBytes.AsSpan().SequenceEqual(artifact.Bytes.Span))
+            if (!await StagedArtifactFileVerifier
+                    .MatchesAsync(path, artifact.Bytes, cancellationToken)
+                    .ConfigureAwait(false))
             {
                 return new CompositionIssue(
                     "external-tool.staged-artifact.modified",

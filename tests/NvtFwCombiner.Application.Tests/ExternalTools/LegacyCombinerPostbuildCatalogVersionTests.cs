@@ -36,6 +36,9 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     [Fact]
     public void Nt51930CommonFw1xSelectsSingleLegacyHeaderCommand()
     {
+        LegacyCombinerPostbuildProfile runtimeProfile = Assert.Single(
+            LegacyCombinerPostbuildCatalog.GetProfiles("NT51930"));
+        Assert.Equal("nfc.nt51930.ctrlram-postbuild-fw1.x", runtimeProfile.ProcessorId);
         Assert.True(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
             "NT51930",
             "1.3.0",
@@ -57,6 +60,14 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             command.Blocks,
             block => block.BlockId == "header-copy" &&
                      block.FirmwareRange == new ByteRange(0x28FB0, 256));
+
+        Assert.False(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
+            "NT51930",
+            commonFwVersion: null,
+            out profile,
+            out issue));
+        Assert.Null(profile);
+        Assert.Contains("versioned postbuild category", issue, StringComparison.Ordinal);
     }
 
     /// <summary>Locks NT51930 Common FW 1.x large counts to the approved cascade branch until product evidence reactivates an extended branch.</summary>
@@ -100,14 +111,14 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
 
         Assert.False(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
             "NT51930",
-            "10.0.0",
+            "2.0.0",
             out profile,
             out issue));
 
         Assert.Null(profile);
         Assert.Contains("no approved postbuild category", issue, StringComparison.Ordinal);
         Assert.Contains("Common FW 1.x.x => PostbuildSetup_51930_1.4.0", issue, StringComparison.Ordinal);
-        Assert.Contains("Common FW 2.0.0 => PostbuildSetup_51930_2.0.0", issue, StringComparison.Ordinal);
+        Assert.DoesNotContain("PostbuildSetup_51930_2.0.0", issue, StringComparison.Ordinal);
     }
 
     /// <summary>Locks duplicate IC postbuild rows to explicit Common FW category selection.</summary>
@@ -120,7 +131,6 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             ("NT51926", "2.0.0", LegacyCombinerPostbuildCatalog.Nt51926),
             ("NT51930", "1.0.0", LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x),
             ("NT51930", "1.3.0", LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x),
-            ("NT51930", "2.0.0", LegacyCombinerPostbuildCatalog.Nt51930),
         ];
         string[] duplicateIcIds = [
             .. LegacyCombinerPostbuildCatalog.All
@@ -130,7 +140,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
                 .Order(StringComparer.Ordinal),
         ];
 
-        Assert.Equal(["NT51926", "NT51930"], duplicateIcIds);
+        Assert.Equal(["NT51926"], duplicateIcIds);
         foreach (string icId in duplicateIcIds)
         {
             Assert.All(
@@ -143,7 +153,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
                 out LegacyCombinerPostbuildProfile? profile,
                 out string? issue));
             Assert.Null(profile);
-            Assert.Contains("multiple postbuild categories", issue, StringComparison.Ordinal);
+            Assert.Contains("versioned postbuild category", issue, StringComparison.Ordinal);
 
             string[] duplicateProfileIds = [
                 .. LegacyCombinerPostbuildCatalog.GetProfiles(icId)

@@ -9,7 +9,7 @@ public sealed partial class CompositionRunService
         CompositionRunRequest request,
         CompositionExecutionResult execution,
         IReadOnlyDictionary<string, byte[]> inputBytes,
-        byte[] outputBytes)
+        ReadOnlyMemory<byte> outputBytes)
     {
         if (execution.Status != CompositionExecutionStatus.Succeeded ||
             request.CompiledComposition.CompositionKind != CompositionKind.Replace ||
@@ -21,7 +21,7 @@ public sealed partial class CompositionRunService
             return [];
         }
 
-        IReadOnlyList<ByteRange> changedRanges = ByteDiff.FindChangedRanges(referenceBytes, outputBytes);
+        IReadOnlyList<ByteRange> changedRanges = ByteDiff.FindChangedRanges(referenceBytes, outputBytes.Span);
         if (changedRanges.Count == 0)
         {
             return [];
@@ -29,13 +29,33 @@ public sealed partial class CompositionRunService
 
         OutputDifferenceExpectation[] expectations = [.. CreateOutputDifferenceExpectations(request)];
         List<OutputDifferenceSummary> rows = [];
+        OutputDifferenceExpectation? cachedSemanticExpectation = null;
+        OutputDifferenceSemantic? cachedSemantic = null;
         int rowIndex = 0;
         foreach (ByteRange changedRange in changedRanges)
         {
             foreach (ByteRange segment in SplitRangeByExpectations(changedRange, expectations))
             {
                 OutputDifferenceExpectation expectation = ClassifyDifferenceSegment(segment, expectations);
-                OutputDifferenceSemantic semantic = CreateOutputDifferenceSemantic(request, expectation, segment);
+                OutputDifferenceSemantic semantic;
+                if (CanShareOutputDifferenceSemantic(expectation))
+                {
+                    if (ReferenceEquals(expectation, cachedSemanticExpectation) && cachedSemantic is not null)
+                    {
+                        semantic = cachedSemantic;
+                    }
+                    else
+                    {
+                        cachedSemanticExpectation = expectation;
+                        semantic = CreateOutputDifferenceSemantic(request, expectation, segment);
+                        cachedSemantic = semantic;
+                    }
+                }
+                else
+                {
+                    semantic = CreateOutputDifferenceSemantic(request, expectation, segment);
+                }
+
                 rows.Add(new OutputDifferenceSummary(
                     FormattableString.Invariant($"diff-{++rowIndex:D3}"),
                     segment,
@@ -46,9 +66,9 @@ public sealed partial class CompositionRunService
                     expectation.Explanation,
                     expectation.SectionLabel,
                     ToSliceSha256Hex(referenceBytes, segment),
-                    ToSliceSha256Hex(outputBytes, segment),
+                    ToSliceSha256Hex(outputBytes.Span, segment),
                     ToSliceHexPreview(referenceBytes, segment),
-                    ToSliceHexPreview(outputBytes, segment),
+                    ToSliceHexPreview(outputBytes.Span, segment),
                     checked((int)Math.Min(segment.Length, OutputDifferenceHexPreviewBytes)),
                     segment.Length <= OutputDifferenceHexPreviewBytes,
                     semantic));
@@ -56,6 +76,13 @@ public sealed partial class CompositionRunService
         }
 
         return rows;
+    }
+
+    private static bool CanShareOutputDifferenceSemantic(OutputDifferenceExpectation expectation)
+    {
+        return expectation.Classification is
+            OutputDifferenceClassifications.DeclaredReplacement or
+            OutputDifferenceClassifications.PreservedReference;
     }
 
     private static IEnumerable<CompositionIssue> CreateOutputDifferenceIssues(

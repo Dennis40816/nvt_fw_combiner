@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51929-gen-flash",
+  "ic": "NT51929",
+  "workflow": "standard-merge",
+  "variantOrVersion": "gen-flash",
+  "topology": "topology-unscoped",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner requested gen_flash_bin_v2 test BIN files be tracked as golden fixtures on 2026-06-30.",
+  "profileId": "nt51929-standard-merge-gen-flash",
+  "artifacts": [
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/dp-input.bin",
+      "size": 262144,
+      "sha256": "e9626d1230bb117a91e7cd365b060991b48bf555bda065a84f8a62edd8c95095",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51929/dp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51929TT_Initial Code_BOE_2560x1440_D02_20250820_GOP_4MUX_liut_VCOM OTP.bin",
+      "sourceBlobSha": "96bfbbe89e5fe0632ba7baabbe60f706a88eb4ad"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/tp-input.bin",
+      "size": 262144,
+      "sha256": "a5631c8c05dd1e29b216b3cc00a84ef416db41e04c9d1e7c3d211a44bf7bc458",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/inputs/51929/tp.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/nt51929_fw_BOE_1560_DOE_V01_20250819.bin",
+      "sourceBlobSha": "fa59e40e70361638cb306890e19bb17a0eecb83d"
+    },
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/expected/flash.bin",
+      "size": 262144,
+      "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e",
+      "legacyPaths": [
+        "testdata/golden/standard-merge-gen-flash/expected/51929/flash.bin"
+      ],
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51929_FlashCode_BOE1560_BOEVX_2560x1440_D02T01_20250820.bin",
+      "sourceBlobSha": "ee208158ba34bd883be965afe9db97491c3989cd"
+    }
+  ]
+}

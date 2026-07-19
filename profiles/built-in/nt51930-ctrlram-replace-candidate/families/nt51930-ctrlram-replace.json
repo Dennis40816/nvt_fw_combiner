@@ -1,0 +1,274 @@
+{
+  "schemaVersion": "1.1",
+  "familyId": "nt51930-ctrlram-replace",
+  "familyVersion": "0.1.0",
+  "members": [
+    {
+      "memberId": "NT51930",
+      "displayName": "NT51930"
+    }
+  ],
+  "capabilities": [],
+  "regionSets": [
+    {
+      "regionSetId": "nt51930-ctrlram-fw130-full-flash",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "flash-image",
+          "owner": "system",
+          "kind": "image",
+          "range": { "start": 0, "length": 262144 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-prefix-0000",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 0, "length": 28928 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-7100",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 28928, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-7104",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 28932, "length": 20 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-7118",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 28952, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-711c",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 28956, "length": 101092 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "nf-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 130048, "length": 6736 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "normal-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 136784, "length": 11264 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "mp-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 148048, "length": 13312 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "vn-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 161360, "length": 6494 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-28fae",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 167854, "length": 2 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-copy",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 167856, "length": 256 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-290b0",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 168112, "length": 24912 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "diff-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 193024, "length": 65024 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-tail-3f000",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 258048, "length": 4096 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "nt51930-fw130-cascade3-auto-prj-302-owner-golden-20260718"
+      ]
+    }
+  ],
+  "metadataSets": [
+    {
+      "metadataSetId": "nt51930-fwconfig-backup-locator",
+      "structures": [
+        {
+          "structureId": "nt51930-fwconfig-backup-envelope",
+          "artifactBindingId": "reference-base",
+          "length": 4096,
+          "locator": {
+            "kind": "marker-relative",
+            "searchRange": { "addressSpaceId": "flash", "start": 0, "length": 262144 },
+            "markerHex": "004e5654",
+            "selection": { "kind": "unique" },
+            "resultOffset": -4092,
+            "allowedResultRegionId": "flash-image"
+          },
+          "fields": [
+            {
+              "fieldId": "chip-count",
+              "offset": 23,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "common-fw-major",
+              "offset": 26,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "common-fw-minor",
+              "offset": 27,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "common-fw-additional",
+              "offset": 28,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "project-id",
+              "offset": 34,
+              "widthBytes": 2,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            }
+          ],
+          "assertions": [
+            { "offset": 4092, "expectedHex": "004e5654" }
+          ]
+        }
+      ],
+      "evidenceRefs": [
+        "nt51930-fw130-cascade3-auto-prj-302-owner-golden-20260718"
+      ]
+    }
+  ],
+  "imageMaps": [
+    {
+      "mapId": "nt51930-ctrlram-fw130-cascade3-full-flash",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51930" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "exact-count", "chipCount": 3 },
+        "capacityBytes": 262144,
+        "metadataPredicates": [
+          {
+            "metadataStructureId": "nt51930-fwconfig-backup-envelope",
+            "fieldId": "chip-count",
+            "operator": "equals",
+            "expectedValues": [ 3 ]
+          },
+          {
+            "metadataStructureId": "nt51930-fwconfig-backup-envelope",
+            "fieldId": "common-fw-major",
+            "operator": "equals",
+            "expectedValues": [ 1 ]
+          },
+          {
+            "metadataStructureId": "nt51930-fwconfig-backup-envelope",
+            "fieldId": "common-fw-minor",
+            "operator": "equals",
+            "expectedValues": [ 3 ]
+          },
+          {
+            "metadataStructureId": "nt51930-fwconfig-backup-envelope",
+            "fieldId": "common-fw-additional",
+            "operator": "equals",
+            "expectedValues": [ 0 ]
+          },
+          {
+            "metadataStructureId": "nt51930-fwconfig-backup-envelope",
+            "fieldId": "project-id",
+            "operator": "equals",
+            "expectedValues": [ 4365 ]
+          }
+        ]
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51930-ctrlram-fw130-full-flash" ],
+      "metadataSetIds": [ "nt51930-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51930-fw130-cascade3-auto-prj-302-owner-golden-20260718"
+      ]
+    }
+  ],
+  "factAliases": [],
+  "evidenceRefs": [
+    "nt51930-fw130-cascade3-auto-prj-302-owner-golden-20260718"
+  ]
+}

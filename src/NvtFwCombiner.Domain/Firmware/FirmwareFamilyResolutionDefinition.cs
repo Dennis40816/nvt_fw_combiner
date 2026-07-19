@@ -107,28 +107,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     /// <summary>Map-bound technical capability evidence that never changes map eligibility or Build support.</summary>
     public IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityBindings { get; }
 
-    /// <summary>Enumerates owned physical and capability provenance in deterministic binding order.</summary>
-    public IEnumerable<FirmwareFactProvenance> EnumerateFactProvenance()
-    {
-        foreach (FirmwareImageMap map in _imageMaps)
-        {
-            foreach (FirmwareMapFactBinding<FirmwareRegionSet> binding in map.RegionSetBindings)
-            {
-                yield return binding.Provenance;
-            }
-
-            foreach (FirmwareMapFactBinding<FirmwareMetadataSet> binding in map.MetadataSetBindings)
-            {
-                yield return binding.Provenance;
-            }
-        }
-
-        foreach (FirmwareMapFactBinding<FirmwareCapabilityFact> binding in _capabilityBindings)
-        {
-            yield return binding.Provenance;
-        }
-    }
-
     /// <summary>Artifact bindings reachable from at least one candidate map.</summary>
     public IReadOnlyList<string> RequiredArtifactBindingIds { get; }
 
@@ -160,43 +138,15 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         return structure is not null;
     }
 
-    /// <summary>Resolves a field only through a candidate-selected metadata structure.</summary>
-    public bool TryResolveField(
-        string mapId,
-        string structureId,
-        string fieldId,
-        [NotNullWhen(true)] out FirmwareMetadataField? field)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
-        field = null;
-        if (!TryResolveStructure(mapId, structureId, out FirmwareMetadataStructure? structure))
-        {
-            return false;
-        }
-
-        field = structure.Fields.FirstOrDefault(candidate =>
-            StringComparer.Ordinal.Equals(candidate.FieldId, fieldId));
-        return field is not null;
-    }
-
     private static FirmwareImageMap[] SnapshotMaps(IEnumerable<FirmwareImageMap> imageMaps)
     {
-        ArgumentNullException.ThrowIfNull(imageMaps);
-        FirmwareImageMap[] snapshot = [.. imageMaps];
-        if (snapshot.Length == 0)
-        {
-            throw new ArgumentException("Family resolution definitions require an image map.", nameof(imageMaps));
-        }
-
-        if (snapshot.Any(static map => map is null))
-        {
-            throw new ArgumentException("Image maps cannot contain null.", nameof(imageMaps));
-        }
-
-        if (snapshot.Select(static map => map.MapId).Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Image map ids must be ordinally unique within a family.", nameof(imageMaps));
-        }
+        FirmwareImageMap[] snapshot = ImmutableReferenceSnapshot.CreateUnique(
+            imageMaps,
+            static map => map.MapId,
+            "Family resolution definitions require non-null image maps.",
+            "Image map ids must be ordinally unique within a family.",
+            StringComparer.Ordinal,
+            requireValue: true);
 
         Array.Sort(snapshot, static (left, right) => StringComparer.Ordinal.Compare(left.MapId, right.MapId));
         return snapshot;
@@ -204,19 +154,12 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
     private static FirmwareMetadataSet[] SnapshotMetadataSets(IEnumerable<FirmwareMetadataSet> metadataSets)
     {
-        ArgumentNullException.ThrowIfNull(metadataSets);
-        FirmwareMetadataSet[] snapshot = [.. metadataSets];
-        if (snapshot.Any(static set => set is null))
-        {
-            throw new ArgumentException("Metadata sets cannot contain null.", nameof(metadataSets));
-        }
-
-        if (snapshot.Select(static set => set.MetadataSetId).Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException(
-                "Metadata set ids must be ordinally unique within a family.",
-                nameof(metadataSets));
-        }
+        FirmwareMetadataSet[] snapshot = ImmutableReferenceSnapshot.CreateUnique(
+            metadataSets,
+            static set => set.MetadataSetId,
+            "Metadata sets cannot contain null.",
+            "Metadata set ids must be ordinally unique within a family.",
+            StringComparer.Ordinal);
 
         Array.Sort(snapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.MetadataSetId, right.MetadataSetId));
@@ -227,17 +170,11 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityBindings,
         IReadOnlyList<FirmwareImageMap> maps)
     {
-        ArgumentNullException.ThrowIfNull(capabilityBindings);
-        FirmwareMapFactBinding<FirmwareCapabilityFact>[] snapshot = [.. capabilityBindings];
-        if (snapshot.Any(static binding => binding is null))
-        {
-            throw new ArgumentException("Capability bindings cannot contain null.", nameof(capabilityBindings));
-        }
-
-        if (snapshot.Select(static binding => binding.EffectiveKey).Distinct().Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Capability binding effective keys must be ordinally unique.", nameof(capabilityBindings));
-        }
+        FirmwareMapFactBinding<FirmwareCapabilityFact>[] snapshot = ImmutableReferenceSnapshot.CreateUnique(
+            capabilityBindings,
+            static binding => binding.EffectiveKey,
+            "Capability bindings cannot contain null.",
+            "Capability binding effective keys must be ordinally unique.");
 
         foreach (FirmwareMapFactBinding<FirmwareCapabilityFact> binding in snapshot)
         {

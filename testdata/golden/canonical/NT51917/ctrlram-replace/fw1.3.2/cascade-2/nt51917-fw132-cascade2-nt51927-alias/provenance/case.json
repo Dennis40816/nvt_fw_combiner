@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51917-fw132-cascade2-nt51927-alias",
+  "ic": "NT51917",
+  "workflow": "ctrlram-replace",
+  "variantOrVersion": "fw1.3.2",
+  "topology": "cascade-2",
+  "directGolden": false,
+  "sourceClassification": "owner-approved-fact-scoped-alias",
+  "ownerApproval": "Firmware owner confirmed NT51917 follows the NT51927 perfect-family CtrlRAM facts for the exact single, two-chip, and three-chip routes.",
+  "alias": {
+    "sourceCaseId": "nt51927-2chip-self-20260705",
+    "factScope": [
+      "exact FW 1.3.2 two-chip PID 0x1615 and reference-SHA admission facts",
+      "NT51927-family physical CtrlRAM roles and ten-command postbuild order",
+      "expected-derived V1/V2 output, report identity, and immutable-input evidence only; no independent expected golden is inferred"
+    ],
+    "evidenceRefs": [
+      "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+      "docs/governance/v0.9.9-legacy-retirement-evidence.md",
+      "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md"
+    ]
+  },
+  "promotion": {
+    "runtimeSupportPromotion": false,
+    "releaseRedistributionApproved": false
+  }
+}

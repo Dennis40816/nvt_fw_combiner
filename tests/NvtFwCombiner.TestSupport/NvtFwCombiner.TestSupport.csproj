@@ -4,9 +4,10 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Remove="LegacyCombinerPostbuildCatalogAlias.cs" />
     <Compile Remove="SyntheticReplaceProfiles.cs" />
-    <Compile Remove="SyntheticStandardMergeProfile.cs" />
   </ItemGroup>
 </Project>

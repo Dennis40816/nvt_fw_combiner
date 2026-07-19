@@ -99,7 +99,8 @@ reason
 Deny by default. DP Replace may edit DP whole/declared parts. CtrlRAM Replace may edit only physical
 regions with `owner = tp` and `kind = ctrlram`, or approved groups composed only of those regions.
 General Replace may use explicit ranges only where explicitly enabled and never through protected
-regions.
+regions. Its enabled envelope is independent of the DP and CtrlRAM persona categories; a profile
+may authorize any reviewed physical range without introducing a workflow-specific executor.
 
 ## Inputs
 

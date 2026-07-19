@@ -77,7 +77,8 @@
           "NT51930"
         ],
         "modeIds": [
-          "standard-merge"
+          "standard-merge",
+          "dp-replace"
         ],
         "topologyRequirement": {
           "kind": "none"
@@ -90,12 +91,14 @@
       ],
       "metadataSetIds": [],
       "evidenceRefs": [
-        "merge-bin-51930-flashmap-golden"
+        "merge-bin-51930-flashmap-golden",
+        "nt51930-dp-replace-canonical-map-owner-decision-v1"
       ]
     }
   ],
   "factAliases": [],
   "evidenceRefs": [
-    "merge-bin-51930-flashmap-golden"
+    "merge-bin-51930-flashmap-golden",
+    "nt51930-dp-replace-canonical-map-owner-decision-v1"
   ]
 }

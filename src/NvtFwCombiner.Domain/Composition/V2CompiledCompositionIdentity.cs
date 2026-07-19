@@ -163,13 +163,12 @@ public sealed class CompiledProfilePromotion
             throw new ArgumentOutOfRangeException(nameof(stage), stage, "Unknown profile promotion stage.");
         }
 
-        ArgumentNullException.ThrowIfNull(blockers);
-        _blockers = [.. blockers];
-        if (_blockers.Any(static blocker => blocker is null) ||
-            _blockers.Select(static blocker => blocker.BlockerId).Distinct(StringComparer.Ordinal).Count() != _blockers.Length)
-        {
-            throw new ArgumentException("Promotion blockers must be non-null with ordinally unique ids.", nameof(blockers));
-        }
+        _blockers = ImmutableReferenceSnapshot.CreateUnique(
+            blockers,
+            static blocker => blocker.BlockerId,
+            "Promotion blockers must be non-null with ordinally unique ids.",
+            "Promotion blockers must be non-null with ordinally unique ids.",
+            StringComparer.Ordinal);
 
         if (stage == CompiledProfilePromotionStage.Supported && _blockers.Length != 0)
         {
@@ -235,16 +234,12 @@ public sealed class V2CompilationProvenance
             "Identifiers must be non-empty values.",
             "Identifiers must be non-empty values.",
             "Identifiers must be ordinally unique.");
-        ArgumentNullException.ThrowIfNull(validationRequirements);
-        _validationRequirements = [.. validationRequirements];
-        if (_validationRequirements.Any(static requirement => requirement is null) ||
-            _validationRequirements.Select(static requirement => requirement.RuleId)
-                .Distinct(StringComparer.Ordinal).Count() != _validationRequirements.Length)
-        {
-            throw new ArgumentException(
-                "Validation requirements must be non-null with ordinally unique rule ids.",
-                nameof(validationRequirements));
-        }
+        _validationRequirements = ImmutableReferenceSnapshot.CreateUnique(
+            validationRequirements,
+            static requirement => requirement.RuleId,
+            "Validation requirements must be non-null with ordinally unique rule ids.",
+            "Validation requirements must be non-null with ordinally unique rule ids.",
+            StringComparer.Ordinal);
 
         Array.Sort(_validationRequirements, static (left, right) =>
         {
@@ -254,16 +249,12 @@ public sealed class V2CompilationProvenance
                 : StringComparer.Ordinal.Compare(left.RuleId, right.RuleId);
         });
 
-        ArgumentNullException.ThrowIfNull(requiredCapabilities);
-        _requiredCapabilities = [.. requiredCapabilities];
-        if (_requiredCapabilities.Any(static capability => capability is null) ||
-            _requiredCapabilities.Select(static capability => capability.RequiredCapabilityId)
-                .Distinct(StringComparer.Ordinal).Count() != _requiredCapabilities.Length)
-        {
-            throw new ArgumentException(
-                "Required capability admissions must be non-null with ordinally unique capability ids.",
-                nameof(requiredCapabilities));
-        }
+        _requiredCapabilities = ImmutableReferenceSnapshot.CreateUnique(
+            requiredCapabilities,
+            static capability => capability.RequiredCapabilityId,
+            "Required capability admissions must be non-null with ordinally unique capability ids.",
+            "Required capability admissions must be non-null with ordinally unique capability ids.",
+            StringComparer.Ordinal);
 
         Array.Sort(_requiredCapabilities, static (left, right) => StringComparer.Ordinal.Compare(
             left.RequiredCapabilityId,

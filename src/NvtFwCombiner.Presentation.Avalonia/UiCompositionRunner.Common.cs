@@ -15,6 +15,17 @@ public static partial class UiCompositionRunner
             row.Detail);
     }
 
+    private static MemoryCoverageSegmentViewModel ToMemoryCoverageSegment(WorkbenchMemoryCoverageSegment segment)
+    {
+        return new(
+            segment.RangeLabel,
+            segment.SourceLabel,
+            segment.Detail,
+            segment.Fill,
+            segment.BarWidth,
+            segment.IsChanged);
+    }
+
     private static string ToRange(long start, long length)
     {
         return FormattableString.Invariant($"0x{start:X5}-0x{start + length - 1:X5}");

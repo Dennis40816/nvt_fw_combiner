@@ -55,7 +55,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.LoadedReport.IsOutputPreview);
         Assert.False(viewModel.LoadedReport.IsOutputStateUnknown);
         Assert.Equal(0, viewModel.LoadedReport.OperationCount);
-        Assert.False(viewModel.LoadedReport.HasCommandOperations);
+        Assert.Empty(GetCommandOperations(viewModel.LoadedReport));
         Assert.False(viewModel.LoadedReport.HasStepOperations);
 
         var reportWithSessionPath = ReportReviewViewModel.FromJson(

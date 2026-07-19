@@ -1,11 +1,22 @@
 using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class ReplaceCliCommandHandler
 {
+    private static bool TryResolveReplaceIc(
+        string command,
+        string selector,
+        [NotNullWhen(true)] out string? icId)
+    {
+        return (command == IcWorkflowIds.DpReplace &&
+                WorkbenchCompositionService.TryResolveBuiltInV2DpReplaceSelector(selector, out icId)) ||
+            TryResolveWorkbenchIc(selector, out icId);
+    }
+
     private static bool TryResolveWorkbenchIc(
         string selector,
         [NotNullWhen(true)] out string? icId)
@@ -66,14 +77,22 @@ internal static partial class ReplaceCliCommandHandler
 
         string? outputPath = build ? outputTarget.FullPath : null;
         WorkbenchRunResult result = await run(build, outputPath, cancellationToken).ConfigureAwait(false);
-        await WriteWorkbenchReportFileIfRequestedAsync(
-                result,
-                options,
-                bindings,
-                outputPath,
-                output,
-                cancellationToken)
-            .ConfigureAwait(false);
+        if (options.Values.TryGetValue("--report", out string? reportPath))
+        {
+            string fullPath = Path.GetFullPath(reportPath);
+            ProtectedPathGuard.EnsureDoesNotAlias(
+                fullPath,
+                "Report path",
+                ProtectedPathGuard.CreateProtectedPaths(bindings, outputPath),
+                nameof(reportPath));
+            await CliCompositionRunSupport.WriteReportJsonAsync(
+                    fullPath,
+                    result.ReportJson,
+                    output,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         await PrintWorkbenchRunResultAsync(result, icId, workflowId, output, error).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }

@@ -7,6 +7,7 @@ public static class ShellPreferenceFileStore
 {
     private const int SchemaVersion = 1;
     private const string PreferencesFileName = "preferences.v1.json";
+    internal const long MaximumPreferencesFileBytes = 64L * 1024;
 
     /// <summary>Gets the default local preference path for the current user.</summary>
     public static string DefaultPreferencesPath => BestEffortLocalJsonFileStore.GetDefaultPath(PreferencesFileName);
@@ -31,9 +32,13 @@ public static class ShellPreferenceFileStore
         return BestEffortLocalJsonFileStore.Load(
             path,
             ShellPreferenceSnapshot.Default,
-            (ShellPreferenceFile? file) => file?.SchemaVersion == SchemaVersion
-                ? file.Preferences.ToSnapshot()
-                : ShellPreferenceSnapshot.Default);
+            (ShellPreferenceFile? file) => file is { SchemaVersion: SchemaVersion, Preferences: { } entry }
+                ? new ShellPreferenceSnapshot(
+                    entry.Theme ?? string.Empty,
+                    entry.Language ?? string.Empty,
+                    entry.IsReducedMotionEnabled)
+                : ShellPreferenceSnapshot.Default,
+            MaximumPreferencesFileBytes);
     }
 
     /// <summary>Saves shell preferences to a specific path.</summary>
@@ -46,51 +51,47 @@ public static class ShellPreferenceFileStore
             path,
             new ShellPreferenceFile(
                 SchemaVersion,
-                ShellPreferenceFileEntry.FromSnapshot(preferences)));
+                new ShellPreferenceFileEntry(
+                    preferences.Theme,
+                    "Strict",
+                    preferences.Language,
+                    preferences.IsReducedMotionEnabled)));
     }
 
-    private sealed class ShellPreferenceFile
+    /// <summary>Saves a default-path snapshot without blocking the UI dispatcher.</summary>
+    internal static Task SaveAsync(
+        ShellPreferenceSnapshot preferences,
+        CancellationToken cancellationToken)
     {
-        public ShellPreferenceFile(int schemaVersion, ShellPreferenceFileEntry preferences)
-        {
-            SchemaVersion = schemaVersion;
-            Preferences = preferences ?? ShellPreferenceFileEntry.FromSnapshot(ShellPreferenceSnapshot.Default);
-        }
-
-        public int SchemaVersion { get; }
-
-        public ShellPreferenceFileEntry Preferences { get; }
+        return SaveAsync(DefaultPreferencesPath, preferences, cancellationToken);
     }
 
-    private sealed class ShellPreferenceFileEntry
+    internal static Task SaveAsync(
+        string path,
+        ShellPreferenceSnapshot preferences,
+        CancellationToken cancellationToken)
     {
-        public ShellPreferenceFileEntry(string theme, string strictness, string language)
-        {
-            Theme = theme ?? string.Empty;
-            Strictness = strictness ?? string.Empty;
-            Language = language ?? string.Empty;
-        }
-
-        public string Theme { get; }
-
-        public string Strictness { get; }
-
-        public string Language { get; }
-
-        public static ShellPreferenceFileEntry FromSnapshot(ShellPreferenceSnapshot snapshot)
-        {
-            return new ShellPreferenceFileEntry(
-                snapshot.Theme,
-                snapshot.Strictness,
-                snapshot.Language);
-        }
-
-        public ShellPreferenceSnapshot ToSnapshot()
-        {
-            return new ShellPreferenceSnapshot(
-                Theme ?? string.Empty,
-                Strictness ?? string.Empty,
-                Language ?? string.Empty);
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(preferences);
+        return BestEffortLocalJsonFileStore.SaveAsync(
+            path,
+            new ShellPreferenceFile(
+                SchemaVersion,
+                new ShellPreferenceFileEntry(
+                    preferences.Theme,
+                    "Strict",
+                    preferences.Language,
+                    preferences.IsReducedMotionEnabled)),
+            cancellationToken);
     }
+
+    private sealed record ShellPreferenceFile(
+        int SchemaVersion,
+        ShellPreferenceFileEntry? Preferences);
+
+    private sealed record ShellPreferenceFileEntry(
+        string? Theme,
+        string? Strictness,
+        string? Language,
+        bool IsReducedMotionEnabled = false);
 }

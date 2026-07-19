@@ -44,7 +44,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static async Task<int> RunWorkbenchReplaceAsync", support, StringComparison.Ordinal);
         Assert.Contains("EnsureOutputDoesNotAliasInputs", support, StringComparison.Ordinal);
         Assert.Contains("EnsureReportDoesNotAliasProtectedPaths", support, StringComparison.Ordinal);
-        Assert.Contains("WriteWorkbenchReportFileIfRequestedAsync", support, StringComparison.Ordinal);
+        Assert.Contains("CliCompositionRunSupport.WriteReportJsonAsync", support, StringComparison.Ordinal);
         Assert.Contains("PrintWorkbenchRunResultAsync", support, StringComparison.Ordinal);
         foreach (string workflow in new[] { dp, ctrlRam, general })
         {
@@ -85,6 +85,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintResultAsync", result, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintReportIssuesAsync", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("WriteReportAsync", result, StringComparison.Ordinal);
+        Assert.Contains("CliCompositionRunSupport.WriteReportJsonAsync", dispatch, StringComparison.Ordinal);
         Assert.Contains("private static Task WriteUsageAsync", usage, StringComparison.Ordinal);
     }
 
@@ -207,16 +209,34 @@ public sealed partial class RepositoryBoundaryTests
     {
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
         string run = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
-        string displayProfile = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.DisplayProfile.cs");
         string display = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
-        string coverage = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Coverage.cs");
+        string generalMergeProfile = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
         string resolver = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Compilation.cs");
 
-        foreach (string runtimeSource in new[] { cli, run, displayProfile, display, coverage })
+        string[] compileSources =
+        [
+            .. Directory.EnumerateFiles(
+                    Path.Combine(Root.FullName, "src", "NvtFwCombiner.Bootstrap"),
+                    "*.cs",
+                    SearchOption.TopDirectoryOnly)
+                .Where(path => File.ReadAllText(path).Contains("TryCompileStandardMerge(", StringComparison.Ordinal))
+                .Select(static path => Path.GetFileName(path))
+                .Order(StringComparer.Ordinal),
+        ];
+        Assert.Equal(
+            [
+                "CliApplication.StandardMerge.cs",
+                "WorkbenchCompositionService.GeneralMerge.Profile.cs",
+                "WorkbenchCompositionService.StandardMerge.Compilation.cs",
+                "WorkbenchCompositionService.StandardMerge.Display.cs",
+                "WorkbenchCompositionService.StandardMerge.Run.cs",
+            ],
+            compileSources);
+
+        foreach (string runtimeSource in new[] { cli, run, display, generalMergeProfile })
         {
             Assert.Contains("TryCompileStandardMerge", runtimeSource, StringComparison.Ordinal);
             Assert.DoesNotContain("CompositionProfileDefinition", runtimeSource, StringComparison.Ordinal);
@@ -226,6 +246,10 @@ public sealed partial class RepositoryBoundaryTests
             Assert.DoesNotContain("NvtFwCombiner.Profiles", runtimeSource, StringComparison.Ordinal);
         }
 
+        Assert.Equal(2, CountOccurrences(cli, "TryCompileStandardMerge("));
+        Assert.Equal(1, CountOccurrences(run, "TryCompileStandardMerge("));
+        Assert.Equal(1, CountOccurrences(display, "TryCompileStandardMerge("));
+        Assert.Equal(1, CountOccurrences(generalMergeProfile, "TryCompileStandardMerge("));
         Assert.Contains("out CompiledComposition? composition", resolver, StringComparison.Ordinal);
         Assert.Contains("SequenceEqual", cli, StringComparison.Ordinal);
         Assert.Contains("TryGetBuiltInV2StandardMergeCompilation", resolver, StringComparison.Ordinal);

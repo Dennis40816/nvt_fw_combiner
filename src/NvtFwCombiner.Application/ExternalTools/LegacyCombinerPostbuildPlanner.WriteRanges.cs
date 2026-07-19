@@ -5,14 +5,6 @@ namespace NvtFwCombiner.Application.ExternalTools;
 
 public static partial class LegacyCombinerPostbuildPlanner
 {
-    /// <summary>Returns known CRC/header word writes performed by command families outside explicit block targets.</summary>
-    public static IReadOnlyList<ByteRange> GetKnownIntegrityWriteRanges(
-        LegacyCombinerPostbuildCommandPlan plan,
-        long capacity)
-    {
-        return [.. GetKnownIntegrityWriteRangeSections(plan, capacity).Select(section => section.Range)];
-    }
-
     /// <summary>Returns known CRC/header word writes with TP flash-header section identifiers.</summary>
     public static IReadOnlyList<LegacyCombinerPostbuildWriteRange> GetKnownIntegrityWriteRangeSections(
         LegacyCombinerPostbuildCommandPlan plan,
@@ -49,23 +41,6 @@ public static partial class LegacyCombinerPostbuildPlanner
         }
 
         return NormalizeCandidateWriteRangeSections(ranges, []);
-    }
-
-    /// <summary>Returns write ranges allowed when staged BIN sources are pasted back by Combiner.</summary>
-    public static IReadOnlyList<ByteRange> GetAllowedWriteRangesForStagedSources(
-        LegacyCombinerPostbuildCommandPlan plan,
-        long capacity,
-        IEnumerable<ByteRange> allowedStagedTargetRanges,
-        IEnumerable<ByteRange> allStagedTargetRanges)
-    {
-        return [
-            .. GetAllowedWriteRangeSectionsForStagedSources(
-                    plan,
-                    capacity,
-                    allowedStagedTargetRanges,
-                    allStagedTargetRanges)
-                .Select(section => section.Range),
-        ];
     }
 
     /// <summary>Returns allowed write ranges with TP flash/header section identifiers for staged-source postbuild.</summary>
@@ -120,14 +95,6 @@ public static partial class LegacyCombinerPostbuildPlanner
 
         candidateRanges.AddRange(GetKnownIntegrityWriteRangeSections(plan, capacity));
         return NormalizeCandidateWriteRangeSections(candidateRanges, stagedRanges);
-    }
-
-    /// <summary>Returns write ranges allowed when Combiner only refreshes firmware-owned header/integrity bytes.</summary>
-    public static IReadOnlyList<ByteRange> GetAllowedWriteRangesForInPlaceRefresh(
-        LegacyCombinerPostbuildCommandPlan plan,
-        long capacity)
-    {
-        return [.. GetAllowedWriteRangeSectionsForInPlaceRefresh(plan, capacity).Select(section => section.Range)];
     }
 
     /// <summary>Returns in-place refresh write ranges with TP flash/header section identifiers.</summary>

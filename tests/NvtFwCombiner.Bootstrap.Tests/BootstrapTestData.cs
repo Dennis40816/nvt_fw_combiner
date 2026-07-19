@@ -4,13 +4,13 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 internal static class BootstrapTestData
 {
-    internal static string GoldenPath(string relativePath)
+    internal static string GoldenArtifactPath(string ic, string artifactId, string? variantOrVersion = null)
     {
-        string goldenRoot = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash");
-        return RepositoryPaths.PathFromRelative(goldenRoot, relativePath);
+        return CanonicalGoldenTestData.ArtifactPath(
+            "standard-merge",
+            ic,
+            artifactId,
+            variantOrVersion);
     }
 
     internal static byte[] CreatePattern(int length, byte seed)

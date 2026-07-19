@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51928-fw132-non-nb-cascade2-nt51927-alias",
+  "ic": "NT51928",
+  "workflow": "ctrlram-replace",
+  "variantOrVersion": "fw1.3.2-non-nb",
+  "topology": "cascade-2",
+  "directGolden": false,
+  "sourceClassification": "owner-approved-fact-scoped-alias",
+  "ownerApproval": "Firmware owner confirmed NT51928 non-NB follows the NT51927 CtrlRAM postbuild family; NT51928 NB is explicitly excluded.",
+  "alias": {
+    "sourceCaseId": "nt51927-2chip-self-20260705",
+    "factScope": [
+      "non-NB exact FW 1.3.2 two-chip physical CtrlRAM role and ten-command family facts",
+      "postbuild slot, order, and processor-authority applicability only",
+      "no reference or output bytes are aliased; NT51928 retains its own 512 KiB base, profile, PID 0xF206, tail-preservation evidence, and exact-route tests"
+    ],
+    "evidenceRefs": [
+      "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+      "docs/governance/v0.9.9-legacy-retirement-evidence.md",
+      "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md"
+    ]
+  },
+  "promotion": {
+    "runtimeSupportPromotion": false,
+    "releaseRedistributionApproved": false
+  }
+}

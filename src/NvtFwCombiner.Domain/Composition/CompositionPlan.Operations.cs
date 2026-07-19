@@ -91,10 +91,10 @@ public sealed partial class CompositionPlan
                 $"Operation '{operation.OperationId}' is missing an external processor invocation.",
                 nameof(operation));
 
-        if (operation.TargetRange.Start != 0 || operation.TargetRange.Length != targetSpace.Length)
+        if (operation.TargetRange.Start != 0)
         {
             throw new ArgumentException(
-                $"Operation '{operation.OperationId}' external processor target range must cover the full target address space.",
+                $"Operation '{operation.OperationId}' external processor target range must be a zero-based image prefix.",
                 nameof(operation));
         }
 

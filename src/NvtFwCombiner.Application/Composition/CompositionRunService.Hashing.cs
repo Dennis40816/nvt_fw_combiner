@@ -6,6 +6,6 @@ public sealed partial class CompositionRunService
 {
     private static string ToSha256Hex(ReadOnlySpan<byte> bytes)
     {
-        return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        return Convert.ToHexStringLower(SHA256.HashData(bytes));
     }
 }

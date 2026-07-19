@@ -46,14 +46,15 @@
           ColumnSpacing="{DynamicResource NfcSpace12}"
           RowSpacing="3"
           VerticalAlignment="Center"
-          ToolTip.Tip="{Binding DeviceContextTitle}">
+          ToolTip.Tip="{Binding Text.DeviceContextTitle}">
 
-        <TextBlock Grid.Row="0" Grid.Column="0" Classes="tableHeader" Text="{Binding IcLabel}" />
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="tableHeader" Text="{Binding Text.IcLabel}" />
         <ComboBox
             Grid.Row="1"
             Grid.Column="0"
             Classes="technicalSelect"
             Width="154"
+            IsVisible="{Binding IsDeviceContextSelectionVisible}"
             ItemsSource="{Binding IcChoices}"
             SelectedItem="{Binding SelectedIc, Mode=TwoWay}">
           <ComboBox.ItemTemplate>
@@ -62,6 +63,14 @@
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
+        <TextBox
+            Grid.Row="1"
+            Grid.Column="0"
+            Classes="technicalCenteredInput"
+            Width="154"
+            IsReadOnly="True"
+            IsVisible="{Binding IsRunInProgress}"
+            Text="{Binding ActiveRunIc}" />
 
         <Border
             Grid.Row="0"
@@ -77,13 +86,13 @@
             Grid.Column="1"
             Classes="tableHeader"
             IsVisible="{Binding IsNumberSelectorVisible}"
-            Text="{Binding NumberLabel}" />
+            Text="{Binding Text.NumberLabel}" />
         <ComboBox
             Grid.Row="1"
             Grid.Column="1"
             Classes="technicalSelect"
             Width="132"
-            IsVisible="{Binding IsNumberSelectorVisible}"
+            IsVisible="{Binding IsDeviceContextNumberSelectionVisible}"
             ItemsSource="{Binding NumberSelectionChoices}"
             SelectedItem="{Binding SelectedNumberChoice, Mode=TwoWay}">
           <ComboBox.ItemTemplate>
@@ -92,6 +101,14 @@
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
+        <TextBox
+            Grid.Row="1"
+            Grid.Column="1"
+            Classes="technicalCenteredInput"
+            Width="132"
+            IsReadOnly="True"
+            IsVisible="{Binding IsNumberSelectorVisible}"
+            Text="{Binding ActiveRunNumber}" />
         <StackPanel
             Grid.Row="1"
             Grid.Column="2"
@@ -109,8 +126,71 @@
               Text="{Binding DeviceContextStatus}"
               TextAlignment="Left"
               TextWrapping="Wrap" />
+          <Label
+              Classes="compactBadge neutralBadge reportBadge info"
+              Content="{Binding SelectedIcFamilyLabel}"
+              IsVisible="{Binding IsDeviceContextFamilyBadgeVisible}"
+              ToolTip.Tip="{Binding SelectedIcFamilyTooltip}" />
         </StackPanel>
       </Grid>
+      <Border
+          Grid.Column="1"
+          MinWidth="360"
+          MaxWidth="430"
+          Margin="16,0,0,0"
+          Classes="panelSurface contentPanel"
+          AutomationProperties.LiveSetting="Polite"
+          AutomationProperties.Name="{Binding RunProgressStatusLabel}"
+          IsVisible="{Binding IsRunInProgress}">
+        <StackPanel Spacing="{DynamicResource NfcSpace4}">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+            <TextBlock
+                Classes="bodyStrongText"
+                Text="{Binding RunProgressDisplayLabel}"
+                TextTrimming="CharacterEllipsis" />
+            <TextBlock
+                Grid.Column="1"
+                Classes="captionText"
+                Text="{Binding CompositionProgress.StepOrdinalLabel}" />
+          </Grid>
+          <TextBlock
+              Classes="captionText"
+              Text="{Binding ActiveRunContextLabel}"
+              TextTrimming="CharacterEllipsis" />
+          <ItemsControl
+              HorizontalAlignment="Center"
+              IsVisible="{Binding HasTypedRunProgress}"
+              ItemsSource="{Binding CompositionProgress.Steps}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}" />
+              </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:CompositionRunProgressStepViewModel">
+                <Border
+                    Width="32"
+                    AutomationProperties.Name="{Binding AccessibleLabel}"
+                    Classes.active="{Binding IsActive}"
+                    Classes.completed="{Binding IsCompleted}"
+                    Classes="runProgressNode"
+                    ToolTip.Tip="{Binding AccessibleLabel}">
+                  <TextBlock
+                      AutomationProperties.AccessibilityView="Raw"
+                      Classes="runProgressMarker"
+                      IsHitTestVisible="False"
+                      Text="{Binding StateMarker}" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ProgressBar
+              Height="3"
+              AutomationProperties.Name="{Binding RunProgressStatusLabel}"
+              IsIndeterminate="True"
+              IsVisible="{Binding ShouldAnimateRunProgress}" />
+        </StackPanel>
+      </Border>
     </Grid>
   </Border>
 </DataTemplate>
@@ -118,6 +198,8 @@
 <DataTemplate x:Key="ReportToastPanelTemplate" DataType="vm:MainWindowViewModel">
   <Border
       Classes="toastSurface"
+      AutomationProperties.LiveSetting="Polite"
+      AutomationProperties.Name="{Binding ShellToastAccessibleLabel}"
       MaxWidth="460"
       Margin="0,12,0,0"
       Padding="12,10"

@@ -192,11 +192,6 @@ public sealed partial class HexEditorPanel : UserControl
         }
     }
 
-    private void HexEditorSourceDrop_OnDragEnter(object? sender, DragEventArgs e)
-    {
-        DropZoneDragState.SetActive(sender, DropZoneDragState.ApplyFileDropEffect(e));
-    }
-
     private void HexEditorSourceDrop_OnDragOver(object? sender, DragEventArgs e)
     {
         DropZoneDragState.SetActive(sender, DropZoneDragState.ApplyFileDropEffect(e));
@@ -253,12 +248,17 @@ public sealed partial class HexEditorPanel : UserControl
     {
         if (DataContext is not HexEditorWorkspaceViewModel viewModel ||
             e.Cell.StructuralBlockIndex < 0 ||
-            e.Cell.StructuralBlockIndex >= viewModel.ChangedBlocks.Count)
+            e.Cell.StructuralBlockIndex >= viewModel.ChangedBlockCount)
         {
             return;
         }
 
-        HexEditorChangedBlockViewModel block = viewModel.ChangedBlocks[e.Cell.StructuralBlockIndex];
+        HexEditorChangedBlockViewModel? block = viewModel.GetChangedBlock(e.Cell.StructuralBlockIndex);
+        if (block is null)
+        {
+            return;
+        }
+
         BindContextCommand(_structuralGoToStart, viewModel.Text.HexEditorContextGoToBlockStartLabel, viewModel.GoToChangedBlockStartCommand, block);
         BindContextCommand(_structuralGoToEnd, viewModel.Text.HexEditorContextGoToBlockEndLabel, viewModel.GoToChangedBlockEndCommand, block);
         _structuralBlockContextMenu.Open(HexViewport);

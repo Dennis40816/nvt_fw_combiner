@@ -8,28 +8,28 @@ namespace NvtFwCombiner.Bootstrap;
 
 internal static class BuiltInV2RegistrationRegistry
 {
-    internal static ReadOnlyCollection<BuiltInV2StandardMergeRegistration> StandardMerge { get; } =
+    internal static ReadOnlyCollection<BuiltInV2Registration> StandardMerge { get; } =
         Array.AsReadOnly(
         [
-            new BuiltInV2StandardMergeRegistration("NT51917", "nt51917-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51919", "nt51919-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51920", "nt51920-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51920-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51923", "nt51923-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51926", "nt51926-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51927", "nt51927-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51928", "nt51928-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51928-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51929", "nt51929-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51930", "nt51930-standard-merge-flashmap", "0.5.0", BuiltInV2BundleRegistry.All["nt51930-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51931", "nt51931-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51931-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51932", "nt51932-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51950", "nt51950-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"]),
-            new BuiltInV2StandardMergeRegistration("NT51951", "nt51951-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"]),
+            new BuiltInV2Registration("NT51917", "nt51917-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51919", "nt51919-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51920", "nt51920-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51920-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51923", "nt51923-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51926", "nt51926-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51927", "nt51927-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51928", "nt51928-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51928-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51929", "nt51929-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51930", "nt51930-standard-merge-flashmap", "0.5.1", BuiltInV2BundleRegistry.All["nt51930-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51931", "nt51931-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51931-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51932", "nt51932-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51950", "nt51950-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51951", "nt51951-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Merge),
         ]);
 
-    internal static ReadOnlyDictionary<string, BuiltInV2StandardMergeRegistration> StandardMergeByIc { get; } =
+    internal static ReadOnlyDictionary<string, BuiltInV2Registration> StandardMergeByIc { get; } =
         new(StandardMerge.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
 
-    internal static Lazy<ReadOnlyDictionary<string, BuiltInV2DpReplaceRegistration>> DpReplaceByIc { get; } =
+    internal static Lazy<ReadOnlyDictionary<string, BuiltInV2Registration>> DpReplaceByIc { get; } =
         new(CreateDpReplaceRegistrations);
 
     internal static ReadOnlyDictionary<string, GeneralMergeV2CandidateRegistration> GeneralMergeByIc { get; } = new(
@@ -50,45 +50,55 @@ internal static class BuiltInV2RegistrationRegistry
             new("NT51951", "nt51950-nt51951-dp-perspective", "nt51951-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51950-nt51951-general-merge-logical-candidate"]),
         }.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
 
-    private static ReadOnlyDictionary<string, BuiltInV2DpReplaceRegistration> CreateDpReplaceRegistrations()
+    private static ReadOnlyDictionary<string, BuiltInV2Registration> CreateDpReplaceRegistrations()
     {
-        return new ReadOnlyDictionary<string, BuiltInV2DpReplaceRegistration>(
-            new BuiltInV2DpReplaceRegistration[]
+        return new ReadOnlyDictionary<string, BuiltInV2Registration>(
+            new BuiltInV2Registration[]
             {
-                new("NT51950", "nt51950-dp-replace-dp-perspective", "0.6.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"]),
-                new("NT51951", "nt51951-dp-replace-dp-perspective", "0.6.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"]),
+                new("NT51930", "nt51930-dp-replace-flashmap", "0.1.0", BuiltInV2BundleRegistry.All["nt51930-standard-merge"], CompositionKind.Replace),
+                new("NT51950", "nt51950-dp-replace-dp-perspective", "0.6.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
+                new("NT51951", "nt51951-dp-replace-dp-perspective", "0.6.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
             }.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
     }
 }
 
-internal sealed class BuiltInV2StandardMergeRegistration
+internal sealed class BuiltInV2Registration
 {
     private readonly Lazy<V2CompositionPlanCompileResult> _summaryCompilation;
+    private readonly BuiltInV2Bundle _bundle;
+    private readonly string _profileVersion;
 
-    internal BuiltInV2StandardMergeRegistration(
+    internal BuiltInV2Registration(
         string icId,
         string profileId,
         string profileVersion,
-        BuiltInV2Bundle bundle)
+        BuiltInV2Bundle bundle,
+        CompositionKind compositionKind)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
-        ArgumentNullException.ThrowIfNull(bundle);
+        if (compositionKind is not (CompositionKind.Merge or CompositionKind.Replace))
+        {
+            throw new ArgumentOutOfRangeException(nameof(compositionKind));
+        }
+
         IcId = icId;
         ProfileId = profileId;
-        ProfileVersion = profileVersion;
-        Bundle = bundle;
-        _summaryCompilation = new Lazy<V2CompositionPlanCompileResult>(LoadSummaryCompilation);
+        _profileVersion = profileVersion;
+        _bundle = bundle;
+        CompositionKind = compositionKind;
+        _summaryCompilation = new(CompileSummary);
     }
 
     internal string IcId { get; }
 
     internal string ProfileId { get; }
 
-    internal string ProfileVersion { get; }
+    private CompositionKind CompositionKind { get; }
 
-    internal BuiltInV2Bundle Bundle { get; }
+    private bool IsStandardMerge => CompositionKind == CompositionKind.Merge;
+
+    private string WorkflowId => IsStandardMerge ? IcWorkflowIds.StandardMerge : IcWorkflowIds.DpReplace;
+
+    private string ProfileLabel => IsStandardMerge ? "profile" : "DP Replace profile";
 
     internal bool HasMultipleMapCapacities
     {
@@ -99,35 +109,38 @@ internal sealed class BuiltInV2StandardMergeRegistration
         }
     }
 
+    internal bool MatchesSelector(string selector)
+    {
+        return string.Equals(ProfileId, selector, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(IcId, selector, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(CliCompositionRunSupport.GetIcNumber(IcId), selector, StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal IReadOnlyList<long> GetMapCapacities(out IReadOnlyList<CompositionIssue> issues)
+    {
+        return _bundle.GetMapCapacities(ProfileId, _profileVersion, IcId, WorkflowId, out issues);
+    }
+
     internal bool TryGetContainerPolicy(
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out V2StandardMergeContainerPolicy? policy)
     {
         IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
         CompiledComposition? composition = _summaryCompilation.Value.CompiledComposition;
-        if (issues.Count != 0 || capacities.Count <= 1 || composition?.V2Details is not { } details)
+        FirmwareImageMap? map = composition?.V2Details?.Provenance.ResolvedMap.ImageMap;
+        FirmwareRegion? tpOverlay = map?.Regions.SingleOrDefault(static region => region.RegionId == "tp-overlay");
+        FirmwareRegion? customerInfo = map?.Regions.SingleOrDefault(static region => region.RegionId == "customer-info");
+        if (!IsStandardMerge || issues.Count != 0 || capacities.Count <= 1 || tpOverlay is null || customerInfo is null)
         {
             policy = null;
             return false;
         }
 
-        FirmwareImageMap map = details.Provenance.ResolvedMap.ImageMap;
-        FirmwareRegion? tpOverlay = map.Regions.SingleOrDefault(static region => region.RegionId == "tp-overlay");
-        FirmwareRegion? customerInfo = map.Regions.SingleOrDefault(static region => region.RegionId == "customer-info");
-        if (tpOverlay is null || customerInfo is null)
-        {
-            policy = null;
-            return false;
-        }
-
-        policy = new V2StandardMergeContainerPolicy(
-            capacities,
-            tpOverlay.Range,
-            customerInfo.Range);
+        policy = new V2StandardMergeContainerPolicy(capacities, tpOverlay.Range, customerInfo.Range);
         return true;
     }
 
     internal void TryCompile(
-        long? dpInputLength,
+        long? inputLength,
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
@@ -138,38 +151,48 @@ internal sealed class BuiltInV2StandardMergeRegistration
             return;
         }
 
-        long? requestedMapCapacity = null;
-        if (capacities.Count > 1)
+        long? requestedCapacity = null;
+        if (IsStandardMerge && capacities.Count > 1)
         {
-            if (dpInputLength is null)
+            if (inputLength is null)
             {
                 composition = null;
                 issues = [];
                 return;
             }
 
-            if (!capacities.Contains(dpInputLength.Value))
+            if (!capacities.Contains(inputLength.Value))
             {
                 composition = null;
                 issues =
                 [
                     new CompositionIssue(
                         WorkbenchIssueCodes.StandardMergeDpLengthUnsupported,
-                        $"Selected DP BIN length 0x{dpInputLength.Value:X} is unsupported; {IcId} Standard Merge accepts DP input lengths {BuiltInV2Bundle.FormatCapacities(capacities)}."),
+                        $"Selected DP BIN length 0x{inputLength.Value:X} is unsupported; {IcId} Standard Merge accepts DP input lengths {BuiltInV2Bundle.FormatCapacities(capacities)}."),
                 ];
                 return;
             }
 
-            requestedMapCapacity = dpInputLength.Value;
+            requestedCapacity = inputLength;
+        }
+        else if (!IsStandardMerge)
+        {
+            if (inputLength is null || !capacities.Contains(inputLength.Value))
+            {
+                composition = null;
+                issues =
+                [
+                    new CompositionIssue(
+                        CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                        $"{IcId} DP Replace base flash BIN length must be one of {BuiltInV2Bundle.FormatCapacities(capacities)} (actual 0x{inputLength.GetValueOrDefault():X})."),
+                ];
+                return;
+            }
+
+            requestedCapacity = inputLength;
         }
 
-        V2CompositionPlanCompileResult compilation = Bundle.CompileExecutable(
-            ProfileId,
-            ProfileVersion,
-            IcId,
-            IcWorkflowIds.StandardMerge,
-            requestedMapCapacity,
-            $"The built-in V2 profile for {IcId} did not produce an executable composition.");
+        V2CompositionPlanCompileResult compilation = CompileExecutable(requestedCapacity);
         composition = compilation.CompiledComposition;
         issues = compilation.Issues;
     }
@@ -179,7 +202,7 @@ internal sealed class BuiltInV2StandardMergeRegistration
         out IReadOnlyList<CompositionIssue> issues)
     {
         IReadOnlyList<long> capacities = GetMapCapacities(out issues);
-        if (issues.Count != 0 || capacities.Count <= 1)
+        if (!IsStandardMerge || issues.Count != 0 || capacities.Count <= 1)
         {
             capacity = 0;
             return false;
@@ -197,15 +220,17 @@ internal sealed class BuiltInV2StandardMergeRegistration
             : new WorkbenchProfileSummary(
                 ProfileId,
                 IcId,
-                CompositionKind.Merge,
+                CompositionKind,
                 [],
-                WorkbenchCompositionService.StandardMergeFallbackOutputFileName,
-                null,
+                IsStandardMerge
+                    ? WorkbenchCompositionService.StandardMergeFallbackOutputFileName
+                    : $"nt{IcId[2..].ToLowerInvariant()}-dp-replace.bin",
+                IsStandardMerge ? null : CompiledIcNumberPolicy.SingleSelector,
                 CompileSucceeded: false,
                 Array.AsReadOnly(compilation.Issues.Select(static issue => issue.Code).ToArray()));
     }
 
-    private V2CompositionPlanCompileResult LoadSummaryCompilation()
+    private V2CompositionPlanCompileResult CompileSummary()
     {
         IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
         return (issues.Count, capacities.Count) switch
@@ -214,143 +239,20 @@ internal sealed class BuiltInV2StandardMergeRegistration
             (_, 0) => V2CompositionPlanCompileResult.Failed(
                 [new CompositionIssue(
                     BuiltInV2Bundle.CompilationFailed,
-                    $"The built-in V2 profile for {IcId} has no declared map capacities.")]),
-            _ => Bundle.CompileExecutable(
-                ProfileId,
-                ProfileVersion,
-                IcId,
-                IcWorkflowIds.StandardMerge,
-                capacities.Count > 1 ? capacities[0] : null,
-                $"The built-in V2 profile for {IcId} did not produce an executable composition."),
+                    $"The built-in V2 {ProfileLabel} for {IcId} has no declared {(IsStandardMerge ? "map" : "base")} capacities.")]),
+            _ => CompileExecutable(!IsStandardMerge || capacities.Count > 1 ? capacities[0] : null),
         };
     }
 
-    private IReadOnlyList<long> GetMapCapacities(out IReadOnlyList<CompositionIssue> issues)
+    private V2CompositionPlanCompileResult CompileExecutable(long? requestedMapCapacity)
     {
-        return Bundle.GetMapCapacities(
+        return _bundle.CompileExecutable(
             ProfileId,
-            ProfileVersion,
+            _profileVersion,
             IcId,
-            IcWorkflowIds.StandardMerge,
-            out issues);
-    }
-}
-
-internal sealed class BuiltInV2DpReplaceRegistration
-{
-    private readonly Lazy<V2CompositionPlanCompileResult> _summaryCompilation;
-
-    internal BuiltInV2DpReplaceRegistration(
-        string icId,
-        string profileId,
-        string profileVersion,
-        BuiltInV2Bundle bundle)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
-        ArgumentNullException.ThrowIfNull(bundle);
-        IcId = icId;
-        ProfileId = profileId;
-        ProfileVersion = profileVersion;
-        Bundle = bundle;
-        _summaryCompilation = new(CompileSummary);
-    }
-
-    internal string IcId { get; }
-
-    private string ProfileId { get; }
-
-    private string ProfileVersion { get; }
-
-    private BuiltInV2Bundle Bundle { get; }
-
-    internal bool MatchesSelector(string selector)
-    {
-        return string.Equals(ProfileId, selector, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(IcId, selector, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(CliCompositionRunSupport.GetIcNumber(IcId), selector, StringComparison.OrdinalIgnoreCase);
-    }
-
-    internal IReadOnlyList<long> GetMapCapacities(out IReadOnlyList<CompositionIssue> issues)
-    {
-        return Bundle.GetMapCapacities(
-            ProfileId,
-            ProfileVersion,
-            IcId,
-            IcWorkflowIds.DpReplace,
-            out issues);
-    }
-
-    internal void TryCompile(
-        long baseCapacity,
-        out CompiledComposition? composition,
-        out IReadOnlyList<CompositionIssue> issues)
-    {
-        IReadOnlyList<long> capacities = GetMapCapacities(out issues);
-        if (issues.Count != 0)
-        {
-            composition = null;
-            return;
-        }
-
-        if (!capacities.Contains(baseCapacity))
-        {
-            composition = null;
-            issues =
-            [
-                new CompositionIssue(
-                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                    $"{IcId} DP Replace base flash BIN length must be one of {BuiltInV2Bundle.FormatCapacities(capacities)} (actual 0x{baseCapacity:X})."),
-            ];
-            return;
-        }
-
-        V2CompositionPlanCompileResult compilation = Bundle.CompileExecutable(
-            ProfileId,
-            ProfileVersion,
-            IcId,
-            IcWorkflowIds.DpReplace,
-            baseCapacity,
-            $"The built-in V2 DP Replace profile for {IcId} did not produce an executable composition.");
-        composition = compilation.CompiledComposition;
-        issues = compilation.Issues;
-    }
-
-    internal WorkbenchProfileSummary CreateProfileSummary()
-    {
-        V2CompositionPlanCompileResult compilation = _summaryCompilation.Value;
-        return compilation.CompiledComposition is { } composition
-            ? WorkbenchCompositionService.CreateProfileSummary(composition)
-            : new WorkbenchProfileSummary(
-                ProfileId,
-                IcId,
-                CompositionKind.Replace,
-                [],
-                $"nt{IcId[2..].ToLowerInvariant()}-dp-replace.bin",
-                CompiledIcNumberPolicy.SingleSelector,
-                CompileSucceeded: false,
-                Array.AsReadOnly(compilation.Issues.Select(static issue => issue.Code).ToArray()));
-    }
-
-    private V2CompositionPlanCompileResult CompileSummary()
-    {
-        IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> capacityIssues);
-        return (capacityIssues.Count, capacities.Count) switch
-        {
-            ( > 0, _) => V2CompositionPlanCompileResult.Failed(capacityIssues),
-            (_, 0) => V2CompositionPlanCompileResult.Failed(
-                [new CompositionIssue(
-                    BuiltInV2Bundle.CompilationFailed,
-                    $"The built-in V2 DP Replace profile for {IcId} has no declared base capacities.")]),
-            _ => Bundle.CompileExecutable(
-                ProfileId,
-                ProfileVersion,
-                IcId,
-                IcWorkflowIds.DpReplace,
-                capacities[0],
-                $"The built-in V2 DP Replace profile for {IcId} did not produce an executable composition."),
-        };
+            WorkflowId,
+            requestedMapCapacity,
+            $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.");
     }
 }
 

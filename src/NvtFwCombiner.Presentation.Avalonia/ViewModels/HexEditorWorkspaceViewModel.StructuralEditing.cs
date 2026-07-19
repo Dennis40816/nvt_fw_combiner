@@ -2,7 +2,6 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.HexEditor;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -29,7 +28,7 @@ public sealed partial class HexEditorWorkspaceViewModel
     private bool InsertBeforeSelectedByte { get; set; } = true;
 
     /// <summary>Maximum count shared from the Application raw-editor contract.</summary>
-    public decimal MaximumInsertByteCount { get; } = WorkbenchRawBinaryEditorSession.MaximumInsertByteCount;
+    public decimal MaximumInsertByteCount { get; } = RawBinaryEditorSession.MaximumInsertByteCount;
 
     /// <summary>Localized modal title for the selected before/after direction.</summary>
     public string InsertBytesPromptTitle => InsertBeforeSelectedByte
@@ -105,8 +104,8 @@ public sealed partial class HexEditorWorkspaceViewModel
 
         int count = decimal.ToInt32(InsertByteCount);
         RawBinaryEditorOperationResult result = InsertBeforeSelectedByte
-            ? _session.InsertZeroBytesBefore(InsertTargetAddress, count)
-            : _session.InsertZeroBytesAfter(InsertTargetAddress, count);
+            ? _editor.InsertZeroBytesBefore(InsertTargetAddress, count)
+            : _editor.InsertZeroBytesAfter(InsertTargetAddress, count);
         if (!result.Succeeded)
         {
             InsertBytesFeedback = DescribeIssue(result.Issue!);

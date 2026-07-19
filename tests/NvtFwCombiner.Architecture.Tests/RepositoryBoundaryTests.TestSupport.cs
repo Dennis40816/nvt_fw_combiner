@@ -29,10 +29,10 @@ public sealed partial class RepositoryBoundaryTests
         ];
     }
 
-    [GeneratedRegex(@"new BuiltInV2StandardMergeRegistration\(\s*""NT(?<ic>\d{5})""")]
+    [GeneratedRegex(@"new BuiltInV2Registration\(\s*""NT(?<ic>\d{5})""")]
     private static partial Regex StandardMergeProfileRegex();
 
-    [GeneratedRegex(@"public static LegacyCombinerPostbuildProfile Nt(?<ic>\d{5})\s*\{")]
+    [GeneratedRegex(@"""icId""\s*:\s*""NT(?<ic>\d{5})""")]
     private static partial Regex CtrlRamPostbuildProfileRegex();
 
     private static string ReadText(string relativePath)
@@ -55,7 +55,7 @@ public sealed partial class RepositoryBoundaryTests
                 .Select(File.ReadAllText));
     }
 
-    private static string ReadPresentationSources()
+    private static string ReadPresentationSources(params string[] excludedFileNames)
     {
         string directory = Path.Combine(
             Root.FullName,
@@ -66,6 +66,7 @@ public sealed partial class RepositoryBoundaryTests
             Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories)
                 .Where(path => path.EndsWith(".cs", StringComparison.Ordinal) ||
                                path.EndsWith(".axaml", StringComparison.Ordinal))
+                .Where(path => !excludedFileNames.Contains(Path.GetFileName(path), StringComparer.Ordinal))
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
     }
@@ -184,30 +185,12 @@ public sealed partial class RepositoryBoundaryTests
 
     private static string ReadPostbuildCatalogPartials()
     {
-        string directory = Path.Combine(
-            Root.FullName,
-            "src",
-            "NvtFwCombiner.Application",
-            "ExternalTools");
-        return string.Join(
-            Environment.NewLine,
-            Directory.GetFiles(directory, "LegacyCombinerPostbuildCatalog*.cs")
-                .Order(StringComparer.Ordinal)
-                .Select(File.ReadAllText));
+        return ReadText("profiles/built-in/ctrlram-postbuild-v2/catalog.json");
     }
 
     private static string ReadFlashMapCatalogPartials()
     {
-        string directory = Path.Combine(
-            Root.FullName,
-            "src",
-            "NvtFwCombiner.Application",
-            "FlashMaps");
-        return string.Join(
-            Environment.NewLine,
-            Directory.GetFiles(directory, "TpFlashMapCatalog*.cs")
-                .Order(StringComparer.Ordinal)
-                .Select(File.ReadAllText));
+        return ReadText("profiles/built-in/ctrlram-postbuild-v2/flash-map.json");
     }
 
     private static (int Line, string[] Cells) FindMarkdownTableRow(string relativePath, string firstCell)

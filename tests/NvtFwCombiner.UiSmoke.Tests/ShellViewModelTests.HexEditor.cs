@@ -1,5 +1,6 @@
+using System.Diagnostics;
 using System.Globalization;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.HexEditor;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -15,14 +16,14 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-limit");
         string sourcePath = workspace.Write(
             "oversized.bin",
-            new byte[WorkbenchRawBinaryEditorSession.MaximumDocumentLength + 1]);
+            new byte[RawBinaryEditorSession.MaximumDocumentLength + 1]);
         MainWindowViewModel shell = ShellViewModelFactory.Create();
 
         await shell.HexEditorWorkspace.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
 
         Assert.False(shell.HexEditorWorkspace.HasDocument);
         Assert.Contains(
-            WorkbenchRawBinaryEditorSession.MaximumDocumentLength.ToString(CultureInfo.InvariantCulture),
+            RawBinaryEditorSession.MaximumDocumentLength.ToString(CultureInfo.InvariantCulture),
             shell.HexEditorWorkspace.EditorStatus,
             StringComparison.Ordinal);
     }
@@ -131,7 +132,6 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(editor.IsInlineEditActive);
         Assert.True(cell.IsEditing);
-        Assert.NotEmpty(cell.InlineValidationMessage);
         Assert.False(editor.CanSave);
     }
 
@@ -223,7 +223,8 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(1, editor.ChangedBlockCount);
         Assert.True(editor.HasChangedBlocks);
         Assert.False(editor.HasNoChangedBlocks);
-        HexEditorChangedBlockViewModel block = Assert.Single(editor.ChangedBlocks);
+        HexEditorChangedBlockViewModel block = Assert.IsType<HexEditorChangedBlockViewModel>(
+            Assert.Single(editor.ChangedBlockPage.Items));
         Assert.Equal("0x000002 - 0x000004", block.RangeLabel);
         Assert.Contains("3 values changed", block.ReasonTooltip, StringComparison.Ordinal);
         Assert.Contains("0x000002: 02 -> AA", block.ReasonTooltip, StringComparison.Ordinal);
@@ -241,6 +242,72 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(editor.Text.HexEditorFillModeTooltip, editor.CurrentWriteModeTooltip);
         Assert.Equal("EE", editor.ViewportRows[0].Bytes[6].ValueHex);
         Assert.Equal("EE", editor.ViewportRows[0].Bytes[7].ValueHex);
+    }
+
+    /// <summary>Keeps a fragmented edit navigator bounded instead of projecting every changed block onto the dispatcher.</summary>
+    [Fact]
+    public async Task HexEditorBoundsFragmentedChangedBlockProjection()
+    {
+        const int documentLength = 20_000;
+        const int expectedChangedBlocks = documentLength / 2;
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-fragmented-blocks");
+        string sourcePath = workspace.Write("source.bin", new byte[documentLength]);
+        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
+
+        await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
+        editor.RangeStartAddress = "0x000000";
+        editor.RangeEndAddress = "0x004E1F";
+        editor.RangeValue = string.Join(
+            ' ',
+            Enumerable.Range(0, documentLength).Select(static index => index % 2 == 0 ? "FF" : "00"));
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var stopwatch = Stopwatch.StartNew();
+        editor.ApplyOverwriteRangeCommand.Execute(null);
+        stopwatch.Stop();
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(expectedChangedBlocks, editor.ChangedBlockCount);
+        Assert.Equal(expectedChangedBlocks, editor.ChangedBlockPage.TotalCount);
+        Assert.Equal("Jump to the next edited block; 10000 edited blocks", editor.ChangedBlockNavigationAccessibleLabel);
+        Assert.Equal(64, editor.ChangedBlockPage.VisibleCount);
+        Assert.True(editor.ChangedBlockPage.HasMultiplePages);
+        Assert.Equal("Showing 1-64 of 10000", editor.ChangedBlockPage.PageStatus);
+        Assert.Equal(0, Assert.IsType<HexEditorChangedBlockViewModel>(editor.ChangedBlockPage.Items[0]).Index);
+        HexEditorChangedBlockViewModel lastInitialBlock = Assert.IsType<HexEditorChangedBlockViewModel>(
+            editor.ChangedBlockPage.Items[^1]);
+        Assert.Equal(63, lastInitialBlock.Index);
+
+        editor.SelectChangedBlockCommand.Execute(lastInitialBlock);
+        editor.SelectNextChangedBlockCommand.Execute(null);
+
+        Assert.Equal("0x000080", editor.SelectedByteAddress);
+        Assert.Equal(64, editor.ChangedBlockPage.VisibleCount);
+        Assert.Equal(64, Assert.IsType<HexEditorChangedBlockViewModel>(editor.ChangedBlockPage.Items[0]).Index);
+        Assert.Equal(127, Assert.IsType<HexEditorChangedBlockViewModel>(editor.ChangedBlockPage.Items[^1]).Index);
+
+        editor.ChangedBlockPage.ShowItemAt(expectedChangedBlocks - 1);
+
+        Assert.Equal(16, editor.ChangedBlockPage.VisibleCount);
+        Assert.Equal(expectedChangedBlocks - 1, Assert.IsType<HexEditorChangedBlockViewModel>(editor.ChangedBlockPage.Items[^1]).Index);
+        Assert.Equal("Showing 9985-10000 of 10000", editor.ChangedBlockPage.PageStatus);
+
+        HexEditorChangedBlockViewModel finalBlock = Assert.IsType<HexEditorChangedBlockViewModel>(
+            editor.ChangedBlockPage.Items[^1]);
+        editor.SelectChangedBlockCommand.Execute(finalBlock);
+        editor.SelectNextChangedBlockCommand.Execute(null);
+
+        Assert.Equal("0x000000", editor.SelectedByteAddress);
+        Assert.Equal(0, editor.ChangedBlockPage.PageIndex);
+        Assert.Equal(0, Assert.IsType<HexEditorChangedBlockViewModel>(editor.ChangedBlockPage.Items[0]).Index);
+
+        editor.ApplyTextResources(ShellTextResources.For(ShellLanguage.ChineseTraditional));
+
+        Assert.Equal("跳至下一個修改區塊；共 10000 個修改區塊", editor.ChangedBlockNavigationAccessibleLabel);
+        Assert.Equal("顯示第 1-64 筆，共 10000 筆", editor.ChangedBlockPage.PageStatus);
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"fragmentedChangedBlocks={expectedChangedBlocks}; visible={editor.ChangedBlockPage.VisibleCount}; " +
+            $"elapsedMs={stopwatch.Elapsed.TotalMilliseconds:F3}; allocated={allocated}");
     }
 
     /// <summary>Keeps short overwrite local to Start while showing range validation in the Edit Region only.</summary>
@@ -294,7 +361,8 @@ public sealed partial class ShellViewModelTests
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
         editor.DeleteByteCommand.Execute(editor.ViewportRows[0].Bytes[1]);
 
-        HexEditorChangedBlockViewModel block = Assert.Single(editor.ChangedBlocks);
+        HexEditorChangedBlockViewModel block = Assert.IsType<HexEditorChangedBlockViewModel>(
+            Assert.Single(editor.ChangedBlockPage.Items));
         Assert.Equal("0x000001", block.StartAddress);
         Assert.Equal("0x00003E", block.EndAddress);
         Assert.Contains("Deleted 1 byte(s) at 0x000001", block.ReasonTooltip, StringComparison.Ordinal);
@@ -324,7 +392,8 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(editor.IsInsertBytesPromptOpen);
         Assert.Equal("0x43 bytes", editor.WorkingLengthLabel);
-        HexEditorChangedBlockViewModel block = Assert.Single(editor.ChangedBlocks);
+        HexEditorChangedBlockViewModel block = Assert.IsType<HexEditorChangedBlockViewModel>(
+            Assert.Single(editor.ChangedBlockPage.Items));
         Assert.Contains("Inserted 3 byte(s) at 0x000001", block.ReasonTooltip, StringComparison.Ordinal);
         IReadOnlyList<HexEditorByteCellViewModel> cells = [.. editor.ViewportRows.SelectMany(row => row.Bytes)];
         HexEditorByteCellViewModel start = Assert.Single(cells, cell => cell.IsStructuralBoundaryStart);

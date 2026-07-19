@@ -11,13 +11,6 @@ public sealed partial class MainWindowViewModel
         return RunMergeAsync(build: true, outputPath);
     }
 
-    /// <summary>Builds Standard Merge output to a user-selected path.</summary>
-    public Task BuildStandardMergeAsync(string outputPath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
-        return RunStandardMergeAsync(build: true, outputPath);
-    }
-
     private void RefreshMergeSlotRequirements()
     {
         IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
@@ -77,7 +70,7 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunMerge()
     {
-        return !IsRunInProgress && (SelectedMergeMode switch
+        return !IsRunInProgress && !IsFirmwareInspectionLoading && (SelectedMergeMode switch
         {
             NormalMergeMode => CanRunStandardMerge(),
             GeneralMergeMode => CanRunGeneralMerge(),
@@ -102,41 +95,54 @@ public sealed partial class MainWindowViewModel
 
     private Task RunStandardMergeAsync(bool build, string? outputPath)
     {
+        string icId = SelectedIc;
+        string number = SelectedNumber;
+        IReadOnlyDictionary<string, string> slotPaths = CreateStandardMergeSlotPaths();
+        string profileId =
+            WorkbenchCompositionService.GetStandardMergeProfileId(icId) ?? WorkbenchWorkflowIds.StandardMerge;
         return RunCompositionAsync(
             build,
-            cancellationToken => WorkbenchCompositionService.RunStandardMergeAsync(
-                SelectedIc,
-                CreateStandardMergeSlotPaths(),
+            (progress, cancellationToken) => WorkbenchCompositionService.RunStandardMergeWithProgressAsync(
+                icId,
+                slotPaths,
                 build,
+                progress,
                 cancellationToken,
                 outputPath),
             (action, errorMessage) => LoadRunErrorReport(
                 action,
-                WorkbenchCompositionService.GetStandardMergeProfileId(SelectedIc) ?? WorkbenchWorkflowIds.StandardMerge,
-                SelectedIc,
-                SelectedNumber,
+                profileId,
+                icId,
+                number,
                 errorMessage,
-                CreateStandardMergeSlotPaths()));
+                slotPaths));
     }
 
     private Task RunGeneralMergeAsync(bool build, string? outputPath)
     {
+        string icId = SelectedIc;
+        string number = SelectedNumber;
+        string outputLength = GeneralMergeOutputLength;
+        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs = CreateGeneralMergeMappingInputs();
+        IReadOnlyDictionary<string, string> slotPaths = CreateGeneralMergeSlotPaths();
+        string outputFileName = WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId);
         return RunCompositionAsync(
             build,
-            cancellationToken => WorkbenchCompositionService.RunGeneralMergeAsync(
-                SelectedIc,
-                GeneralMergeOutputLength,
-                CreateGeneralMergeMappingInputs(),
+            (progress, cancellationToken) => WorkbenchCompositionService.RunGeneralMergeWithProgressAsync(
+                icId,
+                outputLength,
+                mappingInputs,
                 build,
+                progress,
                 cancellationToken,
                 outputPath),
             (action, errorMessage) => LoadRunErrorReport(
                 action,
-                WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(SelectedIc),
-                SelectedIc,
-                SelectedNumber,
+                outputFileName,
+                icId,
+                number,
                 errorMessage,
-                CreateGeneralMergeSlotPaths(),
+                slotPaths,
                 compositionKind: "Merge",
                 modeId: WorkbenchWorkflowIds.GeneralMerge,
                 experienceId: WorkbenchWorkflowIds.GeneralMerge));
@@ -176,14 +182,13 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private void ApplyRunResult(WorkbenchRunResult result, bool build)
+    private void ApplyRunResult(
+        WorkbenchRunResult result,
+        bool build,
+        ReportReviewViewModel report,
+        bool publishReport)
     {
         string action = build ? "Build" : "Preview";
-        var report = ReportReviewViewModel.FromJson(
-            result.ReportJson,
-            $"{action.ToLowerInvariant()} report",
-            result.CommittedOutputId,
-            Text.Language);
         string detail = result.Succeeded
             ? $"{result.ProfileId} / {result.OutputSize} bytes / {Text.RunResultReportReadyLabel}"
             : report.Issues.Count == 0 ? result.Status : report.Issues[0].Detail;
@@ -194,12 +199,16 @@ public sealed partial class MainWindowViewModel
             result.Succeeded);
         OnPropertyChanged(nameof(LastRunResult));
 
+        if (!publishReport)
+        {
+            return;
+        }
+
         LoadedReport = report;
         LoadedReportJson = result.ReportJson;
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportGeneratedToast(action));
         NotifyReportChanged();
-        RefreshSettingsState();
     }
 
     private FirmwareSlotViewModel? MergeSlotForAddressSpace(string addressSpaceId)

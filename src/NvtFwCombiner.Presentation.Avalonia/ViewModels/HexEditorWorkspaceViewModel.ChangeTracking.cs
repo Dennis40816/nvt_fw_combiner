@@ -7,13 +7,15 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class HexEditorWorkspaceViewModel
 {
+    private const int ChangedBlockPageSize = 64;
     private const double HexViewportRowHeight = 25;
     private IReadOnlyList<RawBinaryEditorChangedRange> _changedRanges = [];
+    private IReadOnlyList<int> _structuralChangedRangeIndices = [];
     private int _currentViewportRowCapacity = CurrentViewportRowCount;
     private int _selectedChangedRangeIndex = -1;
 
-    /// <summary>Display rows for every contiguous edited block in current address order.</summary>
-    public IReadOnlyList<HexEditorChangedBlockViewModel> ChangedBlocks { get; private set; } = [];
+    /// <summary>Bounded display window over every contiguous edited block in current address order.</summary>
+    public ReportWindowedListViewModel ChangedBlockPage { get; private set; }
 
     /// <summary>Logical raw-document rows projected per viewport; original rows share the same fixed height.</summary>
     private int ViewportRowCount => CalculateViewportRowCount();
@@ -30,6 +32,12 @@ public sealed partial class HexEditorWorkspaceViewModel
 
     /// <summary>True before the first retained in-memory difference exists.</summary>
     public bool HasNoChangedBlocks => !HasChangedBlocks;
+
+    /// <summary>Localized assistive label that exposes both the Next action and the complete block count.</summary>
+    public string ChangedBlockNavigationAccessibleLabel => string.Format(
+        CultureInfo.InvariantCulture,
+        Text.HexEditorChangedBlockNavigationAccessibleTemplate,
+        ChangedBlockCount);
 
     /// <summary>Cycles through edited regions and frames the next region in the document viewport.</summary>
     public IRelayCommand SelectNextChangedBlockCommand { get; }
@@ -68,20 +76,56 @@ public sealed partial class HexEditorWorkspaceViewModel
 
     private void RefreshChangeTracking()
     {
-        _changedRanges = HasDocument ? _session.GetChangedRanges() : [];
-        ChangedBlocks = [.. _changedRanges.Select(CreateChangedBlock)];
+        _changedRanges = HasDocument ? _editor.GetChangedRanges() : [];
+        var structuralIndices = new List<int>();
+        for (int index = 0; index < _changedRanges.Count; index++)
+        {
+            if ((_changedRanges[index].ChangeKind & RawBinaryEditorChangeKind.Structural) != 0)
+            {
+                structuralIndices.Add(index);
+            }
+        }
+
+        _structuralChangedRangeIndices = structuralIndices.AsReadOnly();
         if (_selectedChangedRangeIndex >= _changedRanges.Count)
         {
             _selectedChangedRangeIndex = -1;
         }
 
+        ChangedBlockPage = CreateChangedBlockPage(_changedRanges);
+        if (_selectedChangedRangeIndex >= 0)
+        {
+            ChangedBlockPage.ShowItemAt(_selectedChangedRangeIndex);
+        }
+
         OnPropertyChanged(nameof(ChangedBlockCount));
         OnPropertyChanged(nameof(HasChangedBlocks));
         OnPropertyChanged(nameof(HasNoChangedBlocks));
-        OnPropertyChanged(nameof(ChangedBlocks));
+        OnPropertyChanged(nameof(ChangedBlockNavigationAccessibleLabel));
+        OnPropertyChanged(nameof(ChangedBlockPage));
         OnPropertyChanged(nameof(VisibleRowCount));
         OnPropertyChanged(nameof(DocumentScrollMaximum));
         SelectNextChangedBlockCommand.NotifyCanExecuteChanged();
+    }
+
+    private ReportWindowedListViewModel CreateChangedBlockPage(
+        IReadOnlyList<RawBinaryEditorChangedRange> ranges)
+    {
+        var rows = new FactoryReadOnlyList<HexEditorChangedBlockViewModel>(
+            ranges.Count,
+            index => CreateChangedBlock(ranges[index], index));
+        return ReportWindowedListViewModel.Create(
+            rows,
+            ChangedBlockPageSize,
+            Text.Language);
+    }
+
+    /// <summary>Resolves one global changed-block index without materializing preceding navigator rows.</summary>
+    internal HexEditorChangedBlockViewModel? GetChangedBlock(int index)
+    {
+        return (uint)index < (uint)_changedRanges.Count
+            ? CreateChangedBlock(_changedRanges[index], index)
+            : null;
     }
 
     private HexEditorChangedBlockViewModel CreateChangedBlock(
@@ -104,12 +148,14 @@ public sealed partial class HexEditorWorkspaceViewModel
     {
         ClearAsciiSearchResults(refreshViewport: false);
         _changedRanges = [];
-        ChangedBlocks = [];
+        _structuralChangedRangeIndices = [];
+        ChangedBlockPage = CreateChangedBlockPage([]);
         _selectedChangedRangeIndex = -1;
         OnPropertyChanged(nameof(ChangedBlockCount));
         OnPropertyChanged(nameof(HasChangedBlocks));
         OnPropertyChanged(nameof(HasNoChangedBlocks));
-        OnPropertyChanged(nameof(ChangedBlocks));
+        OnPropertyChanged(nameof(ChangedBlockNavigationAccessibleLabel));
+        OnPropertyChanged(nameof(ChangedBlockPage));
         OnPropertyChanged(nameof(VisibleRowCount));
         OnPropertyChanged(nameof(DocumentScrollMaximum));
         SelectNextChangedBlockCommand.NotifyCanExecuteChanged();
@@ -169,14 +215,14 @@ public sealed partial class HexEditorWorkspaceViewModel
     {
         long rowStart = checked((long)rowIndex * BytesPerRow);
         long rowEnd = rowStart + BytesPerRow;
-        foreach (RawBinaryEditorChangedRange range in _changedRanges)
+        if (HasValueChangeInRange(rowStart, rowEnd))
         {
-            if (range.ValueChanges.Any(change => change.Start < rowEnd && change.EndExclusive > rowStart))
-            {
-                return true;
-            }
+            return true;
+        }
 
-            HexEditorStructuralBoundaryInfo boundary = GetStructuralBoundary(range);
+        foreach (int index in _structuralChangedRangeIndices)
+        {
+            HexEditorStructuralBoundaryInfo boundary = GetStructuralBoundary(_changedRanges[index]);
             if (boundary.IsValid &&
                 boundary.StartAddress < rowEnd &&
                 boundary.EndAddress >= rowStart)
@@ -188,9 +234,42 @@ public sealed partial class HexEditorWorkspaceViewModel
         return false;
     }
 
+    private bool HasValueChangeInRange(long start, long endExclusive)
+    {
+        int low = 0;
+        int high = _changedRanges.Count;
+        while (low < high)
+        {
+            int middle = low + ((high - low) / 2);
+            if (_changedRanges[middle].EndExclusive <= start)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        for (int index = low;
+             index < _changedRanges.Count && _changedRanges[index].Start < endExclusive;
+             index++)
+        {
+            foreach (RawBinaryEditorValueChange change in _changedRanges[index].ValueChanges)
+            {
+                if (change.Start < endExclusive && change.EndExclusive > start)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private HexEditorStructuralBoundaryInfo GetStructuralBoundary(long address)
     {
-        for (int index = 0; index < _changedRanges.Count; index++)
+        foreach (int index in _structuralChangedRangeIndices)
         {
             RawBinaryEditorChangedRange range = _changedRanges[index];
             HexEditorStructuralBoundaryInfo boundary = GetStructuralBoundary(range);
@@ -300,6 +379,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         }
 
         _selectedChangedRangeIndex = block.Index;
+        ChangedBlockPage.ShowItemAt(block.Index);
         ViewportAddress = address;
         SetViewportStartRow(Math.Max(0, rowIndex - 4));
         UpdateSelection(address);
@@ -320,6 +400,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         }
 
         _selectedChangedRangeIndex = index;
+        ChangedBlockPage.ShowItemAt(index);
         RawBinaryEditorChangedRange range = _changedRanges[index];
         long selectedAddress = Math.Clamp(range.Start, 0, _state.WorkingLength - 1);
         int row = checked((int)(selectedAddress / BytesPerRow));

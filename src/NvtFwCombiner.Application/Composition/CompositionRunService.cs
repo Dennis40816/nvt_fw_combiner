@@ -44,32 +44,142 @@ public sealed partial class CompositionRunService
     }
 
     /// <summary>Executes the request without committing output.</summary>
-    public async ValueTask<CompositionRunResult> PreviewAsync(
+    public ValueTask<CompositionRunResult> PreviewAsync(
         CompositionRunRequest request,
         CancellationToken cancellationToken)
     {
-        return await RunAsync(request, commitOutput: false, cancellationToken).ConfigureAwait(false);
+        return RunAsync(
+            request,
+            commitOutput: false,
+            requireApprovedPreviewToken: false,
+            progress: null,
+            cancellationToken);
+    }
+
+    /// <summary>Executes Preview and publishes bounded typed lifecycle phases.</summary>
+    public ValueTask<CompositionRunResult> PreviewAsync(
+        CompositionRunRequest request,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        return RunWithProgressAsync(
+            request,
+            commitOutput: false,
+            requireApprovedPreviewToken: false,
+            progress,
+            cancellationToken);
     }
 
     /// <summary>Executes the request and commits output when execution succeeds.</summary>
-    public async ValueTask<CompositionRunResult> BuildAsync(
+    public ValueTask<CompositionRunResult> BuildAsync(
         CompositionRunRequest request,
         CancellationToken cancellationToken)
     {
         _ = _outputWriter ?? throw new InvalidOperationException("Build requires an output writer.");
 
-        return await RunAsync(request, commitOutput: true, cancellationToken).ConfigureAwait(false);
+        return RunAsync(
+            request,
+            commitOutput: true,
+            requireApprovedPreviewToken: true,
+            progress: null,
+            cancellationToken);
+    }
+
+    /// <summary>Executes approved-token Build and publishes bounded typed lifecycle phases.</summary>
+    public ValueTask<CompositionRunResult> BuildAsync(
+        CompositionRunRequest request,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        _ = _outputWriter ?? throw new InvalidOperationException("Build requires an output writer.");
+        return RunWithProgressAsync(
+            request,
+            commitOutput: true,
+            requireApprovedPreviewToken: true,
+            progress,
+            cancellationToken);
+    }
+
+    /// <summary>Executes once and commits that same validated output when automatic Build is requested.</summary>
+    public ValueTask<CompositionRunResult> PreviewOrBuildAsync(
+        CompositionRunRequest request,
+        bool build,
+        CancellationToken cancellationToken)
+    {
+        if (build)
+        {
+            _ = _outputWriter ?? throw new InvalidOperationException("Build requires an output writer.");
+        }
+
+        return RunAsync(
+            request,
+            commitOutput: build,
+            requireApprovedPreviewToken: false,
+            progress: null,
+            cancellationToken);
+    }
+
+    /// <summary>Executes once, optionally commits, and publishes bounded typed lifecycle phases.</summary>
+    public ValueTask<CompositionRunResult> PreviewOrBuildAsync(
+        CompositionRunRequest request,
+        bool build,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        if (build)
+        {
+            _ = _outputWriter ?? throw new InvalidOperationException("Build requires an output writer.");
+        }
+
+        return RunWithProgressAsync(
+            request,
+            commitOutput: build,
+            requireApprovedPreviewToken: false,
+            progress,
+            cancellationToken);
+    }
+
+    private async ValueTask<CompositionRunResult> RunWithProgressAsync(
+        CompositionRunRequest request,
+        bool commitOutput,
+        bool requireApprovedPreviewToken,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        progress.Start(request.RunId);
+        try
+        {
+            return await RunAsync(
+                    request,
+                    commitOutput,
+                    requireApprovedPreviewToken,
+                    progress,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            progress.Complete();
+        }
     }
 
     private async ValueTask<CompositionRunResult> RunAsync(
         CompositionRunRequest request,
         bool commitOutput,
+        bool requireApprovedPreviewToken,
+        CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         DateTimeOffset startedAtUtc = _clock.UtcNow;
-        if (commitOutput && request.ApprovedPreviewToken is null)
+        var progressPublisher = new CompositionRunProgressPublisher(request, commitOutput, progress);
+        progressPublisher.Report(CompositionRunPhase.Preparing);
+        if (requireApprovedPreviewToken && request.ApprovedPreviewToken is null)
         {
             var previewRequired = CompositionExecutionResult.Failed([
                 new CompositionIssue(
@@ -77,6 +187,7 @@ public sealed partial class CompositionRunService
                     "Build requires an approved preview token before output can be committed."),
             ]);
             DateTimeOffset failedAtUtc = _clock.UtcNow;
+            progressPublisher.Report(CompositionRunPhase.PreparingReport);
             CompositionRunReport failedReport = CreateReport(
                 request,
                 previewRequired,
@@ -96,15 +207,36 @@ public sealed partial class CompositionRunService
                 committedOutputId: null);
         }
 
+        progressPublisher.Report(CompositionRunPhase.ReadingInputs);
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
         var executedCommandsByOperationId = new Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>(StringComparer.Ordinal);
-        CompositionExecutionResult execution = boundInputs.Issues.Count == 0
-            ? await ExecutePlanAsync(request, boundInputs, executedCommandsByOperationId, cancellationToken).ConfigureAwait(false)
-            : CompositionExecutionResult.Failed(boundInputs.Issues);
-        List<FinalOutputValidationEvaluation> finalOutputValidations =
-            execution.Status == CompositionExecutionStatus.Succeeded
-                ? EvaluateFinalOutput(request.CompiledComposition, execution.OutputBytes)
-                : CreateSkippedFinalOutputValidations(request.CompiledComposition);
+        CompositionExecutionResult execution;
+        if (boundInputs.Issues.Count == 0)
+        {
+            progressPublisher.Report(CompositionRunPhase.ExecutingComposition);
+            execution = await ExecutePlanAsync(
+                    request,
+                    boundInputs,
+                    executedCommandsByOperationId,
+                    progressPublisher,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            execution = CompositionExecutionResult.Failed(boundInputs.Issues);
+        }
+
+        List<FinalOutputValidationEvaluation> finalOutputValidations;
+        if (execution.Status == CompositionExecutionStatus.Succeeded)
+        {
+            progressPublisher.Report(CompositionRunPhase.ValidatingOutput);
+            finalOutputValidations = EvaluateFinalOutput(request.CompiledComposition, execution.OutputBytes);
+        }
+        else
+        {
+            finalOutputValidations = CreateSkippedFinalOutputValidations(request.CompiledComposition);
+        }
         List<CompositionIssue> runIssues = [
             .. finalOutputValidations
                 .Where(static evaluation => evaluation.Issue is not null)
@@ -121,7 +253,8 @@ public sealed partial class CompositionRunService
         string? committedOutputId = null;
         if (commitOutput && runStatus == CompositionExecutionStatus.Succeeded)
         {
-            if (!string.Equals(request.ApprovedPreviewToken, previewToken, StringComparison.Ordinal))
+            if (requireApprovedPreviewToken &&
+                !string.Equals(request.ApprovedPreviewToken, previewToken, StringComparison.Ordinal))
             {
                 runIssues.Add(new CompositionIssue(
                     "build.preview-token.mismatch",
@@ -130,6 +263,7 @@ public sealed partial class CompositionRunService
             }
             else
             {
+                progressPublisher.Report(CompositionRunPhase.CommittingOutput);
                 committedOutputId = await _outputWriter!
                     .CommitAsync(request.OutputFileName, execution.OutputBytes, cancellationToken)
                     .ConfigureAwait(false);
@@ -137,6 +271,7 @@ public sealed partial class CompositionRunService
         }
 
         DateTimeOffset completedAtUtc = _clock.UtcNow;
+        progressPublisher.Report(CompositionRunPhase.PreparingReport);
         CompositionRunReport report = CreateReport(
             request,
             execution,
@@ -149,11 +284,19 @@ public sealed partial class CompositionRunService
             validations: [.. finalOutputValidations.Select(static evaluation => evaluation.Summary)],
             executedCommandsByOperationId: executedCommandsByOperationId);
 
+        (string? inspectionOutputSpaceId, string? inspectionReferenceSpaceId, byte[]? inspectionReferenceBytes) = GetInspectionReference(
+            request,
+            runStatus,
+            boundInputs.InputBytes,
+            execution.OutputBytes.Length);
         return new CompositionRunResult(
             runStatus,
-            runStatus == CompositionExecutionStatus.Succeeded ? execution.OutputBytes.ToArray() : [],
+            runStatus == CompositionExecutionStatus.Succeeded ? execution.OutputBytes : ReadOnlyMemory<byte>.Empty,
             report,
             committedOutputId,
-            commitOutput ? null : previewToken);
+            commitOutput ? null : previewToken,
+            inspectionOutputSpaceId,
+            inspectionReferenceSpaceId,
+            inspectionReferenceBytes);
     }
 }

@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "1.0",
+  "repositoryFiles": [
+    {
+      "path": "external-tools/README.md",
+      "size": 2263,
+      "sha256": "379dd7bcd218d61b7aa2bccc2615c64e76f25940331ce91181592e7b73a290ec"
+    },
+    {
+      "path": "external-tools/diff-nf-merge/1.0.0/CommandLine.dll",
+      "size": 225280,
+      "sha256": "e7d67580a8999d0e5534039f62e0dbc423b2d6dac51c2f5ff6ef199e4a53138d"
+    },
+    {
+      "path": "external-tools/diff-nf-merge/1.0.0/DiffNFMerge.exe",
+      "size": 9728,
+      "sha256": "f611af7e315d46341e15cd7140eb3962f6ac05d337121e5554022ef5e69a2bbe"
+    },
+    {
+      "path": "external-tools/diff-nf-merge/1.0.0/DiffNFMerge.exe.config",
+      "size": 174,
+      "sha256": "e2f8febf28b49915d142e4b698435d53b7eb3443853bd2892b86fe20e8895620"
+    },
+    {
+      "path": "external-tools/diff-nf-merge/1.0.0/LICENSE.CommandLineParser.md",
+      "size": 1111,
+      "sha256": "87a1efc79d6ee27ee9dcc01534e2be6f26839e4a6b8e53b6d91458aae08831fa"
+    },
+    {
+      "path": "external-tools/diff-nf-merge/1.0.0/package-manifest.json",
+      "size": 1466,
+      "sha256": "de0c2c879842cc01e4ea03e3631c7fd455cb67a6a5bb3e6e9a818782f046b114"
+    },
+    {
+      "path": "external-tools/diff-nf-merge/README.md",
+      "size": 900,
+      "sha256": "7d09df6d8b0ddc8544e2395c01e32c4e0566ee84e384b898f4870f18d2fbd419"
+    },
+    {
+      "path": "external-tools/legacy-combiner/1.13.0/Combiner.exe",
+      "size": 41472,
+      "sha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf"
+    },
+    {
+      "path": "external-tools/legacy-combiner/1.13.0/manifest.json",
+      "size": 559,
+      "sha256": "1c60badcc23fc5f3708d7cfb171a9a2e94c708a1aa257d0dac3efb7a20d96442"
+    },
+    {
+      "path": "external-tools/legacy-combiner/README.md",
+      "size": 294,
+      "sha256": "791eac4243c01696f742423537d6001d4498a20dabe8054b64da37fa8fb3c909"
+    }
+  ],
+  "releasePackagePaths": [
+    "external-tools/README.md",
+    "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+    "external-tools/legacy-combiner/README.md",
+    "external-tools/legacy-combiner/1.13.0/Combiner.exe",
+    "external-tools/legacy-combiner/1.13.0/manifest.json"
+  ],
+  "tools": [
+    {
+      "logicalId": "legacy-combiner",
+      "version": "1.13.0",
+      "platform": "win-x64",
+      "artifactOrigin": "repository",
+      "runtimeStatus": "registered",
+      "releaseStatus": "included",
+      "manifestPath": "external-tools/legacy-combiner/1.13.0/manifest.json",
+      "executablePath": "external-tools/legacy-combiner/1.13.0/Combiner.exe",
+      "executableSha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf",
+      "commandAuthority": "application-invocation-profile-catalog",
+      "argvStatus": "registered-profile-specific",
+      "workingDirectoryStatus": "host-created-staging-directory",
+      "readAuthority": "host-created-staging-copy",
+      "writeAuthority": "profile-declared-host-verified-ranges",
+      "provenance": "owner-approved committed runtime package"
+    },
+    {
+      "logicalId": "diff-nf-merge",
+      "version": "1.0.0.0",
+      "platform": "windows",
+      "artifactOrigin": "repository",
+      "runtimeStatus": "not-registered",
+      "releaseStatus": "excluded",
+      "manifestPath": "external-tools/diff-nf-merge/1.0.0/package-manifest.json",
+      "executablePath": "external-tools/diff-nf-merge/1.0.0/DiffNFMerge.exe",
+      "executableSha256": "f611af7e315d46341e15cd7140eb3962f6ac05d337121e5554022ef5e69a2bbe",
+      "commandAuthority": "unverified",
+      "argvStatus": "unverified",
+      "workingDirectoryStatus": "unverified",
+      "readAuthority": "unverified",
+      "writeAuthority": "unverified",
+      "inputContractStatus": "deferred-v0.12.x",
+      "provenance": "owner-provided HackMD CJK14 intake on 2026-07-17"
+    },
+    {
+      "logicalId": "crc-worker",
+      "version": "0.1.0",
+      "platform": "win-x64",
+      "artifactOrigin": "generated",
+      "runtimeStatus": "package-contract-only",
+      "releaseStatus": "included",
+      "sourcePath": "tools/crc-worker",
+      "packagePath": "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+      "protocolVersions": [
+        "1.0"
+      ],
+      "argvStatus": "not-applicable-json-stdio",
+      "workingDirectoryStatus": "not-authoritative",
+      "readAuthority": "stdin-json-payload-max-4-mib",
+      "writeAuthority": "stdout-json-only-no-filesystem-mutation",
+      "transformStatus": "not-routed",
+      "provenance": "generated from pinned tools/crc-worker source during packaging"
+    }
+  ]
+}

@@ -114,7 +114,11 @@ internal static partial class MergeCliCommandHandler
         bool reportWritten = options.Values.TryGetValue("--report", out string? requestedReportPath);
         if (reportWritten)
         {
-            await WriteReportAsync(requestedReportPath!, result.ReportJson, output, cancellationToken)
+            await CliCompositionRunSupport.WriteReportJsonAsync(
+                    requestedReportPath!,
+                    result.ReportJson,
+                    output,
+                    cancellationToken)
                 .ConfigureAwait(false);
         }
 

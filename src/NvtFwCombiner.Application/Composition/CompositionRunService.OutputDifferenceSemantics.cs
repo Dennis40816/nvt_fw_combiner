@@ -43,12 +43,12 @@ public sealed partial class CompositionRunService
             TpHeaderSectionIds.CtrlRamReplacement,
             StringComparison.Ordinal);
         return new OutputDifferenceSemantic(
-            isCtrlRam ? TpBinaryCategoryIds.CtrlRam : "replacement-data",
+            isCtrlRam ? TpSemanticCategoryIds.CtrlRam : "replacement-data",
             isCtrlRam ? "CtrlRAM" : "Replacement data",
             expectation.SectionId ?? "declared-replacement",
             expectation.SectionLabel,
             $"Expected: this run replaced {expectation.SectionLabel}.",
-            expectation.SectionId ?? (isCtrlRam ? TpBinaryCategoryIds.CtrlRam : "replacement-data"),
+            expectation.SectionId ?? (isCtrlRam ? TpSemanticCategoryIds.CtrlRam : "replacement-data"),
             expectation.SectionLabel);
     }
 
@@ -66,7 +66,7 @@ public sealed partial class CompositionRunService
                 ? $"Expected: postbuild recalculated {field!.DisplayName}."
                 : $"Expected: postbuild refreshed {field!.DisplayName} and copied it to {expectation.SectionLabel}.";
             return new OutputDifferenceSemantic(
-                TpBinaryCategoryIds.TpFlashHeader,
+                TpSemanticCategoryIds.TpFlashHeader,
                 "TP Flash Header",
                 $"{icId.ToLowerInvariant()}-header:{field!.FieldId}",
                 field.DisplayName,
@@ -79,7 +79,7 @@ public sealed partial class CompositionRunService
                             expectation.SectionId is TpHeaderSectionIds.WindowCopyRight or TpHeaderSectionIds.WindowCopyLeft;
         return isHeaderCopy
             ? new OutputDifferenceSemantic(
-                TpBinaryCategoryIds.TpFlashHeader,
+                TpSemanticCategoryIds.TpFlashHeader,
                 "TP Flash Header",
                 expectation.SectionId ?? "header-refresh",
                 expectation.SectionLabel,
@@ -88,7 +88,7 @@ public sealed partial class CompositionRunService
                 parentLabel)
             : string.Equals(expectation.SectionId, TpHeaderSectionIds.FirmwareConfigBackup, StringComparison.Ordinal)
                 ? new OutputDifferenceSemantic(
-                TpBinaryCategoryIds.FirmwareConfiguration,
+                TpSemanticCategoryIds.FirmwareConfiguration,
                 "FW Configuration",
                 TpHeaderSectionIds.FirmwareConfigBackup,
                 expectation.SectionLabel,
@@ -96,7 +96,7 @@ public sealed partial class CompositionRunService
                 TpHeaderSectionIds.FirmwareConfigBackup,
                 expectation.SectionLabel)
             : new OutputDifferenceSemantic(
-                TpBinaryCategoryIds.OtherDocumentedRegion,
+                TpSemanticCategoryIds.OtherDocumentedRegion,
                 "Other documented regions",
                 expectation.SectionId ?? "postbuild-copy",
                 expectation.SectionLabel,

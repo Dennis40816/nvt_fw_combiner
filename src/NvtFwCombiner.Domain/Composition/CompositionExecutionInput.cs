@@ -25,7 +25,7 @@ public sealed class CompositionExecutionInput
 
     internal IReadOnlyList<string> AddressSpaceIds { get; }
 
-    internal bool TryGetBytes(string addressSpaceId, out ReadOnlyMemory<byte> bytes)
+    internal bool TryGetImmutableBuffer(string addressSpaceId, out byte[] bytes)
     {
         if (_addressSpaceBytes.TryGetValue(addressSpaceId, out byte[]? buffer))
         {
@@ -33,7 +33,7 @@ public sealed class CompositionExecutionInput
             return true;
         }
 
-        bytes = ReadOnlyMemory<byte>.Empty;
+        bytes = [];
         return false;
     }
 }

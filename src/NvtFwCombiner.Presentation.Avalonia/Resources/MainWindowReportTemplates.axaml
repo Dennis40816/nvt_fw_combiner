@@ -7,6 +7,47 @@
   <Label Margin="0,0,6,6" Classes="compactBadge neutralBadge reportBadge" Content="{Binding Text}" />
 </DataTemplate>
 
+<DataTemplate x:Key="ReportPagerTemplate" DataType="vm:ReportPagedListViewModel">
+  <Grid Margin="0,8,0,0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+    <TextBlock
+        VerticalAlignment="Center"
+        Classes="captionText"
+        Text="{Binding PageStatus}"
+        AutomationProperties.Name="{Binding PageStatus}"
+        AutomationProperties.LiveSetting="Polite" />
+    <Button
+        Grid.Column="1"
+        Classes="secondary"
+        Command="{Binding LoadMoreCommand}"
+        Content="{Binding LoadMoreLabel}"
+        AutomationProperties.Name="{Binding LoadMoreLabel}" />
+  </Grid>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportWindowedPagerTemplate" DataType="vm:ReportWindowedListViewModel">
+  <Grid Margin="0,8,0,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+    <Button
+        Classes="secondary"
+        Command="{Binding PreviousPageCommand}"
+        Content="{Binding PreviousPageLabel}"
+        AutomationProperties.Name="{Binding PreviousPageLabel}" />
+    <TextBlock
+        Grid.Column="1"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        Classes="captionText"
+        Text="{Binding PageStatus}"
+        AutomationProperties.Name="{Binding PageStatus}"
+        AutomationProperties.LiveSetting="Polite" />
+    <Button
+        Grid.Column="2"
+        Classes="secondary"
+        Command="{Binding NextPageCommand}"
+        Content="{Binding NextPageLabel}"
+        AutomationProperties.Name="{Binding NextPageLabel}" />
+  </Grid>
+</DataTemplate>
+
 <DataTemplate x:Key="ReportLineFactTemplate" DataType="vm:ReportLineFactViewModel">
   <Grid Margin="0,1" ColumnDefinitions="Auto,*" ColumnSpacing="10">
     <TextBlock Classes="tableHeader" Text="{Binding Label}" TextWrapping="Wrap" />
@@ -46,28 +87,6 @@
     <TextBlock FontSize="{DynamicResource NfcFontSize12}" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Detail}" TextWrapping="Wrap" />
     <TextBlock FontSize="{DynamicResource NfcFontSize11}" Foreground="{DynamicResource NfcWarningTextMutedBrush}" Text="{Binding Meta}" TextWrapping="Wrap" />
   </StackPanel>
-</DataTemplate>
-
-<DataTemplate x:Key="ReportTriageRowTemplate" DataType="vm:ReportLineViewModel">
-  <Grid ColumnDefinitions="26,*" ColumnSpacing="10" Margin="0,0,0,10">
-    <Grid>
-      <Border Width="2" HorizontalAlignment="Center" Background="{DynamicResource NfcInfoSurfaceStrongBrush}" />
-      <Border
-          Width="18"
-          Height="18"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Top"
-          Background="{DynamicResource NfcAccentSurfaceSubtleBrush}"
-          BorderBrush="{DynamicResource NfcAccentBorderBrush}"
-          BorderThickness="1"
-          CornerRadius="{DynamicResource NfcPillCornerRadius}" />
-    </Grid>
-    <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
-      <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcInfoTextStrongBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
-      <TextBlock Classes="panelTitle" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" />
-    </StackPanel>
-  </Grid>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportIssueRowTemplate" DataType="vm:ReportLineViewModel">

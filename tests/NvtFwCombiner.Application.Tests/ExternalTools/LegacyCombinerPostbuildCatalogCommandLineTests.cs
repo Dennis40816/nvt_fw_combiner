@@ -98,6 +98,36 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         ], arguments.Take(8));
     }
 
+    /// <summary>Locks the owner-selected NT51931 1.13.0 cascade argv after cross-mode parity.</summary>
+    [Fact]
+    public void CommandLineBuilderKeepsNt51931SelectedCascadeArguments()
+    {
+        const string firmwarePath = "output/nt51931_fw.bin";
+        const string binDirectory = "BIN";
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51931,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["6"]));
+
+        IReadOnlyList<string> arguments = LegacyCombinerPostbuildCommandLineBuilder.CreateArguments(
+            Assert.Single(plan.Commands),
+            firmwarePath,
+            binDirectory);
+
+        Assert.Equal([
+            "NT51931BASED_NORMAL_MODE",
+            "CRC8",
+            firmwarePath,
+            firmwarePath,
+            Path.Combine(binDirectory, "NF_Ctrlram.bin"), "0x0", "0x16800", "4048",
+            Path.Combine(binDirectory, "Normal_Ctrlram.bin"), "0x0", "0x177D0", "10240",
+            Path.Combine(binDirectory, "MP_Ctrlram.bin"), "0x0", "0x19FD0", "9216",
+            Path.Combine(binDirectory, "VN_Ctrlram.bin"), "0x0", "0x1C3D0", "5728",
+            firmwarePath, "0x0", "0x1DA30", "256",
+            firmwarePath, "0x16000", "0x3B000", "2048",
+            Path.Combine(binDirectory, "DiffDLM.bin"), "0x0", "0x22800", "97280",
+        ], arguments);
+    }
+
     private static void VerifyArgumentShape(
         LegacyCombinerPostbuildCommand command,
         IReadOnlyList<string> arguments)

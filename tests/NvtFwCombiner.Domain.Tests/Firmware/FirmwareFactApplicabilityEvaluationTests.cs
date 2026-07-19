@@ -118,7 +118,7 @@ public sealed class FirmwareFactApplicabilityEvaluationTests
                 FirmwareMetadataByteOrder.LittleEndian)],
             []);
         var metadata = new FirmwareMetadataSet("metadata", [structure], ["metadata-evidence"]);
-        var map = FirmwareImageMap.CreateDirect(
+        FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             "map",
             "flash",
             new FirmwareMapApplicability(

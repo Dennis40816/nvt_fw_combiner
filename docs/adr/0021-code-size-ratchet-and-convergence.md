@@ -28,6 +28,25 @@ lines, 6,033 lines for `WorkbenchCompositionService`, and 3,035 lines for
 ratchet to be lowered in the same commit, so later changes cannot reclaim the
 removed budget. New partial aggregates may not exceed 2,500 lines.
 
+### v0.9.10 owner amendment
+
+Owner decision, 2026-07-19: `v0.9.10` uses 60,000 nonblank production C#/AXAML
+lines as a hard ceiling rather than an exact descending total-source ratchet.
+Measured reductions below 60,000 do not require lowering that ceiling during
+the performance release. The stable-reconciled candidate at `6f3698dd` measures
+59,429 production lines. Its named partial aggregates are frozen as exact
+ratchets at 4,405 lines for `WorkbenchCompositionService` and 4,069 lines for
+`MainWindowViewModel`; the exact duplicate-JSON ratchet is 1,055 lines, and the
+general 2,500-line partial ceiling also remains in force.
+
+The exception is time-bounded. `v0.9.10` added measured progress,
+accessibility, report/Hex Diff, cancellation, persistence, inspection, and
+performance evidence while preserving firmware semantics. A dedicated
+code-size convergence phase starts only after `v0.9.11`; it will establish a
+new measured baseline and lower descending ratchets instead of treating unused
+space below 60,000 as a permanent budget. The final reviewed `v0.9.10` tree must
+remain at or below 60,000 and must not exceed either named partial ratchet.
+
 This is a convergence control, not permission to delete safety. Tests, golden
 vectors, evidence manifests, documentation, firmware-owner gates, and useful
 comments are outside the production-source metric. A change must not weaken

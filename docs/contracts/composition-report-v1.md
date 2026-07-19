@@ -27,4 +27,4 @@ Canonical schema: [`composition-report-v1.schema.json`](composition-report-v1.sc
 
 `Validations[]` is another optional projection field. Each immutable row contains `RuleId`, `Stage`, `Status`, `Severity`, and the requirement's declared or emitted `IssueCode`. `Passed` and `Failed` mean the rule evaluated against the completed image; an `Error`-severity failure blocks publication. `Skipped` means an earlier stage produced no image suitable for that rule, so it neither passes nor fails. Older report JSON that lacks `Semantic` or `Validations` is interpreted as an empty collection for the absent field.
 
-These extensions do not add properties to [`composition-report-v1.schema.json`](composition-report-v1.schema.json). See [TP Binary Model Catalog](../architecture/tp-binary-model-catalog.md) and [ADR 0013](../adr/0013-tp-binary-model-and-report-semantic-projection.md).
+These extensions do not add properties to [`composition-report-v1.schema.json`](composition-report-v1.schema.json). See [TP Header Semantic Catalog](../architecture/tp-binary-model-catalog.md) and [ADR 0013](../adr/0013-tp-binary-model-and-report-semantic-projection.md).

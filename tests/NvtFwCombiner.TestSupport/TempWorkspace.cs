@@ -48,9 +48,17 @@ public sealed class TempWorkspace : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        if (Directory.Exists(Root))
+        for (int attempt = 0; Directory.Exists(Root); attempt++)
         {
-            Directory.Delete(Root, recursive: true);
+            try
+            {
+                Directory.Delete(Root, recursive: true);
+                return;
+            }
+            catch (IOException) when (OperatingSystem.IsWindows() && attempt < 9)
+            {
+                Thread.Sleep(TimeSpan.FromMilliseconds(50));
+            }
         }
     }
 }

@@ -101,14 +101,14 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
             _ = Directory.CreateDirectory(binDirectory);
 
             string firmwarePath = Path.Combine(outputDirectory, profile.FirmwareFileName);
-            byte[] inputBytes = request.InputBytes.ToArray();
+            ReadOnlyMemory<byte> inputBytes = request.InputBytes;
             await File.WriteAllBytesAsync(firmwarePath, inputBytes, cancellationToken).ConfigureAwait(false);
             await File.WriteAllBytesAsync(Path.Combine(outputDirectory, MapFileName), [], cancellationToken)
                 .ConfigureAwait(false);
 
             // Staged BIN files use selected replacement bytes as source material without
             // pre-writing those bytes into the firmware image given to Combiner.exe.
-            byte[] stagedSourceBytes = [.. inputBytes];
+            byte[] stagedSourceBytes = inputBytes.ToArray();
             CompositionIssue? stagedSourceIssue = ApplyStagedSourceOverrides(stagedSourceBytes, request.StagedSources);
             if (stagedSourceIssue is not null)
             {
@@ -121,10 +121,10 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 return ExternalProcessorResult.Failed([stagedArtifactIssue]);
             }
 
+            StagingTreePolicy stagingTreePolicy = CreateStagingTreePolicy(profile, resolvedManifest, commandPlan);
             foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
             {
-                byte[] commandInputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
-                if (commandInputBytes.LongLength != inputBytes.LongLength)
+                if (new FileInfo(firmwarePath).Length != inputBytes.Length)
                 {
                     return Fail(
                         "external-tool.output-length.changed",
@@ -152,6 +152,12 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     runDirectory,
                     arguments,
                     TimeSpan.FromSeconds(resolvedManifest.TimeoutSeconds));
+                ShortOutputTailSnapshot? shortOutputTail = await CaptureShortOutputTailAsync(
+                        firmwarePath,
+                        command,
+                        inputBytes.Length,
+                        cancellationToken)
+                    .ConfigureAwait(false);
                 ExternalProcessResult processResult = await _processRunner.RunAsync(startInfo, cancellationToken).ConfigureAwait(false);
                 executedCommands.Add(startInfo.ToExecutedCommand());
                 if (processResult.TimedOut)
@@ -183,8 +189,9 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
 
                 CompositionIssue? lengthIssue = await NormalizeShortenedFirmwareAsync(
                         firmwarePath,
-                        commandInputBytes,
                         command,
+                        inputBytes.Length,
+                        shortOutputTail,
                         cancellationToken)
                     .ConfigureAwait(false);
                 if (lengthIssue is not null)
@@ -192,13 +199,14 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     return ExternalProcessorResult.Failed([lengthIssue], executedCommands);
                 }
 
-                CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, profile, resolvedManifest, commandPlan);
+                CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, stagingTreePolicy);
                 if (perCommandUnexpectedFileIssue is not null)
                 {
                     return ExternalProcessorResult.Failed([perCommandUnexpectedFileIssue], executedCommands);
                 }
             }
 
+            // Plans are nonempty, and the last per-command check follows every staging mutation.
             if (!File.Exists(firmwarePath))
             {
                 return Fail(
@@ -207,14 +215,8 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     executedCommands);
             }
 
-            CompositionIssue? unexpectedFileIssue = ValidateStagingTree(runDirectory, profile, resolvedManifest, commandPlan);
-            if (unexpectedFileIssue is not null)
-            {
-                return ExternalProcessorResult.Failed([unexpectedFileIssue], executedCommands);
-            }
-
             byte[] outputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
-            return outputBytes.LongLength != inputBytes.LongLength
+            return outputBytes.LongLength != inputBytes.Length
                 ? Fail(
                     "external-tool.output-length.changed",
                     "External processor changed the firmware image length.",
