@@ -58,6 +58,11 @@
     <BuiltInProfileBundle Include="nt51926-ctrlram-replace-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51917-ctrlram-replace-alias-candidate">
+      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
+      <CanonicalFirmwareFamilySource>nt51927-ctrlram-replace-candidate\families\nt51927-ctrlram-replace.json</CanonicalFirmwareFamilySource>
+      <CanonicalFirmwareFamilyDestination>families\nt51927-ctrlram-replace.json</CanonicalFirmwareFamilyDestination>
+    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51927-ctrlram-replace-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>

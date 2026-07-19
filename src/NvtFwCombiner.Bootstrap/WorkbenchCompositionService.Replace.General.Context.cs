@@ -16,7 +16,14 @@ public static partial class WorkbenchCompositionService
         out GeneralReplaceRunContext? context,
         out WorkbenchRunResult? failure)
     {
-        Dictionary<string, string> reportSlotPaths = CreateGeneralReplaceReportSlotPaths(slotPaths, mappingInputs);
+        Dictionary<string, string> reportSlotPaths = new(slotPaths, StringComparer.Ordinal);
+        foreach (WorkbenchGeneralReplaceMappingInput mapping in mappingInputs)
+        {
+            if (!string.IsNullOrWhiteSpace(mapping.FilePath))
+            {
+                reportSlotPaths[mapping.MappingId] = mapping.FilePath;
+            }
+        }
         IcNumberSelection selection = ToIcNumberSelection(number);
 
         if (!IcNumberChoicePolicy.IsNumberSelectionSupported(selection, GetPostbuildProfiles(icId)))

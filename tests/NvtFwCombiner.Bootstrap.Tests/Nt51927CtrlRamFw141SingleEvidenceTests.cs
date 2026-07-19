@@ -23,9 +23,16 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
     ];
 
     /// <summary>Proves the owner control produces identical V1 and V2 bytes, process authority, and argv.</summary>
-    [Fact]
-    public async Task ExactOwnerCaseRunsThroughV2WithLegacyProcessParityAsync()
+    [Theory]
+    [InlineData("NT51927", "nt51927-ctrlram-replace-fw141-single", "nfc.nt51927.ctrlram-postbuild-v1")]
+    [InlineData("NT51917", "nt51917-ctrlram-replace-fw141-single", "nfc.nt51917.ctrlram-postbuild-v1")]
+    public async Task ExactOwnerCaseRunsThroughV2WithLegacyProcessParityAsync(
+        string icId,
+        string expectedProfileId,
+        string expectedProcessorId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+
         if (!OperatingSystem.IsWindows())
         {
             return;
@@ -68,7 +75,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase, referencePath);
         string legacyOutputPath = workspace.PathFor("legacy-output.bin");
         WorkbenchRunResult legacy = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51927",
+            icId,
             "single",
             WorkbenchReplaceModes.CtrlRam,
             slots,
@@ -78,7 +85,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             new WorkbenchCtrlRamFirmwareVersionEdit(metadata.FirmwareVersion, metadata.FirmwareSubVersion));
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51927",
+            icId,
             "single",
             WorkbenchReplaceModes.CtrlRam,
             slots,
@@ -98,10 +105,10 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
 
         using var legacyReport = JsonDocument.Parse(legacy.ReportJson);
         using var v2Report = JsonDocument.Parse(v2.ReportJson);
-        Assert.Equal("nt51927-ctrlram-replace-workbench", ReadProfileId(legacyReport.RootElement));
-        Assert.Equal("nt51927-ctrlram-replace-fw141-single", ReadProfileId(v2Report.RootElement));
+        Assert.Equal($"{icId.ToLowerInvariant()}-ctrlram-replace-workbench", ReadProfileId(legacyReport.RootElement));
+        Assert.Equal(expectedProfileId, ReadProfileId(v2Report.RootElement));
         AssertReportIdentity(legacyReport.RootElement, v2Report.RootElement);
-        AssertProcessParity(legacyReport.RootElement, v2Report.RootElement);
+        AssertProcessParity(legacyReport.RootElement, v2Report.RootElement, expectedProcessorId, icId);
         Assert.Equal(Hash(ownerCase.Expected.Bytes), Hash(File.ReadAllBytes(referencePath)));
         Assert.All(
             ownerCase.Artifacts,
@@ -110,12 +117,18 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
 
     /// <summary>Proves a different base or metadata tuple cannot enter the exact V2 route.</summary>
     [Theory]
-    [InlineData("base")]
-    [InlineData("pid")]
-    [InlineData("version")]
-    [InlineData("chip")]
-    public async Task UnreviewedShapeRetainsLegacyFallbackAsync(string mutation)
+    [InlineData("NT51927", "base")]
+    [InlineData("NT51927", "pid")]
+    [InlineData("NT51927", "version")]
+    [InlineData("NT51927", "chip")]
+    [InlineData("NT51917", "base")]
+    [InlineData("NT51917", "pid")]
+    [InlineData("NT51917", "version")]
+    [InlineData("NT51917", "chip")]
+    public async Task UnreviewedShapeRetainsLegacyFallbackAsync(string icId, string mutation)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+
         OwnerCase ownerCase = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51927-fw141-single-negative");
         string referencePath = workspace.PathFor("reference.bin");
@@ -146,7 +159,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
         Dictionary<string, string> slots = CreateSlotPaths(ownerCase);
         slots[WorkbenchSlotIds.ReplaceBase] = referencePath;
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
-            "NT51927",
+            icId,
             "single",
             slots,
             build: true,
@@ -157,7 +170,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
 
         Assert.True(result.Succeeded, result.ReportJson);
         using var report = JsonDocument.Parse(result.ReportJson);
-        Assert.Equal("nt51927-ctrlram-replace-workbench", ReadProfileId(report.RootElement));
+        Assert.Equal($"{icId.ToLowerInvariant()}-ctrlram-replace-workbench", ReadProfileId(report.RootElement));
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
     }
 
@@ -201,12 +214,16 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             input.GetProperty("Sha256").GetString());
     }
 
-    private static void AssertProcessParity(JsonElement legacyReport, JsonElement v2Report)
+    private static void AssertProcessParity(
+        JsonElement legacyReport,
+        JsonElement v2Report,
+        string expectedProcessorId,
+        string icId)
     {
         JsonElement legacySession = ReadProcessorSession(legacyReport);
         JsonElement v2Session = ReadProcessorSession(v2Report);
-        Assert.Equal("nfc.nt51927.ctrlram-postbuild-v1", legacySession.GetProperty("ProcessorId").GetString());
-        Assert.Equal("nfc.nt51927.ctrlram-postbuild-v1", v2Session.GetProperty("ProcessorId").GetString());
+        Assert.Equal(expectedProcessorId, legacySession.GetProperty("ProcessorId").GetString());
+        Assert.Equal(expectedProcessorId, v2Session.GetProperty("ProcessorId").GetString());
         Assert.Equal("legacy-combiner-1.13.0", legacySession.GetProperty("ToolBindingId").GetString());
         Assert.Equal("legacy-combiner-1.13.0", v2Session.GetProperty("ToolBindingId").GetString());
         Assert.Equal(
@@ -218,7 +235,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
 
         string[][] legacyArguments = ReadArguments(legacySession);
         string[][] v2Arguments = ReadArguments(v2Session);
-        Assert.Equal(ExpectedArguments(), legacyArguments);
+        Assert.Equal(ExpectedArguments(icId), legacyArguments);
         Assert.Equal(legacyArguments, v2Arguments);
     }
 
@@ -247,9 +264,9 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
         ];
     }
 
-    private static string[][] ExpectedArguments()
+    private static string[][] ExpectedArguments(string icId)
     {
-        const string firmware = "output/nt51927_fw.bin";
+        string firmware = $"output/{icId.ToLowerInvariant()}_fw.bin";
         return
         [
             [

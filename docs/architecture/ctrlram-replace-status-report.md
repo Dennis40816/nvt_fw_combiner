@@ -130,7 +130,7 @@ The base may be the Combiner TP work image or a declared full-Flash container. T
 
 | IC | Current command family | Source evidence | Current status |
 | --- | --- | --- | --- |
-| NT51917 | NT51927 alias: `MERGE_MODE` + `NT51927BASED_GEN_CRC_MODE CRC32` | owner alias confirmation | Alias only; direct CtrlRAM Replace golden still optional evidence. |
+| NT51917 | NT51927 perfect-family alias: `MERGE_MODE` + `NT51927BASED_GEN_CRC_MODE CRC32` | owner alias confirmation plus NT51927 exact single/two-/three-chip fixtures | Exact full-reference-SHA V2 aliases preserve the NT51927 V1/V2 bytes and 7/10/13-command process evidence; other shapes retain fallback and no support promotion is made. |
 | NT51919 | NT51929/NT51932 alias: `NT51932BASED_NORMAL_MODE CRC8` | owner alias confirmation | Alias only; direct CtrlRAM Replace golden still optional evidence. |
 | NT51920 | `CRC_Enable` | inspected BAT + 2026-07-17 owner snapshot | Single/cascade formal payload bytes match their declared targets; owner command/range review remains. |
 | NT51923 | `CRC_Enable` | inspected BAT + 2026-07-17 owner snapshot | Single/cascade formal payload bytes match their declared targets; owner command/range review remains. |
@@ -190,7 +190,7 @@ The NT51929 AB case is intentionally recorded separately. Its tracked 512 KiB ex
 
 ### 3. Workbench self-replacement with committed 2026-07-05 CtrlRAM fixtures
 
-Owner supplied NT51926/NT51927 CtrlRAM Replace fixtures on 2026-07-05. The payloads are committed under `testdata/golden/ctrlram-replace/fixtures/20260705`.
+Owner supplied NT51926/NT51927 CtrlRAM Replace fixtures on 2026-07-05. The payloads are committed under `testdata/golden/ctrlram-replace/fixtures/20260705`. The owner-confirmed NT51917 perfect-family scope reuses those NT51927 exact facts without copying the golden payloads: NT51917 V1 and V2 outputs match the corresponding NT51927 hashes for single (`fdb8fef0...20ab9`), two-chip (`6f0bbde7...5f58`), and three-chip (`dc1ee892...fe16`), while process evidence retains the IC-specific `nt51917_fw.bin` staged name.
 
 | Case | Workbench result | Diff classification | Current conclusion |
 | --- | --- | --- | --- |

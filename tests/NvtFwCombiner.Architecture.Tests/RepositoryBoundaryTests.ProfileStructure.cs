@@ -126,6 +126,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51920-ctrlram-replace-candidate",
             "nt51923-ctrlram-replace-candidate",
             "nt51926-ctrlram-replace-candidate",
+            "nt51917-ctrlram-replace-alias-candidate",
             "nt51927-ctrlram-replace-candidate",
             "nt51929-ctrlram-replace-candidate",
             "nt51930-ctrlram-replace-candidate",
@@ -174,6 +175,7 @@ public sealed partial class RepositoryBoundaryTests
                          "nt51920-ctrlram-replace-candidate" or
                          "nt51923-ctrlram-replace-candidate" or
                          "nt51926-ctrlram-replace-candidate" or
+                         "nt51917-ctrlram-replace-alias-candidate" or
                          "nt51927-ctrlram-replace-candidate" or
                          "nt51929-ctrlram-replace-candidate" or
                          "nt51930-ctrlram-replace-candidate" or
@@ -222,9 +224,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("**\\profile-bundle.json", project, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies canonical firmware-family reuse is explicit, closed-root, and limited to NT51930.</summary>
+    /// <summary>Verifies each approved canonical firmware-family reuse is explicit and closed-root.</summary>
     [Fact]
-    public void Nt51930CandidateMaterializesOneCanonicalFirmwareFamily()
+    public void CandidateBundlesMaterializeOnlyApprovedCanonicalFirmwareFamilies()
     {
         string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
         var document = XDocument.Parse(project);
@@ -239,10 +241,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(
             "families\\nt51930.json",
             candidate.Element("CanonicalFirmwareFamilyDestination")?.Value);
-        _ = Assert.Single(document.Descendants("CanonicalFirmwareFamilySource"), static element =>
-            !string.IsNullOrWhiteSpace(element.Value));
-        _ = Assert.Single(document.Descendants("CanonicalFirmwareFamilyDestination"), static element =>
-            !string.IsNullOrWhiteSpace(element.Value));
+        Assert.Equal(2, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
+            !string.IsNullOrWhiteSpace(element.Value)));
+        Assert.Equal(2, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
+            !string.IsNullOrWhiteSpace(element.Value)));
 
         string canonicalFamilyPath = Path.Combine(
             Root.FullName,
@@ -272,6 +274,44 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(
             familyEntry.GetProperty("contentHash").GetString(),
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(canonicalFamilyPath))).ToLowerInvariant());
+
+        XElement nt51917Candidate = Assert.Single(document.Descendants("BuiltInProfileBundle"), static bundle =>
+            StringComparer.Ordinal.Equals(
+                bundle.Attribute("Include")?.Value,
+                "nt51917-ctrlram-replace-alias-candidate"));
+        Assert.Equal(
+            "nt51927-ctrlram-replace-candidate\\families\\nt51927-ctrlram-replace.json",
+            nt51917Candidate.Element("CanonicalFirmwareFamilySource")?.Value);
+        Assert.Equal(
+            "families\\nt51927-ctrlram-replace.json",
+            nt51917Candidate.Element("CanonicalFirmwareFamilyDestination")?.Value);
+        string canonicalCtrlRamFamilyPath = Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51927-ctrlram-replace-candidate",
+            "families",
+            "nt51927-ctrlram-replace.json");
+        string aliasFamilyPath = Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51917-ctrlram-replace-alias-candidate",
+            "families",
+            "nt51927-ctrlram-replace.json");
+        Assert.True(File.Exists(canonicalCtrlRamFamilyPath));
+        Assert.False(File.Exists(aliasFamilyPath));
+        using var aliasManifest = JsonDocument.Parse(ReadText(
+            "profiles/built-in/nt51917-ctrlram-replace-alias-candidate/profile-bundle.json"));
+        JsonElement aliasFamilyEntry = Assert.Single(
+            aliasManifest.RootElement.GetProperty("entries").EnumerateArray(),
+            static entry => StringComparer.Ordinal.Equals(
+                entry.GetProperty("kind").GetString(),
+                "firmware-family"));
+        Assert.Equal("families/nt51927-ctrlram-replace.json", aliasFamilyEntry.GetProperty("path").GetString());
+        Assert.Equal(
+            aliasFamilyEntry.GetProperty("contentHash").GetString(),
+            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(canonicalCtrlRamFamilyPath))).ToLowerInvariant());
 
         Assert.Contains("Built-in profile canonical firmware-family metadata must declare both source and destination", project, StringComparison.Ordinal);
         Assert.Contains("Built-in profile canonical firmware-family source escapes the approved source root", project, StringComparison.Ordinal);

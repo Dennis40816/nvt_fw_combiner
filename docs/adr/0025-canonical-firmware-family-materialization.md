@@ -13,19 +13,24 @@ documents are profile data, not schemas, so reusing one reviewed family snapshot
 needs a separate decision and explicit evidence boundary.
 
 The NT51930 logical-output General Merge candidate must bind the exact canonical
-family bytes already owned by `nt51930-standard-merge`. Checking the same 104-line
-JSON document into both bundles creates a second source owner and allows the two
-copies to drift even though both manifests claim the same family hash.
+family bytes already owned by `nt51930-standard-merge`. The NT51917 CtrlRAM
+perfect-family alias must likewise bind the NT51927 CtrlRAM family's reviewed
+bytes without expanding the source NT51927 bundle beyond the loader's eight-entry
+limit. Checking either family document into two bundles creates a second source
+owner and allows the copies to drift even when both manifests claim one hash.
 
 ## Decision
 
 Bootstrap's existing `MaterializeBuiltInProfileBundles` target accepts an explicit
 canonical firmware-family source and bundle-local destination on a declared
-`BuiltInProfileBundle`. The first and only admitted mapping is:
+`BuiltInProfileBundle`. The admitted mappings are explicit:
 
 ```text
 profiles/built-in/nt51930-standard-merge/families/nt51930.json
   -> materialized nt51930-general-merge-logical-candidate/families/nt51930.json
+
+profiles/built-in/nt51927-ctrlram-replace-candidate/families/nt51927-ctrlram-replace.json
+  -> materialized nt51917-ctrlram-replace-alias-candidate/families/nt51927-ctrlram-replace.json
 ```
 
 Both metadata values are required together. The source must resolve beneath the
@@ -53,8 +58,9 @@ manifest entry and the pinned bundle hash; it never reads a repository sibling.
 
 ## Consequences
 
-- NT51930 Standard Merge remains the only checked-in owner of this exact family
-  snapshot; the General Merge candidate remains self-contained after build.
+- NT51930 Standard Merge and NT51927 CtrlRAM Replace remain the checked-in owners
+  of their exact family snapshots; both consuming candidates remain self-contained
+  after build.
 - Domain, Application, manifest/schema contracts, runtime APIs, firmware facts,
   ranges, operations, support status, and golden claims do not change.
 - Reuse by another candidate requires its own explicit source/destination entry,
@@ -65,9 +71,9 @@ manifest entry and the pinned bundle hash; it never reads a repository sibling.
 
 ## Verification
 
-- Architecture tests lock the single NT51930 mapping, missing/collision/escape
-  failure checks, unchanged manifest family path/hash, and absence of runtime
-  resolver knowledge.
+- Architecture tests lock the two approved mappings, missing/collision/escape
+  failure checks, each unchanged manifest family path/hash, and absence of
+  runtime resolver knowledge.
 - General Merge candidate tests reconstruct a closed test bundle from the same
   metadata, validate it through the manifest-pinned loader, and compare the
   materialized family to the canonical source byte-for-byte.

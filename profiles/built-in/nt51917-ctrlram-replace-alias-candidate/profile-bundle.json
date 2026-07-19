@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
-  "bundleId": "nt51927-ctrlram-replace-candidate",
-  "bundleVersion": "0.9.9-candidate.4",
+  "bundleId": "nt51917-ctrlram-replace-alias-candidate",
+  "bundleVersion": "0.9.9-candidate.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "948e1bdba09098b48fae14810dca31e29d3a4f3fa7974f3eddb39d8df879e5f8",
+  "contentHash": "c73a22a3b2b542f3f3e628e83c07e62cc04484ed83a0c8b8e21f197e038f1e15",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -28,25 +28,25 @@
       "contentHash": "63b91660fbeaf68f70d210141d41f61f878430fc3b9ba80bc342c96b531bcf52"
     },
     {
-      "entryId": "nt51927-ctrlram-replace-fw141-single-profile",
+      "entryId": "nt51917-ctrlram-replace-fw132-twochip-profile",
       "kind": "composition-profile",
-      "path": "profiles/nt51927-ctrlram-replace-fw141-single.json",
+      "path": "profiles/nt51917-ctrlram-replace-fw132-twochip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "b000d495e1c8e54a825d9f8a5dcb4b5bc2ddc8ef13d0d501fb8044d0a6b4b276"
+      "contentHash": "3ac0baa5bd6064a337b4176ab3e3431907a7642be82ed8008dc98666917792ae"
     },
     {
-      "entryId": "nt51927-ctrlram-replace-fw132-twochip-profile",
+      "entryId": "nt51917-ctrlram-replace-fw140-threechip-profile",
       "kind": "composition-profile",
-      "path": "profiles/nt51927-ctrlram-replace-fw132-twochip.json",
+      "path": "profiles/nt51917-ctrlram-replace-fw140-threechip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "9aed93c89cff2a2c6401a7432781e8d369592f96c454d41566cc47952ca04fcb"
+      "contentHash": "4a41e6e5bf75c667054dee8632726db92ed4a81402d2947c1d4d4761ecbee9c3"
     },
     {
-      "entryId": "nt51927-ctrlram-replace-fw140-threechip-profile",
+      "entryId": "nt51917-ctrlram-replace-fw141-single-profile",
       "kind": "composition-profile",
-      "path": "profiles/nt51927-ctrlram-replace-fw140-threechip.json",
+      "path": "profiles/nt51917-ctrlram-replace-fw141-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "301c55cb3bbbb8dba5a92ed6c85480e0eddbc19c3e1777f1d2f88b3edef98022"
+      "contentHash": "ee9c24792e21e2657d93db15e65f23ddf85dccbebce1f835e906fda3078c0c35"
     }
   ]
 }

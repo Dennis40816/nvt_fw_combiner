@@ -51,7 +51,10 @@ public static partial class WorkbenchCompositionService
                 }),
         ];
 
-        return BuiltInV2BundleRegistry.All[$"{context.PostbuildProfile!.IcId.ToLowerInvariant()}-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
+        string bundleId = context.PostbuildProfile!.IcId is "NT51917"
+            ? "nt51917-ctrlram-replace-alias-candidate"
+            : $"{context.PostbuildProfile.IcId.ToLowerInvariant()}-ctrlram-replace-candidate";
+        return BuiltInV2BundleRegistry.All[bundleId].CompileRuntimeReferenceReplace(
             profileId,
             "0.1.0",
             context.PostbuildProfile.IcId,

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "2.9",
-  "profileId": "nt51927-ctrlram-replace-fw132-twochip",
+  "profileId": "nt51917-ctrlram-replace-fw132-twochip",
   "profileVersion": "0.1.0",
   "promotion": {
     "stage": "executable-candidate",
@@ -9,7 +9,10 @@
         "blockerId": "support-neutral-expected-derived-route",
         "kind": "release",
         "reason": "This exact full-reference-SHA route closes V1/V2 engineering parity with the owner-approved base and repository-derived replay inputs; it does not claim an independent owner expected output or public support promotion.",
-        "evidenceRefs": [ "nt51927-2chip-self-20260705-expected-derived" ]
+        "evidenceRefs": [
+          "nt51927-2chip-self-20260705-expected-derived",
+          "ctrlram-replace-perfect-family-51917-to-51927"
+        ]
       }
     ]
   },
@@ -21,7 +24,7 @@
     "layoutPolicy": "fixed",
     "inputPolicy": "fixed",
     "topologyAuthoring": "hidden",
-    "displayNameKey": "profile.nt51927.ctrlram.replace.fw132.twochip"
+    "displayNameKey": "profile.nt51917.ctrlram.replace.fw132.twochip"
   },
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
@@ -150,18 +153,18 @@
       "operationId": "postbuild-twochip",
       "sequence": 2147483647,
       "overlapPolicy": "replace-existing",
-      "reason": "Run the exact ten-command NT51927 two-chip postbuild after every runtime CtrlRAM mapping.",
+      "reason": "Run the exact ten-command NT51917 perfect-family alias of the NT51927 two-chip postbuild after every runtime CtrlRAM mapping.",
       "kind": "run-processor",
-      "processorStageId": "nt51927-fw132-twochip-combiner"
+      "processorStageId": "nt51917-fw132-twochip-combiner"
     }
   ],
   "validations": [],
   "processorStages": [
     {
-      "processorStageId": "nt51927-fw132-twochip-combiner",
+      "processorStageId": "nt51917-fw132-twochip-combiner",
       "kind": "legacy-combiner-v1",
       "toolBindingId": "legacy-combiner-1.13.0",
-      "invocationProfileId": "nfc.nt51927.ctrlram-postbuild-v1",
+      "invocationProfileId": "nfc.nt51917.ctrlram-postbuild-v1",
       "targetSpaceId": "output-image",
       "targetViewId": "processor-image",
       "authority": "transform",
@@ -195,12 +198,13 @@
     }
   ],
   "output": {
-    "fileNameTemplate": "nt51927-ctrlram-replace.bin",
+    "fileNameTemplate": "nt51917-ctrlram-replace.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "nt51927-2chip-self-20260705-expected-derived"
+    "nt51927-2chip-self-20260705-expected-derived",
+    "ctrlram-replace-perfect-family-51917-to-51927"
   ]
 }

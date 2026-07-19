@@ -1,34 +1,37 @@
 {
   "schemaVersion": "2.9",
-  "profileId": "nt51927-ctrlram-replace-fw132-twochip",
+  "profileId": "nt51917-ctrlram-replace-fw141-single",
   "profileVersion": "0.1.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
       {
-        "blockerId": "support-neutral-expected-derived-route",
+        "blockerId": "support-neutral-no-promotion",
         "kind": "release",
-        "reason": "This exact full-reference-SHA route closes V1/V2 engineering parity with the owner-approved base and repository-derived replay inputs; it does not claim an independent owner expected output or public support promotion.",
-        "evidenceRefs": [ "nt51927-2chip-self-20260705-expected-derived" ]
+        "reason": "The exact route is evidence-complete and intentionally remains support-neutral; this no-promotion policy is not a missing owner input or decision.",
+        "evidenceRefs": [
+          "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
+          "ctrlram-replace-perfect-family-51917-to-51927"
+        ]
       }
     ]
   },
   "compositionKind": "replace",
-  "icNumberInputMode": "numeric-selector",
+  "icNumberInputMode": "single-selector",
   "experience": {
     "experienceId": "ctrlram-replace",
     "audience": "ctrlram",
     "layoutPolicy": "fixed",
     "inputPolicy": "fixed",
     "topologyAuthoring": "hidden",
-    "displayNameKey": "profile.nt51927.ctrlram.replace.fw132.twochip"
+    "displayNameKey": "profile.nt51917.ctrlram.replace.fw141.single"
   },
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51927-ctrlram-replace",
     "familyVersion": "0.4.0",
     "familyContentHash": "63b91660fbeaf68f70d210141d41f61f878430fc3b9ba80bc342c96b531bcf52",
-    "mapIds": [ "nt51927-ctrlram-fw132-twochip-full-flash" ],
+    "mapIds": [ "nt51927-ctrlram-fw141-single-full-flash" ],
     "requiredRegionIds": [
       "flash-image",
       "header-crc-023c",
@@ -40,13 +43,6 @@
       "mp-master",
       "vn-master",
       "header-copy-master",
-      "right-window-prefix",
-      "nf-slave-r",
-      "normal-slave-r",
-      "mp-slave-r",
-      "vn-slave-r",
-      "header-copy-slave-r",
-      "right-window-tail",
       "final-header-backup",
       "fw-config-backup-copy"
     ],
@@ -78,7 +74,7 @@
         "normalization": {
           "kind": "truncate-ctrlram",
           "warningIssueCode": "CTRLRAM_SIZE_WARNING",
-          "evidenceRef": "nt51927-2chip-self-20260705-expected-derived"
+          "evidenceRef": "nt51927-fw141-single-auto-prj-529-owner-golden-20260717"
         }
       }
     }
@@ -114,13 +110,6 @@
     { "viewId": "mp-master-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "mp-master" } },
     { "viewId": "vn-master-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-master" } },
     { "viewId": "header-copy-master-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy-master" } },
-    { "viewId": "right-window-prefix-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "right-window-prefix" } },
-    { "viewId": "nf-slave-r-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "nf-slave-r" } },
-    { "viewId": "normal-slave-r-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "normal-slave-r" } },
-    { "viewId": "mp-slave-r-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "mp-slave-r" } },
-    { "viewId": "vn-slave-r-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-slave-r" } },
-    { "viewId": "header-copy-slave-r-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy-slave-r" } },
-    { "viewId": "right-window-tail-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "right-window-tail" } },
     { "viewId": "final-header-backup-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "final-header-backup" } },
     { "viewId": "fw-config-backup-copy-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "fw-config-backup-copy" } }
   ],
@@ -130,38 +119,31 @@
     { "regionId": "header-crc-024c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
     { "regionId": "header-crc-026c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
     { "regionId": "header-crc-027c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
-    { "regionId": "nf-master", "access": "explicit-range", "reason": "Copy exactly the approved master 0xFD0-byte NF slice from the immutable shared NF input." },
-    { "regionId": "normal-master", "access": "explicit-range", "reason": "Copy at most 0x3000 bytes from the immutable master Normal input." },
-    { "regionId": "mp-master", "access": "explicit-range", "reason": "Copy at most 0x2400 bytes from the immutable master MP input." },
-    { "regionId": "vn-master", "access": "explicit-range", "reason": "Copy at most 0x1660 bytes from the immutable shared VN input." },
-    { "regionId": "header-copy-master", "access": "hidden", "reason": "Only the declared processor may refresh the master header copy." },
-    { "regionId": "right-window-prefix", "access": "hidden", "reason": "Only the declared processor may copy the approved right-chip source window." },
-    { "regionId": "nf-slave-r", "access": "explicit-range", "reason": "Copy the approved 0xFD0-byte right NF slice from shared NF source offset 0xFD0." },
-    { "regionId": "normal-slave-r", "access": "explicit-range", "reason": "Copy at most 0x3000 bytes from the immutable right Normal input." },
-    { "regionId": "mp-slave-r", "access": "explicit-range", "reason": "Copy at most 0x2400 bytes from the immutable right MP input." },
-    { "regionId": "vn-slave-r", "access": "explicit-range", "reason": "Copy at most 0x1660 bytes from the immutable shared VN input." },
-    { "regionId": "header-copy-slave-r", "access": "hidden", "reason": "Only the declared processor may refresh the right-chip header copy." },
-    { "regionId": "right-window-tail", "access": "hidden", "reason": "Only the declared processor may copy the approved right-chip source window." },
-    { "regionId": "final-header-backup", "access": "hidden", "reason": "Only the declared processor may refresh the final 0x460-byte header backup." },
-    { "regionId": "fw-config-backup-copy", "access": "hidden", "reason": "Only the declared processor may copy the approved 0x800-byte FWConfig backup." }
+    { "regionId": "nf-master", "access": "explicit-range", "reason": "Copy at most 0xFD0 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "normal-master", "access": "explicit-range", "reason": "Copy at most 0x3000 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "mp-master", "access": "explicit-range", "reason": "Copy at most 0x2400 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "vn-master", "access": "explicit-range", "reason": "Copy at most 0x1660 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "header-copy-master", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the master TP header copy and its CRC words." },
+    { "regionId": "final-header-backup", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the final 0x460-byte header backup." },
+    { "regionId": "fw-config-backup-copy", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may copy the approved 0x800-byte FWConfig backup." }
   ],
   "operations": [
     {
-      "operationId": "postbuild-twochip",
+      "operationId": "postbuild-singlechip",
       "sequence": 2147483647,
       "overlapPolicy": "replace-existing",
-      "reason": "Run the exact ten-command NT51927 two-chip postbuild after every runtime CtrlRAM mapping.",
+      "reason": "Run the exact seven-command NT51917 perfect-family alias of the NT51927 Common FW 1.4.1 single-chip postbuild after every runtime CtrlRAM mapping.",
       "kind": "run-processor",
-      "processorStageId": "nt51927-fw132-twochip-combiner"
+      "processorStageId": "nt51917-fw141-single-combiner"
     }
   ],
   "validations": [],
   "processorStages": [
     {
-      "processorStageId": "nt51927-fw132-twochip-combiner",
+      "processorStageId": "nt51917-fw141-single-combiner",
       "kind": "legacy-combiner-v1",
       "toolBindingId": "legacy-combiner-1.13.0",
-      "invocationProfileId": "nfc.nt51927.ctrlram-postbuild-v1",
+      "invocationProfileId": "nfc.nt51917.ctrlram-postbuild-v1",
       "targetSpaceId": "output-image",
       "targetViewId": "processor-image",
       "authority": "transform",
@@ -178,29 +160,23 @@
         "mp-master-output",
         "vn-master-output",
         "header-copy-master-output",
-        "right-window-prefix-output",
-        "nf-slave-r-output",
-        "normal-slave-r-output",
-        "mp-slave-r-output",
-        "vn-slave-r-output",
-        "header-copy-slave-r-output",
-        "right-window-tail-output",
         "final-header-backup-output",
         "fw-config-backup-copy-output"
       ],
       "stagedSourceBindings": [],
       "stagedArtifactBindings": [],
-      "evidenceRef": "nt51927-2chip-self-20260705-expected-derived",
+      "evidenceRef": "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
       "failurePolicy": "fail-closed"
     }
   ],
   "output": {
-    "fileNameTemplate": "nt51927-ctrlram-replace.bin",
+    "fileNameTemplate": "nt51917-ctrlram-replace.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "nt51927-2chip-self-20260705-expected-derived"
+    "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
+    "ctrlram-replace-perfect-family-51917-to-51927"
   ]
 }

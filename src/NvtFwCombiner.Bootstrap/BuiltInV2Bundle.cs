@@ -12,6 +12,7 @@ internal static class BuiltInV2BundleRegistry
         new (string Directory, string ContentHash)[]
         {
             ("nt51917-nt51927-general-merge-logical-candidate", "1025069140de5ba78296af045dc477cf8164395b68b0ce82a77970eecbe05c0e"),
+            ("nt51917-ctrlram-replace-alias-candidate", "c73a22a3b2b542f3f3e628e83c07e62cc04484ed83a0c8b8e21f197e038f1e15"),
             ("nt51919-nt51929-nt51932-general-merge-logical-candidate", "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283"),
             ("nt51920-ctrlram-replace-candidate", "d41c4008d9a42f28294bfb3a8a5114245fb014fa5d2e7ee25d16c786451f512f"),
             ("nt51920-general-merge-logical-candidate", "d2f87973576f54b80439f30ef1790f47df2994a6811673f0ceb8ecd5cacdbdc7"),
@@ -20,7 +21,7 @@ internal static class BuiltInV2BundleRegistry
             ("nt51923-ctrlram-replace-candidate", "edea10a83bdd802670c3e8694459a4f447d1296f4c410c35698a1a7fa68bd504"),
             ("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96"),
             ("nt51926-ctrlram-replace-candidate", "795aaa0fb75593dcdb9e67abdd6c8912223e72ecc038428b3aa3554681f31a47"),
-            ("nt51927-ctrlram-replace-candidate", "91306b10813ddcbb2851da4ef21e6aa5086c07a2f3ea6d6829b99570902eaa81"),
+            ("nt51927-ctrlram-replace-candidate", "948e1bdba09098b48fae14810dca31e29d3a4f3fa7974f3eddb39d8df879e5f8"),
             ("nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1"),
             ("nt51928-general-merge-logical-candidate", "9cdfbe52fcf58071ab7ea9648844dc3d0dd5363e6b41db02454709bf921512a6"),
             ("nt51928-standard-merge", "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af"),

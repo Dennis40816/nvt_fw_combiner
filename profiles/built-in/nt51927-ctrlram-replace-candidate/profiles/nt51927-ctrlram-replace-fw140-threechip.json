@@ -26,8 +26,8 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51927-ctrlram-replace",
-    "familyVersion": "0.3.0",
-    "familyContentHash": "234ceffe1fefba40d7df6eed8a2b0831e46bf263f0812e3426077529a06ab893",
+    "familyVersion": "0.4.0",
+    "familyContentHash": "63b91660fbeaf68f70d210141d41f61f878430fc3b9ba80bc342c96b531bcf52",
     "mapIds": [ "nt51927-ctrlram-fw140-threechip-full-flash" ],
     "requiredRegionIds": [
       "flash-image",

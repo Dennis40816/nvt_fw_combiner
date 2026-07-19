@@ -63,7 +63,13 @@ public static partial class WorkbenchCompositionService
                 compiledComposition,
                 CompositionAddressSpaceIds.ReferenceBase,
                 context.BasePath),
-            CreateDpReplacementBinding(compiledComposition, context.SlotPaths),
+            context.SlotPaths.TryGetValue(WorkbenchSlotIds.ReplaceDp, out string? path) &&
+                !string.IsNullOrWhiteSpace(path)
+                ? CompiledCompositionInputBindingFactory.Create(
+                    compiledComposition,
+                    CompositionAddressSpaceIds.DpReplacement,
+                    Path.GetFullPath(path))
+                : throw new InvalidOperationException($"Input slot '{WorkbenchSlotIds.ReplaceDp}' is required."),
         ];
         return await RunCompiledCompositionAsync(
             DpReplaceRunIdPrefix,
@@ -76,18 +82,6 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: context.Selection,
             overwrite: true,
             cancellationToken).ConfigureAwait(false);
-    }
-
-    private static InputArtifactBinding CreateDpReplacementBinding(
-        CompiledComposition compiledComposition,
-        IReadOnlyDictionary<string, string> slotPaths)
-    {
-        return slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceDp, out string? path) && !string.IsNullOrWhiteSpace(path)
-            ? CompiledCompositionInputBindingFactory.Create(
-                compiledComposition,
-                CompositionAddressSpaceIds.DpReplacement,
-                Path.GetFullPath(path))
-            : throw new InvalidOperationException($"Input slot '{WorkbenchSlotIds.ReplaceDp}' is required.");
     }
 
     private static List<WorkbenchReplaceInputSlot> GetDpReplaceInputSlots(string icId)

@@ -171,7 +171,7 @@ public sealed partial class RepositoryBoundaryTests
             return value.Length == 64 && value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
         }
 
-        Assert.Equal(26, bundle.Split('"').Count(IsSha256Literal));
+        Assert.Equal(27, bundle.Split('"').Count(IsSha256Literal));
         Assert.Equal(29, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
         Assert.Equal(
             1,

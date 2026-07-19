@@ -65,6 +65,12 @@ public static partial class WorkbenchCompositionService
             firmware?.ChipNumber,
             firmware?.ProjectId) switch
         {
+            ("NT51917", "nfc.nt51917.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.4.1", 1, 0x5709) =>
+                ("nt51917-ctrlram-replace-fw141-single", "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"),
+            ("NT51917", "nfc.nt51917.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.TwoChip, IcNumberInputMode.NumericSelector, "1.3.2", 2, 0x1615) =>
+                ("nt51917-ctrlram-replace-fw132-twochip", "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae"),
+            ("NT51917", "nfc.nt51917.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.ThreeChip, IcNumberInputMode.NumericSelector, "1.4.0", 3, 0x570A) =>
+                ("nt51917-ctrlram-replace-fw140-threechip", "bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c"),
             ("NT51920", "nfc.nt51920.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "1.2.0", 1, 0xF401) =>
                 ("nt51920-ctrlram-replace-fw120-single", "b9965def2946fd6e28165af5929ede885e1d0e3c0ab29266a737ac458225920d"),
             ("NT51920", "nfc.nt51920.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.2.0", 2, 0x1403) =>

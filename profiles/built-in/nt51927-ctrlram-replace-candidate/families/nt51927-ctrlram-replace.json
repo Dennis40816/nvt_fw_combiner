@@ -1,8 +1,12 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51927-ctrlram-replace",
-  "familyVersion": "0.3.0",
+  "familyVersion": "0.4.0",
   "members": [
+    {
+      "memberId": "NT51917",
+      "displayName": "NT51917"
+    },
     {
       "memberId": "NT51927",
       "displayName": "NT51927"
@@ -904,7 +908,7 @@
       "mapId": "nt51927-ctrlram-fw132-twochip-full-flash",
       "addressSpaceId": "flash",
       "applicability": {
-        "memberIds": [ "NT51927" ],
+        "memberIds": [ "NT51917", "NT51927" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "exact-count", "chipCount": 2 },
         "capacityBytes": 262144,
@@ -945,14 +949,15 @@
       "regionSetIds": [ "nt51927-ctrlram-fw132-twochip-full-flash" ],
       "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
       "evidenceRefs": [
-        "nt51927-2chip-self-20260705-expected-derived"
+        "nt51927-2chip-self-20260705-expected-derived",
+        "ctrlram-replace-perfect-family-51917-to-51927"
       ]
     },
     {
       "mapId": "nt51927-ctrlram-fw140-threechip-full-flash",
       "addressSpaceId": "flash",
       "applicability": {
-        "memberIds": [ "NT51927" ],
+        "memberIds": [ "NT51917", "NT51927" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "exact-count", "chipCount": 3 },
         "capacityBytes": 262144,
@@ -993,14 +998,15 @@
       "regionSetIds": [ "nt51927-ctrlram-fw140-threechip-full-flash" ],
       "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
       "evidenceRefs": [
-        "nt51927-3chip-self-20260705-expected-derived"
+        "nt51927-3chip-self-20260705-expected-derived",
+        "ctrlram-replace-perfect-family-51917-to-51927"
       ]
     },
     {
       "mapId": "nt51927-ctrlram-fw141-single-full-flash",
       "addressSpaceId": "flash",
       "applicability": {
-        "memberIds": [ "NT51927" ],
+        "memberIds": [ "NT51917", "NT51927" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "single" },
         "capacityBytes": 262144,
@@ -1041,7 +1047,8 @@
       "regionSetIds": [ "nt51927-ctrlram-fw141-single-full-flash" ],
       "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
       "evidenceRefs": [
-        "nt51927-fw141-single-auto-prj-529-owner-golden-20260717"
+        "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
+        "ctrlram-replace-perfect-family-51917-to-51927"
       ]
     }
   ],
@@ -1049,6 +1056,7 @@
   "evidenceRefs": [
     "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
     "nt51927-2chip-self-20260705-expected-derived",
-    "nt51927-3chip-self-20260705-expected-derived"
+    "nt51927-3chip-self-20260705-expected-derived",
+    "ctrlram-replace-perfect-family-51917-to-51927"
   ]
 }
