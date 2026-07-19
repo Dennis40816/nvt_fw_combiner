@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -9,7 +10,8 @@ public static partial class WorkbenchCompositionService
         string icId,
         string basePath,
         out LegacyCombinerPostbuildProfile? postbuildProfile,
-        out CompositionIssue? issue)
+        out CompositionIssue? issue,
+        byte[]? baseImage = null)
     {
         IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
         if (profiles.Count == 0)
@@ -24,7 +26,10 @@ public static partial class WorkbenchCompositionService
 
         string? commonFwVersion = null;
         if (profiles.Any(static profile => profile.CommonFwVersionRule is not null) &&
-            !TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion))
+            !(baseImage is null
+                ? TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion)
+                : TryReadFirmwareConfigBackupMetadata(icId, baseImage, out FirmwareConfigMetadata metadata) && metadata.IsFirmwareVersionBarValid &&
+                    (commonFwVersion = metadata.CommonFwVersion) is not null))
         {
             postbuildProfile = null;
             issue = new CompositionIssue(

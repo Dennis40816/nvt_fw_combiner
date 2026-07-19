@@ -23,6 +23,7 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpCtrlRamPostbuildSource> sources = [];
 
         string? basePath = null;
+        byte[]? baseBytes = null;
         long baseLength = 0;
         if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? suppliedBasePath) ||
             string.IsNullOrWhiteSpace(suppliedBasePath))
@@ -35,7 +36,8 @@ public static partial class WorkbenchCompositionService
         else
         {
             basePath = Path.GetFullPath(suppliedBasePath);
-            if (!File.Exists(basePath))
+            baseBytes = TryReadFirmwareImage(basePath);
+            if (baseBytes is null)
             {
                 validationIssues.Add(new CompositionIssue(
                     WorkbenchIssueCodes.InputArtifactReadFailed,
@@ -44,7 +46,7 @@ public static partial class WorkbenchCompositionService
             }
             else
             {
-                baseLength = new FileInfo(basePath).Length;
+                baseLength = baseBytes.LongLength;
                 if (baseLength <= 0)
                 {
                     validationIssues.Add(new CompositionIssue(
@@ -57,7 +59,7 @@ public static partial class WorkbenchCompositionService
 
         if (basePath is not null && baseLength > 0)
         {
-            if (!TryGetPostbuildProfile(icId, basePath, out postbuildProfile, out CompositionIssue? postbuildIssue))
+            if (!TryGetPostbuildProfile(icId, basePath, out postbuildProfile, out CompositionIssue? postbuildIssue, baseBytes))
             {
                 validationIssues.Add(postbuildIssue!);
             }
@@ -159,8 +161,7 @@ public static partial class WorkbenchCompositionService
             }
         }
 
-        if (firmwareVersionEdit is not null && basePath is not null && commandPlan is not null &&
-            TryReadFirmwareConfigBackupMetadata(icId, basePath, out FirmwareConfigMetadata backupMetadata) &&
+        if (firmwareVersionEdit is not null && baseBytes is not null && commandPlan is not null && TryReadFirmwareConfigBackupMetadata(icId, baseBytes, out FirmwareConfigMetadata backupMetadata) &&
             !TryCreateCtrlRamFirmwareVersionWritePlan(
                 backupMetadata,
                 commandPlan,
@@ -183,7 +184,7 @@ public static partial class WorkbenchCompositionService
         return new CtrlRamReplaceRunContext(
             selection,
             basePath,
-            baseLength,
+            baseBytes,
             postbuildProfile,
             commandPlan,
             firmwareVersionWritePlan,
@@ -217,7 +218,7 @@ public static partial class WorkbenchCompositionService
     private sealed record CtrlRamReplaceRunContext(
         IcNumberSelection Selection,
         string? BasePath,
-        long BaseLength,
+        byte[]? BaseBytes,
         LegacyCombinerPostbuildProfile? PostbuildProfile,
         LegacyCombinerPostbuildCommandPlan? CommandPlan,
         FirmwareConfigVersionWritePlan? FirmwareVersionWritePlan,

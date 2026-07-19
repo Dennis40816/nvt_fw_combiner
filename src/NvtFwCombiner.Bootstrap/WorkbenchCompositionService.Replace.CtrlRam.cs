@@ -89,16 +89,17 @@ public static partial class WorkbenchCompositionService
                 outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam));
         }
 
-        if (context.ValidationIssues.Count != 0 ||
-            context.BasePath is null ||
+        if (context.ValidationIssues.Count != 0 || context.BasePath is null || context.BaseBytes is null ||
             context.PostbuildProfile is null ||
             context.CommandPlan is null)
         {
             return Blocked(context.ValidationIssues);
         }
 
+        byte[] referenceBytes = context.BaseBytes;
+        var referencePayload = new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, referenceBytes);
         WorkbenchFirmwareContextSuggestion? firmware = firmwareVersionEdit is null
-            ? TryReadFirmwareContextSuggestion(icId, context.BasePath!)
+            ? ReadFirmwareContextSuggestion(icId, referenceBytes)
             : null;
         (string? v2ProfileId, string? requiredBaseSha256) = (
             context.PostbuildProfile!.IcId,
@@ -154,14 +155,10 @@ public static partial class WorkbenchCompositionService
             _ => (null, null),
         };
         if (v2ProfileId is not null &&
-            (requiredBaseSha256 is null || StringComparer.Ordinal.Equals(
-                Sha256File(context.BasePath!), requiredBaseSha256)))
+            (requiredBaseSha256 is null || StringComparer.Ordinal.Equals(referencePayload.Sha256, requiredBaseSha256)))
         {
-            V2CompositionPlanCompileResult v2Compile = CompileCtrlRamV2(
-                context,
-                v2ProfileId,
-                new(firmware!.ChipNumber, firmware.NumberToken, TopologySelectionSource.Requested, "ic-number"),
-                out byte[] referenceBytes);
+            V2CompositionPlanCompileResult v2Compile = CompileCtrlRamV2(context, v2ProfileId,
+                new(firmware!.ChipNumber, firmware.NumberToken, TopologySelectionSource.Requested, "ic-number"), referencePayload);
             return !v2Compile.IsCompiled
                 ? Blocked(v2Compile.Issues, $"{icId.ToLowerInvariant()}-ctrlram-replace.bin")
                 : await RunCompiledCompositionAsync(

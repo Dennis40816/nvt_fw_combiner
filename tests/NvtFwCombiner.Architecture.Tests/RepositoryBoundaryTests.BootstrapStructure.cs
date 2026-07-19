@@ -252,7 +252,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("nt51951-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"runtime-route\"", diagnosticProfile, StringComparison.Ordinal);
         Assert.Contains("firmwareVersionEdit is null", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("TryReadFirmwareContextSuggestion", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("ReadFirmwareContextSuggestion(icId, referenceBytes)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("context.PostbuildProfile!.IcId", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.DoesNotContain("string? v2ProfileId = (\n            icId,", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51920\", \"nfc.nt51920.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"1.2.0\", 1, 0xF401)", ctrlRamRuntime, StringComparison.Ordinal);
@@ -282,7 +282,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("(\"NT51931\", \"nfc.nt51931.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, \"1.3.0\", 6, 0x131B)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51932\", \"nfc.nt51932.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, \"2.0.0\", 3, 0x5601)", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("Sha256File(context.BasePath!)", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("referencePayload.Sha256", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51950\", \"nfc.nt51950.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"2.0.0\", 1, 0x4A06)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e", ctrlRamRuntime, StringComparison.Ordinal);
@@ -681,19 +681,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("MapResolution", bridge, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", bridge, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Profiles", infrastructureProject, StringComparison.Ordinal);
-    }
-
-    /// <summary>Locks NT51926 runtime-reference compilation and execution to one per-run base snapshot.</summary>
-    [Fact]
-    public void CtrlRamRuntimeReferenceRouteReusesItsCompilationBaseSnapshot()
-    {
-        string v2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
-        string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
-
-        Assert.Contains("out byte[] referenceBytes", v2, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(v2, "File.ReadAllBytes(context.BasePath!)"));
-        Assert.Contains("virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)", runner, StringComparison.Ordinal);
-        Assert.Contains("[context.BasePath!] = referenceBytes", runner, StringComparison.Ordinal);
     }
 
 }

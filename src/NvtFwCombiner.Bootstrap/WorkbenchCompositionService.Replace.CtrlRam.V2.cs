@@ -12,15 +12,14 @@ public static partial class WorkbenchCompositionService
         CtrlRamReplaceRunContext context,
         string profileId,
         TopologySelection topology,
-        out byte[] referenceBytes)
+        FirmwareArtifactPayload referencePayload)
     {
-        referenceBytes = File.ReadAllBytes(context.BasePath!);
         V2RuntimeReferenceReplaceInputBinding[] bindings =
         [
             new(
                 CompositionAddressSpaceIds.ReferenceBase,
                 CompositionAddressSpaceIds.ReferenceBase,
-                context.BaseLength),
+                referencePayload.LengthBytes),
             .. context.SelectedSources.Select(source => new V2RuntimeReferenceReplaceInputBinding(
                 CtrlRamSlotId(source.SourceId),
                 "ctrlram-source",
@@ -65,9 +64,7 @@ public static partial class WorkbenchCompositionService
             context.PostbuildProfile.IcId,
             ExperienceIds.CtrlRamReplace,
             topology,
-            [new FirmwareArtifactPayload(
-                CompositionAddressSpaceIds.ReferenceBase,
-                referenceBytes)],
+            [referencePayload],
             new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings));
     }
 }
