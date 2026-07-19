@@ -59,16 +59,16 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertEqual(2, snapshot.production_nonblank)
         self.assertEqual([], self.validate(self.limits(production=2)))
 
-    def test_rejects_growth_and_requires_a_lower_ratchet_after_reduction(self) -> None:
+    def test_rejects_production_growth_above_ceiling_and_accepts_reduction(
+        self,
+    ) -> None:
         self.write("src/Product/Program.cs", "one\ntwo\n")
 
         growth = self.validate(self.limits(production=1))
         reduction = self.validate(self.limits(production=3))
 
-        self.assertTrue(any("grew: 2 > ratchet 1" in error for error in growth))
-        self.assertTrue(
-            any("lower the ratchet from 3 to 2" in error for error in reduction)
-        )
+        self.assertTrue(any("exceeded maximum: 2 > 1" in error for error in growth))
+        self.assertEqual([], reduction)
 
     def test_counts_only_redundant_exact_json_copies(self) -> None:
         content = '{\n  "schemaVersion": "1.0"\n}\n'
