@@ -240,8 +240,9 @@ public sealed partial class LegacyCombinerPostbuildProcessor
                     block.BlockId);
             }
 
-            byte[] stagedBytes = await File.ReadAllBytesAsync(artifactPath, cancellationToken).ConfigureAwait(false);
-            if (!stagedBytes.AsSpan().SequenceEqual(artifact.Bytes.Span))
+            if (!await StagedArtifactFileVerifier
+                    .MatchesAsync(artifactPath, artifact.Bytes, cancellationToken)
+                    .ConfigureAwait(false))
             {
                 return new CompositionIssue(
                     "external-tool.staged-artifact.modified",
