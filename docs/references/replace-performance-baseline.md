@@ -390,6 +390,17 @@ English projection and immediately relocalizes it a second time. Normal
 post-construction language changes remain active. This is a deterministic
 single-initialization contract; packaged first-frame evidence remains open.
 
+Commit `69a59441` bounds the remaining intentional synchronous preference read
+before ViewModel construction. `ShellPreferenceFileStore` rejects a local
+preference file above 64 KiB from metadata before calling `ReadAllText`; the
+same valid UTF-8 JSON loads at exactly 65,536 bytes and falls back to
+System/English/reduced-motion off at 65,537 bytes. Normal version-1 preference
+files, async atomic save, cancellation, and post-construction switching are
+unchanged. Focused preferences pass `4/4`, full UI `229/229`, Architecture
+`94/94`, and independent R1 UI/architecture review reports no P0/P1. This is a
+corrupt or abnormal local-state bound, not a packaged startup-latency claim;
+final preference interaction/restoration remains in the Windows manual gate.
+
 ## Firmware evidence scope
 
 The synthetic counter cases are process-contract evidence, not firmware
