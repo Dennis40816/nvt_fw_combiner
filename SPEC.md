@@ -345,6 +345,7 @@ The current Python worker is a constrained pure CRC calculation prototype. It is
 - Human authoring：第一階段直接編輯 JSON；後續可加入 Excel importer/compiler。
 - Automated IC intake（規劃於 0.9.4）：輸入必須是宣告完整的 IC intake manifest 與其檔案；輸出只能是 candidate bundle、materialization/validation report 與待補 evidence 清單。它不得成為 runtime source of truth，不得掃描未宣告的目錄、網路或使用者 BIN，也不得直接變更已核准 profile、support catalog 或 promotion。
 - General Merge / General Replace：UI 或 CLI 產生 typed mapping overlay，可保存成 versioned saved rule/profile fragment；不得產生 script、shell command 或 executable path。Saved-rule validation and General Merge CLI consumption must still compile back to normal explicit mappings.
+- Post-1.0 guided IC intake and project-plan authoring follow the proposal in [`docs/specs/post-1.0-guided-ic-intake-and-project-plans.md`](docs/specs/post-1.0-guided-ic-intake-and-project-plans.md). Guided intake remains candidate-only. A custom plan may run without golden evidence only in General Merge/Replace after structural and firmware-safety validation; golden/owner/release evidence remains mandatory before promotion into a supported built-in workflow.
 - Processor/tool recipe：JSON/typed declaration，與 memory mapping 分離但由 profile 明確引用。
 - Reports：JSON；UI 顯示由 typed report 轉換。
 - Spec/ADR/guide：Markdown。
