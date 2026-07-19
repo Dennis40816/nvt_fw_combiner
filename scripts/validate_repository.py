@@ -17,10 +17,10 @@ from urllib.parse import unquote
 from ab_merge_fixture_validation import validate_ab_merge_golden_fixtures
 from canonical_golden_validation import (
     validate_canonical_golden,
-    validate_diagnostic_golden_separation,
     validate_standard_merge_release_allowlist,
 )
 from code_size_policy import validate_code_size_policy
+from diagnostic_golden_validation import validate_diagnostic_golden_separation
 from external_tool_policy import (
     ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS,
     APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS,
@@ -40,7 +40,8 @@ REQUIRED_FILES = {
     "scripts/bootstrap.ps1", "scripts/bootstrap.sh", "scripts/install-dotnet.ps1",
     "scripts/install-dotnet.sh", "scripts/package.ps1", "scripts/polytail_check.py",
     "scripts/publish-github.ps1", "scripts/publish-github.sh", "scripts/validate_repository.py",
-    "scripts/canonical_golden_validation.py", "scripts/code_size_policy.py", "scripts/external_tool_policy.py",
+    "scripts/canonical_golden_validation.py", "scripts/code_size_policy.py",
+    "scripts/diagnostic_golden_validation.py", "scripts/external_tool_policy.py",
     "scripts/repository_contract_validation.py",
     "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py", "external-tools/README.md",
     "external-tools/catalog.json",

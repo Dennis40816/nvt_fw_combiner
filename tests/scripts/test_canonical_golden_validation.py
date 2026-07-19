@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -160,6 +161,25 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.case_manifest["artifacts"] = [self.case_manifest["artifacts"][0]]
         self.rewrite_case()
 
+    def add_diagnostic_legacy_artifact(self) -> Path:
+        path = self.root / (
+            "testdata/golden/ctrlram-replace/fixtures/20260718/"
+            "NT51927/historical.bin"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = b"historical diagnostic"
+        path.write_bytes(payload)
+        self.case_manifest["diagnosticLegacyPaths"] = [
+            {
+                "path": path.relative_to(self.root).as_posix(),
+                "size": len(payload),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+                "classification": "historical-non-same-build-flashcode",
+            }
+        ]
+        self.rewrite_case()
+        return path
+
     def add_alias(
         self,
         source_case_id: str,
@@ -203,6 +223,74 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
     def test_accepts_hash_pinned_direct_case(self) -> None:
         self.assertEqual([], self.validate())
+
+    def test_accepts_closed_hash_pinned_diagnostic_legacy_artifact(self) -> None:
+        self.add_diagnostic_legacy_artifact()
+
+        self.assertEqual([], self.validate())
+
+    def test_rejects_diagnostic_legacy_artifact_hash_drift(self) -> None:
+        path = self.add_diagnostic_legacy_artifact()
+        path.write_bytes(b"historical diagnostic drift")
+
+        self.assertTrue(
+            any(
+                "diagnostic legacy artifact SHA-256 mismatch" in error
+                for error in self.validate()
+            )
+        )
+
+    def test_rejects_unlisted_diagnostic_legacy_artifact(self) -> None:
+        path = self.add_diagnostic_legacy_artifact()
+        (path.parent / "extra.bin").write_bytes(b"extra")
+
+        self.assertTrue(
+            any(
+                "diagnostic legacy root differs from its closed inventory" in error
+                for error in self.validate()
+            )
+        )
+
+    def test_rejects_symlinked_diagnostic_legacy_root_ancestor(self) -> None:
+        fixtures = self.root / "testdata/golden/ctrlram-replace/fixtures"
+        fixtures.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory() as external_directory:
+            try:
+                fixtures.symlink_to(external_directory, target_is_directory=True)
+            except OSError as error:
+                self.skipTest(f"directory symlinks are unavailable: {error}")
+            self.add_diagnostic_legacy_artifact()
+
+            errors = self.validate()
+
+        self.assertTrue(
+            any("diagnostic legacy root escaped the repository" in error for error in errors)
+        )
+
+    @unittest.skipUnless(
+        os.name == "nt" and hasattr(Path, "is_junction"),
+        "Windows junctions are required",
+    )
+    def test_rejects_empty_junction_below_diagnostic_legacy_root(self) -> None:
+        path = self.add_diagnostic_legacy_artifact()
+        junction = path.parent / "empty-junction"
+        with tempfile.TemporaryDirectory() as external_directory:
+            completed = subprocess.run(
+                ["cmd.exe", "/d", "/c", "mklink", "/J", str(junction), external_directory],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            if completed.returncode != 0:
+                self.skipTest(f"cannot create directory junction: {completed.stderr}")
+            try:
+                errors = self.validate()
+            finally:
+                junction.rmdir()
+
+        self.assertTrue(
+            any("diagnostic legacy root cannot contain symlinks" in error for error in errors)
+        )
 
     def test_accepts_hash_pinned_direct_input_evidence_without_expected(self) -> None:
         self.convert_direct_golden_to_input_evidence()

@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.canonical_golden_validation import (
+from scripts.diagnostic_golden_validation import (
     validate_diagnostic_golden_separation,
 )
 
