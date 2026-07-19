@@ -93,8 +93,7 @@ public static partial class WorkbenchCompositionService
     {
         WorkbenchOutputNameCandidateKind sourceKind = candidates.Any(static candidate => candidate.Kind == WorkbenchOutputNameCandidateKind.Dp)
             ? WorkbenchOutputNameCandidateKind.Dp : WorkbenchOutputNameCandidateKind.Base;
-        foreach (WorkbenchOutputNameCandidate candidate in candidates.Where(candidate =>
-                     candidate.Kind == sourceKind))
+        foreach (WorkbenchOutputNameCandidate candidate in candidates.Where(candidate => candidate.Kind == sourceKind))
         {
             if (string.IsNullOrWhiteSpace(candidate.Path))
             {
@@ -116,8 +115,7 @@ public static partial class WorkbenchCompositionService
         string icId,
         IReadOnlyList<WorkbenchOutputNameCandidate> candidates)
     {
-        foreach (WorkbenchOutputNameCandidate candidate in candidates.OrderBy(static candidate =>
-                     OutputNameCandidateOrder(candidate.Kind)))
+        foreach (WorkbenchOutputNameCandidate candidate in candidates.OrderBy(static candidate => OutputNameCandidateOrder(candidate.Kind)))
         {
             if (string.IsNullOrWhiteSpace(candidate.Path))
             {
