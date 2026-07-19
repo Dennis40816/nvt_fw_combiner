@@ -317,3 +317,12 @@ normalization. Intermediate full-image values are not parity evidence. No final
 performance or release claim is made until the same-source B/C record,
 Polytail, architecture/UI review, required golden and firmware-owner gates, and
 canonical verification are complete.
+
+The same `0.9.9.5` input gate owns external-processor discovery lifetime.
+Current source calls `ExternalProcessorFactory.CreateOrNull()` per applicable
+run, including parent-root search, recursive manifest enumeration/parsing, and
+registry/router construction. Node B/C must therefore add discovery,
+manifest-read, and registry-build counts. The optimized lifetime may be bound
+only to the reviewed tool-layout identity; it must preserve pinned hashes,
+missing/invalid-manifest behavior, process isolation, and explicit
+restart/refresh semantics without embedding the provisional physical path.
