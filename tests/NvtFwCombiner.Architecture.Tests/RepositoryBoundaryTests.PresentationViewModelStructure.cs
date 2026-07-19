@@ -299,6 +299,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("JsonSerializer.SerializeAsync", helper, StringComparison.Ordinal);
         Assert.Contains("File.Replace", helper, StringComparison.Ordinal);
         Assert.Contains("UnauthorizedAccessException", helper, StringComparison.Ordinal);
+        Assert.Contains("internal const long MaximumPreferencesFileBytes = 64L * 1024;", stores, StringComparison.Ordinal);
+        Assert.Contains("MaximumPreferencesFileBytes);", stores, StringComparison.Ordinal);
         Assert.Contains("_reportHistoryPersistence.Queue", mainWindow, StringComparison.Ordinal);
         Assert.Contains("_shellPreferencePersistence.Queue", mainWindow, StringComparison.Ordinal);
         Assert.DoesNotContain("ShellPreferenceFileStore.LoadInto(viewModel)", mainWindow, StringComparison.Ordinal);
