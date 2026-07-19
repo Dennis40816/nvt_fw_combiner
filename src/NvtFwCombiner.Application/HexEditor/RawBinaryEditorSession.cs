@@ -403,7 +403,8 @@ public sealed partial class RawBinaryEditorSession
 
     private void Apply(EditAction action)
     {
-        int previousDifferenceCount = action is ReplaceAction beforeReplace
+        bool hasComparableLength = _working!.Count == _original!.Length;
+        int previousDifferenceCount = action is ReplaceAction beforeReplace && hasComparableLength
             ? CountDifferences(beforeReplace.Start, beforeReplace.Bytes.Length)
             : 0;
         switch (action)
@@ -423,16 +424,18 @@ public sealed partial class RawBinaryEditorSession
                 throw new InvalidOperationException("Unknown raw binary editor action.");
         }
 
-        if (action is ReplaceAction afterReplace)
+        if (action is ReplaceAction afterReplace && hasComparableLength)
         {
             _differenceCount += CountDifferences(afterReplace.Start, afterReplace.Bytes.Length) - previousDifferenceCount;
         }
         else
         {
-            _differenceCount = CountDifferences(0, _working!.Count);
+            _differenceCount = _working!.Count != _original!.Length
+                ? 0
+                : CountDifferences(0, _working.Count);
         }
 
-        _hasUnsavedChanges = _working!.Count != _original!.Length || _differenceCount > 0;
+        _hasUnsavedChanges = _working.Count != _original.Length || _differenceCount > 0;
     }
 
     private void Track(HistoryEntry entry)
