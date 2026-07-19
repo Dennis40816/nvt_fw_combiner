@@ -150,16 +150,22 @@ public sealed class CompositionRunProgressViewModelTests
             "C:\\output\\firmware.bin");
         progress.MarkReportReady(reportPublished: true);
 
+        CompositionRunPhase terminalPhase = Assert.IsType<CompositionRunPhase>(progress.CurrentPhase);
+        IReadOnlyList<(CompositionRunPhase Phase, CompositionRunProgressStepState State)> terminalSteps =
+        [.. progress.Steps.Select(static step => (step.Phase, step.State))];
+
         bool accepted = progress.TryApply(
             "late-build-delivery",
-            CompositionRunPhase.PreparingReport,
+            CompositionRunPhase.RunningExternalProcessor,
             FullBuildPhases,
-            FullBuildPhases[..^1]);
+            FullBuildPhases[..3]);
 
         Assert.True(accepted);
         Assert.Equal(CompositionRunDeliveryState.ReportReady, progress.DeliveryState);
         Assert.Equal("C:\\output\\firmware.bin", progress.CommittedOutputId);
         Assert.Equal("Report ready", progress.CurrentStepLabel);
+        Assert.Equal(terminalPhase, progress.CurrentPhase);
+        Assert.Equal(terminalSteps, progress.Steps.Select(static step => (step.Phase, step.State)));
     }
 
     /// <summary>Reduced motion changes animation policy without changing truthful or accessible state.</summary>

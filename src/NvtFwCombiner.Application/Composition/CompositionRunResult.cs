@@ -21,7 +21,8 @@ public sealed class CompositionRunResult
             previewToken,
             inspectionOutputSpaceId: null,
             inspectionReferenceSpaceId: null,
-            inspectionReferenceBytes: null)
+            inspectionReferenceBytes: null,
+            inspectionOutputBytes: null)
     {
     }
 
@@ -33,20 +34,17 @@ public sealed class CompositionRunResult
         string? previewToken,
         string? inspectionOutputSpaceId,
         string? inspectionReferenceSpaceId,
-        byte[]? inspectionReferenceBytes)
+        byte[]? inspectionReferenceBytes,
+        ReadOnlyMemory<byte>? inspectionOutputBytes)
     {
         ArgumentNullException.ThrowIfNull(report);
         bool hasInspection = inspectionReferenceBytes is not null;
         if ((inspectionOutputSpaceId is not null) != hasInspection ||
-            (inspectionReferenceSpaceId is not null) != hasInspection)
+            (inspectionReferenceSpaceId is not null) != hasInspection ||
+            inspectionOutputBytes.HasValue != hasInspection)
         {
             throw new ArgumentException(
-                "Replace inspection requires output/reference space ids and reference bytes together.");
-        }
-
-        if (status != CompositionExecutionStatus.Succeeded && inspectionReferenceBytes is not null)
-        {
-            throw new ArgumentException("Only a successful Replace result may carry inspection bytes.");
+                "Replace inspection requires output/reference space ids and before/after bytes together.");
         }
 
         Status = status;
@@ -61,7 +59,7 @@ public sealed class CompositionRunResult
                 inspectionReferenceSpaceId!,
                 report.Output.Sha256,
                 referenceBytes,
-                OutputBytes)
+                inspectionOutputBytes!.Value)
             : null;
     }
 
@@ -72,7 +70,8 @@ public sealed class CompositionRunResult
     public ReadOnlyMemory<byte> OutputBytes { get; }
 
     /// <summary>
-    /// In-memory reference/output bytes for successful Replace inspection, or <see langword="null"/> when unavailable.
+    /// In-memory reference/output bytes when Replace execution produced a complete image, including
+    /// an image later rejected by publication gates, or <see langword="null"/> when unavailable.
     /// </summary>
     public CompositionRunInspectionSnapshot? InspectionSnapshot { get; }
 

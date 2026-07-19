@@ -231,6 +231,11 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
             throw new InvalidOperationException("Applicable composition progress phases changed within one run.");
         }
 
+        if (DeliveryState == CompositionRunDeliveryState.ReportReady)
+        {
+            return true;
+        }
+
         CurrentPhase = currentPhase;
         CommittedOutputId = DeliveryState == CompositionRunDeliveryState.ReportReady
             ? CommittedOutputId ?? committedOutputId

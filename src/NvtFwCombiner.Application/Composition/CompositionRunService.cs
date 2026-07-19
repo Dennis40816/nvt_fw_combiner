@@ -292,7 +292,7 @@ public sealed partial class CompositionRunService
 
         (string? inspectionOutputSpaceId, string? inspectionReferenceSpaceId, byte[]? inspectionReferenceBytes) = GetInspectionReference(
             request,
-            runStatus,
+            execution.Status,
             boundInputs.InputBytes,
             execution.OutputBytes.Length);
         return new CompositionRunResult(
@@ -303,6 +303,9 @@ public sealed partial class CompositionRunService
             commitOutput ? null : previewToken,
             inspectionOutputSpaceId,
             inspectionReferenceSpaceId,
-            inspectionReferenceBytes);
+            inspectionReferenceBytes,
+            inspectionReferenceBytes is null
+                ? default(ReadOnlyMemory<byte>?)
+                : execution.OutputBytes);
     }
 }

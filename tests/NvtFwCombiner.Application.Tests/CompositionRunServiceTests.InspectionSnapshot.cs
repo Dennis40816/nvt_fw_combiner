@@ -45,9 +45,9 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal([0x10, 0x20, 0x30, 0x40], snapshot.ReferenceBytes.ToArray());
     }
 
-    /// <summary>Verifies Merge and failed Replace runs do not claim a complete before/after inspection.</summary>
+    /// <summary>Verifies Merge and Replace executions without an output do not claim complete inspection bytes.</summary>
     [Fact]
-    public async Task InspectionSnapshotIsAbsentOutsideSuccessfulReplace()
+    public async Task InspectionSnapshotIsAbsentWithoutCompletedReplaceExecution()
     {
         CompositionRunService mergeService = CreateService(out _);
         CompositionRunResult merge = await mergeService.PreviewAsync(CreateRequest(), CancellationToken.None);
@@ -65,9 +65,9 @@ public sealed partial class CompositionRunServiceTests
         Assert.Null(failedReplace.InspectionSnapshot);
     }
 
-    /// <summary>Verifies successful Replace byte execution cannot expose inspection after publication is rejected.</summary>
+    /// <summary>Verifies rejected publication retains complete review bytes without exposing a publishable output.</summary>
     [Fact]
-    public async Task InspectionSnapshotIsAbsentWhenSuccessfulReplaceExecutionFailsPublication()
+    public async Task InspectionSnapshotSurvivesWhenSuccessfulReplaceExecutionFailsPublication()
     {
         var writer = new FakeOutputWriter();
         var service = new CompositionRunService(
@@ -86,7 +86,11 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         Assert.False(writer.WasCalled);
         Assert.True(result.OutputBytes.IsEmpty);
-        Assert.Null(result.InspectionSnapshot);
+        CompositionRunInspectionSnapshot inspection = Assert.IsType<CompositionRunInspectionSnapshot>(
+            result.InspectionSnapshot);
+        Assert.Equal([0x10, 0x20, 0x30, 0x40], inspection.ReferenceBytes.ToArray());
+        Assert.Equal([0x10, 0x99, 0x30, 0x40], inspection.OutputBytes.ToArray());
+        Assert.Equal(result.Report.Output.Sha256, inspection.OutputSha256);
         Assert.Contains(result.Report.Issues, issue => issue.Code == "build.preview-token.mismatch");
     }
 }
