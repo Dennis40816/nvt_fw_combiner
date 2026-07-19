@@ -15,7 +15,12 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-snapshot");
         string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)'A', LargeDocumentLength)]);
-        var session = new WorkbenchRawBinaryEditorSession();
+        int searchCallCount = 0;
+        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        {
+            _ = Interlocked.Increment(ref searchCallCount);
+            return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
+        });
         WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
@@ -39,11 +44,183 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
 
         Assert.Equal(RawBinaryEditorIssueCode.AsciiTextNotFound, first.Issue?.Code);
         Assert.Equal(RawBinaryEditorIssueCode.AsciiTextNotFound, repeated.Issue?.Code);
+        Assert.Equal(1, Volatile.Read(ref searchCallCount));
         Assert.Equal(1, session.AsciiSearchSnapshotCaptureCount);
         Assert.True(firstInvocationAllocation >= LargeDocumentLength);
         Assert.True(
             repeatedInvocationAllocation < LargeDocumentLength / 4,
             $"Repeated search synchronously allocated {repeatedInvocationAllocation} bytes before dispatch.");
+    }
+
+    /// <summary>Verifies Search/Next reuses the retained index instead of rescanning an unchanged document.</summary>
+    [Fact]
+    public async Task RepeatedSearchWithinRetainedIndexReusesCompletedResult()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-result");
+        string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)'A', LargeDocumentLength)]);
+        int searchCallCount = 0;
+        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        {
+            _ = Interlocked.Increment(ref searchCallCount);
+            return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
+        });
+        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+            sourcePath,
+            TestContext.Current.CancellationToken);
+        Assert.True(load.Succeeded, load.ErrorMessage);
+
+        RawBinaryEditorSearchResult first = await session.FindAsciiAsync(
+            "A",
+            0,
+            TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult next = await session.FindAsciiAsync(
+            "A",
+            1,
+            TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult wrapped = await session.FindAsciiAsync(
+            "A",
+            LargeDocumentLength,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, Volatile.Read(ref searchCallCount));
+        Assert.Same(first.Matches, next.Matches);
+        Assert.Same(first.Matches, wrapped.Matches);
+        Assert.Equal(1, next.MatchIndex);
+        Assert.Equal(1, next.Address);
+        Assert.False(next.Wrapped);
+        Assert.Equal(0, wrapped.MatchIndex);
+        Assert.Equal(0, wrapped.Address);
+        Assert.True(wrapped.Wrapped);
+        Assert.Equal(LargeDocumentLength, next.TotalMatchCount);
+        Assert.True(next.IsTruncated);
+    }
+
+    /// <summary>Uses the exact ordinal query as part of the completed-result cache identity.</summary>
+    [Fact]
+    public async Task DifferentQueryRunsAnAuthoritativeSearch()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-query-key");
+        string sourcePath = workspace.Write("source.bin", "ABAB"u8.ToArray());
+        int searchCallCount = 0;
+        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        {
+            _ = Interlocked.Increment(ref searchCallCount);
+            return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
+        });
+        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+            sourcePath,
+            TestContext.Current.CancellationToken);
+        Assert.True(load.Succeeded, load.ErrorMessage);
+
+        RawBinaryEditorSearchResult first = await session.FindAsciiAsync(
+            "A",
+            0,
+            TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult different = await session.FindAsciiAsync(
+            "B",
+            0,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, Volatile.Read(ref searchCallCount));
+        Assert.Equal(0, first.Address);
+        Assert.Equal(1, different.Address);
+    }
+
+    /// <summary>Applies the same retained-result reuse to the synchronous search entry point.</summary>
+    [Fact]
+    public async Task SynchronousSearchReusesCompletedResult()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-sync-result");
+        string sourcePath = workspace.Write("source.bin", "AAAA"u8.ToArray());
+        int searchCallCount = 0;
+        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        {
+            _ = Interlocked.Increment(ref searchCallCount);
+            return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
+        });
+        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+            sourcePath,
+            TestContext.Current.CancellationToken);
+        Assert.True(load.Succeeded, load.ErrorMessage);
+
+        RawBinaryEditorSearchResult first = session.FindAscii("A", 0);
+        RawBinaryEditorSearchResult next = session.FindAscii("A", 1);
+
+        Assert.Equal(1, Volatile.Read(ref searchCallCount));
+        Assert.Equal(0, first.Address);
+        Assert.Equal(1, next.Address);
+        Assert.Same(first.Matches, next.Matches);
+    }
+
+    /// <summary>Prevents callers from mutating the retained address index shared by later searches.</summary>
+    [Fact]
+    public async Task CompletedResultCacheExposesAnImmutableMatchIndex()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-immutable-result");
+        string sourcePath = workspace.Write("source.bin", "AAAA"u8.ToArray());
+        int searchCallCount = 0;
+        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        {
+            _ = Interlocked.Increment(ref searchCallCount);
+            return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
+        });
+        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+            sourcePath,
+            TestContext.Current.CancellationToken);
+        Assert.True(load.Succeeded, load.ErrorMessage);
+
+        RawBinaryEditorSearchResult first = await session.FindAsciiAsync(
+            "A",
+            0,
+            TestContext.Current.CancellationToken);
+        IList<long>? exposed = first.Matches as IList<long>;
+        Assert.NotNull(exposed);
+
+        _ = Assert.Throws<NotSupportedException>(() => exposed[0] = 99);
+        RawBinaryEditorSearchResult next = await session.FindAsciiAsync(
+            "A",
+            1,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, Volatile.Read(ref searchCallCount));
+        Assert.Equal(0, first.Matches[0]);
+        Assert.Equal(1, next.Address);
+        Assert.Same(first.Matches, next.Matches);
+    }
+
+    /// <summary>Verifies a start beyond the bounded highlight index keeps the authoritative full-search fallback.</summary>
+    [Fact]
+    public async Task SearchBeyondRetainedIndexFallsBackToAuthoritativeScan()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-retained-boundary");
+        int documentLength = RawBinaryEditorSearch.MaximumRetainedMatches + 16;
+        string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)'A', documentLength)]);
+        int searchCallCount = 0;
+        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        {
+            _ = Interlocked.Increment(ref searchCallCount);
+            return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
+        });
+        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+            sourcePath,
+            TestContext.Current.CancellationToken);
+        Assert.True(load.Succeeded, load.ErrorMessage);
+
+        RawBinaryEditorSearchResult first = await session.FindAsciiAsync(
+            "A",
+            0,
+            TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult beyondRetained = await session.FindAsciiAsync(
+            "A",
+            RawBinaryEditorSearch.MaximumRetainedMatches,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, Volatile.Read(ref searchCallCount));
+        Assert.Equal(0, first.MatchIndex);
+        Assert.Equal(RawBinaryEditorSearch.MaximumRetainedMatches, beyondRetained.MatchIndex);
+        Assert.Equal(RawBinaryEditorSearch.MaximumRetainedMatches, beyondRetained.Address);
+        Assert.False(beyondRetained.Wrapped);
+        Assert.Equal(documentLength, beyondRetained.TotalMatchCount);
     }
 
     /// <summary>Verifies a successful edit invalidates the cached search snapshot.</summary>
@@ -52,7 +229,12 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-invalidation");
         string sourcePath = workspace.Write("source.bin", Encoding.ASCII.GetBytes("AAAA"));
-        var session = new WorkbenchRawBinaryEditorSession();
+        int searchCallCount = 0;
+        var session = new WorkbenchRawBinaryEditorSession((snapshot, state, text, startOffset, cancellationToken) =>
+        {
+            _ = Interlocked.Increment(ref searchCallCount);
+            return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
+        });
         WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
@@ -60,6 +242,10 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         RawBinaryEditorSearchResult before = await session.FindAsciiAsync(
             "A",
             0,
+            TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult cachedNext = await session.FindAsciiAsync(
+            "A",
+            1,
             TestContext.Current.CancellationToken);
 
         RawBinaryEditorOperationResult edit = session.OverwriteByte("0x0", "42");
@@ -69,9 +255,11 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
             TestContext.Current.CancellationToken);
 
         Assert.True(before.Succeeded);
+        Assert.Equal(1, cachedNext.Address);
         Assert.True(edit.Succeeded);
         Assert.True(after.Succeeded);
         Assert.Equal(0, after.Address);
+        Assert.Equal(2, Volatile.Read(ref searchCallCount));
         Assert.Equal(2, session.AsciiSearchSnapshotCaptureCount);
     }
 

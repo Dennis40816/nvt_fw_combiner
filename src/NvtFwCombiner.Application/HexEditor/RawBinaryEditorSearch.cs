@@ -104,6 +104,75 @@ public static class RawBinaryEditorSearch
             totalMatchCount > retained.Count);
     }
 
+    /// <summary>
+    /// Selects the occurrence at or after <paramref name="startOffset"/> from a canonical result
+    /// anchored at its first occurrence. Returns false when the bounded retained index cannot
+    /// answer authoritatively and the caller must run <see cref="Find"/> again.
+    /// </summary>
+    public static bool TrySelectFromAnchoredResult(
+        RawBinaryEditorSearchResult anchoredResult,
+        long startOffset,
+        out RawBinaryEditorSearchResult selectedResult)
+    {
+        ArgumentNullException.ThrowIfNull(anchoredResult);
+        selectedResult = null!;
+        if (!anchoredResult.Succeeded)
+        {
+            selectedResult = anchoredResult;
+            return true;
+        }
+
+        if (anchoredResult.MatchIndex != 0 ||
+            anchoredResult.Matches.Count == 0 ||
+            anchoredResult.Matches[0] != anchoredResult.SelectedAddress)
+        {
+            return false;
+        }
+
+        bool startsAfterDocument = startOffset >= anchoredResult.State.WorkingLength;
+        long normalizedStart = startOffset < 0 || startsAfterDocument ? 0 : startOffset;
+        int matchIndex = FindFirstMatchAtOrAfter(anchoredResult.Matches, normalizedStart);
+        bool wrapped = startsAfterDocument;
+        if (matchIndex < 0)
+        {
+            if (anchoredResult.IsTruncated)
+            {
+                return false;
+            }
+
+            matchIndex = 0;
+            wrapped = true;
+        }
+
+        selectedResult = anchoredResult with
+        {
+            MatchIndex = matchIndex,
+            Wrapped = wrapped,
+            SelectedAddress = anchoredResult.Matches[matchIndex],
+        };
+        return true;
+    }
+
+    private static int FindFirstMatchAtOrAfter(IReadOnlyList<long> matches, long address)
+    {
+        int low = 0;
+        int high = matches.Count;
+        while (low < high)
+        {
+            int middle = low + ((high - low) / 2);
+            if (matches[middle] < address)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        return low < matches.Count ? low : -1;
+    }
+
     private static RawBinaryEditorSearchResult Failure(
         RawBinaryEditorState state,
         RawBinaryEditorIssueCode issueCode)
