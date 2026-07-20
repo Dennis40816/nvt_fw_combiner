@@ -32,7 +32,7 @@ public sealed partial class MainWindowViewModel
 
     private void ShowHexEditor()
     {
-        SetSelectedPage(ShellPage.HexEditor);
+        NavigateToPage(ShellPage.HexEditor);
     }
 
     private void GeneralReplaceMappingPropertyChanged(object? sender, PropertyChangedEventArgs e)

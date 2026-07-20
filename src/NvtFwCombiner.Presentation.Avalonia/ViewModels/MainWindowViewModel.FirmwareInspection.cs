@@ -31,6 +31,11 @@ public sealed partial class MainWindowViewModel
         string path,
         CancellationToken cancellationToken = default)
     {
+        if (!_deferredState.IsWorkflowLoaded)
+        {
+            RefreshContextState();
+        }
+
         bool preservePendingCtrlRamBase = IsFirmwareInspectionLoading &&
             IsCtrlRamReplaceModeSelected &&
             ReplaceBaseSlot.HasFile;

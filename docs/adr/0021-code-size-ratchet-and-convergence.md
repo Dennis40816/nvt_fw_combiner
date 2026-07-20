@@ -35,7 +35,7 @@ lines as a hard ceiling rather than an exact descending total-source ratchet.
 Measured reductions below 60,000 do not require lowering that ceiling during
 the performance release. The stable-reconciled candidate at `6f3698dd` measures
 59,429 production lines. Its named partial aggregates are frozen as exact
-ratchets at 4,405 lines for `WorkbenchCompositionService` and 4,034 lines for
+ratchets at 4,404 lines for `WorkbenchCompositionService` and 4,034 lines for
 `MainWindowViewModel`; the exact duplicate-JSON ratchet is 1,055 lines, and the
 general 2,500-line partial ceiling also remains in force.
 

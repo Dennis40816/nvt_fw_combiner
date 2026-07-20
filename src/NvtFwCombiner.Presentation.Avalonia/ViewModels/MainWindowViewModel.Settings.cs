@@ -53,7 +53,6 @@ public sealed partial class MainWindowViewModel
         SelectedTheme = NormalizePreference(preferences.Theme, ThemeChoices, SelectedTheme);
         SelectedLanguage = NormalizePreference(preferences.Language, LanguageChoices, SelectedLanguage);
         IsReducedMotionEnabled = preferences.IsReducedMotionEnabled;
-        RefreshSettingsState();
     }
 
     private void RefreshSettingsState()

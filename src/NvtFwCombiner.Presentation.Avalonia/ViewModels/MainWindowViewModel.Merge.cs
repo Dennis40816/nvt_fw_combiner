@@ -78,11 +78,6 @@ public sealed partial class MainWindowViewModel
         });
     }
 
-    private Task RunMergeAsync(bool build)
-    {
-        return RunMergeAsync(build, outputPath: null);
-    }
-
     private Task RunMergeAsync(bool build, string? outputPath)
     {
         return SelectedMergeMode switch

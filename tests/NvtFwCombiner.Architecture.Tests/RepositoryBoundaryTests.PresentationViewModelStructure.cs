@@ -287,6 +287,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
         string settings = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Settings.cs");
+        string context = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Context.cs");
         string persistenceCoordinator = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/LatestSnapshotPersistenceCoordinator.cs");
         string stores = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs") +
@@ -309,6 +311,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ShellTextResources.LanguageFromPreference(preferences.Language)", mainWindow, StringComparison.Ordinal);
         Assert.Contains("private readonly bool _isInitializing = true;", construction, StringComparison.Ordinal);
         Assert.Contains("_isInitializing = false;", construction, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshContextState();", construction, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshSettingsState();", construction, StringComparison.Ordinal);
+        Assert.Contains("_deferredState.EnsurePage(page, RefreshSettingsState", context, StringComparison.Ordinal);
         Assert.Contains("if (!_isInitializing)", settings, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportHistoryFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);
         Assert.DoesNotContain("ShellPreferenceFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);

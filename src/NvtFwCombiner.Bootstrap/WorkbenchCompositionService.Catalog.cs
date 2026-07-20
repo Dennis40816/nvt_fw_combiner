@@ -88,8 +88,7 @@ public static partial class WorkbenchCompositionService
     private static WorkbenchProfileSummary? FindStandardMergeProfileSummaryByIc(string icId)
     {
         ArgumentNullException.ThrowIfNull(icId);
-        return s_standardMergeProfileSummaries.Value.FirstOrDefault(profile =>
-            string.Equals(profile.IcId, icId, StringComparison.Ordinal));
+        return BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(icId)?.CreateProfileSummary();
     }
 
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>
