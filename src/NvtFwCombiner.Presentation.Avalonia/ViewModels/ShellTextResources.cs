@@ -17,6 +17,10 @@ public enum ShellLanguage
 public sealed partial class ShellTextResources
 {
     private static readonly PlanningCardText EmptyPlanningCard = new(string.Empty, string.Empty, [], string.Empty);
+    private static readonly Lazy<ShellTextResources> English = new(
+        static () => CreateLocalized(ShellLanguage.English));
+    private static readonly Lazy<ShellTextResources> ChineseTraditional = new(
+        static () => CreateLocalized(ShellLanguage.ChineseTraditional));
 
     private ShellTextResources()
     {
@@ -27,8 +31,8 @@ public sealed partial class ShellTextResources
     {
         return language switch
         {
-            ShellLanguage.English => CreateLocalized(language),
-            ShellLanguage.ChineseTraditional => CreateLocalized(language),
+            ShellLanguage.English => English.Value,
+            ShellLanguage.ChineseTraditional => ChineseTraditional.Value,
             _ => throw new ArgumentOutOfRangeException(nameof(language), language, null),
         };
     }
