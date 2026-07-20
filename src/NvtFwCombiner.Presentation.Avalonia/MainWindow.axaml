@@ -47,7 +47,7 @@
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml" />
   </Window.Styles>
 
-  <Grid RowDefinitions="Auto,Auto,Auto,*">
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
     <Border Classes="shellBar" Padding="28,12">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="28">
         <StackPanel Spacing="{DynamicResource NfcSpace2}">
@@ -277,50 +277,69 @@
 
     <Border
         x:Name="CompositionBuildActionRail"
-        Grid.RowSpan="4"
-        Margin="0,0,24,24"
+        Grid.Row="4"
+        Margin="0,0,24,16"
         HorizontalAlignment="Right"
         VerticalAlignment="Bottom"
         Classes="compositionActionRail"
         IsVisible="{Binding IsCompositionActionRailVisible}">
-      <StackPanel Spacing="{DynamicResource NfcSpace8}">
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            Width="52"
-            Height="52"
-            Classes="floatingAction"
+            Classes="dockAction dockIconAction"
+            Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
             AutomationProperties.Name="{Binding Text.LatestOutputOpenFolderLabel}"
             Click="OpenLatestOutputFolderButton_OnClick"
             IsVisible="{Binding IsLatestOutputActionVisible}"
             ToolTip.Tip="{Binding Text.LatestOutputOpenFolderLabel}">
           <Path
-              Width="22"
-              Height="22"
+              Width="18"
+              Height="18"
+              Classes="dockActionIcon"
               Data="M2.5 5.5H8L10 8H21.5V18.5H2.5Z M7 12H17 M14 9L17 12L14 15"
               Fill="Transparent"
-              Stroke="{DynamicResource NfcTextStrongBrush}"
               StrokeLineCap="Round"
               StrokeJoin="Round"
               StrokeThickness="1.7" />
         </Button>
         <Button
-            Classes="toolbarAction"
+            Classes="dockAction primaryDockAction"
+            Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
+            AutomationProperties.HelpText="{Binding MergeReadinessStatus}"
             AutomationProperties.Name="{Binding Text.BuildActionLabel}"
             Click="BuildMergeButton_OnClick"
             IsEnabled="{Binding CanBuildMerge}"
             IsVisible="{Binding IsMergeVisible}">
           <StackPanel Orientation="Horizontal" Spacing="7">
-            <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
+            <Path
+                Width="16"
+                Height="16"
+                Classes="dockActionIcon"
+                Data="M3.5 8.5L7 12L13.5 5.5"
+                Fill="Transparent"
+                StrokeLineCap="Round"
+                StrokeJoin="Round"
+                StrokeThickness="1.8" />
             <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
           </StackPanel>
         </Button>
         <Button
-            Classes="toolbarAction"
+            Classes="dockAction primaryDockAction"
+            Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
+            AutomationProperties.HelpText="{Binding ReplaceReadinessStatus}"
             AutomationProperties.Name="{Binding Text.BuildActionLabel}"
             Click="BuildReplaceButton_OnClick"
             IsEnabled="{Binding CanBuildReplace}"
             IsVisible="{Binding IsReplaceVisible}">
           <StackPanel Orientation="Horizontal" Spacing="7">
-            <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
+            <Path
+                Width="16"
+                Height="16"
+                Classes="dockActionIcon"
+                Data="M3.5 8.5L7 12L13.5 5.5"
+                Fill="Transparent"
+                StrokeLineCap="Round"
+                StrokeJoin="Round"
+                StrokeThickness="1.8" />
             <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
           </StackPanel>
         </Button>
@@ -330,14 +349,14 @@
     <ContentControl
         x:Name="ReportToastHost"
         Grid.Row="1"
-        Grid.RowSpan="3"
+        Grid.RowSpan="4"
         ContentTemplate="{StaticResource ReportToastPanelTemplate}"
         IsVisible="{Binding HasReportToast}"
         Opacity="{Binding ReportToastOpacity}" />
 
     <ContentControl
         x:Name="ReplaceSelectionModalHost"
-        Grid.RowSpan="4"
+        Grid.RowSpan="5"
         IsVisible="{Binding IsReplaceSelectionModalOpen}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:MainWindowViewModel">
@@ -348,7 +367,7 @@
 
     <ContentControl
         x:Name="CtrlRamFirmwareVersionModalHost"
-        Grid.RowSpan="4"
+        Grid.RowSpan="5"
         IsVisible="{Binding IsCtrlRamFirmwareVersionModalOpen}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:MainWindowViewModel">
@@ -359,7 +378,7 @@
 
     <ContentControl
         x:Name="WorkflowContextSetupModalHost"
-        Grid.RowSpan="4"
+        Grid.RowSpan="5"
         IsVisible="{Binding IsWorkflowContextModalOpen}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:MainWindowViewModel">
@@ -370,7 +389,7 @@
 
     <ContentControl
         x:Name="FirmwareIcMismatchModalHost"
-        Grid.RowSpan="4"
+        Grid.RowSpan="5"
         IsVisible="{Binding IsFirmwareIcMismatchModalOpen}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:MainWindowViewModel">
@@ -379,7 +398,7 @@
       </ContentControl.ContentTemplate>
     </ContentControl>
 
-    <ContentControl Grid.RowSpan="4" Content="{Binding LoadedHexEditorWorkspace}">
+    <ContentControl Grid.RowSpan="5" Content="{Binding LoadedHexEditorWorkspace}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:HexEditorWorkspaceViewModel">
           <views:HexEditorInsertBytesModal IsVisible="{Binding IsInsertBytesPromptOpen}" />
@@ -387,7 +406,7 @@
       </ContentControl.ContentTemplate>
     </ContentControl>
 
-    <ContentControl Grid.RowSpan="4" Content="{Binding LoadedHexEditorWorkspace}">
+    <ContentControl Grid.RowSpan="5" Content="{Binding LoadedHexEditorWorkspace}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:HexEditorWorkspaceViewModel">
           <views:HexEditorSaveModal IsVisible="{Binding IsSaveConfirmationOpen}" />
@@ -397,7 +416,7 @@
 
     <ContentControl
         x:Name="ReportModalHost"
-        Grid.RowSpan="4"
+        Grid.RowSpan="5"
         IsVisible="{Binding IsReportModalOpen}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:MainWindowViewModel">
@@ -408,7 +427,7 @@
 
     <ContentControl
         x:Name="BuildCompletedModalHost"
-        Grid.RowSpan="4"
+        Grid.RowSpan="5"
         IsVisible="{Binding IsBuildCompletedModalOpen}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:MainWindowViewModel">

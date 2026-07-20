@@ -28,11 +28,13 @@ public sealed partial class XamlControlStyleContractTests
         string shell = ReadPresentationFile("MainWindow.axaml");
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
         string shellStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
+        string railStyle = ExtractStyle(shellStyles, "Border.compositionActionRail");
         int latestOutputAction = shell.IndexOf("Click=\"OpenLatestOutputFolderButton_OnClick\"", StringComparison.Ordinal);
         int mergeBuildAction = shell.IndexOf("Click=\"BuildMergeButton_OnClick\"", StringComparison.Ordinal);
         int replaceBuildAction = shell.IndexOf("Click=\"BuildReplaceButton_OnClick\"", StringComparison.Ordinal);
 
-        Assert.Contains("Grid.RowSpan=\"4\"", shell, StringComparison.Ordinal);
+        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Grid.Row=\"4\"", shell, StringComparison.Ordinal);
         Assert.Contains("HorizontalAlignment=\"Right\"", shell, StringComparison.Ordinal);
         Assert.Contains("VerticalAlignment=\"Bottom\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compositionActionRail\"", shell, StringComparison.Ordinal);
@@ -41,9 +43,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.True(latestOutputAction >= 0);
         Assert.True(mergeBuildAction > latestOutputAction);
         Assert.True(replaceBuildAction > mergeBuildAction);
-        Assert.Contains("Selector=\"Button.floatingAction.build\"", buttonStyles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.dockAction\"", buttonStyles, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selector=\"Button.floatingAction.build\"", buttonStyles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Border.compositionActionRail\"", shellStyles, StringComparison.Ordinal);
-        Assert.DoesNotContain("Classes=\"toolbarAction\"\n                      Click=\"Build", shell, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceCornerRadius", railStyle, StringComparison.Ordinal);
+        Assert.DoesNotContain("NfcPillCornerRadius", railStyle, StringComparison.Ordinal);
+        Assert.DoesNotContain("Classes=\"toolbarAction\"", shell, StringComparison.Ordinal);
     }
 
     /// <summary>Adjacent CtrlRAM slot and coverage groups retain visible separation.</summary>

@@ -66,7 +66,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("BeginNormalMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("BeginGeneralMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("WindowState=\"Maximized\"", shell, StringComparison.Ordinal);
-        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*\"", shell, StringComparison.Ordinal);
+        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<ScrollViewer Grid.Row=\"3\">", shell, StringComparison.Ordinal);
+        Assert.Contains(
+            "x:Name=\"CompositionBuildActionRail\"\n        Grid.Row=\"4\"",
+            shell,
+            StringComparison.Ordinal);
         Assert.Contains("DeviceContextTitle", shellPanels, StringComparison.Ordinal);
         Assert.Contains("IsDeviceContextVisible", shell, StringComparison.Ordinal);
         Assert.Contains("NavigationTrail", shellPanels, StringComparison.Ordinal);

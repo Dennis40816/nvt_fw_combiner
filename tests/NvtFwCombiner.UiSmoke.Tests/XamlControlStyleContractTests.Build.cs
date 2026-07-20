@@ -4,28 +4,41 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Keeps Build actions compact and responsive without hover popups obscuring the first click.</summary>
+    /// <summary>Keeps the bottom dock compact and responsive without hover popups obscuring the first click.</summary>
     [Fact]
-    public void BuildActionsUseCompactAnimatedToolbarStyleWithoutTooltips()
+    public void BuildActionsUseCompactAccessibleDockStyleWithoutTooltips()
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
         string replaceSelection = ReadPresentationFile("Views/ReplaceSelectionModal.axaml");
         string styles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
-        string toolbarAction = ExtractStyle(styles, "Button.toolbarAction");
-        string toolbarPresenter = ExtractStyle(
+        string dockAction = ExtractStyle(styles, "Button.dockAction");
+        string dockPresenter = ExtractStyle(
             styles,
-            "Button.toolbarAction /template/ ContentPresenter#PART_ContentPresenter");
+            "Button.dockAction /template/ ContentPresenter#PART_ContentPresenter");
+        string primaryAction = ExtractStyle(styles, "Button.primaryDockAction");
+        string focusPresenter = ExtractStyle(
+            styles,
+            "Button.dockAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
+        string reducedMotionPresenter = ExtractStyle(
+            styles,
+            "Button.dockAction.reducedMotion /template/ ContentPresenter#PART_ContentPresenter");
 
-        Assert.Contains("MinHeight\" Value=\"34\"", toolbarAction, StringComparison.Ordinal);
-        Assert.Contains("MinWidth\" Value=\"80\"", toolbarAction, StringComparison.Ordinal);
-        Assert.Contains("Padding\" Value=\"10,6\"", toolbarAction, StringComparison.Ordinal);
-        Assert.Contains("BrushTransition Property=\"Background\" Duration=\"0:0:0.12\"", toolbarPresenter, StringComparison.Ordinal);
-        Assert.Contains("BrushTransition Property=\"BorderBrush\" Duration=\"0:0:0.12\"", toolbarPresenter, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Button.toolbarAction:pointerover", styles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Button.toolbarAction:pressed", styles, StringComparison.Ordinal);
-        Assert.Equal(2, shell.Split("Classes=\"toolbarAction\"", StringSplitOptions.None).Length - 1);
+        Assert.Contains("MinHeight\" Value=\"40\"", dockAction, StringComparison.Ordinal);
+        Assert.Contains("MinWidth\" Value=\"88\"", primaryAction, StringComparison.Ordinal);
+        Assert.Contains("Padding\" Value=\"12,7\"", primaryAction, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBrush", primaryAction, StringComparison.Ordinal);
+        Assert.Contains("BrushTransition Property=\"Background\" Duration=\"0:0:0.12\"", dockPresenter, StringComparison.Ordinal);
+        Assert.Contains("BrushTransition Property=\"BorderBrush\" Duration=\"0:0:0.12\"", dockPresenter, StringComparison.Ordinal);
+        Assert.Contains("BorderThickness\" Value=\"2\"", focusPresenter, StringComparison.Ordinal);
+        Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionPresenter, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.dockAction:pointerover", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.dockAction:pressed", styles, StringComparison.Ordinal);
+        Assert.Equal(2, shell.Split("Classes=\"dockAction primaryDockAction\"", StringSplitOptions.None).Length - 1);
+        Assert.Equal(3, shell.Split("Classes.reducedMotion=\"{Binding IsReducedMotionEnabled}\"", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("BuildActionTip", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildActionTip", replaceSelection, StringComparison.Ordinal);
+        Assert.DoesNotContain("ToolTip.Tip=\"{Binding Text.BuildActionLabel}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("RenderTransform", dockAction + dockPresenter + primaryAction, StringComparison.Ordinal);
     }
 
     /// <summary>Build stays in the fixed bottom-right rail established by the stable v0.9.10 shell.</summary>
@@ -46,10 +59,14 @@ public sealed partial class XamlControlStyleContractTests
                 .Cast<string>(),
         ];
 
-        Assert.Equal("4", (string?)rail.Attribute("Grid.RowSpan"));
+        Assert.Equal("4", (string?)rail.Attribute("Grid.Row"));
+        Assert.Null(rail.Attribute("Grid.RowSpan"));
         Assert.Equal("Right", (string?)rail.Attribute("HorizontalAlignment"));
         Assert.Equal("Bottom", (string?)rail.Attribute("VerticalAlignment"));
-        Assert.Equal("0,0,24,24", (string?)rail.Attribute("Margin"));
+        Assert.Equal("0,0,24,16", (string?)rail.Attribute("Margin"));
+        XElement actions = Assert.Single(rail.Elements());
+        Assert.Equal("Horizontal", (string?)actions.Attribute("Orientation"));
+        Assert.Equal("{DynamicResource NfcSpace8}", (string?)actions.Attribute("Spacing"));
         Assert.Equal(
             ["BuildMergeButton_OnClick", "BuildReplaceButton_OnClick"],
             handlers);
@@ -57,5 +74,23 @@ public sealed partial class XamlControlStyleContractTests
             2,
             shell.Descendants().Count(element =>
                 ((string?)element.Attribute("Click"))?.StartsWith("Build", StringComparison.Ordinal) == true));
+
+        XElement folder = Assert.Single(
+            rail.Descendants(),
+            element => (string?)element.Attribute("Click") == "OpenLatestOutputFolderButton_OnClick");
+        Assert.Equal("dockAction dockIconAction", (string?)folder.Attribute("Classes"));
+        Assert.NotNull(folder.Attribute("ToolTip.Tip"));
+
+        XElement[] buildButtons =
+        [
+            .. rail.Descendants().Where(element =>
+                ((string?)element.Attribute("Click"))?.StartsWith("Build", StringComparison.Ordinal) == true),
+        ];
+        Assert.All(buildButtons, button =>
+        {
+            Assert.Equal("dockAction primaryDockAction", (string?)button.Attribute("Classes"));
+            Assert.NotNull(button.Attribute("AutomationProperties.HelpText"));
+            Assert.Null(button.Attribute("ToolTip.Tip"));
+        });
     }
 }

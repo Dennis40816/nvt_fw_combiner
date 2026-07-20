@@ -188,6 +188,25 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs"), StringComparison.Ordinal);
     }
 
+    /// <summary>Locks the shared Hex viewport redesign out of v0.9.11 while preserving both existing hosts.</summary>
+    [Fact]
+    public void V0911KeepsRawEditorAndReportDiffRenderersSeparate()
+    {
+        string rawEditor = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml");
+        string reportDiff = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml");
+        string reportViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewModel.cs");
+        string rawEditorViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.cs");
+
+        Assert.Contains("HexEditorViewportControl", rawEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexEditorViewportControl", reportDiff, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexEditorWorkspaceViewModel", reportViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportHexDiffViewModel", rawEditorViewModel, StringComparison.Ordinal);
+    }
+
     /// <summary>Prevents retired, unbound shell inspector projections from returning.</summary>
     [Fact]
     public void ShellViewModelOmitsUnboundInspectorCompatibilityState()

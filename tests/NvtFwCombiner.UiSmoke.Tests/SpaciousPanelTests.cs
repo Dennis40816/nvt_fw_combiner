@@ -12,14 +12,15 @@ public sealed class SpaciousPanelTests
     [Fact]
     public void OutputAndReportBlocksUseTheSpaciousPanelContract()
     {
-        _ = new SpaciousPanel();
+        var panel = new SpaciousPanel();
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string reportPanels = ReadPresentationFile("Resources/MainWindowReportPanels.axaml");
         string workflowTemplates = ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
 
         Assert.Contains("Selector=\"views|SpaciousPanel\"", styles, StringComparison.Ordinal);
-        Assert.Contains("Property=\"Padding\" Value=\"18,16,20,18\"", styles, StringComparison.Ordinal);
+        Assert.Equal(new Thickness(18, 16, 20, 18), panel.Padding);
+        Assert.DoesNotContain("Property=\"Padding\" Value=\"18,16,20,18\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"views|SpaciousPanel.compact\"", styles, StringComparison.Ordinal);
         Assert.Contains("Property=\"Padding\" Value=\"4,4,8,4\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"ItemsControl.spaciousList\"", styles, StringComparison.Ordinal);
