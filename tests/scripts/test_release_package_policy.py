@@ -25,11 +25,11 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/legacy-combiner/1.13.0/manifest.json",
 )
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
-MAXIMUM_PACKAGE_BYTES = 58_076_715
 PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
 SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
-MAXIMUM_APPLICATION_BYTES = 70_000_000
+MAXIMUM_PACKAGE_BYTES = 80_000_000
+MAXIMUM_APPLICATION_BYTES = 80_000_000
 ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
@@ -93,7 +93,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn(f"$DistributionOwner = '{DISTRIBUTION_OWNER}'", package_script)
         self.assertIn(f"$SourceIdentity = '{SOURCE_IDENTITY}'", package_script)
 
-    def test_packager_compresses_the_untrimmed_self_contained_single_file(
+    def test_packager_compresses_the_composite_ready_to_run_single_file(
         self,
     ) -> None:
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
@@ -101,6 +101,8 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         expected_publish_properties = (
             "-p:PublishSingleFile=true",
             "-p:EnableCompressionInSingleFile=true",
+            "-p:PublishReadyToRun=true",
+            "-p:PublishReadyToRunComposite=true",
             "-p:PublishTrimmed=false",
             "-p:IncludeNativeLibrariesForSelfExtract=true",
         )
@@ -291,7 +293,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(
-            "exceeds the owner-approved maximum 58076715 bytes",
+            "exceeds the owner-approved maximum 80000000 bytes",
             normalize_console_output(result.stdout + result.stderr),
         )
 
@@ -342,7 +344,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(
-            "application size 70000001 exceeds the owner-approved maximum 70000000 bytes",
+            "application size 80000001 exceeds the owner-approved maximum 80000000 bytes",
             normalize_console_output(result.stdout + result.stderr),
         )
 

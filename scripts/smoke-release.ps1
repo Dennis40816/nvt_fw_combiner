@@ -15,9 +15,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$ApprovedPackageBaselineBytes = 57501699
-$MaximumPackageBytes = 58076715
-$MaximumApplicationBytes = 70000000
+$MaximumPackageBytes = 80000000
+$MaximumApplicationBytes = 80000000
 $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
     'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
@@ -181,7 +180,7 @@ if (-not $fullPackagePath.EndsWith('.zip', [StringComparison]::OrdinalIgnoreCase
 }
 $packageBytes = (Get-Item -LiteralPath $fullPackagePath).Length
 if ($packageBytes -gt $MaximumPackageBytes) {
-    throw "Release package size $packageBytes exceeds the owner-approved maximum $MaximumPackageBytes bytes (v0.9.7 baseline $ApprovedPackageBaselineBytes bytes plus 1%)."
+    throw "Release package size $packageBytes exceeds the owner-approved maximum $MaximumPackageBytes bytes."
 }
 
 $smokeRoot = Join-Path ([IO.Path]::GetTempPath()) "nvt-fw-combiner-release-smoke-$([guid]::NewGuid().ToString('N'))"

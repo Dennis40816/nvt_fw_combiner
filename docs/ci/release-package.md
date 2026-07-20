@@ -55,16 +55,19 @@ No production source tree, editable source profile tree, Python runtime installa
 
 The stable release path accepts stable SemVer only, restores the `win-x64`
 dependency graph, and cleans its publish state before building a compressed,
-self-contained single-file Avalonia app with trimming disabled. Source package
-locks are restored even when restore, clean, or publish fails. The packager then
-copies the Bootstrap-declared materialized built-in profile bundles through
-their manifests, builds the worker with PyInstaller one-file mode, copies only
-the approved external-tool files and paths, copies the approved reference
-payload and manifest-declared golden fixture BINs, assembles a new empty
-directory, rejects paths outside the allowlist, writes the manifest and hashes,
-and creates the ZIP under `artifacts/release/`. Single-file compression changes
-only the bundle representation: it does not trim managed code, remove native
-libraries, or change the closed package contents.
+self-contained composite ReadyToRun single-file Avalonia app with trimming
+disabled. Source package locks are restored even when restore, clean, or publish
+fails. The packager then copies the Bootstrap-declared materialized built-in
+profile bundles through their manifests, builds the worker with PyInstaller
+one-file mode, copies only the approved external-tool files and paths, copies the
+approved reference payload and manifest-declared golden fixture BINs, assembles
+a new empty directory, rejects paths outside the allowlist, writes the manifest
+and hashes, and creates the ZIP under `artifacts/release/`. Single-file
+compression changes only the bundle representation: it does not trim managed
+code, remove native libraries, or change the closed package contents. Composite
+ReadyToRun precompiles managed methods to reduce cold JIT cost; it does not
+authorize trimming, a separate runtime dependency, or any firmware/profile
+semantic change.
 
 `-ExternalToolPolicyDryRun` retains its compatibility name but exercises all closed package policies without publishing application or worker binaries. It creates a temporary extra file inside the source `external-tools/` directory, runs the same approved-file copy and external-tool manifest-entry code used by normal packaging, and proves the probe is absent from staging and the persisted manifest. It also builds a temporary materialized-profile fixture from the Bootstrap bundle declarations, includes the two fixed runtime-catalog files, runs the production allowlist/copy/manifest-entry functions, and proves unexpected bundle or runtime-catalog files are rejected. The same dry run resolves `release-standard-merge-v1.json`, requires every selected case/artifact path, size, and SHA-256 to match the canonical inventory, currently locks 34 direct BIN artifacts and 13 direct/alias cases, and rejects diagnostics or other workflows. The deterministic `tests/scripts/test_release_package_policy.py` regression invokes this mode through the canonical `python scripts/verify.py --all` flow and proves that release smoke rejects both an extra external-tool path and a package with no built-in materialized profiles.
 
@@ -82,11 +85,12 @@ The smoke extracts into a fresh temporary directory, checks the closed package s
 
 Both `scripts/verify.py` and `scripts/package.ps1` finish by stopping the repository SDK build server and any idle, repo-bound Avalonia BuildServices collector. The cleanup is scoped to that collector command line and never targets the packaged application, CRC worker, or Combiner process.
 
-## Package-size ratchet
+## Package-size ceiling
 
-The owner-approved `v0.9.7` Windows inner-ZIP baseline is 57,501,699 bytes.
-`smoke-release.ps1` rejects any later ZIP above 58,076,715 bytes, the greatest
-whole-byte value below a 1% increase. The check runs before extraction and is
+The owner-approved `v0.9.7` Windows inner-ZIP baseline was 57,501,699 bytes and
+the former 1% ratchet was 58,076,715 bytes. For the `0.9.11.10` startup phase,
+the owner approved composite ReadyToRun and replaced that ratchet with an exact
+80,000,000-byte complete-ZIP ceiling. The check runs before extraction and is
 therefore also the fail-fast gate in `main-package.yml`, `release.yml`, and the
 reviewed workflow template.
 
@@ -95,8 +99,8 @@ The byte ratchet does not authorize trimming, removal of the self-contained
 smoke coverage. A lower reproducible package result lowers the ratchet only
 after release review records the producing commit, environment, and artifact.
 
-Starting with `v0.9.11`, release smoke also rejects a main
-`NvtFwCombiner.exe` above the owner's 70,000,000-byte target. This application
+Starting with the owner-approved `0.9.11.10` startup phase, release smoke also
+rejects a main `NvtFwCombiner.exe` above 80,000,000 bytes. This application
 budget is checked after fresh extraction and is separate from the existing ZIP
 budget. It does not authorize moving runtime or application dependencies out of
 the self-contained executable.

@@ -777,6 +777,8 @@ try {
         -p:Version=$SemanticVersion `
         -p:PublishSingleFile=true `
         -p:EnableCompressionInSingleFile=true `
+        -p:PublishReadyToRun=true `
+        -p:PublishReadyToRunComposite=true `
         -p:PublishTrimmed=false `
         -p:IncludeNativeLibrariesForSelfExtract=true `
         -p:DebugType=None `
