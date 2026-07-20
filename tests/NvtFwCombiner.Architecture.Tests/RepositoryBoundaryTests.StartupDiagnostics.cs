@@ -28,6 +28,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("main-window.opened", window, StringComparison.Ordinal);
         Assert.Contains("startup-warmup.completed", window, StringComparison.Ordinal);
         Assert.Contains("EnvironmentVariables[$TracePathEnvironmentVariable]", runner, StringComparison.Ordinal);
+        Assert.Contains("workingSetBytesAtWindow", runner, StringComparison.Ordinal);
+        Assert.Contains("workingSetBytesAtTrace", runner, StringComparison.Ordinal);
+        Assert.Contains("peakWorkingSetBytes", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("dotnet tool", runner, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Invoke-WebRequest", runner, StringComparison.OrdinalIgnoreCase);
     }
