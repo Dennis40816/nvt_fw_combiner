@@ -340,7 +340,9 @@ public sealed partial class ShellViewModelTests
     public async Task OutputFileNameRefreshDoesNotRetainRejectedProjection()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-rejected-refresh");
-        string path = workspace.Write("dp.bin", [0x01]);
+        byte[] bytes = new byte[0x40000];
+        bytes[0] = 0x01;
+        string path = workspace.Write("dp.bin", bytes);
         bool mutateDuringRefresh = false;
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
         [
@@ -358,14 +360,16 @@ public sealed partial class ShellViewModelTests
                     DpInspection($"{version:X2}{version:X2}"));
             }),
         ]);
-        viewModel.SelectedIc = "NT51926";
+        viewModel.SelectedIc = "NT51950";
         await viewModel.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
         Assert.Contains("_D0101Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+        Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.MergeMemoryRangeLabel);
 
         mutateDuringRefresh = true;
         await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
 
         Assert.Contains("_DxxxxTxxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+        Assert.Equal("Selected DP BIN length pending", viewModel.MergeMemoryRangeLabel);
     }
 
     /// <summary>Verifies an unobserved DP size keeps the concise DP/Jira slot badge set.</summary>

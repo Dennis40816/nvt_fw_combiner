@@ -41,11 +41,11 @@ general 2,500-line partial ceiling also remains in force.
 
 Owner amendment, 2026-07-20: release-blocking exact-head review fixes for
 same-path firmware identity, final save-dialog revalidation, and workflow-scoped
-inspection bring the reviewed tree to 60,042 production lines and 4,177 lines
+inspection bring the reviewed tree to 60,050 production lines and 4,185 lines
 for `MainWindowViewModel`. The owner explicitly prioritized the correctness fix
 over the earlier source target. The temporary total ceiling is therefore
 60,100, while the named exact ratchets are 4,419 for
-`WorkbenchCompositionService` and 4,177 for `MainWindowViewModel`. This does not
+`WorkbenchCompositionService` and 4,185 for `MainWindowViewModel`. This does not
 relax the 1,055 duplicate-JSON or general 2,500-line partial gates.
 
 The exception is time-bounded. `v0.9.10` added measured progress,

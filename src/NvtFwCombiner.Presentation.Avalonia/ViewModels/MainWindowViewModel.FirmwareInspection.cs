@@ -353,6 +353,16 @@ public sealed partial class MainWindowViewModel
             : _baseFirmwareInspectionCache;
 
         NotifySlotFileOutputNames();
+        if (slots.ContainsKey(MergeDpSlotId))
+        {
+            RefreshMergeMemoryMapState();
+        }
+
+        if (slots.ContainsKey(ReplaceBaseSlotId) && SelectedReplaceMode == DpReplaceMode)
+        {
+            RefreshReplaceMemoryMapState();
+        }
+
         return FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, CancellationToken.None);
     }
 
