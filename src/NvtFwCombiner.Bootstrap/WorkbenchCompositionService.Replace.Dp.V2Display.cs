@@ -4,6 +4,8 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private const string DpReplaceProfileUnavailable = "The V2 DP Replace profile did not produce an executable composition.";
+
     private static WorkbenchMemoryDisplay? CreateV2DpReplaceMemoryDisplay(string icId, long? baseCapacity)
     {
         if (!TryResolveBuiltInV2DpReplaceDisplay(icId, baseCapacity, out BuiltInV2DpReplaceDisplay? display))
@@ -13,7 +15,7 @@ public static partial class WorkbenchCompositionService
 
         if (display.RequestedBaseCapacity is null && display.Issues.Count == 0)
         {
-            string capacities = FormatV2DpReplaceCapacities(display);
+            string capacities = BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities);
             return CreateMessageDisplay(
                 $"Reference FlashCode length: {capacities}",
                 ($"Reference FlashCode length: {capacities}", "Reference FlashCode", "Select", "DP replacement", $"Select a complete Standard/Normal Merge FlashCode for {icId} to compile the V2 DP Replace plan."),
@@ -26,14 +28,14 @@ public static partial class WorkbenchCompositionService
             bool unsupportedLength = display.RequestedBaseCapacity.HasValue &&
                 !display.SupportedBaseCapacities.Contains(requestedCapacity);
             string failureLabel = unsupportedLength
-                ? $"Unsupported Reference FlashCode length {FormatHexLength(requestedCapacity)}"
+                ? $"Unsupported Reference FlashCode length {BootstrapRangeText.FormatHex(requestedCapacity)}"
                 : "DP Replace profile unavailable";
-            string issues = FormatV2DpReplaceIssues(display);
+            string issues = display.Issues.Count == 0 ? DpReplaceProfileUnavailable : FormatIssues(display.Issues);
             return CreateMessageDisplay(
                 failureLabel,
                 (failureLabel, unsupportedLength ? "Base flash" : "Profile", unsupportedLength ? "Replace" : "Blocked", unsupportedLength ? "DP replacement" : "No output", issues),
                 unsupportedLength
-                    ? ($"Unsupported {FormatHexLength(requestedCapacity)}", "Unsupported reference", $"This Reference FlashCode length is not approved for {icId} DP Replace; use {FormatV2DpReplaceCapacities(display)}.", "#FCA5A5")
+                    ? ($"Unsupported {BootstrapRangeText.FormatHex(requestedCapacity)}", "Unsupported reference", $"This Reference FlashCode length is not approved for {icId} DP Replace; use {BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities)}.", "#FCA5A5")
                     : (failureLabel, "Invalid profile", issues, "#FCA5A5"));
         }
 
@@ -104,7 +106,7 @@ public static partial class WorkbenchCompositionService
                 out BuiltInV2DpReplaceDisplay? resolved) ||
             resolved.Composition is not { } composition)
         {
-            description = $"The V2 DP Replace profile is unavailable: {FormatV2DpReplaceIssues(display)}";
+            description = $"The V2 DP Replace profile is unavailable: {(display.Issues.Count == 0 ? DpReplaceProfileUnavailable : FormatIssues(display.Issues))}";
             return true;
         }
 
@@ -113,22 +115,11 @@ public static partial class WorkbenchCompositionService
         bool restoresReference = composition.Plan.OrderedOperations.Any(static operation =>
             string.Equals(operation.SourceSpaceId, CompositionAddressSpaceIds.ReferenceBase, StringComparison.Ordinal));
         description = replacement.InputPaddingByte is not null && restoresReference
-            ? $"Use a DP/FlashCode-shaped BIN no larger than the selected Reference FlashCode ({FormatV2DpReplaceCapacities(display)}); shorter input is zero-padded and the original TP range is restored from the reference."
-            : $"Use a same-IC DP/FlashCode BIN containing the complete declared DP range ({FormatHexLength(replacement.Length)} bytes; expected outer length {FormatV2DpReplaceCapacities(display)}). Only declared DP ranges are copied; every other byte stays from Reference FlashCode.";
+            ? $"Use a DP/FlashCode-shaped BIN no larger than the selected Reference FlashCode ({BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities)}); shorter input is zero-padded and the original TP range is restored from the reference."
+            : $"Use a same-IC DP/FlashCode BIN containing the complete declared DP range ({BootstrapRangeText.FormatHex(replacement.Length)} bytes; expected outer length {BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities)}). Only declared DP ranges are copied; every other byte stays from Reference FlashCode.";
         return true;
     }
 
-    private static string FormatV2DpReplaceCapacities(BuiltInV2DpReplaceDisplay display)
-    {
-        return BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities);
-    }
-
-    private static string FormatV2DpReplaceIssues(BuiltInV2DpReplaceDisplay display)
-    {
-        return display.Issues.Count == 0
-            ? "The V2 DP Replace profile did not produce an executable composition."
-            : FormatIssues(display.Issues);
-    }
 }
 
 internal sealed record BuiltInV2DpReplaceDisplay(

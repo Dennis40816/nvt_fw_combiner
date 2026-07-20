@@ -105,7 +105,7 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         return TryResolveBuiltInV2DpReplaceDisplay(icId, baseCapacity: null, out BuiltInV2DpReplaceDisplay? display) &&
             display.Issues.Count == 0
-                ? FormatV2DpReplaceCapacities(display)
+                ? BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities)
                 : null;
     }
 

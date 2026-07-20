@@ -149,9 +149,8 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("unknown option '--dp'", result.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>Known NT51931 profiles report the catalog gate before workflow-specific input parsing.</summary>
+    /// <summary>NT51931 Replace modes without an approved contract report the catalog gate before input parsing.</summary>
     [Theory]
-    [InlineData("dp-replace")]
     [InlineData("ctrlram-replace")]
     [InlineData("general-replace")]
     public async Task Nt51931ReplaceCommandsReportNotSupported(string command)

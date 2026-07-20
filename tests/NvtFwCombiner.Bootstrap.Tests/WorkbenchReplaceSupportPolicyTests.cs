@@ -5,9 +5,8 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Shared runtime and display gates for IC-specific Replace support policy.</summary>
 public sealed class WorkbenchReplaceSupportPolicyTests
 {
-    /// <summary>Every NT51931 Replace route fails before input or processor planning.</summary>
+    /// <summary>NT51931 Replace routes without an approved contract fail before input or processor planning.</summary>
     [Theory]
-    [InlineData(WorkbenchReplaceModes.Dp)]
     [InlineData(WorkbenchReplaceModes.CtrlRam)]
     [InlineData(WorkbenchReplaceModes.General)]
     public async Task Nt51931ReplaceFailsClosedWithStableIssue(string replaceMode)
@@ -33,9 +32,8 @@ public sealed class WorkbenchReplaceSupportPolicyTests
         Assert.Empty(document.RootElement.GetProperty("Inputs").EnumerateArray());
     }
 
-    /// <summary>Workbench projections expose an explicit blocked state instead of executable inputs.</summary>
+    /// <summary>Unsupported NT51931 projections expose a blocked state instead of executable inputs.</summary>
     [Theory]
-    [InlineData(WorkbenchReplaceModes.Dp)]
     [InlineData(WorkbenchReplaceModes.CtrlRam)]
     [InlineData(WorkbenchReplaceModes.General)]
     public void Nt51931ReplaceDisplayIsExplicitlyNotSupported(string replaceMode)
@@ -60,7 +58,7 @@ public sealed class WorkbenchReplaceSupportPolicyTests
     {
         Assert.True(WorkbenchCompositionService.IsReplaceWorkflowSupported("NT51932", WorkbenchReplaceModes.CtrlRam));
         Assert.True(WorkbenchCompositionService.IsReplaceWorkflowSupported("NT51932", WorkbenchReplaceModes.General));
-        Assert.False(WorkbenchCompositionService.IsReplaceWorkflowSupported("NT51932", WorkbenchReplaceModes.Dp));
+        Assert.True(WorkbenchCompositionService.IsReplaceWorkflowSupported("NT51932", WorkbenchReplaceModes.Dp));
     }
 
     /// <summary>Golden readiness reports verification without banning an evidence-gated workflow.</summary>
@@ -72,10 +70,10 @@ public sealed class WorkbenchReplaceSupportPolicyTests
             WorkbenchReplaceModes.Dp);
         WorkbenchWorkflowReadiness gated = WorkbenchCompositionService.GetReplaceWorkflowReadiness(
             "NT51932",
-            WorkbenchReplaceModes.CtrlRam);
-        WorkbenchWorkflowReadiness unsupported = WorkbenchCompositionService.GetReplaceWorkflowReadiness(
-            "NT51932",
             WorkbenchReplaceModes.Dp);
+        WorkbenchWorkflowReadiness unsupported = WorkbenchCompositionService.GetReplaceWorkflowReadiness(
+            "NT51931",
+            WorkbenchReplaceModes.CtrlRam);
 
         Assert.True(verified.IsAvailable);
         Assert.Equal(WorkbenchWorkflowEvidenceStatus.GoldenVerified, verified.EvidenceStatus);
@@ -84,7 +82,7 @@ public sealed class WorkbenchReplaceSupportPolicyTests
         Assert.Contains("does not ban authoring", gated.OpenCondition, StringComparison.Ordinal);
         Assert.False(unsupported.IsAvailable);
         Assert.Equal(WorkbenchWorkflowEvidenceStatus.NotAvailable, unsupported.EvidenceStatus);
-        Assert.Contains("DP map/profile", unsupported.OpenCondition, StringComparison.Ordinal);
+        Assert.Contains("reactivate", unsupported.OpenCondition, StringComparison.Ordinal);
     }
 
     /// <summary>Workbench exposes Reply.md perfect/partial family facts without redefining firmware maps.</summary>

@@ -4,7 +4,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
-    /// <summary>NT51931 visibly reports Not available and never enables a Replace action.</summary>
+    /// <summary>NT51931 General Replace remains unavailable even though DP Replace is supported.</summary>
     [Fact]
     public void Nt51931ReplaceShowsCatalogSupportGate()
     {

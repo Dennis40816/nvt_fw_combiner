@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "bundleId": "nt51929-dp-replace-family",
+  "bundleVersion": "0.9.11-dp-replace.1",
+  "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
+  "contentHash": "072ba46232d3052f4c6f914266135c89d19816243a2416d3516317d707be1c07",
+  "trustAnchorBindingId": "built-in-profile-bundle-v2",
+  "entries": [
+    {
+      "entryId": "composition-profile-v2-schema",
+      "kind": "schema",
+      "path": "schemas/composition-profile-v2.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0"
+    },
+    {
+      "entryId": "firmware-family-v1-schema",
+      "kind": "schema",
+      "path": "schemas/firmware-family-v1.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+    },
+    {
+      "entryId": "nt51919-dp-replace-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51919-dp-replace.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "96eaffe9fc90862cbfb6a6ed6817ea210814b5cf92fdfe4e1af789ea75f1e6dc"
+    },
+    {
+      "entryId": "nt51929-nt51932-family",
+      "kind": "firmware-family",
+      "path": "families/nt51929-nt51932.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "956c2403a17854bb4f26255eb0d6300cedf96b4f0b15f75758bdcbf0cf407169"
+    },
+    {
+      "entryId": "nt51929-dp-replace-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51929-dp-replace.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "cc19a4d1c8f430c067659ba727d79759dde38e8d80c43cb92b0ff26d0c213a15"
+    },
+    {
+      "entryId": "nt51932-dp-replace-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51932-dp-replace.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "8498e4a405a9bc9363c8677ca1496518ac1296fec30ddb461f4fe12b42bec179"
+    }
+  ]
+}
