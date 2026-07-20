@@ -10,22 +10,24 @@
 </ControlTheme>
 
 <DataTemplate x:Key="FirmwareSlotGroupTemplate" DataType="vm:FirmwareSlotGroupViewModel">
-  <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
-    <Expander.Header>
-      <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-        <StackPanel Spacing="{DynamicResource NfcSpace2}">
-          <TextBlock Classes="cardTitle" Text="{Binding Title}" />
-          <TextBlock Classes="mutedText" Text="{Binding SelectionSummary}" TextWrapping="Wrap" />
-        </StackPanel>
-        <Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge" FontSize="{DynamicResource NfcFontSize11}" Content="{Binding CountLabel}" />
-      </Grid>
-    </Expander.Header>
-    <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding Slots}">
-      <ItemsControl.ItemTemplate>
-        <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
-  </Expander>
+  <views:SpaciousPanel Classes="compact">
+    <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+      <Expander.Header>
+        <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+          <StackPanel Spacing="{DynamicResource NfcSpace2}">
+            <TextBlock Classes="cardTitle" Text="{Binding Title}" />
+            <TextBlock Classes="mutedText" Text="{Binding SelectionSummary}" TextWrapping="Wrap" />
+          </StackPanel>
+          <Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge" FontSize="{DynamicResource NfcFontSize11}" Content="{Binding CountLabel}" />
+        </Grid>
+      </Expander.Header>
+      <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding Slots}">
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Expander>
+  </views:SpaciousPanel>
 </DataTemplate>
 
 <DataTemplate x:Key="MemoryCoverageTooltipTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
@@ -156,22 +158,24 @@
 </DataTemplate>
 
 <DataTemplate x:Key="MemoryCoverageGroupTemplate" DataType="vm:MemoryCoverageGroupViewModel">
-  <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
-    <Expander.Header>
-      <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-        <StackPanel Spacing="{DynamicResource NfcSpace2}">
-          <TextBlock Classes="panelTitle" Text="{Binding Title}" />
-          <TextBlock Classes="captionText" Text="{Binding ChangeSummary}" TextWrapping="Wrap" />
-        </StackPanel>
-        <Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge" Content="{Binding CountLabel}" />
-      </Grid>
-    </Expander.Header>
-    <ItemsControl
-        HorizontalAlignment="Stretch"
-        ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
-        ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}"
-        ItemsSource="{Binding Segments}" />
-  </Expander>
+  <views:SpaciousPanel Classes="compact">
+    <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+      <Expander.Header>
+        <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+          <StackPanel Spacing="{DynamicResource NfcSpace2}">
+            <TextBlock Classes="panelTitle" Text="{Binding Title}" />
+            <TextBlock Classes="captionText" Text="{Binding ChangeSummary}" TextWrapping="Wrap" />
+          </StackPanel>
+          <Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge" Content="{Binding CountLabel}" />
+        </Grid>
+      </Expander.Header>
+      <ItemsControl
+          HorizontalAlignment="Stretch"
+          ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+          ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}"
+          ItemsSource="{Binding Segments}" />
+    </Expander>
+  </views:SpaciousPanel>
 </DataTemplate>
 
 <DataTemplate x:Key="ReplaceMemoryMapRowTemplate" DataType="vm:MemoryMapRowViewModel">
