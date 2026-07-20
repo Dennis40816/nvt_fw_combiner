@@ -6,6 +6,15 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    /// <summary>Verifies immutable language bundles are reused instead of rebuilt by each shell projection.</summary>
+    [Theory]
+    [InlineData(ShellLanguage.English)]
+    [InlineData(ShellLanguage.ChineseTraditional)]
+    public void LocalizedShellBundlesAreCached(ShellLanguage language)
+    {
+        Assert.Same(ShellTextResources.For(language), ShellTextResources.For(language));
+    }
+
     /// <summary>Verifies hexadecimal viewport labels follow the selected shell language.</summary>
     [Fact]
     public void HexEditorLabelsAreLocalized()
