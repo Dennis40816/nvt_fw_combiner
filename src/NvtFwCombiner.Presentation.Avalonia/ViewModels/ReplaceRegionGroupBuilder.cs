@@ -13,7 +13,7 @@ internal static class ReplaceRegionGroupBuilder
                 FirmwareSlotViewModel[] groupSlots = [.. group.OrderBy(slot => slot.Title, StringComparer.Ordinal)];
                 return new FirmwareSlotGroupViewModel(
                     RegionGroupTitle(group.Key),
-                    SlotGroupSummary(group.Key, groupSlots.Length),
+                    SlotGroupSummary(group.Key, groupSlots),
                     groupSlots,
                     RegionGroupDefaultExpanded(group.Key));
             });
@@ -42,7 +42,7 @@ internal static class ReplaceRegionGroupBuilder
         return label switch
         {
             string value when value.Contains("(Shared)", StringComparison.OrdinalIgnoreCase) =>
-                ReplaceRegionGroupKeys.Shared,
+                ReplaceRegionGroupKeys.Common,
             string value when value.Contains("(Master)", StringComparison.OrdinalIgnoreCase) =>
                 ReplaceRegionGroupKeys.Master,
             string value when value.Contains("(Slave R)", StringComparison.OrdinalIgnoreCase) =>
@@ -53,7 +53,7 @@ internal static class ReplaceRegionGroupBuilder
                               value.Contains("Preserve", StringComparison.OrdinalIgnoreCase) ||
                               value.Contains("Restored", StringComparison.OrdinalIgnoreCase) =>
                 ReplaceRegionGroupKeys.Base,
-            _ => ReplaceRegionGroupKeys.Single,
+            _ => ReplaceRegionGroupKeys.Common,
         };
     }
 
@@ -61,42 +61,42 @@ internal static class ReplaceRegionGroupBuilder
     {
         return key switch
         {
-            ReplaceRegionGroupKeys.Shared => 0,
+            ReplaceRegionGroupKeys.Common => 0,
             ReplaceRegionGroupKeys.Master => 1,
             ReplaceRegionGroupKeys.SlaveRight => 2,
             ReplaceRegionGroupKeys.SlaveLeft => 3,
-            ReplaceRegionGroupKeys.Single => 4,
-            ReplaceRegionGroupKeys.Base => 5,
-            _ => 6,
+            ReplaceRegionGroupKeys.Base => 4,
+            _ => 5,
         };
     }
 
     private static bool RegionGroupDefaultExpanded(string key)
     {
-        return key is ReplaceRegionGroupKeys.Shared or ReplaceRegionGroupKeys.Master or ReplaceRegionGroupKeys.Single;
+        return key is ReplaceRegionGroupKeys.Common or ReplaceRegionGroupKeys.Master;
     }
 
     private static string RegionGroupTitle(string key)
     {
         return key switch
         {
-            ReplaceRegionGroupKeys.Shared => "Shared inputs",
+            ReplaceRegionGroupKeys.Common => "Common",
             ReplaceRegionGroupKeys.Master => "Master",
             ReplaceRegionGroupKeys.SlaveRight => "Slave R",
             ReplaceRegionGroupKeys.SlaveLeft => "Slave L",
-            ReplaceRegionGroupKeys.Base => "Base firmware",
-            ReplaceRegionGroupKeys.Single => "Single IC",
+            ReplaceRegionGroupKeys.Base => "Base firmware (FlashCode / TP FW)",
             _ => "Other",
         };
     }
 
-    private static string SlotGroupSummary(string key, int count)
+    private static string SlotGroupSummary(string key, FirmwareSlotViewModel[] slots)
     {
         return key switch
         {
             ReplaceRegionGroupKeys.Base => "Original firmware used as the starting point.",
-            ReplaceRegionGroupKeys.Shared => $"{count} physical input files reused by the approved Postbuild.",
-            _ => $"{count} replaceable areas. Add files only for areas you want to change.",
+            ReplaceRegionGroupKeys.Common when slots.Any(slot =>
+                slot.Title.Contains("(Shared)", StringComparison.OrdinalIgnoreCase)) =>
+                $"{slots.Length} physical input files reused by the approved Postbuild.",
+            _ => $"{slots.Length} replaceable areas. Add files only for areas you want to change.",
         };
     }
 

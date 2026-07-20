@@ -31,9 +31,16 @@ public sealed partial class ShellTextResources
 
     public string GetReplaceBaseTitle(string mode)
     {
-        return mode == WorkbenchReplaceModes.Dp
-            ? "Reference FlashCode"
-            : SelectLanguage("Reference firmware", "參考韌體");
+        return mode switch
+        {
+            WorkbenchReplaceModes.CtrlRam => SelectLanguage(
+                "Base firmware (FlashCode / TP FW)",
+                "基底韌體 (FlashCode / TP FW)"),
+            WorkbenchReplaceModes.Dp or WorkbenchReplaceModes.General => SelectLanguage(
+                "Base firmware (FlashCode)",
+                "基底韌體 (FlashCode)"),
+            _ => SelectLanguage("Base firmware", "基底韌體"),
+        };
     }
 
     public string GetReplaceBaseDescription(string mode, string? dpReferenceCapacityLabel)

@@ -34,7 +34,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.IsSelectedReplaceModeGoldenVerified);
         Assert.Equal("Golden verified", viewModel.SelectedReplaceModeEvidenceLabel);
-        Assert.Equal("Reference FlashCode", viewModel.ReplaceBaseSlot.Title);
+        Assert.Equal("Base firmware (FlashCode)", viewModel.ReplaceBaseSlot.Title);
         Assert.Contains("Standard/Normal Merge FlashCode", viewModel.ReplaceBaseSlot.Description, StringComparison.Ordinal);
 
         viewModel.SelectedIc = "NT51932";
