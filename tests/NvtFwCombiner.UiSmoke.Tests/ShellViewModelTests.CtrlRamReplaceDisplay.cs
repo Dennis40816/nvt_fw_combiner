@@ -99,7 +99,7 @@ public sealed partial class ShellViewModelTests
             });
     }
 
-    /// <summary>Verifies topology-neutral NT51950 inputs use Common and DiffDLM remains cascade-only.</summary>
+    /// <summary>Verifies topology-neutral NT51950 inputs use Common while DiffDLM belongs to Cascade.</summary>
     [Fact]
     public void Nt51950DiffDlmUsesCommonOnlyForCascade()
     {
@@ -108,14 +108,37 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = "cascade";
         OpenReplace(viewModel, "CtrlRAM");
 
-        FirmwareSlotGroupViewModel common = Assert.Single(viewModel.ReplaceSlotGroups);
-        Assert.Equal("Common", common.Title);
-        Assert.Contains(common.Slots, slot => slot.Title == "DIFF CtrlRAM");
+        Assert.Equal(["Cascade", "Common"], viewModel.ReplaceSlotGroups.Select(group => group.Title));
+        FirmwareSlotGroupViewModel cascade = viewModel.ReplaceSlotGroups[0];
+        FirmwareSlotGroupViewModel common = viewModel.ReplaceSlotGroups[1];
+        Assert.Contains(cascade.Slots, slot => slot.Title == "DIFF CtrlRAM");
+        Assert.DoesNotContain(common.Slots, slot => slot.Title == "DIFF CtrlRAM");
+        Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
+            group.Title == "Cascade" &&
+            group.Segments.Any(segment => segment.SourceLabel == "DIFF CtrlRAM"));
         Assert.DoesNotContain(viewModel.ReplaceSlotGroups, group => group.Title == "Single IC");
 
         viewModel.SelectedNumber = "single";
 
         Assert.DoesNotContain(viewModel.ReplaceSlots, slot => slot.Title == "DIFF CtrlRAM");
+        Assert.Equal("Common", Assert.Single(viewModel.ReplaceSlotGroups).Title);
+    }
+
+    /// <summary>Verifies NT51926 keeps DiffDLM in a dedicated cascade group.</summary>
+    [Fact]
+    public void Nt51926DiffDlmBelongsToCascade()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        viewModel.SelectedNumber = "cascade";
+        OpenReplace(viewModel, "CtrlRAM");
+
+        Assert.Equal(["Cascade", "Common"], viewModel.ReplaceSlotGroups.Select(group => group.Title));
+        Assert.Contains(viewModel.ReplaceSlotGroups[0].Slots, slot => slot.SlotId == "replace-ctrlram-diff");
+        Assert.DoesNotContain(viewModel.ReplaceSlotGroups[1].Slots, slot => slot.SlotId == "replace-ctrlram-diff");
+        Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
+            group.Title == "Cascade" &&
+            group.Segments.Any(segment => segment.SourceLabel == "DIFF CtrlRAM"));
     }
 
     /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes physical shared and per-chip inputs.</summary>

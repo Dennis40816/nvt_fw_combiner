@@ -57,10 +57,12 @@
       </Border>
 
       <ScrollViewer Grid.Row="2" IsVisible="{Binding HasReportHistory}">
-        <views:SpaciousPanel Classes="compact" ItemsSource="{Binding ReportHistoryEntries}">
-          <views:SpaciousPanel.ItemTemplate>
-            <StaticResource ResourceKey="ReportHistoryEntryTemplate" />
-          </views:SpaciousPanel.ItemTemplate>
+        <views:SpaciousPanel Classes="compact">
+          <ItemsControl Classes="spaciousList" ItemsSource="{Binding ReportHistoryEntries}">
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="ReportHistoryEntryTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </views:SpaciousPanel>
       </ScrollViewer>
     </Grid>
