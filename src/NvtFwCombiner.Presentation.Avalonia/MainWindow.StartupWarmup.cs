@@ -35,10 +35,6 @@ public sealed partial class MainWindow
         MainWindowViewModel viewModel,
         CancellationToken cancellationToken)
     {
-        await RunWarmupStepAsync(
-            viewModel.WarmDeferredShellState,
-            "startup-warmup.viewmodel.ready",
-            cancellationToken);
         await WarmContentAsync(
             DeviceContextHost,
             viewModel,

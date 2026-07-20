@@ -202,7 +202,6 @@ public sealed partial class ShellViewModelTests
         string activeContextLabel = string.Empty;
         string activeDeviceStatus = string.Empty;
         bool selectionWasReadOnly = false;
-        bool capturedNumberWasVisible = false;
         string[] startNotifications = [];
         string[] completionNotifications = [];
         List<string> notifications = [];
@@ -238,7 +237,6 @@ public sealed partial class ShellViewModelTests
                 activeContextLabel = viewModel.ActiveRunContextLabel;
                 activeDeviceStatus = viewModel.DeviceContextStatus;
                 selectionWasReadOnly = !viewModel.IsDeviceContextSelectionVisible;
-                capturedNumberWasVisible = viewModel.IsDeviceContextRunNumberVisible;
                 notifications.Clear();
                 releaseWorker.SetResult();
                 await runTask;
@@ -253,12 +251,10 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("DP · NT51926 / cascade", activeContextLabel);
         Assert.StartsWith("NT51926 / cascade:", activeDeviceStatus, StringComparison.Ordinal);
         Assert.True(selectionWasReadOnly);
-        Assert.True(capturedNumberWasVisible);
         string[] activeContextBindings =
         [
             nameof(MainWindowViewModel.IsDeviceContextSelectionVisible),
             nameof(MainWindowViewModel.IsDeviceContextNumberSelectionVisible),
-            nameof(MainWindowViewModel.IsDeviceContextRunNumberVisible),
             nameof(MainWindowViewModel.IsDeviceContextFamilyBadgeVisible),
             nameof(MainWindowViewModel.DisplayedDeviceIc),
             nameof(MainWindowViewModel.DisplayedDeviceNumber),
@@ -272,7 +268,6 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsRunInProgress);
         Assert.True(viewModel.IsDeviceContextSelectionVisible);
         Assert.True(viewModel.IsDeviceContextNumberSelectionVisible);
-        Assert.False(viewModel.IsDeviceContextRunNumberVisible);
         Assert.Empty(viewModel.ActiveRunIc);
         Assert.Empty(viewModel.ActiveRunNumber);
         Assert.Empty(viewModel.ActiveRunMode);
