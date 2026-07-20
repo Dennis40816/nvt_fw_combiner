@@ -200,6 +200,7 @@
 <DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:MainWindowViewModel">
   <Border Classes="panelSurface">
     <views:SpaciousPanel>
+      <StackPanel Spacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="{DynamicResource NfcSpace8}">
         <StackPanel Spacing="3">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
@@ -220,25 +221,12 @@
         </ItemsControl>
       </Border>
 
-      <views:SpaciousPanel
-          Classes="compact"
-          ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}"
-          ItemsSource="{Binding ReplaceCoverageSegments}"
+      <ItemsControl Classes="spaciousList" ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}"
           IsVisible="{Binding IsReplaceCoverageFlat}" />
 
-      <views:SpaciousPanel
-          Classes="compact"
-          HorizontalAlignment="Stretch"
-          ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
-          ItemTemplate="{StaticResource MemoryCoverageGroupTemplate}"
-          ItemsSource="{Binding ReplaceCoverageGroups}"
-          IsVisible="{Binding IsReplaceCoverageGrouped}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <StackPanel Spacing="{DynamicResource NfcSpace12}" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-      </ItemsControl>
+      <ItemsControl Classes="spaciousList" HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+          ItemTemplate="{StaticResource MemoryCoverageGroupTemplate}" ItemsSource="{Binding ReplaceCoverageGroups}"
+          IsVisible="{Binding IsReplaceCoverageGrouped}" />
 
       <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
       <ItemsControl ItemTemplate="{StaticResource ReplaceMemoryMapRowTemplate}" ItemsSource="{Binding ReplaceMemoryRows}" />
@@ -248,6 +236,7 @@
                    Text="{Binding ReplaceReadinessStatus}"
                    TextWrapping="Wrap" />
       </Border>
+      </StackPanel>
     </views:SpaciousPanel>
   </Border>
 </DataTemplate>
@@ -255,6 +244,7 @@
 <DataTemplate x:Key="MergeOutputLayoutPanelTemplate" DataType="vm:MainWindowViewModel">
   <Border Classes="panelSurface">
     <views:SpaciousPanel>
+      <StackPanel Spacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="{DynamicResource NfcSpace8}">
         <StackPanel Spacing="3">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
@@ -279,6 +269,7 @@
 
       <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
       <ItemsControl ItemTemplate="{StaticResource MergeMemoryMapRowTemplate}" ItemsSource="{Binding MergeMemoryRows}" />
+      </StackPanel>
     </views:SpaciousPanel>
   </Border>
 </DataTemplate>
