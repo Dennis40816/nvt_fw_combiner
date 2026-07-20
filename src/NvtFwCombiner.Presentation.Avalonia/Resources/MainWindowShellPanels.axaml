@@ -96,7 +96,7 @@
               Classes="technicalSelect"
               Width="132"
               AutomationProperties.Name="{Binding Text.NumberLabel}"
-              IsVisible="{Binding IsDeviceContextNumberSelectionVisible}"
+              IsVisible="{Binding IsDeviceContextSelectionVisible}"
               ItemsSource="{Binding NumberSelectionChoices}"
               SelectedItem="{Binding SelectedNumberChoice, Mode=TwoWay}">
             <ComboBox.ItemTemplate>

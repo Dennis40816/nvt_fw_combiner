@@ -122,6 +122,8 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
+        Assert.False(viewModel.IsNumberSelectorVisible);
+        Assert.True(viewModel.IsDeviceContextSelectionVisible);
         viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
 
         Assert.True(viewModel.IsWorkflowContextModalOpen);
@@ -133,8 +135,12 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(viewModel.IsWorkflowContextModalOpen);
         Assert.True(viewModel.IsReplaceVisible);
+        Assert.True(viewModel.IsNumberSelectorVisible);
+        Assert.True(viewModel.IsDeviceContextSelectionVisible);
+        Assert.NotEmpty(viewModel.NumberSelectionChoices);
         Assert.Equal("NT51927", viewModel.SelectedIc);
         Assert.Equal("3", viewModel.SelectedNumber);
+        Assert.Equal("3", viewModel.SelectedNumberChoice?.Token);
 
         viewModel.ShowHomeCommand.Execute(null);
         viewModel.BeginNormalMergeFromHomeCommand.Execute(null);

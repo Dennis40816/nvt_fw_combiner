@@ -20,7 +20,7 @@ public sealed partial class XamlControlStyleContractTests
             "{Binding SelectedNumberChoice, Mode=TwoWay}",
             contextSelector.Attribute("SelectedItem")?.Value);
         Assert.Equal(
-            "{Binding IsDeviceContextNumberSelectionVisible}",
+            "{Binding IsDeviceContextSelectionVisible}",
             contextSelector.Attribute("IsVisible")?.Value);
 
         XElement activeRunNumber = Assert.Single(
