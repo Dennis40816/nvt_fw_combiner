@@ -13,7 +13,12 @@ public sealed partial class MainWindow
             return;
         }
 
-        await viewModel.RefreshAllSelectedFirmwareInspectionsAsync();
+        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+        if (!viewModel.CanBuildMerge)
+        {
+            return;
+        }
+
         string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
             StorageProvider,
             viewModel.MergeOutputFileName);
@@ -32,7 +37,12 @@ public sealed partial class MainWindow
             return;
         }
 
-        await viewModel.RefreshAllSelectedFirmwareInspectionsAsync();
+        await viewModel.RefreshSelectedReplaceFirmwareInspectionsAsync();
+        if (!viewModel.CanBuildReplace)
+        {
+            return;
+        }
+
         if (viewModel.IsCtrlRamReplaceModeSelected)
         {
             _ = await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync();

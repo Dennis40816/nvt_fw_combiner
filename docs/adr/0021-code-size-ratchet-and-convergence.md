@@ -30,7 +30,7 @@ removed budget. New partial aggregates may not exceed 2,500 lines.
 
 ### v0.9.10 owner amendment
 
-Owner decision, 2026-07-19: `v0.9.10` uses 60,000 nonblank production C#/AXAML
+Owner decision, 2026-07-19: `v0.9.10` initially used 60,000 nonblank production C#/AXAML
 lines as a hard ceiling rather than an exact descending total-source ratchet.
 Measured reductions below 60,000 do not require lowering that ceiling during
 the performance release. The stable-reconciled candidate at `6f3698dd` measures
@@ -39,13 +39,22 @@ ratchets at 4,405 lines for `WorkbenchCompositionService` and 4,069 lines for
 `MainWindowViewModel`; the exact duplicate-JSON ratchet is 1,055 lines, and the
 general 2,500-line partial ceiling also remains in force.
 
+Owner amendment, 2026-07-20: release-blocking exact-head review fixes for
+same-path firmware identity, final save-dialog revalidation, and workflow-scoped
+inspection bring the reviewed tree to 60,042 production lines and 4,177 lines
+for `MainWindowViewModel`. The owner explicitly prioritized the correctness fix
+over the earlier source target. The temporary total ceiling is therefore
+60,100, while the named exact ratchets are 4,419 for
+`WorkbenchCompositionService` and 4,177 for `MainWindowViewModel`. This does not
+relax the 1,055 duplicate-JSON or general 2,500-line partial gates.
+
 The exception is time-bounded. `v0.9.10` added measured progress,
 accessibility, report/Hex Diff, cancellation, persistence, inspection, and
 performance evidence while preserving firmware semantics. A dedicated
 code-size convergence phase starts only after `v0.9.11`; it will establish a
 new measured baseline and lower descending ratchets instead of treating unused
-space below 60,000 as a permanent budget. The final reviewed `v0.9.10` tree must
-remain at or below 60,000 and must not exceed either named partial ratchet.
+space below 60,100 as a permanent budget. The final reviewed `v0.9.10` tree must
+remain at or below 60,100 and must not exceed either named partial ratchet.
 
 This is a convergence control, not permission to delete safety. Tests, golden
 vectors, evidence manifests, documentation, firmware-owner gates, and useful

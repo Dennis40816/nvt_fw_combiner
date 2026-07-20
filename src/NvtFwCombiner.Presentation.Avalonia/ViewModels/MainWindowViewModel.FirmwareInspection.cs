@@ -295,34 +295,64 @@ public sealed partial class MainWindowViewModel
         return false;
     }
 
+    internal Task RefreshSelectedMergeFirmwareInspectionsAsync()
+    {
+        return RefreshSelectedFirmwareInspectionsAsync(MergeSlots, includeEverySelectedSlot: true);
+    }
+
+    internal Task RefreshSelectedReplaceFirmwareInspectionsAsync()
+    {
+        return RefreshSelectedFirmwareInspectionsAsync(
+            ReplaceSlots.Concat([ReplaceBaseSlot]),
+            includeEverySelectedSlot: true);
+    }
+
     internal Task RefreshAllSelectedFirmwareInspectionsAsync(string? applyVerifiedContextSlotId = null)
     {
-        var slots = new Dictionary<string, FirmwareSlotViewModel>(StringComparer.Ordinal);
-        foreach (FirmwareSlotViewModel slot in MergeSlots.Concat(ReplaceSlots).Concat([ReplaceBaseSlot]))
-        {
-            if (slot.HasFile &&
-                (SlotSupportsFirmwareFacts(slot) ||
+        return RefreshSelectedFirmwareInspectionsAsync(
+            MergeSlots.Concat(ReplaceSlots).Concat([ReplaceBaseSlot]),
+            includeEverySelectedSlot: false,
+            applyVerifiedContextSlotId);
+    }
+
+    private Task RefreshSelectedFirmwareInspectionsAsync(
+        IEnumerable<FirmwareSlotViewModel> candidateSlots,
+        bool includeEverySelectedSlot,
+        string? applyVerifiedContextSlotId = null)
+    {
+        var slots = candidateSlots
+            .Where(slot => slot.HasFile &&
+                (includeEverySelectedSlot ||
+                    SlotSupportsFirmwareFacts(slot) ||
                     string.Equals(slot.SlotId, applyVerifiedContextSlotId, StringComparison.Ordinal)))
-            {
-                slots[slot.SlotId] = slot;
-            }
-        }
+            .DistinctBy(static slot => slot.SlotId, StringComparer.Ordinal)
+            .ToDictionary(static slot => slot.SlotId, StringComparer.Ordinal);
 
         IReadOnlyList<FirmwareInspectionItemRequest> items =
         [
-            .. slots.Values.Select(slot => CreateFirmwareInspectionItem(
-                slot,
-                publishFacts: SlotSupportsFirmwareFacts(slot),
-                promptForMismatch: string.Equals(
+            .. slots.Values.Select(slot =>
+            {
+                bool applyVerified = string.Equals(
                     slot.SlotId,
                     applyVerifiedContextSlotId,
-                    StringComparison.Ordinal),
-                applyVerifiedContext: string.Equals(
-                    slot.SlotId,
-                    applyVerifiedContextSlotId,
-                    StringComparison.Ordinal) &&
-                    slot.SlotKind is FirmwareSlotKind.Tp or FirmwareSlotKind.Base)),
+                    StringComparison.Ordinal);
+                return CreateFirmwareInspectionItem(
+                    slot,
+                    SlotSupportsFirmwareFacts(slot),
+                    applyVerified,
+                    applyVerified && slot.SlotKind is FirmwareSlotKind.Tp or FirmwareSlotKind.Base);
+            }),
         ];
+        foreach (FirmwareSlotViewModel slot in slots.Values)
+        {
+            _ = _firmwareFileProjections.Remove(slot.SlotId);
+        }
+
+        _baseFirmwareInspectionCache = slots.ContainsKey(ReplaceBaseSlotId)
+            ? null
+            : _baseFirmwareInspectionCache;
+
+        NotifySlotFileOutputNames();
         return FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, CancellationToken.None);
     }
 

@@ -28,6 +28,15 @@ public sealed partial class CtrlRamFirmwareVersionModal : UserControl
             return;
         }
 
+        await viewModel.RefreshSelectedReplaceFirmwareInspectionsAsync();
+        if (!viewModel.CanBuildReplace ||
+            !viewModel.IsCtrlRamReplaceModeSelected ||
+            !await viewModel.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync())
+        {
+            viewModel.CloseCtrlRamFirmwareVersionModal();
+            return;
+        }
+
         string? outputPath = await FirmwareFilePickerDialogs.PickReplacedFirmwareOutputPathAsync(
             storageProvider,
             viewModel.ReplaceOutputFileName);
@@ -36,7 +45,8 @@ public sealed partial class CtrlRamFirmwareVersionModal : UserControl
             return;
         }
 
-        if (!await viewModel.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync())
+        if (!viewModel.CanBuildReplace ||
+            !await viewModel.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync())
         {
             viewModel.CloseCtrlRamFirmwareVersionModal();
             return;
