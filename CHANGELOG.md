@@ -4,7 +4,32 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Changes after `0.9.10` will be documented here.
+Changes after `0.9.11` will be documented here.
+
+## [0.9.11] - 2026-07-21
+
+### Added
+
+- Profile-driven DP Replace authoring for every declared selectable IC, including the distinct NT51928 non-NB LDC FlashCode input. Authoring availability does not promote an IC/workflow to production support without its existing golden and firmware-owner gates.
+- Opt-in startup traces with per-stage cumulative managed-allocation traffic, first-frame synchronous UI intervals, bounded background page-materialization intervals, and process working-set observations.
+- Post-first-frame warm-up for immutable catalogs and the common Device Context, Replace, Merge, Settings, and Hex Editor visual trees without navigation, user-file reads, processor execution, profile mutation, or Build authority.
+
+### Changed
+
+- Reconstructed the release candidate from the exact final `v0.9.10` predecessor and retained its output-publication, immutable-input, CtrlRAM postbuild, report-delivery, firmware-identity, Build-completion, package-authority, stale-search, and final Changes behavior.
+- IC Number remains a choice selector after Home navigation and warm-up. CtrlRAM inputs and Memory layout use profile-projected Common/Cascade or Common/Master/Slave topology groups rather than assigning DiffDLM to a generic single-IC group.
+- Replace spacing is owned by the reusable `SpaciousPanel` default; nested input/group sections retain deliberate padding. The Build action stays in a fixed bottom-right rail with restrained hover/pressed/focus states, no tooltip interception, reduced-motion behavior, and no Memory layout occlusion.
+- The Windows package remains self-contained and untrimmed while using compressed composite ReadyToRun. The measured candidate main EXE is 69,990,762 bytes and the complete ZIP is 75,358,293 bytes, both below the owner-approved 80,000,000-byte ceilings.
+
+### Security
+
+- No firmware range, operation order, CRC/header algorithm, processor authority, support stage, report schema, or runtime dependency is changed by the startup, package, and spatial UI work.
+- The shared Raw Hex Editor/Change Report Hex viewport and redesigned range-only Changes workspace remain deferred to `0.9.12`.
+
+### Notes
+
+- On the recorded Windows machine, one warm-up plus five packaged Home launches measured a 908.146 ms process-to-window median. The one-second goal passes; the aspirational 0.8-second target does not and is not a universal claim.
+- Clean Windows x64 execution without separately installed .NET/Python, accessibility/visual review, firmware-owner gates, protected CI, final reviewed-main packaging, signing, and immutable release publication remain release gates.
 
 ## [0.9.10] - 2026-07-20
 

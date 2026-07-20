@@ -1,8 +1,46 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.10 performance-remediation stable release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.11 reconstructed stabilization release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.10`
+Specification package version: `0.9.11`
+
+## 0.9.11 reconstructed stabilization release candidate
+
+The candidate is reconstructed from the exact final `v0.9.10` predecessor
+`b0266f312a67d644475731153b1af82f7eadcc95`; the premature integration lineage
+is not release authority. Reconciliation retained the nine effective
+`v0.9.10` behavior groups recorded in
+`docs/governance/v0.9.11-baseline-reconstruction.md` and reapplied only the
+reviewed DP/LDC authoring, startup/package, IC Number, topology-group, spacing,
+and Build-rail intent.
+
+The exact M3 package application commit is
+`b73f8876ad3af41ec792141a929b866c59df4462`. Its self-contained compressed
+composite-ReadyToRun EXE is 69,990,762 bytes with SHA-256
+`bf5f7e3e5d035e9a1cd2dbeff85cb0d137aa20ca1a8270304c4f147d71fd707e`;
+the 75,358,293-byte ZIP SHA-256 is
+`36d18b6e03a6569b744187ab924f48860ce424103c12e649c618136dd520587a`.
+Visible release smoke and the closed package/external-tool policy gates passed.
+
+One warm-up plus five exact-package Home launches measured a 908.146 ms
+process-to-window median (901.461 ms minimum, 932.563 ms maximum). The recorded
+first-frame synchronous UI median is 412.455 ms; background UI materialization
+totals 53.388 ms with a 25.528 ms longest interval. Median working set is
+220,708,864 bytes when the Home window appears and 286,752,768 bytes after
+warm-up. The largest synchronous Home interval is root DataContext assignment,
+which causes the visible template to instantiate and bind: 276.016 ms and
+33,824,392 cumulative allocated bytes. No firmware/profile/user-file/processor
+I/O occurs in that interval. These are same-machine observations, not universal
+wall-clock or live-managed-heap claims.
+
+UI Smoke `271/271`, Architecture `99/99`, release package policy `14/14`,
+external-tool policy dry run, package construction, and visible package smoke
+passed during M3. A clean short-path detached worktree at `c58711ce` passed
+`python scripts/verify.py --structure-only`, including Polytail fast checks.
+The final exact candidate still requires `python scripts/verify.py --all`,
+independent R2/R3 and owner review, protected CI, reviewed-main packaging, clean
+Windows x64 execution without separately installed .NET/Python,
+accessibility/visual review, signing, and immutable release publication.
 
 ## 0.9.10 performance-remediation stable release candidate
 
