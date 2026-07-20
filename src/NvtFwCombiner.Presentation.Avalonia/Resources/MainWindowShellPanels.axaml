@@ -92,6 +92,7 @@
             Grid.Column="1"
             Classes="technicalSelect"
             Width="132"
+            AutomationProperties.Name="{Binding Text.NumberLabel}"
             IsVisible="{Binding IsDeviceContextNumberSelectionVisible}"
             ItemsSource="{Binding NumberSelectionChoices}"
             SelectedItem="{Binding SelectedNumberChoice, Mode=TwoWay}">
@@ -106,8 +107,9 @@
             Grid.Column="1"
             Classes="technicalCenteredInput"
             Width="132"
+            AutomationProperties.Name="{Binding Text.NumberLabel}"
             IsReadOnly="True"
-            IsVisible="{Binding IsActiveRunNumberVisible}"
+            IsVisible="{Binding IsDeviceContextRunNumberVisible}"
             Text="{Binding ActiveRunNumber}" />
         <StackPanel
             Grid.Row="1"
