@@ -71,7 +71,7 @@ function New-UiThreadWorkInterval {
         throw "Startup trace UI-thread interval '$Name' has reversed stages."
     }
 
-    return [ordered]@{
+    return [pscustomobject][ordered]@{
         name = $Name
         startStage = $StartStage
         endStage = $EndStage

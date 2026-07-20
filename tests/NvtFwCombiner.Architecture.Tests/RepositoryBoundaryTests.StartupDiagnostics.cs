@@ -38,6 +38,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("firstFrameUiSynchronousWorkMilliseconds", runner, StringComparison.Ordinal);
         Assert.Contains("backgroundUiMaterializationMilliseconds", runner, StringComparison.Ordinal);
         Assert.Contains("nfc-startup-measurement-v2", runner, StringComparison.Ordinal);
+        Assert.Contains("return [pscustomobject][ordered]@{", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("dotnet tool", runner, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Invoke-WebRequest", runner, StringComparison.OrdinalIgnoreCase);
     }
