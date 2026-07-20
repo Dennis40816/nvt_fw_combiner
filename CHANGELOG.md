@@ -31,9 +31,9 @@ Changes after `0.9.10` will be documented here.
 ### Notes
 
 - Stable Node B is protected-main `v0.9.9` commit `32c37e25`; optimized production Node C is `6f3698dd`. The exact NT51926 two-command output and 10,000-difference report/JSON hashes remain identical across the comparison.
-- The final version-branch integration is `e968a310`; subsequent reviewed UAT, safety, release-manifest, and progress fixes preserve the Node B/C performance authority without redefining its measured samples.
+- PR #150's runtime integration baseline is `e968a310`; subsequent reviewed UAT, safety, release-manifest, progress, and release-review fixes remain part of the current `0.9.10` branch without redefining the Node B/C measured samples.
 - The small physical two-command fresh-testhost case was slightly slower on Node C, so v0.9.10 claims deterministic execution/read/allocation reduction, not a Legacy Combiner wall-clock improvement for that case.
-- The exact integration tree contains 59,993 nonblank production C#/AXAML lines under the owner-approved hard maximum of 60,000; code size is a maintainability gate, not the release performance KPI.
+- The exact review-fix tree contains 60,050 nonblank production C#/AXAML lines under the owner-approved temporary maximum of 60,100; the 50-line increase above the earlier ceiling retains same-path firmware identity, coverage fallback, and final save-dialog revalidation. Code size is a maintainability gate, not the release performance KPI.
 - The repository remains Public through `0.9.11` by owner decision on 2026-07-20 and is scheduled to become Private after that milestone completes.
 
 ## [0.9.9] - 2026-07-19
