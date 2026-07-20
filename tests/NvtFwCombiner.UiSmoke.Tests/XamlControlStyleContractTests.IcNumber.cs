@@ -29,9 +29,13 @@ public sealed partial class XamlControlStyleContractTests
                 element.Name.LocalName == "TextBox" &&
                 element.Attribute("Text")?.Value == "{Binding ActiveRunNumber}");
         Assert.Equal("True", activeRunNumber.Attribute("IsReadOnly")?.Value);
+        Assert.Equal("{Binding IsRunInProgress}", activeRunNumber.Attribute("IsVisible")?.Value);
+        XElement numberPresenter = Assert.IsType<XElement>(activeRunNumber.Parent);
+        Assert.Same(numberPresenter, contextSelector.Parent);
+        Assert.Equal("Grid", numberPresenter.Name.LocalName);
         Assert.Equal(
-            "{Binding IsDeviceContextRunNumberVisible}",
-            activeRunNumber.Attribute("IsVisible")?.Value);
+            "{Binding IsNumberSelectorVisible}",
+            numberPresenter.Attribute("IsVisible")?.Value);
 
         XElement setupSelector = Assert.Single(
             setupModal.Descendants(),
