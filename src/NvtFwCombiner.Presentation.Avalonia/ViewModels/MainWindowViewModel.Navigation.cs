@@ -35,6 +35,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>True when the mutable IC Number selection control may be shown.</summary>
     public bool IsDeviceContextNumberSelectionVisible => IsNumberSelectorVisible && !IsRunInProgress;
 
+    /// <summary>True when the immutable IC Number captured for the active run may be shown.</summary>
+    public bool IsDeviceContextRunNumberVisible => IsNumberSelectorVisible && IsRunInProgress;
+
     /// <summary>True when the selected-family badge describes the visible mutable context.</summary>
     public bool IsDeviceContextFamilyBadgeVisible => !IsRunInProgress && HasSelectedIcFamily;
 
