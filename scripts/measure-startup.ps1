@@ -191,7 +191,13 @@ try {
 
     Write-Host "Startup measurement: $measurementPath"
     Write-Host "Process to window median: $($result.summary.processToWindowMilliseconds.median) ms"
-    Write-Host "Managed entry to opened median: $($stageSummaries[-1].elapsedMilliseconds.median) ms"
+    $openedStage = @($stageSummaries | Where-Object { $_.name -eq 'main-window.opened' })[0]
+    $warmupStage = @($stageSummaries | Where-Object { $_.name -eq 'startup-warmup.completed' })[0]
+    if ($null -eq $openedStage -or $null -eq $warmupStage) {
+        throw 'Startup measurement did not observe both first-frame and completed background warm-up stages.'
+    }
+    Write-Host "Managed entry to opened median: $($openedStage.elapsedMilliseconds.median) ms"
+    Write-Host "Managed entry to background warm-up median: $($warmupStage.elapsedMilliseconds.median) ms"
     $stageSummaries | ForEach-Object {
         [pscustomobject]@{
             Stage = $_.name

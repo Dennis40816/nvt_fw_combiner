@@ -38,4 +38,40 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("ApplyDeferredShellContent(viewModel);", codeBehind, StringComparison.Ordinal);
     }
+
+    /// <summary>Starts low-priority page warm-up only after the Home window is open.</summary>
+    [Fact]
+    public void MainWindowWarmsCommonPagesAfterFirstFrameWithoutLoadingModals()
+    {
+        string lifecycle = ReadPresentationFile("MainWindow.axaml.cs");
+        string warmup = ReadPresentationFile("MainWindow.StartupWarmup.cs");
+        string[] warmedHosts =
+        [
+            "DeviceContextHost",
+            "ReplacePageHost",
+            "MergePageHost",
+            "SettingsPageHost",
+            "HexEditorPageHost",
+        ];
+
+        Assert.True(
+            lifecycle.IndexOf("main-window.opened", StringComparison.Ordinal) <
+            lifecycle.IndexOf("PrimeDeferredCatalogs", StringComparison.Ordinal));
+        Assert.Contains("Task.Run(", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("DispatcherPriority.Background", warmup, StringComparison.Ordinal);
+        Assert.Contains("viewModel.WarmDeferredShellState", warmup, StringComparison.Ordinal);
+        Assert.Contains("host.ContentTemplate?.Build(dataContext)", warmup, StringComparison.Ordinal);
+        Assert.Contains("host.Content = content", warmup, StringComparison.Ordinal);
+        Assert.Contains("IsRunInProgress: true", warmup, StringComparison.Ordinal);
+        foreach (string hostName in warmedHosts)
+        {
+            Assert.Contains($"{hostName},", warmup, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("ReportModalHost,", warmup, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportToastHost,", warmup, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareIcMismatchModalHost,", warmup, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.", warmup, StringComparison.Ordinal);
+        Assert.DoesNotContain("Process.", warmup, StringComparison.Ordinal);
+    }
 }
