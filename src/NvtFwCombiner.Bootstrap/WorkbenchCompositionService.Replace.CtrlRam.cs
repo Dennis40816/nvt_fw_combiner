@@ -98,9 +98,7 @@ public static partial class WorkbenchCompositionService
 
         byte[] referenceBytes = context.BaseBytes;
         var referencePayload = new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, referenceBytes);
-        WorkbenchFirmwareContextSuggestion? firmware = firmwareVersionEdit is null
-            ? ReadFirmwareContextSuggestion(icId, referenceBytes)
-            : null;
+        WorkbenchFirmwareContextSuggestion? firmware = ReadFirmwareContextSuggestion(icId, referenceBytes);
         (string? v2ProfileId, string? requiredBaseSha256) = (
             context.PostbuildProfile!.IcId,
             context.PostbuildProfile!.ProcessorId,

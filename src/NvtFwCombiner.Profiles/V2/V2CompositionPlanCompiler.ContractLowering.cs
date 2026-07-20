@@ -21,7 +21,8 @@ internal static partial class V2CompositionPlanCompiler
         CompiledRegionAccessContract regionAccess,
         CompiledIcNumberPolicy icNumberPolicy,
         CompositionProfileMapAdmission? admission = null,
-        bool runtimeExecutable = false)
+        bool runtimeExecutable = false,
+        IEnumerable<CompiledValidationRequirement>? additionalValidationRequirements = null)
     {
         var provenance = new V2CompilationProvenance(
             selection.BundleIdentity,
@@ -31,7 +32,7 @@ internal static partial class V2CompositionPlanCompiler
                 MapPromotionStage(profile.Promotion.Stage),
                 profile.Promotion.Blockers.Select(MapPromotionBlocker)),
             profile.EvidenceRefs,
-            [],
+            additionalValidationRequirements ?? [],
             admission?.RequiredCapabilities.Select(static capability => new CompiledCapabilityAdmission(
                 capability.RequiredCapabilityId,
                 capability.Binding)) ?? []);

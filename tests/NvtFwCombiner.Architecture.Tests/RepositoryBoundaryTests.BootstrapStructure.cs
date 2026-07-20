@@ -149,6 +149,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string ctrlRamRuntime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
         string ctrlRamV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
+        string ctrlRamVersionAdapter = ReadText("src/NvtFwCombiner.Bootstrap/CtrlRamV2FirmwareVersionAdapter.cs");
         string generalRuntime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
         string generalV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.V2.cs");
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
@@ -251,7 +252,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("nt51950-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("nt51951-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"runtime-route\"", diagnosticProfile, StringComparison.Ordinal);
-        Assert.Contains("firmwareVersionEdit is null", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains(
+            "CtrlRamV2FirmwareVersionAdapter.Create(context.FirmwareVersionWritePlan)",
+            ctrlRamV2,
+            StringComparison.Ordinal);
+        Assert.Contains("V2RuntimeReferenceReplaceFirmwareVersionEdit", ctrlRamVersionAdapter, StringComparison.Ordinal);
+        Assert.Contains(
+            "new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings, firmwareVersionEdit)",
+            ctrlRamV2,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("PatchScalar", ctrlRamV2, StringComparison.Ordinal);
         Assert.Contains("ReadFirmwareContextSuggestion(icId, referenceBytes)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("context.PostbuildProfile!.IcId", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.DoesNotContain("string? v2ProfileId = (\n            icId,", ctrlRamRuntime, StringComparison.Ordinal);

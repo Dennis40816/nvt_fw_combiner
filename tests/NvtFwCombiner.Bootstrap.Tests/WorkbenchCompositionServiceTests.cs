@@ -52,6 +52,26 @@ public sealed class WorkbenchCompositionServiceTests
         }
     }
 
+    private sealed class InspectingExternalProcessor : IExternalProcessor
+    {
+        private readonly Func<ExternalProcessorRequest, ExternalProcessorResult> _transform;
+
+        internal InspectingExternalProcessor(Func<ExternalProcessorRequest, ExternalProcessorResult> transform)
+        {
+            _transform = transform;
+        }
+
+        internal int CallCount { get; private set; }
+
+        public ValueTask<ExternalProcessorResult> TransformAsync(
+            ExternalProcessorRequest request,
+            CancellationToken cancellationToken)
+        {
+            CallCount++;
+            return ValueTask.FromResult(_transform(request));
+        }
+    }
+
     /// <summary>Verifies Standard Merge extracts a sufficient nonstandard DP artifact and reports the size warning.</summary>
     [Fact]
     public async Task StandardMergePreviewWarnsButDoesNotBlockUnexpectedDpLength()
@@ -314,14 +334,14 @@ public sealed class WorkbenchCompositionServiceTests
             issue => issue.GetProperty("Code").GetString() == ReplaceCtrlRamPostbuildCategoryUnknown);
     }
 
-    /// <summary>
-    /// Firmware-version edits do not route through the retired V1 CtrlRAM compiler.
-    /// </summary>
+    /// <summary>TP-version edits execute as plan patches before V2 CtrlRAM postbuild and propagate to Backup.</summary>
     [Fact]
-    public async Task CtrlRamReplaceBuildWithFirmwareVersionEditFailsClosed()
+    public async Task CtrlRamReplaceBuildAppliesFirmwareVersionBeforePostbuild()
     {
+        const int firmwareConfigSourceStart = 0x22000;
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fw-version-edit");
-        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        byte[] baseBytes = ReadNt51926Fw200SingleReference();
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata originalBackup));
         string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
         string outputPath = workspace.PathFor("edited.bin");
@@ -330,29 +350,63 @@ public sealed class WorkbenchCompositionServiceTests
             ["replace-base"] = basePath,
             ["replace-ctrlram-normal"] = replacementPath,
         };
+        var processor = new InspectingExternalProcessor(request =>
+        {
+            ReadOnlySpan<byte> input = request.InputBytes.Span;
+            Assert.Equal(0x27, input[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionOffset]);
+            Assert.Equal(0xD8, input[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionBarOffset]);
+            Assert.Equal(0x04, input[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareSubVersionOffset]);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            byte[] output = request.InputBytes.ToArray();
+            int backupStart = checked((int)originalBackup.FirmwareConfigStart);
+            output[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = 0x27;
+            output[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = 0xD8;
+            output[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = 0x04;
+            return ExternalProcessorResult.Success(output, []);
+        });
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51926",
             "single",
-            "CtrlRAM",
             slotPaths,
             build: true,
-            TestContext.Current.CancellationToken,
-            outputPath,
-            ctrlRamFirmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04));
+            outputPath: outputPath,
+            firmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04),
+            externalProcessor: processor,
+            cancellationToken: TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(1, processor.CallCount);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        byte[] outputBytes = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.Equal(0x27, outputBytes[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionOffset]);
+        Assert.Equal(0xD8, outputBytes[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionBarOffset]);
+        Assert.Equal(0x04, outputBytes[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareSubVersionOffset]);
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(outputBytes, out FirmwareConfigMetadata backup));
+        Assert.Equal(0x27, backup.FirmwareVersion);
+        Assert.Equal(0xD8, backup.FirmwareVersionBar);
+        Assert.Equal(0x04, backup.FirmwareSubVersion);
+
+        using var document = JsonDocument.Parse(result.ReportJson);
+        JsonElement[] operations = [.. document.RootElement.GetProperty("Operations").EnumerateArray()];
+        int versionPatch = Array.FindIndex(operations, operation =>
+            operation.GetProperty("OperationId").GetString() == "patch-fw-version-and-bar");
+        int subVersionPatch = Array.FindIndex(operations, operation =>
+            operation.GetProperty("OperationId").GetString() == "patch-fw-sub-version");
+        int postbuild = Array.FindIndex(operations, operation =>
+            operation.GetProperty("Kind").GetString() == "RunExternalProcessor");
+        Assert.True(versionPatch >= 0 && subVersionPatch > versionPatch && postbuild > subVersionPatch);
+        JsonElement validation = Assert.Single(document.RootElement.GetProperty("Validations").EnumerateArray());
+        Assert.Equal("verify-nvt-fwconfig-backup-version", validation.GetProperty("RuleId").GetString());
+        Assert.Equal("Passed", validation.GetProperty("Status").GetString());
     }
 
-    /// <summary>
-    /// Firmware-version edit shapes fail before an external processor can synthesize Backup evidence.
-    /// </summary>
+    /// <summary>A postbuild that does not propagate the confirmed version fails before output publication.</summary>
     [Fact]
-    public async Task CtrlRamReplaceBuildWithCustomProcessorFailsClosedBeforeInvocation()
+    public async Task CtrlRamReplaceBuildRejectsUnpropagatedFirmwareVersion()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fwconfig-ambiguous");
-        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        byte[] baseBytes = ReadNt51926Fw200SingleReference();
         string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
         string outputPath = workspace.PathFor("not-published.bin");
@@ -373,9 +427,14 @@ public sealed class WorkbenchCompositionServiceTests
             externalProcessor: processor,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
-        Assert.Equal(0, processor.CallCount);
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(File.Exists(outputPath));
+        Assert.Equal(1, processor.CallCount);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        using var document = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            document.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() == ReplaceCtrlRamFirmwareVersionOutputMismatch);
     }
 
     /// <summary>
@@ -489,6 +548,16 @@ public sealed class WorkbenchCompositionServiceTests
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
         Assert.Equal(ReplaceWorkflowNotSupported, issue.GetProperty("Code").GetString());
         Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
+    }
+
+    private static byte[] ReadNt51926Fw200SingleReference()
+    {
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51926-fw200-single-auto-prj-597-20260718");
+        JsonElement expected = goldenCase.GetProperty("artifacts").EnumerateArray().Single(artifact =>
+            artifact.GetProperty("role").GetString() == "expected");
+        return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(expected));
     }
 
     private static void AssertProgressAwareMethod(

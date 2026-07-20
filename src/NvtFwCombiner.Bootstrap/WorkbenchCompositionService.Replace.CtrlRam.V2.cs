@@ -51,6 +51,8 @@ public static partial class WorkbenchCompositionService
                     reason: "Copy the selected CtrlRAM source prefix into the exact physical range selected from the reference firmware.");
                 }),
         ];
+        V2RuntimeReferenceReplaceFirmwareVersionEdit? firmwareVersionEdit =
+            CtrlRamV2FirmwareVersionAdapter.Create(context.FirmwareVersionWritePlan);
 
         string bundleId = context.PostbuildProfile!.IcId switch
         {
@@ -65,6 +67,6 @@ public static partial class WorkbenchCompositionService
             ExperienceIds.CtrlRamReplace,
             topology,
             [referencePayload],
-            new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings));
+            new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings, firmwareVersionEdit));
     }
 }
