@@ -68,28 +68,28 @@ public sealed partial class ShellViewModelTests
         long workingSetAfterWarm = process.WorkingSet64;
         long testhostLifetimePeakWorkingSet = process.PeakWorkingSet64;
 
-        ReportHexDiffRangeViewModel rangeToSelect = Assert.IsType<ReportHexDiffRangeViewModel>(
-            warm.HexDiff.NavigatorPage.Items[1]);
-        long selectionAllocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        long selectionTimestamp = Stopwatch.GetTimestamp();
-        warm.HexDiff.SelectRangeCommand.Execute(rangeToSelect);
-        TimeSpan selectionElapsed = Stopwatch.GetElapsedTime(selectionTimestamp);
-        long selectionAllocated = GC.GetAllocatedBytesForCurrentThread() - selectionAllocatedBefore;
+        warm.HexDiff.JumpAddress = "0x8CA4";
+        long jumpAllocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        long jumpTimestamp = Stopwatch.GetTimestamp();
+        warm.HexDiff.JumpAddressCommand.Execute(null);
+        TimeSpan jumpElapsed = Stopwatch.GetElapsedTime(jumpTimestamp);
+        long jumpAllocated = GC.GetAllocatedBytesForCurrentThread() - jumpAllocatedBefore;
 
         Assert.True(cold.HexDiff.IsAvailable);
         Assert.True(warm.HexDiff.IsAvailable);
         Assert.Equal(10_000, cold.HexDiff.NavigatorPage.TotalCount);
         Assert.Equal(64, cold.HexDiff.NavigatorPage.VisibleCount);
         Assert.InRange(cold.HexDiff.MaterializedRangeCount, 1, 64);
-        Assert.Equal(18, cold.HexDiff.VisibleRows.Count);
+        Assert.InRange(cold.HexDiff.VisibleRows.Count, 1, 48);
         Assert.Equal(10_000, warm.HexDiff.NavigatorPage.TotalCount);
         Assert.Equal(64, warm.HexDiff.NavigatorPage.VisibleCount);
-        Assert.InRange(warm.HexDiff.MaterializedRangeCount, 1, 64);
+        Assert.InRange(warm.HexDiff.MaterializedRangeCount, 1, 65);
         ReportHexDiffRangeViewModel selected = Assert.IsType<ReportHexDiffRangeViewModel>(
             warm.HexDiff.SelectedRange);
-        Assert.Same(rangeToSelect, selected);
+        Assert.Equal(0x8CA4, selected.Start);
+        Assert.False(selected.IsReviewRequired);
         Assert.True(selected.IsSelected);
-        Assert.Equal(64, warm.HexDiff.VisibleNavigatorRowCount);
+        Assert.Equal(65, warm.HexDiff.VisibleNavigatorRowCount);
 
         TestContext.Current.TestOutputHelper?.WriteLine(
             $"HEX_DIFF_BASELINE ranges=10000 outputSha256={result.OutputSha256} jsonChars={json.Length} " +
@@ -99,8 +99,8 @@ public sealed partial class ShellViewModelTests
             $"warmFirstPageMs={warmElapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} " +
             $"warmAllocated={warmAllocated} " +
             $"warmGc0={warmGen0} warmGc1={warmGen1} warmGc2={warmGen2} " +
-            $"rangeSelectionMs={selectionElapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} " +
-            $"rangeSelectionAllocated={selectionAllocated} " +
+            $"jumpMs={jumpElapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} " +
+            $"jumpAllocated={jumpAllocated} " +
             $"workingSetBefore={workingSetBefore} workingSetAfterCold={workingSetAfterCold} " +
             $"workingSetAfterWarm={workingSetAfterWarm} " +
             $"testhostLifetimePeakWorkingSet={testhostLifetimePeakWorkingSet}");

@@ -157,9 +157,6 @@ public sealed partial class ReportReviewViewModel
     /// <summary>True when mutation details are available.</summary>
     public bool HasMutations => Mutations.Count > 0;
 
-    /// <summary>True when legacy mutation rows have no unified Hex Diff workspace.</summary>
-    public bool HasStandaloneMutations => HasMutations && !HexDiff.HasDifferenceWorkspace;
-
     /// <summary>Final output-vs-reference difference rows.</summary>
     public IReadOnlyList<ReportLineViewModel> OutputDifferences { get; }
 

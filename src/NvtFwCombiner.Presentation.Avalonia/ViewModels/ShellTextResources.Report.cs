@@ -109,9 +109,15 @@ public sealed partial class ShellTextResources
 
     public string HexDiffAsciiLabel { get; private init; } = string.Empty;
 
+    public string HexDiffChangedRowLabel { get; private init; } = string.Empty;
+
     public string HexDiffReferenceRowLabel { get; private init; } = string.Empty;
 
     public string HexDiffShowOriginalRowsLabel { get; private init; } = string.Empty;
+
+    public string HexDiffJumpAddressLabel { get; private init; } = string.Empty;
+
+    public string HexDiffJumpActionLabel { get; private init; } = string.Empty;
 
     public string HexDiffChangeInformationTitle { get; private init; } = string.Empty;
 
@@ -122,8 +128,6 @@ public sealed partial class ShellTextResources
     public string HexDiffRangeNavigatorDetail { get; private init; } = string.Empty;
 
     public string HexDiffResizeAutomationName { get; private init; } = string.Empty;
-
-    public string HexDiffDocumentScrollBarAutomationName { get; private init; } = string.Empty;
 
     public string HexDiffBeforeSha256Label { get; private init; } = string.Empty;
 

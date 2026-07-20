@@ -38,128 +38,30 @@
 <DataTemplate x:Key="ReportHexDiffViewportRowTemplate" DataType="vm:ReportHexDiffViewportRowViewModel">
   <Border
       Classes="reportHexDiffRow"
+      Classes.changed="{Binding HasChanges}"
       AutomationProperties.Name="{Binding AccessibleLabel}">
     <StackPanel>
-      <Grid ColumnDefinitions="112,*,152" ColumnSpacing="10">
+      <Grid ColumnDefinitions="112,*,112,Auto" ColumnSpacing="10">
         <TextBlock Classes="technicalCompactValue" Text="{Binding Address}" />
-        <ItemsControl Grid.Column="1" ItemsSource="{Binding OutputBytes}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <UniformGrid Columns="16" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:ReportHexDiffByteViewModel">
-              <Border Classes="reportHexDiffByte" Classes.changed="{Binding IsChanged}">
-                <TextBlock Classes="technicalCompactValue" Text="{Binding Hex}" TextAlignment="Center" />
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-        <ItemsControl Grid.Column="2" ItemsSource="{Binding OutputBytes}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <UniformGrid Columns="16" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:ReportHexDiffByteViewModel">
-              <Border Classes="reportHexDiffAsciiByte" Classes.changed="{Binding IsChanged}">
-                <TextBlock Classes="technicalCompactDetail" Text="{Binding Ascii}" TextAlignment="Center" />
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <TextBlock Grid.Column="1" Classes="technicalCompactValue" Text="{Binding OutputHex}" TextWrapping="NoWrap" />
+        <TextBlock Grid.Column="2" Classes="technicalCompactDetail" Text="{Binding OutputAscii}" TextWrapping="NoWrap" />
+        <Label
+            Grid.Column="3"
+            Classes="compactBadge neutralBadge reportBadge review"
+            Content="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffChangedRowLabel}"
+            IsVisible="{Binding HasChanges}" />
       </Grid>
       <Border
           Classes="reportHexDiffReferenceRow"
           IsVisible="{Binding IsOriginalVisible}">
-        <Grid ColumnDefinitions="112,*,152" ColumnSpacing="10">
+        <Grid ColumnDefinitions="112,*,112" ColumnSpacing="10">
           <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffReferenceRowLabel}" />
-          <ItemsControl Grid.Column="1" ItemsSource="{Binding OriginalBytes}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <UniformGrid Columns="16" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:ReportHexDiffByteViewModel">
-                <Border Classes="reportHexDiffOriginalByte" Classes.changed="{Binding IsChanged}">
-                  <TextBlock Classes="technicalCompactDetail" Text="{Binding Hex}" TextAlignment="Center" />
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-          <ItemsControl Grid.Column="2" ItemsSource="{Binding OriginalBytes}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <UniformGrid Columns="16" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:ReportHexDiffByteViewModel">
-                <Border Classes="reportHexDiffOriginalByte" Classes.changed="{Binding IsChanged}">
-                  <TextBlock Classes="technicalCompactDetail" Text="{Binding Ascii}" TextAlignment="Center" />
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+          <TextBlock Grid.Column="1" Classes="technicalCompactDetail" Text="{Binding OriginalHex}" TextWrapping="NoWrap" />
+          <TextBlock Grid.Column="2" Classes="technicalCompactDetail" Text="{Binding OriginalAscii}" TextWrapping="NoWrap" />
         </Grid>
       </Border>
     </StackPanel>
   </Border>
-</DataTemplate>
-
-<DataTemplate x:Key="ReportHexDiffNavigatorPagerTemplate" DataType="vm:ReportWindowedListViewModel">
-  <Grid
-      Margin="0,8,0,0"
-      ColumnDefinitions="Auto,*,Auto"
-      ColumnSpacing="{DynamicResource NfcSpace8}"
-      IsVisible="{Binding HasMultiplePages}">
-    <Button
-        Width="32"
-        Height="32"
-        Padding="0"
-        Classes="iconButton"
-        Command="{Binding PreviousPageCommand}"
-        AutomationProperties.Name="{Binding PreviousPageLabel}"
-        ToolTip.Tip="{Binding PreviousPageLabel}">
-      <Path
-          Width="16"
-          Height="16"
-          Data="M11 3L5 8L11 13"
-          Stroke="{DynamicResource NfcTextStrongBrush}"
-          StrokeLineCap="Round"
-          StrokeJoin="Round"
-          StrokeThickness="1.8" />
-    </Button>
-    <TextBlock
-        Grid.Column="1"
-        HorizontalAlignment="Center"
-        VerticalAlignment="Center"
-        Classes="captionText"
-        Text="{Binding PageStatus}"
-        AutomationProperties.Name="{Binding PageStatus}"
-        AutomationProperties.LiveSetting="Polite" />
-    <Button
-        Grid.Column="2"
-        Width="32"
-        Height="32"
-        Padding="0"
-        Classes="iconButton"
-        Command="{Binding NextPageCommand}"
-        AutomationProperties.Name="{Binding NextPageLabel}"
-        ToolTip.Tip="{Binding NextPageLabel}">
-      <Path
-          Width="16"
-          Height="16"
-          Data="M5 3L11 8L5 13"
-          Stroke="{DynamicResource NfcTextStrongBrush}"
-          StrokeLineCap="Round"
-          StrokeJoin="Round"
-          StrokeThickness="1.8" />
-    </Button>
-  </Grid>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportHexDiffRangeRowTemplate" DataType="vm:ReportHexDiffRangeViewModel">
