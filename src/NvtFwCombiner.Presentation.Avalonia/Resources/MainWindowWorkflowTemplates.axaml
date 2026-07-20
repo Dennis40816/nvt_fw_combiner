@@ -39,7 +39,7 @@
             Content="{Binding ReplaceBaseSlot}"
             ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
 
-        <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
+        <ItemsControl Classes="spaciousList" HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotGroupTemplate" />
           </ItemsControl.ItemTemplate>

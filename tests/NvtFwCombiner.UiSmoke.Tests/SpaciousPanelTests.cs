@@ -16,6 +16,7 @@ public sealed class SpaciousPanelTests
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string reportPanels = ReadPresentationFile("Resources/MainWindowReportPanels.axaml");
+        string workflowTemplates = ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
 
         Assert.Contains("Selector=\"views|SpaciousPanel\"", styles, StringComparison.Ordinal);
         Assert.Contains("Property=\"Padding\" Value=\"18,16,20,18\"", styles, StringComparison.Ordinal);
@@ -27,6 +28,18 @@ public sealed class SpaciousPanelTests
         Assert.Equal(2, sharedTemplates.Split("Classes=\"spaciousList\"", StringSplitOptions.None).Length - 1);
         Assert.Contains("Spacing=\"{DynamicResource NfcSpace16}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("<views:SpaciousPanel Classes=\"compact\"", reportPanels, StringComparison.Ordinal);
+        Assert.Contains(
+            "<DataTemplate x:Key=\"FirmwareSlotGroupTemplate\" DataType=\"vm:FirmwareSlotGroupViewModel\">\n  <views:SpaciousPanel Classes=\"compact\">",
+            sharedTemplates,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "<DataTemplate x:Key=\"MemoryCoverageGroupTemplate\" DataType=\"vm:MemoryCoverageGroupViewModel\">\n  <views:SpaciousPanel Classes=\"compact\">",
+            sharedTemplates,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "<ItemsControl Classes=\"spaciousList\" HorizontalAlignment=\"Stretch\" ItemContainerTheme=\"{StaticResource StretchContentPresenterTheme}\" ItemsSource=\"{Binding ReplaceSlotGroups}\">",
+            workflowTemplates,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("Padding=\"18,16\"", sharedTemplates, StringComparison.Ordinal);
     }
 
