@@ -1,7 +1,8 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
 
 <DataTemplate x:Key="ReportAuditDetailsPanelTemplate" DataType="vm:MainWindowViewModel">
   <Border MinHeight="0" Classes="surface" Margin="16,14,16,0">
@@ -18,7 +19,7 @@
         <TabItem Header="{Binding Text.ReportTabInputs}">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="0,12,0,0" Spacing="{DynamicResource NfcSpace12}">
-              <Border Classes="compactSurface contentPanel" IsVisible="{Binding LoadedReport.HasInputGroups}">
+              <views:SpaciousPanel Classes="compactSurface" IsVisible="{Binding LoadedReport.HasInputGroups}">
                 <StackPanel Spacing="10">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <TextBlock Classes="panelTitle" Text="{Binding Text.InputsAndHashesTitle}" />
@@ -30,7 +31,7 @@
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
                 </StackPanel>
-              </Border>
+              </views:SpaciousPanel>
 
               <Border Classes="insetSurface" Padding="14" IsVisible="{Binding LoadedReport.HasNoInputs}">
                 <TextBlock Classes="mutedText" Text="{Binding Text.EmptyInputsMessage}" TextWrapping="Wrap" />

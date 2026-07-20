@@ -176,7 +176,7 @@
               </StackPanel>
               <Grid
                   Grid.Column="1"
-                  ColumnDefinitions="Auto,Auto,Auto"
+                  ColumnDefinitions="Auto,Auto"
                   ColumnSpacing="{DynamicResource NfcSpace12}"
                   VerticalAlignment="Center">
                 <StackPanel Spacing="3">
@@ -218,17 +218,6 @@
                     </Grid>
                   </Button>
                 </StackPanel>
-                <StackPanel Grid.Column="2" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-                  <Button
-                      Classes="toolbarAction"
-                      Click="BuildReplaceButton_OnClick"
-                      IsEnabled="{Binding CanBuildReplace}">
-                    <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
-                       <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
-                    </StackPanel>
-                  </Button>
-                </StackPanel>
               </Grid>
             </Grid>
 
@@ -259,24 +248,13 @@
                 <TextBlock Classes="pageTitle" Text="{Binding MergePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding MergePreview.Subtitle}" />
               </StackPanel>
-              <Grid Grid.Column="1" ColumnDefinitions="170,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" VerticalAlignment="Center">
+              <Grid Grid.Column="1" ColumnDefinitions="170" ColumnSpacing="{DynamicResource NfcSpace12}" VerticalAlignment="Center">
                 <StackPanel Spacing="3" ToolTip.Tip="{Binding Text.MergeModeTooltip}">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
                   <ComboBox
                       MinHeight="32"
                       ItemsSource="{Binding MergeModeChoices}"
                       SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-                  <Button
-                      Classes="toolbarAction"
-                      Click="BuildMergeButton_OnClick"
-                      IsEnabled="{Binding CanBuildMerge}">
-                    <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
-                      <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
-                    </StackPanel>
-                  </Button>
                 </StackPanel>
               </Grid>
             </Grid>
@@ -296,6 +274,36 @@
         </ContentControl>
       </Grid>
     </ScrollViewer>
+
+    <Grid
+        x:Name="CompositionBuildActionRail"
+        Grid.RowSpan="4"
+        Margin="0,0,24,24"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Bottom">
+      <Button
+          Classes="toolbarAction"
+          AutomationProperties.Name="{Binding Text.BuildActionLabel}"
+          Click="BuildMergeButton_OnClick"
+          IsEnabled="{Binding CanBuildMerge}"
+          IsVisible="{Binding IsMergeVisible}">
+        <StackPanel Orientation="Horizontal" Spacing="7">
+          <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
+          <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
+        </StackPanel>
+      </Button>
+      <Button
+          Classes="toolbarAction"
+          AutomationProperties.Name="{Binding Text.BuildActionLabel}"
+          Click="BuildReplaceButton_OnClick"
+          IsEnabled="{Binding CanBuildReplace}"
+          IsVisible="{Binding IsReplaceVisible}">
+        <StackPanel Orientation="Horizontal" Spacing="7">
+          <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
+          <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
+        </StackPanel>
+      </Button>
+    </Grid>
 
     <ContentControl
         x:Name="ReportToastHost"
