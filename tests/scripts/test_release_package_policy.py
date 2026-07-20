@@ -39,6 +39,26 @@ def normalize_console_output(output: str) -> str:
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
 
+    def test_packager_compresses_the_untrimmed_self_contained_single_file(
+        self,
+    ) -> None:
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+
+        expected_publish_properties = (
+            "-p:PublishSingleFile=true",
+            "-p:EnableCompressionInSingleFile=true",
+            "-p:PublishTrimmed=false",
+            "-p:IncludeNativeLibrariesForSelfExtract=true",
+        )
+        for publish_property in expected_publish_properties:
+            self.assertEqual(1, package_script.count(publish_property))
+
+        property_positions = tuple(
+            package_script.index(publish_property)
+            for publish_property in expected_publish_properties
+        )
+        self.assertEqual(tuple(sorted(property_positions)), property_positions)
+
     def test_external_tool_catalog_matches_packager_and_smoke_allowlists(self) -> None:
         catalog = json.loads(
             (ROOT / "external-tools/catalog.json").read_text(encoding="utf-8")

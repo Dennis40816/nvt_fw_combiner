@@ -53,7 +53,16 @@ No production source tree, editable source profile tree, Python runtime installa
 ./scripts/package.ps1 -Version 0.0.0 -Commit 0000000000000000000000000000000000000000 -ExternalToolPolicyDryRun
 ```
 
-The stable release path accepts stable SemVer only, publishes a self-contained single-file `win-x64` Avalonia app with trimming disabled, copies the Bootstrap-declared materialized built-in profile bundles through their manifests, builds the worker with PyInstaller one-file mode, copies only the approved external-tool files and paths, copies the approved reference payload and manifest-declared golden fixture BINs, assembles a new empty directory, rejects paths outside the allowlist, writes the manifest and hashes, and creates the ZIP under `artifacts/release/`.
+The stable release path accepts stable SemVer only, publishes a compressed,
+self-contained single-file `win-x64` Avalonia app with trimming disabled, copies
+the Bootstrap-declared materialized built-in profile bundles through their
+manifests, builds the worker with PyInstaller one-file mode, copies only the
+approved external-tool files and paths, copies the approved reference payload
+and manifest-declared golden fixture BINs, assembles a new empty directory,
+rejects paths outside the allowlist, writes the manifest and hashes, and creates
+the ZIP under `artifacts/release/`. Single-file compression changes only the
+bundle representation: it does not trim managed code, remove native libraries,
+or change the closed package contents.
 
 `-ExternalToolPolicyDryRun` retains its compatibility name but exercises all closed package policies without publishing application or worker binaries. It creates a temporary extra file inside the source `external-tools/` directory, runs the same approved-file copy and external-tool manifest-entry code used by normal packaging, and proves the probe is absent from staging and the persisted manifest. It also builds a temporary materialized-profile fixture from the Bootstrap bundle declarations, includes the two fixed runtime-catalog files, runs the production allowlist/copy/manifest-entry functions, and proves unexpected bundle or runtime-catalog files are rejected. The same dry run resolves `release-standard-merge-v1.json`, requires every selected case/artifact path, size, and SHA-256 to match the canonical inventory, currently locks 34 direct BIN artifacts and 13 direct/alias cases, and rejects diagnostics or other workflows. The deterministic `tests/scripts/test_release_package_policy.py` regression invokes this mode through the canonical `python scripts/verify.py --all` flow and proves that release smoke rejects both an extra external-tool path and a package with no built-in materialized profiles.
 

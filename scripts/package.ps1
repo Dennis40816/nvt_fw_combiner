@@ -766,6 +766,7 @@ $SourcePackageLockSnapshots = Save-SourcePackageLocks
 & $DotNet publish $AppProject -c Release -r win-x64 --self-contained true `
     -p:Version=$SemanticVersion `
     -p:PublishSingleFile=true `
+    -p:EnableCompressionInSingleFile=true `
     -p:PublishTrimmed=false `
     -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:DebugType=None `
