@@ -24,7 +24,7 @@ public sealed partial class MainWindowViewModel
         ReplacePreview = Text.ReplacePreview;
         ApplyFirmwareSlotText();
         ApplyInitialRunResultText();
-        HexEditorWorkspace.ApplyTextResources(Text);
+        LoadedHexEditorWorkspace?.ApplyTextResources(Text);
         CompositionProgress.ApplyLanguage(language);
 
         if (!notify)

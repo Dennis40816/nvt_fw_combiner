@@ -84,11 +84,8 @@ public sealed partial class MainWindowViewModel
         _firmwareInspectionReader = firmwareInspectionReader;
         ShellVersion = shellVersion;
         AppVersion = appVersion;
-        HexEditorWorkspace = new HexEditorWorkspaceViewModel(Text);
         CompositionProgress = new CompositionRunProgressViewModel(language);
-        SelectedLanguage = language == ShellLanguage.ChineseTraditional
-            ? "Traditional Chinese"
-            : "English";
+        SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
         _relocalizeLoadedReportCommand = new AsyncRelayCommand(RelocalizeLoadedReportAsync);
         CompositionProgress.PropertyChanged += CompositionProgress_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
@@ -143,9 +140,6 @@ public sealed partial class MainWindowViewModel
         CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);
         CloseBuildCompletedModalCommand = new RelayCommand(CloseBuildCompletedModal);
         HexEditorWorkspace.PropertyChanged += HexEditorWorkspace_OnPropertyChanged;
-
-        AddGeneralReplaceMapping();
-        AddGeneralMergeMapping();
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         _isInitializing = false;
     }

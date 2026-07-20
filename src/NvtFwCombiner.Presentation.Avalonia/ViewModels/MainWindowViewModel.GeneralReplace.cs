@@ -32,6 +32,8 @@ public sealed partial class MainWindowViewModel
 
     private void ShowHexEditor()
     {
+        _ = HexEditorWorkspace;
+        OnPropertyChanged(nameof(LoadedHexEditorWorkspace));
         NavigateToPage(ShellPage.HexEditor);
     }
 

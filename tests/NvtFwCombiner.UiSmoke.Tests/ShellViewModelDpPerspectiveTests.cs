@@ -64,6 +64,7 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = icId;
 
         MemoryMapRowViewModel initialRow = Assert.Single(

@@ -364,12 +364,12 @@
 
     <views:HexEditorInsertBytesModal
         Grid.RowSpan="4"
-        DataContext="{Binding HexEditorWorkspace}"
+        DataContext="{Binding LoadedHexEditorWorkspace}"
         IsVisible="{Binding IsInsertBytesPromptOpen}" />
 
     <views:HexEditorSaveModal
         Grid.RowSpan="4"
-        DataContext="{Binding HexEditorWorkspace}"
+        DataContext="{Binding LoadedHexEditorWorkspace}"
         IsVisible="{Binding IsSaveConfirmationOpen}" />
 
     <views:ReportModal Grid.RowSpan="4" IsVisible="{Binding IsReportModalOpen}" />
