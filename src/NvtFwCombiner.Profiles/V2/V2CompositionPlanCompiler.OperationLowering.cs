@@ -140,6 +140,14 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         if (profile.CompositionKind == CompositionKind.Replace &&
+            StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.DpReplace) &&
+            operation.Kind == CompositionProfileOperationKind.ReplaceRange &&
+            !TryAuthorizeDpReplacePayloadTarget(profile, operation, target, issues))
+        {
+            return;
+        }
+
+        if (profile.CompositionKind == CompositionKind.Replace &&
             operation.Kind == CompositionProfileOperationKind.CopyRange &&
             operation.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
             source.Range != target.Range)

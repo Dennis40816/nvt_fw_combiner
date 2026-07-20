@@ -20,6 +20,9 @@ public static class WorkbenchSlotIds
     /// <summary>Workbench DP replacement slot used by DP Replace.</summary>
     public const string ReplaceDp = "replace-dp";
 
+    /// <summary>Workbench LDC replacement slot used by NT51928 DP Replace.</summary>
+    public const string ReplaceLdc = "replace-ldc";
+
     /// <summary>Prefix for dynamic workbench CtrlRAM replacement slots.</summary>
     public const string ReplaceCtrlRamPrefix = CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix;
 
