@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -159,7 +160,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         base.OnOpened(e);
         WindowState = WindowState.Maximized;
-        _ = _startupTrace.Complete("main-window.opened");
+        _startupTrace.Mark("main-window.opened");
         if (_isStartupLoadStarted || DataContext is not MainWindowViewModel viewModel)
         {
             return;
@@ -170,10 +171,25 @@ public sealed partial class MainWindow : Window, IDisposable
         await Task.Yield();
         try
         {
+            var catalogWarmup = Task.Run(
+                () => PrimeDeferredCatalogs(viewModel.SelectedIc, viewModel.SelectedNumber, startupCancellation),
+                startupCancellation);
             await ApplyDeferredLaunchOptionsAsync(viewModel, _launchOptions, startupCancellation);
+            _startupTrace.Mark("startup-launch-options.ready");
+            await catalogWarmup;
+            _startupTrace.Mark("startup-warmup.catalogs.ready");
+            await WarmDeferredShellAsync(viewModel, startupCancellation);
+            _ = _startupTrace.Complete("startup-warmup.completed");
         }
         catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
         {
+            _ = _startupTrace.Complete("startup-warmup.cancelled");
+        }
+        catch (Exception exception)
+        {
+            // Warm-up is a best-effort latency optimization. Navigation keeps its existing first-use path.
+            Trace.TraceWarning("Deferred shell warm-up did not complete: {0}", exception.Message);
+            _ = _startupTrace.Complete("startup-warmup.failed");
         }
     }
 
