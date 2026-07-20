@@ -141,8 +141,8 @@ public sealed partial class MainWindowViewModel
             progressObservation = ObserveRunProgressAsync(progress, progressObservationSource.Token);
             await Task.Yield();
             WorkbenchRunResult result = await Task.Run(
-                () => run(progress, cancellationSource.Token).AsTask(),
-                cancellationSource.Token);
+                () => run(progress, cancellationSource.Token).AsTask(), cancellationSource.Token);
+            await (progress.IsAttached ? progressObservation : Task.CompletedTask);
             await ProjectAndApplyRunResultAsync(result, build, cancellationSource.Token);
         }
         catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })

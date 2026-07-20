@@ -237,15 +237,10 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
         }
 
         CurrentPhase = currentPhase;
-        CommittedOutputId = DeliveryState == CompositionRunDeliveryState.ReportReady
-            ? CommittedOutputId ?? committedOutputId
-            : committedOutputId;
-        if (DeliveryState != CompositionRunDeliveryState.ReportReady)
-        {
-            DeliveryState = committedOutputId is null
-                ? CompositionRunDeliveryState.Running
-                : CompositionRunDeliveryState.ArtifactCommitted;
-        }
+        CommittedOutputId = committedOutputId;
+        DeliveryState = committedOutputId is null
+            ? CompositionRunDeliveryState.Running
+            : CompositionRunDeliveryState.ArtifactCommitted;
 
         RebuildSteps(completedPhases);
         NotifyProjectionChanged();
