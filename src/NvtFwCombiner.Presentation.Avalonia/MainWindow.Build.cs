@@ -13,6 +13,7 @@ public sealed partial class MainWindow
             return;
         }
 
+        await viewModel.RefreshAllSelectedFirmwareInspectionsAsync();
         string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
             StorageProvider,
             viewModel.MergeOutputFileName);
@@ -31,6 +32,7 @@ public sealed partial class MainWindow
             return;
         }
 
+        await viewModel.RefreshAllSelectedFirmwareInspectionsAsync();
         if (viewModel.IsCtrlRamReplaceModeSelected)
         {
             _ = await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync();

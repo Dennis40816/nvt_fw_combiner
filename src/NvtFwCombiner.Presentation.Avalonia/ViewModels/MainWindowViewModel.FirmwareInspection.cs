@@ -295,7 +295,7 @@ public sealed partial class MainWindowViewModel
         return false;
     }
 
-    private void QueueAllSelectedFirmwareInspections(string? applyVerifiedContextSlotId = null)
+    internal Task RefreshAllSelectedFirmwareInspectionsAsync(string? applyVerifiedContextSlotId = null)
     {
         var slots = new Dictionary<string, FirmwareSlotViewModel>(StringComparer.Ordinal);
         foreach (FirmwareSlotViewModel slot in MergeSlots.Concat(ReplaceSlots).Concat([ReplaceBaseSlot]))
@@ -323,7 +323,7 @@ public sealed partial class MainWindowViewModel
                     StringComparison.Ordinal) &&
                     slot.SlotKind is FirmwareSlotKind.Tp or FirmwareSlotKind.Base)),
         ];
-        FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, CancellationToken.None);
+        return FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, CancellationToken.None);
     }
 
     private void RefreshCtrlRamDisplayFromInspection()

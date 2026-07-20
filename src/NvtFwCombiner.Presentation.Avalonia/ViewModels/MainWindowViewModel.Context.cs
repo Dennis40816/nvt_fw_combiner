@@ -315,7 +315,7 @@ public sealed partial class MainWindowViewModel
                 Text.FormatFirmwareSelectionNotRetainedToast(Path.GetFileName(missingSelection.Path)));
         }
 
-        QueueAllSelectedFirmwareInspections(acceptedMismatchSlotId);
+        _ = RefreshAllSelectedFirmwareInspectionsAsync(acceptedMismatchSlotId);
     }
 
     partial void OnSelectedNumberChanged(string value)

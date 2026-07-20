@@ -281,6 +281,32 @@ public sealed partial class ShellViewModelTests
         Assert.Contains("_D0404Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
     }
 
+    /// <summary>An in-place BIN replacement is re-inspected before its output name is consumed.</summary>
+    [Fact]
+    public async Task OutputFileNameRefreshRejectsSamePathStaleInspection()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-identity-refresh");
+        string path = workspace.Write("dp.bin", [0x01]);
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        [
+            .. inputs.Select(input =>
+            {
+                byte version = File.ReadAllBytes(input.Path)[0];
+                return new WorkbenchFirmwareInspectionResult(
+                    input.InspectionId,
+                    DpInspection($"{version:X2}{version:X2}"));
+            }),
+        ]);
+        viewModel.SelectedIc = "NT51926";
+        await viewModel.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
+        Assert.Contains("_D0101Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+
+        File.WriteAllBytes(path, [0x02, 0x03]);
+        await viewModel.RefreshAllSelectedFirmwareInspectionsAsync();
+
+        Assert.Contains("_D0202Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies an unobserved DP size keeps the concise DP/Jira slot badge set.</summary>
     [Fact]
     public void DpFirmwareSlotKeepsCmiSizeDiagnosticsOutOfBadges()
