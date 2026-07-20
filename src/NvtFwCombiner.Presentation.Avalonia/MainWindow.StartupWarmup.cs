@@ -38,27 +38,27 @@ public sealed partial class MainWindow
         await WarmContentAsync(
             DeviceContextHost,
             viewModel,
-            "startup-warmup.device-context.ready",
+            "startup-warmup.device-context",
             cancellationToken);
         await WarmContentAsync(
             ReplacePageHost,
             viewModel,
-            "startup-warmup.replace-view.ready",
+            "startup-warmup.replace-view",
             cancellationToken);
         await WarmContentAsync(
             MergePageHost,
             viewModel,
-            "startup-warmup.merge-view.ready",
+            "startup-warmup.merge-view",
             cancellationToken);
         await WarmContentAsync(
             SettingsPageHost,
             viewModel,
-            "startup-warmup.settings-view.ready",
+            "startup-warmup.settings-view",
             cancellationToken);
         await WarmContentAsync(
             HexEditorPageHost,
             viewModel,
-            "startup-warmup.hex-editor-view.ready",
+            "startup-warmup.hex-editor-view",
             cancellationToken);
     }
 
@@ -104,8 +104,15 @@ public sealed partial class MainWindow
             return;
         }
 
-        await Dispatcher.UIThread.InvokeAsync(action, DispatcherPriority.Background, cancellationToken);
+        await Dispatcher.UIThread.InvokeAsync(
+            () =>
+            {
+                _startupTrace.Mark($"{traceStage}.started");
+                action();
+                _startupTrace.Mark($"{traceStage}.ready");
+            },
+            DispatcherPriority.Background,
+            cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        _startupTrace.Mark(traceStage);
     }
 }

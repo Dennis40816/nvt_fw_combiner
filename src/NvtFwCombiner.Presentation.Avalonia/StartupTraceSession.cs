@@ -7,8 +7,10 @@ internal sealed class StartupTraceSession
 {
     internal const string OutputPathEnvironmentVariable = "NFC_STARTUP_TRACE_PATH";
     private readonly List<StartupTracePoint>? _points;
+    private readonly Func<long> _allocatedBytesProvider;
     private readonly Func<long> _timestampProvider;
     private readonly Func<DateTimeOffset> _utcNowProvider;
+    private readonly long _originAllocatedBytes;
     private readonly long _originTimestamp;
     private readonly DateTimeOffset _startedUtc;
     private readonly string? _outputPath;
@@ -18,22 +20,26 @@ internal sealed class StartupTraceSession
         string? outputPath,
         Func<long> timestampProvider,
         Func<DateTimeOffset> utcNowProvider,
+        Func<long> allocatedBytesProvider,
         long originTimestamp,
+        long originAllocatedBytes,
         DateTimeOffset startedUtc)
     {
         _outputPath = outputPath;
         _timestampProvider = timestampProvider;
         _utcNowProvider = utcNowProvider;
+        _allocatedBytesProvider = allocatedBytesProvider;
         _originTimestamp = originTimestamp;
+        _originAllocatedBytes = originAllocatedBytes;
         _startedUtc = startedUtc;
         if (outputPath is not null)
         {
-            _points = [new StartupTracePoint("managed-entry", 0)];
+            _points = [new StartupTracePoint("managed-entry", 0, 0, 0)];
         }
     }
 
     internal static StartupTraceSession Disabled { get; } =
-        new(null, Stopwatch.GetTimestamp, GetUtcNow, 0, default);
+        new(null, Stopwatch.GetTimestamp, GetUtcNow, static () => 0, 0, 0, default);
 
     internal bool IsEnabled => _points is not null;
 
@@ -45,16 +51,25 @@ internal sealed class StartupTraceSession
     internal static StartupTraceSession Create(
         string? outputPath,
         Func<long>? timestampProvider = null,
-        Func<DateTimeOffset>? utcNowProvider = null)
+        Func<DateTimeOffset>? utcNowProvider = null,
+        Func<long>? allocatedBytesProvider = null)
     {
         string? normalizedPath = string.IsNullOrWhiteSpace(outputPath) ? null : outputPath.Trim();
+        if (normalizedPath is null)
+        {
+            return Disabled;
+        }
+
         Func<long> timestamps = timestampProvider ?? Stopwatch.GetTimestamp;
         Func<DateTimeOffset> utcNow = utcNowProvider ?? GetUtcNow;
+        Func<long> allocatedBytes = allocatedBytesProvider ?? GetAllocatedBytes;
         return new StartupTraceSession(
             normalizedPath,
             timestamps,
             utcNow,
+            allocatedBytes,
             timestamps(),
+            allocatedBytes(),
             utcNow());
     }
 
@@ -69,7 +84,13 @@ internal sealed class StartupTraceSession
         double elapsedMilliseconds = Stopwatch.GetElapsedTime(
             _originTimestamp,
             _timestampProvider()).TotalMilliseconds;
-        _points.Add(new StartupTracePoint(stage, elapsedMilliseconds));
+        long allocatedBytes = Math.Max(0, _allocatedBytesProvider() - _originAllocatedBytes);
+        long previousAllocatedBytes = _points[^1].AllocatedBytesSinceManagedEntry;
+        _points.Add(new StartupTracePoint(
+            stage,
+            elapsedMilliseconds,
+            allocatedBytes,
+            Math.Max(0, allocatedBytes - previousAllocatedBytes)));
     }
 
     internal bool Complete(string finalStage)
@@ -92,6 +113,15 @@ internal sealed class StartupTraceSession
     {
         return DateTimeOffset.UtcNow;
     }
+
+    private static long GetAllocatedBytes()
+    {
+        return GC.GetTotalAllocatedBytes(precise: false);
+    }
 }
 
-internal sealed record StartupTracePoint(string Stage, double ElapsedMilliseconds);
+internal sealed record StartupTracePoint(
+    string Stage,
+    double ElapsedMilliseconds,
+    long AllocatedBytesSinceManagedEntry,
+    long AllocationDeltaBytes);

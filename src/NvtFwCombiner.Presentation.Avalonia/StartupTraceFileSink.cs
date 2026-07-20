@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 /// <summary>Writes one diagnostic-only startup trace without replacing an existing file.</summary>
 internal static class StartupTraceFileSink
 {
-    internal const string SchemaVersion = "nfc-startup-trace-v1";
+    internal const string SchemaVersion = "nfc-startup-trace-v2";
 
     internal static bool TryWrite(
         string outputPath,
@@ -71,6 +71,8 @@ internal static class StartupTraceFileSink
             writer.WriteString("name", point.Stage);
             writer.WriteNumber("elapsedMilliseconds", point.ElapsedMilliseconds);
             writer.WriteNumber("deltaMilliseconds", point.ElapsedMilliseconds - previousElapsed);
+            writer.WriteNumber("allocatedBytesSinceManagedEntry", point.AllocatedBytesSinceManagedEntry);
+            writer.WriteNumber("allocationDeltaBytes", point.AllocationDeltaBytes);
             writer.WriteEndObject();
             previousElapsed = point.ElapsedMilliseconds;
         }

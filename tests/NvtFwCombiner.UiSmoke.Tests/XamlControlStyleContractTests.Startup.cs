@@ -60,6 +60,8 @@ public sealed partial class XamlControlStyleContractTests
             lifecycle.IndexOf("PrimeDeferredCatalogs", StringComparison.Ordinal));
         Assert.Contains("Task.Run(", lifecycle, StringComparison.Ordinal);
         Assert.Contains("DispatcherPriority.Background", warmup, StringComparison.Ordinal);
+        Assert.Contains("$\"{traceStage}.started\"", warmup, StringComparison.Ordinal);
+        Assert.Contains("$\"{traceStage}.ready\"", warmup, StringComparison.Ordinal);
         Assert.Contains("host.ContentTemplate?.Build(dataContext)", warmup, StringComparison.Ordinal);
         Assert.Contains("host.Content = content", warmup, StringComparison.Ordinal);
         Assert.Contains("IsRunInProgress: true", warmup, StringComparison.Ordinal);

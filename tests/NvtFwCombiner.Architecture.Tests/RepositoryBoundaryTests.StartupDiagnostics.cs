@@ -31,6 +31,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("workingSetBytesAtWindow", runner, StringComparison.Ordinal);
         Assert.Contains("workingSetBytesAtTrace", runner, StringComparison.Ordinal);
         Assert.Contains("peakWorkingSetBytes", runner, StringComparison.Ordinal);
+        Assert.Contains("AllocatedBytesSinceManagedEntry", session, StringComparison.Ordinal);
+        Assert.Contains("allocatedBytesSinceManagedEntry", sink, StringComparison.Ordinal);
+        Assert.Contains("allocationDeltaBytes", sink, StringComparison.Ordinal);
+        Assert.Contains("uiThreadWork", runner, StringComparison.Ordinal);
+        Assert.Contains("firstFrameUiSynchronousWorkMilliseconds", runner, StringComparison.Ordinal);
+        Assert.Contains("backgroundUiMaterializationMilliseconds", runner, StringComparison.Ordinal);
+        Assert.Contains("nfc-startup-measurement-v2", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("dotnet tool", runner, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Invoke-WebRequest", runner, StringComparison.OrdinalIgnoreCase);
     }

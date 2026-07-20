@@ -42,6 +42,102 @@ function Get-MetricSummary {
     }
 }
 
+function Get-TraceStage {
+    param(
+        [Parameter(Mandatory = $true)]$Trace,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $matches = @($Trace.stages | Where-Object { $_.name -eq $Name })
+    if ($matches.Count -ne 1) {
+        throw "Startup trace must contain exactly one '$Name' stage."
+    }
+
+    return $matches[0]
+}
+
+function New-UiThreadWorkInterval {
+    param(
+        [Parameter(Mandatory = $true)]$Trace,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$StartStage,
+        [Parameter(Mandatory = $true)][string]$EndStage
+    )
+
+    $start = Get-TraceStage -Trace $Trace -Name $StartStage
+    $end = Get-TraceStage -Trace $Trace -Name $EndStage
+    $milliseconds = [double]$end.elapsedMilliseconds - [double]$start.elapsedMilliseconds
+    if ($milliseconds -lt 0) {
+        throw "Startup trace UI-thread interval '$Name' has reversed stages."
+    }
+
+    return [ordered]@{
+        name = $Name
+        startStage = $StartStage
+        endStage = $EndStage
+        milliseconds = [Math]::Round($milliseconds, 3)
+    }
+}
+
+function Get-UiThreadWorkSummary {
+    param([Parameter(Mandatory = $true)]$Trace)
+
+    $firstFrameIntervals = @(
+        New-UiThreadWorkInterval `
+            -Trace $Trace `
+            -Name 'application-xaml' `
+            -StartStage 'application-xaml.started' `
+            -EndStage 'application-xaml.ready'
+        New-UiThreadWorkInterval `
+            -Trace $Trace `
+            -Name 'framework-initialization-to-window-assignment' `
+            -StartStage 'framework-initialization.started' `
+            -EndStage 'main-window.assigned'
+    )
+
+    $backgroundStartStages = @(
+        $Trace.stages |
+            Where-Object {
+                ([string]$_.name).StartsWith('startup-warmup.', [StringComparison]::Ordinal) -and
+                ([string]$_.name).EndsWith('.started', [StringComparison]::Ordinal)
+            }
+    )
+    if ($backgroundStartStages.Count -eq 0) {
+        throw 'Startup trace has no background UI materialization intervals.'
+    }
+
+    $backgroundIntervals = @(
+        foreach ($start in $backgroundStartStages) {
+            $startName = [string]$start.name
+            $intervalName = $startName.Substring(
+                'startup-warmup.'.Length,
+                $startName.Length - 'startup-warmup.'.Length - '.started'.Length)
+            New-UiThreadWorkInterval `
+                -Trace $Trace `
+                -Name $intervalName `
+                -StartStage $startName `
+                -EndStage "$($startName.Substring(0, $startName.Length - '.started'.Length)).ready"
+        }
+    )
+
+    $firstFrameTotal = ($firstFrameIntervals | Measure-Object -Property milliseconds -Sum).Sum
+    $firstFrameMaximum = ($firstFrameIntervals | Measure-Object -Property milliseconds -Maximum).Maximum
+    $backgroundTotal = ($backgroundIntervals | Measure-Object -Property milliseconds -Sum).Sum
+    $backgroundMaximum = ($backgroundIntervals | Measure-Object -Property milliseconds -Maximum).Maximum
+    return [ordered]@{
+        firstFrame = [ordered]@{
+            totalMilliseconds = [Math]::Round($firstFrameTotal, 3)
+            maximumIntervalMilliseconds = [Math]::Round($firstFrameMaximum, 3)
+            intervals = $firstFrameIntervals
+        }
+        background = [ordered]@{
+            totalMilliseconds = [Math]::Round($backgroundTotal, 3)
+            maximumIntervalMilliseconds = [Math]::Round($backgroundMaximum, 3)
+            intervals = $backgroundIntervals
+        }
+    }
+}
+
 function Invoke-StartupSample {
     param(
         [Parameter(Mandatory = $true)][string]$Executable,
@@ -98,7 +194,7 @@ function Invoke-StartupSample {
         }
 
         $trace = Get-Content -LiteralPath $TracePath -Raw | ConvertFrom-Json
-        if ($trace.schemaVersion -ne 'nfc-startup-trace-v1' -or @($trace.stages).Count -eq 0) {
+        if ($trace.schemaVersion -ne 'nfc-startup-trace-v2' -or @($trace.stages).Count -eq 0) {
             throw "The application wrote an unsupported or empty startup trace at '$TracePath'."
         }
 
@@ -109,6 +205,7 @@ function Invoke-StartupSample {
             workingSetBytesAtWindow = $workingSetBytesAtWindow
             workingSetBytesAtTrace = $workingSetBytesAtTrace
             peakWorkingSetBytes = $peakWorkingSetBytes
+            uiThreadWork = Get-UiThreadWorkSummary -Trace $trace
             trace = $trace
         }
     }
@@ -174,12 +271,20 @@ try {
                 name = $stageName
                 elapsedMilliseconds = Get-MetricSummary @($stagePoints.elapsedMilliseconds)
                 deltaMilliseconds = Get-MetricSummary @($stagePoints.deltaMilliseconds)
+                allocatedBytesSinceManagedEntry = Get-MetricSummary @($stagePoints.allocatedBytesSinceManagedEntry)
+                allocationDeltaBytes = Get-MetricSummary @($stagePoints.allocationDeltaBytes)
             }
         }
     )
 
+    $openedStage = @($stageSummaries | Where-Object { $_.name -eq 'main-window.opened' })[0]
+    $warmupStage = @($stageSummaries | Where-Object { $_.name -eq 'startup-warmup.completed' })[0]
+    if ($null -eq $openedStage -or $null -eq $warmupStage) {
+        throw 'Startup measurement did not observe both first-frame and completed background warm-up stages.'
+    }
+
     $result = [ordered]@{
-        schemaVersion = 'nfc-startup-measurement-v1'
+        schemaVersion = 'nfc-startup-measurement-v2'
         capturedUtc = [DateTimeOffset]::UtcNow.ToString('O')
         applicationPath = $application
         page = $Page
@@ -194,6 +299,17 @@ try {
             workingSetBytesAtWindow = Get-MetricSummary @($samples.workingSetBytesAtWindow)
             workingSetBytesAtTrace = Get-MetricSummary @($samples.workingSetBytesAtTrace)
             peakWorkingSetBytes = Get-MetricSummary @($samples.peakWorkingSetBytes)
+            allocatedBytesAtWindow = $openedStage.allocatedBytesSinceManagedEntry
+            allocatedBytesAfterWarmup = $warmupStage.allocatedBytesSinceManagedEntry
+            firstFrameUiSynchronousWorkMilliseconds = Get-MetricSummary @(
+                $samples | ForEach-Object { $_.uiThreadWork.firstFrame.totalMilliseconds }
+            )
+            backgroundUiMaterializationMilliseconds = Get-MetricSummary @(
+                $samples | ForEach-Object { $_.uiThreadWork.background.totalMilliseconds }
+            )
+            maximumBackgroundUiMaterializationIntervalMilliseconds = Get-MetricSummary @(
+                $samples | ForEach-Object { $_.uiThreadWork.background.maximumIntervalMilliseconds }
+            )
             stages = $stageSummaries
         }
     }
@@ -203,13 +319,13 @@ try {
 
     Write-Host "Startup measurement: $measurementPath"
     Write-Host "Process to window median: $($result.summary.processToWindowMilliseconds.median) ms"
-    $openedStage = @($stageSummaries | Where-Object { $_.name -eq 'main-window.opened' })[0]
-    $warmupStage = @($stageSummaries | Where-Object { $_.name -eq 'startup-warmup.completed' })[0]
-    if ($null -eq $openedStage -or $null -eq $warmupStage) {
-        throw 'Startup measurement did not observe both first-frame and completed background warm-up stages.'
-    }
     Write-Host "Managed entry to opened median: $($openedStage.elapsedMilliseconds.median) ms"
     Write-Host "Managed entry to background warm-up median: $($warmupStage.elapsedMilliseconds.median) ms"
+    Write-Host "Allocated bytes at first window median: $($result.summary.allocatedBytesAtWindow.median) bytes"
+    Write-Host "Allocated bytes after background warm-up median: $($result.summary.allocatedBytesAfterWarmup.median) bytes"
+    Write-Host "First-frame synchronous UI work median: $($result.summary.firstFrameUiSynchronousWorkMilliseconds.median) ms"
+    Write-Host "Background UI materialization work median: $($result.summary.backgroundUiMaterializationMilliseconds.median) ms"
+    Write-Host "Longest background UI materialization interval median: $($result.summary.maximumBackgroundUiMaterializationIntervalMilliseconds.median) ms"
     Write-Host "Working set at window median: $($result.summary.workingSetBytesAtWindow.median) bytes"
     Write-Host "Working set after background warm-up median: $($result.summary.workingSetBytesAtTrace.median) bytes"
     Write-Host "Peak working set during startup median: $($result.summary.peakWorkingSetBytes.median) bytes"
@@ -218,6 +334,8 @@ try {
             Stage = $_.name
             MedianElapsedMs = $_.elapsedMilliseconds.median
             MedianDeltaMs = $_.deltaMilliseconds.median
+            MedianAllocatedBytes = $_.allocatedBytesSinceManagedEntry.median
+            MedianAllocationDeltaBytes = $_.allocationDeltaBytes.median
         }
     } | Format-Table -AutoSize
 }

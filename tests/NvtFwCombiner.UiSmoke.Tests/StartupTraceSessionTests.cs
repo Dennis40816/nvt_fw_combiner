@@ -18,18 +18,20 @@ public sealed class StartupTraceSessionTests
         long origin = 1234;
         var timestamps = new Queue<long>(
             [origin, origin + Stopwatch.Frequency, origin + (2 * Stopwatch.Frequency)]);
+        var allocations = new Queue<long>([100, 260, 500]);
         DateTimeOffset started = new(2026, 7, 20, 1, 2, 3, TimeSpan.Zero);
         var utcValues = new Queue<DateTimeOffset>([started, started.AddSeconds(3)]);
-        StartupTraceSession trace = StartupTraceSession.Create(
+        var trace = StartupTraceSession.Create(
             outputPath,
             timestamps.Dequeue,
-            utcValues.Dequeue);
+            utcValues.Dequeue,
+            allocations.Dequeue);
 
         trace.Mark("options.ready");
         bool written = trace.Complete("window.opened");
 
         Assert.True(written);
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllBytes(outputPath));
+        using var document = JsonDocument.Parse(File.ReadAllBytes(outputPath));
         JsonElement root = document.RootElement;
         Assert.Equal(StartupTraceFileSink.SchemaVersion, root.GetProperty("schemaVersion").GetString());
         JsonElement[] stages = [.. root.GetProperty("stages").EnumerateArray()];
@@ -39,6 +41,10 @@ public sealed class StartupTraceSessionTests
         Assert.Equal(1000, stages[1].GetProperty("elapsedMilliseconds").GetDouble());
         Assert.Equal(2000, stages[2].GetProperty("elapsedMilliseconds").GetDouble());
         Assert.Equal(1000, stages[2].GetProperty("deltaMilliseconds").GetDouble());
+        Assert.Equal(0, stages[0].GetProperty("allocatedBytesSinceManagedEntry").GetInt64());
+        Assert.Equal(160, stages[1].GetProperty("allocatedBytesSinceManagedEntry").GetInt64());
+        Assert.Equal(400, stages[2].GetProperty("allocatedBytesSinceManagedEntry").GetInt64());
+        Assert.Equal(240, stages[2].GetProperty("allocationDeltaBytes").GetInt64());
         Assert.Equal(started, root.GetProperty("startedUtc").GetDateTimeOffset());
         Assert.Equal(started.AddSeconds(3), root.GetProperty("completedUtc").GetDateTimeOffset());
     }
@@ -49,7 +55,7 @@ public sealed class StartupTraceSessionTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-startup-trace-existing");
         string outputPath = workspace.Write("startup.json", Encoding.UTF8.GetBytes("owner data"));
-        StartupTraceSession trace = StartupTraceSession.Create(outputPath);
+        var trace = StartupTraceSession.Create(outputPath);
 
         bool written = trace.Complete("window.opened");
 
@@ -61,7 +67,11 @@ public sealed class StartupTraceSessionTests
     [Fact]
     public void BlankOutputPathKeepsTracingDisabled()
     {
-        StartupTraceSession trace = StartupTraceSession.Create("  ");
+        var trace = StartupTraceSession.Create(
+            "  ",
+            static () => throw new InvalidOperationException("timestamp provider should stay idle"),
+            static () => throw new InvalidOperationException("clock provider should stay idle"),
+            static () => throw new InvalidOperationException("allocation provider should stay idle"));
 
         trace.Mark("ignored");
 
