@@ -1,4 +1,6 @@
-<Styles xmlns="https://github.com/avaloniaui">
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
   <!-- Semantic visual roles shared by pages, report templates, and modal views. -->
   <Style Selector="Border.surface">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
@@ -114,6 +116,23 @@
   </Style>
   <Style Selector="Border.contentPanel">
     <Setter Property="Padding" Value="12" />
+  </Style>
+  <Style Selector="views|SpaciousPanel">
+    <Setter Property="Padding" Value="18,16,20,18" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="ItemsPanel">
+      <ItemsPanelTemplate>
+        <StackPanel Spacing="{DynamicResource NfcSpace16}" />
+      </ItemsPanelTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="views|SpaciousPanel.compact">
+    <Setter Property="Padding" Value="4,4,8,4" />
+    <Setter Property="ItemsPanel">
+      <ItemsPanelTemplate>
+        <StackPanel Spacing="{DynamicResource NfcSpace8}" />
+      </ItemsPanelTemplate>
+    </Setter>
   </Style>
   <Style Selector="Border.listRow">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />

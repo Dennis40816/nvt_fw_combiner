@@ -1,7 +1,8 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
 
 <ControlTheme x:Key="StretchContentPresenterTheme" TargetType="ContentPresenter">
   <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -197,8 +198,8 @@
 </DataTemplate>
 
 <DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:MainWindowViewModel">
-  <Border Padding="18,16" Background="{DynamicResource NfcSurfaceBrush}" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
-    <StackPanel Spacing="14">
+  <Border Classes="panelSurface">
+    <views:SpaciousPanel>
       <StackPanel Spacing="{DynamicResource NfcSpace8}">
         <StackPanel Spacing="3">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
@@ -219,9 +220,14 @@
         </ItemsControl>
       </Border>
 
-      <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}" IsVisible="{Binding IsReplaceCoverageFlat}" />
+      <views:SpaciousPanel
+          Classes="compact"
+          ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}"
+          ItemsSource="{Binding ReplaceCoverageSegments}"
+          IsVisible="{Binding IsReplaceCoverageFlat}" />
 
-      <ItemsControl
+      <views:SpaciousPanel
+          Classes="compact"
           HorizontalAlignment="Stretch"
           ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
           ItemTemplate="{StaticResource MemoryCoverageGroupTemplate}"
@@ -242,13 +248,13 @@
                    Text="{Binding ReplaceReadinessStatus}"
                    TextWrapping="Wrap" />
       </Border>
-    </StackPanel>
+    </views:SpaciousPanel>
   </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="MergeOutputLayoutPanelTemplate" DataType="vm:MainWindowViewModel">
-  <Border Classes="panelSurface roomyPanel">
-    <StackPanel Spacing="14">
+  <Border Classes="panelSurface">
+    <views:SpaciousPanel>
       <StackPanel Spacing="{DynamicResource NfcSpace8}">
         <StackPanel Spacing="3">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
@@ -273,7 +279,7 @@
 
       <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
       <ItemsControl ItemTemplate="{StaticResource MergeMemoryMapRowTemplate}" ItemsSource="{Binding MergeMemoryRows}" />
-    </StackPanel>
+    </views:SpaciousPanel>
   </Border>
 </DataTemplate>
 

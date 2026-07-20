@@ -1,7 +1,8 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
 
 <DataTemplate x:Key="ReportModalHeaderTemplate" DataType="vm:MainWindowViewModel">
   <Border Padding="22,18" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
@@ -56,13 +57,11 @@
       </Border>
 
       <ScrollViewer Grid.Row="2" IsVisible="{Binding HasReportHistory}">
-        <Border Padding="0,0,4,0">
-          <ItemsControl ItemsSource="{Binding ReportHistoryEntries}">
-            <ItemsControl.ItemTemplate>
-              <StaticResource ResourceKey="ReportHistoryEntryTemplate" />
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </Border>
+        <views:SpaciousPanel Classes="compact" ItemsSource="{Binding ReportHistoryEntries}">
+          <views:SpaciousPanel.ItemTemplate>
+            <StaticResource ResourceKey="ReportHistoryEntryTemplate" />
+          </views:SpaciousPanel.ItemTemplate>
+        </views:SpaciousPanel>
       </ScrollViewer>
     </Grid>
   </Border>
