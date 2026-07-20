@@ -2,11 +2,11 @@
 
 > 文件狀態：`0.9.10 performance-remediation stable release candidate`
 > 文件版本：`0.9.10`
-> 基準日期：`2026-07-19`
+> 基準日期：`2026-07-20`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
-> 可見性：`Private`
+> 可見性：`Public`（owner 決定維持至 `0.9.11` 完成，之後改為 `Private`）
 > License：`MIT`（只涵蓋新 NFC 原創內容；`refcode/` 依個別來源與所有權處理）
 > 本文件目的：鎖定產品、Composition 架構、資料契約、Codex 治理、CI/CD、里程碑與後續開發順序。
 
