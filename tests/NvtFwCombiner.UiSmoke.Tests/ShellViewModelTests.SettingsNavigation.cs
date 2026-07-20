@@ -22,7 +22,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "IC catalog" && row.Value == "13");
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Standard Merge" && row.Value == "13 profiles");
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "3 profiles");
+        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "13 profiles");
         SettingSummaryViewModel capability = Assert.Single(viewModel.SettingsCapabilityRows);
         Assert.Equal("CtrlRAM Replace available ICs", capability.Title);
         Assert.Equal("12 ICs", capability.Value);

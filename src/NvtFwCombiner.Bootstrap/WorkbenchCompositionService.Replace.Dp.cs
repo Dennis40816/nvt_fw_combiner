@@ -1,4 +1,3 @@
-using System.Globalization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -58,35 +57,23 @@ public static partial class WorkbenchCompositionService
                 issue.Message);
         }
 
-        var bindings = new List<InputArtifactBinding>
-        {
+        InputArtifactBinding[] bindings =
+        [
             CompiledCompositionInputBindingFactory.Create(
                 compiledComposition,
                 CompositionAddressSpaceIds.ReferenceBase,
                 context.BasePath),
-            context.SlotPaths.TryGetValue(WorkbenchSlotIds.ReplaceDp, out string? path) &&
-                !string.IsNullOrWhiteSpace(path)
-                ? CompiledCompositionInputBindingFactory.Create(
+            .. GetDpReplaceInputSlots(icId).Select(slot =>
+                CompiledCompositionInputBindingFactory.Create(
                     compiledComposition,
-                    CompositionAddressSpaceIds.DpReplacement,
-                    Path.GetFullPath(path))
-                : throw new InvalidOperationException($"Input slot '{WorkbenchSlotIds.ReplaceDp}' is required."),
-        };
-        foreach (DpReplaceAdditionalPayloadRule rule in DpReplaceAuthoringCatalog.GetAdditionalPayloads(icId))
-        {
-            bindings.Add(context.SlotPaths.TryGetValue(rule.SlotId, out string? additionalPath) &&
-                !string.IsNullOrWhiteSpace(additionalPath)
-                ? CompiledCompositionInputBindingFactory.Create(
-                    compiledComposition,
-                    rule.AddressSpaceId,
-                    Path.GetFullPath(additionalPath))
-                : throw new InvalidOperationException($"Input slot '{rule.SlotId}' is required."));
-        }
+                    slot.AddressSpaceId,
+                    Path.GetFullPath(context.SlotPaths[slot.SlotId]))),
+        ];
 
         return await RunCompiledCompositionAsync(
             DpReplaceRunIdPrefix,
             compiledComposition,
-            [.. bindings],
+            bindings,
             context.BasePath,
             build,
             outputPath,
@@ -123,11 +110,6 @@ public static partial class WorkbenchCompositionService
         }
 
         return slots;
-    }
-
-    private static string FormatHexLength(long length)
-    {
-        return string.Create(CultureInfo.InvariantCulture, $"0x{length:X}");
     }
 
 }

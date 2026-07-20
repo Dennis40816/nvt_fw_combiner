@@ -158,24 +158,25 @@ public sealed class IcSupportCatalogTests
                 .Order(StringComparer.Ordinal),
         ];
 
-        Assert.Equal(["NT51930", "NT51950", "NT51951"], dpReplaceIcIds);
+        Assert.Equal(
+            IcSupportCatalog.IcIds.Order(StringComparer.Ordinal),
+            dpReplaceIcIds);
         Assert.All(dpReplaceIcIds, icId =>
             Assert.True(IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.StandardMerge), icId));
     }
 
-    /// <summary>NT51931 keeps Merge support while the exact V2 Replace route is materialized.</summary>
+    /// <summary>NT51931 exposes canonical-map DP Replace while unrelated Replace routes remain closed.</summary>
     [Fact]
-    public void Nt51931ReplaceIsNotSupportedWhileMergeRemainsAvailable()
+    public void Nt51931DpReplaceIsSupportedWhileOtherReplaceModesRemainClosed()
     {
         Assert.True(IcSupportCatalog.TryFind("NT51931", out IcSupportEntry? entry));
         Assert.True(entry!.SupportsWorkflow(IcWorkflowIds.StandardMerge));
         Assert.True(entry.SupportsWorkflow(IcWorkflowIds.GeneralMerge));
-        Assert.False(entry.SupportsWorkflow(IcWorkflowIds.DpReplace));
+        Assert.True(entry.SupportsWorkflow(IcWorkflowIds.DpReplace));
         Assert.False(entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace));
         Assert.False(entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace));
-        Assert.Contains("matches", entry.Notes, StringComparison.Ordinal);
-        Assert.Contains("108 classified", entry.Notes, StringComparison.Ordinal);
-        Assert.Contains("Not available", entry.Notes, StringComparison.Ordinal);
+        Assert.Contains("canonical 256 KiB", entry.Notes, StringComparison.Ordinal);
+        Assert.Contains("not exposed", entry.Notes, StringComparison.Ordinal);
     }
 
     /// <summary>Alias facts are explicit instead of being hidden in separate profile tables.</summary>
@@ -258,7 +259,7 @@ public sealed class IcSupportCatalogTests
             IcWorkflowEvidenceStatus.EvidenceGated,
             nt51932.GetWorkflowEvidenceStatus(IcWorkflowIds.CtrlRamReplace));
         Assert.Equal(
-            IcWorkflowEvidenceStatus.NotAvailable,
+            IcWorkflowEvidenceStatus.EvidenceGated,
             nt51932.GetWorkflowEvidenceStatus(IcWorkflowIds.DpReplace));
 
         Assert.True(IcSupportCatalog.TryFind("NT51950", out IcSupportEntry? nt51950));

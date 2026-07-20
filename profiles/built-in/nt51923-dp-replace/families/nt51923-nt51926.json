@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "1.1",
+  "familyId": "nt51923-nt51926",
+  "familyVersion": "1.1.0",
+  "members": [
+    {
+      "memberId": "NT51923",
+      "displayName": "NT51923"
+    },
+    {
+      "memberId": "NT51926",
+      "displayName": "NT51926"
+    }
+  ],
+  "capabilities": [],
+  "regionSets": [
+    {
+      "regionSetId": "nt51923-nt51926-standard-merge-flash",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "flash-image",
+          "owner": "system",
+          "kind": "image",
+          "range": {
+            "start": 0,
+            "length": 262144
+          },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "tp-code",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "code",
+          "range": {
+            "start": 0,
+            "length": 245760
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "unmapped-gap",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": {
+            "start": 245760,
+            "length": 8192
+          },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "dp-code",
+          "parentRegionId": "flash-image",
+          "owner": "dp",
+          "kind": "code",
+          "range": {
+            "start": 253952,
+            "length": 8192
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51923-golden",
+        "gen-flash-bin-v2-51926-golden"
+      ]
+    }
+  ],
+  "metadataSets": [],
+  "imageMaps": [
+    {
+      "mapId": "nt51923-standard-merge-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51923"
+        ],
+        "modeIds": [
+          "standard-merge",
+          "dp-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51923-nt51926-standard-merge-flash"
+      ],
+      "metadataSetIds": [],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51923-golden",
+        "dp-replace-owner-decision-2026-07-20"
+      ]
+    },
+    {
+      "mapId": "nt51926-standard-merge-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51926"
+        ],
+        "modeIds": [
+          "standard-merge",
+          "dp-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51923-nt51926-standard-merge-flash"
+      ],
+      "metadataSetIds": [],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51926-golden",
+        "dp-replace-owner-decision-2026-07-20"
+      ]
+    }
+  ],
+  "factAliases": [],
+  "evidenceRefs": [
+    "gen-flash-bin-v2-51923-golden",
+    "gen-flash-bin-v2-51926-golden",
+    "dp-replace-owner-decision-2026-07-20"
+  ]
+}

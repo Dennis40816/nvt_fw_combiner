@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "2.0",
+  "profileId": "nt51920-dp-replace-gen-flash",
+  "profileVersion": "0.1.0",
+  "promotion": { "stage": "supported", "blockers": [] },
+  "compositionKind": "replace",
+  "icNumberInputMode": "single-selector",
+  "experience": {
+    "experienceId": "dp-replace", "audience": "dp", "layoutPolicy": "constrained",
+    "inputPolicy": "fixed", "topologyAuthoring": "hidden", "displayNameKey": "profile.nt51920.dp-replace"
+  },
+  "mapBinding": {
+    "familyId": "nt51920", "familyVersion": "1.1.0",
+    "familyContentHash": "22a1e41c1fc29f2d804a217b03ccf8012a8efea0300de3df8e797c5d04fb32ef",
+    "mapIds": ["nt51920-standard-merge-256k"], "requiredRegionIds": ["dp-code"],
+    "requiredMetadataStructureIds": [], "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "reference-base", "role": "reference", "artifactClass": "reference-image",
+      "required": true, "cardinality": "exactly-one", "acceptedExtensions": [".bin"],
+      "acceptance": { "lengthRule": { "kind": "exact-resolved-map-capacity" }, "normalization": { "kind": "none" } }
+    },
+    {
+      "slotId": "dp-replacement", "role": "dp", "artifactClass": "dp-firmware",
+      "required": true, "cardinality": "exactly-one", "acceptedExtensions": [".bin"],
+      "acceptance": { "lengthRule": { "kind": "normal-dp-extract-with-warning", "issueCode": "DP_SIZE_WARNING" }, "normalization": { "kind": "none" } }
+    }
+  ],
+  "spaces": [
+    { "spaceId": "reference-base", "kind": "input-artifact", "slotId": "reference-base", "instancePolicy": "singleton" },
+    { "spaceId": "dp-replacement", "kind": "input-artifact", "slotId": "dp-replacement", "instancePolicy": "singleton" },
+    { "spaceId": "output-image", "kind": "output-image", "capacity": { "kind": "resolved-map" }, "initializer": { "kind": "clone", "sourceSlotId": "reference-base" } }
+  ],
+  "views": [
+    { "viewId": "dp-code-source", "spaceId": "dp-replacement", "selector": { "kind": "map-region", "regionId": "dp-code" } },
+    { "viewId": "dp-code-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "dp-code" } }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [{ "regionId": "dp-code", "access": "whole", "reason": "Replace the complete owner-approved NT51920 DP region." }],
+  "operations": [
+    {
+      "operationId": "replace-dp-code", "sequence": 100, "overlapPolicy": "reject",
+      "reason": "Replace only the canonical NT51920 DP range and preserve all other reference bytes.",
+      "kind": "replace-range", "sourceViewId": "dp-code-source", "targetViewId": "dp-code-output"
+    }
+  ],
+  "validations": [], "processorStages": [],
+  "output": { "fileNameTemplate": "nt51920-dp-replace.bin", "allowOverride": true, "invalidCharacterPolicy": "reject", "requiredTokenIds": [] },
+  "evidenceRefs": ["gen-flash-bin-v2-51920-golden", "dp-replace-owner-decision-2026-07-20"]
+}

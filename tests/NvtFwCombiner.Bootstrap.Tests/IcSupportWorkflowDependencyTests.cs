@@ -80,10 +80,10 @@ public sealed class IcSupportWorkflowDependencyTests
             {
                 Assert.True(IcSupportCatalog.TryFind(icId, out IcSupportEntry? blockedEntry));
                 Assert.NotNull(blockedEntry);
-                Assert.False(blockedEntry.SupportsWorkflow(IcWorkflowIds.DpReplace));
+                Assert.True(blockedEntry.SupportsWorkflow(IcWorkflowIds.DpReplace));
                 Assert.False(blockedEntry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace));
                 Assert.False(blockedEntry.SupportsWorkflow(IcWorkflowIds.GeneralReplace));
-                Assert.Contains("Not available", blockedEntry.Notes, StringComparison.Ordinal);
+                Assert.Contains("not exposed", blockedEntry.Notes, StringComparison.Ordinal);
                 continue;
             }
 

@@ -5,9 +5,81 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Runtime-routing evidence for the supported NT51950/NT51951 V2 DP Replace profiles.</summary>
+/// <summary>Runtime-routing evidence for the supported built-in V2 DP Replace profiles.</summary>
 public sealed class BuiltInV2DpReplaceRoutingTests
 {
+    /// <summary>Every canonical Gen Flash map exposes only its owner-approved DP partition.</summary>
+    [Theory]
+    [InlineData("NT51917", 0x40000, "nt51917-dp-replace-gen-flash-alias", "c805ce9881786131a299675ec84ff272cd3effc74310fc783965abb1a8400568", 0x3C000, 0x4000)]
+    [InlineData("NT51919", 0x40000, "nt51919-dp-replace-gen-flash-alias", "072ba46232d3052f4c6f914266135c89d19816243a2416d3516317d707be1c07", 0x00000, 0x6000)]
+    [InlineData("NT51920", 0x40000, "nt51920-dp-replace-gen-flash", "54fe891836a8e899f3ac27c3dd32e35678032b3f0c886d6a2f2659369c7185a9", 0x3E000, 0x2000)]
+    [InlineData("NT51923", 0x40000, "nt51923-dp-replace-gen-flash", "4c822759f79167ab16331bb9590b89f3d7874ec518660ca098e545ae432569a0", 0x3E000, 0x2000)]
+    [InlineData("NT51926", 0x40000, "nt51926-dp-replace-gen-flash", "4c822759f79167ab16331bb9590b89f3d7874ec518660ca098e545ae432569a0", 0x3E000, 0x2000)]
+    [InlineData("NT51927", 0x40000, "nt51927-dp-replace-gen-flash", "c805ce9881786131a299675ec84ff272cd3effc74310fc783965abb1a8400568", 0x3C000, 0x4000)]
+    [InlineData("NT51929", 0x40000, "nt51929-dp-replace-gen-flash", "072ba46232d3052f4c6f914266135c89d19816243a2416d3516317d707be1c07", 0x00000, 0x6000)]
+    [InlineData("NT51931", 0x40000, "nt51931-dp-replace-gen-flash", "eae8c593556e9cb5d639d2f05c94f8144d091767e490e746cd5cdeb2b5384c9c", 0x3E000, 0x2000)]
+    [InlineData("NT51932", 0x40000, "nt51932-dp-replace-gen-flash", "072ba46232d3052f4c6f914266135c89d19816243a2416d3516317d707be1c07", 0x00000, 0x6000)]
+    public void GenFlashDpReplaceUsesCanonicalDpPartition(
+        string icId,
+        long baseCapacity,
+        string profileId,
+        string bundleContentHash,
+        long dpStart,
+        long dpLength)
+    {
+        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+            icId,
+            baseCapacity,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(registered);
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        Assert.Equal(profileId, artifact.ProfileId);
+        Assert.Equal(bundleContentHash, artifact.V2Details!.Provenance.Bundle.ContentHash);
+        Assert.Equal(
+            [CompositionAddressSpaceIds.DpReplacement, CompositionAddressSpaceIds.ReferenceBase],
+            artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
+        CompositionOperation operation = Assert.Single(artifact.Plan.OrderedOperations);
+        Assert.Equal("replace-dp-code", operation.OperationId);
+        Assert.Equal(CompositionAddressSpaceIds.DpReplacement, operation.SourceSpaceId);
+        Assert.Equal(new ByteRange(dpStart, dpLength), operation.TargetRange);
+    }
+
+    /// <summary>NT51928 keeps DP and LDC as separate required inputs and non-overlapping writes.</summary>
+    [Fact]
+    public void Nt51928DpReplaceSeparatesDpAndLdcPartitions()
+    {
+        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+            "NT51928",
+            0x80000,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(registered);
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        Assert.Equal("nt51928-dp-replace-gen-flash", artifact.ProfileId);
+        Assert.Equal(
+            [CompositionAddressSpaceIds.DpReplacement, CompositionAddressSpaceIds.LdReplacement, CompositionAddressSpaceIds.ReferenceBase],
+            artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
+        Assert.Collection(
+            artifact.Plan.OrderedOperations,
+            operation =>
+            {
+                Assert.Equal("replace-dp-code", operation.OperationId);
+                Assert.Equal(CompositionAddressSpaceIds.DpReplacement, operation.SourceSpaceId);
+                Assert.Equal(new ByteRange(0x3C000, 0x4000), operation.TargetRange);
+            },
+            operation =>
+            {
+                Assert.Equal("replace-ldc-code", operation.OperationId);
+                Assert.Equal(CompositionAddressSpaceIds.LdReplacement, operation.SourceSpaceId);
+                Assert.Equal(new ByteRange(0x40000, 0x22000), operation.TargetRange);
+            });
+    }
+
     /// <summary>Verifies DP Perspective classification remains a map-shape fact, not generic DP Replace availability.</summary>
     [Theory]
     [InlineData("51950")]
