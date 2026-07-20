@@ -34,16 +34,6 @@ public static partial class WorkbenchCompositionService
         };
     }
 
-    private static string ActionSummaryForReplaceMode(string replaceMode)
-    {
-        return replaceMode switch
-        {
-            WorkbenchReplaceModes.Dp => "profile policy controls padding",
-            WorkbenchReplaceModes.CtrlRam => "postbuild refreshes CRC/header",
-            _ => "profile validation controls write access",
-        };
-    }
-
     private static CoverageSegment[] ApplyCoverageWrite(
         IReadOnlyList<CoverageSegment> current,
         CoverageSegment write)
@@ -143,12 +133,6 @@ public static partial class WorkbenchCompositionService
         };
     }
 
-    private static double WidthForRange(ByteRange range, long capacity)
-    {
-        const double maxWidth = 300;
-        return Math.Max(8, Math.Round(maxWidth * range.Length / capacity, 1));
-    }
-
     private static string FormatFullRange(long capacity)
     {
         return capacity <= 0 ? "No range" : FormatDisplayRange(new ByteRange(0, capacity));
@@ -170,9 +154,22 @@ public static partial class WorkbenchCompositionService
                 segment.SourceLabel,
                 segment.Detail,
                 segment.Fill,
-                WidthForRange(segment.Range, capacity),
+                Math.Max(8, Math.Round(300d * segment.Range.Length / capacity, 1)),
                 segment.IsChanged)),
         ];
+    }
+
+    private static WorkbenchMemoryDisplay CreateMessageDisplay(
+        string rangeLabel,
+        (string Range, string Before, string Action, string After, string Detail) row,
+        (string Range, string Source, string Detail, string Fill)? coverage)
+    {
+        return new(
+            rangeLabel,
+            [new WorkbenchMemoryMapRow(row.Range, row.Before, row.Action, row.After, row.Detail)],
+            coverage is { } item
+                ? [new WorkbenchMemoryCoverageSegment(item.Range, item.Source, item.Detail, item.Fill, 280, false)]
+                : []);
     }
 
     private static string Sha256File(string path)

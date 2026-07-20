@@ -12,7 +12,7 @@ public sealed partial class ShellViewModelTests
             ReportJsonSamples.RuntimeOnlyCommandTrace(),
             "runtime-only.json");
 
-        ReportLineViewModel command = Assert.Single(report.CommandOperations);
+        ReportLineViewModel command = Assert.Single(GetCommandOperations(report));
         Assert.False(command.HasCodeBlock);
         Assert.True(command.HasRuntimeCommands);
         Assert.Empty(report.StepOperations);
@@ -37,7 +37,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("planned", invocation.Status);
         Assert.Contains("argv[0]: MERGE_MODE", invocation.ArgumentListEvidence, StringComparison.Ordinal);
         Assert.Equal("Working directory: C:\\staging\\ui-smoke-command", invocation.WorkingDirectoryDetail);
-        ReportLineViewModel command = Assert.Single(report.CommandOperations);
+        ReportLineViewModel command = Assert.Single(GetCommandOperations(report));
         Assert.Equal("run-external-processor", command.OperationKind);
         Assert.Equal("(none)", command.OperationSource);
         Assert.Equal("output-image 0x0-0x7FFFF (len 0x80000)", command.OperationTarget);
@@ -88,7 +88,7 @@ public sealed partial class ShellViewModelTests
             ReportJsonSamples.CtrlRamCommandTrace(runtimeInvocationCount: 3),
             "runtime-trace.json");
 
-        _ = Assert.Single(report.CommandOperations);
+        _ = Assert.Single(GetCommandOperations(report));
         Assert.Equal(3, report.PostbuildInvocationCount);
         Assert.Equal(
             ["900.01", "900.02", "900.03"],

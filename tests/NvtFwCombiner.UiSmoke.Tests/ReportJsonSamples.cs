@@ -148,6 +148,137 @@ internal static class ReportJsonSamples
             ]);
     }
 
+    public static string ReplaceWithManyOutputDifferences(
+        int count,
+        int sectionCount,
+        string sectionPrefix = "Section",
+        string runId = "large-difference-report",
+        long? outputSize = null,
+        string outputSha256 = "0123456789abcdef012345",
+        int? reviewEvery = null)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sectionCount);
+        if (reviewEvery is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(reviewEvery));
+        }
+
+        object[] differences =
+        [
+            .. Enumerable.Range(0, count).Select(index =>
+            {
+                bool needsReview = reviewEvery is int interval
+                    ? index % interval == 0
+                    : index == count - 1;
+                return OutputDifference(
+                    $"diff-{index:D5}",
+                    Range(index * 4L, (index * 4L) + 4),
+                    4,
+                    needsReview
+                        ? OutputDifferenceClassifications.Unexpected
+                        : OutputDifferenceClassifications.DeclaredReplacement,
+                    isAccepted: !needsReview,
+                    $"evidence-{index:D5}",
+                    $"difference {index}",
+                    $"{sectionPrefix} {index % sectionCount:D2}");
+            }),
+        ];
+        return Create(
+            "nt51927-ctrlram-replace",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            "Replace",
+            runId,
+            "2026-07-01T00:05:00Z",
+            [],
+            [],
+            [],
+            "build.bin",
+            outputSize ?? (count * 4L),
+            committed: true,
+            outputSha256,
+            differences);
+    }
+
+    public static string ReplaceWithFullHexOutputDifference(int byteCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteCount);
+        string beforeHex = new('A', checked(byteCount * 2));
+        string afterHex = new('1', checked(byteCount * 2));
+        return Create(
+            "nt51927-ctrlram-replace",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            "Replace",
+            "legacy-full-hex-report",
+            "2026-07-01T00:05:00Z",
+            [],
+            [],
+            [],
+            "build.bin",
+            byteCount,
+            committed: true,
+            "0123456789abcdef012345",
+            [
+                OutputDifference(
+                    "diff-full-hex",
+                    Range(0, byteCount),
+                    byteCount,
+                    OutputDifferenceClassifications.DeclaredReplacement,
+                    isAccepted: true,
+                    "legacy-full-hex",
+                    "legacy full hex evidence",
+                    "Payload",
+                    beforeFullHex: beforeHex,
+                    afterFullHex: afterHex,
+                    beforeHexPreview: string.Empty,
+                    afterHexPreview: string.Empty),
+            ]);
+    }
+
+    public static string ReplaceWithOutputDifferenceRanges(
+        string runId,
+        long outputSize,
+        string outputSha256,
+        params (long Start, long EndExclusive, long Length, long ChangedByteCount)[] ranges)
+    {
+        ArgumentNullException.ThrowIfNull(ranges);
+        return Create(
+            "nt51950-general-replace",
+            "NT51950",
+            "general-replace",
+            "general-replace",
+            "Replace",
+            runId,
+            "2026-07-01T00:05:00Z",
+            [],
+            [],
+            [],
+            "preview.bin",
+            outputSize,
+            committed: false,
+            outputSha256,
+            [
+                .. ranges.Select((range, index) => OutputDifference(
+                    $"range-{index}",
+                    new
+                    {
+                        range.Start,
+                        range.EndExclusive,
+                        range.Length,
+                    },
+                    range.ChangedByteCount,
+                    OutputDifferenceClassifications.DeclaredReplacement,
+                    isAccepted: true,
+                    "test-evidence",
+                    "typed range identity test",
+                    "Payload")),
+            ]);
+    }
+
     public static string CtrlRamWarning(
         string runId = "ui-smoke-warning",
         string issueCode = CompositionIssueCodes.InputAddressSpaceTruncated,
@@ -267,7 +398,11 @@ internal static class ReportJsonSamples
         string? sectionLabel = null,
         object? semantic = null,
         int hexPreviewByteCount = 4,
-        bool isHexPreviewComplete = true)
+        bool isHexPreviewComplete = true,
+        string? beforeFullHex = null,
+        string? afterFullHex = null,
+        string beforeHexPreview = "AABBCCDD",
+        string afterHexPreview = "11223344")
     {
         return new
         {
@@ -282,8 +417,10 @@ internal static class ReportJsonSamples
             Semantic = semantic,
             BeforeSha256 = "11111111111111111111",
             AfterSha256 = "22222222222222222222",
-            BeforeHexPreview = "AABBCCDD",
-            AfterHexPreview = "11223344",
+            BeforeHex = beforeFullHex,
+            AfterHex = afterFullHex,
+            BeforeHexPreview = beforeHexPreview,
+            AfterHexPreview = afterHexPreview,
             HexPreviewByteCount = hexPreviewByteCount,
             IsHexPreviewComplete = isHexPreviewComplete,
         };

@@ -1,16 +1,10 @@
 {
-  "schemaVersion": "2.7",
+  "schemaVersion": "2.9",
   "profileId": "nt51926-ctrlram-replace-fw141-cascade",
-  "profileVersion": "0.2.0",
+  "profileVersion": "0.4.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
-      {
-        "blockerId": "direct-golden-evidence",
-        "kind": "golden",
-        "reason": "A direct NT51926 Common FW 1.4.1 cascade CtrlRAM input/output golden is required before runtime exposure.",
-        "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
-      },
       {
         "blockerId": "firmware-owner-review",
         "kind": "human-review",
@@ -20,8 +14,8 @@
       {
         "blockerId": "runtime-route",
         "kind": "ui",
-        "reason": "The candidate is intentionally not routed through CtrlRAM Replace UI or CLI until golden parity is reviewed.",
-        "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
+        "reason": "The candidate is intentionally not routed until selective-slot, TP FW version-edit, report, naming, CLI, and UI parity are reviewed.",
+        "evidenceRefs": [ "nt51926-cascade-tp-base-self-regression-20260717" ]
       }
     ]
   },
@@ -40,9 +34,12 @@
   },
   "mapBinding": {
     "familyId": "nt51926-ctrlram-replace",
-    "familyVersion": "0.2.0",
-    "familyContentHash": "b9ade08ee84f759ae6af3703a420310a648b395a9abfe802d54263674e1c39b0",
-    "mapIds": [ "nt51926-ctrlram-fw141-256k" ],
+    "familyVersion": "0.6.0",
+    "familyContentHash": "824fc501bb111803f82e5cd33a4f541be183cfab6986734445f87819fe4914e3",
+    "mapIds": [
+      "nt51926-ctrlram-fw141-tp-work-240k",
+      "nt51926-ctrlram-fw141-full-flash-256k"
+    ],
     "requiredRegionIds": [
       "flash-image",
       "normal-ctrlram",
@@ -170,8 +167,8 @@
     }
   ],
   "views": [
-    { "viewId": "reference-image", "spaceId": "reference-base", "selector": { "kind": "map-region", "regionId": "flash-image" } },
-    { "viewId": "output-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "reference-tp-work-image", "spaceId": "reference-base", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "output-tp-work-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
     { "viewId": "normal-ctrlram-source", "spaceId": "normal-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 11264 } } },
     { "viewId": "diff-ctrlram-source", "spaceId": "diff-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 10240 } } },
     { "viewId": "mp-ctrlram-source", "spaceId": "mp-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 9216 } } },
@@ -190,11 +187,11 @@
   ],
   "metadataBindings": [],
   "regionAccessRules": [
-    { "regionId": "normal-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete Normal CtrlRAM replacement." },
-    { "regionId": "diff-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete DIFF CtrlRAM replacement." },
-    { "regionId": "mp-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete MP CtrlRAM replacement." },
-    { "regionId": "vn-ctrlram-fw141", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete 0x1660-byte VN CtrlRAM replacement." },
-    { "regionId": "nf-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete NF CtrlRAM replacement." },
+    { "regionId": "normal-ctrlram", "access": "explicit-range", "reason": "The declared 0x2C00-byte region is a maximum; the immutable replacement may populate only its available prefix." },
+    { "regionId": "diff-ctrlram", "access": "explicit-range", "reason": "The declared 0x2800-byte region is a maximum; the immutable replacement may populate only its available prefix." },
+    { "regionId": "mp-ctrlram", "access": "explicit-range", "reason": "The declared 0x2400-byte region is a maximum; the immutable replacement may populate only its available prefix." },
+    { "regionId": "vn-ctrlram-fw141", "access": "explicit-range", "reason": "The declared 0x1660-byte region is a maximum; the immutable replacement may populate only its available prefix." },
+    { "regionId": "nf-ctrlram", "access": "explicit-range", "reason": "The declared 0x2DD0-byte region is a maximum; the immutable replacement may populate only its available prefix." },
     { "regionId": "fw-config-backup", "access": "explicit-range", "reason": "Combiner copies the reviewed firmware-config source block to the backup target; it is not user authoring authority." },
     { "regionId": "header-copy", "access": "explicit-range", "reason": "Combiner owns the reviewed header copy and final header CRC refresh target." },
     { "regionId": "header-crc-1c", "access": "explicit-range", "reason": "Combiner recalculates this reviewed source header integrity field." },
@@ -219,10 +216,11 @@
       "toolBindingId": "legacy-combiner-1.13.0",
       "invocationProfileId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
       "targetSpaceId": "output-image",
+      "targetViewId": "output-tp-work-image",
       "authority": "transform",
       "purpose": "header-and-integrity",
       "integrityDisposition": "recalculate-and-write",
-      "allowedReadViewIds": [ "output-image" ],
+      "allowedReadViewIds": [ "output-tp-work-image" ],
       "allowedWriteViewIds": [
         "normal-ctrlram-output",
         "diff-ctrlram-output",
@@ -255,6 +253,7 @@
   },
   "evidenceRefs": [
     "nt51926-common-fw141-postbuild",
-    "nt51926-fwconfig-backup-golden"
+    "nt51926-fwconfig-backup-golden",
+    "nt51926-cascade-tp-base-self-regression-20260717"
   ]
 }

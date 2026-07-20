@@ -1,20 +1,23 @@
+using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private readonly AsyncRelayCommand _relocalizeLoadedReportCommand;
+    private CancellationTokenSource? _reportRelocalizationIterationCancellation;
+    private long _reportRelocalizationRequestVersion;
+
+    internal bool IsReportRelocalizationRunning => _relocalizeLoadedReportCommand.IsRunning;
+
+    internal Task? ReportRelocalizationTask => _relocalizeLoadedReportCommand.ExecutionTask;
+
     private void ApplyTextResources(ShellLanguage language, bool notify = true)
     {
         Text = ShellTextResources.For(language);
         WorkspaceTitle = Text.WorkspaceTitle;
         WorkspaceSummary = Text.WorkspaceSummary;
-        PreviewActionLabel = Text.PreviewActionLabel;
-        BuildActionLabel = Text.BuildActionLabel;
-        ReportModalActionLabel = Text.ReportModalActionLabel;
-        DeviceContextTitle = Text.DeviceContextTitle;
-        IcLabel = Text.IcLabel;
-        NumberLabel = Text.NumberLabel;
         DeviceContextRefreshSummary = Text.DeviceContextStatus;
         SettingsPreview = Text.SettingsPreview;
         MergePreview = Text.MergePreview;
@@ -22,6 +25,7 @@ public sealed partial class MainWindowViewModel
         ApplyFirmwareSlotText();
         ApplyInitialRunResultText();
         HexEditorWorkspace.ApplyTextResources(Text);
+        CompositionProgress.ApplyLanguage(language);
 
         if (!notify)
         {
@@ -31,12 +35,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(Text));
         OnPropertyChanged(nameof(WorkspaceTitle));
         OnPropertyChanged(nameof(WorkspaceSummary));
-        OnPropertyChanged(nameof(PreviewActionLabel));
-        OnPropertyChanged(nameof(BuildActionLabel));
-        OnPropertyChanged(nameof(ReportModalActionLabel));
-        OnPropertyChanged(nameof(DeviceContextTitle));
-        OnPropertyChanged(nameof(IcLabel));
-        OnPropertyChanged(nameof(NumberLabel));
+        OnPropertyChanged(nameof(RunProgressAccessibleLabel));
         OnPropertyChanged(nameof(DeviceContextStatus));
         OnPropertyChanged(nameof(SettingsPreview));
         OnPropertyChanged(nameof(MergePreview));
@@ -46,6 +45,10 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReplaceMemorySummary));
         OnPropertyChanged(nameof(StandardMergeSupportSummary));
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
+        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
+        OnPropertyChanged(nameof(SelectedIcFamilyLabel));
+        OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(MergeBuildActionTip));
@@ -60,10 +63,26 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReportHistoryStorageSummary));
         OnPropertyChanged(nameof(ReportHistoryStorageWarning));
         OnPropertyChanged(nameof(NavigationPath));
-        RelocalizeLoadedReport();
+        RequestReportRelocalization();
         RefreshSettingsState();
         RefreshReplaceModeState(preserveSlotFiles: true);
+        RefreshCtrlRamDisplayFromInspection();
         RefreshReplaceSelectionState();
+    }
+
+    private void RequestReportRelocalization()
+    {
+        _ = Interlocked.Increment(ref _reportRelocalizationRequestVersion);
+        Volatile.Read(ref _reportRelocalizationIterationCancellation)?.Cancel();
+        if (!_relocalizeLoadedReportCommand.IsRunning)
+        {
+            _relocalizeLoadedReportCommand.Execute(null);
+        }
+    }
+
+    private void CancelReportRelocalization()
+    {
+        Volatile.Read(ref _reportRelocalizationIterationCancellation)?.Cancel();
     }
 
     private void ApplyInitialRunResultText()
@@ -102,8 +121,10 @@ public sealed partial class MainWindowViewModel
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
         ReplaceBaseSlot.ApplyDisplayText(
-            Text.BaseFlashBinTitle,
-            Text.BaseFlashBinDescription,
+            Text.GetReplaceBaseTitle(SelectedReplaceMode),
+            Text.GetReplaceBaseDescription(
+                SelectedReplaceMode,
+                WorkbenchCompositionService.GetDpReplaceReferenceCapacityLabel(SelectedIc)),
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
@@ -120,7 +141,7 @@ public sealed partial class MainWindowViewModel
         {
             slot.ApplyDisplayText(
                 Text.DpReplacementBinTitle,
-                Text.DpReplacementBinDescription,
+                slot.Description,
                 Text.RequiredLabel,
                 Text.OptionalLabel,
                 Text.NoBinSelectedLabel);

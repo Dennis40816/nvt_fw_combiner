@@ -165,6 +165,11 @@ public sealed class CompositionRunRequest
             StringComparer.Ordinal);
         bool isLogicalOutput = details.Provenance.Context is LogicalOutputV2CompilationContext;
         bool isRuntimeReferenceReplace = details.Provenance.Context is RuntimeReferenceReplaceV2CompilationContext;
+        CompiledInputArtifactClass runtimeReferenceSourceClass =
+            details.Provenance.Context is RuntimeReferenceReplaceV2CompilationContext runtimeReferenceContext &&
+            StringComparer.Ordinal.Equals(runtimeReferenceContext.ModeId, ExperienceIds.CtrlRamReplace)
+                ? CompiledInputArtifactClass.CtrlRamReplacement
+                : CompiledInputArtifactClass.Auxiliary;
         foreach (CompiledInputSpaceBinding expected in expectedBindings)
         {
             if (!bindings.TryGetValue(expected.AddressSpaceId, out InputArtifactBinding? binding))
@@ -190,7 +195,7 @@ public sealed class CompositionRunRequest
                        (expected.InstancePolicy == CompiledInputInstancePolicy.PerBinding &&
                         slot.Required &&
                         slot.Cardinality == CompiledInputSlotCardinality.OneOrMore &&
-                        slot.ArtifactClass == CompiledInputArtifactClass.Auxiliary)) &&
+                        slot.ArtifactClass == runtimeReferenceSourceClass)) &&
                       binding.BindingId == expected.AddressSpaceId &&
                       binding.ArtifactClass == slot.ArtifactClass &&
                       binding.OriginalFileName is not null
@@ -267,7 +272,7 @@ public sealed class CompositionRunRequest
     {
         foreach (CompiledValidationRequirement requirement in compiledComposition.ValidationRequirements)
         {
-            if (compiledComposition.Authority is LegacyProfileCompilationAuthority &&
+            if (compiledComposition.Authority is LegacyProfileCompilationAuthority or ProfileBundleV2CompilationAuthority &&
                 requirement is CompiledFirmwareConfigBackupVersionValidation &&
                 requirement.Stage == CompiledValidationStage.FinalOutput &&
                 requirement.Severity == CompiledValidationSeverity.Error)

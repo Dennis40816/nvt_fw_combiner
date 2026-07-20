@@ -66,9 +66,27 @@ public sealed partial class CompiledComposition
         V2CompiledCompositionDetails details = composition.V2Details ?? throw new InvalidOperationException(
             "Profile-bundle-v2 artifacts require paired v2 details.");
         V2CompilationProvenance provenance = details.Provenance;
-        CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
         var builder = new StringBuilder();
         AppendField(builder, "format", V2FingerprintFormat);
+        AppendV2ProfileIdentity(builder, composition);
+        if (context.Kind == V2CompilationContextKind.RuntimeReferenceReplace)
+        {
+            AppendEnum(builder, "compilation-context", context.Kind);
+            if (((RuntimeReferenceReplaceV2CompilationContext)context).AllowsConditionalProcessor)
+            {
+                AppendInteger(builder, "compilation-context.conditional-processor", 1);
+            }
+        }
+        AppendV2ProfileAdmission(builder, composition, provenance);
+        AppendField(builder, "resolved-map.fingerprint", provenance.ResolvedMap.ResolutionFingerprint);
+
+        return CompleteV2Fingerprint(builder, composition, details);
+    }
+
+    private static void AppendV2ProfileIdentity(
+        StringBuilder builder,
+        CompiledComposition composition)
+    {
         AppendField(builder, "authority.kind", "profile-bundle-v2");
         AppendField(
             builder,
@@ -80,10 +98,13 @@ public sealed partial class CompiledComposition
         AppendField(builder, "profile.mode", composition.ModeId);
         AppendField(builder, "profile.experience", composition.ExperienceId);
         AppendEnum(builder, "profile.composition-kind", composition.CompositionKind);
-        if (context.Kind == V2CompilationContextKind.RuntimeReferenceReplace)
-        {
-            AppendEnum(builder, "compilation-context", context.Kind);
-        }
+    }
+
+    private static void AppendV2ProfileAdmission(
+        StringBuilder builder,
+        CompiledComposition composition,
+        V2CompilationProvenance provenance)
+    {
         AppendEnum(builder, "run-policy.ic-number", composition.IcNumberPolicy);
         AppendEnum(builder, "eligibility", composition.Eligibility);
         AppendField(builder, "bundle.id", provenance.Bundle.BundleId);
@@ -92,7 +113,15 @@ public sealed partial class CompiledComposition
         AppendField(builder, "bundle.trust-anchor-binding-id", provenance.Bundle.TrustAnchorBindingId);
         AppendField(builder, "profile-entry.id", provenance.ProfileEntry.EntryId);
         AppendField(builder, "profile-entry.content-hash", provenance.ProfileEntry.ContentHash);
-        AppendField(builder, "resolved-map.fingerprint", provenance.ResolvedMap.ResolutionFingerprint);
+    }
+
+    private static string CompleteV2Fingerprint(
+        StringBuilder builder,
+        CompiledComposition composition,
+        V2CompiledCompositionDetails details)
+    {
+        V2CompilationProvenance provenance = details.Provenance;
+        CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
         AppendEnum(builder, "promotion.stage", provenance.Promotion.Stage);
         AppendInteger(builder, "promotion.blocker.count", provenance.Promotion.Blockers.Count);
         for (int index = 0; index < provenance.Promotion.Blockers.Count; index++)

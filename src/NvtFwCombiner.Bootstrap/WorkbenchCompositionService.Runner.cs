@@ -26,7 +26,8 @@ public static partial class WorkbenchCompositionService
         IcNumberSelection? icNumberSelection,
         bool overwrite,
         CancellationToken cancellationToken,
-        IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null)
+        IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
+        CompositionRunProgressFeed? progress = null)
     {
         string[] inputRoots =
         [
@@ -64,12 +65,9 @@ public static partial class WorkbenchCompositionService
             outputFileName,
             icNumberSelection: icNumberSelection);
 
-        CompositionRunResult result = await CompositionRunExecutionSupport.PreviewOrBuildAsync(
-                service,
-                request,
-                build,
-                cancellationToken)
-            .ConfigureAwait(false);
+        CompositionRunResult result = progress is null
+            ? await service.PreviewOrBuildAsync(request, build, cancellationToken).ConfigureAwait(false)
+            : await service.PreviewOrBuildAsync(request, build, progress, cancellationToken).ConfigureAwait(false);
         return ToWorkbenchRunResult(result);
     }
 
@@ -82,11 +80,6 @@ public static partial class WorkbenchCompositionService
     {
         string suffix = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
         return $"{prefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}-{suffix}";
-    }
-
-    private static string CreateWorkbenchReportRunId(string prefix, bool build, DateTimeOffset timestamp)
-    {
-        return $"{prefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}";
     }
 
     private static string GetReplaceRunIdPrefix(string replaceMode)

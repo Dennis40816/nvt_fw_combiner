@@ -7,12 +7,48 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     /// <summary>Runs Standard Merge preview or build through the application core.</summary>
-    public static async ValueTask<WorkbenchRunResult> RunStandardMergeAsync(
+    public static ValueTask<WorkbenchRunResult> RunStandardMergeAsync(
         string icId,
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
         CancellationToken cancellationToken,
         string? outputPath = null)
+    {
+        return RunStandardMergeCoreAsync(
+            icId,
+            slotPaths,
+            build,
+            outputPath,
+            progress: null,
+            cancellationToken);
+    }
+
+    /// <summary>Runs Standard Merge and publishes bounded Application-owned lifecycle phases.</summary>
+    public static ValueTask<WorkbenchRunResult> RunStandardMergeWithProgressAsync(
+        string icId,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        return RunStandardMergeCoreAsync(
+            icId,
+            slotPaths,
+            build,
+            outputPath,
+            progress,
+            cancellationToken);
+    }
+
+    private static async ValueTask<WorkbenchRunResult> RunStandardMergeCoreAsync(
+        string icId,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        string? outputPath,
+        CompositionRunProgressFeed? progress,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(slotPaths);
@@ -36,7 +72,13 @@ public static partial class WorkbenchCompositionService
         InputArtifactBinding[] bindings = [
             .. plan.RequiredInputAddressSpaceIds
                 .Order(StringComparer.Ordinal)
-                .Select(addressSpaceId => CreateBinding(compiledComposition, addressSpaceId, slotPaths)),
+                .Select(addressSpaceId => slotPaths.TryGetValue(addressSpaceId, out string? path) &&
+                    !string.IsNullOrWhiteSpace(path)
+                        ? CompiledCompositionInputBindingFactory.Create(
+                            compiledComposition,
+                            addressSpaceId,
+                            Path.GetFullPath(path))
+                        : throw new InvalidOperationException($"Input slot '{addressSpaceId}' is required.")),
         ];
 
         return await RunCompiledCompositionAsync(
@@ -49,7 +91,8 @@ public static partial class WorkbenchCompositionService
             externalProcessor: null,
             icNumberSelection: null,
             overwrite: true,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            progress: progress).ConfigureAwait(false);
     }
 
     private static bool TryGetStandardMergeDpInputLength(

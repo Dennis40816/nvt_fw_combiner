@@ -1,6 +1,6 @@
 # Composition Profile Contract 1.0
 
-The canonical profile compiles every Merge and Replace experience into one composition model. The executable schema is [`composition-profile-v1.schema.json`](composition-profile-v1.schema.json).
+This document preserves the versioned V1 profile authoring contract. The V1 production compiler and its release-exposed callers were retired in v0.9.9; executable release routes are materialized from trusted V2 bundles. The historical schema remains [`composition-profile-v1.schema.json`](composition-profile-v1.schema.json) for stored-contract validation and migration review, not as a runtime fallback.
 
 ## Fundamental rule
 
@@ -33,7 +33,7 @@ The reusable region contract is [`region-v1.schema.json`](region-v1.schema.json)
 
 DP and TP headers must be modeled separately. Use tags such as `dp-header` and `tp-header`; do not rely on one generic `header` tag for processor/write policy decisions.
 
-DP Replace, CtrlRAM Replace, and General Replace policies are enforced by the compiler, not only by UI visibility. General Replace may author explicit ranges only where the profile enables them and never through protected regions.
+DP Replace, CtrlRAM Replace, and General Replace policies must be enforced by the executable trusted-profile compiler, not only by UI visibility. General Replace may author explicit ranges only where the admitted V2 profile enables them and never through protected regions. A shape without an exact trusted V2 route fails closed.
 
 Replace profiles may declare `experience.icNumInputMode` as `single`, `cascade`, or `numeric`. UI should present two-option IC count choices such as `single`/`cascade` as text labels. Profiles with three or more concrete IC-count choices, such as NT51917/NT51927/NT51928 single/2IC/3IC flows, should use numeric selection while preserving room for a future Other/custom path.
 
@@ -61,10 +61,10 @@ The JSON `schemaVersion: "1.0"` contract does not expose these fields because th
 
 ## Integrity outcome and processor authority
 
-`integrityDisposition` (`none`, `verify-existing`, `recalculate-and-write`) is distinct from `processorInvocation.authority` (`calculate`, `transform`). `unknown` is evidence-only and rejected by the supported-profile compiler.
+`integrityDisposition` (`none`, `verify-existing`, `recalculate-and-write`) is distinct from `processorInvocation.authority` (`calculate`, `transform`). `unknown` is evidence-only and rejected by trusted executable-profile validation.
 
 Production CRC/Header transforms may use an external combiner tool binding. Profiles reference logical binding metadata; executable path, SHA-256, argument template, timeout, and platform are defined by the external combiner tool manifest.
 
 ## Semantic validation beyond JSON Schema
 
-The compiler also enforces unique ids, reference integrity, source/target length compatibility, checked bounds, address-space mutability, composition/initializer compatibility, experience access rules, deterministic operation order, processor/tool registration/version/read-write authority, protected-range behavior, and complete output token extraction.
+Trusted executable-profile compilation also enforces unique ids, reference integrity, source/target length compatibility, checked bounds, address-space mutability, composition/initializer compatibility, experience access rules, deterministic operation order, processor/tool registration/version/read-write authority, protected-range behavior, and complete output token extraction. The retired V1 compiler is not a compatibility execution path.

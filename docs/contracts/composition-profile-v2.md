@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, and 2.7
+# Composition Profile Contract 2.0 through 2.9
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -7,7 +7,9 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.4.schema.json`](composition-profile-v2.4.schema.json), and
 [`composition-profile-v2.5.schema.json`](composition-profile-v2.5.schema.json), and
 [`composition-profile-v2.6.schema.json`](composition-profile-v2.6.schema.json), and
-[`composition-profile-v2.7.schema.json`](composition-profile-v2.7.schema.json). A trusted bundle
+[`composition-profile-v2.7.schema.json`](composition-profile-v2.7.schema.json), and
+[`composition-profile-v2.8.schema.json`](composition-profile-v2.8.schema.json), and
+[`composition-profile-v2.9.schema.json`](composition-profile-v2.9.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -140,7 +142,7 @@ bound family snapshot; generic lowercase IDs cannot represent firmware-family me
 2.4 schema snapshots remain immutable and retain their original identifier grammar.
 
 Schema 2.6 adds the map-bound `runtime-reference-replace` context from
-[ADR 0020](../adr/0020-v2-runtime-reference-replace.md). It is restricted to declarative General
+[ADR 0020](../adr/0020-v2-runtime-reference-replace.md). Its original shape is restricted to declarative General
 Replace: one exact singleton reference image, one unnormalized per-binding auxiliary source, a
 runtime-capacity output cloned from the reference, declared physical region access, and no static
 views, metadata, operations, validations, or processors. The typed runtime request supplies only
@@ -158,6 +160,50 @@ allows source-only legacy postbuild plans to remain declarative. Schema 2.7 also
 `legacy-combiner-v1.invocationProfileId` to use either the canonical id grammar or the existing
 published `nfc.` legacy Combiner catalog grammar, including its dot-version suffixes; arbitrary
 processor identifiers remain invalid.
+
+Schema 2.8 gives every `legacy-combiner-v1` stage a zero-based `targetViewId`. The target view may
+cover the entire output or a prefix. Prefix
+processing clones the complete reference container, stages only that prefix, imports only the audited
+processor result, and preserves all bytes after the prefix. Nonzero subranges remain forbidden. This
+is the TP-BIN/full-Flash convergence contract in
+[ADR 0024](../adr/0024-ctrlram-tp-and-flash-base-convergence.md); it does not promote a candidate or
+replace firmware-owner golden review. Exact ordered Combiner command facts remain selected by the
+closed `invocationProfileId` and are loaded from the separately hash-pinned built-in Postbuild data
+catalog; the composition profile does not duplicate that command table.
+
+Schema 2.9 keeps every earlier resolved-map and processor contract and adds two closed alternatives
+to `runtime-reference-replace`. A General Replace profile remains processor-free, or declares exactly
+one final `run-processor` operation and one `legacy-combiner-v1` stage for TP header/integrity refresh.
+The operation sequence is `2147483647`, its overlap policy is `replace-existing`, and the stage cannot
+stage source or auxiliary artifacts. Its views are profile-owned output/map views only; the typed request
+still supplies only immutable binding lengths and explicit mappings, never commands, processor paths,
+arguments, or mutable buffers.
+
+The CtrlRAM Replace alternative uses the same reference-clone and typed mapping
+algebra but has a fixed/fixed experience, an unnormalized per-binding
+`ctrlram-replacement` source, and exactly one final processor stage. Every
+mapping target must resolve to a canonical TP-owned CtrlRAM region; no other
+region class can borrow profile access. The reference length selects capacity,
+and an explicit IC-number topology may disambiguate same-capacity single and
+cascade maps through the canonical resolver. Only supplied source bytes are
+mapped, so a short input preserves the cloned target tail and an oversized input
+cannot expand section authority. This is candidate compilation, not built-in
+runtime registration or support promotion.
+
+For CtrlRAM Replace, the compiler intersects each profile-declared TP CtrlRAM
+processor write view with the concrete mapping targets. Only those intersections
+enter the external invocation's allowed-write set. Non-CtrlRAM processor-only
+views remain exact profile authority. The compiled Domain artifact rejects a
+broader CtrlRAM write range even when it is contained by a declared view.
+
+The compiler intersects every accepted mapping target with canonical `owner = tp` regions. A DP-only
+request omits the declared stage. One or many TP-touching mappings append the stage exactly once after
+all mappings; TP authoring without that closed stage fails. Processor allowed-write views have separate
+processor authority: they must be declared in the profile and permitted by the canonical physical map,
+but a `hidden` or `read-only` authoring rule remains denied to the user. This permits reviewed Header/CRC
+writes without exposing those ranges as General Replace mapping targets. Schema 2.9 adds compilation
+authority only; it does not register a UI/CLI route, promote support, or replace Legacy Combiner golden
+and firmware-owner review.
 
 ## Input size policy
 
@@ -219,9 +265,10 @@ is fixed to `calculate`, checksum purpose, and zero write views; it may verify e
 cannot transform bytes. `legacy-combiner-v1` references an approved tool binding and invocation
 profile and is fixed to `transform` with at least one write view. Its integrity disposition is
 `recalculate-and-write`, or evidence-backed `none` for a non-integrity transform. Neither variant can
-contain a path, command, argument template, script, or arbitrary parameter object. Transform
-execution uses a host-created staging copy, and the host rejects changed bytes outside the allowed
-write views. `unknown` cannot appear in this contract.
+contain a path, script, arbitrary parameter object, or caller-provided command. Transform execution uses a host-created staging
+copy, and the host rejects changed bytes outside the allowed write views. The staged target is either
+the complete image or an explicitly declared zero-based prefix; bytes after a prefix are retained by
+the engine-owned clone. `unknown` cannot appear in this contract.
 
 ## Promotion
 

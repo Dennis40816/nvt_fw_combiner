@@ -10,8 +10,8 @@ public sealed partial class CompositionRunService
     private static CompositionRunReport CreateReport(
         CompositionRunRequest request,
         CompositionExecutionResult execution,
-        IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
+        IReadOnlyList<OutputDifferenceSummary> outputDifferences,
         DateTimeOffset startedAtUtc,
         DateTimeOffset completedAtUtc,
         bool committed,
@@ -37,23 +37,19 @@ public sealed partial class CompositionRunService
             }),
         ];
 
-        byte[] outputBytes = execution.OutputBytes.ToArray();
+        ReadOnlyMemory<byte> outputBytes = execution.OutputBytes;
         var output = new OutputArtifactSummary(
             request.OutputFileName,
-            outputBytes.LongLength,
-            outputBytes.Length == 0 ? EmptySha256 : ToSha256Hex(outputBytes),
+            outputBytes.Length,
+            outputBytes.Length == 0 ? EmptySha256 : ToSha256Hex(outputBytes.Span),
             committed);
 
         MutationRunSummary[] mutations = [
             .. execution.Mutations.Select(ToMutationSummary),
         ];
-        OutputDifferenceSummary[] outputDifferences = [
-            .. CreateOutputDifferences(request, execution, inputBytes, outputBytes),
-        ];
         CompositionIssue[] issues = [
             .. execution.Issues,
             .. additionalIssues ?? [],
-            .. CreateOutputDifferenceIssues(outputDifferences),
         ];
 
         return new CompositionRunReport(

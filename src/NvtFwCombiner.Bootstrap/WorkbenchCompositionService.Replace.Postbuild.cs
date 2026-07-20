@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -9,9 +10,10 @@ public static partial class WorkbenchCompositionService
         string icId,
         string basePath,
         out LegacyCombinerPostbuildProfile? postbuildProfile,
-        out CompositionIssue? issue)
+        out CompositionIssue? issue,
+        byte[]? baseImage = null)
     {
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
         if (profiles.Count == 0)
         {
             postbuildProfile = null;
@@ -23,8 +25,11 @@ public static partial class WorkbenchCompositionService
         }
 
         string? commonFwVersion = null;
-        if (profiles.Count > 1 &&
-            !TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion))
+        if (profiles.Any(static profile => profile.CommonFwVersionRule is not null) &&
+            !(baseImage is null
+                ? TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion)
+                : TryReadFirmwareConfigBackupMetadata(icId, baseImage, out FirmwareConfigMetadata metadata) && metadata.IsFirmwareVersionBarValid &&
+                    (commonFwVersion = metadata.CommonFwVersion) is not null))
         {
             postbuildProfile = null;
             issue = new CompositionIssue(
@@ -34,7 +39,7 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        if (!IcMetadataFacade.TrySelectPostbuildProfile(
+        if (!TrySelectPostbuildProfileByCommonFwVersion(
                 icId,
                 commonFwVersion,
                 out postbuildProfile,
@@ -49,15 +54,5 @@ public static partial class WorkbenchCompositionService
 
         issue = null;
         return true;
-    }
-
-    private static string FormatPostbuildCommandBlock(LegacyCombinerPostbuildCommandPlan commandPlan)
-    {
-        string firmwarePath = Path.Combine("output", commandPlan.Profile.FirmwareFileName);
-        const string binDirectory = "BIN";
-        return string.Join(
-            Environment.NewLine,
-            commandPlan.Commands.Select(command =>
-                $"Combiner.exe {string.Join(' ', LegacyCombinerPostbuildCommandLineBuilder.CreateArguments(command, firmwarePath, binDirectory))}"));
     }
 }

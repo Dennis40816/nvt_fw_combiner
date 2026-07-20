@@ -1,0 +1,148 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51929-ab-t05-d06",
+  "ic": "NT51929",
+  "workflow": "ab-merge",
+  "variantOrVersion": "t05-d06",
+  "topology": "topology-unscoped",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner supplied the AB archive and directed these golden BIN fixtures to be tracked on 2026-07-14.",
+  "profileId": "nt51929-ab-merge",
+  "profileVersion": "0.1.0",
+  "mapCapacity": 524288,
+  "artifacts": [
+    {
+      "artifactId": "dp-ab-input",
+      "role": "input",
+      "path": "NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+      "size": 524288,
+      "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237",
+      "legacyPaths": [
+        "testdata/golden/ab-merge/inputs/nt51929/NT51929_initial code_TM149_2344x880_D06_20260610.bin"
+      ],
+      "originalFileName": "NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+      "sourcePath": "togo/51929_ab_code_golden/NT51929_initial code_TM149_2344x880_D06_20260610.bin"
+    },
+    {
+      "artifactId": "tp-a-input",
+      "role": "input",
+      "path": "NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/nt51929_TPFW_T05_20260611.bin",
+      "size": 262144,
+      "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12",
+      "legacyPaths": [
+        "testdata/golden/ab-merge/inputs/nt51929/nt51929_TPFW_T05_20260611.bin"
+      ],
+      "originalFileName": "nt51929_TPFW_T05_20260611.bin",
+      "sourcePath": "togo/51929_ab_code_golden/nt51929_TPFW_T05_20260611.bin"
+    },
+    {
+      "artifactId": "tp-b-input",
+      "role": "input",
+      "path": "NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/nt51929_TPFW_T05_20260611.bin",
+      "size": 262144,
+      "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12",
+      "legacyPaths": [
+        "testdata/golden/ab-merge/inputs/nt51929/nt51929_TPFW_T05_20260611.bin"
+      ],
+      "originalFileName": "nt51929_TPFW_T05_20260611.bin",
+      "sourcePath": "togo/51929_ab_code_golden/nt51929_TPFW_T05_20260611.bin"
+    },
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/expected/NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin",
+      "size": 524288,
+      "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
+      "legacyPaths": [
+        "testdata/golden/ab-merge/expected/nt51929/NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin"
+      ],
+      "originalFileName": "NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin",
+      "sourcePath": "togo/51929_ab_code_golden/NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin"
+    }
+  ],
+  "referenceParity": {
+    "status": "full-byte-match",
+    "snapshot": "refcode/ab_code_combiner",
+    "configuration": "51929",
+    "observedOn": "2026-07-15"
+  },
+  "evidenceApplicability": {
+    "directMemberIds": [
+      "NT51929"
+    ],
+    "factScopedAliasMemberIds": [
+      "NT51919",
+      "NT51932"
+    ],
+    "notEstablishedMemberIds": []
+  },
+  "ctrlRamFirstHalfSelfReplacementEvidence": {
+    "status": "fact-scoped-allowed-diff-parity",
+    "sourceArtifact": "expected-output",
+    "sourceRange": {
+      "start": 0,
+      "length": 262144,
+      "sha256": "e257e734a63d0d8a0e471bc7b541366578b9b56c94dd914197508d5af1127c12"
+    },
+    "sameProductTpArtifact": "tp-a-input",
+    "sameProductRegions": [
+      {
+        "name": "NF CtrlRAM",
+        "start": 130048,
+        "length": 8080,
+        "sha256": "417e04c58e2a587eeb02eb4c873d23cc8ae0478c0807c6b171c4cd6b301d42de"
+      },
+      {
+        "name": "Normal CtrlRAM",
+        "start": 138128,
+        "length": 18944,
+        "sha256": "9ec62a8200f7f305ab729b18b77e747572af493e2fdc32e7bbfb91c02c221c66"
+      },
+      {
+        "name": "VN CtrlRAM",
+        "start": 157072,
+        "length": 6496,
+        "sha256": "c90ced38fc2cc8e62cd0275050f7bfcc05e707eaaffd9704533f9a26a49de64d"
+      }
+    ],
+    "legacyCombinerObservation": {
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolSha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf",
+      "processorId": "nfc.nt51929.ctrlram-postbuild-v1",
+      "icNum": "single",
+      "commandFamily": "NT51932BASED_NORMAL_MODE CRC8",
+      "changedRanges": [
+        {
+          "start": 28928,
+          "length": 4,
+          "classification": "Header CRC"
+        },
+        {
+          "start": 28952,
+          "length": 3,
+          "classification": "Header CRC"
+        },
+        {
+          "start": 163824,
+          "length": 4,
+          "classification": "Header Copy CRC"
+        },
+        {
+          "start": 163848,
+          "length": 4,
+          "classification": "Header Copy CRC"
+        }
+      ],
+      "changedByteCount": 15
+    },
+    "allowedDiffPolicy": [
+      "Header CRC",
+      "Header Copy CRC"
+    ],
+    "standaloneSingleGolden": false,
+    "fullByteParity": false,
+    "runtimePromotion": "blocked pending independent expected output and firmware-owner review"
+  },
+  "promotion": "executable-candidate only; firmware-owner review remains required"
+}

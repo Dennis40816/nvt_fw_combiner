@@ -41,9 +41,9 @@ public sealed partial class HexEditorWorkspaceViewModel
         RawBinaryEditorSearchResult result;
         try
         {
-            result = await _session.FindAsciiAsync(searchText, startOffset, cancellationToken);
+            result = await _files.FindAsciiAsync(searchText, startOffset, cancellationToken);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
             return;
         }

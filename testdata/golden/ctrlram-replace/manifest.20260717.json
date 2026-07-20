@@ -1,0 +1,482 @@
+{
+  "schemaVersion": "0.1",
+  "payloadClass": "repository-only-diagnostic-evidence",
+  "binaryPayloadsIncluded": true,
+  "canonicalExpected": false,
+  "releaseRedistributionApproved": false,
+  "runtimeSupportPromotion": false,
+  "sourceArchive": {
+    "fileName": "NVT_Golden_Evidence_v0.9.9_20260717.7z",
+    "sha256": "9027e9038f51c5421f922afdf73d1f16fc5f7dd582e23e25547727fda585205c",
+    "transfer": "HackMD CJK14 numbered-note transfer",
+    "recoveredAtTaipei": "2026-07-17T17:18:00+08:00"
+  },
+  "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
+  "evidenceScope": "Remaining diagnostic and cross-workflow duplicate artifacts only. Nine direct CtrlRAM cases moved byte-for-byte to the canonical inventory. Physical payload relocation is frozen; this manifest is the hash-pinned legacy quarantine inventory referenced by testdata/diagnostics/golden-evidence/manifest.json and is not canonical expected evidence.",
+  "externalToolCoverage": [
+    {
+      "id": "diff-nf-merge",
+      "repositoryPackagePath": "external-tools/diff-nf-merge/1.0.0",
+      "sha256": "f611af7e315d46341e15cd7140eb3962f6ac05d337121e5554022ef5e69a2bbe",
+      "incomingPayloadMatched": true,
+      "includedInGolden": false,
+      "runtimeRegistered": false
+    }
+  ],
+  "payloads": [
+    {
+      "path": "fixtures/20260717/NT51929/replace/ctrlram/single/ab_expected_output/NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin",
+      "originalFileName": "NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin",
+      "role": "expected-final-output-ab",
+      "size": 524288,
+      "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+    },
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/expected_output/NT51930_Flashcode_INX_STLA216_STLA_T0405D05_20250103_SPI.bin",
+      "originalFileName": "NT51930_Flashcode_INX_STLA216_STLA_T0405D05_20250103_SPI.bin",
+      "role": "expected-final-output",
+      "size": 262144,
+      "sha256": "6821802910ebe2d50ae21fe500758b6a05ee4a32f5721d760542df562ecb8cce"
+    },
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/NT51930_FW_INX_STLA216_V0405_20250103.bin",
+      "originalFileName": "NT51930_FW_INX_STLA216_V0405_20250103.bin",
+      "role": "standard-merge-tp-input",
+      "size": 262144,
+      "sha256": "3db16a7a35e8a538fc987a1f048c4d8d9a8c2a7ee708e24242e903e5a5fb4508"
+    },
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/NT51930TT_Initial Code_INX_4080x720_D05_20240919_GOP 6MUX.bin",
+      "originalFileName": "NT51930TT_Initial Code_INX_4080x720_D05_20240919_GOP 6MUX.bin",
+      "role": "standard-merge-dp-input",
+      "size": 262144,
+      "sha256": "2a1643f234555be75e6e92d3a9c692a733e421ed3a97230e9a31e0a8d0ac476b"
+    },
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/postbuild_inputs/DiffDLM_6IC.bin",
+      "originalFileName": "DiffDLM_6IC.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 66352,
+      "sha256": "5a752aa8358bc86a5eb1e98959688a4fa5b7223dfff5382bca51762bdcdf8959"
+    },
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/postbuild_inputs/DiffDLM_NF.bin",
+      "originalFileName": "DiffDLM_NF.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 66352,
+      "sha256": "11d40558de3231973dc9804f4f8b68476445ef79e19799245efb630f53b3c671"
+    },
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/postbuild_inputs/DiffDLM.bin",
+      "originalFileName": "DiffDLM.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 66352,
+      "sha256": "cf957572939dc140a4287d54ad174fcfeacbd9c2afc48c1768d1df47c09c2a6e"
+    },
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/postbuild_inputs/MP_Ctrlram.bin",
+      "originalFileName": "MP_Ctrlram.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 655360,
+      "sha256": "35c746074e67d19fe39494fe2d2c09c3e50ba5c6689207fba68a7bebb21db183"
+    },
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/postbuild_inputs/NF_Ctrlram.bin",
+      "originalFileName": "NF_Ctrlram.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 577,
+      "sha256": "2e79b9cdc060442190e31c9e3c3a11f82ee6e76407d3db73d90add907dde148e"
+    },
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/postbuild_inputs/Normal_Ctrlram_6IC.bin",
+      "originalFileName": "Normal_Ctrlram_6IC.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 655360,
+      "sha256": "725ab79f6b4f5e2e2cc2fb870cc54bfbbaa272b629b5ebbc8349f16ee9ef0caf"
+    },
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/postbuild_inputs/Normal_Ctrlram.bin",
+      "originalFileName": "Normal_Ctrlram.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 655360,
+      "sha256": "cd9473f2e0e06fc6f14c5b4471000ce80d14456e82976a6353f4891d55aae375"
+    },
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/postbuild_inputs/VN_Ctrlram.bin",
+      "originalFileName": "VN_Ctrlram.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 6496,
+      "sha256": "b634459d02232867c2093ce3e7bc2264a5fdcdf65df769bad5c9d75289be05f2"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/merge/cascade/dp/NT51931TT_Initial Code_LGD_6008x934_D08_1_20250829.bin",
+      "originalFileName": "NT51931TT_Initial Code_LGD_6008x934_D08_1_20250829.bin",
+      "role": "standard-merge-dp-input",
+      "size": 262144,
+      "sha256": "a78800d07482d556ffedc3ee8d247c1587651d186d113dfbd3921050f6ecb46c"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/merge/cascade/expected_output/NT51931TT_FlashCode_LGD_GM_D08T0502_20260629.bin",
+      "originalFileName": "NT51931TT_FlashCode_LGD_GM_D08T0502_20260629.bin",
+      "role": "expected-final-output",
+      "size": 262144,
+      "sha256": "f01bb2439827f2dba0a8576150a9b9399c2907d1f4f29925b546d1e8333b4e2a"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/merge/cascade/tp/nt51931_fw_T0502_20260629.bin",
+      "originalFileName": "nt51931_fw_T0502_20260629.bin",
+      "role": "standard-merge-tp-input",
+      "size": 245760,
+      "sha256": "90e78f5644c9736b7c923f626066a41a21f471b3dc4111157ff17fb3bdd85c13"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/expected_output/NT51931TT_FlashCode_LGD_GM_D08T0502_20260629.bin",
+      "originalFileName": "NT51931TT_FlashCode_LGD_GM_D08T0502_20260629.bin",
+      "role": "expected-final-output",
+      "size": 262144,
+      "sha256": "f01bb2439827f2dba0a8576150a9b9399c2907d1f4f29925b546d1e8333b4e2a"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/nt51931_fw_T0502_20260629.bin",
+      "originalFileName": "nt51931_fw_T0502_20260629.bin",
+      "role": "standard-merge-tp-input",
+      "size": 245760,
+      "sha256": "90e78f5644c9736b7c923f626066a41a21f471b3dc4111157ff17fb3bdd85c13"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/NT51931TT_Initial Code_LGD_6008x934_D08_1_20250829.bin",
+      "originalFileName": "NT51931TT_Initial Code_LGD_6008x934_D08_1_20250829.bin",
+      "role": "standard-merge-dp-input",
+      "size": 262144,
+      "sha256": "a78800d07482d556ffedc3ee8d247c1587651d186d113dfbd3921050f6ecb46c"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/postbuild_input/DiffDLM.bin",
+      "originalFileName": "DiffDLM.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 97280,
+      "sha256": "cdc2d34d7960998cd3958cc270f5827ec2c34e64e76b0f0d78ada8ece19d691f"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/postbuild_input/MP_Ctrlram.bin",
+      "originalFileName": "MP_Ctrlram.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 655360,
+      "sha256": "a879b3a70ead29cf85b9d445a53f78b91e533b97df8d1bd0d6cefb8b44942160"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/postbuild_input/NF_Ctrlram.bin",
+      "originalFileName": "NF_Ctrlram.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 1048,
+      "sha256": "fa12e61cbac148188e219ca61dcaed6d660b7964a92099140734b4728e361118"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/postbuild_input/NF/NF_Diff_0.bin",
+      "originalFileName": "NF_Diff_0.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 3072,
+      "sha256": "4ced97c67e24d402435bd7e673f23e1407399f32f6f43ea7974a7e3ccaee5b69"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/postbuild_input/NF/NF_Diff_1.bin",
+      "originalFileName": "NF_Diff_1.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 3072,
+      "sha256": "e1798cbad9afc653b156d50da7835f0b0d8c81decfae708cfe88397411cb5810"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/postbuild_input/NF/NF_Diff_2.bin",
+      "originalFileName": "NF_Diff_2.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 3072,
+      "sha256": "76494c148e2365320251667246de43f0ef3fb9e43c94d4c15b265f1d7c9625f6"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/postbuild_input/NF/NF_Diff_3.bin",
+      "originalFileName": "NF_Diff_3.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 1536,
+      "sha256": "161a9eae4bc3ab49d5ddea8e939a16a2eb8b726199b23e0729c4bb0ec0e5c091"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/postbuild_input/Normal_Ctrlram.bin",
+      "originalFileName": "Normal_Ctrlram.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 655360,
+      "sha256": "8d661843968e8697eff220fa3eb0c4367c43522a9e5e94310b2dfef2e1f77207"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/postbuild_input/VN_Ctrlram.bin",
+      "originalFileName": "VN_Ctrlram.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 5728,
+      "sha256": "b30b83f72d265e9820a34d8385de47358a333ecd2f7cb0a9b5c0fbd95d6cf989"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/expected_output/NT51932_FlashCode_BOE36.2_6480x848_D0203T87_20260617.bin",
+      "originalFileName": "NT51932_FlashCode_BOE36.2_6480x848_D0203T87_20260617.bin",
+      "role": "expected-final-output",
+      "size": 262144,
+      "sha256": "144a6a5cf24a5b2b042cd1781b01bf302feeb4b79e79c8176849f71ac1237a79"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/NT51932_BOE_36.2_initial code_D0203_20260617.bin",
+      "originalFileName": "NT51932_BOE_36.2_initial code_D0203_20260617.bin",
+      "role": "standard-merge-dp-input",
+      "size": 262144,
+      "sha256": "f0ea21577652865f3357843325c2b0d5d7b141249d855cb7a938c8c55688e05e"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/NT51932_TPFW_T87_Notch_Table_Test.bin",
+      "originalFileName": "NT51932_TPFW_T87_Notch_Table_Test.bin",
+      "role": "standard-merge-tp-input",
+      "size": 262144,
+      "sha256": "f926a718e81aead63c83b1828c5bd95051e6ee8d598562ead0e24eaad9bcefe4"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/DiffDLM.bin",
+      "originalFileName": "DiffDLM.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 97280,
+      "sha256": "673b089947265ae766ff317ff2fc0ec1476171f644e7cea2247daf6d19c34dd4"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF_Ctrlram.bin",
+      "originalFileName": "NF_Ctrlram.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 1758,
+      "sha256": "a76cc832e496b3866fa6fc73c749098b72c1549ce8ccf7bb0d2675b8e519b99b"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_0.bin",
+      "originalFileName": "NF_Diff_0.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 1758,
+      "sha256": "a76cc832e496b3866fa6fc73c749098b72c1549ce8ccf7bb0d2675b8e519b99b"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_1.bin",
+      "originalFileName": "NF_Diff_1.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 3072,
+      "sha256": "23e74315e3892f27b5a684d0e8d8f0430396f1c26a272905a2a3b8b562a42da2"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_10.bin",
+      "originalFileName": "NF_Diff_10.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_11.bin",
+      "originalFileName": "NF_Diff_11.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_12.bin",
+      "originalFileName": "NF_Diff_12.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_13.bin",
+      "originalFileName": "NF_Diff_13.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_14.bin",
+      "originalFileName": "NF_Diff_14.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_15.bin",
+      "originalFileName": "NF_Diff_15.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_2.bin",
+      "originalFileName": "NF_Diff_2.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 3072,
+      "sha256": "3abf1c2c2cefde16d5e8dea2a24260e2b7d1bba39c5c9241dc17435f90da9b5d"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_3.bin",
+      "originalFileName": "NF_Diff_3.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_4.bin",
+      "originalFileName": "NF_Diff_4.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_5.bin",
+      "originalFileName": "NF_Diff_5.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_6.bin",
+      "originalFileName": "NF_Diff_6.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_7.bin",
+      "originalFileName": "NF_Diff_7.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_8.bin",
+      "originalFileName": "NF_Diff_8.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/NF/NF_Diff_9.bin",
+      "originalFileName": "NF_Diff_9.bin",
+      "role": "diff-nf-source-evidence",
+      "size": 2160,
+      "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/Normal_Ctrlram.bin",
+      "originalFileName": "Normal_Ctrlram.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 655360,
+      "sha256": "da3613e8a858e408d2122a984554f20028e3621adf1b2a7e33cc753ae2abe89b"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/postbuild_inputs/VN_Ctrlram.bin",
+      "originalFileName": "VN_Ctrlram.bin",
+      "role": "ctrlram-postbuild-input",
+      "size": 4120,
+      "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+    },
+    {
+      "path": "fixtures/20260717/real_sample/51927_nf_replace_single/51927_TPFW_T01_20251205.bin",
+      "originalFileName": "51927_TPFW_T01_20251205.bin",
+      "role": "real-sample-toolchain-reference",
+      "size": 217088,
+      "sha256": "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee"
+    },
+    {
+      "path": "fixtures/20260717/real_sample/51927_nf_replace_single/base/NT51927_Flashcode_TM_TL113UFKS01_GM_D04T01_20260612.bin",
+      "originalFileName": "NT51927_Flashcode_TM_TL113UFKS01_GM_D04T01_20260612.bin",
+      "role": "real-sample-base",
+      "size": 262144,
+      "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"
+    },
+    {
+      "path": "fixtures/20260717/real_sample/51927_nf_replace_single/NF_Ctrlram_Common.bin",
+      "originalFileName": "NF_Ctrlram_Common.bin",
+      "role": "real-sample-toolchain-reference",
+      "size": 4048,
+      "sha256": "e3b512eec67c72e59d23112ebb50ad2d3afa0a027c40e1cb1fb909777809e1ae"
+    },
+    {
+      "path": "fixtures/20260717/real_sample/51927_nf_replace_single/nt51927_fw_Common_NF.bin",
+      "originalFileName": "nt51927_fw_Common_NF.bin",
+      "role": "real-sample-toolchain-reference",
+      "size": 217088,
+      "sha256": "77a888eac32255c10327f7fd6dc6f4cca23b0b80bd140ce803c3f48d2ece5143"
+    },
+    {
+      "path": "fixtures/20260717/real_sample/51927_nf_replace_single/nt51927_fw_Corrected_NF.bin",
+      "originalFileName": "nt51927_fw_Corrected_NF.bin",
+      "role": "real-sample-toolchain-reference",
+      "size": 217088,
+      "sha256": "af49cfbb167aa43d67b3e4c33255ef64fd3f7879c40f8239eba8718dfc8b7f4d"
+    },
+    {
+      "path": "fixtures/20260717/real_sample/51927_nf_replace_single/NT51927TT_TM_MY28_11.3_Initial Code_D04_20260610.bin",
+      "originalFileName": "NT51927TT_TM_MY28_11.3_Initial Code_D04_20260610.bin",
+      "role": "real-sample-toolchain-reference",
+      "size": 262144,
+      "sha256": "bd8bd124c91cae29f0aeda8c9a49d48362b4497516d1c549eb1460fc661627bc"
+    },
+    {
+      "path": "fixtures/20260717/real_sample/51927_nf_replace_single/tool_replace/NT51927_FlashCode_DxxxxT0100_20260717.bin",
+      "originalFileName": "NT51927_FlashCode_DxxxxT0100_20260717.bin",
+      "role": "real-sample-nfc-output",
+      "size": 262144,
+      "sha256": "abe3e7b81342101901237103702a8b7ababeb7968f4f2bc9ba85c64898ebdedb"
+    }
+  ],
+  "supportingFiles": [
+    {
+      "path": "fixtures/20260717/NT51930/replace/ctrlram/1.3.0/cascade/postbuild_inputs/README.txt",
+      "originalFileName": "README.txt",
+      "role": "case-note",
+      "size": 33,
+      "sha256": "65f859486e5ad8a496ef0b0530fc40e996ffe966560c56b1c07dd10c38df2694"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/51931_1.3.0_PostbuildSetup.bat",
+      "originalFileName": "51931_1.3.0_PostbuildSetup.bat",
+      "role": "postbuild-command-evidence",
+      "size": 4080,
+      "sha256": "2dfa158ca80d39dd2441e548c7786febe027f9f1aaf055490a655e08751a7abd"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/merge/cascade/AUTO_PRJ-361, PID=0x5706.txt",
+      "originalFileName": "AUTO_PRJ-361, PID=0x5706.txt",
+      "role": "project-marker",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "fixtures/20260717/NT51931/replace/ctrlram/cascade/AUTO_PRJ-361, PID=0x5706.txt",
+      "originalFileName": "AUTO_PRJ-361, PID=0x5706.txt",
+      "role": "project-marker",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "fixtures/20260717/NT51932/replace/ctrlram/cascade/AUTO_PRJ-525, PID5601.txt",
+      "originalFileName": "AUTO_PRJ-525, PID5601.txt",
+      "role": "project-marker",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "fixtures/20260717/real_sample/51927_nf_replace_single/README.txt",
+      "originalFileName": "README.txt",
+      "role": "case-note",
+      "size": 544,
+      "sha256": "1fc6581bcd1bdcf594cd33e6061edc529fe91f365e2ffb82b1c0d3de267ef2c4"
+    }
+  ],
+  "canonicalDirectCases": [
+    "nt51920-fw120-single-auto-prj-72-20260717",
+    "nt51920-fw120-cascade2-auto-prj-55-20260717",
+    "nt51923-fw141-single-auto-prj-662-20260717",
+    "nt51923-fw141-cascade3-auto-prj-734-20260717",
+    "nt51926-fw141-single-auto-prj-747-20260717",
+    "nt51926-fw141-cascade2-auto-prj-597-20260717",
+    "nt51927-fw141-single-auto-prj-529-20260717",
+    "nt51929-fw200-single-auto-prj-594-20260717",
+    "nt51950-fw200-single-auto-prj-676-20260717"
+  ]
+}

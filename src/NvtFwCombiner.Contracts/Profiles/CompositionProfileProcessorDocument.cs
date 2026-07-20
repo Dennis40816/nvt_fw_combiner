@@ -36,7 +36,9 @@ public sealed record CompositionProfileProcessorStageDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? EvidenceRef = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    IReadOnlyList<CompositionProfileStagedArtifactBindingDocument>? StagedArtifactBindings = null);
+    IReadOnlyList<CompositionProfileStagedArtifactBindingDocument>? StagedArtifactBindings = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? TargetViewId = null);
 
 /// <summary>DTO for profile-controlled output naming policy.</summary>
 public sealed record CompositionProfileOutputDocument(

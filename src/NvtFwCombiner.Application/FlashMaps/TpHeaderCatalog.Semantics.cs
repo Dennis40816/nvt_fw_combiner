@@ -9,7 +9,13 @@ public static partial class TpHeaderCatalog
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
 
-        return TpBinaryModelCatalog.TryFindHeaderField(icId, range, out field);
+        if (HeaderLayoutsByIc.TryGetValue(icId, out TpHeaderLayout? layout))
+        {
+            return layout.TryFindField(range, out field);
+        }
+
+        field = null;
+        return false;
     }
 
     /// <summary>Returns true when a write section represents header structure rather than a payload replacement.</summary>

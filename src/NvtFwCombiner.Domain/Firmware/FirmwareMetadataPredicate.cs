@@ -45,17 +45,10 @@ public sealed class FirmwareMetadataPredicate
             throw new ArgumentOutOfRangeException(nameof(comparison), comparison, "Unknown metadata comparison.");
         }
 
-        ArgumentNullException.ThrowIfNull(expectedValues);
-        _expectedValues = [.. expectedValues];
-        if (_expectedValues.Length == 0)
-        {
-            throw new ArgumentException("Metadata predicates require an expected value.", nameof(expectedValues));
-        }
-
-        if (_expectedValues.Any(static value => value is null))
-        {
-            throw new ArgumentException("Metadata predicate expected values cannot contain null.", nameof(expectedValues));
-        }
+        _expectedValues = Composition.ImmutableReferenceSnapshot.Create(
+            expectedValues,
+            "Metadata predicates require non-null expected values.",
+            requireValue: true);
 
         if (_expectedValues.Distinct().Count() != _expectedValues.Length)
         {

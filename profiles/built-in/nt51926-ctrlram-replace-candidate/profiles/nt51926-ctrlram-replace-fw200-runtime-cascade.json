@@ -1,0 +1,168 @@
+{
+  "schemaVersion": "2.9",
+  "profileId": "nt51926-ctrlram-replace-fw200-runtime-cascade",
+  "profileVersion": "0.1.0",
+  "promotion": {
+    "stage": "executable-candidate",
+    "blockers": [
+      {
+        "blockerId": "release-support-review",
+        "kind": "human-review",
+        "reason": "The exact owner-golden route remains support-neutral until independent release review approves a support claim.",
+        "evidenceRefs": [ "nt51926-fw200-cascade-owner-golden-20260718" ]
+      }
+    ]
+  },
+  "compositionKind": "replace",
+  "icNumberInputMode": "cascade-selector",
+  "experience": {
+    "experienceId": "ctrlram-replace",
+    "audience": "ctrlram",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51926.ctrlram-replace.fw200.runtime.cascade"
+  },
+  "compilationContext": { "kind": "runtime-reference-replace" },
+  "mapBinding": {
+    "familyId": "nt51926-ctrlram-replace",
+    "familyVersion": "0.6.0",
+    "familyContentHash": "824fc501bb111803f82e5cd33a4f541be183cfab6986734445f87819fe4914e3",
+    "mapIds": [
+      "nt51926-ctrlram-fw200-tp-work-240k",
+      "nt51926-ctrlram-fw200-full-flash-256k"
+    ],
+    "requiredRegionIds": [
+      "flash-image",
+      "normal-ctrlram",
+      "diff-ctrlram",
+      "mp-ctrlram",
+      "vn-ctrlram-fw200",
+      "nf-ctrlram",
+      "fw-config-backup",
+      "header-copy",
+      "header-crc-1c",
+      "header-crc-3c",
+      "header-crc-fc"
+    ],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "reference-base",
+      "role": "reference-base",
+      "artifactClass": "reference-image",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-resolved-map-capacity" },
+        "normalization": { "kind": "none" }
+      }
+    },
+    {
+      "slotId": "ctrlram-source",
+      "role": "ctrlram-source",
+      "artifactClass": "ctrlram-replacement",
+      "required": true,
+      "cardinality": "one-or-more",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "bounded", "minimumBytes": 1, "maximumBytes": 2147483647 },
+        "normalization": {
+          "kind": "truncate-ctrlram",
+          "warningIssueCode": "CTRLRAM_SIZE_WARNING",
+          "evidenceRef": "nt51926-fw200-cascade-owner-golden-20260718"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    { "spaceId": "reference-base", "kind": "input-artifact", "slotId": "reference-base", "instancePolicy": "singleton" },
+    { "spaceId": "ctrlram-source-template", "kind": "input-artifact", "slotId": "ctrlram-source", "instancePolicy": "per-binding" },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": { "kind": "runtime-request" },
+      "initializer": { "kind": "clone", "sourceSlotId": "reference-base" }
+    }
+  ],
+  "views": [
+    { "viewId": "processor-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "normal-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "normal-ctrlram" } },
+    { "viewId": "diff-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "diff-ctrlram" } },
+    { "viewId": "mp-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "mp-ctrlram" } },
+    { "viewId": "vn-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-ctrlram-fw200" } },
+    { "viewId": "nf-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "nf-ctrlram" } },
+    { "viewId": "fw-config-backup-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "fw-config-backup" } },
+    { "viewId": "header-copy-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy" } },
+    { "viewId": "header-crc-1c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-1c" } },
+    { "viewId": "header-crc-3c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-3c" } },
+    { "viewId": "header-crc-fc-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-fc" } }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    { "regionId": "normal-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x2C00 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "diff-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x2800 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "mp-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x2400 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "vn-ctrlram-fw200", "access": "explicit-range", "reason": "Copy at most 0x149E bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "nf-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x2DD0 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "fw-config-backup", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the firmware-config backup." },
+    { "regionId": "header-copy", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the TP header copy." },
+    { "regionId": "header-crc-1c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this header CRC." },
+    { "regionId": "header-crc-3c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this header CRC." },
+    { "regionId": "header-crc-fc", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this header CRC." }
+  ],
+  "operations": [
+    {
+      "operationId": "postbuild-cascade",
+      "sequence": 2147483647,
+      "overlapPolicy": "replace-existing",
+      "reason": "Refresh the exact NT51926 Common FW 2.0.0 cascade header and integrity fields after all runtime CtrlRAM mappings.",
+      "kind": "run-processor",
+      "processorStageId": "nt51926-fw200-cascade-runtime-combiner"
+    }
+  ],
+  "validations": [],
+  "processorStages": [
+    {
+      "processorStageId": "nt51926-fw200-cascade-runtime-combiner",
+      "kind": "legacy-combiner-v1",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "invocationProfileId": "nfc.nt51926.ctrlram-postbuild-v1",
+      "targetSpaceId": "output-image",
+      "targetViewId": "processor-image",
+      "authority": "transform",
+      "purpose": "header-and-integrity",
+      "integrityDisposition": "recalculate-and-write",
+      "allowedReadViewIds": [ "processor-image" ],
+      "allowedWriteViewIds": [
+        "normal-ctrlram-output",
+        "diff-ctrlram-output",
+        "mp-ctrlram-output",
+        "vn-ctrlram-output",
+        "nf-ctrlram-output",
+        "fw-config-backup-output",
+        "header-copy-output",
+        "header-crc-1c-output",
+        "header-crc-3c-output",
+        "header-crc-fc-output"
+      ],
+      "stagedSourceBindings": [],
+      "stagedArtifactBindings": [],
+      "evidenceRef": "nt51926-fw200-cascade-owner-golden-20260718",
+      "failurePolicy": "fail-closed"
+    }
+  ],
+  "output": {
+    "fileNameTemplate": "nt51926-ctrlram-replace.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "nt51926-fw200-cascade-owner-golden-20260718",
+    "nt51926-fwconfig-backup-golden"
+  ]
+}

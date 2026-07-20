@@ -11,6 +11,51 @@ internal static partial class V2CompositionPlanCompiler
             space.Kind == CompositionProfileSpaceKind.OutputImage);
     }
 
+    private static V2CompositionPlanCompileResult Succeed(
+        CompositionProfileDefinition profile,
+        TrustedProfileBundleCatalog.ProfileSelection selection,
+        V2CompilationContext context,
+        CompositionPlan plan,
+        IEnumerable<CompiledInputSlotRequirement> inputSlots,
+        IEnumerable<CompiledInputSpaceBinding> inputBindings,
+        CompiledRegionAccessContract regionAccess,
+        CompiledIcNumberPolicy icNumberPolicy,
+        CompositionProfileMapAdmission? admission = null,
+        bool runtimeExecutable = false,
+        IEnumerable<CompiledValidationRequirement>? additionalValidationRequirements = null)
+    {
+        var provenance = new V2CompilationProvenance(
+            selection.BundleIdentity,
+            selection.ProfileEntryIdentity,
+            context,
+            new CompiledProfilePromotion(
+                MapPromotionStage(profile.Promotion.Stage),
+                profile.Promotion.Blockers.Select(MapPromotionBlocker)),
+            profile.EvidenceRefs,
+            additionalValidationRequirements ?? [],
+            admission?.RequiredCapabilities.Select(static capability => new CompiledCapabilityAdmission(
+                capability.RequiredCapabilityId,
+                capability.Binding)) ?? []);
+        var identity = new V2CompiledCompositionIdentity(
+            profile.ProfileId,
+            profile.ProfileVersion,
+            profile.Experience.ExperienceId,
+            profile.CompositionKind,
+            new V2CompiledCompositionDetails(
+                provenance,
+                new CompiledInputContract(inputSlots, inputBindings),
+                regionAccess,
+                new CompiledOutputNamingRequirement(
+                    profile.Output.FileNameTemplate,
+                    profile.Output.AllowOverride,
+                    MapOutputPolicy(profile.Output.InvalidCharacterPolicy),
+                    profile.Output.RequiredTokenIds)));
+        CompiledComposition artifact = runtimeExecutable
+            ? CompiledComposition.CreateV2RuntimeExecutable(plan, identity, icNumberPolicy)
+            : CompiledComposition.CreateV2(plan, identity, icNumberPolicy);
+        return V2CompositionPlanCompileResult.Succeeded(artifact);
+    }
+
     private static CompiledInputSlotRequirement MapInputSlot(
         CompositionProfileInputSlot slot,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)

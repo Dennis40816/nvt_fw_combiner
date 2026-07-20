@@ -25,7 +25,6 @@ public sealed class MemoryCoverageSegmentViewModel
         SourceLabel = displaySourceLabel;
         Detail = detail;
         CompactDetail = CreateCompactDetail(displaySourceLabel, isChanged);
-        TooltipText = CreateTooltipText(rangeLabel, displaySourceLabel, detail);
         Fill = fill;
         FillBrush = Brush.Parse(fill);
         BarWidth = barWidth;
@@ -41,9 +40,6 @@ public sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>Short display note for this segment.</summary>
     public string Detail { get; }
-
-    /// <summary>Plain-language hover text for the visual strip.</summary>
-    public string TooltipText { get; }
 
     /// <summary>Compact display note for dense workbench legends.</summary>
     public string CompactDetail { get; }
@@ -69,8 +65,8 @@ public sealed class MemoryCoverageSegmentViewModel
         {
             "Reserved" => "Output range remains reserved; no input writes it.",
             "DP length pending" => "Output range will follow the selected DP BIN length.",
-            "DP base required" => "Output range will follow the selected base BIN length.",
-            "Unsupported base" => "This base BIN length is blocked by profile policy.",
+            "Reference FlashCode required" => "Output range will follow the selected Reference FlashCode length.",
+            "Unsupported reference" => "This Reference FlashCode length is blocked by profile policy.",
             string label when label.Equals("Preserve", StringComparison.OrdinalIgnoreCase) ||
                 label.Equals("Base flash", StringComparison.OrdinalIgnoreCase) =>
                 "Output range keeps bytes from the base firmware.",
@@ -87,16 +83,6 @@ public sealed class MemoryCoverageSegmentViewModel
         return sourceLabel.StartsWith("Changed ", StringComparison.OrdinalIgnoreCase)
             ? sourceLabel["Changed ".Length..]
             : sourceLabel;
-    }
-
-    private static string CreateTooltipText(
-        string rangeLabel,
-        string sourceLabel,
-        string detail)
-    {
-        return sourceLabel.StartsWith("Blank", StringComparison.OrdinalIgnoreCase)
-            ? $"Output {rangeLabel} stays {sourceLabel}; no source input writes this range."
-            : $"{sourceLabel}: {rangeLabel}. {detail}";
     }
 
     private static string NormalizeSourceLabel(string sourceLabel)

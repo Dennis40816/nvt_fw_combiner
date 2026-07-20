@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -51,12 +50,5 @@ internal static partial class ReplaceCliCommandHandler
                 error,
                 cancellationToken)
             .ConfigureAwait(false);
-    }
-
-    private static bool TryResolveDpPerspectiveDpReplaceIc(
-        string selector,
-        [NotNullWhen(true)] out string? icId)
-    {
-        return WorkbenchCompositionService.TryResolveDpPerspectiveDpReplaceSelector(selector, out icId);
     }
 }

@@ -16,15 +16,21 @@ public static partial class WorkbenchCompositionService
         out GeneralReplaceRunContext? context,
         out WorkbenchRunResult? failure)
     {
-        Dictionary<string, string> reportSlotPaths = CreateGeneralReplaceReportSlotPaths(slotPaths, mappingInputs);
+        Dictionary<string, string> reportSlotPaths = new(slotPaths, StringComparer.Ordinal);
+        foreach (WorkbenchGeneralReplaceMappingInput mapping in mappingInputs)
+        {
+            if (!string.IsNullOrWhiteSpace(mapping.FilePath))
+            {
+                reportSlotPaths[mapping.MappingId] = mapping.FilePath;
+            }
+        }
         IcNumberSelection selection = ToIcNumberSelection(number);
 
-        if (!TpFlashMapCatalog.IsNumberSelectionSupported(icId, selection))
+        if (!IcNumberChoicePolicy.IsNumberSelectionSupported(selection, GetPostbuildProfiles(icId)))
         {
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -39,7 +45,6 @@ public static partial class WorkbenchCompositionService
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -54,7 +59,6 @@ public static partial class WorkbenchCompositionService
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -73,7 +77,6 @@ public static partial class WorkbenchCompositionService
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -88,7 +91,6 @@ public static partial class WorkbenchCompositionService
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,

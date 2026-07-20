@@ -132,37 +132,16 @@ public static partial class FirmwareFamilyResolutionNormalizer
 
     private static BigInteger ReadInteger(JsonElement value, string path)
     {
-        try
-        {
-            return ContractJsonValueReader.ReadInteger(value);
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
+        return TranslateInvariant(path, () => ContractJsonValueReader.ReadInteger(value));
     }
 
     private static string ReadString(JsonElement value, string path)
     {
-        try
-        {
-            return ContractJsonValueReader.ReadString(value);
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
+        return TranslateInvariant(path, () => ContractJsonValueReader.ReadString(value));
     }
 
     private static byte[] ParseHex(string value, string path)
     {
-        try
-        {
-            return ContractJsonValueReader.ParseCanonicalHex(value);
-        }
-        catch (ArgumentException exception)
-        {
-            throw Error(path, exception.Message, exception);
-        }
+        return TranslateInvariant(path, () => ContractJsonValueReader.ParseCanonicalHex(value));
     }
 }

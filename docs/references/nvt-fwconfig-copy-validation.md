@@ -13,7 +13,7 @@ The common FWConfig Backup is located from the unique NVT end flag bytes:
 
 The Backup starts at `T - 0xFFF`. The compatibility reader currently decodes the minimum half-open slice `[T - 0xFFF, T - 0xFFF + 0x07C)`. The full Backup extent is evidence/profile-declared per IC or map and is never inferred as `0x07C`. The reader rejects a BIN with no marker, more than one complete marker, or an out-of-range required decode slice; it never guesses which Backup to display.
 
-All runtime FWConfig content is read from this Backup. `TpFlashMapCatalog` still declares an IC primary FWConfig address only for TP Overview and golden cross-check evidence; it is never a runtime fallback or source. Golden regression verifies the primary and Backup agree for all exposed fields: FW/FW-bar/sub-version, ChipNumber, Common FW version, PID, and exposed hardware information.
+All runtime FWConfig content is read from this Backup. Hash-pinned `flash-map.json` still declares an IC primary FWConfig address only for TP Overview and golden cross-check evidence; it is never a runtime fallback or source. Golden regression verifies the primary and Backup agree for all exposed fields: FW/FW-bar/sub-version, ChipNumber, Common FW version, PID, and exposed hardware information.
 
 ## Current Golden Evidence
 

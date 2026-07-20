@@ -100,10 +100,10 @@ internal sealed partial class TrustedProfileBundleCatalog
 
         private ProfileSelectionResult(ProfileSelection? selection, IEnumerable<CompositionIssue> issues)
         {
-            ArgumentNullException.ThrowIfNull(issues);
-            _issues = [.. issues];
-            if (_issues.Any(static issue => issue is null) ||
-                _issues.Select(static issue => issue.Code).Distinct(StringComparer.Ordinal).Count() != _issues.Length ||
+            _issues = ImmutableReferenceSnapshot.Create(
+                issues,
+                "A profile selection must contain either one token or unique failure issues.");
+            if (_issues.Select(static issue => issue.Code).Distinct(StringComparer.Ordinal).Count() != _issues.Length ||
                 (selection is null) != (_issues.Length != 0))
             {
                 throw new ArgumentException("A profile selection must contain either one token or unique failure issues.");

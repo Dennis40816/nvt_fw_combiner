@@ -19,7 +19,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "testdata" / "golden" / "ctrlram-replace" / "manifest.json"
 PUBLIC_SMOKE_FILTER = "FullyQualifiedName~CtrlRamReplace"
@@ -67,7 +66,6 @@ DEFAULT_POSTBUILD_CATEGORIES = {
 VERSIONED_POSTBUILD_CATEGORIES = {
     ("NT51926", "1.4.1"): "PostbuildSetup_51926_1.4.1",
     ("NT51926", "2.0.0"): "PostbuildSetup_51926_2.0.0",
-    ("NT51930", "2.0.0"): "PostbuildSetup_51930_2.0.0",
 }
 VERSIONED_POSTBUILD_ICS = {"NT51926", "NT51930"}
 
@@ -128,7 +126,7 @@ def main() -> int:
     verify_fixture_manifest(manifest_path)
     print("CtrlRAM fixture manifest and payload hashes are valid.")
     print(
-        "CtrlRAM workbench output runner is enabled; golden byte parity still requires owner outputs/sign-off."
+        "CtrlRAM workbench output runner is enabled; remaining byte parity and review gates are repository-owned."
     )
     return 0
 

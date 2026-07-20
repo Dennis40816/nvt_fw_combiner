@@ -2,44 +2,28 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies alias-heavy postbuild profile rows stay grouped by IC family.</summary>
+    /// <summary>Verifies Postbuild command facts live in one hash-pinned data catalog, not static C# rows.</summary>
     [Fact]
-    public void LegacyPostbuildProfileRowsStaySplitByFamily()
+    public void PostbuildProfileRowsStayDataOwned()
     {
-        string sharedRows = ReadText(
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.cs");
-        string nt51927Family = ReadText(
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.Nt51927Family.cs");
-        string nt51930Family = ReadText(
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.Nt51930Family.cs");
-        string nt51932Family = ReadText(
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.Nt51932Family.cs");
-        string nt51950Family = ReadText(
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.Nt51950Family.cs");
+        string catalog = ReadText("profiles/built-in/ctrlram-postbuild-v2/catalog.json");
+        string loader = ReadText("src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs");
+        string pinnedJsonLoader = ReadText("src/NvtFwCombiner.Infrastructure/PinnedJsonCatalogLoader.cs");
 
-        Assert.DoesNotContain("NT51927 CtrlRAM postbuild profile", sharedRows, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT51930 CtrlRAM postbuild profile", sharedRows, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT51932 CtrlRAM postbuild profile", sharedRows, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT51950 CtrlRAM postbuild profile", sharedRows, StringComparison.Ordinal);
-        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51927", nt51927Family, StringComparison.Ordinal);
-        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51917", nt51927Family, StringComparison.Ordinal);
-        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51928", nt51927Family, StringComparison.Ordinal);
-        Assert.Contains("owner confirmation: NT51917 follows NT51927", nt51927Family, StringComparison.Ordinal);
-        Assert.Contains("owner confirmation: NT51928 follows NT51927", nt51927Family, StringComparison.Ordinal);
-        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51930", nt51930Family, StringComparison.Ordinal);
-        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51930CommonFw1x", nt51930Family, StringComparison.Ordinal);
-        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51931", nt51930Family, StringComparison.Ordinal);
-        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51932", nt51932Family, StringComparison.Ordinal);
-        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51929", nt51932Family, StringComparison.Ordinal);
-        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51919", nt51932Family, StringComparison.Ordinal);
-        Assert.Contains("owner confirmation: NT51929 follows NT51932", nt51932Family, StringComparison.Ordinal);
-        Assert.Contains("owner confirmation: NT51919 follows NT51929", nt51932Family, StringComparison.Ordinal);
-        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51950", nt51950Family, StringComparison.Ordinal);
-        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51951", nt51950Family, StringComparison.Ordinal);
-        Assert.Contains("owner confirmation: NT51951 follows NT51950", nt51950Family, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\": \"2.0\"", catalog, StringComparison.Ordinal);
+        Assert.Equal(15, catalog.Split("\"processorId\":", StringSplitOptions.None).Length - 1);
+        Assert.Contains("NT51917", catalog, StringComparison.Ordinal);
+        Assert.Contains("NT51951", catalog, StringComparison.Ordinal);
+        Assert.Contains("ExpectedSha256", loader, StringComparison.Ordinal);
+        Assert.Contains("PinnedJsonCatalogLoader.Load", loader, StringComparison.Ordinal);
+        Assert.Contains(
+            "UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow",
+            pinnedJsonLoader,
+            StringComparison.Ordinal);
+        AssertNoProductionText("LegacyCombinerPostbuildCatalog");
     }
 
-    /// <summary>Verifies legacy postbuild contract types stay split by responsibility.</summary>
+    /// <summary>Verifies retained Legacy Combiner runner contract types stay split by responsibility.</summary>
     [Fact]
     public void LegacyPostbuildContractTypesStaySplit()
     {
@@ -94,10 +78,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static void AddNt51927BasedCrcOnlyIntegrityRanges", root, StringComparison.Ordinal);
 
-        Assert.Contains("GetKnownIntegrityWriteRanges", writeRanges, StringComparison.Ordinal);
         Assert.Contains("GetKnownIntegrityWriteRangeSections", writeRanges, StringComparison.Ordinal);
         Assert.Contains("GetAllowedWriteRangeSectionsForStagedSources", writeRanges, StringComparison.Ordinal);
         Assert.Contains("GetAllowedWriteRangeSectionsForInPlaceRefresh", writeRanges, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetKnownIntegrityWriteRanges", writeRanges, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetAllowedWriteRangesForStagedSources", writeRanges, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetAllowedWriteRangesForInPlaceRefresh", writeRanges, StringComparison.Ordinal);
         Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", writeRanges, StringComparison.Ordinal);
         Assert.DoesNotContain("private static string SelectWriteRangeSectionId", writeRanges, StringComparison.Ordinal);
 
@@ -109,5 +95,38 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("NormalizeCandidateWriteRangeSections", normalize, StringComparison.Ordinal);
         Assert.Contains("SelectWriteRangeSection", normalize, StringComparison.Ordinal);
         Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", normalize, StringComparison.Ordinal);
+    }
+
+    /// <summary>Locks one final full staging read while preserving selective short-output normalization.</summary>
+    [Fact]
+    public void LegacyPostbuildPipelineReadsTheCompleteFirmwareOnlyAtFinalImport()
+    {
+        string processor = ReadText(
+            "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs");
+        string staging = ReadText(
+            "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.Staging.cs");
+
+        string pipelineSource = processor + staging;
+        Assert.Equal(
+            1,
+            pipelineSource.Split("File.ReadAllBytesAsync(firmwarePath", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("File.ReadAllBytes(firmwarePath", pipelineSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.ReadAllBytesAsync(firmwarePath", staging, StringComparison.Ordinal);
+        Assert.Contains("command.Family != LegacyCombinerCommandFamily.MergeMode", staging, StringComparison.Ordinal);
+        Assert.Contains("expectedLength - minimumLength", staging, StringComparison.Ordinal);
+        Assert.Contains("ReadExactlyAsync(tailBytes", staging, StringComparison.Ordinal);
+        Assert.Contains("FileMode.Append", staging, StringComparison.Ordinal);
+    }
+
+    /// <summary>Locks manifest discovery and processor construction to one process lifetime.</summary>
+    [Fact]
+    public void ExternalProcessorDiscoveryUsesOneExplicitProcessLifetime()
+    {
+        string factory = ReadText("src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs");
+
+        Assert.Contains("ProcessLifetime = new(CreateUncachedOrNull)", factory, StringComparison.Ordinal);
+        Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", factory, StringComparison.Ordinal);
+        Assert.Equal(1, factory.Split("Directory.EnumerateFiles(", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("static IExternalProcessor? CreateOrNull()", factory, StringComparison.Ordinal);
     }
 }

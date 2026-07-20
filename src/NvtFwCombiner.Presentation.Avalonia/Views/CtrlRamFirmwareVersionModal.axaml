@@ -7,13 +7,13 @@
     Background="{DynamicResource NfcModalScrimBrush}">
   <Border
       Classes="modalSurface"
-      Width="560"
-      Padding="22"
+      Width="620"
+      Padding="24"
       HorizontalAlignment="Center"
       VerticalAlignment="Center"
       BorderBrush="{DynamicResource NfcAccentBrush}">
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="18">
-      <StackPanel Spacing="6">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+      <StackPanel Spacing="{DynamicResource NfcSpace4}">
         <TextBlock Classes="modalTitle" Text="{Binding Text.CtrlRamFirmwareVersionTitle}" />
         <TextBlock Classes="mutedText" Text="{Binding Text.CtrlRamFirmwareVersionDetail}" TextWrapping="Wrap" />
       </StackPanel>
@@ -22,25 +22,27 @@
         <ToggleButton
             Classes="segment"
             Command="{Binding SelectCtrlRamFirmwareVersionPreserveCommand}"
-            Content="{Binding Text.CtrlRamFirmwareVersionKeepLabel}"
             IsChecked="{Binding IsCtrlRamFirmwareVersionPreserveSelected, Mode=OneWay}"
-            ToolTip.Tip="{Binding Text.CtrlRamFirmwareVersionKeepLabel}" />
+            ToolTip.Tip="{Binding Text.CtrlRamFirmwareVersionKeepLabel}">
+          <TextBlock Text="{Binding Text.CtrlRamFirmwareVersionKeepLabel}" />
+        </ToggleButton>
         <ToggleButton
             Grid.Column="1"
             Classes="segment"
             Command="{Binding SelectCtrlRamFirmwareVersionEditCommand}"
-            Content="{Binding Text.CtrlRamFirmwareVersionEditLabel}"
             IsChecked="{Binding IsCtrlRamFirmwareVersionEditSelected, Mode=OneWay}"
             IsEnabled="{Binding CanEditCtrlRamFirmwareVersion}"
-            ToolTip.Tip="{Binding Text.CtrlRamFirmwareVersionEditLabel}" />
+            ToolTip.Tip="{Binding Text.CtrlRamFirmwareVersionEditLabel}">
+          <TextBlock Text="{Binding Text.CtrlRamFirmwareVersionEditLabel}" />
+        </ToggleButton>
       </Grid>
 
       <StackPanel Grid.Row="2" Spacing="10">
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace12}">
-          <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamFirmwareVersionCurrentLabel}" />
-          <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding CtrlRamFirmwareVersionCurrentValue}" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+          <TextBlock Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.CtrlRamFirmwareVersionCurrentLabel}" />
+          <Label Grid.Column="1" Classes="compactBadge neutralBadge" FontFamily="{DynamicResource NfcTechnicalFontFamily}" Content="{Binding CtrlRamFirmwareVersionCurrentValue}" />
         </Grid>
-        <TextBlock Classes="supportingText" Text="{Binding CtrlRamFirmwareVersionMetadataDetail}" TextWrapping="Wrap" />
+        <TextBlock Classes="detailText" Text="{Binding CtrlRamFirmwareVersionMetadataDetail}" TextWrapping="Wrap" />
         <Grid
             ColumnDefinitions="*,*"
             ColumnSpacing="{DynamicResource NfcSpace12}"

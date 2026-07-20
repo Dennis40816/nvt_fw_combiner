@@ -55,20 +55,6 @@ public sealed class HexTextInputBehavior : AvaloniaObject
         _ = element.SetValue(ModeProperty, value);
     }
 
-    /// <summary>Returns the canonical display text for one hexadecimal input mode.</summary>
-    public static string NormalizeText(string? value, HexTextInputMode mode)
-    {
-        string source = value ?? string.Empty;
-        return mode switch
-        {
-            HexTextInputMode.None => source,
-            HexTextInputMode.Address => NormalizeAddress(source, source.Length).Text,
-            HexTextInputMode.Byte => NormalizeByteText(source, source.Length, maximumDigits: 2).Text,
-            HexTextInputMode.ByteSequence => NormalizeByteSequence(source, source.Length).Text,
-            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unsupported hexadecimal input mode."),
-        };
-    }
-
     private static void OnModeChanged(TextBox textBox, AvaloniaPropertyChangedEventArgs e)
     {
         textBox.TextChanged -= TextBox_OnTextChanged;

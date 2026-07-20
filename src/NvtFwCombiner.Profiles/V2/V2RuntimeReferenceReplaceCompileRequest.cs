@@ -22,6 +22,11 @@ internal sealed class V2RuntimeReferenceReplaceInputBinding
     internal long ExactLengthBytes { get; }
 }
 
+internal sealed record V2RuntimeReferenceReplaceFirmwareVersionEdit(
+    ByteRange FirmwareVersionAndBarRange, ByteRange FirmwareSubVersionRange,
+    byte FirmwareVersion, byte FirmwareSubVersion, string InvalidOutputIssueCode,
+    string MismatchOutputIssueCode);
+
 /// <summary>Typed map-bound General Replace overlay containing only input lengths and explicit half-open mappings.</summary>
 internal sealed class V2RuntimeReferenceReplaceCompileRequest
 {
@@ -30,7 +35,8 @@ internal sealed class V2RuntimeReferenceReplaceCompileRequest
 
     internal V2RuntimeReferenceReplaceCompileRequest(
         IEnumerable<V2RuntimeReferenceReplaceInputBinding> bindings,
-        IEnumerable<ExplicitMapping> mappings)
+        IEnumerable<ExplicitMapping> mappings,
+        V2RuntimeReferenceReplaceFirmwareVersionEdit? firmwareVersionEdit = null)
     {
         ArgumentNullException.ThrowIfNull(bindings);
         ArgumentNullException.ThrowIfNull(mappings);
@@ -38,6 +44,7 @@ internal sealed class V2RuntimeReferenceReplaceCompileRequest
         _mappings = [.. mappings];
         Bindings = Array.AsReadOnly(_bindings);
         Mappings = Array.AsReadOnly(_mappings);
+        FirmwareVersionEdit = firmwareVersionEdit;
     }
 
     /// <summary>Concrete immutable inputs with no host paths, source bytes, or process authority.</summary>
@@ -45,4 +52,6 @@ internal sealed class V2RuntimeReferenceReplaceCompileRequest
 
     /// <summary>Explicit source-to-output mappings lowered through the shared composition plan algebra.</summary>
     internal IReadOnlyList<ExplicitMapping> Mappings { get; }
+
+    internal V2RuntimeReferenceReplaceFirmwareVersionEdit? FirmwareVersionEdit { get; }
 }

@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.Input;
 
@@ -10,6 +9,7 @@ public sealed partial class MainWindowViewModel
 {
     private const int MaxReportHistoryEntries = 12;
     private const int ReportHistoryStorageWarningBytes = 1024 * 1024;
+    internal const long MaximumReportHistoryStorageBytes = 16L * 1024 * 1024;
     private int _reportHistorySequence;
 
     /// <summary>Gets session-local reports that can be reopened without re-running firmware workflows.</summary>
@@ -28,9 +28,7 @@ public sealed partial class MainWindowViewModel
     public string ReportHistorySummary => Text.GetReportHistorySummary(ReportHistoryCount);
 
     /// <summary>Total in-memory persisted history payload size.</summary>
-    public long ReportHistoryTotalBytes => ReportHistoryEntries.Sum(entry =>
-        Encoding.UTF8.GetByteCount(entry.ReportJson) +
-        Encoding.UTF8.GetByteCount(entry.ArtifactPath));
+    public long ReportHistoryTotalBytes => ReportHistoryEntries.Sum(static entry => entry.StoredByteCount);
 
     /// <summary>Human-readable local report history storage summary.</summary>
     public string ReportHistoryStorageSummary => Text.GetReportHistoryStorageSummary(FormatByteCount(ReportHistoryTotalBytes));
@@ -67,6 +65,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that reopens a report history entry.</summary>
     public IRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryCommand { get; }
 
+    /// <summary>Cancellable command used by the UI to reopen a report without blocking the dispatcher.</summary>
+    public IAsyncRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryAsyncCommand { get; }
+
     /// <summary>Command that removes one local report history entry.</summary>
     public IRelayCommand<ReportHistoryEntryViewModel> RemoveReportHistoryEntryCommand { get; }
 
@@ -85,16 +86,170 @@ public sealed partial class MainWindowViewModel
     public void LoadReportHistory(IEnumerable<ReportHistorySnapshot> snapshots)
     {
         ArgumentNullException.ThrowIfNull(snapshots);
+        _ = BeginReportProjection();
 
-        ReportHistoryEntries.Clear();
-        _reportHistorySequence = 0;
+        ApplyPreparedReportHistory(PrepareReportHistory(snapshots, Text.Language, CancellationToken.None));
+    }
+
+    /// <summary>Loads and prepares persisted history away from the dispatcher, unless a newer report wins.</summary>
+    internal async Task<bool> LoadReportHistoryAsync(
+        Func<CancellationToken, Task<IReadOnlyList<ReportHistorySnapshot>>> loadSnapshots,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(loadSnapshots);
+        long generation = BeginReportProjection();
+        IReadOnlyList<ReportHistorySnapshot> snapshots = await loadSnapshots(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsCurrentReportProjection(generation))
+        {
+            return false;
+        }
+
+        while (true)
+        {
+            ShellLanguage language = Text.Language;
+            PreparedReportHistory prepared = await Task.Run(
+                () => PrepareReportHistory(snapshots, language, cancellationToken),
+                cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsCurrentReportProjection(generation))
+            {
+                return false;
+            }
+
+            if (language != Text.Language)
+            {
+                continue;
+            }
+
+            ApplyPreparedReportHistory(prepared);
+            return true;
+        }
+    }
+
+    private static PreparedReportHistory PrepareReportHistory(
+        IEnumerable<ReportHistorySnapshot> snapshots,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
+    {
+        var entries = new List<ReportHistoryEntryViewModel>(MaxReportHistoryEntries);
+        ReportReviewViewModel loadedReport = ReportReviewViewModel.Empty;
+        string loadedReportJson = string.Empty;
+        long retainedBytes = 0;
+        int sequence = 0;
         foreach (ReportHistorySnapshot snapshot in snapshots.Take(MaxReportHistoryEntries))
         {
-            if (TryCreateReportHistoryEntry(snapshot, out ReportHistoryEntryViewModel? entry) &&
-                entry is not null)
+            cancellationToken.ThrowIfCancellationRequested();
+            bool materializeAsCurrent = entries.Count == 0;
+            if (!TryPrepareReportHistoryEntry(
+                    snapshot,
+                    language,
+                    materializeAsCurrent,
+                    cancellationToken,
+                    out ReportHistorySnapshot? normalizedSnapshot,
+                    out ReportReviewViewModel? materializedReport) ||
+                normalizedSnapshot is null)
             {
-                ReportHistoryEntries.Add(entry);
+                continue;
             }
+
+            var entry = new ReportHistoryEntryViewModel(
+                sequence + 1,
+                normalizedSnapshot,
+                materializedReport?.ReportJsonUtf8ByteCount);
+            if (entries.Count > 0 && ExceedsReportHistoryStorageBudget(retainedBytes, entry.StoredByteCount))
+            {
+                continue;
+            }
+
+            entries.Add(entry);
+            sequence++;
+            retainedBytes += entry.StoredByteCount;
+            if (materializeAsCurrent && materializedReport is not null)
+            {
+                loadedReport = materializedReport;
+                loadedReportJson = normalizedSnapshot.ReportJson;
+            }
+        }
+
+        return new PreparedReportHistory(entries, sequence, loadedReport, loadedReportJson);
+    }
+
+    private static bool TryPrepareReportHistoryEntry(
+        ReportHistorySnapshot snapshot,
+        ShellLanguage language,
+        bool materializeAsCurrent,
+        CancellationToken cancellationToken,
+        out ReportHistorySnapshot? normalizedSnapshot,
+        out ReportReviewViewModel? materializedReport)
+    {
+        normalizedSnapshot = null;
+        materializedReport = null;
+        if (string.IsNullOrWhiteSpace(snapshot.ReportJson))
+        {
+            return false;
+        }
+
+        try
+        {
+            if (snapshot.Metadata == ReportHistoryMetadataSnapshot.Empty)
+            {
+                materializedReport = ReportReviewViewModel.FromJsonCancellable(
+                    snapshot.ReportJson,
+                    string.IsNullOrWhiteSpace(snapshot.SourceName) ? "persisted report" : snapshot.SourceName,
+                    snapshot.OutputArtifactPath,
+                    inspectionSnapshot: null,
+                    language,
+                    cancellationToken);
+            }
+            else if (!materializeAsCurrent)
+            {
+                using var _ = JsonDocument.Parse(snapshot.ReportJson);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            else
+            {
+                try
+                {
+                    materializedReport = ReportReviewViewModel.FromJsonCancellable(
+                        snapshot.ReportJson,
+                        string.IsNullOrWhiteSpace(snapshot.SourceName) ? "persisted report" : snapshot.SourceName,
+                        snapshot.OutputArtifactPath,
+                        inspectionSnapshot: null,
+                        language,
+                        cancellationToken);
+                }
+                catch (Exception exception) when (IsReportMaterializationException(exception))
+                {
+                    using var _ = JsonDocument.Parse(snapshot.ReportJson);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    materializedReport = ReportReviewViewModel.Error(
+                        snapshot.SourceName,
+                        exception.Message,
+                        language: language);
+                }
+            }
+
+            normalizedSnapshot = snapshot.Metadata == ReportHistoryMetadataSnapshot.Empty
+                ? CreateReportHistorySnapshot(materializedReport!, snapshot.ReportJson)
+                : snapshot;
+            return true;
+        }
+        catch (Exception exception) when (IsReportMaterializationException(exception))
+        {
+            return false;
+        }
+    }
+
+    private void ApplyPreparedReportHistory(PreparedReportHistory prepared)
+    {
+        ArgumentNullException.ThrowIfNull(prepared);
+
+        ReportHistoryEntries.Clear();
+        _reportHistorySequence = prepared.Sequence;
+        foreach (ReportHistoryEntryViewModel entry in prepared.Entries)
+        {
+            ReportHistoryEntries.Add(entry);
         }
 
         if (ReportHistoryEntries.Count == 0)
@@ -104,14 +259,12 @@ public sealed partial class MainWindowViewModel
         }
         else
         {
-            ReportHistoryEntryViewModel latest = ReportHistoryEntries[0];
-            LoadedReport = latest.Report;
-            LoadedReportJson = latest.ReportJson;
+            LoadedReport = prepared.LoadedReport;
+            LoadedReportJson = prepared.LoadedReportJson;
         }
 
         NotifyReportHistoryChanged();
         NotifyReportChanged();
-        RefreshSettingsState();
     }
 
     private void ShowReportHistory()
@@ -139,18 +292,44 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        CancelReportHistoryReopen();
         IsReportHistoryViewOpen = false;
         NotifyReportViewModeChanged();
     }
 
-    private void OpenReportHistoryEntry(ReportHistoryEntryViewModel? entry)
+    private async Task OpenReportHistoryEntryAsync(
+        ReportHistoryEntryViewModel? entry,
+        CancellationToken cancellationToken)
     {
         if (entry is null)
         {
             return;
         }
 
-        LoadedReport = entry.Report;
+        long generation = BeginReportProjection(preserveHistoryReopen: true);
+        string sourceName = string.IsNullOrWhiteSpace(entry.SourceName)
+            ? "persisted report"
+            : entry.SourceName;
+        ReportReviewViewModel report;
+        try
+        {
+            report = await ProjectReportAsync(
+                entry.ReportJson,
+                sourceName,
+                entry.ArtifactPath,
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!IsCurrentReportProjection(generation))
+        {
+            return;
+        }
+
+        LoadedReport = report;
         LoadedReportJson = entry.ReportJson;
         CloseReplaceSelectionForRun();
         IsReportModalOpen = true;
@@ -162,7 +341,6 @@ public sealed partial class MainWindowViewModel
         NotifyReportViewModeChanged();
         OnPropertyChanged(nameof(HasReportToast));
         OnPropertyChanged(nameof(ReportToastOpacity));
-        RefreshSettingsState();
     }
 
     private void ClearReportHistory()
@@ -172,9 +350,9 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        CancelReportHistoryReopen();
         ReportHistoryEntries.Clear();
         NotifyReportHistoryChanged();
-        RefreshSettingsState();
     }
 
     private void RemoveReportHistoryEntry(ReportHistoryEntryViewModel? entry)
@@ -184,6 +362,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        CancelReportHistoryReopen();
         NotifyReportHistoryChanged();
         if (!HasReportHistory)
         {
@@ -191,7 +370,6 @@ public sealed partial class MainWindowViewModel
             NotifyReportViewModeChanged();
         }
 
-        RefreshSettingsState();
     }
 
     private void CaptureLoadedReportInHistory()
@@ -203,39 +381,17 @@ public sealed partial class MainWindowViewModel
 
         ReportHistoryEntries.Insert(
             0,
-            new ReportHistoryEntryViewModel(++_reportHistorySequence, LoadedReport, LoadedReportJson));
-        while (ReportHistoryEntries.Count > MaxReportHistoryEntries)
+            new ReportHistoryEntryViewModel(
+                ++_reportHistorySequence,
+                CreateReportHistorySnapshot(LoadedReport, LoadedReportJson),
+                LoadedReport.ReportJsonUtf8ByteCount));
+        while (ReportHistoryEntries.Count > MaxReportHistoryEntries ||
+               (ReportHistoryEntries.Count > 1 && ReportHistoryTotalBytes > MaximumReportHistoryStorageBytes))
         {
             ReportHistoryEntries.RemoveAt(ReportHistoryEntries.Count - 1);
         }
 
         NotifyReportHistoryChanged();
-    }
-
-    private bool TryCreateReportHistoryEntry(
-        ReportHistorySnapshot snapshot,
-        out ReportHistoryEntryViewModel? entry)
-    {
-        entry = null;
-        if (string.IsNullOrWhiteSpace(snapshot.ReportJson))
-        {
-            return false;
-        }
-
-        try
-        {
-            var report = ReportReviewViewModel.FromJson(
-                snapshot.ReportJson,
-                string.IsNullOrWhiteSpace(snapshot.SourceName) ? "persisted report" : snapshot.SourceName,
-                snapshot.OutputArtifactPath,
-                Text.Language);
-            entry = new ReportHistoryEntryViewModel(++_reportHistorySequence, report, snapshot.ReportJson);
-            return true;
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
     }
 
     private void NotifyReportHistoryChanged()
@@ -253,45 +409,160 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(CanClearReportHistory));
         ShowReportHistoryCommand.NotifyCanExecuteChanged();
         ClearReportHistoryCommand.NotifyCanExecuteChanged();
-        OpenReportHistoryEntryCommand.NotifyCanExecuteChanged();
+        OpenReportHistoryEntryAsyncCommand.NotifyCanExecuteChanged();
         RemoveReportHistoryEntryCommand.NotifyCanExecuteChanged();
     }
 
-    private void RelocalizeLoadedReport()
+    private void OpenReportHistoryEntryAsyncCommand_CanExecuteChanged(object? sender, EventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(LoadedReportJson))
+        OpenReportHistoryEntryCommand.NotifyCanExecuteChanged();
+    }
+
+    private void CancelReportHistoryReopen()
+    {
+        if (OpenReportHistoryEntryAsyncCommand.IsRunning)
         {
-            return;
+            _ = BeginReportProjection();
         }
+    }
 
-        try
+    private async Task RelocalizeLoadedReportAsync(CancellationToken cancellationToken)
+    {
+        while (true)
         {
-            LoadedReport = ReportReviewViewModel.FromJson(
-                LoadedReportJson,
-                LoadedReport.SourceName,
-                LoadedReport.OutputArtifactPath,
-                Text.Language);
-            for (int index = 0; index < ReportHistoryEntries.Count; index++)
+            long requestVersion = Volatile.Read(ref _reportRelocalizationRequestVersion);
+            string reportJson = LoadedReportJson;
+            ReportReviewViewModel currentReport = LoadedReport;
+            long generation = Volatile.Read(ref _reportProjectionGeneration);
+            if (string.IsNullOrWhiteSpace(reportJson))
             {
-                ReportHistoryEntryViewModel entry = ReportHistoryEntries[index];
-                if (!string.Equals(entry.ReportJson, LoadedReportJson, StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                ReportHistoryEntries[index] = new ReportHistoryEntryViewModel(
-                    entry.Sequence,
-                    LoadedReport,
-                    entry.ReportJson);
-                break;
+                return;
             }
 
-            NotifyReportChanged();
-            NotifyReportHistoryChanged();
+            using var iterationCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _ = Interlocked.Exchange(
+                ref _reportRelocalizationIterationCancellation,
+                iterationCancellation);
+            ReportReviewViewModel localizedReport;
+            try
+            {
+                localizedReport = await ProjectReportAsync(
+                    reportJson,
+                    currentReport.SourceName,
+                    currentReport.OutputArtifactPath,
+                    iterationCancellation.Token,
+                    materializationErrorsAsReport: false,
+                    inspectionSnapshot: currentReport.InspectionSnapshot);
+            }
+            catch (OperationCanceledException) when (iterationCancellation.IsCancellationRequested)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                if (requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion))
+                {
+                    return;
+                }
+
+                continue;
+            }
+            catch (Exception exception) when (IsReportMaterializationException(exception))
+            {
+                return;
+            }
+            finally
+            {
+                _ = Interlocked.CompareExchange(
+                    ref _reportRelocalizationIterationCancellation,
+                    null,
+                    iterationCancellation);
+            }
+
+            if (IsCurrentReportProjection(generation) &&
+                string.Equals(LoadedReportJson, reportJson, StringComparison.Ordinal))
+            {
+                ApplyRelocalizedReport(localizedReport, reportJson);
+            }
+
+            if (requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion))
+            {
+                return;
+            }
         }
-        catch (JsonException)
+    }
+
+    private void ApplyRelocalizedReport(ReportReviewViewModel localizedReport, string reportJson)
+    {
+        LoadedReport = localizedReport;
+        for (int index = 0; index < ReportHistoryEntries.Count; index++)
         {
+            ReportHistoryEntryViewModel entry = ReportHistoryEntries[index];
+            if (!string.Equals(entry.ReportJson, reportJson, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            ReportHistoryEntries[index] = new ReportHistoryEntryViewModel(
+                entry.Sequence,
+                CreateReportHistorySnapshot(LoadedReport, entry.ReportJson),
+                LoadedReport.ReportJsonUtf8ByteCount);
+            break;
         }
+
+        NotifyReportChanged();
+        NotifyReportHistoryChanged();
+    }
+
+    private static ReportHistorySnapshot CreateReportHistorySnapshot(
+        ReportReviewViewModel report,
+        string reportJson)
+    {
+        return new ReportHistorySnapshot(
+            report.SourceName,
+            reportJson,
+            report.OutputArtifactPath,
+            new ReportHistoryMetadataSnapshot(
+                report.Title,
+                report.Status,
+                CreateReportHistoryContext(report),
+                string.IsNullOrWhiteSpace(report.OutputFileName)
+                    ? "No output"
+                    : $"{report.OutputFileName} / {report.OutputSize} bytes",
+                report.OutputHashLabel,
+                report.HasPostbuildInvocations
+                    ? FormatReportHistoryCount(report.PostbuildInvocationCount, "command")
+                    : "No external command",
+                report.HasPrimaryIssue
+                    ? FormatReportHistoryCount(report.BlockingIssueCount, "issue")
+                    : report.HasWarnings
+                        ? FormatReportHistoryCount(report.WarningCount, "warning")
+                        : "No issue",
+                $"{FormatReportHistoryCount(report.InputCount, "input")} / {FormatReportHistoryCount(report.OperationCount, "step")} / {FormatReportHistoryCount(report.MutationCount, "mutation")}",
+                report.RunId,
+                report.StartedAtUtc,
+                report.IcId,
+                report.ModeId,
+                report.ExperienceId,
+                report.CompositionKind));
+    }
+
+    private static string CreateReportHistoryContext(ReportReviewViewModel report)
+    {
+        string workflow = string.IsNullOrWhiteSpace(report.CompositionKind)
+            ? "Report"
+            : report.CompositionKind;
+        string experience = string.IsNullOrWhiteSpace(report.ExperienceId)
+            ? report.SourceName
+            : report.ExperienceId;
+        string ic = string.IsNullOrWhiteSpace(report.IcId) ? "unknown IC" : report.IcId;
+        return $"{workflow} / {experience} / {ic}";
+    }
+
+    private static string FormatReportHistoryCount(int count, string noun)
+    {
+        return count == 1 ? $"1 {noun}" : $"{count} {noun}s";
     }
 
     private static string FormatByteCount(long byteCount)
@@ -304,4 +575,16 @@ public sealed partial class MainWindowViewModel
                 ? $"{(byteCount / kib).ToString("0.0", CultureInfo.InvariantCulture)} KB"
                 : $"{byteCount.ToString(CultureInfo.InvariantCulture)} B";
     }
+
+    private static bool ExceedsReportHistoryStorageBudget(long retainedBytes, long candidateBytes)
+    {
+        return candidateBytes > MaximumReportHistoryStorageBytes ||
+               retainedBytes > MaximumReportHistoryStorageBytes - candidateBytes;
+    }
+
+    private sealed record PreparedReportHistory(
+        IReadOnlyList<ReportHistoryEntryViewModel> Entries,
+        int Sequence,
+        ReportReviewViewModel LoadedReport,
+        string LoadedReportJson);
 }

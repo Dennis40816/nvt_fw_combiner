@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "2.9",
+  "profileId": "nt51927-ctrlram-replace-fw141-single",
+  "profileVersion": "0.1.0",
+  "promotion": {
+    "stage": "executable-candidate",
+    "blockers": [
+      {
+        "blockerId": "support-neutral-no-promotion",
+        "kind": "release",
+        "reason": "The exact route is evidence-complete and intentionally remains support-neutral; this no-promotion policy is not a missing owner input or decision.",
+        "evidenceRefs": [ "nt51927-fw141-single-auto-prj-529-owner-golden-20260717" ]
+      }
+    ]
+  },
+  "compositionKind": "replace",
+  "icNumberInputMode": "single-selector",
+  "experience": {
+    "experienceId": "ctrlram-replace",
+    "audience": "ctrlram",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51927.ctrlram.replace.fw141.single"
+  },
+  "compilationContext": { "kind": "runtime-reference-replace" },
+  "mapBinding": {
+    "familyId": "nt51927-ctrlram-replace",
+    "familyVersion": "0.4.0",
+    "familyContentHash": "63b91660fbeaf68f70d210141d41f61f878430fc3b9ba80bc342c96b531bcf52",
+    "mapIds": [ "nt51927-ctrlram-fw141-single-full-flash" ],
+    "requiredRegionIds": [
+      "flash-image",
+      "header-crc-023c",
+      "header-crc-024c",
+      "header-crc-026c",
+      "header-crc-027c",
+      "nf-master",
+      "normal-master",
+      "mp-master",
+      "vn-master",
+      "header-copy-master",
+      "final-header-backup",
+      "fw-config-backup-copy"
+    ],
+    "requiredMetadataStructureIds": [ "nt51927-fwconfig-backup-envelope" ],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "reference-base",
+      "role": "reference-base",
+      "artifactClass": "reference-image",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-resolved-map-capacity" },
+        "normalization": { "kind": "none" }
+      }
+    },
+    {
+      "slotId": "ctrlram-source",
+      "role": "ctrlram-source",
+      "artifactClass": "ctrlram-replacement",
+      "required": true,
+      "cardinality": "one-or-more",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "bounded", "minimumBytes": 1, "maximumBytes": 2147483647 },
+        "normalization": {
+          "kind": "truncate-ctrlram",
+          "warningIssueCode": "CTRLRAM_SIZE_WARNING",
+          "evidenceRef": "nt51927-fw141-single-auto-prj-529-owner-golden-20260717"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "reference-base",
+      "kind": "input-artifact",
+      "slotId": "reference-base",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "ctrlram-source-template",
+      "kind": "input-artifact",
+      "slotId": "ctrlram-source",
+      "instancePolicy": "per-binding"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": { "kind": "runtime-request" },
+      "initializer": { "kind": "clone", "sourceSlotId": "reference-base" }
+    }
+  ],
+  "views": [
+    { "viewId": "processor-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "header-crc-023c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-023c" } },
+    { "viewId": "header-crc-024c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-024c" } },
+    { "viewId": "header-crc-026c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-026c" } },
+    { "viewId": "header-crc-027c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-027c" } },
+    { "viewId": "nf-master-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "nf-master" } },
+    { "viewId": "normal-master-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "normal-master" } },
+    { "viewId": "mp-master-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "mp-master" } },
+    { "viewId": "vn-master-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-master" } },
+    { "viewId": "header-copy-master-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy-master" } },
+    { "viewId": "final-header-backup-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "final-header-backup" } },
+    { "viewId": "fw-config-backup-copy-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "fw-config-backup-copy" } }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    { "regionId": "header-crc-023c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
+    { "regionId": "header-crc-024c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
+    { "regionId": "header-crc-026c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
+    { "regionId": "header-crc-027c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
+    { "regionId": "nf-master", "access": "explicit-range", "reason": "Copy at most 0xFD0 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "normal-master", "access": "explicit-range", "reason": "Copy at most 0x3000 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "mp-master", "access": "explicit-range", "reason": "Copy at most 0x2400 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "vn-master", "access": "explicit-range", "reason": "Copy at most 0x1660 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "header-copy-master", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the master TP header copy and its CRC words." },
+    { "regionId": "final-header-backup", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the final 0x460-byte header backup." },
+    { "regionId": "fw-config-backup-copy", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may copy the approved 0x800-byte FWConfig backup." }
+  ],
+  "operations": [
+    {
+      "operationId": "postbuild-singlechip",
+      "sequence": 2147483647,
+      "overlapPolicy": "replace-existing",
+      "reason": "Run the exact seven-command NT51927 Common FW 1.4.1 single-chip postbuild after every runtime CtrlRAM mapping.",
+      "kind": "run-processor",
+      "processorStageId": "nt51927-fw141-single-combiner"
+    }
+  ],
+  "validations": [],
+  "processorStages": [
+    {
+      "processorStageId": "nt51927-fw141-single-combiner",
+      "kind": "legacy-combiner-v1",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "invocationProfileId": "nfc.nt51927.ctrlram-postbuild-v1",
+      "targetSpaceId": "output-image",
+      "targetViewId": "processor-image",
+      "authority": "transform",
+      "purpose": "header-and-integrity",
+      "integrityDisposition": "recalculate-and-write",
+      "allowedReadViewIds": [ "processor-image" ],
+      "allowedWriteViewIds": [
+        "header-crc-023c-output",
+        "header-crc-024c-output",
+        "header-crc-026c-output",
+        "header-crc-027c-output",
+        "nf-master-output",
+        "normal-master-output",
+        "mp-master-output",
+        "vn-master-output",
+        "header-copy-master-output",
+        "final-header-backup-output",
+        "fw-config-backup-copy-output"
+      ],
+      "stagedSourceBindings": [],
+      "stagedArtifactBindings": [],
+      "evidenceRef": "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
+      "failurePolicy": "fail-closed"
+    }
+  ],
+  "output": {
+    "fileNameTemplate": "nt51927-ctrlram-replace.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "nt51927-fw141-single-auto-prj-529-owner-golden-20260717"
+  ]
+}

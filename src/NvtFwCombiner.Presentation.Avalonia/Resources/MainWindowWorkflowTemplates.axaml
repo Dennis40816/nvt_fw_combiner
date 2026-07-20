@@ -40,6 +40,11 @@
             ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
 
         <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="{DynamicResource NfcSpace12}" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotGroupTemplate" />
           </ItemsControl.ItemTemplate>
@@ -93,7 +98,10 @@
               MinHeight="112"
               Padding="12">
             <StackPanel Spacing="{DynamicResource NfcSpace4}">
-              <TextBlock Classes="readinessText" Text="{Binding ReplaceReadinessStatus}" TextWrapping="Wrap" />
+              <TextBlock Classes="readinessText"
+                         AutomationProperties.LiveSetting="Polite"
+                         Text="{Binding ReplaceReadinessStatus}"
+                         TextWrapping="Wrap" />
               <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceValidationDetail}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
@@ -122,10 +130,10 @@
             <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralReplaceMappings}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:GeneralReplaceMappingViewModel">
-                  <views:GeneralReplaceMappingRow
+                  <views:GeneralMappingRow
                       BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}"
-                      RemoveRangeTooltip="{ReflectionBinding $parent[Window].DataContext.Text.RemoveRangeTooltip}"
-                      SelectReplacementBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectReplacementBinTooltip}" />
+                      RemoveMappingTooltip="{ReflectionBinding $parent[Window].DataContext.Text.RemoveRangeTooltip}"
+                      SelectBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectReplacementBinTooltip}" />
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -154,7 +162,10 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
         <Border Classes="subtleSurface" Padding="10,8">
-          <TextBlock Classes="readinessText" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
+          <TextBlock Classes="readinessText"
+                     AutomationProperties.LiveSetting="Polite"
+                     Text="{Binding MergeReadinessStatus}"
+                     TextWrapping="Wrap" />
         </Border>
       </StackPanel>
     </Border>
@@ -201,17 +212,20 @@
           <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralMergeMappings}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:GeneralMergeMappingViewModel">
-                <views:GeneralMergeMappingRow
+                <views:GeneralMappingRow
                     BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}"
                     RemoveMappingTooltip="{ReflectionBinding $parent[Window].DataContext.Text.RemoveMappingTooltip}"
-                    SelectSourceBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectSourceBinTooltip}" />
+                    SelectBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectSourceBinTooltip}" />
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
 
         <Border Classes="subtleSurface" Padding="10,8">
-          <TextBlock Classes="readinessText" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
+          <TextBlock Classes="readinessText"
+                     AutomationProperties.LiveSetting="Polite"
+                     Text="{Binding MergeReadinessStatus}"
+                     TextWrapping="Wrap" />
         </Border>
       </StackPanel>
     </Border>

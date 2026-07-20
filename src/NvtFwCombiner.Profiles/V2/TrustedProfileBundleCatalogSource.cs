@@ -85,8 +85,12 @@ internal sealed class TrustedProfileBundleCatalogSource
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleVersion);
         ProfileBundleIdentity.ValidateSha256(bundleContentHash, nameof(bundleContentHash));
         ArgumentException.ThrowIfNullOrWhiteSpace(trustAnchorBindingId);
-        _families = Snapshot(families, nameof(families));
-        _profiles = Snapshot(profiles, nameof(profiles));
+        _families = ImmutableReferenceSnapshot.Create(
+            families,
+            "Trusted bundle sources cannot contain null values.");
+        _profiles = ImmutableReferenceSnapshot.Create(
+            profiles,
+            "Trusted bundle sources cannot contain null values.");
 
         ManifestSha256 = manifestSha256;
         BundleId = bundleId;
@@ -111,13 +115,4 @@ internal sealed class TrustedProfileBundleCatalogSource
 
     internal IReadOnlyList<TrustedCompositionProfileJsonSource> Profiles { get; }
 
-    private static T[] Snapshot<T>(IEnumerable<T> values, string parameterName)
-        where T : class
-    {
-        ArgumentNullException.ThrowIfNull(values);
-        T[] snapshot = [.. values];
-        return snapshot.Any(static value => value is null)
-            ? throw new ArgumentException("Trusted bundle sources cannot contain null values.", parameterName)
-            : snapshot;
-    }
 }

@@ -1,0 +1,128 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51926-fw141-single-auto-prj-747-20260717",
+  "ic": "NT51926",
+  "workflow": "ctrlram-replace",
+  "variantOrVersion": "fw1.4.1",
+  "topology": "single",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
+  "project": "AUTO_PRJ-747",
+  "icCount": 1,
+  "baseKind": "owner-expected-plus-standard-merge-inputs",
+  "profileId": "not-materialized",
+  "artifacts": [
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/expected/NT51926_Flashcode_TM_TL080JFKS07-00_SKYWORTH_D80T80_20260522.bin",
+      "size": 262144,
+      "sha256": "3a222cbc838192204e8a94b1677b3564fcabfa1983820eebc89e2ef10ec294cd",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/single/expected_output/NT51926_Flashcode_TM_TL080JFKS07-00_SKYWORTH_D80T80_20260522.bin"
+      ],
+      "originalFileName": "NT51926_Flashcode_TM_TL080JFKS07-00_SKYWORTH_D80T80_20260522.bin",
+      "sourceRole": "expected-final-output"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/nt51926_fw_80.bin",
+      "size": 245760,
+      "sha256": "987274195623ed48d673a733fd4140fbfaadee5fa13168c42a50055e7ab8b1c3",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/single/nt51926_fw_80.bin"
+      ],
+      "originalFileName": "nt51926_fw_80.bin",
+      "sourceRole": "standard-merge-tp-input"
+    },
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/NT51926TT_Initial code_TM_TL080JFKS04-00_V80_20260522_keep RTNA.bin",
+      "size": 262144,
+      "sha256": "57b4630d60c06652a9bbe80dc13ed7a17e4be474ee307ae33ebaef16258604b2",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/single/NT51926TT_Initial code_TM_TL080JFKS04-00_V80_20260522_keep RTNA.bin"
+      ],
+      "originalFileName": "NT51926TT_Initial code_TM_TL080JFKS04-00_V80_20260522_keep RTNA.bin",
+      "sourceRole": "standard-merge-dp-input"
+    },
+    {
+      "artifactId": "postbuild-mp-ctrlram",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/MP_Ctrlram.bin",
+      "size": 655360,
+      "sha256": "f2f9b472e93d5dbbfe74b02d37979330bfd0c9899dd6c31b6e8e0f2c531df913",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/single/postbuild_inputs/MP_Ctrlram.bin"
+      ],
+      "originalFileName": "MP_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-nf-ctrlram",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/NF_Ctrlram.bin",
+      "size": 11728,
+      "sha256": "e9f9105978dafaa90b81f4d969291496035d3b0d91d54a77238f17051febd6db",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/single/postbuild_inputs/NF_Ctrlram.bin"
+      ],
+      "originalFileName": "NF_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-normal-ctrlram",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/Normal_Ctrlram.bin",
+      "size": 655360,
+      "sha256": "4594037e292d31f4fa37aa732174fc7033435a34373cb3e9ff7dbd45e975ad6e",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/single/postbuild_inputs/Normal_Ctrlram.bin"
+      ],
+      "originalFileName": "Normal_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-vn-ctrlram",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/VN_Ctrlram.bin",
+      "size": 5728,
+      "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/single/postbuild_inputs/VN_Ctrlram.bin"
+      ],
+      "originalFileName": "VN_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "project-marker",
+      "role": "provenance",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/provenance/AUTO_PRJ-747, PID=0x136E.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/single/AUTO_PRJ-747, PID=0x136E.txt"
+      ],
+      "originalFileName": "AUTO_PRJ-747, PID=0x136E.txt",
+      "sourceRole": "project-marker"
+    }
+  ],
+  "sourceIntake": {
+    "legacyManifest": "testdata/golden/ctrlram-replace/manifest.20260717.json",
+    "archive": {
+      "fileName": "NVT_Golden_Evidence_v0.9.9_20260717.7z",
+      "sha256": "9027e9038f51c5421f922afdf73d1f16fc5f7dd582e23e25547727fda585205c",
+      "transfer": "HackMD CJK14 numbered-note transfer",
+      "recoveredAtTaipei": "2026-07-17T17:18:00+08:00"
+    }
+  },
+  "promotion": {
+    "runtimeSupportPromotion": false,
+    "releaseRedistributionApproved": false
+  },
+  "pid": "0x136E",
+  "evidenceStatus": "direct-owner-golden-without-standalone-phase-b-result"
+}

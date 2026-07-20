@@ -5,7 +5,11 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private readonly Func<string, string, WorkbenchFirmwareConfigMetadata?> _ctrlRamFirmwareVersionMetadataReader;
     private WorkbenchFirmwareConfigMetadata? _ctrlRamFirmwareVersionMetadata;
+    private CtrlRamFirmwareVersionModalLease? _ctrlRamFirmwareVersionModalLease;
+    private long _ctrlRamFirmwareVersionContextGeneration;
+    private long _ctrlRamFirmwareVersionMetadataGeneration;
 
     /// <summary>True when the CtrlRAM Build firmware-version confirmation modal is open.</summary>
     public bool IsCtrlRamFirmwareVersionModalOpen { get; private set; }
@@ -15,6 +19,9 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>True when the pending CtrlRAM Build preserves the source TP firmware version.</summary>
     public bool IsCtrlRamFirmwareVersionPreserveSelected => !IsCtrlRamFirmwareVersionEditSelected;
+
+    /// <summary>True while CtrlRAM version metadata is read outside the UI dispatcher.</summary>
+    public bool IsCtrlRamFirmwareVersionMetadataLoading { get; private set; }
 
     /// <summary>True when the selected base BIN contains valid NVT Backup version metadata.</summary>
     public bool CanEditCtrlRamFirmwareVersion => _ctrlRamFirmwareVersionMetadata is { IsFirmwareVersionBarValid: true };
@@ -70,17 +77,30 @@ public sealed partial class MainWindowViewModel
     public bool HasCtrlRamFirmwareVersionValidation => !string.IsNullOrWhiteSpace(CtrlRamFirmwareVersionValidationDetail);
 
     /// <summary>True when the modal can move from version confirmation to the output file picker.</summary>
-    public bool CanConfirmCtrlRamFirmwareVersion => !IsCtrlRamFirmwareVersionEditSelected || CanEditCtrlRamFirmwareVersion;
+    public bool CanConfirmCtrlRamFirmwareVersion =>
+        !IsCtrlRamFirmwareVersionMetadataLoading &&
+        IsCtrlRamFirmwareVersionModalLeaseContextCurrent() &&
+        (!IsCtrlRamFirmwareVersionEditSelected || CanEditCtrlRamFirmwareVersion);
 
-    /// <summary>Opens the CtrlRAM Build confirmation when the selected base and replacement inputs are ready.</summary>
-    public bool TryOpenCtrlRamFirmwareVersionModal()
+    /// <summary>Reads the selected base outside the dispatcher, then opens the CtrlRAM Build confirmation.</summary>
+    public async Task<bool> TryOpenCtrlRamFirmwareVersionModalAsync(CancellationToken cancellationToken = default)
     {
-        if (!IsCtrlRamReplaceModeSelected || !CanBuildReplace)
+        if (!IsCtrlRamReplaceModeSelected || !CanRunReplace() || IsCtrlRamFirmwareVersionMetadataLoading)
         {
             return false;
         }
 
-        _ctrlRamFirmwareVersionMetadata = ReadCtrlRamFirmwareVersionMetadata();
+        CtrlRamFirmwareVersionMetadataReadResult readResult =
+            await ReadCtrlRamFirmwareVersionMetadataAsync(cancellationToken);
+        if (!readResult.IsCurrent || !IsCtrlRamReplaceModeSelected || !CanRunReplace())
+        {
+            return false;
+        }
+
+        _ctrlRamFirmwareVersionMetadata = readResult.Metadata;
+        _ctrlRamFirmwareVersionModalLease = new CtrlRamFirmwareVersionModalLease(
+            Volatile.Read(ref _ctrlRamFirmwareVersionContextGeneration),
+            readResult.Request);
         IsCtrlRamFirmwareVersionEditSelected = false;
         CtrlRamFirmwareVersionText = _ctrlRamFirmwareVersionMetadata is { } metadata
             ? FormattableString.Invariant($"{metadata.FirmwareVersion:X2}")
@@ -94,21 +114,47 @@ public sealed partial class MainWindowViewModel
         return true;
     }
 
-    /// <summary>Creates the typed CtrlRAM version-edit request selected in the modal.</summary>
-    public bool TryCreateCtrlRamFirmwareVersionEdit(out WorkbenchCtrlRamFirmwareVersionEdit? edit)
+    /// <summary>Revalidates metadata outside the dispatcher and creates the typed CtrlRAM version-edit request.</summary>
+    public async Task<(bool Succeeded, WorkbenchCtrlRamFirmwareVersionEdit? Edit)>
+        TryCreateCtrlRamFirmwareVersionEditAsync(CancellationToken cancellationToken = default)
     {
-        edit = null;
-        if (!IsCtrlRamFirmwareVersionModalOpen || !IsCtrlRamReplaceModeSelected)
+        if (!IsCtrlRamFirmwareVersionModalOpen ||
+            !IsCtrlRamReplaceModeSelected ||
+            IsCtrlRamFirmwareVersionMetadataLoading)
         {
-            return false;
+            return (false, null);
+        }
+
+        if (!IsCtrlRamFirmwareVersionModalLeaseContextCurrent())
+        {
+            CloseCtrlRamFirmwareVersionModal();
+            return (false, null);
         }
 
         if (!IsCtrlRamFirmwareVersionEditSelected)
         {
-            return true;
+            bool preserveLeaseCurrent = await ValidateCtrlRamFirmwareVersionModalLeaseAsync(cancellationToken);
+            if (!preserveLeaseCurrent)
+            {
+                CloseCtrlRamFirmwareVersionModal();
+            }
+
+            return (preserveLeaseCurrent, null);
         }
 
-        _ctrlRamFirmwareVersionMetadata = ReadCtrlRamFirmwareVersionMetadata();
+        CtrlRamFirmwareVersionMetadataReadResult readResult =
+            await ReadCtrlRamFirmwareVersionMetadataAsync(cancellationToken);
+        if (!readResult.IsCurrent ||
+            !IsCtrlRamFirmwareVersionModalOpen ||
+            !IsCtrlRamReplaceModeSelected ||
+            !IsCtrlRamFirmwareVersionEditSelected ||
+            !IsCtrlRamFirmwareVersionModalLeaseMatches(readResult.Request))
+        {
+            return (false, null);
+        }
+
+        _ctrlRamFirmwareVersionMetadata = readResult.Metadata;
+        NotifyCtrlRamFirmwareVersionState();
         if (!CanEditCtrlRamFirmwareVersion)
         {
             CtrlRamFirmwareVersionValidationDetail = Text.CtrlRamFirmwareVersionEditUnavailableDetail;
@@ -117,7 +163,7 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(CanEditCtrlRamFirmwareVersion));
             OnPropertyChanged(nameof(CtrlRamFirmwareVersionCurrentValue));
             OnPropertyChanged(nameof(CtrlRamFirmwareVersionMetadataDetail));
-            return false;
+            return (false, null);
         }
 
         if (!TryParseHexByte(CtrlRamFirmwareVersionText, out byte firmwareVersion) ||
@@ -126,17 +172,26 @@ public sealed partial class MainWindowViewModel
             CtrlRamFirmwareVersionValidationDetail = Text.CtrlRamFirmwareVersionInvalidByteDetail;
             OnPropertyChanged(nameof(CtrlRamFirmwareVersionValidationDetail));
             OnPropertyChanged(nameof(HasCtrlRamFirmwareVersionValidation));
-            return false;
+            return (false, null);
         }
 
-        edit = new WorkbenchCtrlRamFirmwareVersionEdit(firmwareVersion, firmwareSubVersion);
+        var edit = new WorkbenchCtrlRamFirmwareVersionEdit(firmwareVersion, firmwareSubVersion);
         ClearCtrlRamFirmwareVersionValidation();
-        return true;
+        return (true, edit);
+    }
+
+    /// <summary>True when the modal confirmation still belongs to the current CtrlRAM inputs.</summary>
+    public Task<bool> IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return ValidateCtrlRamFirmwareVersionModalLeaseAsync(cancellationToken);
     }
 
     /// <summary>Closes the CtrlRAM firmware-version confirmation without changing the source image.</summary>
     public void CloseCtrlRamFirmwareVersionModal()
     {
+        InvalidateCtrlRamFirmwareVersionMetadataRead();
+        _ctrlRamFirmwareVersionModalLease = null;
         if (!IsCtrlRamFirmwareVersionModalOpen)
         {
             return;
@@ -145,10 +200,12 @@ public sealed partial class MainWindowViewModel
         IsCtrlRamFirmwareVersionModalOpen = false;
         ClearCtrlRamFirmwareVersionValidation();
         OnPropertyChanged(nameof(IsCtrlRamFirmwareVersionModalOpen));
+        OnPropertyChanged(nameof(CanConfirmCtrlRamFirmwareVersion));
     }
 
     private void SelectCtrlRamFirmwareVersionPreserve()
     {
+        InvalidateCtrlRamFirmwareVersionMetadataRead();
         IsCtrlRamFirmwareVersionEditSelected = false;
         ClearCtrlRamFirmwareVersionValidation();
         NotifyCtrlRamFirmwareVersionSelection();
@@ -161,17 +218,139 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        InvalidateCtrlRamFirmwareVersionMetadataRead();
         IsCtrlRamFirmwareVersionEditSelected = true;
         ClearCtrlRamFirmwareVersionValidation();
         NotifyCtrlRamFirmwareVersionSelection();
     }
 
-    private WorkbenchFirmwareConfigMetadata? ReadCtrlRamFirmwareVersionMetadata()
+    private async Task<CtrlRamFirmwareVersionMetadataReadResult> ReadCtrlRamFirmwareVersionMetadataAsync(
+        CancellationToken cancellationToken)
     {
+        string icId = SelectedIc;
         string? basePath = ReplaceBaseSlot.FilePath;
-        return !string.IsNullOrWhiteSpace(basePath)
-            ? WorkbenchCompositionService.TryReadFirmwareConfigMetadata(SelectedIc, basePath)
-            : null;
+        if (string.IsNullOrWhiteSpace(icId) || string.IsNullOrWhiteSpace(basePath))
+        {
+            return default;
+        }
+
+        long generation = Interlocked.Increment(ref _ctrlRamFirmwareVersionMetadataGeneration);
+        SetCtrlRamFirmwareVersionMetadataLoading(true);
+        try
+        {
+            await Task.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
+            CtrlRamFirmwareVersionMetadataWorkerResult workerResult = await Task.Run(
+                () => ReadCtrlRamFirmwareVersionMetadata(icId, basePath),
+                cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            bool isCurrent = workerResult.IsFileIdentityStable &&
+                generation == Volatile.Read(ref _ctrlRamFirmwareVersionMetadataGeneration) &&
+                workerResult.Request.MatchesContext(SelectedIc, ReplaceBaseSlot.FilePath);
+            return new CtrlRamFirmwareVersionMetadataReadResult(
+                isCurrent,
+                workerResult.Metadata,
+                workerResult.Request);
+        }
+        finally
+        {
+            SetCtrlRamFirmwareVersionMetadataLoading(false);
+        }
+    }
+
+    private CtrlRamFirmwareVersionMetadataWorkerResult ReadCtrlRamFirmwareVersionMetadata(
+        string icId,
+        string basePath)
+    {
+        var before = FirmwareFileIdentity.Capture(basePath);
+        WorkbenchFirmwareConfigMetadata? metadata = _ctrlRamFirmwareVersionMetadataReader(icId, basePath);
+        var after = FirmwareFileIdentity.Capture(basePath);
+        return new CtrlRamFirmwareVersionMetadataWorkerResult(
+            before.Equals(after),
+            metadata,
+            new CtrlRamFirmwareVersionMetadataRequest(icId, basePath, before));
+    }
+
+    private void InvalidateCtrlRamFirmwareVersionMetadataRead()
+    {
+        _ = Interlocked.Increment(ref _ctrlRamFirmwareVersionMetadataGeneration);
+    }
+
+    private void InvalidateCtrlRamFirmwareVersionContext()
+    {
+        InvalidateCtrlRamFirmwareVersionMetadataRead();
+        _ = Interlocked.Increment(ref _ctrlRamFirmwareVersionContextGeneration);
+        _ctrlRamFirmwareVersionModalLease = null;
+        if (!IsCtrlRamFirmwareVersionModalOpen)
+        {
+            OnPropertyChanged(nameof(CanConfirmCtrlRamFirmwareVersion));
+            return;
+        }
+
+        IsCtrlRamFirmwareVersionModalOpen = false;
+        ClearCtrlRamFirmwareVersionValidation();
+        NotifyCtrlRamFirmwareVersionState();
+    }
+
+    private bool IsCtrlRamFirmwareVersionModalLeaseContextCurrent()
+    {
+        return IsCtrlRamFirmwareVersionModalOpen &&
+            IsCtrlRamReplaceModeSelected &&
+            CanRunReplace() &&
+            _ctrlRamFirmwareVersionModalLease is { } lease &&
+            lease.ContextGeneration == Volatile.Read(ref _ctrlRamFirmwareVersionContextGeneration);
+    }
+
+    private bool IsCtrlRamFirmwareVersionModalLeaseMatches(CtrlRamFirmwareVersionMetadataRequest request)
+    {
+        return IsCtrlRamFirmwareVersionModalLeaseContextCurrent() &&
+            _ctrlRamFirmwareVersionModalLease is { } lease &&
+            lease.Request.Equals(request);
+    }
+
+    private async Task<bool> ValidateCtrlRamFirmwareVersionModalLeaseAsync(
+        CancellationToken cancellationToken)
+    {
+        if (IsCtrlRamFirmwareVersionMetadataLoading ||
+            !IsCtrlRamFirmwareVersionModalLeaseContextCurrent() ||
+            _ctrlRamFirmwareVersionModalLease is not { } lease)
+        {
+            return false;
+        }
+
+        long generation = Interlocked.Increment(ref _ctrlRamFirmwareVersionMetadataGeneration);
+        SetCtrlRamFirmwareVersionMetadataLoading(true);
+        try
+        {
+            await Task.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
+            FirmwareFileIdentity identity = await Task.Run(
+                () => FirmwareFileIdentity.Capture(lease.Request.BasePath),
+                cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            return generation == Volatile.Read(ref _ctrlRamFirmwareVersionMetadataGeneration) &&
+                IsCtrlRamFirmwareVersionModalLeaseContextCurrent() &&
+                _ctrlRamFirmwareVersionModalLease == lease &&
+                lease.Request.FileIdentity.Equals(identity);
+        }
+        finally
+        {
+            SetCtrlRamFirmwareVersionMetadataLoading(false);
+        }
+    }
+
+    private void SetCtrlRamFirmwareVersionMetadataLoading(bool isLoading)
+    {
+        if (IsCtrlRamFirmwareVersionMetadataLoading == isLoading)
+        {
+            return;
+        }
+
+        IsCtrlRamFirmwareVersionMetadataLoading = isLoading;
+        OnPropertyChanged(nameof(IsCtrlRamFirmwareVersionMetadataLoading));
+        OnPropertyChanged(nameof(CanBuildReplace));
+        OnPropertyChanged(nameof(CanConfirmCtrlRamFirmwareVersion));
+        BuildReplaceCommand.NotifyCanExecuteChanged();
     }
 
     private static bool TryParseHexByte(string? text, out byte value)
@@ -210,4 +389,31 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsCtrlRamFirmwareVersionPreserveSelected));
         OnPropertyChanged(nameof(CanConfirmCtrlRamFirmwareVersion));
     }
+
+    private readonly record struct CtrlRamFirmwareVersionMetadataReadResult(
+        bool IsCurrent,
+        WorkbenchFirmwareConfigMetadata? Metadata,
+        CtrlRamFirmwareVersionMetadataRequest Request);
+
+    private readonly record struct CtrlRamFirmwareVersionMetadataWorkerResult(
+        bool IsFileIdentityStable,
+        WorkbenchFirmwareConfigMetadata? Metadata,
+        CtrlRamFirmwareVersionMetadataRequest Request);
+
+    private readonly record struct CtrlRamFirmwareVersionModalLease(
+        long ContextGeneration,
+        CtrlRamFirmwareVersionMetadataRequest Request);
+
+    private readonly record struct CtrlRamFirmwareVersionMetadataRequest(
+        string IcId,
+        string BasePath,
+        FirmwareFileIdentity FileIdentity)
+    {
+        internal bool MatchesContext(string icId, string? basePath)
+        {
+            return string.Equals(IcId, icId, StringComparison.Ordinal) &&
+                string.Equals(BasePath, basePath, StringComparison.Ordinal);
+        }
+    }
+
 }

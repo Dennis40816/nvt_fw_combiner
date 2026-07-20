@@ -7,14 +7,20 @@ public sealed partial class MainWindowViewModel
     private string CreateFlashCodeOutputFileName(IEnumerable<FirmwareSlotViewModel> candidateSlots)
     {
         ArgumentNullException.ThrowIfNull(candidateSlots);
-        return WorkbenchCompositionService.CreateFlashCodeOutputFileName(
+        return WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(
             SelectedIc,
-            [.. candidateSlots.Select(ToOutputNameCandidate)]).FileName;
+            [.. candidateSlots.Select(ToOutputNameInspectionCandidate)]).FileName;
     }
 
-    private static WorkbenchOutputNameCandidate ToOutputNameCandidate(FirmwareSlotViewModel slot)
+    private WorkbenchOutputNameInspectionCandidate ToOutputNameInspectionCandidate(FirmwareSlotViewModel slot)
     {
-        return new WorkbenchOutputNameCandidate(
+        WorkbenchFirmwareInspection? inspection =
+            slot.FilePath is { } path &&
+            _firmwareFileProjections.TryGetValue(slot.SlotId, out FirmwareFileProjection projection) &&
+            projection.Matches(path)
+                ? projection.Inspection
+                : null;
+        return new WorkbenchOutputNameInspectionCandidate(
             slot.SlotKind switch
             {
                 FirmwareSlotKind.Dp => WorkbenchOutputNameCandidateKind.Dp,
@@ -24,6 +30,6 @@ public sealed partial class MainWindowViewModel
                 FirmwareSlotKind.Unknown => WorkbenchOutputNameCandidateKind.Unknown,
                 _ => WorkbenchOutputNameCandidateKind.Unknown,
             },
-            slot.FilePath);
+            inspection);
     }
 }

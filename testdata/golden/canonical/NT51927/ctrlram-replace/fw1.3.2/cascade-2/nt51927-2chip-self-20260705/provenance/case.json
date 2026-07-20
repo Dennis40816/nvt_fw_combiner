@@ -1,0 +1,183 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51927-2chip-self-20260705",
+  "ic": "NT51927",
+  "workflow": "ctrlram-replace",
+  "variantOrVersion": "fw1.3.2",
+  "topology": "cascade-2",
+  "directGolden": false,
+  "directEvidence": true,
+  "sourceClassification": "owner-approved-golden-firmware",
+  "ownerApproval": "Repository owner explicitly approved committing this golden firmware fixture to Git on 2026-07-05.",
+  "project": "JIRA-0251",
+  "pid": "0x1615",
+  "icCount": 2,
+  "baseKind": "owner-approved-base-with-repository-derived-self-replacement-inputs",
+  "profileId": "nt51927-ctrlram-replace-fw132-twochip",
+  "artifacts": [
+    {
+      "artifactId": "reference-base",
+      "role": "input",
+      "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/nt51927-2ic-csot1560-d09t0d-jira0251-20260617.bin",
+      "size": 262144,
+      "sha256": "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260705/base/nt51927-2ic-csot1560-d09t0d-jira0251-20260617.bin"
+      ],
+      "originalFileName": "nt51927-2ic-csot1560-d09t0d-jira0251-20260617.bin",
+      "sourceRole": "reference-base",
+      "slotId": "replace-base"
+    },
+    {
+      "artifactId": "replace-ctrlram-nf",
+      "role": "input",
+      "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nf.bin",
+      "size": 8080,
+      "sha256": "d9893ca964aeb0a92e3d9b1513a554cc01e0c2fb9698a774429f78837d5a3e1e",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260705/inputs/nt51927-2chip-self-20260705/nf.bin"
+      ],
+      "originalFileName": "nf.bin",
+      "sourceRole": "ctrlram-replacement-input",
+      "slotId": "replace-ctrlram-nf",
+      "regionName": "NF CtrlRAM (Shared)",
+      "derivation": "Repository-derived Postbuild source: former nf-master.bin[0x0000:0x0FD0] followed by nf-slave-r.bin[0x0010:0x0FD0]."
+    },
+    {
+      "artifactId": "replace-ctrlram-normal-master",
+      "role": "input",
+      "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/normal-master.bin",
+      "size": 12288,
+      "sha256": "793cc0ccef57c9bc3060e002d6a48ea96c642b16f24359d4594ff97cabc660b0",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260705/inputs/nt51927-2chip-self-20260705/normal-master.bin"
+      ],
+      "originalFileName": "normal-master.bin",
+      "sourceRole": "ctrlram-replacement-input",
+      "slotId": "replace-ctrlram-normal-master",
+      "regionName": "Normal CtrlRAM (Master)"
+    },
+    {
+      "artifactId": "replace-ctrlram-mp-master",
+      "role": "input",
+      "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/mp-master.bin",
+      "size": 9216,
+      "sha256": "e8b064e64a86b6d868ab677e0cec90ab2be66093a125962344597145cdaeec5b",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260705/inputs/nt51927-2chip-self-20260705/mp-master.bin"
+      ],
+      "originalFileName": "mp-master.bin",
+      "sourceRole": "ctrlram-replacement-input",
+      "slotId": "replace-ctrlram-mp-master",
+      "regionName": "MP CtrlRAM (Master)"
+    },
+    {
+      "artifactId": "replace-ctrlram-vn",
+      "role": "input",
+      "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/vn.bin",
+      "size": 5728,
+      "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260705/inputs/nt51927-2chip-self-20260705/vn.bin"
+      ],
+      "originalFileName": "vn.bin",
+      "sourceRole": "ctrlram-replacement-input",
+      "slotId": "replace-ctrlram-vn",
+      "regionName": "VN CtrlRAM (Shared)",
+      "derivation": "Repository-derived Postbuild source: former VN master and slave-R slices were byte-identical."
+    },
+    {
+      "artifactId": "replace-ctrlram-normal-slave-r",
+      "role": "input",
+      "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/normal-slave-r.bin",
+      "size": 12288,
+      "sha256": "b597781d0577a3a230f94c60cfcf983b9142586f76096cc794b30ac8371753bb",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260705/inputs/nt51927-2chip-self-20260705/normal-slave-r.bin"
+      ],
+      "originalFileName": "normal-slave-r.bin",
+      "sourceRole": "ctrlram-replacement-input",
+      "slotId": "replace-ctrlram-normal-slave-r",
+      "regionName": "Normal CtrlRAM (Slave R)"
+    },
+    {
+      "artifactId": "replace-ctrlram-mp-slave-r",
+      "role": "input",
+      "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/mp-slave-r.bin",
+      "size": 9216,
+      "sha256": "d0bebf670c491e8d01cacc29bf5c7e77141c6bee873218a514b2bee2687a719c",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260705/inputs/nt51927-2chip-self-20260705/mp-slave-r.bin"
+      ],
+      "originalFileName": "mp-slave-r.bin",
+      "sourceRole": "ctrlram-replacement-input",
+      "slotId": "replace-ctrlram-mp-slave-r",
+      "regionName": "MP CtrlRAM (Slave R)"
+    }
+  ],
+  "sourceIntake": {
+    "legacyManifest": "testdata/golden/ctrlram-replace/manifest.json",
+    "archive": {
+      "id": "owner-update-20260705",
+      "sha256": "f4b9a72374e66fd09a03fd874f8c7e9e8bf9fa3710f67b9e0211c23b939f021e",
+      "lastWriteTimeTaipei": "2026-07-05T00:08:41+08:00"
+    }
+  },
+  "promotion": {
+    "runtimeSupportPromotion": false,
+    "releaseRedistributionApproved": false
+  },
+  "phaseBResult": {
+    "status": "v1-v2-full-byte-parity-routed-expected-derived-crc-classified",
+    "project": "JIRA-0251",
+    "pid": "0x1615",
+    "routeProfileId": "nt51927-ctrlram-replace-fw132-twochip",
+    "baseKind": "owner-approved-base-with-repository-derived-self-replacement-inputs",
+    "baseSha256": "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae",
+    "legacyOutputSha256": "6f0bbde7662dc6701cfe0a242d4cc363cd24c7056a52611fbba965c7d7fb5f58",
+    "v2OutputSha256": "6f0bbde7662dc6701cfe0a242d4cc363cd24c7056a52611fbba965c7d7fb5f58",
+    "differenceCounts": {
+      "legacyToV2": 0,
+      "baseToLegacy": 100,
+      "baseToV2": 100,
+      "headerAndCrc": 100,
+      "replacementPayload": 0,
+      "ranges": 25
+    },
+    "expectedDerivedDifferenceRanges": [
+      "[0x23C,0x240)",
+      "[0x24C,0x250)",
+      "[0x26C,0x270)",
+      "[0x27C,0x280)",
+      "[0x1E24C,0x1E250)",
+      "[0x1E25C,0x1E260)",
+      "[0x1E26C,0x1E270)",
+      "[0x1E27C,0x1E280)",
+      "[0x1E28C,0x1E290)",
+      "[0x1E29C,0x1E2A0)",
+      "[0x1E2AC,0x1E2B0)",
+      "[0x2724C,0x27250)",
+      "[0x2725C,0x27260)",
+      "[0x2726C,0x27270)",
+      "[0x2727C,0x27280)",
+      "[0x2728C,0x27290)",
+      "[0x2729C,0x272A0)",
+      "[0x272AC,0x272B0)",
+      "[0x32FDC,0x32FE0)",
+      "[0x32FEC,0x32FF0)",
+      "[0x32FFC,0x33000)",
+      "[0x3300C,0x33010)",
+      "[0x3301C,0x33020)",
+      "[0x3302C,0x33030)",
+      "[0x3303C,0x33040)"
+    ],
+    "toolBindingId": "legacy-combiner-1.13.0",
+    "sessionCount": 1,
+    "commandCount": 10,
+    "inputArtifactsUnchanged": true,
+    "reportIdentityParity": true,
+    "runtimeSupportPromotion": false,
+    "parityTest": "Nt51927CtrlRamFw132TwoChipEvidenceTests.ExactExpectedDerivedCaseRunsThroughV2WithLegacyProcessParityAsync"
+  },
+  "notes": "Committed owner-approved base with repository-derived replay inputs. The six inputs match the six physical BIN filenames consumed by the pinned Postbuild; NF and VN each feed multiple logical destinations. Exact V1/V2 full-byte and process parity is now closed for this full-reference-SHA route. Because no independent owner expected output exists, the 100-byte self-replacement delta is classified only as expected-derived header/CRC evidence and does not promote public support."
+}

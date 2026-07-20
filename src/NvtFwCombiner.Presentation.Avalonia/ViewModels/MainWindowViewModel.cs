@@ -5,8 +5,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// <summary>View model for the production-backed firmware workbench.</summary>
 public sealed partial class MainWindowViewModel : ObservableObject
 {
-    /// <summary>Sets a local file path for a UI input slot.</summary>
-    public void SetSlotFile(string slotId, string path)
+    private FirmwareSlotViewModel? SelectSlotFile(string slotId, string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -14,43 +13,41 @@ public sealed partial class MainWindowViewModel : ObservableObject
         FirmwareSlotViewModel? slot = FindSlot(slotId);
         if (slot is null)
         {
-            if (SetGeneralMergeMappingFile(slotId, path))
-            {
-                return;
-            }
-
-            SetGeneralReplaceMappingFile(slotId, path);
-            return;
+            _ = TrySetGeneralMappingFile(slotId, path);
+            return null;
         }
 
+        InvalidateCtrlRamFirmwareVersionContext();
+        InvalidateFirmwareInspection(clearBaseCache: slot.SlotId == ReplaceBaseSlotId);
+        _ = _firmwareFileProjections.Remove(slot.SlotId);
+        InvalidateFirmwareIcMismatch();
         slot.FilePath = path;
-        RefreshFirmwareFacts(slot);
-        PromptForFirmwareIcMismatch(slot);
-        if (!IsFirmwareIcMismatchModalOpen)
+        slot.SetFirmwareFacts([]);
+        NotifySlotFileOutputNames();
+
+        if (slot.SlotId == ReplaceBaseSlotId && IsCtrlRamReplaceModeSelected)
         {
-            TryApplyVerifiedFirmwareContext(slot);
+            ClearCtrlRamInspectionDisplay();
         }
-        if (slot.SlotId == MergeTpSlotId && _mergeDpSlot.HasFile)
+        else if (slot.SlotId == MergeDpSlotId)
         {
-            RefreshFirmwareFacts(_mergeDpSlot);
+            RefreshMergeMemoryMapState();
+        }
+        else if (slot.SlotId == ReplaceBaseSlotId)
+        {
+            RefreshReplaceMemoryMapState();
         }
 
+        RefreshCommandState();
+        return slot;
+    }
+
+    private void NotifySlotFileOutputNames()
+    {
         OnPropertyChanged(nameof(StandardMergeOutputFileName));
         OnPropertyChanged(nameof(GeneralMergeOutputFileName));
         OnPropertyChanged(nameof(MergeOutputFileName));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
-        if (slot.SlotId == ReplaceBaseSlotId && IsCtrlRamReplaceModeSelected)
-        {
-            RefreshCtrlRamRegions();
-            RefreshReplaceModeState(preserveSlotFiles: true);
-            RefreshMemoryMapState();
-        }
-        else if (slot.SlotId is MergeDpSlotId or ReplaceBaseSlotId)
-        {
-            RefreshMemoryMapState();
-        }
-
-        RefreshCommandState();
     }
 
     private FirmwareSlotViewModel? FindSlot(string slotId)

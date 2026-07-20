@@ -1,5 +1,6 @@
 using Avalonia.Interactivity;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
@@ -30,8 +31,9 @@ public sealed partial class MainWindow
             return;
         }
 
-        if (viewModel.TryOpenCtrlRamFirmwareVersionModal())
+        if (viewModel.IsCtrlRamReplaceModeSelected)
         {
+            _ = await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync();
             return;
         }
 
@@ -44,5 +46,20 @@ public sealed partial class MainWindow
         }
 
         await viewModel.BuildReplaceAsync(outputPath);
+    }
+
+    private async void OpenLatestOutputFolderButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel || !viewModel.HasLatestCommittedOutput)
+        {
+            return;
+        }
+
+        if (await OutputFolderLauncher.TryOpenAsync(Launcher, viewModel.LatestCommittedOutputPath))
+        {
+            return;
+        }
+
+        viewModel.ShowLatestOutputFolderOpenFailed();
     }
 }

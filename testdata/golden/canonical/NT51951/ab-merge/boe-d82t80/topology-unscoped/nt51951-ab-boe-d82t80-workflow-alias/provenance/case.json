@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51951-ab-boe-d82t80-workflow-alias",
+  "ic": "NT51951",
+  "workflow": "ab-merge",
+  "variantOrVersion": "boe-d82t80",
+  "topology": "topology-unscoped",
+  "directGolden": false,
+  "sourceClassification": "owner-approved-fact-scoped-alias",
+  "ownerApproval": "Firmware owner approved NT51950 AB evidence as NT51951 workflow-logic evidence on 2026-07-18.",
+  "alias": {
+    "sourceCaseId": "nt51950-ab-boe-d82t80",
+    "factScope": [
+      "full-DP initializer",
+      "NT51950BASED_MERGE_AB_MODE command family and no map.txt requirement",
+      "Combiner-owned AB header CRC behavior",
+      "referenced NT51950 direct-case bytes only; NT51951 0x80000 placement remains synthetic topology evidence"
+    ],
+    "evidenceRefs": [
+      "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md",
+      "docs/architecture/supported-ic-matrix.md"
+    ]
+  }
+}

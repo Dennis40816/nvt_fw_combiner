@@ -4,7 +4,62 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.9.8` development targets verified legacy convergence, patch closure, firmware-owner evidence, and the UI-driven IC intake toolchain.
+Changes after `0.9.10` will be documented here.
+
+## [0.9.10] - 2026-07-19
+
+### Added
+
+- Application-owned typed composition progress with stable phases, step counts, workflow context, accessible announcements, and a persisted reduced-motion mode that keeps status visible while removing non-essential animation.
+- A typed post-commit delivery boundary that announces a usable atomic Build output before complete Change Report, Hex Diff, and history projection finish in the background; Preview and uncommitted failures expose no artifact.
+- A bounded read-only Hex Diff for complete in-session reports: 16-byte output/ASCII rows, optional original rows, typed reason and expected/review-required verdict, before/after hashes, half-open output ranges, address jump, and a review-first range navigator. Persisted reports without verified before/output bytes degrade explicitly instead of inventing a comparison.
+- Deterministic B/C performance surfaces for Automatic Build, Legacy Combiner sessions/launches/full reads, failed-input zero commit, fragmented reports, report history, startup restoration, immutable firmware inspection, and Raw Hex Editor search reuse.
+
+### Changed
+
+- One Build now performs one authoritative composition and report publication. DP changes from two runs/four artifact reads to one run/two reads; CtrlRAM changes from two processor sessions and `2C` launches to one session and the same exact `C` sequential launches.
+- Legacy Combiner commands remain exact, sequential, hidden-window, hash-pinned, and staging-confined, while complete staged-firmware reads change from `2C+1` to one final read. Final independent diffing still rejects changes outside the union of declared write ranges; only the evidenced `MERGE_MODE` short-output path may read a selective predecessor tail.
+- Report generation, JSON/history sizing, bounded history retention, large-report projection, startup report restoration, preference persistence, firmware inspection, output-name projection, Raw Hex Editor change tracking, and Search/Next reuse avoid repeated full scans/copies or dispatcher I/O while preserving their existing contracts.
+- Successful Build keeps the UI responsive after atomic output commit and retains run ownership until the complete report is ready, preventing overlapping composition and report-history publication.
+- Change review now opens in the focused Hex Diff workspace instead of presenting a long byte-change list as the primary view; JSON export, operation/postbuild/issues/raw evidence, and history reopen behavior remain available.
+
+### Security
+
+- External processor executable identity, command order/argv, per-command failure gates, private staging, immutable source artifacts, final write-range enforcement, atomic output promotion, and report evidence remain fail closed. No arbitrary executable path or script authority was added.
+- The release changes no IC support promise, profile range, CRC/header algorithm, processor command, or product golden. NT51931 Replace remains Not available, and 13-command evidence remains count/order-only rather than an independent full-output golden claim.
+
+### Notes
+
+- Stable Node B is protected-main `v0.9.9` commit `32c37e25`; optimized production Node C is `6f3698dd`. The exact NT51926 two-command output and 10,000-difference report/JSON hashes remain identical across the comparison.
+- The small physical two-command fresh-testhost case was slightly slower on Node C, so v0.9.10 claims deterministic execution/read/allocation reduction, not a Legacy Combiner wall-clock improvement for that case.
+- Production C#/AXAML is 59,429 nonblank lines under the owner-approved hard maximum of 60,000; code size is a maintainability gate, not the release performance KPI.
+
+## [0.9.9] - 2026-07-19
+
+### Added
+
+- Canonical, manifest-pinned direct and fact-scoped golden evidence for the reviewed Standard Merge, DP Replace, and CtrlRAM Replace cases, including the final 2026-07-18 owner intake and exact provenance, size, and SHA-256 identities.
+- Exact V2 CtrlRAM routes for the admitted owner cases, with ordered postbuild commands, declared processor read/write ranges, immutable inputs, output hashes, and replacement-versus-header/CRC difference classification locked by regression tests.
+- Closed canonical golden inventory validation under `IC/workflow/variant-or-version/topology/case/{inputs,expected,provenance}`, with diagnostics separated from expected outputs and link/junction escapes rejected.
+
+### Changed
+
+- Retired the production V1 composition compiler and its remaining runtime authority after exact V2 route and fail-closed coverage; the constrained Legacy Combiner executable and runner remain the deliberate exception.
+- CtrlRAM replacement inputs now follow the physical Postbuild model and copy at most the declared section maximum while accepting shorter immutable sources; oversized sources still fail closed, and section expected/maximum byte facts are projected to the workbench.
+- DP Replace requires the same-IC canonical Standard Merge map and a complete compatible Reference FlashCode. AB FlashCode remains a separate evidence-gated profile concern and is not inferred from Standard Merge offsets.
+- Kept NT51931 Replace unavailable while preserving its reproducible evidence-only Combiner investigation; non-exact or release-excluded shapes remain fail closed rather than being promoted from family similarity.
+- Consolidated the owner-approved canonical golden and external-tool inventories without changing runtime routes, profile facts, firmware bytes, expected outputs, or support status.
+- Moved the generated CRC Worker 0.1.0 payload from the release root to the closed `external-tools/crc-worker/0.1.0/` package path while preserving Protocol 1.0, its manifest hash, and the packaged `123456789` self-test.
+
+### Security
+
+- External processors remain hash-pinned, package-allowlisted, staged, and independently diff-constrained. DiffNFMerge is repository evidence only: it is not runtime-registered, executed, or included in the release ZIP.
+- Production C#/AXAML remains below the owner-approved 54,000-nonblank-line ceiling without removing required safety, evidence, range, CRC/header, or fail-closed checks.
+
+### Notes
+
+- Exact golden verification and runtime availability remain distinct from product-support promotion; R3 firmware-owner review continues to gate promotion.
+- The earlier `v0.9.9` tag incorrectly pointed to an internal milestone tree that still reported version `0.9.8`. The owner explicitly approved replacing that tag only after this metadata-aligned tree passes review and required CI and is merged to `main`; `v0.9.9.5` remains an internal predecessor tag and is not stable package authority.
 
 ## [0.9.8] - 2026-07-16
 

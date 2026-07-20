@@ -29,7 +29,7 @@ internal static partial class CompositionProfileValueRules
         return schemaVersion switch
         {
             "2.0" or "2.1" => RequireId(value, parameterName),
-            "2.2" or "2.3" or "2.4" or "2.5" or "2.6" or "2.7" => RequireExternalToolBindingId(value, parameterName),
+            "2.2" or "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" => RequireExternalToolBindingId(value, parameterName),
             _ => throw new ArgumentOutOfRangeException(nameof(schemaVersion), schemaVersion, "Unsupported profile schema version."),
         };
     }
@@ -39,7 +39,7 @@ internal static partial class CompositionProfileValueRules
         string value,
         string parameterName)
     {
-        if (!StringComparer.Ordinal.Equals(schemaVersion, "2.7"))
+        if (schemaVersion is not "2.7" and not "2.8" and not "2.9")
         {
             return RequireId(value, parameterName);
         }
@@ -111,7 +111,7 @@ internal static partial class CompositionProfileValueRules
         return schemaVersion switch
         {
             "2.4" => SnapshotIds(values, parameterName, requireValue: true),
-            "2.5" or "2.6" or "2.7" => SnapshotIds(values, parameterName, requireValue: true, RequireIcId),
+            "2.5" or "2.6" or "2.7" or "2.8" or "2.9" => SnapshotIds(values, parameterName, requireValue: true, RequireIcId),
             _ => throw new ArgumentOutOfRangeException(nameof(schemaVersion), schemaVersion, "Unsupported logical-output schema version."),
         };
     }

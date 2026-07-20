@@ -111,7 +111,7 @@ public sealed partial class XamlControlStyleContractTests
             "Resources/MainWindowSharedTemplates.axaml",
             "Resources/MainWindowShellPanels.axaml",
             "Views/FirmwareSlotCard.axaml",
-            "Views/GeneralReplaceMappingRow.axaml",
+            "Views/GeneralMappingRow.axaml",
             "Views/HexEditorPanel.axaml",
             "Views/ReportCodeBlockView.axaml",
             "Views/ReportModal.axaml",

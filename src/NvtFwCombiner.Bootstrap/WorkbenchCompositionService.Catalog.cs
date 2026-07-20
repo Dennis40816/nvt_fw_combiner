@@ -1,126 +1,106 @@
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
+/// <summary>Typed facade used by the desktop shell to query catalogs and run application services.</summary>
 public static partial class WorkbenchCompositionService
 {
     internal const string StandardMergeFallbackOutputFileName = "nvt-fw-combiner-output.bin";
 
-    private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_standardMergeProfileSummaries = new(
-        CreateStandardMergeProfileSummaries);
+    private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_standardMergeProfileSummaries = new(() =>
+        Array.AsReadOnly(BuiltInV2RegistrationRegistry.StandardMerge
+            .Select(static registration => registration.CreateProfileSummary())
+            .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
+            .ToArray()));
 
-    private static ReadOnlyCollection<WorkbenchProfileSummary> StandardMergeProfileSummaries =>
-        s_standardMergeProfileSummaries.Value;
-
-    private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_replaceProfileSummaries = new(
-        CreateReplaceProfileSummaries);
-
-    private static ReadOnlyCollection<WorkbenchProfileSummary> ReplaceProfileSummaries =>
-        s_replaceProfileSummaries.Value;
+    private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_replaceProfileSummaries = new(() =>
+        Array.AsReadOnly(BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values
+            .Select(static registration => registration.CreateProfileSummary())
+            .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal)
+            .ToArray()));
 
     /// <summary>Gets selectable IC ids from the IC support catalog.</summary>
     public static IReadOnlyList<string> GetSupportedIcIds()
     {
-        return IcMetadataFacade.IcIds;
+        return IcSupportCatalog.IcIds;
     }
 
     /// <summary>Gets the catalog-owned initial IC id for shell/workbench surfaces.</summary>
     public static string GetDefaultIcId()
     {
-        return IcMetadataFacade.DefaultIcId;
-    }
-
-    /// <summary>Gets supported IC-number choices from the TP flash-map/postbuild catalog.</summary>
-    public static IReadOnlyList<string> GetNumberChoices(string icId)
-    {
-        return IcMetadataFacade.GetNumberChoices(icId);
+        return IcSupportCatalog.DefaultIcId;
     }
 
     /// <summary>Gets concise grouped IC-number choices for workbench selection controls.</summary>
     public static IReadOnlyList<WorkbenchIcNumberChoice> GetNumberSelectionChoices(string icId)
     {
-        return Array.AsReadOnly(IcMetadataFacade.GetNumberSelectionChoices(icId)
+        return Array.AsReadOnly(IcNumberChoicePolicy.GetNumberSelectionChoices(GetPostbuildProfiles(icId))
             .Select(static choice => new WorkbenchIcNumberChoice(choice.Token, choice.DisplayLabel))
             .ToArray());
+    }
+
+    private static IReadOnlyList<LegacyCombinerPostbuildProfile> GetPostbuildProfiles(string icId)
+    {
+        return IcSupportCatalog.TryFind(icId, out _)
+            ? BuiltInPostbuildProfileCatalog.GetProfiles(IcSupportCatalog.NormalizeIcId(icId))
+            : [];
+    }
+
+    private static bool TryGetDefaultPostbuildProfile(
+        string icId,
+        out LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
+        postbuildProfile = profiles.Count == 0 ? null : profiles[0];
+        return postbuildProfile is not null;
+    }
+
+    private static bool TrySelectPostbuildProfileByCommonFwVersion(
+        string icId,
+        string? commonFwVersion,
+        out LegacyCombinerPostbuildProfile? postbuildProfile,
+        out string? issue)
+    {
+        return BuiltInPostbuildProfileCatalog.TrySelectProfileForCommonFwVersion(
+            IcSupportCatalog.NormalizeIcId(icId),
+            commonFwVersion,
+            out postbuildProfile,
+            out issue);
     }
 
     /// <summary>Gets compiled Standard Merge profile summaries in stable CLI/display order.</summary>
     public static IReadOnlyList<WorkbenchProfileSummary> GetStandardMergeProfileSummaries()
     {
-        return StandardMergeProfileSummaries;
+        return s_standardMergeProfileSummaries.Value;
     }
 
     /// <summary>Gets compiled Replace profile summaries in stable CLI/display order.</summary>
     public static IReadOnlyList<WorkbenchProfileSummary> GetReplaceProfileSummaries()
     {
-        return ReplaceProfileSummaries;
+        return s_replaceProfileSummaries.Value;
     }
 
     private static WorkbenchProfileSummary? FindStandardMergeProfileSummaryByIc(string icId)
     {
         ArgumentNullException.ThrowIfNull(icId);
-        return StandardMergeProfileSummaries.FirstOrDefault(profile =>
+        return s_standardMergeProfileSummaries.Value.FirstOrDefault(profile =>
             string.Equals(profile.IcId, icId, StringComparison.Ordinal));
-    }
-
-    /// <summary>Returns true when the IC uses the DP Perspective family policy.</summary>
-    public static bool IsDpPerspectiveIc(string icId)
-    {
-        return IsBuiltInV2DpReplaceIc(icId);
-    }
-
-    /// <summary>Gets a compact policy summary for the selected DP Replace IC.</summary>
-    public static string GetDpReplacePolicySummary(string icId)
-    {
-        return TryGetV2DpReplacePolicySummary(icId, out string v2Summary)
-            ? v2Summary
-            : "Build stays gated until this IC has approved DP Replace source mapping evidence.";
     }
 
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>
     public static WorkbenchSettingsSnapshot GetSettingsSnapshot()
     {
-        IReadOnlyList<string> toolBindingIds =
-        [
-            .. IcMetadataFacade.All
-                .SelectMany(metadata => IcMetadataFacade.GetPostbuildProfiles(metadata.IcId))
-                .Select(profile => profile.ToolBindingId)
-                .Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal),
-        ];
-
+        IReadOnlyList<string> icIds = IcSupportCatalog.IcIds;
         return new WorkbenchSettingsSnapshot(
-            StandardMergeProfileSummaries.Count,
-            ReplaceProfileSummaries.Count,
-            IcMetadataFacade.All.Count,
-            IcMetadataFacade.All.Count(metadata => metadata.HasPostbuild),
-            string.Join(", ", toolBindingIds),
-            "external-tools/legacy-combiner/1.13.0/manifest.json");
-    }
-
-    private static ReadOnlyCollection<WorkbenchProfileSummary> CreateStandardMergeProfileSummaries()
-    {
-        WorkbenchProfileSummary[] summaries =
-        [
-            .. BuiltInV2StandardMergeRegistrations.Select(static registration => registration.CreateProfileSummary()),
-        ];
-        return Array.AsReadOnly(
-            summaries
-                .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
-                .ToArray());
-    }
-
-    private static ReadOnlyCollection<WorkbenchProfileSummary> CreateReplaceProfileSummaries()
-    {
-        WorkbenchProfileSummary[] summaries =
-        [
-            .. BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values.Select(static registration => registration.CreateProfileSummary()),
-        ];
-        return Array.AsReadOnly(
-            summaries
-                .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal)
-                .ToArray());
+            icIds.Count,
+            s_standardMergeProfileSummaries.Value.Count,
+            s_replaceProfileSummaries.Value.Count,
+            icIds.Count(icId => IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.CtrlRamReplace)));
     }
 
     internal static WorkbenchProfileSummary CreateProfileSummary(CompiledComposition composition)

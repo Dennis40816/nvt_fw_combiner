@@ -494,7 +494,7 @@ public sealed partial class CompiledCompositionTests
         long capacity = 4,
         string modeId = "standard")
     {
-        var map = FirmwareImageMap.CreateDirect(
+        FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             "map",
             "flash",
             new FirmwareMapApplicability(
@@ -534,7 +534,7 @@ public sealed partial class CompiledCompositionTests
 
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedNestedMap()
     {
-        var map = FirmwareImageMap.CreateDirect(
+        FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             "map",
             "flash",
             new FirmwareMapApplicability(

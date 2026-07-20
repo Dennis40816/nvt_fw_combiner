@@ -470,7 +470,7 @@ public sealed partial class CompositionRunRequestV2Tests
         string modeId = "standard",
         FirmwareWriteConstraint rootWriteConstraint = FirmwareWriteConstraint.Forbidden)
     {
-        var map = FirmwareImageMap.CreateDirect(
+        FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             "map",
             "flash",
             new FirmwareMapApplicability(

@@ -112,10 +112,15 @@ public sealed class ResolvedMapV2CompilationContext : MapBoundV2CompilationConte
 public sealed class RuntimeReferenceReplaceV2CompilationContext : MapBoundV2CompilationContext
 {
     internal RuntimeReferenceReplaceV2CompilationContext(
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        bool allowsConditionalProcessor)
         : base(V2CompilationContextKind.RuntimeReferenceReplace, resolvedMap)
     {
+        AllowsConditionalProcessor = allowsConditionalProcessor;
     }
+
+    /// <summary>Whether the trusted profile contract can append one mapping-triggered processor stage.</summary>
+    public bool AllowsConditionalProcessor { get; }
 }
 
 /// <summary>Context for a General Merge logical output that intentionally makes no physical map claim.</summary>

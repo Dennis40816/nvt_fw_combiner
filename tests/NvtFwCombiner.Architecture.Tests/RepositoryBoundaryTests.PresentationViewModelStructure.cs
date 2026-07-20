@@ -26,13 +26,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetFirmwareSlotFacts", facts, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", facts, StringComparison.Ordinal);
         Assert.Contains("WorkbenchReplaceModes", ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs"), StringComparison.Ordinal);
-        Assert.Contains("GetStandardMergeMemoryMapRows", merge, StringComparison.Ordinal);
+        Assert.Contains("GetStandardMergeMemoryDisplay", merge, StringComparison.Ordinal);
+        Assert.Contains("GetGeneralMergeMemoryDisplay", merge, StringComparison.Ordinal);
         Assert.DoesNotContain("RunGeneralMergeAsync", merge, StringComparison.Ordinal);
-        Assert.Contains("GetReplaceMemoryMapRows", replace, StringComparison.Ordinal);
+        Assert.Contains("GetReplaceMemoryDisplay", replace, StringComparison.Ordinal);
         Assert.DoesNotContain("RunReplaceAsync", replace, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.GetSupportedIcIds", bindings, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunStandardMergeAsync", mergeViewModel, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", replaceViewModel, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunStandardMergeWithProgressAsync", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunReplaceWithProgressAsync", replaceViewModel, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies all composition commands share one UI-owned run lifecycle.</summary>
@@ -48,10 +49,46 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Equal(2, CountOccurrences(merge, "return RunCompositionAsync("));
         Assert.Equal(1, CountOccurrences(replace, "return RunCompositionAsync("));
-        Assert.Contains("WorkbenchCompositionService.RunStandardMergeAsync", merge, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunGeneralMergeAsync", merge, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", replace, StringComparison.Ordinal);
-        Assert.Contains("ApplyRunResult(result, build);", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunStandardMergeWithProgressAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunGeneralMergeWithProgressAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunReplaceWithProgressAsync", replace, StringComparison.Ordinal);
+        Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("await Task.Run(", lifecycle, StringComparison.Ordinal);
+        Assert.Contains(
+            "await ProjectAndApplyRunResultAsync(result, build, cancellationSource.Token);",
+            lifecycle,
+            StringComparison.Ordinal);
+        int projectionMethodIndex = lifecycle.IndexOf(
+            "internal async Task ProjectAndApplyRunResultAsync(",
+            StringComparison.Ordinal);
+        int generationIndex = lifecycle.IndexOf(
+            "long reportProjectionGeneration = BeginReportProjection();",
+            projectionMethodIndex,
+            StringComparison.Ordinal);
+        int reportProjectionIndex = lifecycle.IndexOf(
+            "ReportReviewViewModel report = await ProjectReportAsync(",
+            generationIndex,
+            StringComparison.Ordinal);
+        int cancellationIndex = lifecycle.IndexOf(
+            "cancellationToken.ThrowIfCancellationRequested();",
+            reportProjectionIndex,
+            StringComparison.Ordinal);
+        int publishIndex = lifecycle.IndexOf("publishReport: IsCurrentReportProjection(", StringComparison.Ordinal);
+        Assert.True(
+            projectionMethodIndex >= 0 &&
+            generationIndex > projectionMethodIndex &&
+            reportProjectionIndex > generationIndex &&
+            cancellationIndex > reportProjectionIndex &&
+            publishIndex > cancellationIndex,
+            "Run cancellation must be rechecked after report projection and before publishing UI/history state.");
+        Assert.Contains("long reportProjectionGeneration = BeginReportProjection();", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("result.CommittedOutputId", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("materializationErrorsAsReport: false", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("inspectionSnapshot: result.InspectionSnapshot", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("publishReport: IsCurrentReportProjection(reportProjectionGeneration)", lifecycle, StringComparison.Ordinal);
+        Assert.DoesNotContain("ProjectRunReport(", ReadViewModelPartials(), StringComparison.Ordinal);
+        Assert.Contains("ReportReviewViewModel.FromJsonCancellable(", ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs"), StringComparison.Ordinal);
         Assert.Contains("loadErrorReport(action, exception.Message);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("CompleteRun(cancellationSource);", lifecycle, StringComparison.Ordinal);
         Assert.Equal(
@@ -64,6 +101,91 @@ public sealed partial class RepositoryBoundaryTests
             CountOccurrences(
                 ReadViewModelPartials(),
                 "catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)"));
+    }
+
+    /// <summary>Large report projection stays cancellable and UI bindings expose bounded pages.</summary>
+    [Fact]
+    public void ReportReviewProjectsOffDispatcherAndPagesLargeEvidence()
+    {
+        string report = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs");
+        string reportHistory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReportHistory.cs");
+        string localization = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Localization.cs");
+        string reportHistoryTemplate = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml");
+        string factory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Factory.cs");
+        string pager = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPagedListViewModel.cs");
+        string bindings = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Bindings.cs");
+        string parser = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferences.cs");
+        string indexedRows = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportIndexedReadOnlyLists.cs");
+        string differenceJson = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferenceJson.cs");
+        string differenceGroups = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportDifferenceGroupViewModel.cs");
+        string changes = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml");
+
+        Assert.Contains("await Task.Run(", report, StringComparison.Ordinal);
+        Assert.Contains("FromJsonCancellable(", report, StringComparison.Ordinal);
+        Assert.Contains("cancellationToken.ThrowIfCancellationRequested();", factory, StringComparison.Ordinal);
+        Assert.Contains("new UTF8Encoding(", factory, StringComparison.Ordinal);
+        Assert.Contains("throwOnInvalidBytes: true", factory, StringComparison.Ordinal);
+        Assert.Contains("private readonly ObservableCollection<object> _items", pager, StringComparison.Ordinal);
+        Assert.Contains("ReadOnlyObservableCollection<object> Items", pager, StringComparison.Ordinal);
+        Assert.Contains("LoadMoreCommand", pager, StringComparison.Ordinal);
+        Assert.Contains("OutputDifferenceGroupPage", bindings, StringComparison.Ordinal);
+        Assert.Contains("MutationPage", bindings, StringComparison.Ordinal);
+        Assert.Contains("IssuePage", bindings, StringComparison.Ordinal);
+        Assert.Contains("MemoizedIndexedReadOnlyList<ReportLineViewModel>", parser, StringComparison.Ordinal);
+        Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", indexedRows, StringComparison.Ordinal);
+        Assert.Contains("Utf8JsonReader", differenceJson, StringComparison.Ordinal);
+        Assert.Contains("JsonValueSlice", differenceJson, StringComparison.Ordinal);
+        Assert.Contains("Encoding.UTF8.GetCharCount", differenceJson, StringComparison.Ordinal);
+        Assert.Contains("return AddCharBounds(reportUtf8, slices, cancellationToken);", differenceJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("? AddCharBounds(", differenceJson, StringComparison.Ordinal);
+        Assert.Contains("SkipJsonValue", differenceJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("reader.Skip()", differenceJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("differences.Clone()", parser, StringComparison.Ordinal);
+        Assert.Contains("reportJson.AsMemory(slice.CharStart, slice.CharLength)", parser, StringComparison.Ordinal);
+        Assert.DoesNotContain("JsonDocument.Parse(reportUtf8.Slice", parser, StringComparison.Ordinal);
+        Assert.Contains("loadInitialPage: false", differenceGroups, StringComparison.Ordinal);
+        Assert.Contains("ReportHexDiffRangeRowTemplate", changes, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportOutputDifferenceGroupTemplate", changes, StringComparison.Ordinal);
+        Assert.DoesNotContain("OrderBy", parser, StringComparison.Ordinal);
+        Assert.Contains("while (language != Text.Language);", report, StringComparison.Ordinal);
+        Assert.Contains("long generation = BeginReportProjection();", report, StringComparison.Ordinal);
+        Assert.Contains("if (IsCurrentReportProjection(generation))", report, StringComparison.Ordinal);
+        Assert.Contains("Interlocked.Increment(ref _reportProjectionGeneration)", report, StringComparison.Ordinal);
+        Assert.Contains("private async Task OpenReportHistoryEntryAsync(", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("PreparedReportHistory prepared = await Task.Run(", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("if (!IsCurrentReportProjection(generation))", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("await ProjectReportAsync(", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("if (!IsCurrentReportProjection(generation))", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("BeginReportProjection(preserveHistoryReopen: true)", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("public IRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryCommand", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("public IAsyncRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryAsyncCommand", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("CancelReportHistoryReopen();", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("OpenReportHistoryEntryCommand.NotifyCanExecuteChanged();", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("OpenReportHistoryEntryAsyncCommand", reportHistoryTemplate, StringComparison.Ordinal);
+        Assert.Contains("RequestReportRelocalization();", localization, StringComparison.Ordinal);
+        Assert.Contains("if (!_relocalizeLoadedReportCommand.IsRunning)", localization, StringComparison.Ordinal);
+        Assert.Contains("_reportRelocalizationIterationCancellation)?.Cancel();", localization, StringComparison.Ordinal);
+        Assert.Contains("private async Task RelocalizeLoadedReportAsync(", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("await ProjectReportAsync(", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("while (true)", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("CreateLinkedTokenSource(cancellationToken)", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion)", reportHistory, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportReviewViewModel.FromJson(\n                LoadedReportJson", reportHistory, StringComparison.Ordinal);
+        Assert.Contains("await ProjectReportAsync(", ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs"), StringComparison.Ordinal);
     }
 
     /// <summary>Prevents retired, unbound shell inspector projections from returning.</summary>
@@ -84,6 +206,7 @@ public sealed partial class RepositoryBoundaryTests
                      "FirmwareIcMismatchSlotTitle",
                      "FooterStatus",
                      "SettingsPreferenceRows",
+                     "SelectedStrictness",
                      "CanPreviewStandardMerge",
                      "CanBuildStandardMerge",
                      "CanPreviewMerge",
@@ -110,8 +233,10 @@ public sealed partial class RepositoryBoundaryTests
                  {
                      "HasOutputFileName",
                      "public bool? OutputCommitted",
-                     "CommandOperationCount",
-                     "HasNoCommandOperations",
+                      "CommandOperationCount",
+                      "CommandOperations",
+                      "HasCommandOperations",
+                      "HasNoCommandOperations",
                      "HasNoStepOperations",
                      "HasNoMutations",
                      "HasOutputDifferenceGroups",
@@ -136,6 +261,20 @@ public sealed partial class RepositoryBoundaryTests
         string templates = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
         Assert.DoesNotContain("ReportEvidenceChipTemplate", templates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportTriageRowTemplate", templates, StringComparison.Ordinal);
+    }
+
+    /// <summary>Prevents unbound memory-coverage and hex-cell projections from returning.</summary>
+    [Fact]
+    public void PresentationOmitsUnboundCoverageAndHexCellState()
+    {
+        string coverage = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs");
+        string hexCell = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorViewportViewModels.cs");
+
+        Assert.DoesNotContain("TooltipText", coverage, StringComparison.Ordinal);
+        Assert.DoesNotContain("InlineValidationMessage", hexCell, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies non-critical local UI stores share one JSON and atomic-promotion mechanism.</summary>
@@ -144,15 +283,69 @@ public sealed partial class RepositoryBoundaryTests
     {
         string helper = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/BestEffortLocalJsonFileStore.cs");
+        string mainWindow = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string settings = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Settings.cs");
+        string persistenceCoordinator = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/LatestSnapshotPersistenceCoordinator.cs");
         string stores = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs") +
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ShellPreferenceFileStore.cs");
 
-        Assert.Equal(6, CountOccurrences(stores, "BestEffortLocalJsonFileStore."));
+        Assert.Equal(8, CountOccurrences(stores, "BestEffortLocalJsonFileStore."));
         Assert.DoesNotContain("JsonSerializerOptions", stores, StringComparison.Ordinal);
         Assert.DoesNotContain("File.Replace", stores, StringComparison.Ordinal);
         Assert.Contains("JsonSerializerOptions", helper, StringComparison.Ordinal);
+        Assert.Contains("JsonSerializer.SerializeAsync", helper, StringComparison.Ordinal);
+        Assert.Contains("FileShare.Read | FileShare.Delete", helper, StringComparison.Ordinal);
+        Assert.DoesNotContain("FileShare.Write", helper, StringComparison.Ordinal);
         Assert.Contains("File.Replace", helper, StringComparison.Ordinal);
         Assert.Contains("UnauthorizedAccessException", helper, StringComparison.Ordinal);
+        Assert.Contains("internal const long MaximumPreferencesFileBytes = 64L * 1024;", stores, StringComparison.Ordinal);
+        Assert.Contains("MaximumPreferencesFileBytes);", stores, StringComparison.Ordinal);
+        Assert.Contains("_reportHistoryPersistence.Queue", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("_shellPreferencePersistence.Queue", mainWindow, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShellPreferenceFileStore.LoadInto(viewModel)", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("ShellTextResources.LanguageFromPreference(preferences.Language)", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("private readonly bool _isInitializing = true;", construction, StringComparison.Ordinal);
+        Assert.Contains("_isInitializing = false;", construction, StringComparison.Ordinal);
+        Assert.Contains("if (!_isInitializing)", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportHistoryFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShellPreferenceFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("e.Cancel = true", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled = false", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("viewModel.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("finalViewModel.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("Task.WhenAll(", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("completion.WaitAsync(LocalStateCloseFlushTimeout)", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("_reportHistoryPersistence.CompleteAsync()", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("_shellPreferencePersistence.CompleteAsync()", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("Task.Run", persistenceCoordinator, StringComparison.Ordinal);
+        Assert.Contains("_latestCancellation?.Cancel()", persistenceCoordinator, StringComparison.Ordinal);
+        Assert.Contains("RecordFailure(exception)", persistenceCoordinator, StringComparison.Ordinal);
+    }
+
+    /// <summary>Report history retains compact immutable snapshots instead of every fully parsed review graph.</summary>
+    [Fact]
+    public void ReportHistoryMaterializesOnlyTheOpenedReview()
+    {
+        string entry = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHistoryEntryViewModel.cs");
+        string history = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReportHistory.cs");
+
+        Assert.Contains("private readonly ReportHistorySnapshot snapshot;", entry, StringComparison.Ordinal);
+        Assert.Contains("public long StoredByteCount", entry, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportReviewViewModel", entry, StringComparison.Ordinal);
+        Assert.Contains("bool materializeAsCurrent = entries.Count == 0;", history, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport = prepared.LoadedReport;", history, StringComparison.Ordinal);
+        Assert.DoesNotContain("LoadReportHistoryEntry(", history, StringComparison.Ordinal);
+        Assert.Contains("private async Task OpenReportHistoryEntryAsync(", history, StringComparison.Ordinal);
+        Assert.Contains("report = await ProjectReportAsync(", history, StringComparison.Ordinal);
+        Assert.DoesNotContain("LoadReportHistoryEntry(entry);", history, StringComparison.Ordinal);
+        Assert.Contains("entry.StoredByteCount", history, StringComparison.Ordinal);
+        Assert.DoesNotContain("Encoding.UTF8.GetByteCount(entry.ReportJson)", history, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies firmware slot model, icons, and fact badges stay split by UI responsibility.</summary>
@@ -161,7 +354,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string root = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.cs");
         string icons = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.Icons.cs");
-        string resolver = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotKindResolver.cs");
+        string replaceRunner = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
         string facts = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotFactViewModel.cs");
         string kind = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotKind.cs");
 
@@ -169,7 +362,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public partial string? FilePath", root, StringComparison.Ordinal);
         Assert.Contains("public void ApplyDisplayText", root, StringComparison.Ordinal);
         Assert.Contains("public void SetFirmwareFacts", root, StringComparison.Ordinal);
-        Assert.Contains("FirmwareSlotKindResolver.Resolve", root, StringComparison.Ordinal);
+        Assert.Contains("FirmwareSlotKind kind", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareSlotKindResolver", root, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotIconPathData", root, StringComparison.Ordinal);
         Assert.DoesNotContain("public IBrush SlotBackgroundBrush", root, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotBorderBrush", root, StringComparison.Ordinal);
@@ -184,12 +378,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("SlotIconForegroundBrush", icons, StringComparison.Ordinal);
         Assert.DoesNotContain("InferSlotKind", icons, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchSlotIds", icons, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.MergeDp", resolver, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.MergeTp", resolver, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.MergeLd", resolver, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.ReplaceBase", resolver, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.ReplaceDp", resolver, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.ReplaceCtrlRamPrefix", resolver, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchReplaceModes.Dp => FirmwareSlotKind.Dp", replaceRunner, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchReplaceModes.CtrlRam => FirmwareSlotKind.CtrlRam", replaceRunner, StringComparison.Ordinal);
         Assert.Contains("public sealed record FirmwareSlotFactViewModel", facts, StringComparison.Ordinal);
         Assert.Contains("public enum FirmwareSlotKind", kind, StringComparison.Ordinal);
     }

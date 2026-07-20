@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Xml.Linq;
 using NvtFwCombiner.Domain.Composition;
@@ -18,7 +19,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af", "dp-input,ld-input,tp-input", "DpFirmware,Auxiliary,TpFirmware")]
     [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51930", "nt51930-standard-merge-flashmap", "nt51930-standard-merge", "b9ca3d66d8674d080b4e0c8563110dfd305b3df18746f5164e7ed45514e0714e", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51930", "nt51930-standard-merge-flashmap", "nt51930-standard-merge", "50f9b7f84879088c72ba6da8f23860d92d7819eff5dd0a4772e4b3bc28f0921a", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51931", "nt51931-standard-merge-gen-flash", "nt51931-standard-merge", "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     public void RegisteredStandardMergeUsesDeployedTrustedV2Artifact(
@@ -96,6 +97,16 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     {
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string builtInRoot = Path.Combine(repositoryRoot, "profiles", "built-in");
+        var testOutput = new DirectoryInfo(AppContext.BaseDirectory);
+        string materializedBuiltInRoot = Path.Combine(
+            repositoryRoot,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "obj",
+            testOutput.Parent!.Name,
+            testOutput.Name,
+            "materialized-profiles",
+            "built-in");
         string deployedBuiltInRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in");
         string projectFile = RepositoryPaths.FromRepositoryRoot(
             "src",
@@ -116,9 +127,12 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         {
             string sourceBundleRoot = Path.Combine(builtInRoot, bundleDirectory);
             Assert.True(Directory.Exists(sourceBundleRoot), $"Production bundle has no repository source: {bundleDirectory}");
+            string materializedRoot = Path.Combine(materializedBuiltInRoot, bundleDirectory);
             string deployedRoot = Path.Combine(deployedBuiltInRoot, bundleDirectory);
             string sourceManifestPath = Path.Combine(sourceBundleRoot, "profile-bundle.json");
+            string materializedManifestPath = Path.Combine(materializedRoot, "profile-bundle.json");
             string deployedManifestPath = Path.Combine(deployedRoot, "profile-bundle.json");
+            Assert.Equal(File.ReadAllBytes(sourceManifestPath), File.ReadAllBytes(materializedManifestPath));
             Assert.Equal(File.ReadAllBytes(sourceManifestPath), File.ReadAllBytes(deployedManifestPath));
 
             using var manifest = JsonDocument.Parse(File.ReadAllText(sourceManifestPath));
@@ -134,15 +148,24 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             {
                 string relativePath = entry.GetProperty("path").GetString()!;
                 string contentHash = entry.GetProperty("contentHash").GetString()!;
-                string sourcePath = StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema")
-                    ? V2StandardMergeGoldenTestSupport.ResolveContractSchemaPath(relativePath, contentHash)
-                    : Path.Combine(sourceBundleRoot, relativePath);
+                string sourcePath = BuiltInProfileMaterializationTestSupport.ResolveManifestEntrySource(
+                    bundleDirectory,
+                    entry);
+                string materializedPath = Path.Combine(materializedRoot, relativePath);
                 string deployedPath = Path.Combine(deployedRoot, relativePath);
 
                 Assert.True(File.Exists(sourcePath), $"Materialization source is missing: {sourcePath}");
+                Assert.True(File.Exists(materializedPath), $"Materialized bundle entry is missing: {materializedPath}");
                 Assert.True(File.Exists(deployedPath), $"Deployed bundle entry is missing: {deployedPath}");
-                Assert.Equal(File.ReadAllBytes(sourcePath), File.ReadAllBytes(deployedPath));
+                byte[] sourceBytes = File.ReadAllBytes(sourcePath);
+                Assert.Equal(contentHash, Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant());
+                Assert.Equal(sourceBytes, File.ReadAllBytes(materializedPath));
+                Assert.Equal(sourceBytes, File.ReadAllBytes(deployedPath));
             }
+
+            _ = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+                bundleDirectory,
+                manifest.RootElement.GetProperty("contentHash").GetString()!);
 
             V2StandardMergeGoldenTestSupport.AssertSourceCatalogIsRejected(
                 bundleDirectory,
@@ -162,7 +185,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         string dpPath = workspace.Write("nt51929-dp.bin", dp);
         string tpPath = workspace.Write("nt51929-tp.bin", tp);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+        var progress = new Application.Composition.CompositionRunProgressFeed();
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeWithProgressAsync(
             "NT51929",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -170,9 +194,26 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 ["tp-input"] = tpPath,
             },
             build: false,
+            progress,
             TestContext.Current.CancellationToken);
+        List<Application.Composition.CompositionRunProgressSnapshot> snapshots = [];
+        await foreach (Application.Composition.CompositionRunProgressSnapshot snapshot in
+            progress.ReadAllAsync(TestContext.Current.CancellationToken))
+        {
+            snapshots.Add(snapshot);
+        }
 
         Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(progress.IsAttached);
+        Assert.Equal(
+            [
+                Application.Composition.CompositionRunPhase.Preparing,
+                Application.Composition.CompositionRunPhase.ReadingInputs,
+                Application.Composition.CompositionRunPhase.ExecutingComposition,
+                Application.Composition.CompositionRunPhase.ValidatingOutput,
+                Application.Composition.CompositionRunPhase.PreparingReport,
+            ],
+            snapshots.Select(static snapshot => snapshot.CurrentPhase));
         Assert.Equal(0x40000, result.OutputSize);
         using var report = JsonDocument.Parse(result.ReportJson);
         Assert.Equal("nt51929-standard-merge-gen-flash", report.RootElement.GetProperty("ProfileId").GetString());

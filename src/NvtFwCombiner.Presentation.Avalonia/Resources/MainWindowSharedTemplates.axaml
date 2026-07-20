@@ -226,12 +226,21 @@
           ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
           ItemTemplate="{StaticResource MemoryCoverageGroupTemplate}"
           ItemsSource="{Binding ReplaceCoverageGroups}"
-          IsVisible="{Binding IsReplaceCoverageGrouped}" />
+          IsVisible="{Binding IsReplaceCoverageGrouped}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="{DynamicResource NfcSpace12}" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
 
       <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
       <ItemsControl ItemTemplate="{StaticResource ReplaceMemoryMapRowTemplate}" ItemsSource="{Binding ReplaceMemoryRows}" />
       <Border Classes="subtleSurface" Padding="10,8">
-        <TextBlock Classes="readinessText" Text="{Binding ReplaceReadinessStatus}" TextWrapping="Wrap" />
+        <TextBlock Classes="readinessText"
+                   AutomationProperties.LiveSetting="Polite"
+                   Text="{Binding ReplaceReadinessStatus}"
+                   TextWrapping="Wrap" />
       </Border>
     </StackPanel>
   </Border>

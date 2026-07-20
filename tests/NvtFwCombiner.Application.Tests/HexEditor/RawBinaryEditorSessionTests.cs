@@ -361,4 +361,216 @@ public sealed class RawBinaryEditorSessionTests
         Assert.True(session.TryCopyWorkingBytes(out byte[]? bytes));
         Assert.Equal([0xA5, 0x5A, 0x01, 0xFF, 0x12, 0x34], bytes);
     }
+
+    /// <summary>Keeps a stable immutable changed-range snapshot while local value edits split and merge runs.</summary>
+    [Fact]
+    public void ValueOnlyChangedRangesSplitMergeAndReuseTheCurrentSnapshot()
+    {
+        var session = new RawBinaryEditorSession();
+        _ = session.Load(new byte[8]);
+
+        Assert.True(session.FillRange("0x2", "0x5", "FF").Succeeded);
+        IReadOnlyList<RawBinaryEditorChangedRange> merged = session.GetChangedRanges();
+        RawBinaryEditorChangedRange initial = Assert.Single(merged);
+        Assert.Equal((2L, 6L), (initial.Start, initial.EndExclusive));
+        IList<RawBinaryEditorChangedRange> immutableRanges =
+            Assert.IsType<System.Collections.ObjectModel.ReadOnlyCollection<RawBinaryEditorChangedRange>>(merged);
+        _ = Assert.Throws<NotSupportedException>(() => immutableRanges[0] = immutableRanges[0]);
+        IList<RawBinaryEditorValueChange> immutableValues =
+            Assert.IsType<System.Collections.ObjectModel.ReadOnlyCollection<RawBinaryEditorValueChange>>(
+                initial.ValueChanges);
+        _ = Assert.Throws<NotSupportedException>(() => immutableValues[0] = immutableValues[0]);
+        Assert.Same(merged, session.GetChangedRanges());
+
+        Assert.True(session.OverwriteRange("0x3", "0x4", "0000").Succeeded);
+        IReadOnlyList<RawBinaryEditorChangedRange> split = session.GetChangedRanges();
+        Assert.Collection(
+            split,
+            first => Assert.Equal((2L, 3L), (first.Start, first.EndExclusive)),
+            second => Assert.Equal((5L, 6L), (second.Start, second.EndExclusive)));
+        Assert.Same(split, session.GetChangedRanges());
+
+        Assert.True(session.FillRange("0x3", "0x4", "FF").Succeeded);
+        RawBinaryEditorChangedRange remerged = Assert.Single(session.GetChangedRanges());
+        Assert.Equal((2L, 6L), (remerged.Start, remerged.EndExclusive));
+
+        Assert.True(session.Undo().Succeeded);
+        Assert.Equal(2, session.GetChangedRanges().Count);
+        Assert.True(session.Redo().Succeeded);
+        _ = Assert.Single(session.GetChangedRanges());
+    }
+
+    /// <summary>Caches structural fallbacks and restores incremental value tracking after an exact undo.</summary>
+    [Fact]
+    public void StructuralChangedRangeFallbackIsCachedAndExactUndoRestoresValueTracking()
+    {
+        var session = new RawBinaryEditorSession();
+        _ = session.Load([0x10, 0x20, 0x30]);
+
+        Assert.True(session.InsertZeroBefore("0x1").Succeeded);
+        IReadOnlyList<RawBinaryEditorChangedRange> structural = session.GetChangedRanges();
+        Assert.Same(structural, session.GetChangedRanges());
+        RawBinaryEditorChangedRange structuralRange = Assert.Single(structural);
+        Assert.NotEmpty(structuralRange.StructuralChanges);
+        IList<RawBinaryEditorStructuralChange> immutableCauses =
+            Assert.IsType<System.Collections.ObjectModel.ReadOnlyCollection<RawBinaryEditorStructuralChange>>(
+                structuralRange.StructuralChanges);
+        _ = Assert.Throws<NotSupportedException>(() => immutableCauses[0] = immutableCauses[0]);
+
+        Assert.True(session.Undo().Succeeded);
+        IReadOnlyList<RawBinaryEditorChangedRange> restored = session.GetChangedRanges();
+        Assert.Empty(restored);
+        Assert.Same(restored, session.GetChangedRanges());
+
+        Assert.True(session.OverwriteByte("0x1", "A5").Succeeded);
+        IReadOnlyList<RawBinaryEditorChangedRange> valueOnly = session.GetChangedRanges();
+        Assert.Empty(Assert.Single(valueOnly).StructuralChanges);
+        Assert.Same(valueOnly, session.GetChangedRanges());
+    }
+
+    /// <summary>Matches every incrementally retained value run against a complete byte comparison.</summary>
+    [Fact]
+    public void IncrementalValueRangesMatchCompleteComparisonAcrossOverlappingEdits()
+    {
+        const int byteCount = 256;
+        var session = new RawBinaryEditorSession();
+        _ = session.Load(new byte[byteCount]);
+
+        for (int edit = 0; edit < 64; edit++)
+        {
+            int start = edit * 29 % byteCount;
+            int end = Math.Min(byteCount - 1, start + (edit * 11 % 32));
+            string value = edit % 3 == 0 ? "00" : "A5";
+            Assert.True(session.FillRange($"0x{start:X}", $"0x{end:X}", value).Succeeded);
+            Assert.True(session.TryCopyWorkingBytes(out byte[]? working));
+
+            var expected = new List<(long Start, long EndExclusive)>();
+            int? runStart = null;
+            for (int index = 0; index < working!.Length; index++)
+            {
+                if (working[index] != 0 && runStart is null)
+                {
+                    runStart = index;
+                }
+                else if (working[index] == 0 && runStart is int changedStart)
+                {
+                    expected.Add((changedStart, index));
+                    runStart = null;
+                }
+            }
+
+            if (runStart is int finalStart)
+            {
+                expected.Add((finalStart, working.Length));
+            }
+
+            IReadOnlyList<RawBinaryEditorChangedRange> actual = session.GetChangedRanges();
+            Assert.Equal(expected, actual.Select(range => (range.Start, range.EndExclusive)));
+            Assert.All(actual, range =>
+            {
+                Assert.Equal(RawBinaryEditorChangeKind.Data, range.ChangeKind);
+                RawBinaryEditorValueChange valueChange = Assert.Single(range.ValueChanges);
+                Assert.Equal((range.Start, range.EndExclusive), (valueChange.Start, valueChange.EndExclusive));
+                Assert.Empty(range.StructuralChanges);
+            });
+        }
+    }
+
+    /// <summary>Locks repeated large-document changed-range reads to one cached immutable snapshot.</summary>
+    [Fact]
+    public void SingleByteEditReusesChangedRangesAtTheMaximumDocumentLength()
+    {
+        var session = new RawBinaryEditorSession();
+        _ = session.Load(new byte[RawBinaryEditorSession.MaximumDocumentLength]);
+
+        long allocationStart = GC.GetAllocatedBytesForCurrentThread();
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        Assert.True(session.OverwriteByte("0x400000", "A5").Succeeded);
+        IReadOnlyList<RawBinaryEditorChangedRange> snapshot = session.GetChangedRanges();
+        for (int invocation = 0; invocation < 100; invocation++)
+        {
+            Assert.Same(snapshot, session.GetChangedRanges());
+        }
+
+        timer.Stop();
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocationStart;
+        RawBinaryEditorChangedRange change = Assert.Single(snapshot);
+        Assert.Equal((0x400000L, 0x400001L), (change.Start, change.EndExclusive));
+        Assert.InRange(allocated, 0, 128 * 1024);
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"RAW_EDITOR_CHANGED_RANGES bytes={RawBinaryEditorSession.MaximumDocumentLength} " +
+            $"lookups=101 elapsedMs={timer.Elapsed.TotalMilliseconds:F3} allocated={allocated}");
+    }
+
+    /// <summary>Reuses unchanged immutable range records when one byte changes inside a fragmented document.</summary>
+    [Fact]
+    public void FragmentedSingleByteEditReusesUnchangedRangeRecords()
+    {
+        const int documentLength = 20_000;
+        const int expectedRangeCount = documentLength / 2;
+        var session = new RawBinaryEditorSession();
+        _ = session.Load(new byte[documentLength]);
+        string alternatingValues = string.Join(
+            ' ',
+            Enumerable.Range(0, documentLength).Select(static index => index % 2 == 0 ? "FF" : "00"));
+        Assert.True(session.OverwriteRange("0x0", "0x4E1F", alternatingValues).Succeeded);
+        IReadOnlyList<RawBinaryEditorChangedRange> before = session.GetChangedRanges();
+        Assert.Equal(expectedRangeCount, before.Count);
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        Assert.True(session.OverwriteByte("0x0", "FE").Succeeded);
+        IReadOnlyList<RawBinaryEditorChangedRange> after = session.GetChangedRanges();
+        timer.Stop();
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.NotSame(before, after);
+        Assert.Equal(expectedRangeCount, after.Count);
+        Assert.NotSame(before[0], after[0]);
+        Assert.Equal((byte)0xFF, before[0].ValueChanges[0].FirstCurrentValue);
+        Assert.Equal((byte)0xFE, after[0].ValueChanges[0].FirstCurrentValue);
+        Assert.Same(before[1], after[1]);
+        Assert.Same(before[^1], after[^1]);
+        Assert.Same(after, session.GetChangedRanges());
+        Assert.InRange(allocated, 0, 128 * 1024);
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"RAW_EDITOR_FRAGMENTED_RANGES ranges={expectedRangeCount} " +
+            $"elapsedMs={timer.Elapsed.TotalMilliseconds:F3} allocated={allocated}");
+    }
+
+    /// <summary>Bounds the retained source-address map to one compact integer per document byte.</summary>
+    [Fact]
+    public void LoadUsesCompactOriginalOffsetMap()
+    {
+        const int byteCount = 1024 * 1024;
+        byte[] source = new byte[byteCount];
+        var session = new RawBinaryEditorSession();
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        _ = session.Load(source);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"RAW_EDITOR_LOAD bytes={byteCount} allocated={allocated}");
+        Assert.InRange(allocated, 0, (byteCount * 7L) + 32_768);
+    }
+
+    /// <summary>Records a non-gating large-document structural edit observation while locking dirty state.</summary>
+    [Fact]
+    public void LengthChangingEditPreservesLargeDocumentState()
+    {
+        const int byteCount = 1024 * 1024;
+        var session = new RawBinaryEditorSession();
+        _ = session.Load(new byte[byteCount]);
+
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        RawBinaryEditorOperationResult result = session.InsertZeroAfter("0x0");
+        timer.Stop();
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(byteCount + 1, result.State.WorkingLength);
+        Assert.True(result.State.HasUnsavedChanges);
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"RAW_EDITOR_INSERT bytes={byteCount} elapsedMs={timer.Elapsed.TotalMilliseconds:F3}");
+    }
 }

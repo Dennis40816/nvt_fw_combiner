@@ -72,6 +72,23 @@ internal static class CliCompositionRunSupport
         await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
     }
 
+    internal static async Task WriteReportJsonAsync(
+        string reportPath,
+        string reportJson,
+        TextWriter output,
+        CancellationToken cancellationToken)
+    {
+        string fullPath = Path.GetFullPath(reportPath);
+        string? directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            _ = Directory.CreateDirectory(directory);
+        }
+
+        await File.WriteAllTextAsync(fullPath, reportJson, cancellationToken).ConfigureAwait(false);
+        await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
+    }
+
     internal static async Task PrintIssuesAsync(
         TextWriter error,
         IReadOnlyList<CompositionIssue> issues)

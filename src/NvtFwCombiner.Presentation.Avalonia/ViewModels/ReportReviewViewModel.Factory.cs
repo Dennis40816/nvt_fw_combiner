@@ -1,9 +1,15 @@
+using System.Text;
 using System.Text.Json;
+using NvtFwCombiner.Application.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportReviewViewModel
 {
+    private static readonly Encoding StrictUtf8 = new UTF8Encoding(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true);
+
     /// <summary>Loads a readable report model from run report JSON.</summary>
     public static ReportReviewViewModel FromJson(
         string json,
@@ -11,8 +17,60 @@ public sealed partial class ReportReviewViewModel
         string? outputArtifactPath = null,
         ShellLanguage language = ShellLanguage.English)
     {
+        return FromJsonCore(
+            json,
+            sourceName,
+            outputArtifactPath,
+            inspectionSnapshot: null,
+            language,
+            CancellationToken.None);
+    }
+
+    internal static ReportReviewViewModel FromJsonCancellable(
+        string json,
+        string sourceName,
+        string? outputArtifactPath,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
+    {
+        return FromJsonCore(
+            json,
+            sourceName,
+            outputArtifactPath,
+            inspectionSnapshot: null,
+            language,
+            cancellationToken);
+    }
+
+    internal static ReportReviewViewModel FromJsonCancellable(
+        string json,
+        string sourceName,
+        string? outputArtifactPath,
+        CompositionRunInspectionSnapshot? inspectionSnapshot,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
+    {
+        return FromJsonCore(
+            json,
+            sourceName,
+            outputArtifactPath,
+            inspectionSnapshot,
+            language,
+            cancellationToken);
+    }
+
+    private static ReportReviewViewModel FromJsonCore(
+        string json,
+        string sourceName,
+        string? outputArtifactPath,
+        CompositionRunInspectionSnapshot? inspectionSnapshot,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
-        using var document = JsonDocument.Parse(json);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] utf8 = StrictUtf8.GetBytes(json);
+        using var document = JsonDocument.Parse(utf8.AsMemory());
         JsonElement root = document.RootElement;
 
         string profileId = GetString(root, nameof(ProfileId));
@@ -26,16 +84,24 @@ public sealed partial class ReportReviewViewModel
         long outputSize = GetOutputLong(root, "Size");
         bool? outputCommitted = GetOutputCommitted(root);
         string outputSha256 = GetOutputString(root, "Sha256");
-        IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root);
-        IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root, language);
-        IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root);
-        IReadOnlyList<ReportLineViewModel> outputDifferences = ParseOutputDifferences(root, language);
-        IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root);
+        IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root, cancellationToken);
+        IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root, language, cancellationToken);
+        IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root, cancellationToken);
+        OutputDifferenceProjection outputDifferences = ParseOutputDifferences(
+            root,
+            json,
+            utf8,
+            inspectionSnapshot?.OutputSpaceId ?? "reported-output",
+            language,
+            cancellationToken);
+        IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root, cancellationToken);
         string status = CreateStatus(issues, language);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new ReportReviewViewModel(
             false,
             sourceName,
+            utf8.LongLength,
             profileId,
             icId,
             modeId,
@@ -52,6 +118,7 @@ public sealed partial class ReportReviewViewModel
             outputCommitted,
             outputSha256,
             outputArtifactPath ?? string.Empty,
+            inspectionSnapshot,
             inputs,
             operations,
             mutations,
@@ -71,6 +138,7 @@ public sealed partial class ReportReviewViewModel
         return new ReportReviewViewModel(
             false,
             sourceName,
+            null,
             string.Empty,
             string.Empty,
             string.Empty,
@@ -87,10 +155,11 @@ public sealed partial class ReportReviewViewModel
             null,
             string.Empty,
             string.Empty,
+            null,
             [],
             [],
             [],
-            [],
+            OutputDifferenceProjection.Empty,
             [new ReportLineViewModel(issueTitle, message, "report-json")],
             language);
     }

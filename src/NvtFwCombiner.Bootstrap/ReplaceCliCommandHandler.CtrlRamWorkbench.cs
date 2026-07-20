@@ -6,17 +6,12 @@ internal static partial class ReplaceCliCommandHandler
 {
     private static async Task<int> RunWorkbenchCtrlRamReplaceAsync(
         string action,
-        string profileSelector,
+        string icId,
         ParsedCliOptions options,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        if (!TryResolveWorkbenchIc(profileSelector, out string? icId))
-        {
-            return await UnknownReplaceProfileAsync(IcWorkflowIds.CtrlRamReplace, profileSelector, error).ConfigureAwait(false);
-        }
-
         if (!RequireOption(options, "--ic-num", error, out string? icNumber) ||
             !RequireOption(options, "--base", error, out string? basePath))
         {

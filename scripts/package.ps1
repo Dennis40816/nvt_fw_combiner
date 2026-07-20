@@ -16,6 +16,9 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
+$DistributionOwner = 'MSP/FW3'
+$SourceIdentity = 'urn:msp-fw3:nvt-fw-combiner:source'
+$ReleaseNamespace = 'urn:msp-fw3:nvt-fw-combiner:release'
 $SourceTag = if ($Version.StartsWith('v', [StringComparison]::Ordinal)) { $Version } else { "v$Version" }
 $SemanticVersion = $SourceTag.Substring(1)
 $StableSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+$'
@@ -42,6 +45,7 @@ $AppPublish = Join-Path $WorkRoot 'app-publish'
 $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
+$StandardMergeGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-standard-merge-v1.json'
 
 try {
 function Get-LowerSha256 {
@@ -60,6 +64,20 @@ function Get-TreeDigest {
     return [Convert]::ToHexString($Digest).ToLowerInvariant()
 }
 
+function Write-PackageHashList {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageRoot,
+        [Parameter(Mandatory = $true)][string[]]$RelativePaths,
+        [Parameter(Mandatory = $true)][string]$DestinationPath
+    )
+
+    $HashLines = foreach ($RelativePath in $RelativePaths) {
+        $Path = Join-Path $PackageRoot $RelativePath
+        "$(Get-LowerSha256 -Path $Path)  $RelativePath"
+    }
+    $HashLines | Set-Content -LiteralPath $DestinationPath -Encoding utf8NoBOM
+}
+
 function Save-SourcePackageLocks {
     $Snapshots = @{}
     Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'src') -Filter 'packages.lock.json' -File -Recurse |
@@ -74,12 +92,26 @@ function Restore-SourcePackageLocks {
     }
 }
 
-$ApprovedExternalToolPackagePaths = @(
+$CrcWorkerPackagePath = 'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe'
+$ApprovedRepositoryExternalToolPackagePaths = @(
     'external-tools/README.md',
     'external-tools/legacy-combiner/README.md',
     'external-tools/legacy-combiner/1.13.0/Combiner.exe',
     'external-tools/legacy-combiner/1.13.0/manifest.json'
 ) | Sort-Object
+$ApprovedExternalToolPackagePaths = @(
+    'external-tools/README.md',
+    'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
+    'external-tools/legacy-combiner/README.md',
+    'external-tools/legacy-combiner/1.13.0/Combiner.exe',
+    'external-tools/legacy-combiner/1.13.0/manifest.json'
+) | Sort-Object
+
+$ApprovedRuntimeCatalogPackagePaths = @(
+    'profiles/built-in/ctrlram-postbuild-v2/catalog.json',
+    'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
+) | Sort-Object
+$ApprovedRuntimeCatalogDirectories = @('ctrlram-postbuild-v2')
 
 function Copy-PackageFile {
     param(
@@ -111,7 +143,7 @@ function Copy-PackageFileFromRoot {
 function Copy-ApprovedExternalToolPackageFiles {
     param([Parameter(Mandatory = $true)][string]$DestinationRoot)
 
-    foreach ($ApprovedExternalToolPackagePath in $ApprovedExternalToolPackagePaths) {
+    foreach ($ApprovedExternalToolPackagePath in $ApprovedRepositoryExternalToolPackagePaths) {
         Copy-PackageFile -RelativePath $ApprovedExternalToolPackagePath -DestinationRoot $DestinationRoot
     }
 }
@@ -201,8 +233,9 @@ function Get-BuiltInProfilePackagePaths {
             ForEach-Object Name |
             Sort-Object
     )
-    if (Compare-Object -ReferenceObject $BundleDirectories -DifferenceObject $PublishedBundleDirectories) {
-        throw 'Published built-in profile bundle directories differ from the Bootstrap project allowlist.'
+    $ApprovedBuiltInDirectories = @($BundleDirectories + $ApprovedRuntimeCatalogDirectories | Sort-Object)
+    if (Compare-Object -ReferenceObject $ApprovedBuiltInDirectories -DifferenceObject $PublishedBundleDirectories) {
+        throw 'Published built-in profile directories differ from the bundle and runtime-catalog allowlists.'
     }
 
     $PackagePaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -249,6 +282,20 @@ function Get-BuiltInProfilePackagePaths {
         if (Compare-Object -ReferenceObject $ExpectedBundlePaths -DifferenceObject $ActualBundlePaths) {
             throw "Published built-in profile bundle '$BundleDirectory' differs from its manifest-pinned allowlist."
         }
+    }
+
+    $ActualRuntimeCatalogPaths = @(
+        foreach ($RuntimeCatalogDirectory in $ApprovedRuntimeCatalogDirectories) {
+            $RuntimeCatalogRoot = Join-Path $BuiltInRoot $RuntimeCatalogDirectory
+            Get-ChildItem -LiteralPath $RuntimeCatalogRoot -File -Recurse |
+                ForEach-Object { [IO.Path]::GetRelativePath($PublishedRoot, $_.FullName).Replace('\', '/') }
+        }
+    ) | Sort-Object
+    if (Compare-Object -ReferenceObject $ApprovedRuntimeCatalogPackagePaths -DifferenceObject $ActualRuntimeCatalogPaths) {
+        throw 'Published runtime catalog files differ from the approved allowlist.'
+    }
+    foreach ($RuntimeCatalogPath in $ApprovedRuntimeCatalogPackagePaths) {
+        [void]$PackagePaths.Add($RuntimeCatalogPath)
     }
 
     return @($PackagePaths | Sort-Object)
@@ -308,6 +355,13 @@ function New-BuiltInProfilePolicyDryRunFixture {
                 Set-Content -LiteralPath $FixturePath -Encoding utf8NoBOM
         }
     }
+
+    foreach ($RuntimeCatalogPath in $ApprovedRuntimeCatalogPackagePaths) {
+        Copy-PackageFileFromRoot `
+            -SourceRoot $RepoRoot `
+            -RelativePath $RuntimeCatalogPath `
+            -DestinationRoot $PublishedRoot
+    }
 }
 
 function Invoke-ExternalToolPolicyDryRun {
@@ -325,6 +379,9 @@ function Invoke-ExternalToolPolicyDryRun {
         'negative release-policy probe' | Set-Content -LiteralPath $ProbeSourcePath -Encoding ascii
 
         Copy-ApprovedExternalToolPackageFiles -DestinationRoot $DryRunPackageRoot
+        $DryRunWorkerPath = Join-Path $DryRunPackageRoot $CrcWorkerPackagePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $DryRunWorkerPath) | Out-Null
+        'generated CRC worker policy fixture' | Set-Content -LiteralPath $DryRunWorkerPath -Encoding ascii
         $DryRunExternalToolsRoot = Join-Path $DryRunPackageRoot 'external-tools'
         $DryRunEntries = @(Get-ExternalToolManifestEntries `
             -PackageRoot $DryRunPackageRoot `
@@ -339,6 +396,15 @@ function Invoke-ExternalToolPolicyDryRun {
         if ($DryRunProfileEntries.Count -eq 0 -or
             @($DryRunProfileEntries | Where-Object { $_.role -ne 'builtInProfile' }).Count -ne 0) {
             throw 'Built-in profile policy dry-run did not produce role-pinned manifest entries.'
+        }
+        $DryRunRuntimeCatalogPaths = @(
+            $DryRunProfileEntries |
+                Where-Object { $_.path -in $ApprovedRuntimeCatalogPackagePaths } |
+                ForEach-Object path |
+                Sort-Object
+        )
+        if (Compare-Object -ReferenceObject $ApprovedRuntimeCatalogPackagePaths -DifferenceObject $DryRunRuntimeCatalogPaths) {
+            throw 'Runtime catalog policy dry-run did not produce the approved manifest entries.'
         }
 
         $DryRunManifestPath = Join-Path $DryRunPackageRoot 'RELEASE-MANIFEST.json'
@@ -373,9 +439,108 @@ function Invoke-ExternalToolPolicyDryRun {
         if (-not $UnexpectedProfileRejected) {
             throw 'Unexpected built-in profile file was not rejected by the package allowlist.'
         }
+        Remove-Item -LiteralPath $UnexpectedProfilePath -Force
+
+        $UnexpectedRuntimeCatalogPath = Join-Path $DryRunPublishedRoot 'profiles/built-in/ctrlram-postbuild-v2/unexpected.json'
+        '{}' | Set-Content -LiteralPath $UnexpectedRuntimeCatalogPath -Encoding ascii
+        $UnexpectedRuntimeCatalogRejected = $false
+        try {
+            Get-BuiltInProfilePackagePaths -PublishedRoot $DryRunPublishedRoot | Out-Null
+        }
+        catch {
+            if ($_.Exception.Message -notlike '*runtime catalog files differ from the approved allowlist*') {
+                throw
+            }
+            $UnexpectedRuntimeCatalogRejected = $true
+        }
+        if (-not $UnexpectedRuntimeCatalogRejected) {
+            throw 'Unexpected runtime catalog file was not rejected by the package allowlist.'
+        }
+
+        $GoldenPaths = @(Get-DeclaredStandardMergeGoldenPaths)
+        $GoldenBinPaths = @($GoldenPaths | Where-Object { $_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase) })
+        if ($GoldenBinPaths.Count -ne 34 -or $script:StandardMergeGoldenPackageManifest.cases.Count -ne 13) {
+            throw 'Standard Merge canonical package selection did not retain 34 direct BIN artifacts and 13 direct/alias cases.'
+        }
+        if (@($GoldenPaths | Where-Object {
+            $_ -like 'testdata/diagnostics/*' -or
+            $_ -like 'testdata/golden/canonical/*/ctrlram-replace/*' -or
+            $_ -like 'testdata/golden/canonical/*/ab-merge/*'
+        }).Count -ne 0) {
+            throw 'Standard Merge canonical package selection included diagnostics or another workflow.'
+        }
+
+        $SourceGoldenAllowlist = Get-Content -LiteralPath $StandardMergeGoldenReleaseAllowlistPath -Raw |
+            ConvertFrom-Json
+        $DirectGoldenPolicyProbes = @(
+            [pscustomobject]@{
+                Name = 'boolean-flip'
+                Value = -not [bool]$SourceGoldenAllowlist.cases[0].directGolden
+                ExpectedMessage = '*directGolden differs from the explicit release allowlist*'
+            },
+            [pscustomobject]@{
+                Name = 'numeric'
+                Value = 1
+                ExpectedMessage = '*directGolden must be a JSON boolean*'
+            },
+            [pscustomobject]@{
+                Name = 'string'
+                Value = 'false'
+                ExpectedMessage = '*directGolden must be a JSON boolean*'
+            }
+        )
+        foreach ($PolicyProbe in $DirectGoldenPolicyProbes) {
+            $InvalidGoldenAllowlistPath = Join-Path $DryRunRoot "invalid-standard-merge-$($PolicyProbe.Name).json"
+            $InvalidGoldenAllowlist = Get-Content -LiteralPath $StandardMergeGoldenReleaseAllowlistPath -Raw |
+                ConvertFrom-Json
+            $InvalidGoldenAllowlist.cases[0].directGolden = $PolicyProbe.Value
+            $InvalidGoldenAllowlist |
+                ConvertTo-Json -Depth 8 |
+                Set-Content -LiteralPath $InvalidGoldenAllowlistPath -Encoding utf8NoBOM
+            $InvalidGoldenAllowlistRejected = $false
+            try {
+                Get-DeclaredStandardMergeGoldenPaths -ReleaseAllowlistPath $InvalidGoldenAllowlistPath | Out-Null
+            }
+            catch {
+                if ($_.Exception.Message -notlike $PolicyProbe.ExpectedMessage) {
+                    throw
+                }
+                $InvalidGoldenAllowlistRejected = $true
+            }
+            if (-not $InvalidGoldenAllowlistRejected) {
+                throw "Standard Merge canonical package selection accepted the $($PolicyProbe.Name) directGolden policy probe."
+            }
+        }
+
+        $UnicodeRelativePath = 'reference/多語/請先看.md'
+        $UnicodeFixturePath = Join-Path $DryRunPackageRoot $UnicodeRelativePath
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $UnicodeFixturePath) | Out-Null
+        '多語 release hash-list fixture' | Set-Content -LiteralPath $UnicodeFixturePath -Encoding utf8NoBOM
+        $DryRunHashListPath = Join-Path $DryRunPackageRoot 'SHA256SUMS.txt'
+        Write-PackageHashList `
+            -PackageRoot $DryRunPackageRoot `
+            -RelativePaths @($UnicodeRelativePath) `
+            -DestinationPath $DryRunHashListPath
+        $ExpectedHashLine = "$(Get-LowerSha256 -Path $UnicodeFixturePath)  $UnicodeRelativePath"
+        $PersistedHashBytes = [IO.File]::ReadAllBytes($DryRunHashListPath)
+        if ($PersistedHashBytes.Length -ge 3 -and
+            $PersistedHashBytes[0] -eq 0xef -and
+            $PersistedHashBytes[1] -eq 0xbb -and
+            $PersistedHashBytes[2] -eq 0xbf) {
+            throw 'Release hash list must be UTF-8 without a byte-order mark.'
+        }
+        $StrictUtf8 = [Text.UTF8Encoding]::new($false, $true)
+        $PersistedHashText = $StrictUtf8.GetString($PersistedHashBytes)
+        if ($PersistedHashText -cne "$ExpectedHashLine$([Environment]::NewLine)") {
+            throw 'Unicode release hash-list path did not round-trip through UTF-8.'
+        }
 
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included and unexpected file rejected.'
+        Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
+        Write-Host 'Canonical golden package policy dry-run passed: 34 direct Standard Merge BIN artifacts and 13 direct/alias cases selected; diagnostics and other workflows excluded.'
+        Write-Host 'Canonical golden package policy direct/alias drift and strict-type rejection passed.'
+        Write-Host 'Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8.'
     }
     finally {
         if (Test-Path -LiteralPath $ProbeSourcePath) {
@@ -413,6 +578,18 @@ function Copy-PackageReferenceTree {
         }
 }
 
+function Assert-SafeCanonicalGoldenPath {
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+
+    if ([string]::IsNullOrWhiteSpace($RelativePath) -or
+        $RelativePath.Contains('\') -or
+        ($RelativePath.Split('/') -contains '..') -or
+        $RelativePath.Split('/')[0].Contains(':') -or
+        [System.IO.Path]::IsPathRooted($RelativePath)) {
+        throw "Unsafe canonical golden manifest path: '$RelativePath'"
+    }
+}
+
 function Add-GoldenManifestEntryPath {
     param(
         [Parameter(Mandatory = $true)][System.Collections.Generic.HashSet[string]]$Paths,
@@ -421,68 +598,150 @@ function Add-GoldenManifestEntryPath {
     )
 
     if ($null -eq $Entry -or $Entry.PSObject.Properties.Name -notcontains 'path') {
-        throw "Standard Merge golden manifest has an entry without a path."
+        throw "Canonical golden manifest has an entry without a path."
     }
 
     $ManifestRelativePath = [string]$Entry.path
-    if ([string]::IsNullOrWhiteSpace($ManifestRelativePath) -or $ManifestRelativePath.Contains('..') -or $ManifestRelativePath.StartsWith('/')) {
-        throw "Unsafe Standard Merge golden manifest path: '$ManifestRelativePath'"
-    }
+    Assert-SafeCanonicalGoldenPath -RelativePath $ManifestRelativePath
 
     [void]$Paths.Add("$GoldenRootRelative/$ManifestRelativePath")
 }
 
 function Get-DeclaredStandardMergeGoldenPaths {
-    $GoldenRootRelative = 'testdata/golden/standard-merge-gen-flash'
+    param(
+        [string]$ReleaseAllowlistPath = $StandardMergeGoldenReleaseAllowlistPath
+    )
+
+    $GoldenRootRelative = 'testdata/golden/canonical'
     $GoldenRoot = Join-Path $RepoRoot $GoldenRootRelative
     $ManifestPath = Join-Path $GoldenRoot 'manifest.json'
     if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
-        throw "Standard Merge golden manifest was not found at $ManifestPath"
+        throw "Canonical golden manifest was not found at $ManifestPath"
     }
 
     $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
-    if ($Manifest.payloadClass -ne 'owner-approved-golden-firmware' -or $Manifest.binaryPayloadsIncluded -ne $true) {
-        throw 'Standard Merge golden fixtures must declare owner-approved-golden-firmware with binaryPayloadsIncluded=true.'
+    if ($Manifest.schemaVersion -ne '1.0' -or
+        $Manifest.payloadClass -ne 'owner-approved-golden' -or
+        $Manifest.binaryPayloadsIncluded -ne $true) {
+        throw 'Canonical golden inventory must declare schemaVersion=1.0, owner-approved-golden, and binaryPayloadsIncluded=true.'
+    }
+    if (-not (Test-Path -LiteralPath $ReleaseAllowlistPath -PathType Leaf)) {
+        throw "Standard Merge golden release allowlist was not found at $ReleaseAllowlistPath"
+    }
+    $ReleaseAllowlist = Get-Content -LiteralPath $ReleaseAllowlistPath -Raw | ConvertFrom-Json
+    if ($ReleaseAllowlist.schemaVersion -ne '1.0' -or
+        $ReleaseAllowlist.workflow -ne 'standard-merge' -or
+        $ReleaseAllowlist.releaseStatus -ne 'human-gated-allowlist') {
+        throw 'Standard Merge golden release allowlist has invalid schema, workflow, or release status.'
+    }
+    $ApprovedCases = @{}
+    foreach ($ApprovedCase in $ReleaseAllowlist.cases) {
+        $ApprovedCaseId = [string]$ApprovedCase.caseId
+        if ([string]::IsNullOrWhiteSpace($ApprovedCaseId) -or $ApprovedCases.ContainsKey($ApprovedCaseId)) {
+            throw "Standard Merge golden release allowlist contains an invalid or duplicate case id: '$ApprovedCaseId'"
+        }
+        $ApprovedCases[$ApprovedCaseId] = $ApprovedCase
     }
 
     $Paths = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-    foreach ($StaticFile in @('README.md', 'manifest.json')) {
-        [void]$Paths.Add("$GoldenRootRelative/$StaticFile")
-    }
-
-    if ($Manifest.PSObject.Properties.Name -contains 'supportingFiles' -and $null -ne $Manifest.supportingFiles) {
-        foreach ($Property in $Manifest.supportingFiles.PSObject.Properties) {
-            Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Property.Value
-        }
-    }
+    [void]$Paths.Add("$GoldenRootRelative/README.md")
+    $SelectedCases = [System.Collections.Generic.List[object]]::new()
+    $SelectedCaseIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 
     if ($Manifest.PSObject.Properties.Name -notcontains 'cases' -or $null -eq $Manifest.cases) {
-        throw 'Standard Merge golden manifest does not contain cases.'
+        throw 'Canonical golden manifest does not contain cases.'
     }
 
-    foreach ($Case in $Manifest.cases) {
-        if ($Case.PSObject.Properties.Name -notcontains 'inputs' -or $null -eq $Case.inputs) {
-            throw 'Standard Merge golden manifest case has no inputs.'
+    foreach ($CaseEntry in $Manifest.cases) {
+        $CaseId = [string]$CaseEntry.caseId
+        if (-not $ApprovedCases.ContainsKey($CaseId)) {
+            continue
         }
 
-        foreach ($Input in $Case.inputs.PSObject.Properties) {
-            Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Input.Value
+        $ApprovedCase = $ApprovedCases[$CaseId]
+        $ManifestEntry = [pscustomobject]@{ path = [string]$CaseEntry.manifestPath }
+        if ($ManifestEntry.path -ne [string]$ApprovedCase.manifestPath) {
+            throw "Release-approved canonical case '$CaseId' manifest path differs from the explicit release allowlist."
+        }
+        Assert-SafeCanonicalGoldenPath -RelativePath $ManifestEntry.path
+        $CaseManifestPath = Join-Path $GoldenRoot $ManifestEntry.path
+        if (-not (Test-Path -LiteralPath $CaseManifestPath -PathType Leaf)) {
+            throw "Canonical golden case manifest was not found: $($ManifestEntry.path)"
         }
 
-        if ($Case.PSObject.Properties.Name -notcontains 'expectedOutput') {
-            throw 'Standard Merge golden manifest case has no expectedOutput.'
+        $Case = Get-Content -LiteralPath $CaseManifestPath -Raw | ConvertFrom-Json
+        if ($Case.caseId -ne $CaseId -or $Case.workflow -ne 'standard-merge') {
+            throw "Release-approved canonical case '$CaseId' does not resolve to the matching Standard Merge case."
         }
-        Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Case.expectedOutput
+        if ($ApprovedCase.PSObject.Properties.Name -notcontains 'directGolden' -or
+            $ApprovedCase.directGolden -isnot [bool]) {
+            throw "Release-approved canonical case '$CaseId' directGolden must be a JSON boolean."
+        }
+        if ($Case.PSObject.Properties.Name -notcontains 'directGolden' -or
+            $Case.directGolden -isnot [bool]) {
+            throw "Release-approved canonical case '$CaseId' canonical directGolden must be a JSON boolean."
+        }
+        if ($ApprovedCase.directGolden -ne $Case.directGolden) {
+            throw "Release-approved canonical case '$CaseId' directGolden differs from the explicit release allowlist."
+        }
+
+        Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $ManifestEntry
+        $SelectedCases.Add($CaseEntry)
+        [void]$SelectedCaseIds.Add($CaseId)
+        $ApprovedArtifactIds = @($ApprovedCase.artifacts | ForEach-Object { [string]$_.artifactId } | Sort-Object)
+        if ($Case.directGolden -eq $true) {
+            $Roles = @($Case.artifacts | ForEach-Object { [string]$_.role })
+            if ($Roles -notcontains 'input' -or $Roles -notcontains 'expected') {
+                throw "Direct Standard Merge canonical case '$($Case.caseId)' must declare input and expected artifacts."
+            }
+            $ActualArtifactIds = @($Case.artifacts | ForEach-Object { [string]$_.artifactId } | Sort-Object)
+            if (Compare-Object -ReferenceObject $ApprovedArtifactIds -DifferenceObject $ActualArtifactIds) {
+                throw "Standard Merge canonical case '$CaseId' artifacts differ from the explicit release allowlist."
+            }
+
+            foreach ($Artifact in $Case.artifacts) {
+                $ApprovedArtifact = @($ApprovedCase.artifacts | Where-Object { $_.artifactId -eq $Artifact.artifactId })
+                if ($ApprovedArtifact.Count -ne 1 -or
+                    [string]$ApprovedArtifact[0].path -ne [string]$Artifact.path -or
+                    [long]$ApprovedArtifact[0].size -ne [long]$Artifact.size -or
+                    [string]$ApprovedArtifact[0].sha256 -ne [string]$Artifact.sha256) {
+                    throw "Standard Merge canonical artifact '$CaseId/$($Artifact.artifactId)' differs from the explicit release allowlist."
+                }
+                Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Artifact
+                $ArtifactPath = Join-Path $GoldenRoot ([string]$Artifact.path)
+                if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
+                    throw "Canonical golden artifact was not found: $($Artifact.path)"
+                }
+                if ((Get-Item -LiteralPath $ArtifactPath).Length -ne [long]$Artifact.size) {
+                    throw "Canonical golden artifact size drift: $($Artifact.path)"
+                }
+                if ((Get-LowerSha256 -Path $ArtifactPath) -ne [string]$Artifact.sha256) {
+                    throw "Canonical golden artifact SHA-256 drift: $($Artifact.path)"
+                }
+            }
+        }
+        elseif ($Case.directGolden -ne $false -or $null -eq $Case.alias -or $ApprovedArtifactIds.Count -ne 0) {
+            throw "Standard Merge canonical case '$($Case.caseId)' has invalid direct/alias facts."
+        }
     }
 
-    $ActualBins = @(
-        Get-ChildItem -LiteralPath $GoldenRoot -Filter '*.bin' -File -Recurse |
-            ForEach-Object { [System.IO.Path]::GetRelativePath($RepoRoot, $_.FullName).Replace('\', '/') } |
+    $MissingApprovedCases = @(
+        $ApprovedCases.Keys |
+            Where-Object { -not $SelectedCaseIds.Contains($_) } |
             Sort-Object
     )
-    $DeclaredBins = @($Paths | Where-Object { $_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase) } | Sort-Object)
-    if (Compare-Object -ReferenceObject $DeclaredBins -DifferenceObject $ActualBins) {
-        throw 'Standard Merge golden BIN files do not exactly match manifest declarations.'
+    if ($MissingApprovedCases.Count -ne 0) {
+        throw "Canonical golden inventory is missing release-approved Standard Merge cases: $($MissingApprovedCases -join ', ')"
+    }
+
+    $script:StandardMergeGoldenPackageManifest = [ordered]@{
+        schemaVersion = '1.0'
+        payloadClass = 'owner-approved-golden'
+        binaryPayloadsIncluded = $true
+        diagnosticsRoot = 'testdata/diagnostics/golden-evidence'
+        inventoryScope = 'release-standard-merge'
+        sourceManifest = 'testdata/golden/canonical/manifest.json'
+        cases = @($SelectedCases)
     }
 
     return @($Paths | Sort-Object)
@@ -507,16 +766,26 @@ New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublis
 
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj'
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
-& $DotNet publish $AppProject -c Release -r win-x64 --self-contained true `
-    -p:Version=$SemanticVersion `
-    -p:PublishSingleFile=true `
-    -p:PublishTrimmed=false `
-    -p:IncludeNativeLibrariesForSelfExtract=true `
-    -p:DebugType=None `
-    -p:DebugSymbols=false `
-    -o $AppPublish
-$PublishExitCode = $LASTEXITCODE
-Restore-SourcePackageLocks -Snapshots $SourcePackageLockSnapshots
+try {
+    & $DotNet restore $AppProject -r win-x64
+    if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed before clean publish.' }
+
+    & $DotNet clean $AppProject -c Release -r win-x64
+    if ($LASTEXITCODE -ne 0) { throw 'dotnet clean failed before publish.' }
+
+    & $DotNet publish $AppProject -c Release -r win-x64 --self-contained true --no-restore `
+        -p:Version=$SemanticVersion `
+        -p:PublishSingleFile=true `
+        -p:PublishTrimmed=false `
+        -p:IncludeNativeLibrariesForSelfExtract=true `
+        -p:DebugType=None `
+        -p:DebugSymbols=false `
+        -o $AppPublish
+    $PublishExitCode = $LASTEXITCODE
+}
+finally {
+    Restore-SourcePackageLocks -Snapshots $SourcePackageLockSnapshots
+}
 if ($PublishExitCode -ne 0) { throw 'dotnet publish failed.' }
 
 $PublishedApp = Join-Path $AppPublish 'NvtFwCombiner.Presentation.Avalonia.exe'
@@ -550,7 +819,8 @@ $BuiltWorker = Join-Path $WorkerDist 'Nfc.CrcWorker.exe'
 if (-not (Test-Path -LiteralPath $BuiltWorker -PathType Leaf)) {
     throw "Packaged CRC worker was not found at $BuiltWorker"
 }
-$WorkerExe = Join-Path $PackageRoot 'Nfc.CrcWorker.exe'
+$WorkerExe = Join-Path $PackageRoot $CrcWorkerPackagePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $WorkerExe) | Out-Null
 Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
 
 $ExternalToolsDestination = Join-Path $PackageRoot 'external-tools'
@@ -566,10 +836,9 @@ This directory contains human-review reference evidence and owner-approved golde
 Included:
 - docs/references/: flash-map, postbuild, flash-header, and provenance references.
 - docs/architecture/: CtrlRAM postbuild investigation and IC workflow references.
-- testdata/golden/standard-merge-gen-flash/: owner-approved Standard Merge golden BIN fixtures declared by manifest for future packaged self-tests.
-- testdata/golden/ctrlram-replace/ and testdata/golden/owner-handoff/: non-BIN fixture notes and manifests.
+- testdata/golden/canonical/: release-selected owner-approved Standard Merge direct payloads and fact-scoped alias manifests.
 
-Private golden inputs, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
+Non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
 "@ | Set-Content -LiteralPath (Join-Path $ReferenceDestination 'README.txt') -Encoding utf8NoBOM
 
 $ReferenceFiles = @(
@@ -589,11 +858,18 @@ foreach ($ReferenceFile in $ReferenceFiles) {
 
 Copy-PackageReferenceTree -RelativeRoot 'docs/references/ic-flashmap' -AllowedExtensions @('.bat', '.h', '.json', '.md', '.xlsx')
 
-foreach ($GoldenPath in (Get-DeclaredStandardMergeGoldenPaths)) {
+$StandardMergeGoldenPaths = Get-DeclaredStandardMergeGoldenPaths
+foreach ($GoldenPath in $StandardMergeGoldenPaths) {
     Copy-PackageFile -RelativePath $GoldenPath -DestinationRoot $ReferenceDestination
 }
-Copy-PackageReferenceTree -RelativeRoot 'testdata/golden/ctrlram-replace' -AllowedExtensions @('.json', '.md')
-Copy-PackageReferenceTree -RelativeRoot 'testdata/golden/owner-handoff' -AllowedExtensions @('.json', '.md')
+Copy-PackageFile `
+    -RelativePath 'testdata/golden/release-standard-merge-v1.json' `
+    -DestinationRoot $ReferenceDestination
+$PackagedGoldenManifestPath = Join-Path $ReferenceDestination 'testdata/golden/canonical/manifest.json'
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $PackagedGoldenManifestPath) | Out-Null
+$script:StandardMergeGoldenPackageManifest |
+    ConvertTo-Json -Depth 12 |
+    Set-Content -LiteralPath $PackagedGoldenManifestPath -Encoding utf8NoBOM
 
 $SelfTestRequest = '{"protocolVersion":"1.0","requestId":"package-self-test","operation":"calculate","algorithmId":"crc-32-mpeg-2","payloadBase64":"MTIzNDU2Nzg5"}'
 $SelfTestRaw = $SelfTestRequest | & $WorkerExe
@@ -607,17 +883,18 @@ Copy-Item -LiteralPath (Join-Path $RepoRoot 'LICENSE') -Destination (Join-Path $
 Copy-Item -LiteralPath (Join-Path $RepoRoot 'THIRD_PARTY_NOTICES.md') -Destination (Join-Path $PackageRoot 'THIRD-PARTY-NOTICES.txt')
 @"
 NVT FW Combiner $SemanticVersion
+Distribution owner: $DistributionOwner
 
 Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
-- Nfc.CrcWorker.exe: constrained external checksum/header worker
+- external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe: constrained external checksum/header worker
 - profiles/built-in/: manifest-pinned bundles materialized by the Bootstrap build; profile stage and runtime routing remain authoritative
-- external-tools/: approved legacy Combiner runtime packages
+- external-tools/: generated CRC Worker and approved legacy Combiner runtime packages
 - reference/: owner-approved flash-map, postbuild, flash-header, and golden fixture evidence
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
 
-This package includes owner-approved golden firmware fixtures under reference/testdata/golden/standard-merge-gen-flash for future packaged self-tests. It contains no private golden inputs, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, or .NET installation requirement. Built-in materialized profiles, external tools, and reference files are pinned by manifest and SHA-256; packaging a candidate bundle does not promote its runtime support stage.
+This package includes release-selected owner-approved Standard Merge golden firmware fixtures under reference/testdata/golden/canonical for future packaged self-tests. Diagnostics, owner handoff records, CtrlRAM private evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. Built-in materialized profiles, external tools, and reference files are pinned by manifest and SHA-256; packaging a candidate bundle does not promote its runtime support stage.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
 
 $AppHash = Get-LowerSha256 -Path $AppExe
@@ -650,11 +927,12 @@ $ApprovedProcessorIds = @(
     'nfc.nt51919.ctrlram-postbuild-v1',
     'nfc.nt51920.ctrlram-postbuild-v1',
     'nfc.nt51923.ctrlram-postbuild-v1',
+    'nfc.nt51926.ctrlram-postbuild-fw1.4.1',
     'nfc.nt51926.ctrlram-postbuild-v1',
     'nfc.nt51927.ctrlram-postbuild-v1',
     'nfc.nt51928.ctrlram-postbuild-v1',
     'nfc.nt51929.ctrlram-postbuild-v1',
-    'nfc.nt51930.ctrlram-postbuild-v1',
+    'nfc.nt51930.ctrlram-postbuild-fw1.x',
     'nfc.nt51931.ctrlram-postbuild-v1',
     'nfc.nt51932.ctrlram-postbuild-v1',
     'nfc.nt51950.ctrlram-postbuild-v1',
@@ -665,7 +943,6 @@ $SbomName = "$PackageName.spdx.json"
 $ProvenanceName = "$PackageName.provenance.json"
 $FileEntries = @(
     [ordered]@{ path = 'NvtFwCombiner.exe'; size = (Get-Item $AppExe).Length; sha256 = $AppHash; role = 'application' },
-    [ordered]@{ path = 'Nfc.CrcWorker.exe'; size = (Get-Item $WorkerExe).Length; sha256 = $WorkerHash; role = 'crcWorker' },
     [ordered]@{ path = 'THIRD-PARTY-NOTICES.txt'; size = (Get-Item $NoticePath).Length; sha256 = (Get-LowerSha256 $NoticePath); role = 'notices' },
     [ordered]@{ path = 'LICENSE.txt'; size = (Get-Item $LicensePath).Length; sha256 = (Get-LowerSha256 $LicensePath); role = 'license' },
     [ordered]@{ path = 'README.txt'; size = (Get-Item $ReadmePath).Length; sha256 = (Get-LowerSha256 $ReadmePath); role = 'readme' }
@@ -696,7 +973,7 @@ $Sbom = [ordered]@{
     dataLicense = 'CC0-1.0'
     SPDXID = 'SPDXRef-DOCUMENT'
     name = $PackageName
-    documentNamespace = "https://github.com/Dennis40816/nvt_fw_combiner/releases/download/$SourceTag/$SbomName"
+    documentNamespace = "$ReleaseNamespace/$SourceTag/$SbomName"
     creationInfo = [ordered]@{
         created = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
         creators = @('Tool: NVT-FW-Combiner-release-script')
@@ -715,9 +992,10 @@ $Sbom = [ordered]@{
     )
     files = @(
         $FileEntries | ForEach-Object {
+            $SpdxPathId = [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($_.path))
             [ordered]@{
                 fileName = $_.path
-                SPDXID = "SPDXRef-File-$($_.path.Replace('.', '-'))"
+                SPDXID = "SPDXRef-File-$SpdxPathId"
                 checksums = @([ordered]@{ algorithm = 'SHA256'; checksumValue = $_.sha256 })
                 licenseConcluded = 'NOASSERTION'
                 copyrightText = 'NOASSERTION'
@@ -731,7 +1009,7 @@ $Provenance = [ordered]@{
     schemaVersion = '1.0'
     product = 'NVT FW Combiner'
     version = $SemanticVersion
-    sourceRepository = 'https://github.com/Dennis40816/nvt_fw_combiner'
+    sourceRepository = $SourceIdentity
     sourceCommit = $Commit
     sourceTag = $SourceTag
     builder = 'GitHub Actions / scripts/package.ps1'
@@ -741,15 +1019,13 @@ $Provenance = [ordered]@{
 $Provenance | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $ReleaseRoot $ProvenanceName) -Encoding utf8NoBOM
 
 $HashTargets = @($FileEntries.path) + @('RELEASE-MANIFEST.json')
-$HashLines = foreach ($Name in $HashTargets) {
-    $Path = Join-Path $PackageRoot $Name
-    "$(Get-LowerSha256 -Path $Path)  $Name"
-}
-$HashLines | Set-Content -LiteralPath (Join-Path $PackageRoot 'SHA256SUMS.txt') -Encoding ascii
+Write-PackageHashList `
+    -PackageRoot $PackageRoot `
+    -RelativePaths $HashTargets `
+    -DestinationPath (Join-Path $PackageRoot 'SHA256SUMS.txt')
 
 $Expected = (@(
     'LICENSE.txt',
-    'Nfc.CrcWorker.exe',
     'NvtFwCombiner.exe',
     'README.txt',
     'RELEASE-MANIFEST.json',

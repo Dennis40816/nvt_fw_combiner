@@ -56,7 +56,7 @@ public sealed partial class ShellViewModelTests
         viewModel.AddGeneralMergeMappingCommand.Execute(null);
 
         Assert.Equal(2, viewModel.GeneralMergeMappings.Count);
-        viewModel.RemoveGeneralMergeMappingRow(viewModel.GeneralMergeMappings[0]);
+        viewModel.RemoveGeneralMappingRow(viewModel.GeneralMergeMappings[0]);
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
         Assert.Equal(1, mapping.Index);
         Assert.Equal("No source BIN selected", mapping.DisplayName);
@@ -135,7 +135,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.CanBuildMerge);
 
         string outputPath = workspace.PathFor("selected-output.bin");
-        await viewModel.BuildStandardMergeAsync(outputPath);
+        await viewModel.BuildMergeAsync(outputPath);
 
         string expectedPath = golden.ExpectedOutputPath(goldenCase);
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
@@ -180,7 +180,7 @@ public sealed partial class ShellViewModelTests
             }
         };
 
-        Assert.True(viewModel.SetGeneralMergeMappingFile(mapping.MappingId, source));
+        viewModel.SetSlotFile(mapping.MappingId, source);
 
         Assert.Contains(nameof(MainWindowViewModel.MergeReadinessStatus), propertyChanges);
         Assert.Contains("maps 1 source BIN", viewModel.MergeReadinessStatus, StringComparison.Ordinal);
@@ -236,6 +236,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.CanBuildMerge);
 
         viewModel.SelectedIc = "NT51927";
+        await viewModel.FirmwareInspectionRefreshTask;
 
         Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildMerge);
@@ -245,7 +246,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile(StandardMergeGoldenManifest.SlotIdForAddressSpace("tp-input"), oversizedTpPath);
 
         string outputPath = workspace.PathFor("blocked-standard-merge.bin");
-        await viewModel.BuildStandardMergeAsync(outputPath);
+        await viewModel.BuildMergeAsync(outputPath);
 
         Assert.False(viewModel.LastRunResult.Succeeded);
         Assert.Equal("Build blocked", viewModel.LastRunResult.Title);

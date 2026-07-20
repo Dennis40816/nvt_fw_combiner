@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51919-ab-t05-d06-alias",
+  "ic": "NT51919",
+  "workflow": "ab-merge",
+  "variantOrVersion": "t05-d06",
+  "topology": "topology-unscoped",
+  "directGolden": false,
+  "sourceClassification": "owner-approved-fact-scoped-alias",
+  "ownerApproval": "Firmware owner approved the NT51929 AB evidence as fact-scoped NT51919 family evidence on 2026-07-18.",
+  "alias": {
+    "sourceCaseId": "nt51929-ab-t05-d06",
+    "factScope": [
+      "NT51929-family AB composition facts for the referenced direct case",
+      "full-DP initializer and TPA/TPB logical input roles",
+      "referenced direct-case output bytes only; not a direct NT51919 product golden"
+    ],
+    "evidenceRefs": [
+      "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md",
+      "docs/architecture/supported-ic-matrix.md"
+    ]
+  }
+}

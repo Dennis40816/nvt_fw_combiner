@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.8 feature-frozen convergence milestone`
-> 文件版本：`0.9.8`
-> 基準日期：`2026-07-15`
+> 文件狀態：`0.9.10 performance-remediation stable release candidate`
+> 文件版本：`0.9.10`
+> 基準日期：`2026-07-19`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,7 +30,9 @@
 
 ## 0.1 Current owner priority
 
-As of 2026-07-16, `0.9.8` preserves the evidence-gated AB and CtrlRAM candidates integrated through `v0.9.7` while converging duplicate schemas, registrations, adapters, validation helpers, and presentation projections under exact source/package ratchets. Existing normal Merge and Replace behavior remains governed by its documented legacy comparison and golden evidence; this feature-frozen milestone does not promote IC support.
+As of 2026-07-19, `0.9.10` completes the feature-frozen end-to-end performance and Change Report remediation candidate on stable `v0.9.9`. Automatic Build has one authoritative execution; Legacy Combiner keeps exact sequential commands while removing unevidenced intermediate full-image reads; report/history/inspection/editor paths are bounded; and typed progress plus a read-only Hex Diff keep the UI responsive and understandable. Firmware ranges, command semantics, golden verification, runtime availability, and product-support promotion remain separate evidence-gated concerns, so this release does not infer or promote unsupported IC shapes.
+
+- Post-commit background report preparation is an explicit `0.9.10` requirement. A successful Build publishes the atomically committed output identity as soon as the BIN is usable, while complete JSON, Hex Diff, and history projection continue off the dispatcher. Preview and uncommitted failures publish no artifact, and the run retains command ownership until the complete report is ready.
 
 - AB Code architecture and evidence intake are reactivated. Executable AB behavior remains a separate R3 phase and no profile is promoted without its exact ranges, relocation fields, integrity contract, golden output, and firmware-owner approval.
 - NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919 may inherit the NT51929/NT51932 canonical AB facts only through owner-approved fact-scoped bindings and parity tests. This direction does not infer ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
@@ -683,6 +685,18 @@ The UI must make atomicity visible: whole-only, declared-parts, or explicit-rang
 Build automatically runs the same validation path as Preview before committing output. Build remains disabled only when required UI inputs are missing; profile compile, input validation, range policy, processor/tool readiness, and integrity disposition failures must produce a Preview/Build report instead of relying on a stale manual Preview gate.
 
 Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings. The initial default language is English.
+
+While Preview or Build is active, the shell shows one accessible typed lifecycle stepper and a
+restrained indeterminate activity bar beside the selected IC/mode context. The current Application-
+owned step and lifecycle ordinal are visible; it must not invent percentage completion when the
+composition/external-tool contracts do not expose byte-level progress. A reduced-motion preference
+keeps the same static step and accessible live status while removing the indeterminate animation.
+CtrlRAM Replace remains one logical run across validation, replacement, and the approved Postbuild
+sequence; approved external processes execute headlessly and never open user-visible console windows.
+After a successful Build atomically commits its BIN, the progress surface distinguishes the usable
+artifact from the still-running background report preparation. The complete report modal opens only
+after JSON, Hex Diff, and history projection are ready; Preview and failed or cancelled Build paths
+must never announce a committed artifact.
 
 ### 11.5 Typography and localization defaults
 

@@ -20,8 +20,9 @@ public sealed partial class ReplaceSelectionModal : UserControl
             return;
         }
 
-        if (viewModel.TryOpenCtrlRamFirmwareVersionModal())
+        if (viewModel.IsCtrlRamReplaceModeSelected)
         {
+            _ = await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync();
             return;
         }
 

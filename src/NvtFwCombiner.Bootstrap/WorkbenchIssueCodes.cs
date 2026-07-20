@@ -48,14 +48,14 @@ public static class WorkbenchIssueCodes
     /// <summary>General Replace fill values must contain exactly one hexadecimal byte.</summary>
     public const string GeneralReplacePatchFillByteInvalid = "ui.general-replace.patch-fill-byte-invalid";
 
-    /// <summary>Staged hexadecimal patches must not overlap before the General Replace compiler validates them.</summary>
-    public const string GeneralReplacePatchOverlap = "ui.general-replace.patch-overlap";
-
     /// <summary>DP Replace profile is intentionally pending for the selected IC.</summary>
     public const string ReplaceDpProfilePending = "replace.dp.profile-pending";
 
     /// <summary>Replace mode is not recognized by the workbench router.</summary>
     public const string ReplaceModeUnknown = "replace.mode.unknown";
+
+    /// <summary>The selected IC does not expose the requested Replace workflow.</summary>
+    public const string ReplaceWorkflowNotSupported = "replace.workflow.not-supported";
 
     /// <summary>CtrlRAM Replace IC-number selection is unsupported by the selected postbuild profile.</summary>
     public const string ReplaceCtrlRamIcNumberUnsupported = "replace.ctrlram.ic-number-unsupported";
@@ -83,6 +83,12 @@ public static class WorkbenchIssueCodes
 
     /// <summary>CtrlRAM Replace has no unambiguous approved Combiner path from a source FWConfig to the canonical Backup.</summary>
     public const string ReplaceCtrlRamFirmwareVersionPropagationUnavailable = "replace.ctrlram.fw-version-propagation-unavailable";
+
+    /// <summary>CtrlRAM Replace postbuild did not leave one readable canonical TP FW version Backup.</summary>
+    public const string ReplaceCtrlRamFirmwareVersionOutputInvalid = "replace.ctrlram.fw-version-output-invalid";
+
+    /// <summary>CtrlRAM Replace postbuild did not propagate the confirmed TP FW version to the canonical Backup.</summary>
+    public const string ReplaceCtrlRamFirmwareVersionOutputMismatch = "replace.ctrlram.fw-version-output-mismatch";
 
     /// <summary>General Replace IC-number selection is unsupported by the selected postbuild profile.</summary>
     public const string ReplaceGeneralIcNumberUnsupported = "replace.general.ic-number-unsupported";

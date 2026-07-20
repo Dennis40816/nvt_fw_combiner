@@ -20,4 +20,18 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.NumberSelectionChoices, choice =>
             choice.Token == WorkbenchIcNumberTokens.SingleChip);
     }
+
+    /// <summary>NT51926 exposes its typed Number choice instead of the active-run read-only field.</summary>
+    [Fact]
+    public void Nt51926ReplaceShowsOneNumberSelectorAtRest()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+
+        Assert.True(viewModel.IsDeviceContextNumberSelectionVisible);
+        Assert.False(viewModel.IsActiveRunNumberVisible);
+        Assert.NotNull(viewModel.SelectedNumberChoice);
+        Assert.NotEmpty(viewModel.SelectedNumberChoice.DisplayLabel);
+    }
 }

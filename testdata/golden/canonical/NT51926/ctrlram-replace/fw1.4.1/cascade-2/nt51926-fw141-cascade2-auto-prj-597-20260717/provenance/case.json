@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51926-fw141-cascade2-auto-prj-597-20260717",
+  "ic": "NT51926",
+  "workflow": "ctrlram-replace",
+  "variantOrVersion": "fw1.4.1",
+  "topology": "cascade-2",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
+  "project": "AUTO_PRJ-597",
+  "icCount": 2,
+  "baseKind": "owner-expected-plus-standard-merge-inputs",
+  "profileId": "nt51926-ctrlram-replace-fw141-runtime-cascade",
+  "artifacts": [
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/expected/NT51926TT_FlashCode_CSOT_TOYOTA_D02T06_JIRA0597_20260622.bin",
+      "size": 262144,
+      "sha256": "acdfb0a03c41d6b6e40d1e8f0f6ed72f7b82d5330aa3c13cc6269c930f7d016c",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/cascade/expected_output/NT51926TT_FlashCode_CSOT_TOYOTA_D02T06_JIRA0597_20260622.bin"
+      ],
+      "originalFileName": "NT51926TT_FlashCode_CSOT_TOYOTA_D02T06_JIRA0597_20260622.bin",
+      "sourceRole": "expected-final-output"
+    },
+    {
+      "artifactId": "dp-input",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/NT51926TT_Initial Code_CSOT_1920x1080_14.0_D02_20251105.bin",
+      "size": 262144,
+      "sha256": "448ef01056fb82bf4b146967b8faf0160eba62a9f9e7ee01af73cb94e1043a33",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/cascade/NT51926TT_Initial Code_CSOT_1920x1080_14.0_D02_20251105.bin"
+      ],
+      "originalFileName": "NT51926TT_Initial Code_CSOT_1920x1080_14.0_D02_20251105.bin",
+      "sourceRole": "standard-merge-dp-input"
+    },
+    {
+      "artifactId": "tp-input",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/NT51926TT_TPFW_T06.bin",
+      "size": 245760,
+      "sha256": "9c0b7338c2178d5a250960485bea3f9390ab85173f366bae4e2c4a8e29f279ab",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/cascade/NT51926TT_TPFW_T06.bin"
+      ],
+      "originalFileName": "NT51926TT_TPFW_T06.bin",
+      "sourceRole": "standard-merge-tp-input"
+    },
+    {
+      "artifactId": "postbuild-diffdlm",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/DiffDLM.bin",
+      "size": 10240,
+      "sha256": "72851fa78ce61d199b3765c5e1b392400e00b8f8ffaebe732b600238846039e3",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/cascade/postbuild_inputs/DiffDLM.bin"
+      ],
+      "originalFileName": "DiffDLM.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-mp-ctrlram",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/MP_Ctrlram.bin",
+      "size": 655360,
+      "sha256": "3a7d407ef8426de2080056e35080cc73cd5b4a27e52f55d3ae89e1d1709153f7",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/cascade/postbuild_inputs/MP_Ctrlram.bin"
+      ],
+      "originalFileName": "MP_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-nf-ctrlram",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/NF_Ctrlram.bin",
+      "size": 11728,
+      "sha256": "65d1f8742422b26a6162639882d29883b3372b3583e7bd4cb1c68d0fa1df7241",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/cascade/postbuild_inputs/NF_Ctrlram.bin"
+      ],
+      "originalFileName": "NF_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-normal-ctrlram",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/Normal_Ctrlram.bin",
+      "size": 655360,
+      "sha256": "7e9039509a5c0efe4eaa32ba77b2947e4ab883ebadb94497c0aec797fc25b5b6",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/cascade/postbuild_inputs/Normal_Ctrlram.bin"
+      ],
+      "originalFileName": "Normal_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "postbuild-vn-ctrlram",
+      "role": "input",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/VN_Ctrlram.bin",
+      "size": 5728,
+      "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260717/NT51926/replace/ctrlram/1.4.1/cascade/postbuild_inputs/VN_Ctrlram.bin"
+      ],
+      "originalFileName": "VN_Ctrlram.bin",
+      "sourceRole": "ctrlram-postbuild-input"
+    }
+  ],
+  "sourceIntake": {
+    "legacyManifest": "testdata/golden/ctrlram-replace/manifest.20260717.json",
+    "archive": {
+      "fileName": "NVT_Golden_Evidence_v0.9.9_20260717.7z",
+      "sha256": "9027e9038f51c5421f922afdf73d1f16fc5f7dd582e23e25547727fda585205c",
+      "transfer": "HackMD CJK14 numbered-note transfer",
+      "recoveredAtTaipei": "2026-07-17T17:18:00+08:00"
+    }
+  },
+  "promotion": {
+    "runtimeSupportPromotion": false,
+    "releaseRedistributionApproved": false
+  },
+  "evidenceStatus": "direct-owner-golden-without-standalone-phase-b-result"
+}

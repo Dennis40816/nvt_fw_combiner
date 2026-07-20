@@ -81,15 +81,12 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
         Assert.Equal("config-a", structure?.StructureId);
         Assert.False(definition.TryResolveStructure("map-a", "config-b", out _));
         Assert.False(definition.TryResolveStructure("missing-map", "config-a", out _));
-        Assert.True(definition.TryResolveField("map-a", "config-a", "value", out FirmwareMetadataField? field));
+        FirmwareMetadataField? field = structure?.Fields.SingleOrDefault(candidate => candidate.FieldId == "value");
         Assert.Equal("value", field?.FieldId);
-        Assert.False(definition.TryResolveField("map-a", "config-a", "missing", out _));
-        Assert.False(definition.TryResolveField("map-a", "config-b", "value", out _));
+        Assert.DoesNotContain(structure!.Fields, candidate => candidate.FieldId == "missing");
         _ = Assert.Throws<KeyNotFoundException>(() => definition.GetStructuresForMap("missing-map"));
         _ = Assert.Throws<ArgumentException>(() => definition.GetStructuresForMap(" "));
         _ = Assert.Throws<ArgumentException>(() => definition.TryResolveStructure("map-a", " ", out _));
-        _ = Assert.Throws<ArgumentException>(() =>
-            definition.TryResolveField("map-a", "config-a", " ", out _));
     }
 
     /// <summary>Verifies category applicability does not imply an undocumented metadata dependency.</summary>
@@ -142,7 +139,14 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
         Assert.Empty(definition.RequiredArtifactBindingIds);
         Assert.Equal(
             [FirmwareFactKind.RegionSet, FirmwareFactKind.Capability],
-            definition.EnumerateFactProvenance().Select(static provenance => provenance.EffectiveKey.FactKind));
+            definition.ImageMaps
+                .SelectMany(static imageMap => imageMap.RegionSetBindings)
+                .Select(static binding => binding.Provenance.EffectiveKey.FactKind)
+                .Concat(definition.ImageMaps
+                    .SelectMany(static imageMap => imageMap.MetadataSetBindings)
+                    .Select(static binding => binding.Provenance.EffectiveKey.FactKind))
+                .Concat(definition.CapabilityBindings
+                    .Select(static binding => binding.Provenance.EffectiveKey.FactKind)));
         IList<FirmwareMapFactBinding<FirmwareCapabilityFact>> view = Assert.IsType<IList<FirmwareMapFactBinding<FirmwareCapabilityFact>>>(
             definition.CapabilityBindings,
             exactMatch: false);
@@ -443,7 +447,7 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
         IEnumerable<string>? commonFirmwareCategoryIds = null,
         IEnumerable<FirmwareRegionSet>? regionSets = null)
     {
-        return FirmwareImageMap.CreateDirect(
+        return FirmwareImageMapTestFactory.CreateDirect(
             mapId,
             "flash",
             new FirmwareMapApplicability(

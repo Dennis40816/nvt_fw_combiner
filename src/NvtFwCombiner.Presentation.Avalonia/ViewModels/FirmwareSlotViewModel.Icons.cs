@@ -27,7 +27,7 @@ public sealed partial class FirmwareSlotViewModel
     public string SlotIconTooltip => SlotKind switch
     {
         FirmwareSlotKind.Unknown => "BIN input",
-        FirmwareSlotKind.Base => "Base firmware BIN",
+        FirmwareSlotKind.Base => "Reference firmware input",
         FirmwareSlotKind.Dp => "DP BIN",
         FirmwareSlotKind.Tp => "TP BIN",
         FirmwareSlotKind.CtrlRam => "CtrlRAM BIN",
