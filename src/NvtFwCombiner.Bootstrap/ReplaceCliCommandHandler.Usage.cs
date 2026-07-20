@@ -10,8 +10,8 @@ internal static partial class ReplaceCliCommandHandler
         switch (command)
         {
             case IcWorkflowIds.DpReplace:
-                await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--output <path>] [--report <path>]").ConfigureAwait(false);
-                await output.WriteLineAsync("  nvt_fw_combiner dp-replace build --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ldc <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner dp-replace build --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ldc <path>] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
                 break;
             case IcWorkflowIds.CtrlRamReplace:
                 await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <ic> --ic-num <value> --base <path> --ctrlram <slot-id=path> [--ctrlram <slot-id=path> ...] [--report <path>]").ConfigureAwait(false);

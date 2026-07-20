@@ -55,6 +55,8 @@ public static partial class WorkbenchCompositionService
                 {
                     CompositionAddressSpaceIds.DpReplacement =>
                         ("Base flash", ActionLabel(operation.Kind), "DP replacement", "Changed DP BIN", true),
+                    CompositionAddressSpaceIds.LdReplacement =>
+                        ("Base flash", ActionLabel(operation.Kind), "LDC replacement", "Changed LDC BIN", true),
                     CompositionAddressSpaceIds.ReferenceBase =>
                         ("DP replacement", "Restore", "Base TP", "Base flash", false),
                     _ =>

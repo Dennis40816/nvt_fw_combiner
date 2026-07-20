@@ -76,7 +76,7 @@ internal static partial class V2CompositionPlanCompiler
             };
             bool isDpReplaceRange = operation is CopyOrReplaceProfileOperation replace &&
                 replace.Kind == CompositionProfileOperationKind.ReplaceRange &&
-                IsDpFirmwareInputSource(profile, replace);
+                IsDpReplacePayloadInputSource(profile, replace);
             bool isProcessorRun = operation is RunProcessorProfileOperation;
             bool isCtrlRamProcessorRun = isCtrlRamReplace && isProcessorRun;
             bool isReferenceRestore = operation is CopyOrReplaceProfileOperation copy &&

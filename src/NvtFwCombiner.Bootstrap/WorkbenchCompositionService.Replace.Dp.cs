@@ -58,8 +58,8 @@ public static partial class WorkbenchCompositionService
                 issue.Message);
         }
 
-        InputArtifactBinding[] bindings =
-        [
+        var bindings = new List<InputArtifactBinding>
+        {
             CompiledCompositionInputBindingFactory.Create(
                 compiledComposition,
                 CompositionAddressSpaceIds.ReferenceBase,
@@ -71,11 +71,22 @@ public static partial class WorkbenchCompositionService
                     CompositionAddressSpaceIds.DpReplacement,
                     Path.GetFullPath(path))
                 : throw new InvalidOperationException($"Input slot '{WorkbenchSlotIds.ReplaceDp}' is required."),
-        ];
+        };
+        foreach (DpReplaceAdditionalPayloadRule rule in DpReplaceAuthoringCatalog.GetAdditionalPayloads(icId))
+        {
+            bindings.Add(context.SlotPaths.TryGetValue(rule.SlotId, out string? additionalPath) &&
+                !string.IsNullOrWhiteSpace(additionalPath)
+                ? CompiledCompositionInputBindingFactory.Create(
+                    compiledComposition,
+                    rule.AddressSpaceId,
+                    Path.GetFullPath(additionalPath))
+                : throw new InvalidOperationException($"Input slot '{rule.SlotId}' is required."));
+        }
+
         return await RunCompiledCompositionAsync(
             DpReplaceRunIdPrefix,
             compiledComposition,
-            bindings,
+            [.. bindings],
             context.BasePath,
             build,
             outputPath,
