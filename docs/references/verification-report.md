@@ -37,10 +37,22 @@ UI Smoke `271/271`, Architecture `99/99`, release package policy `14/14`,
 external-tool policy dry run, package construction, and visible package smoke
 passed during M3. A clean short-path detached worktree at `c58711ce` passed
 `python scripts/verify.py --structure-only`, including Polytail fast checks.
-The final exact candidate still requires `python scripts/verify.py --all`,
-independent R2/R3 and owner review, protected CI, reviewed-main packaging, clean
-Windows x64 execution without separately installed .NET/Python,
-accessibility/visual review, signing, and immutable release publication.
+
+The exact code and metadata candidate `22f8f517` then passed the canonical
+`python scripts/verify.py --all` gate in clean short-path detached worktree
+`C:\n11v-all-22f8`. Release build completed with zero warnings and errors.
+Repository policy tests passed `107/107`; Python CRC Worker passed `28/28` at
+98.88% branch coverage. .NET results were Domain `357/357`, Application
+`186/186`, ProfileContract `351/351`, Architecture `99/99`, GoldenRegression
+`19/19`, Infrastructure `245/245` with two expected Windows platform skips,
+Bootstrap `622/622`, and UI Smoke `271/271`. The CtrlRAM fixture manifest and
+payload hashes also passed.
+
+Independent R2/R3 and owner review, the existing `總代理` conversation review,
+protected CI, reviewed-main packaging, clean Windows x64 execution without
+separately installed .NET/Python, accessibility/visual review, signing, and
+immutable release publication remain mandatory. This evidence-only follow-up
+does not change the verified executable tree or self-approve those gates.
 
 ## 0.9.10 performance-remediation stable release candidate
 
