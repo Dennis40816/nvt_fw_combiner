@@ -56,6 +56,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _startupTrace.Mark("shell-view-model.created");
         viewModel.LoadShellPreferences(preferences);
         DataContext = viewModel;
+        ApplyDeferredShellContent(viewModel);
         ApplyThemePreference(viewModel.SelectedTheme);
 
         if (DataContext is INotifyPropertyChanged notifier)
@@ -183,6 +184,8 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
+        ApplyDeferredShellContent(viewModel);
+
         if (e.PropertyName == nameof(MainWindowViewModel.SelectedTheme))
         {
             ApplyThemePreference(viewModel.SelectedTheme);
@@ -223,6 +226,31 @@ public sealed partial class MainWindow : Window, IDisposable
             nameof(MainWindowViewModel.SelectedTheme) or
             nameof(MainWindowViewModel.SelectedLanguage) or
             nameof(MainWindowViewModel.IsReducedMotionEnabled);
+    }
+
+    private void ApplyDeferredShellContent(MainWindowViewModel viewModel)
+    {
+        LoadContent(DeviceContextHost, viewModel.IsDeviceContextVisible, viewModel);
+        LoadContent(HomePageHost, viewModel.IsHomeVisible, viewModel);
+        LoadContent(SettingsPageHost, viewModel.IsSettingsVisible, viewModel);
+        LoadContent(HexEditorPageHost, viewModel.IsHexEditorVisible, viewModel);
+        LoadContent(ReplacePageHost, viewModel.IsReplaceVisible, viewModel);
+        LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel);
+        LoadContent(ReportToastHost, viewModel.HasReportToast, viewModel);
+        LoadContent(ReplaceSelectionModalHost, viewModel.IsReplaceSelectionModalOpen, viewModel);
+        LoadContent(CtrlRamFirmwareVersionModalHost, viewModel.IsCtrlRamFirmwareVersionModalOpen, viewModel);
+        LoadContent(WorkflowContextSetupModalHost, viewModel.IsWorkflowContextModalOpen, viewModel);
+        LoadContent(FirmwareIcMismatchModalHost, viewModel.IsFirmwareIcMismatchModalOpen, viewModel);
+        LoadContent(ReportModalHost, viewModel.IsReportModalOpen, viewModel);
+        LoadContent(BuildCompletedModalHost, viewModel.IsBuildCompletedModalOpen, viewModel);
+    }
+
+    private static void LoadContent(ContentControl host, bool shouldLoad, object content)
+    {
+        if (shouldLoad)
+        {
+            host.Content ??= content;
+        }
     }
 
     private void ApplyThemePreference(string selectedTheme)
