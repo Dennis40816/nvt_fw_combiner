@@ -40,11 +40,6 @@ public sealed partial class MainWindowViewModel
             });
     }
 
-    private Task RunReplaceAsync(bool build)
-    {
-        return RunReplaceAsync(build, outputPath: null, ctrlRamFirmwareVersionEdit: null);
-    }
-
     private Task RunReplaceAsync(
         bool build,
         string? outputPath,

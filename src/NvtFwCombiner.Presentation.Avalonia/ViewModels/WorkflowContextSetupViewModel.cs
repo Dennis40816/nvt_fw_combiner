@@ -19,8 +19,7 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
 
     /// <summary>Gets selectable grouped IC-count choices for the draft IC.</summary>
     [ObservableProperty]
-    public partial IReadOnlyList<IcNumberChoiceViewModel> NumberChoices { get; set; } =
-        UiCompositionRunner.GetNumberSelectionChoices(WorkbenchCompositionService.GetDefaultIcId());
+    public partial IReadOnlyList<IcNumberChoiceViewModel> NumberChoices { get; set; } = [];
 
     /// <summary>Gets or sets the planner token selected by the grouped choice.</summary>
     [ObservableProperty]

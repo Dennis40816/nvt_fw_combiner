@@ -62,10 +62,11 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReportHistoryStorageWarning));
         OnPropertyChanged(nameof(NavigationPath));
         RequestReportRelocalization();
-        RefreshSettingsState();
-        RefreshReplaceModeState(preserveSlotFiles: true);
-        RefreshCtrlRamDisplayFromInspection();
-        RefreshReplaceSelectionState();
+        _deferredState.RefreshLoaded(
+            RefreshSettingsState,
+            () => RefreshReplaceModeState(preserveSlotFiles: true),
+            RefreshCtrlRamDisplayFromInspection,
+            RefreshReplaceSelectionState);
     }
 
     private void RequestReportRelocalization()
@@ -122,7 +123,9 @@ public sealed partial class MainWindowViewModel
             Text.GetReplaceBaseTitle(SelectedReplaceMode),
             Text.GetReplaceBaseDescription(
                 SelectedReplaceMode,
-                WorkbenchCompositionService.GetDpReplaceReferenceCapacityLabel(SelectedIc)),
+                _deferredState.IsWorkflowLoaded
+                    ? WorkbenchCompositionService.GetDpReplaceReferenceCapacityLabel(SelectedIc)
+                    : null),
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
