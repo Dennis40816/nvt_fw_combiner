@@ -51,7 +51,7 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsCtrlRamFirmwareVersionModalOpen);
     }
 
-    /// <summary>Verifies a version edit cannot bypass exact evidence-backed V2 route admission.</summary>
+    /// <summary>Verifies the confirmed version reaches the output Backup through the admitted V2 postbuild route.</summary>
     [Fact]
     public async Task CtrlRamBuildPropagatesConfirmedFirmwareVersionToOutputBackup()
     {
@@ -74,15 +74,20 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.BuildReplaceAsync(outputPath, edit);
 
-        Assert.False(viewModel.LastRunResult.Succeeded);
-        Assert.Equal(
-            "The selected CtrlRAM Replace shape has no exact evidence-backed V2 route.",
-            viewModel.LastRunResult.Detail);
-        Assert.False(File.Exists(outputPath));
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(File.Exists(outputPath));
+        WorkbenchFirmwareConfigMetadata? outputMetadata =
+            WorkbenchCompositionService.TryReadFirmwareConfigMetadata("NT51926", outputPath);
+        Assert.NotNull(outputMetadata);
+        Assert.Equal(0x2A, outputMetadata.FirmwareVersion);
+        Assert.Equal(0xD5, outputMetadata.FirmwareVersionBar);
+        Assert.Equal(0x0C, outputMetadata.FirmwareSubVersion);
         Assert.True(viewModel.HasLoadedReport);
         using var report = JsonDocument.Parse(viewModel.LoadedReportJson);
-        JsonElement issue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal("replace.workflow.not-supported", issue.GetProperty("Code").GetString());
+        Assert.Empty(report.RootElement.GetProperty("Issues").EnumerateArray());
+        JsonElement validation = Assert.Single(report.RootElement.GetProperty("Validations").EnumerateArray());
+        Assert.Equal("verify-nvt-fwconfig-backup-version", validation.GetProperty("RuleId").GetString());
+        Assert.Equal("Passed", validation.GetProperty("Status").GetString());
     }
 
     /// <summary>The CtrlRAM metadata read yields immediately, runs off-thread, and admits only one request.</summary>
