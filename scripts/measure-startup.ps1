@@ -67,14 +67,20 @@ function Invoke-StartupSample {
     try {
         [double]$windowMilliseconds = 0
         [double]$traceReadyMilliseconds = 0
+        [long]$workingSetBytesAtWindow = 0
+        [long]$workingSetBytesAtTrace = 0
+        [long]$peakWorkingSetBytes = 0
         while (-not $process.HasExited -and $stopwatch.Elapsed.TotalSeconds -lt $Timeout) {
             Start-Sleep -Milliseconds 10
             $process.Refresh()
+            $peakWorkingSetBytes = [Math]::Max($peakWorkingSetBytes, $process.WorkingSet64)
             if ($windowMilliseconds -eq 0 -and $process.MainWindowHandle -ne 0) {
                 $windowMilliseconds = $stopwatch.Elapsed.TotalMilliseconds
+                $workingSetBytesAtWindow = $process.WorkingSet64
             }
             if ($traceReadyMilliseconds -eq 0 -and (Test-Path -LiteralPath $TracePath -PathType Leaf)) {
                 $traceReadyMilliseconds = $stopwatch.Elapsed.TotalMilliseconds
+                $workingSetBytesAtTrace = $process.WorkingSet64
             }
             if ($windowMilliseconds -ne 0 -and $traceReadyMilliseconds -ne 0) {
                 break
@@ -100,6 +106,9 @@ function Invoke-StartupSample {
             processId = $process.Id
             processToWindowMilliseconds = [Math]::Round($windowMilliseconds, 3)
             processToTraceMilliseconds = [Math]::Round($traceReadyMilliseconds, 3)
+            workingSetBytesAtWindow = $workingSetBytesAtWindow
+            workingSetBytesAtTrace = $workingSetBytesAtTrace
+            peakWorkingSetBytes = $peakWorkingSetBytes
             trace = $trace
         }
     }
@@ -182,6 +191,9 @@ try {
         summary = [ordered]@{
             processToWindowMilliseconds = Get-MetricSummary @($samples.processToWindowMilliseconds)
             processToTraceMilliseconds = Get-MetricSummary @($samples.processToTraceMilliseconds)
+            workingSetBytesAtWindow = Get-MetricSummary @($samples.workingSetBytesAtWindow)
+            workingSetBytesAtTrace = Get-MetricSummary @($samples.workingSetBytesAtTrace)
+            peakWorkingSetBytes = Get-MetricSummary @($samples.peakWorkingSetBytes)
             stages = $stageSummaries
         }
     }
@@ -198,6 +210,9 @@ try {
     }
     Write-Host "Managed entry to opened median: $($openedStage.elapsedMilliseconds.median) ms"
     Write-Host "Managed entry to background warm-up median: $($warmupStage.elapsedMilliseconds.median) ms"
+    Write-Host "Working set at window median: $($result.summary.workingSetBytesAtWindow.median) bytes"
+    Write-Host "Working set after background warm-up median: $($result.summary.workingSetBytesAtTrace.median) bytes"
+    Write-Host "Peak working set during startup median: $($result.summary.peakWorkingSetBytes.median) bytes"
     $stageSummaries | ForEach-Object {
         [pscustomobject]@{
             Stage = $_.name
