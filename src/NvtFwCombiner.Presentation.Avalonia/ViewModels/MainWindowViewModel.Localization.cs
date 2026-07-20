@@ -51,8 +51,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(MergeBuildActionTip));
-        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionCurrentValue));
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionMetadataDetail));
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionValidationDetail));

@@ -190,20 +190,6 @@ public sealed partial class ShellTextResources
         };
     }
 
-    public string GetBuildActionTip(string readinessStatus, bool canBuild)
-    {
-        return canBuild
-            ? SelectLanguage(
-                $"{readinessStatus} Build validates first, then writes output and report.",
-                $"{readinessStatus} Build 會先驗證，再寫出 output 與 report。")
-            : readinessStatus;
-    }
-
-    public string GetOpenReportForDetailsSentence()
-    {
-        return SelectLanguage("Open report for details.", "開啟 report 查看詳細內容。");
-    }
-
     public string GetReportHistorySummary(int count)
     {
         return count switch

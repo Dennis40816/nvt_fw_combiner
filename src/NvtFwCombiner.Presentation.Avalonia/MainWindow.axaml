@@ -216,6 +216,17 @@
                     </Grid>
                   </Button>
                 </StackPanel>
+                <StackPanel Grid.Column="2" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+                  <Button
+                      Classes="toolbarAction"
+                      Click="BuildReplaceButton_OnClick"
+                      IsEnabled="{Binding CanBuildReplace}">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
+                       <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
+                    </StackPanel>
+                  </Button>
+                </StackPanel>
               </Grid>
             </Grid>
 
@@ -248,6 +259,17 @@
                       MinHeight="32"
                       ItemsSource="{Binding MergeModeChoices}"
                       SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+                  <Button
+                      Classes="toolbarAction"
+                      Click="BuildMergeButton_OnClick"
+                      IsEnabled="{Binding CanBuildMerge}">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
+                      <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
+                    </StackPanel>
+                  </Button>
                 </StackPanel>
               </Grid>
             </Grid>

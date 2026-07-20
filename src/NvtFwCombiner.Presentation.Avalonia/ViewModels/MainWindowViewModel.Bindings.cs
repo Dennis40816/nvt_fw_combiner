@@ -250,12 +250,6 @@ public sealed partial class MainWindowViewModel
             IsStandardMergeSupported,
             GeneralMergeMappings.Count(mapping => mapping.HasFile));
 
-    /// <summary>One-line Build action hint for Merge.</summary>
-    public string MergeBuildActionTip => CreateBuildActionTip(MergeReadinessStatus, CanRunMerge());
-
-    /// <summary>One-line Build action hint for Replace.</summary>
-    public string ReplaceBuildActionTip => CreateBuildActionTip(ReplaceReadinessStatus, CanRunReplace());
-
     /// <summary>True when active Merge build can run.</summary>
     public bool CanBuildMerge => CanRunMerge();
 
