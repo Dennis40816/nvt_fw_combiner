@@ -88,9 +88,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(GeneralMergeOutputFileName));
         OnPropertyChanged(nameof(MergeOutputFileName));
         OnPropertyChanged(nameof(MergeReadinessStatus));
-        OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
         OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
         OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
@@ -116,8 +114,6 @@ public sealed partial class MainWindowViewModel
             "No output",
             succeeded: false);
         OnPropertyChanged(nameof(LastRunResult));
-        OnPropertyChanged(nameof(MergeBuildActionTip));
-        OnPropertyChanged(nameof(ReplaceBuildActionTip));
     }
 
     private void SelectReplaceMode(string mode)
@@ -264,10 +260,8 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ShouldAnimateRunProgress));
         OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(MergeReadinessStatus));
-        OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         RefreshReplaceSelectionState();
     }
 

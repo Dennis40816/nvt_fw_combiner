@@ -73,8 +73,7 @@
             Classes="primary"
             Click="BuildReplaceButton_OnClick"
             Content="{Binding Text.BuildActionLabel}"
-            IsEnabled="{Binding CanBuildReplace}"
-            ToolTip.Tip="{Binding ReplaceBuildActionTip}" />
+            IsEnabled="{Binding CanBuildReplace}" />
       </StackPanel>
     </Grid>
   </Border>

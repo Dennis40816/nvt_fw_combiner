@@ -53,19 +53,6 @@ public sealed partial class MainWindowViewModel
         ? $"{SanitizeFileName(LoadedReport.Title)}.json"
         : "nvt-fw-combiner-report.json";
 
-    private string CreateBuildActionTip(string readinessStatus, bool canBuild)
-    {
-        return true switch
-        {
-            _ when HasLoadedReport && LoadedReport.HasPrimaryIssue =>
-                $"{TrimOneLine(LoadedReport.PrimaryIssue.Detail, 150)} {Text.GetOpenReportForDetailsSentence()}",
-            _ when HasLoadedReport && !LastRunResult.Succeeded =>
-                $"{TrimOneLine(LastRunResult.Detail, 150)} {Text.GetOpenReportForDetailsSentence()}",
-            _ when canBuild => Text.GetBuildActionTip(readinessStatus, canBuild: true),
-            _ => readinessStatus,
-        };
-    }
-
     /// <summary>Command that opens the latest report modal.</summary>
     public IRelayCommand ShowReportCommand { get; }
 
@@ -432,8 +419,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReportActionLabel));
         OnPropertyChanged(nameof(ReportActionStatus));
         OnPropertyChanged(nameof(ReportSaveFileName));
-        OnPropertyChanged(nameof(MergeBuildActionTip));
-        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         ShowReportCommand.NotifyCanExecuteChanged();
     }
 
@@ -448,14 +433,6 @@ public sealed partial class MainWindowViewModel
         }
 
         return candidate.Length == 0 ? "nvt-fw-combiner-report" : candidate;
-    }
-
-    private static string TrimOneLine(string value, int maxLength)
-    {
-        string oneLine = string.Join(" ", value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-        return oneLine.Length <= maxLength
-            ? oneLine
-            : string.Concat(oneLine.AsSpan(0, Math.Max(0, maxLength - 3)), "...");
     }
 
     private static bool IsReportMaterializationException(Exception exception)

@@ -406,8 +406,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsFirmwareInspectionLoading));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(MergeBuildActionTip));
-        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         RefreshCommandState();
     }
 

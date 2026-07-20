@@ -220,8 +220,7 @@
                   <Button
                       Classes="toolbarAction"
                       Click="BuildReplaceButton_OnClick"
-                      IsEnabled="{Binding CanBuildReplace}"
-                      ToolTip.Tip="{Binding ReplaceBuildActionTip}">
+                      IsEnabled="{Binding CanBuildReplace}">
                     <StackPanel Orientation="Horizontal" Spacing="7">
                       <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
                        <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
@@ -265,8 +264,7 @@
                   <Button
                       Classes="toolbarAction"
                       Click="BuildMergeButton_OnClick"
-                      IsEnabled="{Binding CanBuildMerge}"
-                      ToolTip.Tip="{Binding MergeBuildActionTip}">
+                      IsEnabled="{Binding CanBuildMerge}">
                     <StackPanel Orientation="Horizontal" Spacing="7">
                       <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
                       <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />

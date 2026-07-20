@@ -178,8 +178,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Command=\"{Binding PreviewReplaceCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding CanBuildMerge}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding MergeBuildActionTip}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding ReplaceBuildActionTip}\"", shellSurface, StringComparison.Ordinal);
+        Assert.DoesNotContain("MergeBuildActionTip", shellSurface, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReplaceBuildActionTip", shellSurface, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.GeneralMergeMappingTitle}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralMergeMappings}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralMergeMappingRow", workflowTemplates, StringComparison.Ordinal);
