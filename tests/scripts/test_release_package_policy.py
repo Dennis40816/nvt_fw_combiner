@@ -233,7 +233,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         )
 
         self.assertIsNotNone(match)
-        self.assertNotIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
+        self.assertIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
         self.assertNotIn("nfc.nt51930.ctrlram-postbuild-v1", match.group(1))
         self.assertIn("nfc.nt51930.ctrlram-postbuild-fw1.x", match.group(1))
         self.assertIn("nfc.nt51926.ctrlram-postbuild-fw1.4.1", match.group(1))
