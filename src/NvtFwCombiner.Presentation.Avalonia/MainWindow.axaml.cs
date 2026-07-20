@@ -18,6 +18,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _shellPreferencePersistence = new(ShellPreferenceFileStore.SaveAsync, static snapshot => snapshot);
     private readonly CancellationTokenSource _startupLoadCancellation = new();
     private readonly UiLaunchOptions _launchOptions;
+    private readonly StartupTraceSession _startupTrace;
     private bool _isReportHistoryClosePending;
     private bool _isReportHistoryPersistenceComplete;
     private bool _isDisposed;
@@ -25,23 +26,34 @@ public sealed partial class MainWindow : Window, IDisposable
 
     /// <summary>Initializes the main window controls.</summary>
     public MainWindow()
-        : this(UiLaunchOptions.Empty)
+        : this(UiLaunchOptions.Empty, StartupTraceSession.Disabled)
     {
     }
 
     /// <summary>Initializes the main window controls with command-line startup state.</summary>
     public MainWindow(UiLaunchOptions launchOptions)
+        : this(launchOptions, StartupTraceSession.Disabled)
+    {
+    }
+
+    internal MainWindow(UiLaunchOptions launchOptions, StartupTraceSession startupTrace)
     {
         ArgumentNullException.ThrowIfNull(launchOptions);
+        ArgumentNullException.ThrowIfNull(startupTrace);
         _launchOptions = launchOptions;
+        _startupTrace = startupTrace;
+        _startupTrace.Mark("main-window-constructor.started");
 
         InitializeComponent();
+        _startupTrace.Mark("main-window-xaml.ready");
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
         ShellPreferenceSnapshot preferences = ShellPreferenceFileStore.Load(
             ShellPreferenceFileStore.DefaultPreferencesPath);
+        _startupTrace.Mark("shell-preferences.loaded");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create(
             ShellTextResources.LanguageFromPreference(preferences.Language));
+        _startupTrace.Mark("shell-view-model.created");
         viewModel.LoadShellPreferences(preferences);
         DataContext = viewModel;
         ApplyThemePreference(viewModel.SelectedTheme);
@@ -52,6 +64,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         ApplyInitialLaunchOptions(viewModel, launchOptions);
+        _startupTrace.Mark("main-window-constructor.completed");
     }
 
     /// <inheritdoc />
@@ -145,6 +158,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         base.OnOpened(e);
         WindowState = WindowState.Maximized;
+        _ = _startupTrace.Complete("main-window.opened");
         if (_isStartupLoadStarted || DataContext is not MainWindowViewModel viewModel)
         {
             return;
