@@ -173,21 +173,21 @@
           FontSize="{DynamicResource NfcFontSize11}"
           FontWeight="SemiBold"
           Foreground="{DynamicResource NfcInfoTextBrush}"
-          Text="{Binding HexEditorWorkspace.Text.UtilToolsLabel}" />
+          Text="{Binding LoadedHexEditorWorkspace.Text.UtilToolsLabel}" />
       <TextBlock
           FontSize="24"
           FontWeight="SemiBold"
           Foreground="{DynamicResource NfcTextStrongBrush}"
-          Text="{Binding HexEditorWorkspace.Text.HexEditorTitle}" />
+          Text="{Binding LoadedHexEditorWorkspace.Text.HexEditorTitle}" />
       <TextBlock
           FontSize="{DynamicResource NfcFontSize13}"
           Foreground="{DynamicResource NfcTextMutedBrush}"
-          Text="{Binding HexEditorWorkspace.Text.HexEditorDetail}"
+          Text="{Binding LoadedHexEditorWorkspace.Text.HexEditorDetail}"
           TextWrapping="Wrap" />
     </StackPanel>
 
     <Border Classes="panelSurface roomyPanel">
-      <views:HexEditorPanel DataContext="{Binding HexEditorWorkspace}" />
+      <views:HexEditorPanel DataContext="{Binding LoadedHexEditorWorkspace}" />
     </Border>
   </StackPanel>
 </DataTemplate>

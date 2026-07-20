@@ -19,7 +19,10 @@ public sealed partial class MainWindowViewModel
     public ShellTextResources Text { get; private set; } = ShellTextResources.For(ShellLanguage.English);
 
     /// <summary>Gets the standalone raw-BIN utility workspace exposed from Home Util Tools.</summary>
-    public HexEditorWorkspaceViewModel HexEditorWorkspace { get; }
+    public HexEditorWorkspaceViewModel HexEditorWorkspace =>
+        _deferredState.GetHexEditorWorkspace(Text, HexEditorWorkspace_OnPropertyChanged);
+
+    internal HexEditorWorkspaceViewModel? LoadedHexEditorWorkspace => _deferredState.LoadedHexEditorWorkspace;
 
     /// <summary>Gets the workspace title.</summary>
     public string WorkspaceTitle { get; private set; } = string.Empty;

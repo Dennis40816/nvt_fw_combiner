@@ -17,12 +17,17 @@ public sealed partial class ShellViewModelTests
         Assert.Empty(viewModel.GeneralMergeOutputLength);
         Assert.Empty(viewModel.MergeSlots);
         Assert.Empty(viewModel.ReplaceSlots);
+        Assert.Empty(viewModel.GeneralMergeMappings);
+        Assert.Empty(viewModel.GeneralReplaceMappings);
+        Assert.Null(viewModel.LoadedHexEditorWorkspace);
 
         viewModel.ShowMergeCommand.Execute(null);
 
         Assert.NotEmpty(viewModel.NumberSelectionChoices);
         Assert.NotEmpty(viewModel.GeneralMergeOutputLength);
         Assert.NotEmpty(viewModel.MergeSlots);
+        _ = Assert.Single(viewModel.GeneralMergeMappings);
+        _ = Assert.Single(viewModel.GeneralReplaceMappings);
     }
 
     /// <summary>Verifies Settings exposes catalog-backed status without requiring workflow context.</summary>

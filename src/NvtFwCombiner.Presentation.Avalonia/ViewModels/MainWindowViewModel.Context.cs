@@ -30,7 +30,9 @@ public sealed partial class MainWindowViewModel
         _deferredState.EnsureWorkflow(
             RefreshNumberChoicesForSelectedIc,
             () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(SelectedIc),
-            value => GeneralMergeOutputLength = value);
+            value => GeneralMergeOutputLength = value,
+            AddGeneralReplaceMapping,
+            AddGeneralMergeMapping);
 
         RefreshCtrlRamRegions();
         RefreshMergeSlotRequirements();
