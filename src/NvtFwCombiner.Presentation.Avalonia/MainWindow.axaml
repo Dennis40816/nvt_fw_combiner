@@ -218,17 +218,6 @@
                     </Grid>
                   </Button>
                 </StackPanel>
-                <StackPanel Grid.Column="2" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-                  <Button
-                      Classes="toolbarAction"
-                      Click="BuildReplaceButton_OnClick"
-                      IsEnabled="{Binding CanBuildReplace}">
-                    <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
-                       <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
-                    </StackPanel>
-                  </Button>
-                </StackPanel>
               </Grid>
             </Grid>
 
@@ -267,17 +256,6 @@
                       ItemsSource="{Binding MergeModeChoices}"
                       SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-                  <Button
-                      Classes="toolbarAction"
-                      Click="BuildMergeButton_OnClick"
-                      IsEnabled="{Binding CanBuildMerge}">
-                    <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
-                      <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
-                    </StackPanel>
-                  </Button>
-                </StackPanel>
               </Grid>
             </Grid>
 
@@ -298,6 +276,7 @@
     </ScrollViewer>
 
     <Border
+        x:Name="CompositionBuildActionRail"
         Grid.RowSpan="4"
         Margin="0,0,24,24"
         HorizontalAlignment="Right"
@@ -324,34 +303,26 @@
               StrokeThickness="1.7" />
         </Button>
         <Button
-            Width="52"
-            Height="52"
-            Classes="floatingAction build"
+            Classes="toolbarAction"
             AutomationProperties.Name="{Binding Text.BuildActionLabel}"
             Click="BuildMergeButton_OnClick"
             IsEnabled="{Binding CanBuildMerge}"
-            IsVisible="{Binding IsMergeVisible}"
-            ToolTip.Tip="{Binding MergeBuildActionTip}">
-          <Path
-              Width="22"
-              Height="22"
-              Data="M5 3.5V20.5L19 12Z"
-              Fill="{DynamicResource NfcSurfaceBrush}" />
+            IsVisible="{Binding IsMergeVisible}">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
+            <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
+          </StackPanel>
         </Button>
         <Button
-            Width="52"
-            Height="52"
-            Classes="floatingAction build"
+            Classes="toolbarAction"
             AutomationProperties.Name="{Binding Text.BuildActionLabel}"
             Click="BuildReplaceButton_OnClick"
             IsEnabled="{Binding CanBuildReplace}"
-            IsVisible="{Binding IsReplaceVisible}"
-            ToolTip.Tip="{Binding ReplaceBuildActionTip}">
-          <Path
-              Width="22"
-              Height="22"
-              Data="M5 3.5V20.5L19 12Z"
-              Fill="{DynamicResource NfcSurfaceBrush}" />
+            IsVisible="{Binding IsReplaceVisible}">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
+            <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
+          </StackPanel>
         </Button>
       </StackPanel>
     </Border>
