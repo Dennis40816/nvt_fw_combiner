@@ -93,6 +93,12 @@ The byte ratchet does not authorize trimming, removal of the self-contained
 smoke coverage. A lower reproducible package result lowers the ratchet only
 after release review records the producing commit, environment, and artifact.
 
+Starting with `v0.9.11`, release smoke also rejects a main
+`NvtFwCombiner.exe` above the owner's 70,000,000-byte target. This application
+budget is checked after fresh extraction and is separate from the existing ZIP
+budget. It does not authorize moving runtime or application dependencies out of
+the self-contained executable.
+
 ## First-sample `v1.0.0` release workflow
 
 The first sample release is allowed only after [`development-tags.md`](../governance/development-tags.md) marks the `v1.0.0` support matrix signed off. The package workflow is the distribution gate, not the firmware-support gate.

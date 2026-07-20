@@ -26,6 +26,7 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
 )
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
 MAXIMUM_PACKAGE_BYTES = 58_076_715
+MAXIMUM_APPLICATION_BYTES = 70_000_000
 ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
@@ -225,6 +226,57 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(
             "exceeds the owner-approved maximum 58076715 bytes",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_application_above_owner_approved_budget(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-release-application-size-policy-test-"
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            package_name = "NvtFwCombiner-v0.0.0-win-x64"
+            package_root = temporary_root / package_name
+            package_root.mkdir()
+
+            for required_file in (
+                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                "RELEASE-MANIFEST.json",
+                "SHA256SUMS.txt",
+                "README.txt",
+                "LICENSE.txt",
+                "THIRD-PARTY-NOTICES.txt",
+            ):
+                required_path = package_root / required_file
+                required_path.parent.mkdir(parents=True, exist_ok=True)
+                required_path.write_bytes(b"release-policy fixture\n")
+
+            application_path = package_root / "NvtFwCombiner.exe"
+            with application_path.open("wb") as application:
+                application.truncate(MAXIMUM_APPLICATION_BYTES + 1)
+
+            package_path = temporary_root / f"{package_name}.zip"
+            with zipfile.ZipFile(
+                package_path, "w", compression=zipfile.ZIP_DEFLATED
+            ) as archive:
+                for path in sorted(package_root.rglob("*")):
+                    if path.is_file():
+                        archive.write(path, path.relative_to(temporary_root))
+
+            result = self.run_powershell(
+                SMOKE_SCRIPT,
+                "-PackagePath",
+                str(package_path),
+                "-SkipUiLaunch",
+            )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "application size 70000001 exceeds the owner-approved maximum 70000000 bytes",
             normalize_console_output(result.stdout + result.stderr),
         )
 
