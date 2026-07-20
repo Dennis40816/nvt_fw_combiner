@@ -17,6 +17,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     private const int CurrentViewportRowCount = 12;
     private readonly RawBinaryEditorSession _editor = new();
     private readonly WorkbenchRawBinaryEditorSession _files;
+    private readonly Func<string, long, CancellationToken, Task<RawBinaryEditorSearchResult>> _findAsciiAsync;
     private RawBinaryEditorState _state = new(false, 0, 0, 0, 0, false);
     private HexEditorByteCellViewModel? _activeInlineEdit;
     private HexEditorByteCellViewModel? _selectedCell;
@@ -28,6 +29,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(text);
 
         _files = new WorkbenchRawBinaryEditorSession(_editor);
+        _findAsciiAsync = _files.FindAsciiAsync;
         Text = text;
         ChangedBlockPage = CreateChangedBlockPage([]);
         ColumnHeaders = [.. Enumerable.Range(0, 16).Select(index => new HexEditorColumnHeaderViewModel(index))];
@@ -60,6 +62,14 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         RequestSaveCommand = new RelayCommand(RequestSave, () => CanSave);
         CancelSaveCommand = new RelayCommand(CancelSave);
         EditorStatus = text.HexEditorSourceEmptyDetail;
+    }
+
+    internal HexEditorWorkspaceViewModel(
+        ShellTextResources text,
+        Func<string, long, CancellationToken, Task<RawBinaryEditorSearchResult>> findAsciiAsync)
+        : this(text)
+    {
+        _findAsciiAsync = findAsciiAsync ?? throw new ArgumentNullException(nameof(findAsciiAsync));
     }
 
     /// <summary>Gets the active localized text bundle.</summary>

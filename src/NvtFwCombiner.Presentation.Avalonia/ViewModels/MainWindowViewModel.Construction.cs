@@ -139,7 +139,6 @@ public sealed partial class MainWindowViewModel
         SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
         CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);
         CloseBuildCompletedModalCommand = new RelayCommand(CloseBuildCompletedModal);
-        HexEditorWorkspace.PropertyChanged += HexEditorWorkspace_OnPropertyChanged;
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         _isInitializing = false;
     }

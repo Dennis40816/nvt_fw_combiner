@@ -52,10 +52,16 @@ public sealed partial class XamlControlStyleContractTests
     {
         string workflows = ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
         string shared = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string spaciousListStyle = ExtractStyle(styles, "ItemsControl.spaciousList");
 
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", workflows, StringComparison.Ordinal);
-        Assert.Contains("<StackPanel Spacing=\"{DynamicResource NfcSpace12}\" />", workflows, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"spaciousList\"", workflows, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", shared, StringComparison.Ordinal);
-        Assert.Contains("<StackPanel Spacing=\"{DynamicResource NfcSpace12}\" />", shared, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"spaciousList\"", shared, StringComparison.Ordinal);
+        Assert.Contains(
+            "<StackPanel Spacing=\"{DynamicResource NfcSpace8}\" />",
+            spaciousListStyle,
+            StringComparison.Ordinal);
     }
 }

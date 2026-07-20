@@ -277,6 +277,20 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("InlineValidationMessage", hexCell, StringComparison.Ordinal);
     }
 
+    /// <summary>Locks stale internal Hex searches to the unfiltered cancellation boundary.</summary>
+    [Fact]
+    public void HexEditorSearchAcceptsCancellationFromAnObsoleteInternalGeneration()
+    {
+        string search = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.Search.cs");
+
+        Assert.Equal(1, CountOccurrences(search, "catch (OperationCanceledException)"));
+        Assert.DoesNotContain(
+            "catch (OperationCanceledException) when",
+            search,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies non-critical local UI stores share one JSON and atomic-promotion mechanism.</summary>
     [Fact]
     public void LocalUiFileStoresShareBestEffortJsonPersistence()

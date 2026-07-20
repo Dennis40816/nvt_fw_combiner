@@ -371,7 +371,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ActiveRunIc}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ActiveRunNumber}\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsActiveRunNumberVisible}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ActiveRunContextLabel}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsDeviceContextSelectionVisible}\"", contextPanel, StringComparison.Ordinal);
         Assert.Equal("True", progressBar.Attribute("IsIndeterminate")?.Value);
