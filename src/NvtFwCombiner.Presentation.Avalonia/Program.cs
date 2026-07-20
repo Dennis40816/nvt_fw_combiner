@@ -7,8 +7,8 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        StartupTraceSession startupTrace = StartupTraceSession.StartFromEnvironment();
-        UiLaunchOptions launchOptions = UiLaunchOptions.Parse(args);
+        var startupTrace = StartupTraceSession.StartFromEnvironment();
+        var launchOptions = UiLaunchOptions.Parse(args);
         startupTrace.Mark("launch-options.parsed");
         App.SetStartupOptions(launchOptions, startupTrace);
         _ = BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
