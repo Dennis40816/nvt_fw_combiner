@@ -59,16 +59,16 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertEqual(2, snapshot.production_nonblank)
         self.assertEqual([], self.validate(self.limits(production=2)))
 
-    def test_rejects_growth_and_requires_a_lower_ratchet_after_reduction(self) -> None:
+    def test_rejects_production_growth_above_ceiling_and_accepts_reduction(
+        self,
+    ) -> None:
         self.write("src/Product/Program.cs", "one\ntwo\n")
 
         growth = self.validate(self.limits(production=1))
         reduction = self.validate(self.limits(production=3))
 
-        self.assertTrue(any("grew: 2 > ratchet 1" in error for error in growth))
-        self.assertTrue(
-            any("lower the ratchet from 3 to 2" in error for error in reduction)
-        )
+        self.assertTrue(any("exceeded maximum: 2 > 1" in error for error in growth))
+        self.assertEqual([], reduction)
 
     def test_counts_only_redundant_exact_json_copies(self) -> None:
         content = '{\n  "schemaVersion": "1.0"\n}\n'
@@ -80,25 +80,52 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertEqual(1, snapshot.duplicate_json_groups)
         self.assertEqual(1, snapshot.duplicate_json_copies)
         self.assertEqual(3, snapshot.duplicate_json_nonblank)
-        errors = self.validate(self.limits(production=0, duplicates=0))
-        self.assertTrue(any("duplicate JSON" in error for error in errors))
+        growth = self.validate(self.limits(production=0, duplicates=2))
+        reduction = self.validate(self.limits(production=0, duplicates=4))
+
+        self.assertTrue(any("grew: 3 > ratchet 2" in error for error in growth))
+        self.assertTrue(
+            any("lower the ratchet from 4 to 3" in error for error in reduction)
+        )
 
     def test_enforces_default_and_exact_partial_aggregate_limits(self) -> None:
         declaration = "namespace Product;\npublic partial class Workbench {}\n"
         self.write("src/Product/Workbench.One.cs", declaration)
         self.write("src/Product/Workbench.Two.cs", declaration)
 
-        default_errors = self.validate(self.limits(production=4, partial_max=3))
-        exact_errors = self.validate(
+        default_growth = self.validate(self.limits(production=4, partial_max=3))
+        default_equal = self.validate(self.limits(production=4, partial_max=4))
+        default_reduction = self.validate(self.limits(production=4, partial_max=5))
+        exact_equal = self.validate(
             self.limits(
                 production=4,
                 partial_max=3,
                 exact_partials={"Product.Workbench": 4},
             )
         )
+        exact_growth = self.validate(
+            self.limits(
+                production=4,
+                partial_max=3,
+                exact_partials={"Product.Workbench": 3},
+            )
+        )
+        exact_reduction = self.validate(
+            self.limits(
+                production=4,
+                partial_max=3,
+                exact_partials={"Product.Workbench": 5},
+            )
+        )
 
-        self.assertTrue(any("maximum is 3" in error for error in default_errors))
-        self.assertEqual([], exact_errors)
+        self.assertTrue(any("maximum is 3" in error for error in default_growth))
+        self.assertEqual([], default_equal)
+        self.assertEqual([], default_reduction)
+        self.assertEqual([], exact_equal)
+        self.assertTrue(any("grew: 4 > ratchet 3" in error for error in exact_growth))
+        self.assertTrue(
+            any("lower the ratchet from 5 to 4" in error for error in exact_reduction)
+        )
 
     def test_tracks_each_partial_type_once_per_source_file(self) -> None:
         self.write(

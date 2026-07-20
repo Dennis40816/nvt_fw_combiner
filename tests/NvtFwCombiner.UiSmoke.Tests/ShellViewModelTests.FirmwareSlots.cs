@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -15,6 +16,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(required.IsOptional);
         Assert.False(required.HasFile);
+        Assert.True(required.IsGuidanceVisible);
         Assert.Equal(FirmwareSlotKind.Dp, required.SlotKind);
         Assert.Equal("DP BIN", required.SlotIconTooltip);
         AssertIconGeometry(required);
@@ -25,6 +27,7 @@ public sealed partial class ShellViewModelTests
         required.FilePath = workspace.PathFor("dp.bin").Replace('\\', '/');
 
         Assert.True(required.HasFile);
+        Assert.False(required.IsGuidanceVisible);
         Assert.Equal("dp.bin", required.DisplayName);
         Assert.Equal(required.FilePath.Replace('/', '\\'), required.DisplayDetail);
         AssertIconGeometry(required);
@@ -125,12 +128,14 @@ public sealed partial class ShellViewModelTests
         string basePath = workspace.Write("nt51951-no-nvt-backup.bin", bytes);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51951";
+        viewModel.SelectedReplaceMode = "CtrlRAM";
 
         viewModel.SetSlotFile("replace-base", basePath);
 
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "DP" && fact.Value == "DCC-00");
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira" && fact.Value == "AUTO_PRJ-576");
         Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label is "TP" or "Common FW" or "PID");
+        Assert.StartsWith("NT51951_FlashCode_DCC00Txxxx_", viewModel.ReplaceOutputFileName, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies DP BIN slots expose gen_flash DP version facts and mark missing evidence.</summary>
@@ -181,6 +186,190 @@ public sealed partial class ShellViewModelTests
             fact.Label == "Jira" &&
             fact.Value == "AUTO_PRJ-576" &&
             !fact.IsWarning);
+        Assert.StartsWith("NT51950_FlashCode_DCC00T0400_", viewModel.MergeOutputFileName, StringComparison.Ordinal);
+    }
+
+    /// <summary>Output naming publishes unknown at selection start, latest completion, and no stale result.</summary>
+    [Fact]
+    public async Task OutputFileNamePublishesInspectionSnapshotLifecycle()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-snapshot");
+        string dpPath = workspace.Write("dp.bin", [0x01]);
+        string stalePath = workspace.Write("stale.bin", [0x02]);
+        string currentPath = workspace.Write("current.bin", [0x03]);
+        using var reselectionStarted = new ManualResetEventSlim();
+        using var releaseReselection = new ManualResetEventSlim();
+        using var staleStarted = new ManualResetEventSlim();
+        using var releaseStale = new ManualResetEventSlim();
+        bool blockInitialReselection = false;
+        string initialVersion = "0101";
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        {
+            string path = inputs.Single().Path;
+            if (string.Equals(path, dpPath, StringComparison.Ordinal) && blockInitialReselection)
+            {
+                reselectionStarted.Set();
+                releaseReselection.Wait(TestContext.Current.CancellationToken);
+            }
+            else if (string.Equals(path, stalePath, StringComparison.Ordinal))
+            {
+                staleStarted.Set();
+                releaseStale.Wait(TestContext.Current.CancellationToken);
+            }
+
+            string version = string.Equals(path, stalePath, StringComparison.Ordinal)
+                ? "0303"
+                : string.Equals(path, currentPath, StringComparison.Ordinal)
+                    ? "0404"
+                    : initialVersion;
+            return
+            [
+                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                    input.InspectionId,
+                    new WorkbenchFirmwareInspection(
+                        null,
+                        null,
+                        new WorkbenchDpVersionMetadata(version),
+                        null,
+                        null,
+                        null))),
+            ];
+        });
+        viewModel.SelectedIc = "NT51926";
+        await viewModel.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
+        Assert.Contains("_D0101Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+        var notifications = new List<string>();
+        viewModel.PropertyChanged += (_, args) =>
+        {
+            if (string.Equals(args.PropertyName, nameof(MainWindowViewModel.StandardMergeOutputFileName), StringComparison.Ordinal))
+            {
+                notifications.Add(viewModel.StandardMergeOutputFileName);
+            }
+        };
+
+        initialVersion = "0202";
+        blockInitialReselection = true;
+        Task reselection = viewModel.SetSlotFileAsync(
+            "merge-dp",
+            dpPath,
+            TestContext.Current.CancellationToken);
+        Assert.True(reselectionStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+        Assert.Contains(notifications, name => name.Contains("_DxxxxTxxxx_", StringComparison.Ordinal));
+        Assert.Contains("_DxxxxTxxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+
+        releaseReselection.Set();
+        await reselection;
+        Assert.Contains(notifications, name => name.Contains("_D0202Txxxx_", StringComparison.Ordinal));
+        Assert.Contains("_D0202Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+
+        notifications.Clear();
+        Task stale = viewModel.SetSlotFileAsync(
+            "merge-dp",
+            stalePath,
+            TestContext.Current.CancellationToken);
+        Assert.True(staleStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+        await viewModel.SetSlotFileAsync(
+            "merge-dp",
+            currentPath,
+            TestContext.Current.CancellationToken);
+        Assert.Contains("_D0404Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+        int notificationsAfterCurrent = notifications.Count;
+
+        releaseStale.Set();
+        await stale;
+        Assert.Equal(notificationsAfterCurrent, notifications.Count);
+        Assert.Contains("_D0404Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+    }
+
+    /// <summary>An in-place BIN replacement is re-inspected before its output name is consumed.</summary>
+    [Fact]
+    public async Task OutputFileNameRefreshRejectsSamePathStaleInspection()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-identity-refresh");
+        string path = workspace.Write("dp.bin", [0x01]);
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        [
+            .. inputs.Select(input =>
+            {
+                byte version = File.ReadAllBytes(input.Path)[0];
+                return new WorkbenchFirmwareInspectionResult(
+                    input.InspectionId,
+                    DpInspection($"{version:X2}{version:X2}"));
+            }),
+        ]);
+        viewModel.SelectedIc = "NT51926";
+        await viewModel.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
+        Assert.Contains("_D0101Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+
+        File.WriteAllBytes(path, [0x02, 0x03]);
+        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+
+        Assert.Contains("_D0202Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+    }
+
+    /// <summary>A Build refresh reads only the active workflow's selected firmware.</summary>
+    [Fact]
+    public async Task OutputFileNameRefreshIsScopedToActiveWorkflow()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-workflow-refresh");
+        string mergePath = workspace.Write("merge-dp.bin", [0x01]);
+        string replacePath = workspace.Write("replace-base.bin", [0x02]);
+        var inspectedSlotIds = new List<string>();
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        {
+            inspectedSlotIds.AddRange(inputs.Select(static input => input.InspectionId));
+            return
+            [
+                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                    input.InspectionId,
+                    DpInspection($"{File.ReadAllBytes(input.Path)[0]:X2}01"))),
+            ];
+        });
+        viewModel.SelectedIc = "NT51926";
+        await viewModel.SetSlotFileAsync("merge-dp", mergePath, TestContext.Current.CancellationToken);
+        await viewModel.SetSlotFileAsync("replace-base", replacePath, TestContext.Current.CancellationToken);
+        inspectedSlotIds.Clear();
+
+        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+
+        Assert.Equal(["merge-dp"], inspectedSlotIds);
+    }
+
+    /// <summary>An unstable refresh removes the prior same-path output-name projection.</summary>
+    [Fact]
+    public async Task OutputFileNameRefreshDoesNotRetainRejectedProjection()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-rejected-refresh");
+        byte[] bytes = new byte[0x40000];
+        bytes[0] = 0x01;
+        string path = workspace.Write("dp.bin", bytes);
+        bool mutateDuringRefresh = false;
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        [
+            .. inputs.Select(input =>
+            {
+                byte version = File.ReadAllBytes(input.Path)[0];
+                if (mutateDuringRefresh)
+                {
+                    using var stream = new FileStream(input.Path, FileMode.Append, FileAccess.Write, FileShare.Read);
+                    stream.WriteByte(0xFF);
+                }
+
+                return new WorkbenchFirmwareInspectionResult(
+                    input.InspectionId,
+                    DpInspection($"{version:X2}{version:X2}"));
+            }),
+        ]);
+        viewModel.SelectedIc = "NT51950";
+        await viewModel.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
+        Assert.Contains("_D0101Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+        Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.MergeMemoryRangeLabel);
+
+        mutateDuringRefresh = true;
+        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+
+        Assert.Contains("_DxxxxTxxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
+        Assert.Equal("Selected DP BIN length pending", viewModel.MergeMemoryRangeLabel);
     }
 
     /// <summary>Verifies an unobserved DP size keeps the concise DP/Jira slot badge set.</summary>

@@ -29,6 +29,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 
         _files = new WorkbenchRawBinaryEditorSession(_editor);
         Text = text;
+        ChangedBlockPage = CreateChangedBlockPage([]);
         ColumnHeaders = [.. Enumerable.Range(0, 16).Select(index => new HexEditorColumnHeaderViewModel(index))];
         GoToCommand = new RelayCommand(GoToViewport);
         FindAsciiCommand = new AsyncRelayCommand(FindAsciiAsync, CanFindAscii);

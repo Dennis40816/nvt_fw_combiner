@@ -10,7 +10,9 @@ public sealed partial class MainWindowViewModel
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
     /// <summary>Status shown in the replace inspector.</summary>
-    public string ReplaceReadinessStatus => IsSelectedReplaceModeSupported
+    public string ReplaceReadinessStatus => IsFirmwareInspectionLoading
+        ? Text.FirmwareInspectionLoadingStatus
+        : IsSelectedReplaceModeSupported
             ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
             : Text.GetReplaceNotSupportedStatus(SelectedIc);
 
@@ -25,7 +27,7 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunReplace()
     {
-        return !IsRunInProgress && IsSelectedReplaceModeSupported &&
+        return !IsRunInProgress && !IsFirmwareInspectionLoading && IsSelectedReplaceModeSupported &&
             (SelectedReplaceMode switch
             {
                 DpReplaceMode => ReplaceSlots.Count > 0 &&
@@ -49,28 +51,35 @@ public sealed partial class MainWindowViewModel
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit)
     {
         CloseReplaceSelectionForRun();
+        string icId = SelectedIc;
+        string number = SelectedNumber;
+        string replaceMode = SelectedReplaceMode;
+        IReadOnlyDictionary<string, string> slotPaths = CreateReplaceSlotPaths();
+        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs = CreateGeneralReplaceMappingInputs();
         return RunCompositionAsync(
             build,
-            cancellationToken => WorkbenchCompositionService.RunReplaceAsync(
-                SelectedIc,
-                SelectedNumber,
-                SelectedReplaceMode,
-                CreateReplaceSlotPaths(),
-                CreateGeneralReplaceMappingInputs(),
+            (progress, cancellationToken) => WorkbenchCompositionService.RunReplaceWithProgressAsync(
+                icId,
+                number,
+                replaceMode,
+                slotPaths,
+                mappingInputs,
+                [],
                 build,
+                progress,
                 cancellationToken,
                 outputPath,
                 ctrlRamFirmwareVersionEdit),
             (action, errorMessage) => LoadRunErrorReport(
                 action,
-                $"{SelectedIc.ToLowerInvariant()}-{SelectedReplaceMode.ToLowerInvariant()}-replace",
-                SelectedIc,
-                SelectedNumber,
+                $"{icId.ToLowerInvariant()}-{replaceMode.ToLowerInvariant()}-replace",
+                icId,
+                number,
                 errorMessage,
-                CreateReplaceSlotPaths(),
+                slotPaths,
                 compositionKind: "Replace",
-                modeId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace",
-                experienceId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace"));
+                modeId: $"{replaceMode.ToLowerInvariant()}-replace",
+                experienceId: $"{replaceMode.ToLowerInvariant()}-replace"));
     }
     private Dictionary<string, string> CreateReplaceSlotPaths()
     {

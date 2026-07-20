@@ -211,6 +211,58 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         Assert.Equal(beforeSha256, Hash(File.ReadAllBytes(referencePath)));
     }
 
+    /// <summary>Proves matching metadata cannot admit a different, unreviewed full reference image.</summary>
+    [Fact]
+    public async Task ExactRouteRejectsUnreviewedReferenceHashAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51930-fw130-negative-reference");
+        string referencePath = workspace.PathFor("reference.bin");
+        byte[] reference = [.. evidence.Expected.Bytes];
+        reference[0x100] ^= 0x01;
+        File.WriteAllBytes(referencePath, reference);
+        string beforeSha256 = Hash(reference);
+
+        string outputPath = workspace.PathFor("unsupported-output.bin");
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51930",
+            "cascade",
+            CreateSlotPaths(evidence, referencePath),
+            build: true,
+            outputPath,
+            firmwareVersionEdit: null,
+            new PassThroughProcessor(),
+            TestContext.Current.CancellationToken);
+
+        AssertWorkflowNotSupported(result, outputPath);
+        Assert.Equal(beforeSha256, Hash(File.ReadAllBytes(referencePath)));
+    }
+
+    /// <summary>Proves execution remains bound to the admitted snapshot after the source path disappears.</summary>
+    [Fact]
+    public async Task ExactRouteExecutesFromCapturedReferenceSnapshotAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51930-fw130-reference-snapshot");
+        string referencePath = workspace.Write("reference.bin", evidence.Expected.Bytes);
+        string outputPath = workspace.PathFor("snapshot-output.bin");
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51930",
+            "cascade",
+            CreateSlotPaths(evidence, referencePath),
+            build: true,
+            outputPath,
+            firmwareVersionEdit: null,
+            new DeleteReferencePassThroughProcessor(referencePath),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.False(File.Exists(referencePath));
+        Assert.True(File.Exists(outputPath));
+        Assert.Equal(evidence.Expected.Bytes[0x100], File.ReadAllBytes(outputPath)[0x100]);
+    }
+
     /// <summary>Proves every accepted NT51930 identifier form selects the same exact V2 route.</summary>
     [Theory]
     [InlineData("51930")]
@@ -549,6 +601,17 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
             ExternalProcessorRequest request,
             CancellationToken cancellationToken)
         {
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
+        }
+    }
+
+    private sealed class DeleteReferencePassThroughProcessor(string referencePath) : IExternalProcessor
+    {
+        public ValueTask<ExternalProcessorResult> TransformAsync(
+            ExternalProcessorRequest request,
+            CancellationToken cancellationToken)
+        {
+            File.Delete(referencePath);
             return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
         }
     }

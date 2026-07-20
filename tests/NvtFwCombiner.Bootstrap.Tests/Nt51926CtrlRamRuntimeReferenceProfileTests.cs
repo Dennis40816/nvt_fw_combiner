@@ -91,11 +91,72 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
             issue => issue.Code == "profile.v2.runtime-reference-replace.ctrlram-target-invalid");
     }
 
+    /// <summary>Confirms typed TP-version fields execute before the CtrlRAM mapping and final postbuild.</summary>
+    [Fact]
+    public void CandidateLowersFirmwareVersionEditBeforePostbuild()
+    {
+        V2CompositionPlanCompileResult result = Compile(
+            "nt51926-ctrlram-replace-fw141-runtime-cascade",
+            chipCount: 2,
+            TpWorkCapacity,
+            sourceLength: 1,
+            CreateFirmwareVersionEdit());
+
+        Assert.True(result.IsCompiled, FormatIssues(result.Issues));
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
+        Assert.Collection(
+            composition.Plan.OrderedOperations,
+            operation =>
+            {
+                Assert.Equal(CompositionOperationKind.PatchScalar, operation.Kind);
+                Assert.Equal(new ByteRange(0x22000, 2), operation.TargetRange);
+                Assert.Equal([0x27, 0xD8], operation.PatchBytes.ToArray());
+            },
+            operation =>
+            {
+                Assert.Equal(CompositionOperationKind.PatchScalar, operation.Kind);
+                Assert.Equal(new ByteRange(0x22011, 1), operation.TargetRange);
+                Assert.Equal([0x04], operation.PatchBytes.ToArray());
+            },
+            operation => Assert.Equal(CompositionOperationKind.ReplaceRange, operation.Kind),
+            operation => Assert.Equal(CompositionOperationKind.RunExternalProcessor, operation.Kind));
+        CompiledFirmwareConfigBackupVersionValidation validation = Assert.IsType<
+            CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(composition.ValidationRequirements));
+        Assert.Equal(0x27, validation.FirmwareVersion);
+        Assert.Equal(0x04, validation.FirmwareSubVersion);
+    }
+
+    /// <summary>Rejects a typed TP-version request when its fields are not in the canonical FWConfig source.</summary>
+    [Fact]
+    public void CandidateRejectsFirmwareVersionEditOutsideFirmwareConfigSource()
+    {
+        var edit = new V2RuntimeReferenceReplaceFirmwareVersionEdit(
+            new ByteRange(VnStart, 2),
+            new ByteRange(VnStart + 0x11, 1),
+            0x27,
+            0x04,
+            "replace.ctrlram.fw-version-output-invalid",
+            "replace.ctrlram.fw-version-output-mismatch");
+
+        V2CompositionPlanCompileResult result = Compile(
+            "nt51926-ctrlram-replace-fw141-runtime-cascade",
+            chipCount: 2,
+            TpWorkCapacity,
+            sourceLength: 1,
+            edit);
+
+        Assert.False(result.IsCompiled);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "profile.v2.runtime-reference-replace.firmware-version-edit-invalid");
+    }
+
     private static V2CompositionPlanCompileResult Compile(
         string profileId,
         int chipCount,
         int referenceLength,
-        int sourceLength)
+        int sourceLength,
+        V2RuntimeReferenceReplaceFirmwareVersionEdit? firmwareVersionEdit = null)
     {
         byte[] reference = new byte[referenceLength];
         reference[0x3B000 + FirmwareConfigLayout.CommonFwMajorVersionOffset] = 1;
@@ -128,7 +189,19 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
                     new ByteRange(VnStart, sourceLength),
                     OverlapPolicy.Reject,
                     alignment: 1,
-                    reason: "NT51926 Common FW 1.4.1 runtime CtrlRAM prefix evidence.")]));
+                    reason: "NT51926 Common FW 1.4.1 runtime CtrlRAM prefix evidence.")],
+                firmwareVersionEdit));
+    }
+
+    private static V2RuntimeReferenceReplaceFirmwareVersionEdit CreateFirmwareVersionEdit()
+    {
+        return new V2RuntimeReferenceReplaceFirmwareVersionEdit(
+            new ByteRange(0x22000, 2),
+            new ByteRange(0x22011, 1),
+            0x27,
+            0x04,
+            "replace.ctrlram.fw-version-output-invalid",
+            "replace.ctrlram.fw-version-output-mismatch");
     }
 
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)

@@ -149,6 +149,8 @@ public sealed partial class ShellTextResources
 
     public string ContextUpdatedToastTitle { get; private init; } = string.Empty;
 
+    public string FirmwareInspectionLoadingStatus { get; private init; } = string.Empty;
+
     public string UtilToolsLabel { get; private init; } = string.Empty;
 
     public string UtilToolsHomeTitle { get; private init; } = string.Empty;
@@ -214,6 +216,8 @@ public sealed partial class ShellTextResources
     public string HexEditorChangedBlockSelectedDetail { get; private init; } = string.Empty;
 
     public string HexEditorSelectChangedBlockTooltip { get; private init; } = string.Empty;
+
+    public string HexEditorChangedBlockNavigationAccessibleTemplate { get; private init; } = string.Empty;
 
     public string HexEditorChangedBlockValueReasonSingleTemplate { get; private init; } = string.Empty;
 

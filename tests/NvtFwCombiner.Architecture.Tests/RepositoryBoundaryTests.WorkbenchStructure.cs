@@ -2,6 +2,51 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Slot and context refreshes cannot synchronously inspect firmware from Presentation.</summary>
+    [Fact]
+    public void PresentationFirmwareInspectionStaysBatchAsync()
+    {
+        string viewModels = ReadViewModelPartials();
+        string firmwareFacts = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.FirmwareFacts.cs");
+        string replaceRunner = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
+        string replaceRefresh = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplaceRefresh.cs");
+        string outputNamingViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.OutputNaming.cs");
+
+        Assert.Contains("SetSlotFileAsync", viewModels, StringComparison.Ordinal);
+        Assert.Contains("Task.Run", viewModels, StringComparison.Ordinal);
+        Assert.Contains("InspectFirmwareBatch", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("public void SetSlotFile(", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshAllSelectedSlotFirmwareFacts", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetSelectedCtrlRamBasePath", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryReadFirmwareContextSuggestion", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCompositionService.InspectFirmware", firmwareFacts, StringComparison.Ordinal);
+        Assert.DoesNotContain("string? ctrlRamBasePath", replaceRunner, StringComparison.Ordinal);
+        Assert.Contains("ctrlRamBasePath: null", replaceRunner, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.Exists", replaceRefresh, StringComparison.Ordinal);
+        Assert.DoesNotContain("new FileInfo", replaceRefresh, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "FileIdentity.Equals(FirmwareFileIdentity.Capture",
+            viewModels,
+            StringComparison.Ordinal);
+        Assert.Contains("RefreshMergeMemoryMapState", replaceRefresh, StringComparison.Ordinal);
+        Assert.Contains("RefreshReplaceMemoryMapState", replaceRefresh, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidateCachedCtrlRamDisplayAsync", viewModels, StringComparison.Ordinal);
+        Assert.Contains(
+            "CreateFlashCodeOutputFileNameFromInspections",
+            outputNamingViewModel,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("FileInfo", outputNamingViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.Exists", outputNamingViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "WorkbenchCompositionService.CreateFlashCodeOutputFileName(",
+            outputNamingViewModel,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies General Merge workbench orchestration, mapping, profile, and report helpers stay split.</summary>
     [Fact]
     public void GeneralMergeWorkbenchConcernsStaySplit()
@@ -70,6 +115,7 @@ public sealed partial class RepositoryBoundaryTests
         string mergeCli = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.cs");
         string mergeUi = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Merge.cs");
         string firmwareMetadata = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs");
+        string firmwareInspection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareInspection.cs");
         string workbenchModels = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionModels.cs");
         string outputNaming = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.OutputNaming.cs");
         string ctrlRamDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs");
@@ -134,8 +180,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("TryGetFirmwareConfigPrimaryStart", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("HaveEquivalentFirmwareConfigValues", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("GenFlashVersionCatalog.TryReadDpVersion", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("DisplayCategory", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("ReadDpVersionMetadata(icId, image)", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("GenFlashVersionCatalog.TryReadDpVersion", firmwareInspection, StringComparison.Ordinal);
+        Assert.Contains("InspectFirmware", firmwareInspection, StringComparison.Ordinal);
+        Assert.Contains("DisplayCategory", firmwareInspection, StringComparison.Ordinal);
         Assert.DoesNotContain("PostbuildSetup_", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("GetCtrlRamRegions", firmwareMetadata, StringComparison.Ordinal);

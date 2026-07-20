@@ -43,7 +43,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         {
             result = await _files.FindAsciiAsync(searchText, startOffset, cancellationToken);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
             return;
         }

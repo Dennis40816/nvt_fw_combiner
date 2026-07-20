@@ -61,7 +61,7 @@ public sealed partial class GeneralMappingRow : UserControl
         DropZoneDragState.SetActive(sender, isActive: false);
     }
 
-    private void MappingDrop_OnDrop(object? sender, DragEventArgs e)
+    private async void MappingDrop_OnDrop(object? sender, DragEventArgs e)
     {
         DropZoneDragState.SetActive(sender, isActive: false);
 
@@ -74,7 +74,7 @@ public sealed partial class GeneralMappingRow : UserControl
         string? path = DropZoneDragState.GetFirstLocalFilePath(e);
         if (!string.IsNullOrWhiteSpace(path))
         {
-            viewModel.SetSlotFile(mapping.MappingId, path);
+            await viewModel.SetSlotFileAsync(mapping.MappingId, path);
         }
     }
 
@@ -95,7 +95,7 @@ public sealed partial class GeneralMappingRow : UserControl
             title);
         if (!string.IsNullOrWhiteSpace(path))
         {
-            viewModel.SetSlotFile(mapping.MappingId, path);
+            await viewModel.SetSlotFileAsync(mapping.MappingId, path);
         }
     }
 

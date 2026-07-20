@@ -1,0 +1,699 @@
+# v0.9.10 Replace Performance Baseline
+
+Status: deterministic orchestration/count baseline on the stable `v0.9.9`
+source line plus local fragmented-report, Hex Diff, allocation, and
+layout-neutral staging evidence. The final stable-predecessor report,
+physical-tool, golden-layout, output, argv, headless-window, and process-count
+replay is recorded below. Packaged Windows interaction evidence, required
+human review, canonical verification, CI, and publication remain open.
+
+Initial capture: 2026-07-18. Final stable capture: 2026-07-19. Executable owner:
+`tests/NvtFwCombiner.Bootstrap.Tests/CompositionRunExecutionMetricsTests.cs`.
+
+## Purpose and boundary
+
+The harness compares the retained Preview-then-Build sequence with the
+Application-owned single authoritative Automatic Build path. It uses the real
+Application service, compiler, Domain engine, typed ports, immutable reports,
+and output-writer contract with deterministic in-memory adapters.
+
+It does not execute a physical tool, hard-code a fixture/tool path, add a
+production metrics type, extend a report schema, expose timing as a CI
+threshold, change support, or authorize UI-cached bytes for Build. It counts:
+
+- complete Application runs;
+- attempted and successful input-artifact reads;
+- external-processor sessions;
+- external process invocations retained in the operation report; and
+- output commits.
+
+## Deterministic comparison
+
+| Synthetic case | Retained sequence runs / successful reads / sessions / launches | Single Automatic Build runs / successful reads / sessions / launches | Commits |
+| --- | --- | --- | ---: |
+| DP Replace `0x40000` | `2 / 4 / 0 / 0` | `1 / 2 / 0 / 0` | 1 |
+| DP Replace `0x80000` | `2 / 4 / 0 / 0` | `1 / 2 / 0 / 0` | 1 |
+| DP Replace `0x100000` | `2 / 4 / 0 / 0` | `1 / 2 / 0 / 0` | 1 |
+| CtrlRAM Replace, two-command plan | `2 / 4 / 2 / 4` | `1 / 2 / 1 / 2` | 1 |
+| CtrlRAM Replace, 13-command plan | `2 / 4 / 2 / 26` | `1 / 2 / 1 / 13` | 1 |
+| Standalone Preview | `1 / 2 / 0 / 0` | unchanged | 0 |
+| Automatic Build with one unreadable required input | no second run | `1 / 1 successful of 2 attempted / 0 / 0` | 0 |
+
+Successful comparisons lock complete output bytes, output SHA-256, mutation
+summaries, validation summaries, issue summaries, and processor argv. The
+count reduction is not authority to reuse a prior Preview output: Automatic
+Build still performs its one authoritative input read, execution, validation,
+and atomic commit.
+
+Run the executable baseline from the repository root:
+
+```text
+dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj --filter "FullyQualifiedName~CompositionRunExecutionMetricsTests"
+```
+
+## Shared artifact read contract
+
+General Merge and General Replace may bind one immutable source artifact to
+multiple mapping-specific address spaces. Within one Application run, let `K`
+be the number of bindings and `U` the number of unique exact artifact ids whose
+reads succeed. The current source-audited contract performs `U` reader calls
+and `U` SHA-256 calculations instead of `K`, while retaining `K` independent
+Application-owned address-space buffers, input summaries, normalization, and
+validation paths.
+
+The snapshot key is the exact artifact id: it does not normalize physical
+paths and does not survive across runs. A failed read is not cached, so each
+binding retries the reader and preserves its own typed failure. Tests lock a
+shared successful artifact to one read with two independent outputs, and the
+same missing artifact to two attempted reads and two issues. This is a
+deterministic count reduction, not a universal elapsed-time claim.
+
+Commit `9d65e219` applies the same one-run snapshot rule across the Bootstrap
+runtime-reference boundary for the routed NT51926 Common FW 1.4.1 V2 CtrlRAM
+case. Its V2 compiler must inspect the base bytes to resolve the map; those
+exact host-read bytes now overlay the same physical artifact id for the
+immediately following Application run. Physical base reads therefore change
+from two to one, while Application still performs its normal binding read,
+trust-boundary copy, SHA, normalization, validation, report, and output commit
+logic. Replacement artifacts remain physical reads. This is not a UI or
+cross-run cache and does not change B0's Application-level two-input counter.
+
+## Raw Hex Editor memory and change-range baseline
+
+The editable Raw Hex Editor must retain original bytes, working bytes, and one
+source-address identity per current byte so insert/delete and undo/redo remain
+exact. Commit `703f5555` stores the internal identity as `int` with a private
+`-1` inserted-byte sentinel instead of `int?`; nullable original addresses are
+recreated only for the public bounded viewport.
+
+For the exact 1 MiB `Load` allocation test, the observed current-thread
+allocation changes from `10,486,120` to `6,299,752` bytes, a reduction of
+`4,186,368` bytes (`39.9%`). The per-byte mapping is four bytes smaller, so its
+retained saving is approximately 32 MiB at the existing 8 MiB document limit.
+Insert, delete, changed-range, viewport, undo/redo, and search cache behavior
+remain locked. Final packaged 8 MiB load/edit/search latency and process
+working set remain in the Windows manual gate.
+
+Commit `725dc041` removes another full-document scan after a structural edit
+when working and original lengths are unequal, because the length difference
+already proves dirty state. Overwrites in that unequal-length state also avoid
+the scan; when a later insert/delete restores equal length, the complete source
+identity/value comparison still runs. The 1 MiB insert one-sample observation
+changes from `13.007` to `3.151` ms (`75.8%`). This is not a universal timing
+claim; exact dirty, insert/delete, undo/redo, and equal-length restoration
+behavior remains the executable gate.
+
+Before commit `d056c829`, every successful value-only edit was followed by a
+change-range query that separately derived value changes, structural changes,
+and structural boundaries, amounting to approximately three complete-document
+scans on the common equal-length path. The session now updates only the edited
+or touching value span and rebuilds immutable descriptors in proportion to the
+current changed-run count. Insert/delete retains the complete structural
+derivation and caches that result once for the document revision; exact undo
+can return to incremental value tracking without changing range semantics.
+
+The maximum-length regression loads an 8 MiB document, applies one one-byte
+edit, and performs 101 change-range lookups. The latest local single
+observation was `6.681` ms and `976` current-thread allocated bytes, with every
+lookup reusing the same immutable snapshot. Split, merge, overlapping edit,
+undo/redo, caller-mutation rejection, and structural fallback are executable
+tests rather than timing assumptions. This observation is not p50/p95 and does
+not close the final packaged A8 interaction or working-set gate.
+
+Before commit `300dd235`, Presentation immediately converted every changed
+range into a row ViewModel and bound the complete collection to a
+non-virtualized inspector. Its viewport also searched the complete changed
+range set for every visible cell and original-row decision. A deterministic
+20,000-byte alternating overwrite therefore exposed 10,000 complete row
+ViewModels after one edit even though only a small inspector window was
+visible.
+
+The inspector now projects one replace-on-page 64-row window from the complete
+typed range snapshot. A factory counter proves that the first page creates 64
+rows, a direct jump to the 16-row tail creates only those 16 additional rows,
+and a same-page jump creates none. Total count, reason, address, global index,
+page navigation, `63 -> 64`, and `9999 -> 0` Next traversal remain exact. The
+viewport uses a lower-bound value-range lookup and separately retained
+structural indices, so data-only fragmentation is no longer multiplied by each
+visible cell. A compact two-row pager, auto-width index, EN/ZH action-plus-total
+automation name, keyboard buttons, and polite page status preserve the review
+surface in its 336-DIP inspector.
+
+The latest local single command observation for that 10,000-range fixture was
+`10.600` ms and `3,015,056` current-thread allocated bytes. Focused UI passes
+`34/34`, full UI passes `231/231`, and Architecture passes `94/94`. The
+materialization count is the deterministic performance gate; the timing and
+allocation are observations rather than p50/p95 or release thresholds. Final
+packaged 8 MiB responsiveness, render layout, accessibility, and process
+working set remain in A8.
+
+Commit `5e30f1e1` removes the remaining per-record rebuild on a later small
+value edit. Each identity-only revision now constructs a new ordered backing
+list, reuses every immutable range record outside the affected or touching
+span, and publishes that list through a read-only wrapper. No published list is
+ever mutated in place, so an earlier snapshot and all nested cause collections
+remain stable. Structural insert/delete still invalidates identity tracking and
+uses the complete structural fallback; exact undo may restore the identity
+path through the existing full comparison.
+
+In the 10,000-range fixture, changing the first already-different byte from
+`FF` to `FE` rebuilds the first range while the second and final range records
+remain reference-identical across revisions. The latest local single
+observation was `0.477` ms and `80,816` current-thread allocated bytes, with a
+`128 KiB` executable ceiling. Raw editor tests pass `23/23`, full Application
+passes `181/181`, Bootstrap integration passes `6/6`, Hex Editor UI passes
+`25/25`, and Architecture passes `94/94`. Record reuse, snapshot identity, old
+and new values, read-only collections, and the allocation ceiling are the
+deterministic gates; the elapsed observation is not p50/p95. A8 remains open.
+
+The dev.3 packaged 8 MiB exercise then exposed a separate Search/Next cost:
+the document snapshot was shared, but every same-query Next action still ran
+the complete ASCII scan and recreated its result. Commit `509dedd7` keys one
+completed result by document revision and ordinal query, copies its bounded
+retained index into an immutable collection once, and delegates all next,
+wrap, and truncated-index fallback policy to Application. A changed query or
+document revision runs a new authoritative scan. Selection through retained
+index 4,095 reuses the result; a request at index 4,096 of a truncated dense
+result fails the cache lookup and rescans, preserving the complete global
+match index rather than guessing from partial data.
+
+The deterministic regression proves that start, Next, and end-of-document
+wrap call the authoritative search delegate once; different queries call it
+twice; sync and async entry points agree; mutation invalidates both caches; and
+callers cannot mutate the shared match index. Application raw-search tests pass
+`26/26`, Bootstrap search-performance tests pass `11/11`, Hex Editor UI passes
+`25/25`, Architecture passes `94/94`, Polytail passes, and independent R2
+architecture review reports no P0-P2 findings.
+
+For development-only packaged evidence, the same deterministic
+8,388,608-byte input (SHA-256
+`0424143612b91825a9f886af14ffeda5a57d2bf560a23d47dd8bfa81015a3c38`)
+contained 254,208 `NVT-PERF` matches. Dev.4 advanced
+`0x0 -> 0x21 -> 0x42 -> 0x63`; working set read 466,010,112 bytes after the
+first search and 460,611,584 bytes after the fourth, with every observation
+Responding. Dev.3 had instead grown from 507,944,960 bytes after its edit
+exercise to 552,583,168 bytes after four searches. These are uncontrolled
+separate sessions, not a paired benchmark or percentile claim. The exact final
+candidate must still repeat A8 on the reviewed clean machine.
+
+## Fragmented report microbaseline
+
+`CompositionReportPerformanceBaselineTests` executes one real Application
+Preview over a 20,000-byte Replace image with 10,000 disjoint one-byte
+differences. It locks the complete output and report representation:
+
+- output SHA-256
+  `e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4`;
+- indented JSON length `11,720,520` characters; and
+- JSON SHA-256
+  `16d46159b46bcb3acdd27783321b21504a721f01e4dddef43f10fc336a49c937`.
+
+On the same local .NET 10 test path, run-through-report current-thread
+allocation changed from `20,162,040` bytes at the initial baseline to
+`11,719,480` bytes after the bounded P1 slices, a reduction of `8,442,560`
+bytes (`41.9%`). The exact output/JSON facts above did not change. The latest
+isolated serialization run measured `58,057,368` bytes and `132.240` ms for the
+first call, then `23,761,648` bytes and `52.627` ms for an exact repeated call.
+The repeated allocation is only
+`320,608` bytes (`1.37%`) above the `23,441,040`-byte payload floor of the final
+UTF-16 string. This supports treating recurring serialization as close to its
+unavoidable representation cost.
+
+Commit `6b4379d2` reuses the universal SHA-256 text for each of the 256
+possible single-byte report slices. The immediate isolated before/after
+observations for the exact command above changed run-through-report allocation
+from `11,646,384` to `7,541,912` bytes, a reduction of `4,104,472` bytes
+(`35.2%`). The one-sample run-through time changed from `132.869` to `79.421`
+ms, which is recorded only as an observation. The output SHA, JSON character
+count, JSON SHA, all 10,000 ranges and hashes, and multi-byte slice hashing are
+unchanged; repeated same-source p50/p95 remains the final timing gate.
+
+A clean-process attribution experiment rented the shared `ArrayPool<byte>`
+geometric buckets from 16 KiB through 16 MiB before serializing the same report.
+Those buckets allocated `33,538,536` bytes; after they were returned, the exact
+first serialization allocated `24,519,944` bytes. Their sum, `58,058,480`,
+reproduces the observed cold allocation within `1,112` bytes. The pool buckets
+therefore explain `33,538,536` of the `34,295,720` cold-versus-repeated gap
+(`97.79%`); the post-return first serialization remains `758,296` bytes above
+the repeated call. This attributes the dominant cold inflation and rules out
+another retained full-report copy without claiming every first-call byte is
+explained. A separate 16 MiB `DefaultBufferSize` candidate preserved the exact
+JSON SHA and
+reduced allocation to `41,267,016` bytes, but took `208.190` ms versus the
+`132.240` ms cold baseline sample. It did not demonstrate a first-call latency
+improvement and was rejected: pre-sizing or warming only moves the pool cost
+and can over-rent for normal reports. No production serializer or schema change
+follows from this result.
+The path-independent fresh-process replay below records component latency; the
+packaged-process working set remains a separate final gate. These numbers are
+diagnostic local evidence, not universal CI thresholds.
+
+Run the focused evidence from the repository root:
+
+```text
+dotnet test tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj --filter "FullyQualifiedName~CompositionReportPerformanceBaselineTests" --logger "console;verbosity=detailed"
+```
+
+## Hex Diff projection microbaseline
+
+`ReportHexDiffEmitsColdWarmProjectionAndJumpObservations` uses the verified
+in-session Replace snapshot and a synthetic 10,000-range report. One isolated
+test process records cold and repeated projection-to-first-bounded-page time,
+current-thread allocation, GC deltas, testhost working set, and one off-page
+address jump. The assertions retain exact report/snapshot output identity,
+64-row navigator pages, at most 65 materialized navigator rows after a pinned
+selection, and the selected range semantics. The repeated projection
+intentionally keeps the cold model alive while the successor is built,
+matching the transient publication
+handoff in which the previous report remains current until its replacement is
+complete; `workingSetAfterWarm` is therefore a handoff snapshot, not a claim
+about steady retained state. It is sampled immediately after the successor
+projection and before the measured jump. `testhostLifetimePeakWorkingSet` is
+the testhost process high-water since startup, including fixture composition
+and JSON setup; it is not an isolated projection-interval peak.
+
+Run the focused observation from the repository root:
+
+```text
+dotnet test tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj --filter "FullyQualifiedName~ReportHexDiffEmitsColdWarmProjectionAndJumpObservations" --logger "console;verbosity=detailed"
+```
+
+The `HEX_DIFF_BASELINE` line is non-gating local evidence. Node B/C p50 and p95
+values require the same isolated-process run count, machine/runtime, input
+hashes, power mode, and monitoring setup at both nodes; the replay below uses
+that protocol. A single warm repeat is not a percentile claim, and testhost
+working set does not replace the packaged Windows first-frame/manual acceptance
+record.
+
+Using the same local .NET 10 exact-filter command in isolated test processes,
+the retained `aaa9edca` observation allocated
+`10,883,824`/`10,869,728` bytes for cold/repeated projection. Commit `65da6758`
+creates each per-index `Lazy<T>` only when that report row is requested; the
+same observation allocates
+`9,203,800`/`9,189,704` bytes. Each path removes exactly `1,680,024` bytes
+(`15.4%`) while preserving output SHA, `6,163,125` JSON characters, the
+10,000-range identity/bounds assertions, 64/65 navigator materialization, and
+the `51,952`-byte jump allocation. The corresponding one-sample elapsed values
+were `131.124`/`102.023` ms before and `140.850`/`119.596` ms after, so this
+slice alone makes no latency-improvement claim. The ten-sample component replay
+below supplies p50/p95; packaged first-page evidence remains open.
+
+Commit `c22c2a68` removes the additional full-report UTF-8 mirror from the
+long-lived lazy row and Hex Diff factories. The production shell and report
+history already retain the same original JSON string, so those factories now
+share that string and parse exact UTF-16 character slices; the transient UTF-8
+buffer is retained only for the initial root parse and wire index. An isolated
+temporary full-GC diagnostic measured the 10,000-range model's retained delta
+at `7,567,592` bytes before and `1,491,936` bytes after, a reduction of
+`6,075,656` bytes (`80.3%`). The diagnostic was removed rather than promoted to
+a reachability-sensitive CI threshold. It is product-path evidence, not a
+general claim for standalone `FromJson` callers that would otherwise release
+their input string.
+
+The same isolated projection observation allocates `9,553,408`/`9,531,816`
+bytes after this retained-memory change, an increase of `349,608` (`3.8%`)
+and `342,112` (`3.7%`) bytes over the preceding cold/repeated values. This is
+an explicitly retained transient-allocation tradeoff, not a latency
+improvement claim. Strict UTF-8 validation, raw surrogate-pair coverage,
+last-top-level-property semantics, cancellation, output identity, bounded
+materialization, and jump behavior remain locked. The component replay below
+supplies p50/p95 and testhost handoff working-set observations; packaged
+first-page and Windows process working-set evidence remain open.
+
+## Path-independent component Node B/C replay
+
+On 2026-07-19, the report and Hex Diff microbaselines were replayed on Windows
+`10.0.26200`, .NET SDK `10.0.302`, `win-x64`, and an Intel Core i9-10900F
+(10 cores/20 logical processors). The active Windows plan was Ultimate
+Performance (`e9a42b02-d5df-448d-aa00-03f14749eb61`) on a desktop with no
+`Win32_Battery` device. No profiler, ETW capture, external process sampler, or
+performance feature flag was enabled; tests used their default configuration
+and only the test-owned timers, allocation counters, GC counters, and process
+working-set reads shown by the harness.
+
+Node B used a detached, tracked-clean worktree and Node C used the separate,
+tracked-clean main worktree synchronized to its origin. Their project-local
+`bin`/`obj` output trees were therefore distinct. Before each component pair,
+the B worktree was checked out at the full SHA named below, both projects were
+built once in Debug for `net10.0`, and their exact-filter invocations used
+`--no-build --no-restore`. No testhost warm-up sample was run or discarded.
+Ten B/C samples then alternated without concurrency, and every invocation
+created a fresh testhost. The p50 is the median. The p95 is the nearest-rank
+value; with ten samples it is the observed maximum. These local values are
+evidence, not portable CI thresholds.
+
+The Hex Diff comparison uses the unchanged
+`ReportHexDiffEmitsColdWarmProjectionAndJumpObservations` test at component
+Node B `aaa9edca60265aa5f0e1585495b949ac3ea010a3` and Node C
+`3d427b0bd3afca60cb8aa1c1d6967cc6ce0202e8`. Every sample preserved the same output
+SHA-256 `5e53ca2936f1d2345bc1299ead189d94454fd14e5d9d585c7a68646bc25df996`,
+`6,163,125` JSON characters, the unchanged synthetic 10,000-range input
+generator, asserted total count, bounded 64/65 navigator materialization, and
+the selected address-jump result. The observation does not claim a digest of
+all projected range identities. The deterministic 256 KiB reference input
+SHA-256 was
+`206ddc54b8a62b0dc62ba79249d5a04d951aca42470028704b604b3747ee269d`;
+the two-byte replacement input SHA-256 was
+`857b915078ad488cff951bded73cfb4021129efb943c37604781c79f0726bb41`.
+
+| Hex Diff observation | Node B value | Node C value | Observation |
+| --- | ---: | ---: | --- |
+| Cold projection to first page, p50 / p95 | `150.592 / 200.696 ms` | `145.827 / 170.064 ms` | p50 `3.16%` lower; p95 `15.26%` lower |
+| Repeated projection to first page, p50 / p95 | `110.849 / 155.150 ms` | `109.402 / 142.773 ms` | p50 `1.31%` lower; p95 `7.98%` lower |
+| Off-page address jump, p50 / p95 | `1.079 / 2.020 ms` | `1.058 / 1.672 ms` | Same selected range and `51,952` allocated bytes |
+| Cold projection allocation, identical in all 10 samples | `10,883,824` bytes | `9,561,312` bytes | `12.15%` lower |
+| Repeated projection allocation, identical in all 10 samples | `10,869,728` bytes | `9,531,832` bytes | `12.31%` lower |
+| Handoff working set, p50 / p95 | `107,188,224 / 108,027,904` bytes | `105,037,824 / 105,385,984` bytes | p50 `2.01%` lower; includes both live models |
+
+The ten cold elapsed samples were B
+`154.828, 135.757, 153.421, 156.833, 147.764, 133.392, 200.696, 137.526,
+144.975, 165.451` ms and C
+`145.285, 154.222, 146.369, 136.779, 170.064, 136.848, 137.304, 149.567,
+162.221, 141.396` ms. The ten repeated samples were B
+`118.082, 102.689, 108.302, 107.669, 118.097, 102.106, 155.150, 113.396,
+101.397, 144.501` ms and C
+`114.644, 110.494, 124.326, 104.145, 109.722, 106.641, 100.658, 109.083,
+142.773, 103.663` ms.
+
+The ten off-page jump samples were B
+`1.032, 1.005, 2.020, 1.086, 1.093, 1.072, 1.285, 1.029, 1.034, 1.656` ms
+and C
+`1.071, 1.060, 1.672, 0.987, 1.057, 0.971, 0.978, 1.037, 1.353, 1.062`
+ms. Every cold projection reported Gen0/Gen1/Gen2 deltas `0/0/0`; every
+successor projection reported `1/1/1` at both nodes. In all 20 samples,
+`testhostLifetimePeakWorkingSet` equalled the handoff working-set observation
+listed below. It remains a testhost-lifetime peak that includes fixture
+composition and JSON setup, not an isolated projection-interval or packaged
+process peak.
+
+The ten handoff working-set samples were B
+`107663360, 106983424, 107028480, 106946560, 107560960, 107290624,
+108027904, 107175936, 107200512, 107122688` bytes and C
+`105385984, 105029632, 105328640, 105009152, 105046016, 104890368,
+104976384, 105193472, 104992768, 105373696` bytes. Each snapshot includes the
+cold and successor models alive together and is not a steady-state or packaged
+process measurement.
+
+The upstream fragmented-report comparison uses component Node B
+`fbd7ee7c374458ecba84dd9b34493f28ee1adb5a` and Node C
+`3d427b0bd3afca60cb8aa1c1d6967cc6ce0202e8`. The measured run-through and first-serialization regions
+are the same; later Node C assertions and the repeated-serialization observation
+occur after both measured regions. Every sample preserved 10,000 exact
+one-byte differences, output SHA-256
+`e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4`,
+`11,720,520` JSON characters, and JSON SHA-256
+`16d46159b46bcb3acdd27783321b21504a721f01e4dddef43f10fc336a49c937`.
+The 20,000-byte reference SHA-256 was
+`28b4f41a7f3ee6d8cc87272db6e09c6d3566551fd4d18702b041a21658272a85`;
+the deterministic replacement SHA-256 was the output SHA-256 above.
+
+| Fragmented report observation | Node B value | Node C value | Observation |
+| --- | ---: | ---: | --- |
+| Application run through complete report, p50 / p95 | `114.900 / 127.140 ms` | `81.325 / 103.226 ms` | p50 `29.22%` lower; p95 `18.81%` lower |
+| Run-through allocation, identical in all 10 samples | `20,162,040` bytes | `7,541,912` bytes | `62.59%` lower |
+| First indented serialization, p50 / p95 | `160.942 / 172.545 ms` | `150.742 / 171.121 ms` | p50 `6.34%` lower; p95 `0.83%` lower |
+
+The ten run-through elapsed samples were B
+`106.839, 111.179, 113.519, 112.788, 116.281, 107.790, 121.013, 127.140,
+126.965, 126.838` ms and C
+`79.465, 82.289, 103.226, 78.794, 80.361, 82.639, 78.741, 78.227, 92.674,
+95.508` ms. The first-serialization samples were B
+`145.881, 138.059, 168.960, 172.351, 145.547, 148.607, 157.268, 167.677,
+172.545, 164.617` ms and C
+`153.058, 144.498, 157.005, 151.554, 143.798, 151.057, 142.327, 146.250,
+150.428, 171.121` ms.
+
+The replay therefore supports a material upstream report-generation and
+allocation improvement. Hex Diff first-page latency is improved but remains
+noisy and modest at p50; its repeatable gains are lower projection allocation
+and handoff working set. Cold serialization p95 is effectively unchanged,
+which agrees with the prior shared-pool attribution and does not justify a new
+serializer or schema. Stable physical Legacy Combiner evidence is closed by the
+authoritative capture below. Packaged first-page, dispatcher heartbeat,
+click-to-first-step, accessibility, and clean-machine working-set evidence
+remain separate gates.
+
+## Historical pre-stable 0.9.9 code-milestone report replay
+
+The non-authoritative milestone capture and raw samples are archived in the
+[Historical Pre-stable Report Replay](replace-performance-pre-stable-report-replay.md). The stable `32c37e25` to `6f3698dd` capture below remains authoritative.
+
+## Startup report restoration baseline
+
+Commit `7b6f1ab6` removes persisted-history and explicit startup-report work
+from the window constructor. The production path begins after `OnOpened`,
+yields once, reads local history on a worker, prepares the bounded 12-entry
+history and latest review on a worker, then reads and projects any explicit
+`--load-report` source on a worker. Publication order remains history, startup
+argument diagnostics, explicit report, and finally `--open-report`.
+
+Deterministic tests lock successful publication, source failure, malformed
+JSON exclusion, valid-but-invalid-shape error degradation, close cancellation,
+and latest-generation rejection for both slow history and slow explicit
+sources. A stale source is rejected before the expensive report projection.
+These are responsiveness and ordering contracts, not elapsed-time evidence.
+The exact packaged candidate must still record cold first-interactive-frame
+behavior with a full 12-entry history and with an explicit large report; those
+rows remain in the Windows manual gate.
+
+Commit `9bfc780f` also removes preference-file serialization and atomic
+promotion from the dispatcher property-change handler. Report history and
+immutable shell preferences now share the same typed, serialized,
+latest-wins coordinator and the bounded close drain waits for both. Tests lock
+cancelled-save non-publication, atomic latest-snapshot promotion, superseded
+queue cancellation, fault recovery, and close completion. This is a UI-thread
+I/O ownership improvement; no elapsed-time claim is made until the packaged
+rapid-settings row is recorded.
+
+Commit `1c0dc687` then resolves the persisted language before constructing the
+shell ViewModel. The language selector is aligned during guarded
+initialization, so a Traditional Chinese startup no longer builds the complete
+English projection and immediately relocalizes it a second time. Normal
+post-construction language changes remain active. This is a deterministic
+single-initialization contract; packaged first-frame evidence remains open.
+
+Commit `69a59441` bounds the remaining intentional synchronous preference read
+before ViewModel construction. `ShellPreferenceFileStore` rejects a local
+preference file above 64 KiB from the opened file before payload
+deserialization; the same valid UTF-8 JSON loads at exactly 65,536 bytes and falls back to
+System/English/reduced-motion off at 65,537 bytes. Normal version-1 preference
+files, async atomic save, cancellation, and post-construction switching are
+unchanged. Focused preferences pass `4/4`, full UI `229/229`, Architecture
+`94/94`, and independent R1 UI/architecture review reports no P0/P1. This is a
+corrupt or abnormal local-state bound, not a packaged startup-latency claim;
+final preference interaction/restoration remains in the Windows manual gate.
+
+Commit `c47b28c9` removes the whole-file text intermediate from local-state restore. Current UTF-8 history/preferences deserialize directly from the bounded opened stream.
+Legacy UTF-16 LE/BE and UTF-32 LE/BE BOM documents are identified before the overlapping UTF-16 prefix, positioned after the exact BOM, and streamed through a UTF-8 transcoder;
+compatibility no longer requires `ReadToEnd`. UTF-8 BOM remains on the direct serializer path.
+
+The warmed 4 MiB current-format history observation allocated `25,227,920` bytes before this slice. The committed regression preserves the complete report string and requires both
+current UTF-8 and legacy UTF-16 restore to allocate no more than `12,582,912` current-thread bytes. This is a steady-state allocation ceiling, not a retained-memory or startup-latency measurement.
+
+The same opened snapshot shares delete but never write. A deterministic Windows-target regression keeps the old reader open while async atomic save publishes the latest path, then proves that
+the reader contains only the old complete snapshot, a subsequent load contains only the latest snapshot, and no temporary file remains. Deserialization completes before the handle closes;
+schema projection begins afterward. Missing, malformed, oversized and valid unsupported-schema inputs still use the best-effort fallback. Five BOM encodings, the held-reader replacement,
+focused local persistence `14/14`, full UI `237/237`, Architecture `94/94`, Polytail, and independent R2 UI and architecture review pass with no P0-P3 finding. Local schema, latest-wins persistence,
+dispatcher ownership, report content, and firmware behavior are unchanged. The exact packaged 12-entry cold-start and working-set rows remain open in the Windows manual gate.
+
+## Firmware inspection header-probe allocation
+
+Commit `7aa09be3` replaces the bounded 256 KiB header's whole ASCII-to-UTF-16 text
+projection with a direct span scan. The warmed full-inspection observation was
+`525,680` allocated bytes; the committed gate is at most `65,536` bytes. Outgoing
+regex-oracle parity, focused inspection `9/9`, Bootstrap `467/467`, Architecture
+`94/94`, Polytail, and independent R2 reviews pass. Filename-first/read-once,
+advisory-only IC hints, firmware bytes, and file-read/latency gates are unchanged.
+
+## Pinned catalog discovery baseline
+
+Commit `d7bd4ddc` removes document-sized canonicalization allocations from the
+normal repository path used to hash-pin the built-in CtrlRAM Postbuild and TP
+flash-map catalogs. Those tracked files are respectively 192,703 and 46,947
+bytes, contain only ASCII bytes, and already use LF line endings. The loader now
+hashes that exact immutable span and writes the SHA-256 result into stack
+storage instead of decoding a complete UTF-8 string, normalizing an unchanged
+string, and encoding a second complete byte array.
+
+The warmed deterministic 262,144-byte regression changes from 786,688 to 152
+current-thread allocated bytes, removing 786,536 bytes (`99.98%`). The output
+hash is exact. This is an allocation bound, not a startup-latency percentile.
+CR/CRLF, form feed, every non-ASCII sequence including NEL/LS/PS and invalid
+UTF-8, hash mismatch, and strict JSON remain on the original normalization or
+fail-closed path. Focused catalog tests pass `26/26`, full Infrastructure passes
+`243/243` with two platform-specific skips, Bootstrap passes `465/465`, and
+Architecture passes `94/94`. Polytail and independent R2 review report no
+P0-P3 finding. Final packaged first-frame and process working-set evidence
+remain in the Windows manual gate.
+
+## Immutable staged-artifact verification
+
+Commit `151310d8` removes the remaining full-size verification allocation for
+each immutable named artifact after a generic or Legacy external-processor run.
+The host still verifies the exact length and complete content after the process
+exits; it now compares sequential windows using a pooled buffer requested at no
+more than 128 KiB instead of calling `ReadAllBytesAsync` and materializing
+another artifact-sized `byte[]`. Exact matches still read every byte, while a
+length or content mismatch fails closed and may stop earlier. The buffer is
+cleared on return after success, mismatch, cancellation, or exception.
+
+This does not remove the independent staged-source gate, reuse a result across
+runs, cache executable trust, or weaken final firmware diff verification. The
+Legacy exact-file projection remains because it is the private mutable file the
+tool consumes; only its redundant post-process full-file allocation is removed.
+Seven direct tests cover a multi-window exact file, first/window-boundary/final
+byte changes, truncation, extension, and pre-cancellation. Generic and Legacy
+adapter integration tests retain `external-tool.staged-artifact.modified`.
+Focused coverage passes `11/11`, full Infrastructure passes `241/241` with two
+platform-specific skips, Architecture passes `94/94`, Polytail passes, and
+independent R3 review reports no P0-P3 finding. Physical-tool/golden parity,
+firmware/security owner review, and canonical verification remain mandatory.
+
+## Firmware evidence scope
+
+The synthetic counter cases are process-contract evidence, not firmware
+support or golden claims. Final same-source node B/C uses:
+
+- NT51950/NT51951 public deterministic DP Replace at 256/512/1024 KiB;
+- owner-golden-backed NT51950 256 KiB and NT51951 512 KiB base smoke where the
+  tracked manifests apply; and
+- NT51926 Common FW 1.4.1 cascade two-command full-output parity as the minimum
+  CtrlRAM golden anchor.
+
+The 13-command case remains count/timing-only. General Replace contract tests
+do not substitute for an owner full-output golden.
+
+## Final stable-predecessor Node B/C capture
+
+The authoritative nodes are stable Node B
+`32c37e254271de507be49d0f5ef38faaa122dba6` and optimized Node C
+`6f3698ddeb0ec50a9ca46057af21e93bfbebd55f`. Annotated tag `v0.9.9`
+peels exactly to Node B. The 130-commit performance stack was replayed onto
+Node B with `git range-diff` reporting 130 equal patches, zero changed patches,
+zero old-only patches, and zero new-only patches.
+
+Both nodes used separate detached worktrees and project-local Release
+`bin`/`obj` trees on Windows `10.0.26200`, .NET SDK `10.0.302`, and an Intel
+Core i9-10900F with 10 cores/20 logical processors. The active power plan was
+Ultimate Performance (`e9a42b02-d5df-448d-aa00-03f14749eb61`); the machine had
+no `Win32_Battery`. No `COR*`, `CORECLR*`, `DOTNET*`, `NVT*`, or `NFC*`
+feature/profiler environment variable was set. Recorded pairs ran B then C
+without concurrency. Each timing invocation created a fresh testhost; one
+exact-filter validation/warm-up per node was discarded before the ten report
+and physical-tool pairs. p50 is the average of the middle two sorted values;
+p95 is nearest-rank and therefore the observed maximum for ten samples.
+
+An initial concurrent physical-tool attempt was invalidated because identical
+fixed test run ids in separate testhosts contend for the same OS temporary
+staging path. Both nodes failed the same one case and passed the other 13. No
+result from that attempt is included; all authoritative captures are serial.
+
+The B/C evidence trees are byte-identical under `external-tools/`,
+`testdata/golden/`, and `testdata/public-synthetic/`. Important identities are:
+
+- external-tools catalog SHA-256
+  `0c9079ba73ffd35d8c91fd89c40f3b0d89a79e31035b9e3b5b2781e16bc5dac9`;
+- Legacy Combiner manifest SHA-256
+  `1c60badcc23fc5f3708d7cfb171a9a2e94c708a1aa257d0dac3efb7a20d96442`;
+- `Combiner.exe` 1.13.0 SHA-256
+  `ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf`;
+- canonical golden manifest SHA-256
+  `fb0fb411c99772335c2558d673963c1f017d28356e8d1d1d16d3af2a5d3afdc4`;
+- CtrlRAM manifest SHA-256
+  `b3bee909e571c742b215200fdd354dd2d77e9fca934fd4a8362a69134fbec3fc`;
+  and
+- DP oracle SHA-256
+  `5133fc02d06d048385f3de37089ab1fa0eed147bda9c5229c1b9ec6eaa0675ee`.
+
+The common DP and physical CtrlRAM filter passed `14/14` at each node. The
+public synthetic DP output hashes remained:
+
+| IC | Capacity | Replacement length | Output SHA-256 |
+| --- | ---: | ---: | --- |
+| NT51950 | 262,144 | 233,472 | `5093a639fea086e859781b29ddad7a29613d02e88a3c6d50bc9192612daaa1cb` |
+| NT51950 | 524,288 | 233,472 | `e90e1a1cbd0af91383aaf4b9eb7397a6bc1be9fdc04438322a600f8fd655941a` |
+| NT51950 | 1,048,576 | 233,472 | `378804ff71b9e59a99d7790caab1c889888f9d944ef9f54dfd6cf18ce10ff2e2` |
+| NT51951 | 262,144 | 233,472 | `c9ba97ef782cec37bc242d1686dce713995ac17d42b11fea10a30fdd9c32a232` |
+| NT51951 | 524,288 | 233,472 | `3db20990e379d0741fd719839375ba8be289e65ff145459c5b14e5673e7f7ee7` |
+| NT51951 | 1,048,576 | 233,472 | `7ff5bc0e87f493cc8bb83e9e54e56e958bf0ccac4e90728da9e11ee3c6343f73` |
+| NT51950 | 262,144 | 225,280 | `ceec21f2f1f061046f2866736a42e3e85c087ce75d55c8bd8e7282e0df5397e7` |
+| NT51951 | 524,288 | 225,281 | `1d2be3b544ba19215d6ae5e958ddb23123ff15c2bf9e8c6f446458f3ecbf35d8` |
+
+The NT51926 Common FW 1.4.1 cascade case used base SHA-256
+`9e5321fb7673736c6c52e61549e33347e3852488bd253088db7239d4d0f371fc`
+and VN replacement SHA-256
+`b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7`.
+Both nodes produced the complete 245,760-byte expected output SHA-256
+`f26b6366bc858a751bd0b7bc3be1b6a1ac6edfb4fa25b92b57bea140e193e13a`.
+The shared real-tool/headless filter passed `21/21` per node and the complete
+postbuild catalog/argv filter passed `33/33` per node. `CreateNoWindow=true`,
+shell execution disabled, command order, exact argv, two launches, immutable
+inputs, and the manifest-pinned executable therefore remain unchanged.
+
+The deterministic B0 surface passed `7/7` on Node C and locks output bytes,
+output SHA, mutations, validations, issues, processor argv, and commits while
+measuring orchestration counts:
+
+| Case | Node B retained sequence | Node C authoritative Build |
+| --- | --- | --- |
+| DP, each of 256/512/1024 KiB | 2 runs, 4 successful reads, 0 sessions, 0 launches, 1 commit | 1 run, 2 successful reads, 0 sessions, 0 launches, 1 commit |
+| CtrlRAM, two commands | 2 runs, 4 reads, 2 sessions, 4 launches, 1 commit | 1 run, 2 reads, 1 session, 2 launches, 1 commit |
+| CtrlRAM, 13 commands | 2 runs, 4 reads, 2 sessions, 26 launches, 1 commit | 1 run, 2 reads, 1 session, 13 launches, 1 commit |
+| Failed required input | no second run and no commit | 1 run, 1 successful of 2 attempted reads, no session/launch/commit |
+
+Inside one successful Legacy Combiner session, Node B has two loop-owned
+complete-firmware read sites plus the final read: `2C+1`, or 5 complete reads
+for two commands and 27 for 13 commands. Node C has no loop-owned complete read
+and exactly one final complete read per successful session. The only optional
+intermediate read is a selective predecessor tail for evidenced `MERGE_MODE`
+short-output normalization; it is not a complete image or parity checkpoint.
+Two-/13-command, shortened-output, and preceding-pipeline-state tests pass
+`4/4`; source audits that reject synchronous or additional full reads pass
+`2/2`. Launch count and order remain `C` at both nodes.
+
+The exact fragmented-report harness was applied to Node B as the reviewed
+single-file test-only overlay `fbd7ee7c`; Node C used the current executable
+test. All 20 recorded samples retained exactly 10,000 differences, output
+SHA-256 `e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4`,
+11,720,520 JSON characters, and JSON SHA-256
+`16d46159b46bcb3acdd27783321b21504a721f01e4dddef43f10fc336a49c937`.
+
+| Fragmented report observation | Node B | Node C | Result |
+| --- | ---: | ---: | --- |
+| Run through complete report, p50 / p95 | `112.298 / 129.861 ms` | `87.143 / 96.256 ms` | `22.40% / 25.88%` lower |
+| Current-thread allocation | `19,700,128` bytes | `6,980,496` bytes | `64.57%` lower; constant at each node |
+| First serialization, p50 / p95 | `150.447 / 170.796 ms` | `144.413 / 159.211 ms` | Local observation only; no serializer/schema claim |
+
+The ten run-through samples were B
+`107.897, 104.306, 115.534, 106.252, 120.809, 115.532, 101.755, 129.861,
+109.063, 117.501` ms and C
+`84.336, 90.099, 84.731, 84.122, 89.516, 86.026, 85.341, 96.256,
+88.260, 89.674` ms. The first-serialization samples were B
+`139.995, 145.603, 163.655, 146.468, 151.524, 166.004, 144.260,
+151.689, 149.369, 170.796` ms and C
+`135.419, 146.823, 141.601, 137.999, 144.024, 140.407, 146.777,
+144.802, 148.586, 159.211` ms.
+
+The two-command physical-golden fresh-testhost wall observation did not show a
+latency gain: B p50/p95 was `3,771.299 / 3,852.837 ms`; C was
+`3,820.476 / 4,013.205 ms`, `1.30% / 4.16%` higher. Samples were B
+`3837.504, 3852.837, 3717.799, 3786.184, 3640.049, 3813.338, 3697.118,
+3756.413, 3639.170, 3846.889` ms and C
+`3957.402, 3736.700, 3867.586, 3831.020, 3875.041, 3688.196, 3789.234,
+3809.931, 4013.205, 3787.266` ms. Testhost startup and two unchanged external
+process launches dominate this small 240 KiB case. The release therefore
+claims deterministic full-read reduction, not physical-tool wall-clock
+improvement for this case.
+
+## Remaining release record
+
+The reconciled source, physical-tool/golden layout, output/report identity,
+headless process contract, command/session/read counts, and stable-predecessor
+report replay are closed. Still required are the exact packaged candidate's
+dispatcher heartbeat, click-to-first-step, cold startup/history, first bounded
+Hex Diff page, address jump, reduced-motion/high-contrast/Narrator sessions,
+working set, clean-machine package smoke, required R2/R3 and firmware-owner
+review, the one final `python scripts/verify.py --all`, required PR/main CI,
+version/package/provenance alignment, protected-main tag, and GitHub Release
+verification. No supported-IC promotion or all-IC CtrlRAM golden claim follows
+from this capture.

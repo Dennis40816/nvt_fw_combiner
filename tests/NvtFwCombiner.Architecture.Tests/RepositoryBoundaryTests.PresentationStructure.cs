@@ -23,12 +23,33 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("No `File.ReadAllBytes` or `Process.Start` in ViewModels", boundaries, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies Presentation uses Application only for the raw utility contract, never firmware catalogs.</summary>
+    /// <summary>Verifies Presentation uses Application only for approved typed contracts, never firmware catalogs.</summary>
     [Fact]
     public void PresentationUsesBootstrapFacadeInsteadOfFirmwareCatalogs()
     {
         string project = ReadText("src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj");
-        string presentationSource = ReadPresentationSources();
+        string progressProjection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunProgressViewModel.cs");
+        string progressResources = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.RunProgress.cs");
+        string progressConsumer = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs");
+        string inspectionProjection = string.Join(
+            Environment.NewLine,
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewModel.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Bindings.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Factory.cs"));
+        string presentationSource = ReadPresentationSources(
+            "CompositionRunProgressViewModel.cs",
+            "ShellTextResources.RunProgress.cs",
+            "MainWindowViewModel.RunLifecycle.cs",
+            "MainWindowViewModel.Report.cs",
+            "ReportHexDiffViewModel.cs",
+            "ReportReviewViewModel.cs",
+            "ReportReviewViewModel.Bindings.cs",
+            "ReportReviewViewModel.Factory.cs");
         string[] forbiddenTokens =
         [
             "NvtFwCombiner.Application.Composition",
@@ -53,9 +74,21 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("NvtFwCombiner.Profiles.csproj", project, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService", presentationSource, StringComparison.Ordinal);
         Assert.Contains("NvtFwCombiner.Application.HexEditor", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("NvtFwCombiner.Application.Composition", progressProjection, StringComparison.Ordinal);
+        Assert.Contains("NvtFwCombiner.Application.Composition", progressResources, StringComparison.Ordinal);
+        Assert.Contains("NvtFwCombiner.Application.Composition", progressConsumer, StringComparison.Ordinal);
+        Assert.Contains("CompositionRunInspectionSnapshot", inspectionProjection, StringComparison.Ordinal);
+        Assert.Contains("NvtFwCombiner.Application.Composition", inspectionProjection, StringComparison.Ordinal);
         foreach (string token in forbiddenTokens)
         {
             Assert.DoesNotContain(token, presentationSource, StringComparison.Ordinal);
+            if (!string.Equals(token, "NvtFwCombiner.Application.Composition", StringComparison.Ordinal))
+            {
+                Assert.DoesNotContain(token, progressProjection, StringComparison.Ordinal);
+                Assert.DoesNotContain(token, progressResources, StringComparison.Ordinal);
+                Assert.DoesNotContain(token, progressConsumer, StringComparison.Ordinal);
+                Assert.DoesNotContain(token, inspectionProjection, StringComparison.Ordinal);
+            }
         }
     }
 

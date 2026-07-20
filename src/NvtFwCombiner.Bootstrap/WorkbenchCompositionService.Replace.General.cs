@@ -16,6 +16,7 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<WorkbenchGeneralReplacePatchInput> patchInputs,
         bool build,
         string? outputPath,
+        CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken)
     {
         if (!TryCreateGeneralReplaceRunContext(
@@ -186,11 +187,12 @@ public static partial class WorkbenchCompositionService
             context.BasePath,
             build,
             outputPath,
-            externalProcessor: commandPlan is null ? null : ExternalProcessorFactory.CreateOrNull(),
+            externalProcessor: commandPlan is null ? null : ExternalProcessorFactory.GetOrCreateOrNull(),
             icNumberSelection: context.Selection,
             overwrite: true,
             cancellationToken,
-            patchVirtualArtifacts).ConfigureAwait(false);
+            patchVirtualArtifacts,
+            progress).ConfigureAwait(false);
     }
 
     private static bool GeneralReplaceTouchesTpRegion(

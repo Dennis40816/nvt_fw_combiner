@@ -84,6 +84,12 @@ public static class WorkbenchIssueCodes
     /// <summary>CtrlRAM Replace has no unambiguous approved Combiner path from a source FWConfig to the canonical Backup.</summary>
     public const string ReplaceCtrlRamFirmwareVersionPropagationUnavailable = "replace.ctrlram.fw-version-propagation-unavailable";
 
+    /// <summary>CtrlRAM Replace postbuild did not leave one readable canonical TP FW version Backup.</summary>
+    public const string ReplaceCtrlRamFirmwareVersionOutputInvalid = "replace.ctrlram.fw-version-output-invalid";
+
+    /// <summary>CtrlRAM Replace postbuild did not propagate the confirmed TP FW version to the canonical Backup.</summary>
+    public const string ReplaceCtrlRamFirmwareVersionOutputMismatch = "replace.ctrlram.fw-version-output-mismatch";
+
     /// <summary>General Replace IC-number selection is unsupported by the selected postbuild profile.</summary>
     public const string ReplaceGeneralIcNumberUnsupported = "replace.general.ic-number-unsupported";
 

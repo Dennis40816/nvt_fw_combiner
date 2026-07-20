@@ -47,6 +47,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>True when a local file is selected.</summary>
     public bool HasFile => !string.IsNullOrWhiteSpace(FilePath);
 
+    /// <summary>True while the empty slot still needs its selection guidance.</summary>
+    public bool IsGuidanceVisible => !HasFile;
+
     /// <summary>Displayed file name or empty-slot state.</summary>
     public string DisplayName => HasFile ? Path.GetFileName(FilePath!) : EmptyDisplayName;
 
@@ -62,6 +65,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Selected local file path.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasFile))]
+    [NotifyPropertyChangedFor(nameof(IsGuidanceVisible))]
     [NotifyPropertyChangedFor(nameof(DisplayName))]
     [NotifyPropertyChangedFor(nameof(DisplayDetail))]
     public partial string? FilePath { get; set; }

@@ -1,5 +1,6 @@
 using Avalonia.Interactivity;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
@@ -8,6 +9,12 @@ public sealed partial class MainWindow
     private async void BuildMergeButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanBuildMerge)
+        {
+            return;
+        }
+
+        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+        if (!viewModel.CanBuildMerge)
         {
             return;
         }
@@ -30,8 +37,15 @@ public sealed partial class MainWindow
             return;
         }
 
-        if (viewModel.TryOpenCtrlRamFirmwareVersionModal())
+        await viewModel.RefreshSelectedReplaceFirmwareInspectionsAsync();
+        if (!viewModel.CanBuildReplace)
         {
+            return;
+        }
+
+        if (viewModel.IsCtrlRamReplaceModeSelected)
+        {
+            _ = await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync();
             return;
         }
 
@@ -44,5 +58,20 @@ public sealed partial class MainWindow
         }
 
         await viewModel.BuildReplaceAsync(outputPath);
+    }
+
+    private async void OpenLatestOutputFolderButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel || !viewModel.HasLatestCommittedOutput)
+        {
+            return;
+        }
+
+        if (await OutputFolderLauncher.TryOpenAsync(Launcher, viewModel.LatestCommittedOutputPath))
+        {
+            return;
+        }
+
+        viewModel.ShowLatestOutputFolderOpenFailed();
     }
 }

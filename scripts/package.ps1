@@ -16,6 +16,9 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
+$DistributionOwner = 'MSP/FW3'
+$SourceIdentity = 'urn:msp-fw3:nvt-fw-combiner:source'
+$ReleaseNamespace = 'urn:msp-fw3:nvt-fw-combiner:release'
 $SourceTag = if ($Version.StartsWith('v', [StringComparison]::Ordinal)) { $Version } else { "v$Version" }
 $SemanticVersion = $SourceTag.Substring(1)
 $StableSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+$'
@@ -59,6 +62,20 @@ function Get-TreeDigest {
     $Bytes = [Text.Encoding]::UTF8.GetBytes(($Lines -join "`n"))
     $Digest = [Security.Cryptography.SHA256]::HashData($Bytes)
     return [Convert]::ToHexString($Digest).ToLowerInvariant()
+}
+
+function Write-PackageHashList {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageRoot,
+        [Parameter(Mandatory = $true)][string[]]$RelativePaths,
+        [Parameter(Mandatory = $true)][string]$DestinationPath
+    )
+
+    $HashLines = foreach ($RelativePath in $RelativePaths) {
+        $Path = Join-Path $PackageRoot $RelativePath
+        "$(Get-LowerSha256 -Path $Path)  $RelativePath"
+    }
+    $HashLines | Set-Content -LiteralPath $DestinationPath -Encoding utf8NoBOM
 }
 
 function Save-SourcePackageLocks {
@@ -495,11 +512,35 @@ function Invoke-ExternalToolPolicyDryRun {
             }
         }
 
+        $UnicodeRelativePath = 'reference/多語/請先看.md'
+        $UnicodeFixturePath = Join-Path $DryRunPackageRoot $UnicodeRelativePath
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $UnicodeFixturePath) | Out-Null
+        '多語 release hash-list fixture' | Set-Content -LiteralPath $UnicodeFixturePath -Encoding utf8NoBOM
+        $DryRunHashListPath = Join-Path $DryRunPackageRoot 'SHA256SUMS.txt'
+        Write-PackageHashList `
+            -PackageRoot $DryRunPackageRoot `
+            -RelativePaths @($UnicodeRelativePath) `
+            -DestinationPath $DryRunHashListPath
+        $ExpectedHashLine = "$(Get-LowerSha256 -Path $UnicodeFixturePath)  $UnicodeRelativePath"
+        $PersistedHashBytes = [IO.File]::ReadAllBytes($DryRunHashListPath)
+        if ($PersistedHashBytes.Length -ge 3 -and
+            $PersistedHashBytes[0] -eq 0xef -and
+            $PersistedHashBytes[1] -eq 0xbb -and
+            $PersistedHashBytes[2] -eq 0xbf) {
+            throw 'Release hash list must be UTF-8 without a byte-order mark.'
+        }
+        $StrictUtf8 = [Text.UTF8Encoding]::new($false, $true)
+        $PersistedHashText = $StrictUtf8.GetString($PersistedHashBytes)
+        if ($PersistedHashText -cne "$ExpectedHashLine$([Environment]::NewLine)") {
+            throw 'Unicode release hash-list path did not round-trip through UTF-8.'
+        }
+
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included and unexpected file rejected.'
         Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
         Write-Host 'Canonical golden package policy dry-run passed: 34 direct Standard Merge BIN artifacts and 13 direct/alias cases selected; diagnostics and other workflows excluded.'
         Write-Host 'Canonical golden package policy direct/alias drift and strict-type rejection passed.'
+        Write-Host 'Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8.'
     }
     finally {
         if (Test-Path -LiteralPath $ProbeSourcePath) {
@@ -725,16 +766,26 @@ New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublis
 
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj'
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
-& $DotNet publish $AppProject -c Release -r win-x64 --self-contained true `
-    -p:Version=$SemanticVersion `
-    -p:PublishSingleFile=true `
-    -p:PublishTrimmed=false `
-    -p:IncludeNativeLibrariesForSelfExtract=true `
-    -p:DebugType=None `
-    -p:DebugSymbols=false `
-    -o $AppPublish
-$PublishExitCode = $LASTEXITCODE
-Restore-SourcePackageLocks -Snapshots $SourcePackageLockSnapshots
+try {
+    & $DotNet restore $AppProject -r win-x64
+    if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed before clean publish.' }
+
+    & $DotNet clean $AppProject -c Release -r win-x64
+    if ($LASTEXITCODE -ne 0) { throw 'dotnet clean failed before publish.' }
+
+    & $DotNet publish $AppProject -c Release -r win-x64 --self-contained true --no-restore `
+        -p:Version=$SemanticVersion `
+        -p:PublishSingleFile=true `
+        -p:PublishTrimmed=false `
+        -p:IncludeNativeLibrariesForSelfExtract=true `
+        -p:DebugType=None `
+        -p:DebugSymbols=false `
+        -o $AppPublish
+    $PublishExitCode = $LASTEXITCODE
+}
+finally {
+    Restore-SourcePackageLocks -Snapshots $SourcePackageLockSnapshots
+}
 if ($PublishExitCode -ne 0) { throw 'dotnet publish failed.' }
 
 $PublishedApp = Join-Path $AppPublish 'NvtFwCombiner.Presentation.Avalonia.exe'
@@ -832,6 +883,7 @@ Copy-Item -LiteralPath (Join-Path $RepoRoot 'LICENSE') -Destination (Join-Path $
 Copy-Item -LiteralPath (Join-Path $RepoRoot 'THIRD_PARTY_NOTICES.md') -Destination (Join-Path $PackageRoot 'THIRD-PARTY-NOTICES.txt')
 @"
 NVT FW Combiner $SemanticVersion
+Distribution owner: $DistributionOwner
 
 Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
@@ -875,11 +927,13 @@ $ApprovedProcessorIds = @(
     'nfc.nt51919.ctrlram-postbuild-v1',
     'nfc.nt51920.ctrlram-postbuild-v1',
     'nfc.nt51923.ctrlram-postbuild-v1',
+    'nfc.nt51926.ctrlram-postbuild-fw1.4.1',
     'nfc.nt51926.ctrlram-postbuild-v1',
     'nfc.nt51927.ctrlram-postbuild-v1',
     'nfc.nt51928.ctrlram-postbuild-v1',
     'nfc.nt51929.ctrlram-postbuild-v1',
     'nfc.nt51930.ctrlram-postbuild-fw1.x',
+    'nfc.nt51931.ctrlram-postbuild-v1',
     'nfc.nt51932.ctrlram-postbuild-v1',
     'nfc.nt51950.ctrlram-postbuild-v1',
     'nfc.nt51951.ctrlram-postbuild-v1'
@@ -919,7 +973,7 @@ $Sbom = [ordered]@{
     dataLicense = 'CC0-1.0'
     SPDXID = 'SPDXRef-DOCUMENT'
     name = $PackageName
-    documentNamespace = "https://github.com/Dennis40816/nvt_fw_combiner/releases/download/$SourceTag/$SbomName"
+    documentNamespace = "$ReleaseNamespace/$SourceTag/$SbomName"
     creationInfo = [ordered]@{
         created = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
         creators = @('Tool: NVT-FW-Combiner-release-script')
@@ -938,9 +992,10 @@ $Sbom = [ordered]@{
     )
     files = @(
         $FileEntries | ForEach-Object {
+            $SpdxPathId = [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($_.path))
             [ordered]@{
                 fileName = $_.path
-                SPDXID = "SPDXRef-File-$($_.path.Replace('.', '-'))"
+                SPDXID = "SPDXRef-File-$SpdxPathId"
                 checksums = @([ordered]@{ algorithm = 'SHA256'; checksumValue = $_.sha256 })
                 licenseConcluded = 'NOASSERTION'
                 copyrightText = 'NOASSERTION'
@@ -954,7 +1009,7 @@ $Provenance = [ordered]@{
     schemaVersion = '1.0'
     product = 'NVT FW Combiner'
     version = $SemanticVersion
-    sourceRepository = 'https://github.com/Dennis40816/nvt_fw_combiner'
+    sourceRepository = $SourceIdentity
     sourceCommit = $Commit
     sourceTag = $SourceTag
     builder = 'GitHub Actions / scripts/package.ps1'
@@ -964,11 +1019,10 @@ $Provenance = [ordered]@{
 $Provenance | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $ReleaseRoot $ProvenanceName) -Encoding utf8NoBOM
 
 $HashTargets = @($FileEntries.path) + @('RELEASE-MANIFEST.json')
-$HashLines = foreach ($Name in $HashTargets) {
-    $Path = Join-Path $PackageRoot $Name
-    "$(Get-LowerSha256 -Path $Path)  $Name"
-}
-$HashLines | Set-Content -LiteralPath (Join-Path $PackageRoot 'SHA256SUMS.txt') -Encoding ascii
+Write-PackageHashList `
+    -PackageRoot $PackageRoot `
+    -RelativePaths $HashTargets `
+    -DestinationPath (Join-Path $PackageRoot 'SHA256SUMS.txt')
 
 $Expected = (@(
     'LICENSE.txt',

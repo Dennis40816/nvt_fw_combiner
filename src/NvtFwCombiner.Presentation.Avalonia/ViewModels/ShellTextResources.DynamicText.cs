@@ -41,14 +41,14 @@ public sealed partial class ShellTextResources
         return mode switch
         {
             WorkbenchReplaceModes.Dp => SelectLanguage(
-                $"Complete Standard/Normal Merge FlashCode for the same IC and one profile capacity ({dpReferenceCapacityLabel ?? "profile-declared"}); it is cloned before declared DP ranges change.",
-                $"同一 IC 且符合 profile 容量（{dpReferenceCapacityLabel ?? "由 profile 宣告"}）的完整 Standard/Normal Merge FlashCode；系統會先完整複製，再只修改已宣告的 DP 範圍。"),
+                $"Complete FlashCode for the same IC ({dpReferenceCapacityLabel ?? "profile-declared"}). Only declared DP ranges change.",
+                $"同一 IC 的完整 FlashCode（{dpReferenceCapacityLabel ?? "由 profile 宣告"}）；只變更已宣告的 DP 範圍。"),
             WorkbenchReplaceModes.CtrlRam => SelectLanguage(
-                "TP firmware or complete FlashCode only when recognized by the selected IC/profile; unchanged regions stay from this image.",
-                "僅可使用所選 IC/profile 能辨識的 TP firmware 或完整 FlashCode；未替換區域會保留此映像內容。"),
+                "Complete FlashCode or TP FW recognized for this IC. Other regions remain unchanged.",
+                "此 IC 可辨識的完整 FlashCode 或 TP FW；其他區域保持不變。"),
             WorkbenchReplaceModes.General => SelectLanguage(
-                "Complete immutable base image; only compiled explicit mappings may change it.",
-                "完整且不可變的基底映像；只有已編譯的明確 mapping 可以修改內容。"),
+                "Complete FlashCode or base image. Only approved mappings change.",
+                "完整 FlashCode 或基底映像；只變更核准的 mappings。"),
             _ => SelectLanguage("Complete source image cloned before replacement.", "Replace 前完整複製的來源映像。"),
         };
     }
@@ -265,6 +265,13 @@ public sealed partial class ShellTextResources
         return SelectLanguage(
             $"IC number set to {selectionLabel} from the unique, verified NVT FWConfig (Chip Num 0x{chipNumber:X2}).",
             $"已依唯一且驗證一致的 NVT FWConfig 將 IC 數量設為 {selectionLabel}（Chip Num 0x{chipNumber:X2}）。");
+    }
+
+    public string FormatFirmwareSelectionNotRetainedToast(string fileName)
+    {
+        return SelectLanguage(
+            $"{fileName} was not retained because the selected IC does not expose the same safe input slot. Select a compatible BIN again.",
+            $"所選 IC 沒有相同的安全輸入 slot，因此未保留 {fileName}。請重新選擇相容的 BIN。");
     }
 }
 

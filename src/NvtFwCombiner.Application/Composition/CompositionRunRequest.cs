@@ -272,7 +272,7 @@ public sealed class CompositionRunRequest
     {
         foreach (CompiledValidationRequirement requirement in compiledComposition.ValidationRequirements)
         {
-            if (compiledComposition.Authority is LegacyProfileCompilationAuthority &&
+            if (compiledComposition.Authority is LegacyProfileCompilationAuthority or ProfileBundleV2CompilationAuthority &&
                 requirement is CompiledFirmwareConfigBackupVersionValidation &&
                 requirement.Stage == CompiledValidationStage.FinalOutput &&
                 requirement.Severity == CompiledValidationSeverity.Error)

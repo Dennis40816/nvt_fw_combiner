@@ -514,4 +514,122 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(new ByteRange(0x12, 1), Assert.Single(result.ChangedRanges));
     }
 
+    /// <summary>Locks two- and thirteen-command plans to one sequential processor pipeline.</summary>
+    [Theory]
+    [InlineData(2)]
+    [InlineData(13)]
+    public async Task TransformRunsCountedCommandsInOneSequentialPipeline(int commandCount)
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = CreateFirmwareImage();
+        LegacyCombinerPostbuildCommand[] commands = [
+            .. Enumerable.Range(0, commandCount).Select(index => new LegacyCombinerPostbuildCommand(
+                $"crc-{index}",
+                LegacyCombinerCommandFamily.CrcOnlyMode,
+                "NT51927BASED_GEN_CRC_MODE",
+                "CRC32",
+                [])),
+        ];
+        var profile = new LegacyCombinerPostbuildProfile(
+            $"nfc.test.{commandCount}-command-pipeline-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "counted_pipeline_fw.bin",
+            commands,
+            commands,
+            "test counted sequential pipeline");
+        FakeProcessRunner runner = new(_ => new ExternalProcessResult(0, false, string.Empty, string.Empty));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            $"run-{commandCount}-command-pipeline",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.Equal(commandCount, runner.RunCount);
+        Assert.Equal(commandCount, result.ExecutedCommands.Count);
+        Assert.Equal(firmware, result.OutputBytes.ToArray());
+        Assert.Empty(result.ChangedRanges);
+    }
+
+    /// <summary>Verifies shortened output restores the exact tail produced by the preceding command.</summary>
+    [Fact]
+    public async Task TransformNormalizesShortenedFirmwareFromPrecedingPipelineState()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = CreateFirmwareImage();
+        var first = new LegacyCombinerPostbuildCommand(
+            "update-tail",
+            LegacyCombinerCommandFamily.CrcOnlyMode,
+            "NT51927BASED_GEN_CRC_MODE",
+            "CRC32",
+            []);
+        var second = new LegacyCombinerPostbuildCommand(
+            "shorten-prefix",
+            LegacyCombinerCommandFamily.MergeMode,
+            "MERGE_MODE",
+            null,
+            [
+                new LegacyCombinerBlockArgument(
+                    "prefix",
+                    LegacyCombinerBlockSourceKind.StagedFile,
+                    "Short.bin",
+                    0,
+                    new ByteRange(0, 0x20)),
+            ]);
+        var profile = new LegacyCombinerPostbuildProfile(
+            "nfc.test.pipeline-shortened-output-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "pipeline_shortened_fw.bin",
+            [first, second],
+            [first, second],
+            "test pipeline shortened output profile");
+        int call = 0;
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            call++;
+            string firmwarePath = startInfo.Arguments.First(argument =>
+                argument.EndsWith("pipeline_shortened_fw.bin", StringComparison.Ordinal));
+            byte[] output = File.ReadAllBytes(firmwarePath);
+            if (call == 1)
+            {
+                output[0x30] ^= 0x55;
+                File.WriteAllBytes(firmwarePath, output);
+            }
+            else
+            {
+                byte[] shortened = output[..0x20];
+                shortened[0x12] ^= 0x33;
+                File.WriteAllBytes(firmwarePath, shortened);
+            }
+
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-pipeline-shortened",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [new ByteRange(0x12, 1), new ByteRange(0x30, 1)],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.Equal(2, runner.RunCount);
+        Assert.Equal(firmware.Length, result.OutputBytes.Length);
+        Assert.Equal((byte)(firmware[0x12] ^ 0x33), result.OutputBytes.Span[0x12]);
+        Assert.Equal((byte)(firmware[0x30] ^ 0x55), result.OutputBytes.Span[0x30]);
+        Assert.Equal([new ByteRange(0x12, 1), new ByteRange(0x30, 1)], result.ChangedRanges);
+    }
+
 }

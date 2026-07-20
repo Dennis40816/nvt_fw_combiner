@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -101,17 +102,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"compactSurface\"", reportHistoryTemplates, StringComparison.Ordinal);
     }
 
-    /// <summary>Ensures the Report raw payload uses the shared read-only text control.</summary>
-    [Fact]
-    public void ReportRawPayloadUsesTheSharedReadOnlyTextBox()
-    {
-        string rawTemplate = ReadPresentationFile("Resources/MainWindowReportAuditTemplates.axaml");
-        Assert.Contains("<TextBox", rawTemplate, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"readOnlyRaw\"", rawTemplate, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding LoadedReportJson, Mode=OneWay}\"", rawTemplate, StringComparison.Ordinal);
-        Assert.DoesNotContain("<ScrollViewer MaxHeight=\"320\"", rawTemplate, StringComparison.Ordinal);
-    }
-
     /// <summary>Ensures application resources expose the shared control style library to all views.</summary>
     [Fact]
     public void SharedControlStyleLibraryIsIncludedByTheApplication()
@@ -122,6 +112,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Styles/MainWindowControlStyles.axaml", application, StringComparison.Ordinal);
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsGuidanceVisible}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
     }
 
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
@@ -278,12 +271,19 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"hexOriginalRowsToggle\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("SelectNextChangedBlockCommand", hexEditor, StringComparison.Ordinal);
         Assert.Contains("ChangedBlockCount", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding ChangedBlockNavigationAccessibleLabel}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding ChangedBlockPage.PageStatus}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding ApplyRangeEditCommand}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Classes=\"hexWriteModeToggle\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding CurrentWriteModeLabel}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Classes=\"iconButton hexInspectorAction\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Classes=\"primary hexApplyChange\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ChangedBlocks}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding ChangedBlockPage}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource HexEditorChangedBlockPagerTemplate}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding ChangedBlockPage.HasMultiplePages}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ChangedBlockPage.Items}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"Auto,*,Auto\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("MinWidth=\"48\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding ReasonTooltip}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding ReasonTooltip}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("TextAlignment=\"Left\"", hexEditor, StringComparison.Ordinal);
@@ -331,6 +331,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsVisible=\"{Binding IsCtrlRamFirmwareVersionModalOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionPreserveCommand", modal, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionEditCommand", modal, StringComparison.Ordinal);
+        Assert.Contains("<TextBlock Text=\"{Binding Text.CtrlRamFirmwareVersionKeepLabel}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("<TextBlock Text=\"{Binding Text.CtrlRamFirmwareVersionEditLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("TryCreateCtrlRamFirmwareVersionEdit", ReadPresentationFile("Views/CtrlRamFirmwareVersionModal.axaml.cs"), StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionByteLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareSubVersionByteLabel}\"", modal, StringComparison.Ordinal);
@@ -344,20 +346,45 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("0x", modal, StringComparison.Ordinal);
     }
 
-    /// <summary>Every composition run exposes one truthful indeterminate progress surface.</summary>
+    /// <summary>Every composition run exposes typed steps plus a reduced-motion-safe activity indicator.</summary>
     [Fact]
     public void CompositionRunShowsGlobalWorkflowProgress()
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
         string contextPanel = ReadPresentationFile("Resources/MainWindowShellPanels.axaml");
+        string styles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
+        string nodeStyle = ExtractStyle(styles, "Border.runProgressNode");
+        string activeNodeStyle = ExtractStyle(styles, "Border.runProgressNode.active");
+        string markerStyle = ExtractStyle(styles, "TextBlock.runProgressMarker");
+        var contextDocument = XDocument.Parse(contextPanel);
+        XElement progressBar = Assert.Single(
+            contextDocument.Descendants(),
+            static element => element.Name.LocalName == "ProgressBar");
 
-        Assert.Contains("<ProgressBar", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("IsIndeterminate=\"True\"", shell, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding RunProgressAccessibleLabel}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("<ProgressBar", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding CompositionProgress.Steps}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleLabel}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding StateMarker}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"runProgressMarker\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AccessibilityView=\"Raw\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ActiveRunIc}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ActiveRunNumber}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsActiveRunNumberVisible}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ActiveRunContextLabel}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsDeviceContextSelectionVisible}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Equal("True", progressBar.Attribute("IsIndeterminate")?.Value);
+        Assert.Equal("{Binding ShouldAnimateRunProgress}", progressBar.Attribute("IsVisible")?.Value);
+        Assert.Equal(
+            "{Binding RunProgressStatusLabel}",
+            progressBar.Attribute("AutomationProperties.Name")?.Value);
+        Assert.Contains("Property=\"Height\" Value=\"22\"", nodeStyle, StringComparison.Ordinal);
+        Assert.Contains("Property=\"BorderThickness\" Value=\"1\"", nodeStyle, StringComparison.Ordinal);
+        Assert.Contains("Property=\"BorderThickness\" Value=\"2\"", activeNodeStyle, StringComparison.Ordinal);
+        Assert.Contains("NfcTextStrongBrush", markerStyle, StringComparison.Ordinal);
         Assert.DoesNotContain("AutomationProperties.Name=\"{Binding DeviceContextStatus}\"", shell, StringComparison.Ordinal);
-        Assert.DoesNotContain("<ProgressBar", contextPanel, StringComparison.Ordinal);
-        Assert.DoesNotContain("Value=\"{Binding RunProgress", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Value=\"{Binding RunProgress", contextPanel, StringComparison.Ordinal);
     }
 
     /// <summary>Keeps each byte value centered on the calculated 16-column viewport geometry.</summary>
@@ -386,7 +413,9 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("<views:HexEditorViewportControl", hexEditor, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ViewportRows}\"", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("<ContentControl", hexEditor, StringComparison.Ordinal);
+        Assert.Equal(2, hexEditor.Split("<ContentControl", StringSplitOptions.None).Length);
+        Assert.Contains("Content=\"{Binding ChangedBlockPage}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource HexEditorChangedBlockPagerTemplate}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("public override void Render(DrawingContext context)", viewport, StringComparison.Ordinal);
         Assert.Contains("DrawByte(context", viewport, StringComparison.Ordinal);
         Assert.True(viewport.Split("_hoveredAddress,", StringSplitOptions.None).Length >= 3);
@@ -507,6 +536,7 @@ public sealed partial class XamlControlStyleContractTests
     public void PresentationStartupHasNoImplicitDebugFixtureLoading()
     {
         string startup = ReadPresentationFile("MainWindow.Report.cs");
+        string window = ReadPresentationFile("MainWindow.axaml.cs");
         string presentation = RepositoryPaths.FromRepositoryRoot(
             "src",
             "NvtFwCombiner.Presentation.Avalonia");
@@ -515,6 +545,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.False(File.Exists(Path.Combine(presentation, "MainWindow.DebugDemo.cs")));
         Assert.DoesNotContain("ApplyDebugDemoWhenNoLaunchOptions", startup, StringComparison.Ordinal);
         Assert.DoesNotContain("#if DEBUG", startup, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportHistoryFileStore.LoadInto(viewModel);", window, StringComparison.Ordinal);
+        Assert.Contains("protected override async void OnOpened", window, StringComparison.Ordinal);
+        Assert.Contains("await ApplyDeferredLaunchOptionsAsync(", window, StringComparison.Ordinal);
+        Assert.Contains("ReportHistoryFileStore.LoadAsync", startup, StringComparison.Ordinal);
+        Assert.Contains("return viewModel.LoadReportJsonAsync(", startup, StringComparison.Ordinal);
     }
 
     /// <summary>Prevents repeated shell, panel, row, and text property bundles from drifting back into templates.</summary>

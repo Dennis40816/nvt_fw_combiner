@@ -7,15 +7,21 @@ public sealed class ExternalProcessorStagedArtifact
 
     /// <summary>Creates one named immutable staging artifact.</summary>
     public ExternalProcessorStagedArtifact(string artifactId, ReadOnlyMemory<byte> bytes)
+        : this(artifactId, ClonePublicBytes(artifactId, bytes))
+    {
+    }
+
+    private ExternalProcessorStagedArtifact(string artifactId, byte[] ownedBytes)
     {
         ValidateArtifactId(artifactId, nameof(artifactId));
-        if (bytes.IsEmpty)
+        ArgumentNullException.ThrowIfNull(ownedBytes);
+        if (ownedBytes.Length == 0)
         {
-            throw new ArgumentException("Staged artifact bytes must not be empty.", nameof(bytes));
+            throw new ArgumentException("Staged artifact bytes must not be empty.", nameof(ownedBytes));
         }
 
         ArtifactId = artifactId;
-        _bytes = bytes.ToArray();
+        _bytes = ownedBytes;
     }
 
     /// <summary>Closed identifier referenced by a manifest staging-artifact token.</summary>
@@ -23,6 +29,17 @@ public sealed class ExternalProcessorStagedArtifact
 
     /// <summary>Cloned bytes written only into the host-created staging directory.</summary>
     public ReadOnlyMemory<byte> Bytes => _bytes;
+
+    internal static ExternalProcessorStagedArtifact FromOwnedBytes(string artifactId, byte[] ownedBytes)
+    {
+        return new ExternalProcessorStagedArtifact(artifactId, ownedBytes);
+    }
+
+    private static byte[] ClonePublicBytes(string artifactId, ReadOnlyMemory<byte> bytes)
+    {
+        ValidateArtifactId(artifactId, nameof(artifactId));
+        return bytes.IsEmpty ? throw new ArgumentException("Staged artifact bytes must not be empty.", nameof(bytes)) : bytes.ToArray();
+    }
 
     /// <summary>Rejects a value that cannot safely identify a host-created staging artifact.</summary>
     public static void ValidateArtifactId(string value, string parameterName)

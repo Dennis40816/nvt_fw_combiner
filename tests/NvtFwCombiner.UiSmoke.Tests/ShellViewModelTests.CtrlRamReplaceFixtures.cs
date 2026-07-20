@@ -43,6 +43,9 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.HasLoadedReport);
         Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
         Assert.Equal(outputPath, viewModel.LoadedReport.OutputArtifactPath);
+        Assert.Equal(
+            Application.Composition.CompositionRunPhase.PreparingReport,
+            viewModel.CompositionProgress.CurrentPhase);
         ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
         Assert.Equal(10, postbuild.RuntimeCommands.Count);
         Assert.All(postbuild.RuntimeCommands, command =>

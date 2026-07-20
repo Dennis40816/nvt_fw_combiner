@@ -29,8 +29,8 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Gets the shared device context status text.</summary>
     public string DeviceContextStatus => IsNumberSelectorVisible
-        ? $"{SelectedIc} / {SelectedNumber}: {DeviceContextRefreshSummary}"
-        : $"{SelectedIc}: {DeviceContextRefreshSummary}";
+        ? $"{DisplayedDeviceIc} / {DisplayedDeviceNumber}: {DisplayedDeviceContextRefreshSummary}"
+        : $"{DisplayedDeviceIc}: {DisplayedDeviceContextRefreshSummary}";
 
     /// <summary>Gets selectable IC choices from the current catalog.</summary>
     public IReadOnlyList<string> IcChoices { get; } = WorkbenchCompositionService.GetSupportedIcIds();
@@ -118,7 +118,8 @@ public sealed partial class MainWindowViewModel
     public string ReplaceMemoryRangeLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the default Replace output file name for the active mode.</summary>
-    public string ReplaceOutputFileName => CreateFlashCodeOutputFileName(ReplaceSlots.Concat([ReplaceBaseSlot]));
+    public string ReplaceOutputFileName => CreateFlashCodeOutputFileName(
+        ReplaceSlots.Concat([ReplaceBaseSlot]));
 
     /// <summary>Gets short Merge memory-map summary text.</summary>
     public string MergeMemorySummary => Text.GetMergeMemorySummary(
@@ -240,12 +241,14 @@ public sealed partial class MainWindowViewModel
     public bool HasSelectedIcFamily => SelectedIcFamilySummary.FamilyId is not null;
 
     /// <summary>Status shown in the merge inspector.</summary>
-    public string MergeReadinessStatus => Text.GetMergeReadinessStatus(
-        SelectedMergeMode,
-        SelectedIc,
-        GetRequiredStandardMergeSlotLabels(),
-        IsStandardMergeSupported,
-        GeneralMergeMappings.Count(mapping => mapping.HasFile));
+    public string MergeReadinessStatus => IsFirmwareInspectionLoading
+        ? Text.FirmwareInspectionLoadingStatus
+        : Text.GetMergeReadinessStatus(
+            SelectedMergeMode,
+            SelectedIc,
+            GetRequiredStandardMergeSlotLabels(),
+            IsStandardMergeSupported,
+            GeneralMergeMappings.Count(mapping => mapping.HasFile));
 
     /// <summary>One-line Build action hint for Merge.</summary>
     public string MergeBuildActionTip => CreateBuildActionTip(MergeReadinessStatus, CanRunMerge());
@@ -257,7 +260,7 @@ public sealed partial class MainWindowViewModel
     public bool CanBuildMerge => CanRunMerge();
 
     /// <summary>True when Replace build can run for the active mode.</summary>
-    public bool CanBuildReplace => CanRunReplace();
+    public bool CanBuildReplace => CanRunReplace() && !IsCtrlRamFirmwareVersionMetadataLoading;
 
     /// <summary>Command that returns to the clean home view.</summary>
     public IRelayCommand ShowHomeCommand { get; }
@@ -330,6 +333,9 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Command that closes the CtrlRAM firmware-version confirmation modal.</summary>
     public IRelayCommand CloseCtrlRamFirmwareVersionCommand { get; }
+
+    /// <summary>Command that dismisses the successful Build confirmation.</summary>
+    public IRelayCommand CloseBuildCompletedModalCommand { get; }
 
     /// <summary>Gets selected replace mode.</summary>
     [ObservableProperty]

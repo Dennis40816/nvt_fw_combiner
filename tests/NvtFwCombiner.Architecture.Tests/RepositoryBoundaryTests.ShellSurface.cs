@@ -143,7 +143,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SlotDrop_OnDrop", firmwareSlotCard, StringComparison.Ordinal);
         Assert.Contains("SlotDragOver_OnDragOver", firmwareSlotCard, StringComparison.Ordinal);
         Assert.Contains("BrowseButton_OnClick", firmwareSlotCard, StringComparison.Ordinal);
-        Assert.Contains("SetSlotFile", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.Contains("await viewModel.SetSlotFileAsync", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("viewModel.SetSlotFile(", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("DropZoneDragState.ApplyFileDropEffect", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("DropZoneDragState.GetFirstLocalFilePath", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("GetFirstLocalFilePath", dropZoneDragState, StringComparison.Ordinal);
@@ -156,7 +157,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MappingDrop_OnDrop", generalMappingRow, StringComparison.Ordinal);
         Assert.Contains("BrowseButton_OnClick", generalMappingRow, StringComparison.Ordinal);
         Assert.Contains("RemoveButton_OnClick", generalMappingRow, StringComparison.Ordinal);
-        Assert.Contains("SetSlotFile", generalMappingRowCode, StringComparison.Ordinal);
+        Assert.Contains("await viewModel.SetSlotFileAsync", generalMappingRowCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("viewModel.SetSlotFile(", generalMappingRowCode, StringComparison.Ordinal);
         Assert.Contains("RemoveGeneralMappingRow", generalMappingRowCode, StringComparison.Ordinal);
         Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.GeneralReplaceMappingTitle}\"", workflowTemplates, StringComparison.Ordinal);
@@ -209,7 +211,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ContentTemplate=\"{StaticResource ReportSummaryPanelTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OutcomeTitle", reportPanels, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.ByteDifferenceTitle", reportPanels, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.OutputDifferenceSummaryRows", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OutputDifferenceSummaryPage.Items", reportPanels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.ChangeReviewTitle}\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource ReportAuditDetailsPanelTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", reportAuditTemplates, StringComparison.Ordinal);
@@ -236,13 +238,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Header=\"{Binding Text.ReportTabPostbuild}\"", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("Header=\"{Binding Text.ReportTabIssues}\"", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("Header=\"{Binding Text.ReportTabRaw}\"", reportAuditTemplates, StringComparison.Ordinal);
-        Assert.Contains("ReportOutputDifferenceRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportHexDiffViewportRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportHexDiffRangeRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportOutputDifferenceRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.HexDiff.HasDifferenceWorkspace", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportInputGroupTemplate", reportInputTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportOperationFlowNodeTemplate", reportOperationTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportHistoryEntryTemplate", reportHistoryTemplates, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.OperationFlow", reportAuditTemplates, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.StepOperations", reportAuditTemplates, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.PostbuildInvocations", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OperationFlowPage.Items", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.StepOperationPage.Items", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.PostbuildInvocationPage.Items", reportAuditTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("LoadedReport.CommandOperations", reportAuditTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"24,*\"", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"{DynamicResource NfcUiFontFamily}\"", shell, StringComparison.Ordinal);
@@ -285,6 +290,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ReportReviewViewModel", reportViewModel, StringComparison.Ordinal);
         Assert.Contains("CanOpenReport", reportViewModel, StringComparison.Ordinal);
         Assert.Contains("ReportToastText", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains("ShellToastAccessibleLabel", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.LiveSetting=\"Polite\"",
+            shellPanels,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.Name=\"{Binding ShellToastAccessibleLabel}\"",
+            shellPanels,
+            StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetNumberSelectionChoices", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("public partial IReadOnlyList<string> NumberChoices", viewModel, StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetStandardMergeMemoryDisplay", viewModel, StringComparison.Ordinal);

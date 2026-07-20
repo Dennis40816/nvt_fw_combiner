@@ -13,7 +13,7 @@ public sealed partial class MainWindowViewModel
             GeneralMergeMappings.Count + 1);
         mapping.PropertyChanged += GeneralMergeMappingPropertyChanged;
         GeneralMergeMappings.Add(mapping);
-        RefreshMemoryMapState();
+        RefreshMergeMemoryMapState();
         RefreshCommandState();
     }
 
@@ -39,7 +39,7 @@ public sealed partial class MainWindowViewModel
             nameof(GeneralMergeMappingViewModel.Length) or
             nameof(GeneralMergeMappingViewModel.FilePath))
         {
-            RefreshMemoryMapState();
+            RefreshMergeMemoryMapState();
             ResetRunResultForContextChange();
             RefreshCommandState();
         }

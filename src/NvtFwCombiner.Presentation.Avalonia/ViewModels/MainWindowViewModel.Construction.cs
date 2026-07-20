@@ -34,6 +34,7 @@ public sealed partial class MainWindowViewModel
         isOptional: true);
     private int _generalReplaceMappingCounter;
     private int _generalMergeMappingCounter;
+    private readonly bool _isInitializing = true;
     private string _selectedMergeMode = NormalMergeMode;
 
     /// <summary>Initializes the main workbench view model.</summary>
@@ -41,10 +42,54 @@ public sealed partial class MainWindowViewModel
         string shellVersion,
         string appVersion,
         ShellLanguage language = ShellLanguage.English)
+        : this(
+            shellVersion,
+            appVersion,
+            language,
+            static (icId, path) => WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path),
+            WorkbenchCompositionService.InspectFirmwareBatch)
     {
+    }
+
+    /// <summary>Initializes the main workbench view model with a deterministic firmware metadata reader.</summary>
+    internal MainWindowViewModel(
+        string shellVersion,
+        string appVersion,
+        ShellLanguage language,
+        Func<string, string, WorkbenchFirmwareConfigMetadata?> firmwareConfigMetadataReader)
+        : this(
+            shellVersion,
+            appVersion,
+            language,
+            firmwareConfigMetadataReader,
+            WorkbenchCompositionService.InspectFirmwareBatch)
+    {
+    }
+
+    /// <summary>Initializes the shell with deterministic metadata and consolidated inspection readers.</summary>
+    internal MainWindowViewModel(
+        string shellVersion,
+        string appVersion,
+        ShellLanguage language,
+        Func<string, string, WorkbenchFirmwareConfigMetadata?> firmwareConfigMetadataReader,
+        Func<
+            string,
+            IReadOnlyList<WorkbenchFirmwareInspectionInput>,
+            IReadOnlyList<WorkbenchFirmwareInspectionResult>> firmwareInspectionReader)
+    {
+        ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
+        ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
+        _ctrlRamFirmwareVersionMetadataReader = firmwareConfigMetadataReader;
+        _firmwareInspectionReader = firmwareInspectionReader;
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         HexEditorWorkspace = new HexEditorWorkspaceViewModel(Text);
+        CompositionProgress = new CompositionRunProgressViewModel(language);
+        SelectedLanguage = language == ShellLanguage.ChineseTraditional
+            ? "Traditional Chinese"
+            : "English";
+        _relocalizeLoadedReportCommand = new AsyncRelayCommand(RelocalizeLoadedReportAsync);
+        CompositionProgress.PropertyChanged += CompositionProgress_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
         ShowHomeCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Home));
         ShowSettingsCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Settings));
@@ -84,13 +129,18 @@ public sealed partial class MainWindowViewModel
         ShowReportHistoryCommand = new RelayCommand(ShowReportHistory, () => CanOpenReportHistory);
         CloseReportHistoryCommand = new RelayCommand(CloseReportHistory);
         ClearReportHistoryCommand = new RelayCommand(ClearReportHistory, () => CanClearReportHistory);
-        OpenReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(OpenReportHistoryEntry);
+        OpenReportHistoryEntryAsyncCommand = new AsyncRelayCommand<ReportHistoryEntryViewModel>(OpenReportHistoryEntryAsync);
+        OpenReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(
+            entry => OpenReportHistoryEntryAsyncCommand.Execute(entry),
+            entry => OpenReportHistoryEntryAsyncCommand.CanExecute(entry));
+        OpenReportHistoryEntryAsyncCommand.CanExecuteChanged += OpenReportHistoryEntryAsyncCommand_CanExecuteChanged;
         RemoveReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(RemoveReportHistoryEntry);
         ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
         SelectCtrlRamFirmwareVersionPreserveCommand = new RelayCommand(SelectCtrlRamFirmwareVersionPreserve);
         SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
         CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);
+        CloseBuildCompletedModalCommand = new RelayCommand(CloseBuildCompletedModal);
         HexEditorWorkspace.PropertyChanged += HexEditorWorkspace_OnPropertyChanged;
 
         AddGeneralReplaceMapping();
@@ -98,5 +148,6 @@ public sealed partial class MainWindowViewModel
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         RefreshContextState();
         RefreshSettingsState();
+        _isInitializing = false;
     }
 }

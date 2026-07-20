@@ -200,7 +200,7 @@ public sealed class Nt51931CtrlRamEvidenceTests
         using var workspace = TempWorkspace.Create("nfc-nt51931-fw130-route-parity");
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         IExternalProcessor processor = Assert.IsType<IExternalProcessor>(
-            ExternalProcessorFactory.CreateOrNull(),
+            ExternalProcessorFactory.GetOrCreateOrNull(),
             exactMatch: false);
 
         WorkbenchRunResult v2 = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(

@@ -1,12 +1,12 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.9 legacy-convergence stable release candidate`
-> 文件版本：`0.9.9`
-> 基準日期：`2026-07-19`
+> 文件狀態：`0.9.10 performance-remediation stable release candidate`
+> 文件版本：`0.9.10`
+> 基準日期：`2026-07-20`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
-> 可見性：`Private`
+> 可見性：`Public`（owner 決定維持至 `0.9.11` 完成，之後改為 `Private`）
 > License：`MIT`（只涵蓋新 NFC 原創內容；`refcode/` 依個別來源與所有權處理）
 > 本文件目的：鎖定產品、Composition 架構、資料契約、Codex 治理、CI/CD、里程碑與後續開發順序。
 
@@ -30,7 +30,9 @@
 
 ## 0.1 Current owner priority
 
-As of 2026-07-19, `0.9.9` completes the feature-frozen legacy-convergence stable release candidate. Release-exposed composition routes use the reviewed V2/compiled-composition authority; the constrained Legacy Combiner executable and runner remain the sole legacy execution exception. Exact direct or fact-scoped golden evidence, support-neutral admission, and firmware-owner review remain separate from runtime availability, so this release does not infer or promote unsupported IC shapes.
+As of 2026-07-19, `0.9.10` completes the feature-frozen end-to-end performance and Change Report remediation candidate on stable `v0.9.9`. Automatic Build has one authoritative execution; Legacy Combiner keeps exact sequential commands while removing unevidenced intermediate full-image reads; report/history/inspection/editor paths are bounded; and typed progress plus a read-only Hex Diff keep the UI responsive and understandable. Firmware ranges, command semantics, golden verification, runtime availability, and product-support promotion remain separate evidence-gated concerns, so this release does not infer or promote unsupported IC shapes.
+
+- Post-commit background report preparation is an explicit `0.9.10` requirement. A successful Build publishes the atomically committed output identity as soon as the BIN is usable, while complete JSON, Hex Diff, and history projection continue off the dispatcher. Preview and uncommitted failures publish no artifact, and the run retains command ownership until the complete report is ready.
 
 - AB Code architecture and evidence intake are reactivated. Executable AB behavior remains a separate R3 phase and no profile is promoted without its exact ranges, relocation fields, integrity contract, golden output, and firmware-owner approval.
 - NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919 may inherit the NT51929/NT51932 canonical AB facts only through owner-approved fact-scoped bindings and parity tests. This direction does not infer ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
@@ -684,11 +686,17 @@ Build automatically runs the same validation path as Preview before committing o
 
 Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings. The initial default language is English.
 
-While Preview or Build is active, the shell shows one accessible, indeterminate progress bar beside
-the selected IC/mode context. It must not invent percentage completion when the
-composition/external-tool contracts do not expose byte-level progress. CtrlRAM Replace remains one
-logical run across validation, replacement, and the approved Postbuild sequence; approved external
-processes execute headlessly and never open user-visible console windows.
+While Preview or Build is active, the shell shows one accessible typed lifecycle stepper and a
+restrained indeterminate activity bar beside the selected IC/mode context. The current Application-
+owned step and lifecycle ordinal are visible; it must not invent percentage completion when the
+composition/external-tool contracts do not expose byte-level progress. A reduced-motion preference
+keeps the same static step and accessible live status while removing the indeterminate animation.
+CtrlRAM Replace remains one logical run across validation, replacement, and the approved Postbuild
+sequence; approved external processes execute headlessly and never open user-visible console windows.
+After a successful Build atomically commits its BIN, the progress surface distinguishes the usable
+artifact from the still-running background report preparation. The complete report modal opens only
+after JSON, Hex Diff, and history projection are ready; Preview and failed or cancelled Build paths
+must never announce a committed artifact.
 
 ### 11.5 Typography and localization defaults
 

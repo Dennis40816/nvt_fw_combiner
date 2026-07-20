@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
@@ -8,6 +9,28 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private static async ValueTask<WorkbenchRunResult> RunCtrlRamReplaceAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        string? outputPath,
+        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
+        CompositionRunProgressFeed? progress,
+        CancellationToken cancellationToken)
+    {
+        return await RunCtrlRamReplaceWithProcessorCoreAsync(
+            icId,
+            number,
+            slotPaths,
+            build,
+            outputPath,
+            firmwareVersionEdit,
+            ExternalProcessorFactory.GetOrCreateOrNull(),
+            progress,
+            cancellationToken).ConfigureAwait(false);
+    }
+
     internal static async ValueTask<WorkbenchRunResult> RunCtrlRamReplaceWithProcessorAsync(
         string icId,
         string number,
@@ -16,6 +39,29 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
         IExternalProcessor? externalProcessor,
+        CancellationToken cancellationToken)
+    {
+        return await RunCtrlRamReplaceWithProcessorCoreAsync(
+            icId,
+            number,
+            slotPaths,
+            build,
+            outputPath,
+            firmwareVersionEdit,
+            externalProcessor,
+            progress: null,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<WorkbenchRunResult> RunCtrlRamReplaceWithProcessorCoreAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        string? outputPath,
+        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
+        IExternalProcessor? externalProcessor,
+        CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken)
     {
         CtrlRamReplaceRunContext context = CreateCtrlRamReplaceRunContext(
@@ -43,17 +89,16 @@ public static partial class WorkbenchCompositionService
                 outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam));
         }
 
-        if (context.ValidationIssues.Count != 0 ||
-            context.BasePath is null ||
+        if (context.ValidationIssues.Count != 0 || context.BasePath is null || context.BaseBytes is null ||
             context.PostbuildProfile is null ||
             context.CommandPlan is null)
         {
             return Blocked(context.ValidationIssues);
         }
 
-        WorkbenchFirmwareContextSuggestion? firmware = firmwareVersionEdit is null
-            ? TryReadFirmwareContextSuggestion(icId, context.BasePath!)
-            : null;
+        byte[] referenceBytes = context.BaseBytes;
+        var referencePayload = new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, referenceBytes);
+        WorkbenchFirmwareContextSuggestion? firmware = ReadFirmwareContextSuggestion(icId, referenceBytes);
         (string? v2ProfileId, string? requiredBaseSha256) = (
             context.PostbuildProfile!.IcId,
             context.PostbuildProfile!.ProcessorId,
@@ -96,7 +141,7 @@ public static partial class WorkbenchCompositionService
             ("NT51929", "nfc.nt51929.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, "2.0.0", 1, 0x4703) =>
                 ("nt51929-ctrlram-replace-fw200-single", "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910"),
             ("NT51930", "nfc.nt51930.ctrlram-postbuild-fw1.x", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.3.0", 3, 0x110D) =>
-                ("nt51930-ctrlram-replace-fw130-cascade3", null),
+                ("nt51930-ctrlram-replace-fw130-cascade3", "676a4b3fb1a302b9bee4b2cea795e17189d70b6d4dd20a45b3fef603afabb1a8"),
             ("NT51931", "nfc.nt51931.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "1.3.0", 6, 0x131B) =>
                 ("nt51931-ctrlram-replace-fw130-cascade6", "2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3"),
             ("NT51932", "nfc.nt51932.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, "2.0.0", 3, 0x5601) =>
@@ -108,13 +153,10 @@ public static partial class WorkbenchCompositionService
             _ => (null, null),
         };
         if (v2ProfileId is not null &&
-            (requiredBaseSha256 is null || StringComparer.Ordinal.Equals(
-                Sha256File(context.BasePath!), requiredBaseSha256)))
+            (requiredBaseSha256 is null || StringComparer.Ordinal.Equals(referencePayload.Sha256, requiredBaseSha256)))
         {
-            V2CompositionPlanCompileResult v2Compile = CompileCtrlRamV2(
-                context,
-                v2ProfileId,
-                new(firmware!.ChipNumber, firmware.NumberToken, TopologySelectionSource.Requested, "ic-number"));
+            V2CompositionPlanCompileResult v2Compile = CompileCtrlRamV2(context, v2ProfileId,
+                new(firmware!.ChipNumber, firmware.NumberToken, TopologySelectionSource.Requested, "ic-number"), referencePayload);
             return !v2Compile.IsCompiled
                 ? Blocked(v2Compile.Issues, $"{icId.ToLowerInvariant()}-ctrlram-replace.bin")
                 : await RunCompiledCompositionAsync(
@@ -130,7 +172,12 @@ public static partial class WorkbenchCompositionService
                     externalProcessor,
                     icNumberSelection: context.Selection,
                     overwrite: true,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)
+                    {
+                        [context.BasePath!] = referenceBytes,
+                    },
+                    progress: progress).ConfigureAwait(false);
         }
 
         return Blocked(

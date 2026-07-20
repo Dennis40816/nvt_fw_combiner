@@ -159,9 +159,10 @@ public sealed partial class CompiledComposition
             details.RegionAccessContract.ResolvedViews);
 
         CompositionOperation[] mappingOperations = [.. plan.OrderedOperations.Where(static operation => operation.Kind == CompositionOperationKind.ReplaceRange)];
+        CompositionOperation[] firmwareVersionOperations = [.. plan.OrderedOperations.Where(static operation => operation.Kind == CompositionOperationKind.PatchScalar)];
         CompositionOperation[] processorOperations = [.. plan.OrderedOperations.Where(static operation => operation.Kind == CompositionOperationKind.RunExternalProcessor)];
         if (mappingOperations.Length == 0 ||
-            mappingOperations.Length + processorOperations.Length != plan.OrderedOperations.Count ||
+            firmwareVersionOperations.Length + mappingOperations.Length + processorOperations.Length != plan.OrderedOperations.Count ||
             mappingOperations.Any(operation =>
                 operation.OverlapPolicy != OverlapPolicy.Reject ||
                 !StringComparer.Ordinal.Equals(operation.TargetSpaceId, plan.OutputSpaceId) ||
@@ -170,6 +171,25 @@ public sealed partial class CompiledComposition
         {
             throw new ArgumentException(
                 "Runtime reference-replace plans require only reject-overlap ReplaceRange operations from declared sources into the output.",
+                nameof(plan));
+        }
+
+        int versionValidationCount = details.Provenance.ValidationRequirements
+            .Count(static requirement => requirement is CompiledFirmwareConfigBackupVersionValidation);
+        bool versionEditValid = firmwareVersionOperations.Length == 0
+            ? versionValidationCount == 0
+            : isCtrlRamReplace && firmwareVersionOperations.Length == 2 &&
+              versionValidationCount == 1 && details.Provenance.ValidationRequirements.Count == 1 &&
+              firmwareVersionOperations.Count(static operation => operation.PatchBytes.Length == 2) == 1 &&
+              firmwareVersionOperations.Count(static operation => operation.PatchBytes.Length == 1) == 1 &&
+              firmwareVersionOperations.All(operation =>
+                  operation.OverlapPolicy == OverlapPolicy.Reject &&
+                  operation.TargetSpaceId == plan.OutputSpaceId &&
+                  operation.Sequence < mappingOperations[0].Sequence);
+        if (!versionEditValid)
+        {
+            throw new ArgumentException(
+                "Runtime CtrlRAM TP-version edits require two early typed patches and one matching final validation.",
                 nameof(plan));
         }
 

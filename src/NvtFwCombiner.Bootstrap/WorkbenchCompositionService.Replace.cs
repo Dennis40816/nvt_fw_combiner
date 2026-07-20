@@ -13,9 +13,22 @@ public static partial class WorkbenchCompositionService
         string? basePath)
     {
         _ = TryResolvePostbuildProfileForDisplay(icId, basePath, out LegacyCombinerPostbuildProfile? postbuildProfile);
+        return CreateCtrlRamReplaceInputSlots(
+            icId,
+            number,
+            postbuildProfile,
+            !string.IsNullOrWhiteSpace(basePath) && File.Exists(basePath));
+    }
+
+    private static IReadOnlyList<WorkbenchReplaceInputSlot> CreateCtrlRamReplaceInputSlots(
+        string icId,
+        string number,
+        LegacyCombinerPostbuildProfile? postbuildProfile,
+        bool hasReadableBase)
+    {
         LegacyCombinerPostbuildBranch branch = postbuildProfile is null ? LegacyCombinerPostbuildBranch.SingleChip :
             LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, ToIcNumberSelection(number)).Branch;
-        return postbuildProfile is null && basePath is not null && File.Exists(basePath)
+        return postbuildProfile is null && hasReadableBase
             ? []
             : [
             .. BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, ToIcNumberSelection(number), postbuildProfile)
@@ -41,15 +54,15 @@ public static partial class WorkbenchCompositionService
             .Select(block =>
             {
                 TpFlashMapRegion region = source.Regions.Single(region => region.Range.Overlaps(block.FirmwareRange));
-                return $"{region.DisplayName}: max {block.FirmwareRange.Length} bytes, source +0x{block.SourceOffset:X} to flash 0x{block.FirmwareRange.Start:X}";
+                return $"{region.DisplayName}: max {block.FirmwareRange.Length} B → 0x{block.FirmwareRange.Start:X}";
             }));
-        string description = $"{source.SourceFileName}. Expected sections: {sections}. Short source files stop at EOF without padding; bytes beyond each section maximum are not used.";
+        string description = $"{source.SourceFileName} · {sections}";
         string slotId = CtrlRamSlotId(source.SourceId);
         return new WorkbenchReplaceInputSlot(
             slotId,
             requiresDiffNfMerge ? $"{title} (DiffNFMerge output)" : title,
             requiresDiffNfMerge
-                ? $"{description} Required cascade input: select an NF_Ctrlram.bin prebuilt by the external DiffNFMerge.exe. Its input contract and execution are not yet integrated."
+                ? $"{description} · Cascade requires a DiffNFMerge-prebuilt NF_Ctrlram.bin; generation is not integrated."
                 : description,
             true,
             slotId,

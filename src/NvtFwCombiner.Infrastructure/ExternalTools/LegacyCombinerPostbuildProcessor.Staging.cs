@@ -240,8 +240,9 @@ public sealed partial class LegacyCombinerPostbuildProcessor
                     block.BlockId);
             }
 
-            byte[] stagedBytes = await File.ReadAllBytesAsync(artifactPath, cancellationToken).ConfigureAwait(false);
-            if (!stagedBytes.AsSpan().SequenceEqual(artifact.Bytes.Span))
+            if (!await StagedArtifactFileVerifier
+                    .MatchesAsync(artifactPath, artifact.Bytes, cancellationToken)
+                    .ConfigureAwait(false))
             {
                 return new CompositionIssue(
                     "external-tool.staged-artifact.modified",
@@ -283,19 +284,55 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         }
     }
 
-    private static async ValueTask<CompositionIssue?> NormalizeShortenedFirmwareAsync(
+    private static async ValueTask<ShortOutputTailSnapshot?> CaptureShortOutputTailAsync(
         string firmwarePath,
-        byte[] commandInputBytes,
         LegacyCombinerPostbuildCommand command,
+        long expectedLength,
         CancellationToken cancellationToken)
     {
-        byte[] commandOutputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
-        if (commandOutputBytes.LongLength == commandInputBytes.LongLength)
+        if (command.Family != LegacyCombinerCommandFamily.MergeMode)
         {
             return null;
         }
 
-        if (commandOutputBytes.LongLength > commandInputBytes.LongLength)
+        long minimumLength = GetMinimumCommandOutputLength(command, expectedLength);
+        if (minimumLength >= expectedLength)
+        {
+            return null;
+        }
+
+        byte[] tailBytes = new byte[checked((int)(expectedLength - minimumLength))];
+        await using var stream = new FileStream(
+            firmwarePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        if (stream.Length != expectedLength)
+        {
+            throw new IOException("The staged firmware length changed before short-output normalization capture.");
+        }
+
+        stream.Position = minimumLength;
+        await stream.ReadExactlyAsync(tailBytes, cancellationToken).ConfigureAwait(false);
+        return new ShortOutputTailSnapshot(minimumLength, tailBytes);
+    }
+
+    private static async ValueTask<CompositionIssue?> NormalizeShortenedFirmwareAsync(
+        string firmwarePath,
+        LegacyCombinerPostbuildCommand command,
+        long expectedLength,
+        ShortOutputTailSnapshot? tailSnapshot,
+        CancellationToken cancellationToken)
+    {
+        long outputLength = new FileInfo(firmwarePath).Length;
+        if (outputLength == expectedLength)
+        {
+            return null;
+        }
+
+        if (outputLength > expectedLength)
         {
             return new CompositionIssue(
                 "external-tool.output-length.changed",
@@ -303,8 +340,8 @@ public sealed partial class LegacyCombinerPostbuildProcessor
                 command.CommandId);
         }
 
-        long minimumLength = GetMinimumCommandOutputLength(command, commandInputBytes.LongLength);
-        if (commandOutputBytes.LongLength < minimumLength)
+        long minimumLength = GetMinimumCommandOutputLength(command, expectedLength);
+        if (outputLength < minimumLength || tailSnapshot is null)
         {
             return new CompositionIssue(
                 "external-tool.output-length.changed",
@@ -312,9 +349,15 @@ public sealed partial class LegacyCombinerPostbuildProcessor
                 command.CommandId);
         }
 
-        byte[] normalizedBytes = [.. commandInputBytes];
-        commandOutputBytes.CopyTo(normalizedBytes, 0);
-        await File.WriteAllBytesAsync(firmwarePath, normalizedBytes, cancellationToken).ConfigureAwait(false);
+        int tailOffset = checked((int)(outputLength - tailSnapshot.Start));
+        await using var stream = new FileStream(
+            firmwarePath,
+            FileMode.Append,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 4096,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        await stream.WriteAsync(tailSnapshot.Bytes.AsMemory(tailOffset), cancellationToken).ConfigureAwait(false);
         return null;
     }
 
@@ -377,8 +420,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         return bytes;
     }
 
-    private static CompositionIssue? ValidateStagingTree(
-        string runDirectory,
+    private static StagingTreePolicy CreateStagingTreePolicy(
         LegacyCombinerPostbuildProfile profile,
         ExternalCombinerToolManifest manifest,
         LegacyCombinerPostbuildCommandPlan commandPlan)
@@ -406,10 +448,17 @@ public sealed partial class LegacyCombinerPostbuildProcessor
             OutputDirectoryName,
             BinDirectoryName,
         };
+        return new StagingTreePolicy(allowedRelativePaths, allowedRelativeDirectories);
+    }
+
+    private static CompositionIssue? ValidateStagingTree(
+        string runDirectory,
+        StagingTreePolicy policy)
+    {
         foreach (string directoryPath in Directory.EnumerateDirectories(runDirectory, "*", SearchOption.AllDirectories))
         {
             string relativePath = Path.GetRelativePath(runDirectory, directoryPath);
-            if (!allowedRelativeDirectories.Contains(relativePath))
+            if (!policy.AllowsDirectory(relativePath))
             {
                 return new CompositionIssue(
                     "external-tool.staging.unexpected-directory",
@@ -420,7 +469,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         foreach (string filePath in Directory.EnumerateFiles(runDirectory, "*", SearchOption.AllDirectories))
         {
             string relativePath = Path.GetRelativePath(runDirectory, filePath);
-            if (!allowedRelativePaths.Contains(relativePath))
+            if (!policy.AllowsFile(relativePath))
             {
                 return new CompositionIssue(
                     "external-tool.staging.unexpected-file",
@@ -430,4 +479,24 @@ public sealed partial class LegacyCombinerPostbuildProcessor
 
         return null;
     }
+
+    private sealed class StagingTreePolicy(
+        HashSet<string> allowedRelativePaths,
+        HashSet<string> allowedRelativeDirectories)
+    {
+        private readonly HashSet<string> _allowedRelativePaths = allowedRelativePaths;
+        private readonly HashSet<string> _allowedRelativeDirectories = allowedRelativeDirectories;
+
+        internal bool AllowsFile(string relativePath)
+        {
+            return _allowedRelativePaths.Contains(relativePath);
+        }
+
+        internal bool AllowsDirectory(string relativePath)
+        {
+            return _allowedRelativeDirectories.Contains(relativePath);
+        }
+    }
+
+    private sealed record ShortOutputTailSnapshot(long Start, byte[] Bytes);
 }

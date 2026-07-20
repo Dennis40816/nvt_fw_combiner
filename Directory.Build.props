@@ -12,9 +12,9 @@
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <DebugType>embedded</DebugType>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <RepositoryUrl>https://github.com/Dennis40816/nvt_fw_combiner</RepositoryUrl>
+    <RepositoryUrl>urn:msp-fw3:nvt-fw-combiner:source</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Authors>Dennis40816</Authors>
+    <Authors>MSP/FW3</Authors>
     <Company>Novatek</Company>
     <Product>NVT FW Combiner</Product>
     <RepositoryVersionFile>$(MSBuildThisFileDirectory)VERSION</RepositoryVersionFile>
@@ -25,7 +25,7 @@
     <FileVersion>$(VersionCore).0</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <Copyright>Copyright © 2026 Dennis40816</Copyright>
+    <Copyright>Copyright © 2026 MSP/FW3</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>

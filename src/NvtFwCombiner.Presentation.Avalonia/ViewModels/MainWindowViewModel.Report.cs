@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -7,6 +8,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     private static readonly JsonSerializerOptions RunErrorReportJsonOptions = new() { WriteIndented = true };
+    private long _reportProjectionGeneration;
 
     /// <summary>Gets the loaded run report summary.</summary>
     public ReportReviewViewModel LoadedReport { get; private set; } = ReportReviewViewModel.Empty;
@@ -43,6 +45,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the title for the shell notification, including non-report context updates.</summary>
     public string ShellToastTitle { get; private set; } = string.Empty;
 
+    /// <summary>Gets the complete title and detail announced for the current shell notification.</summary>
+    public string ShellToastAccessibleLabel => $"{ShellToastTitle}. {ReportToastText}";
+
     /// <summary>Gets a suggested report JSON file name.</summary>
     public string ReportSaveFileName => HasLoadedReport
         ? $"{SanitizeFileName(LoadedReport.Title)}.json"
@@ -73,15 +78,162 @@ public sealed partial class MainWindowViewModel
     /// <summary>Loads a CLI/application run report JSON into the readable report modal.</summary>
     public void LoadReportJson(string json, string sourceName)
     {
+        long generation = BeginReportProjection();
+        ReportReviewViewModel report;
         try
         {
-            LoadedReport = ReportReviewViewModel.FromJson(json, sourceName, language: Text.Language);
+            report = ReportReviewViewModel.FromJson(json, sourceName, language: Text.Language);
         }
-        catch (JsonException exception)
+        catch (Exception exception) when (IsReportMaterializationException(exception))
         {
-            LoadedReport = ReportReviewViewModel.Error(sourceName, exception.Message, language: Text.Language);
+            report = ReportReviewViewModel.Error(sourceName, exception.Message, language: Text.Language);
         }
 
+        if (IsCurrentReportProjection(generation))
+        {
+            ApplyLoadedReport(report, json, sourceName);
+        }
+    }
+
+    /// <summary>Projects a loaded report outside the UI dispatcher before publishing bounded state.</summary>
+    public async Task LoadReportJsonAsync(
+        string json,
+        string sourceName,
+        CancellationToken cancellationToken = default)
+    {
+        long generation = BeginReportProjection();
+        ReportReviewViewModel report = await ProjectReportAsync(
+            json,
+            sourceName,
+            outputArtifactPath: null,
+            cancellationToken);
+
+        if (IsCurrentReportProjection(generation))
+        {
+            ApplyLoadedReport(report, json, sourceName);
+        }
+    }
+
+    /// <summary>Loads an external report source away from the dispatcher unless a newer report wins.</summary>
+    internal async Task<bool> LoadReportJsonAsync(
+        Func<CancellationToken, Task<string>> loadJson,
+        string sourceName,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(loadJson);
+        ArgumentNullException.ThrowIfNull(sourceName);
+        long generation = BeginReportProjection();
+        string json;
+        ReportReviewViewModel report;
+        bool sourceFailed = false;
+        try
+        {
+            json = await loadJson(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsCurrentReportProjection(generation))
+            {
+                return false;
+            }
+
+            report = await ProjectReportAsync(
+                json,
+                sourceName,
+                outputArtifactPath: null,
+                cancellationToken);
+        }
+        catch (Exception exception) when (IsReportSourceException(exception))
+        {
+            json = string.Empty;
+            sourceFailed = true;
+            report = ReportReviewViewModel.Error(
+                sourceName,
+                exception.Message,
+                "Load error",
+                "Load failed",
+                Text.Language);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsCurrentReportProjection(generation))
+        {
+            return false;
+        }
+
+        if (sourceFailed)
+        {
+            ApplyReportError(report, sourceName);
+        }
+        else
+        {
+            ApplyLoadedReport(report, json, sourceName);
+        }
+
+        return true;
+    }
+
+    private async Task<ReportReviewViewModel> ProjectReportAsync(
+        string json,
+        string sourceName,
+        string? outputArtifactPath,
+        CancellationToken cancellationToken,
+        bool materializationErrorsAsReport = true,
+        CompositionRunInspectionSnapshot? inspectionSnapshot = null)
+    {
+        ShellLanguage language;
+        ReportReviewViewModel report;
+        do
+        {
+            language = Text.Language;
+            try
+            {
+                report = await Task.Run(
+                    () => ReportReviewViewModel.FromJsonCancellable(
+                        json,
+                        sourceName,
+                        outputArtifactPath,
+                        inspectionSnapshot,
+                        language,
+                        cancellationToken),
+                    cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            catch (Exception exception) when (
+                materializationErrorsAsReport && IsReportMaterializationException(exception))
+            {
+                report = ReportReviewViewModel.Error(sourceName, exception.Message, language: language);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+        while (language != Text.Language);
+
+        return report;
+    }
+
+    private long BeginReportProjection(bool preserveHistoryReopen = false)
+    {
+        if (!preserveHistoryReopen && OpenReportHistoryEntryAsyncCommand is { IsRunning: true } historyReopen)
+        {
+            historyReopen.Cancel();
+        }
+
+        CancelReportRelocalization();
+
+        return Interlocked.Increment(ref _reportProjectionGeneration);
+    }
+
+    private bool IsCurrentReportProjection(long generation)
+    {
+        return Volatile.Read(ref _reportProjectionGeneration) == generation;
+    }
+
+    private void ApplyLoadedReport(
+        ReportReviewViewModel report,
+        string json,
+        string sourceName)
+    {
+        CancelReportRelocalization();
+        LoadedReport = report;
         LoadedReportJson = json;
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportLoadedToast(sourceName));
@@ -94,7 +246,15 @@ public sealed partial class MainWindowViewModel
         ArgumentNullException.ThrowIfNull(sourceName);
         ArgumentNullException.ThrowIfNull(message);
 
-        LoadedReport = ReportReviewViewModel.Error(sourceName, message, "Load error", "Load failed", Text.Language);
+        _ = BeginReportProjection();
+        ApplyReportError(
+            ReportReviewViewModel.Error(sourceName, message, "Load error", "Load failed", Text.Language),
+            sourceName);
+    }
+
+    private void ApplyReportError(ReportReviewViewModel report, string sourceName)
+    {
+        LoadedReport = report;
         LoadedReportJson = string.Empty;
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportIssueToast(sourceName));
@@ -128,6 +288,7 @@ public sealed partial class MainWindowViewModel
         ArgumentNullException.ThrowIfNull(slotPaths);
         ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
 
+        _ = BeginReportProjection();
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         var report = new
         {
@@ -199,6 +360,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        CancelReportHistoryReopen();
         CloseReplaceSelectionForRun();
         IsReportModalOpen = true;
         IsReportHistoryViewOpen = false;
@@ -212,6 +374,7 @@ public sealed partial class MainWindowViewModel
 
     private void CloseReport()
     {
+        CancelReportHistoryReopen();
         if (!IsReportModalOpen)
         {
             return;
@@ -249,6 +412,7 @@ public sealed partial class MainWindowViewModel
         ReportToastOpacity = 1;
         OnPropertyChanged(nameof(ShellToastTitle));
         OnPropertyChanged(nameof(ReportToastText));
+        OnPropertyChanged(nameof(ShellToastAccessibleLabel));
         OnPropertyChanged(nameof(HasReportToast));
         OnPropertyChanged(nameof(ReportToastOpacity));
     }
@@ -292,5 +456,19 @@ public sealed partial class MainWindowViewModel
         return oneLine.Length <= maxLength
             ? oneLine
             : string.Concat(oneLine.AsSpan(0, Math.Max(0, maxLength - 3)), "...");
+    }
+
+    private static bool IsReportMaterializationException(Exception exception)
+    {
+        return exception is JsonException or
+            InvalidOperationException or
+            ArgumentException or
+            FormatException or
+            OverflowException;
+    }
+
+    private static bool IsReportSourceException(Exception exception)
+    {
+        return exception is ArgumentException or IOException or NotSupportedException or UnauthorizedAccessException;
     }
 }

@@ -1,0 +1,55 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.BuildCompletedModal"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MainWindowViewModel"
+    AutomationProperties.Name="{Binding Text.BuildCompletedTitle}"
+    Background="{DynamicResource NfcModalScrimBrush}">
+  <Border
+      Classes="modalSurface"
+      Width="580"
+      Padding="22"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+      <StackPanel Spacing="5">
+        <TextBlock Classes="modalTitle" Text="{Binding Text.BuildCompletedTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding Text.BuildCompletedDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+
+      <Border Grid.Row="1" Classes="subtleSurface" Padding="12,10">
+        <StackPanel Spacing="{DynamicResource NfcSpace4}">
+          <TextBlock Classes="fieldLabel" Text="{Binding Text.BuildCompletedOutputLabel}" />
+          <TextBlock
+              Classes="technicalValue"
+              Text="{Binding BuildCompletedOutputPath}"
+              TextTrimming="CharacterEllipsis"
+              TextWrapping="Wrap"
+              ToolTip.Tip="{Binding BuildCompletedOutputPath}" />
+        </StackPanel>
+      </Border>
+
+      <TextBlock
+          Grid.Row="2"
+          Classes="warningText"
+          AutomationProperties.LiveSetting="Polite"
+          IsVisible="{Binding HasBuildCompletedOpenFolderError}"
+          Text="{Binding BuildCompletedOpenFolderError}"
+          TextWrapping="Wrap" />
+
+      <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+        <Button
+            Classes="secondary"
+            AutomationProperties.Name="{Binding Text.BuildCompletedOpenFolderLabel}"
+            Click="OpenOutputFolderButton_OnClick"
+            Content="{Binding Text.BuildCompletedOpenFolderLabel}" />
+        <Button
+            Classes="primary"
+            AutomationProperties.Name="{Binding Text.BuildCompletedOkLabel}"
+            Command="{Binding CloseBuildCompletedModalCommand}"
+            Content="{Binding Text.BuildCompletedOkLabel}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

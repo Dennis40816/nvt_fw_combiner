@@ -1,13 +1,17 @@
+using NvtFwCombiner.Application.Composition;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Readable UI projection of a CLI/application run report JSON file.</summary>
 public sealed partial class ReportReviewViewModel
 {
     private readonly bool? outputCommitted;
+    private readonly OutputDifferenceProjection _outputDifferenceProjection;
 
     private ReportReviewViewModel(
         bool isEmpty,
         string sourceName,
+        long? reportJsonUtf8ByteCount,
         string profileId,
         string icId,
         string modeId,
@@ -24,15 +28,17 @@ public sealed partial class ReportReviewViewModel
         bool? outputCommitted,
         string outputSha256,
         string outputArtifactPath,
+        CompositionRunInspectionSnapshot? inspectionSnapshot,
         IReadOnlyList<ReportLineViewModel> inputs,
         IReadOnlyList<ReportLineViewModel> operations,
         IReadOnlyList<ReportLineViewModel> mutations,
-        IReadOnlyList<ReportLineViewModel> outputDifferences,
+        OutputDifferenceProjection outputDifferences,
         IReadOnlyList<ReportLineViewModel> issues,
         ShellLanguage language = ShellLanguage.English)
     {
         IsEmpty = isEmpty;
         SourceName = sourceName;
+        ReportJsonUtf8ByteCount = reportJsonUtf8ByteCount;
         ProfileId = profileId;
         IcId = icId;
         ModeId = modeId;
@@ -54,13 +60,22 @@ public sealed partial class ReportReviewViewModel
             ? T(language, "No output hash", "無輸出雜湊")
             : Shorten(outputSha256, 16);
         OutputArtifactPath = string.IsNullOrWhiteSpace(outputArtifactPath) ? string.Empty : outputArtifactPath;
+        InspectionSnapshot = inspectionSnapshot;
         Inputs = inputs;
         Operations = operations;
         StepOperations = [.. operations.Where(operation => !operation.HasCodeBlock && !operation.HasRuntimeCommands)];
         PostbuildInvocations = CreatePostbuildInvocations(operations, language);
         Mutations = mutations;
-        OutputDifferences = outputDifferences;
-        OutputDifferenceGroups = CreateOutputDifferenceGroups(outputDifferences, language);
+        _outputDifferenceProjection = outputDifferences;
+        HexDiff = ReportHexDiffViewModel.Create(
+            inspectionSnapshot,
+            outputDifferences.HexDiffSource,
+            runId,
+            outputSize,
+            outputSha256,
+            language);
+        OutputDifferences = outputDifferences.Rows;
+        OutputDifferenceGroups = outputDifferences.Groups;
         Issues = issues;
         PrimaryIssue = issues.FirstOrDefault(issue => !IsWarning(issue)) ?? ReportLineViewModel.Empty;
         InputGroups = CreateInputGroups(inputs, language);
@@ -87,14 +102,22 @@ public sealed partial class ReportReviewViewModel
         ByteDifferenceTitle = CreateByteDifferenceTitle(compositionKind, outputDifferences, language);
         ByteDifferenceDetail = CreateByteDifferenceDetail(compositionKind, outputDifferences, language);
         ByteDifferenceMeta = CreateByteDifferenceMeta(outputDifferences, language);
-        OutputDifferenceSummaryRows = CreateOutputDifferenceSummaryRows(outputDifferences, language);
-        AuditSummary = CreateAuditSummary(inputs, operations, mutations, outputDifferences, issues, language);
+        OutputDifferenceSummaryRows = outputDifferences.SummaryRows;
+        AuditSummary = CreateAuditSummary(inputs, operations, mutations, outputDifferences.Count, issues, language);
+        OutputDifferenceSummaryPage = ReportPagedListViewModel.Create(OutputDifferenceSummaryRows, 8, language);
+        OutputDifferenceGroupPage = ReportPagedListViewModel.Create(OutputDifferenceGroups, 8, language);
+        MutationPage = ReportPagedListViewModel.Create(Mutations, 40, language);
+        OperationFlowPage = ReportPagedListViewModel.Create(OperationFlow, 24, language);
+        StepOperationPage = ReportPagedListViewModel.Create(StepOperations, 24, language);
+        PostbuildInvocationPage = ReportPagedListViewModel.Create(PostbuildInvocations, 24, language);
+        IssuePage = ReportPagedListViewModel.Create(Issues, 40, language);
     }
 
     /// <summary>Empty report sentinel.</summary>
     public static ReportReviewViewModel Empty { get; } = new(
         true,
         string.Empty,
+        null,
         string.Empty,
         string.Empty,
         string.Empty,
@@ -111,9 +134,13 @@ public sealed partial class ReportReviewViewModel
         null,
         string.Empty,
         string.Empty,
+        null,
         [],
         [],
         [],
-        [],
+        OutputDifferenceProjection.Empty,
         []);
+
+    /// <summary>UTF-8 report size already observed by the background JSON projection.</summary>
+    internal long? ReportJsonUtf8ByteCount { get; }
 }

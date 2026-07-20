@@ -11,14 +11,15 @@ public static partial class WorkbenchCompositionService
     private static V2CompositionPlanCompileResult CompileCtrlRamV2(
         CtrlRamReplaceRunContext context,
         string profileId,
-        TopologySelection topology)
+        TopologySelection topology,
+        FirmwareArtifactPayload referencePayload)
     {
         V2RuntimeReferenceReplaceInputBinding[] bindings =
         [
             new(
                 CompositionAddressSpaceIds.ReferenceBase,
                 CompositionAddressSpaceIds.ReferenceBase,
-                context.BaseLength),
+                referencePayload.LengthBytes),
             .. context.SelectedSources.Select(source => new V2RuntimeReferenceReplaceInputBinding(
                 CtrlRamSlotId(source.SourceId),
                 "ctrlram-source",
@@ -50,6 +51,8 @@ public static partial class WorkbenchCompositionService
                     reason: "Copy the selected CtrlRAM source prefix into the exact physical range selected from the reference firmware.");
                 }),
         ];
+        V2RuntimeReferenceReplaceFirmwareVersionEdit? firmwareVersionEdit =
+            CtrlRamV2FirmwareVersionAdapter.Create(context.FirmwareVersionWritePlan);
 
         string bundleId = context.PostbuildProfile!.IcId switch
         {
@@ -63,9 +66,7 @@ public static partial class WorkbenchCompositionService
             context.PostbuildProfile.IcId,
             ExperienceIds.CtrlRamReplace,
             topology,
-            [new FirmwareArtifactPayload(
-                CompositionAddressSpaceIds.ReferenceBase,
-                File.ReadAllBytes(context.BasePath!))],
-            new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings));
+            [referencePayload],
+            new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings, firmwareVersionEdit));
     }
 }

@@ -9,6 +9,7 @@ public sealed partial class CompositionRunService
         CompositionRunRequest request,
         BoundInputs boundInputs,
         IDictionary<string, IReadOnlyList<ExternalProcessInvocation>> executedCommandsByOperationId,
+        CompositionRunProgressPublisher progressPublisher,
         CancellationToken cancellationToken)
     {
         var input = new CompositionExecutionInput(boundInputs.InputBytes);
@@ -25,6 +26,7 @@ public sealed partial class CompositionRunService
                         stagedSources,
                         stagedArtifacts,
                         executedCommandsByOperationId,
+                        progressPublisher,
                         token),
                 cancellationToken)
             .ConfigureAwait(false);
@@ -37,6 +39,7 @@ public sealed partial class CompositionRunService
         IReadOnlyList<ExternalProcessorStagedSource> stagedSources,
         IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts,
         IDictionary<string, IReadOnlyList<ExternalProcessInvocation>> executedCommandsByOperationId,
+        CompositionRunProgressPublisher progressPublisher,
         CancellationToken cancellationToken)
     {
         ExternalProcessorInvocation invocation = operation.ExternalProcessorInvocation!;
@@ -63,6 +66,7 @@ public sealed partial class CompositionRunService
             ]);
         }
 
+        progressPublisher.Report(CompositionRunPhase.RunningExternalProcessor);
         ExternalProcessorResult processorResult = await _externalProcessor!
             .TransformAsync(processorRequest, cancellationToken)
             .ConfigureAwait(false);

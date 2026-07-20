@@ -7,6 +7,7 @@ public static class ShellPreferenceFileStore
 {
     private const int SchemaVersion = 1;
     private const string PreferencesFileName = "preferences.v1.json";
+    internal const long MaximumPreferencesFileBytes = 64L * 1024;
 
     /// <summary>Gets the default local preference path for the current user.</summary>
     public static string DefaultPreferencesPath => BestEffortLocalJsonFileStore.GetDefaultPath(PreferencesFileName);
@@ -32,8 +33,12 @@ public static class ShellPreferenceFileStore
             path,
             ShellPreferenceSnapshot.Default,
             (ShellPreferenceFile? file) => file is { SchemaVersion: SchemaVersion, Preferences: { } entry }
-                ? new ShellPreferenceSnapshot(entry.Theme ?? string.Empty, entry.Language ?? string.Empty)
-                : ShellPreferenceSnapshot.Default);
+                ? new ShellPreferenceSnapshot(
+                    entry.Theme ?? string.Empty,
+                    entry.Language ?? string.Empty,
+                    entry.IsReducedMotionEnabled)
+                : ShellPreferenceSnapshot.Default,
+            MaximumPreferencesFileBytes);
     }
 
     /// <summary>Saves shell preferences to a specific path.</summary>
@@ -46,7 +51,38 @@ public static class ShellPreferenceFileStore
             path,
             new ShellPreferenceFile(
                 SchemaVersion,
-                new ShellPreferenceFileEntry(preferences.Theme, "Strict", preferences.Language)));
+                new ShellPreferenceFileEntry(
+                    preferences.Theme,
+                    "Strict",
+                    preferences.Language,
+                    preferences.IsReducedMotionEnabled)));
+    }
+
+    /// <summary>Saves a default-path snapshot without blocking the UI dispatcher.</summary>
+    internal static Task SaveAsync(
+        ShellPreferenceSnapshot preferences,
+        CancellationToken cancellationToken)
+    {
+        return SaveAsync(DefaultPreferencesPath, preferences, cancellationToken);
+    }
+
+    internal static Task SaveAsync(
+        string path,
+        ShellPreferenceSnapshot preferences,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(preferences);
+        return BestEffortLocalJsonFileStore.SaveAsync(
+            path,
+            new ShellPreferenceFile(
+                SchemaVersion,
+                new ShellPreferenceFileEntry(
+                    preferences.Theme,
+                    "Strict",
+                    preferences.Language,
+                    preferences.IsReducedMotionEnabled)),
+            cancellationToken);
     }
 
     private sealed record ShellPreferenceFile(
@@ -56,5 +92,6 @@ public static class ShellPreferenceFileStore
     private sealed record ShellPreferenceFileEntry(
         string? Theme,
         string? Strictness,
-        string? Language);
+        string? Language,
+        bool IsReducedMotionEnabled = false);
 }

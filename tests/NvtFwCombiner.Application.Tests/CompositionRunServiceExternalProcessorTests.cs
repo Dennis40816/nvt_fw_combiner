@@ -142,6 +142,31 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("replace.ctrlram.fw-version-output-invalid", validation.IssueCode);
     }
 
+    /// <summary>Verifies automatic Build never commits bytes rejected by final-output validation.</summary>
+    [Fact]
+    public async Task AutomaticBuildDoesNotCommitOutputThatFailsFinalValidation()
+    {
+        var processor = new FakeExternalProcessor(request =>
+            ExternalProcessorResult.Success(request.InputBytes, []));
+        var writer = new FakeOutputWriter();
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            writer,
+            processor);
+
+        CompositionRunResult result = await service.PreviewOrBuildAsync(
+            CreateFirmwareConfigBackupValidationRequest(),
+            build: true,
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Null(result.CommittedOutputId);
+        Assert.False(writer.WasCalled);
+        Assert.Equal("replace.ctrlram.fw-version-output-invalid", Assert.Single(result.Report.Issues).Code);
+        Assert.Equal(ValidationRunStatus.Failed, Assert.Single(result.Report.Validations).Status);
+    }
+
     /// <summary>Verifies final-output validation is skipped when the processor does not produce an image.</summary>
     [Fact]
     public async Task FirmwareConfigBackupFinalOutputValidationIsSkippedAfterProcessorFailure()
@@ -450,6 +475,43 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(
             "Expected: postbuild refreshed ILM CRC 3 and copied it to Header copy / master.",
             semantic.Explanation);
+    }
+
+    /// <summary>Verifies range-sensitive postbuild fields never share semantic instances.</summary>
+    [Fact]
+    public async Task ReplaceReportDoesNotShareRangeSensitivePostbuildSemantics()
+    {
+        var firstFieldRange = new ByteRange(0x1E25C, 1);
+        var secondFieldRange = new ByteRange(0x1E2EC, 4);
+        CompositionRunRequest request = CreateNt51927CopiedHeaderSemanticRequest();
+        var processor = new FakeExternalProcessor(externalRequest =>
+        {
+            byte[] output = externalRequest.InputBytes.ToArray();
+            output[checked((int)firstFieldRange.Start)] = 0x7E;
+            output.AsSpan(
+                checked((int)secondFieldRange.Start),
+                checked((int)secondFieldRange.Length)).Fill(0x7E);
+            return ExternalProcessorResult.Success(output, [firstFieldRange, secondFieldRange]);
+        });
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = new byte[0x1E3C0],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(2, result.Report.OutputDifferences.Count);
+        OutputDifferenceSemantic firstSemantic = Assert.IsType<OutputDifferenceSemantic>(
+            result.Report.OutputDifferences[0].Semantic);
+        OutputDifferenceSemantic secondSemantic = Assert.IsType<OutputDifferenceSemantic>(
+            result.Report.OutputDifferences[1].Semantic);
+        Assert.NotSame(firstSemantic, secondSemantic);
+        Assert.Equal("nt51927-header:header-0-ilm-crc", firstSemantic.SubjectId);
+        Assert.Equal("nt51927-header:header-3-ilm-crc", secondSemantic.SubjectId);
     }
 
     /// <summary>Verifies preview approval includes staged source-to-firmware mapping details.</summary>

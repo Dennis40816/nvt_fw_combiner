@@ -43,8 +43,14 @@
                 Classes.optional="{Binding IsOptional}"
                 Content="{Binding RequirementLabel}" />
           </StackPanel>
-          <TextBlock Classes="mutedText" Text="{Binding Description}" TextWrapping="Wrap" />
-          <TextBlock FontSize="{DynamicResource NfcFontSize13}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextBrush}" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+          <TextBlock Classes="mutedText" IsVisible="{Binding IsGuidanceVisible}" Text="{Binding Description}" TextWrapping="Wrap" />
+          <TextBlock
+              FontSize="{DynamicResource NfcFontSize13}"
+              FontWeight="SemiBold"
+              Foreground="{DynamicResource NfcTextBrush}"
+              Text="{Binding DisplayName}"
+              TextWrapping="Wrap"
+              ToolTip.Tip="{Binding DisplayDetail}" />
           <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
@@ -55,7 +61,6 @@
               <StaticResource ResourceKey="FirmwareSlotFactTemplate" />
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <TextBlock Classes="technicalMeta" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
         </StackPanel>
         <Button
             Grid.Column="1"

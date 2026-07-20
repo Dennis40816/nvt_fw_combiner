@@ -20,6 +20,10 @@ public sealed partial class ShellTextResources
     public string ThemeLabel { get; private init; } = string.Empty;
 
     public string LanguageLabel { get; private init; } = string.Empty;
+
+    public string ReducedMotionLabel { get; private init; } = string.Empty;
+
+    public string ReducedMotionDescription { get; private init; } = string.Empty;
 }
 
 #pragma warning restore CS1591

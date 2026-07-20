@@ -26,7 +26,8 @@ public static partial class WorkbenchCompositionService
         IcNumberSelection? icNumberSelection,
         bool overwrite,
         CancellationToken cancellationToken,
-        IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null)
+        IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
+        CompositionRunProgressFeed? progress = null)
     {
         string[] inputRoots =
         [
@@ -64,12 +65,9 @@ public static partial class WorkbenchCompositionService
             outputFileName,
             icNumberSelection: icNumberSelection);
 
-        CompositionRunResult result = await CompositionRunExecutionSupport.PreviewOrBuildAsync(
-                service,
-                request,
-                build,
-                cancellationToken)
-            .ConfigureAwait(false);
+        CompositionRunResult result = progress is null
+            ? await service.PreviewOrBuildAsync(request, build, cancellationToken).ConfigureAwait(false)
+            : await service.PreviewOrBuildAsync(request, build, progress, cancellationToken).ConfigureAwait(false);
         return ToWorkbenchRunResult(result);
     }
 

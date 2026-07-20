@@ -26,6 +26,9 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
 )
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
 MAXIMUM_PACKAGE_BYTES = 58_076_715
+PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
+DISTRIBUTION_OWNER = "MSP/FW3"
+SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
 ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
@@ -38,6 +41,56 @@ def normalize_console_output(output: str) -> str:
 
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
+
+    def test_packager_restores_then_cleans_and_smoke_requires_window(self) -> None:
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        smoke_script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+        restore_index = package_script.index("& $DotNet restore $AppProject -r win-x64")
+        clean_index = package_script.index(
+            "& $DotNet clean $AppProject -c Release -r win-x64"
+        )
+        publish_index = package_script.index(
+            "& $DotNet publish $AppProject -c Release -r win-x64"
+        )
+        self.assertLess(restore_index, clean_index)
+        self.assertLess(clean_index, publish_index)
+        self.assertIn(
+            "Restore-SourcePackageLocks -Snapshots $SourcePackageLockSnapshots",
+            package_script,
+        )
+        self.assertIn("finally {", package_script)
+        self.assertIn(
+            "& $DotNet clean $AppProject -c Release -r win-x64", package_script
+        )
+        self.assertIn("$application.MainWindowHandle -eq 0", smoke_script)
+        self.assertIn("$application.Responding", smoke_script)
+        self.assertIn("$application.Dispose()", smoke_script)
+
+    def test_distribution_metadata_uses_non_personal_owner_identity(self) -> None:
+        distribution_metadata_paths = (
+            ROOT / "LICENSE",
+            ROOT / "Directory.Build.props",
+            PACKAGE_SCRIPT,
+            ROOT / "docs/references/verification-report.md",
+        )
+
+        for metadata_path in distribution_metadata_paths:
+            metadata = metadata_path.read_text(encoding="utf-8")
+            self.assertNotIn(PERSONAL_OWNER_IDENTIFIER, metadata, metadata_path)
+
+        self.assertIn(
+            DISTRIBUTION_OWNER,
+            (ROOT / "LICENSE").read_text(encoding="utf-8"),
+        )
+        build_metadata = (ROOT / "Directory.Build.props").read_text(encoding="utf-8")
+        self.assertIn(f"<Authors>{DISTRIBUTION_OWNER}</Authors>", build_metadata)
+        self.assertIn(
+            f"<RepositoryUrl>{SOURCE_IDENTITY}</RepositoryUrl>", build_metadata
+        )
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn(f"$DistributionOwner = '{DISTRIBUTION_OWNER}'", package_script)
+        self.assertIn(f"$SourceIdentity = '{SOURCE_IDENTITY}'", package_script)
 
     def test_external_tool_catalog_matches_packager_and_smoke_allowlists(self) -> None:
         catalog = json.loads(
@@ -143,6 +196,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "Canonical golden package policy direct/alias drift and strict-type rejection passed",
             result.stdout,
         )
+        self.assertIn(
+            "Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8",
+            result.stdout,
+        )
         self.assertFalse(
             probe_path.exists(), "packager did not clean its source policy probe"
         )
@@ -167,7 +224,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             self.assertLess(package_index, smoke_index, workflow_path)
             self.assertLess(smoke_index, distribution_index, workflow_path)
 
-    def test_release_processor_allowlist_matches_nt51930_stable_scope(self) -> None:
+    def test_release_processor_allowlist_matches_packaged_runtime_scope(self) -> None:
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
         match = re.search(
             r"\$ApprovedProcessorIds\s*=\s*@\((.*?)\)\s*\n",
@@ -176,9 +233,22 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         )
 
         self.assertIsNotNone(match)
-        self.assertNotIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
+        self.assertIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
         self.assertNotIn("nfc.nt51930.ctrlram-postbuild-v1", match.group(1))
         self.assertIn("nfc.nt51930.ctrlram-postbuild-fw1.x", match.group(1))
+        self.assertIn("nfc.nt51926.ctrlram-postbuild-fw1.4.1", match.group(1))
+
+    def test_sbom_file_ids_encode_every_package_path_as_valid_spdx_characters(
+        self,
+    ) -> None:
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "[Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($_.path))",
+            package_script,
+        )
+        self.assertIn('SPDXID = "SPDXRef-File-$SpdxPathId"', package_script)
+        self.assertNotIn("$($_.path.Replace('.', '-'))", package_script)
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"

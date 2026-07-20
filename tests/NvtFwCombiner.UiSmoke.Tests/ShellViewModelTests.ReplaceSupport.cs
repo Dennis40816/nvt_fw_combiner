@@ -35,7 +35,8 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsSelectedReplaceModeGoldenVerified);
         Assert.Equal("Golden verified", viewModel.SelectedReplaceModeEvidenceLabel);
         Assert.Equal("Reference FlashCode", viewModel.ReplaceBaseSlot.Title);
-        Assert.Contains("Standard/Normal Merge FlashCode", viewModel.ReplaceBaseSlot.Description, StringComparison.Ordinal);
+        Assert.Contains("Complete FlashCode", viewModel.ReplaceBaseSlot.Description, StringComparison.Ordinal);
+        Assert.Contains("Only declared DP ranges change", viewModel.ReplaceBaseSlot.Description, StringComparison.Ordinal);
 
         viewModel.SelectedIc = "NT51932";
         OpenReplace(viewModel, "CtrlRAM");

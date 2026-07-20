@@ -1,5 +1,7 @@
-using NvtFwCombiner.Domain.Composition;
+using System.Text.Json.Serialization;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -90,6 +92,9 @@ public readonly record struct WorkbenchCmiDpCodeMetadata(
     ushort JiraNumber,
     long Register16Offset)
 {
+    /// <summary>Four uppercase hex digits used by FlashCode naming: DP major byte then minor nibble.</summary>
+    public string VersionToken => FormattableString.Invariant($"{MajorVersionByte:X2}{MinorVersionNibble:X2}");
+
     /// <summary>Technical AUTO_PRJ badge, or <see langword="null"/> when Jira is zero.</summary>
     public string? JiraBadge => JiraNumber == 0 ? null : $"AUTO_PRJ-{JiraNumber}";
 }
@@ -108,10 +113,46 @@ public sealed record WorkbenchFirmwareContextSuggestion(
     string CommonFwVersion,
     ushort ProjectId);
 
+/// <summary>One read-only workbench projection decoded from one immutable firmware image read.</summary>
+public sealed record WorkbenchFirmwareInspection(
+    string? DetectedIcId,
+    WorkbenchFirmwareConfigMetadata? FirmwareConfig,
+    WorkbenchDpVersionMetadata? DpVersion,
+    WorkbenchCmiDpCodeMetadata? CmiDpCode,
+    WorkbenchFirmwareContextSuggestion? ContextSuggestion,
+    WorkbenchCtrlRamInspectionDisplay? CtrlRamDisplay);
+
+/// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>
+public sealed record WorkbenchCtrlRamInspectionRequest(string NumberToken);
+
+/// <summary>Materialized CtrlRAM shell projections derived from the inspected base firmware.</summary>
+public sealed record WorkbenchCtrlRamInspectionDisplay(
+    string NumberToken,
+    IReadOnlyList<WorkbenchCtrlRamRegion> Regions,
+    IReadOnlyList<WorkbenchReplaceInputSlot> InputSlots,
+    WorkbenchMemoryDisplay MemoryDisplay);
+
+/// <summary>One named firmware projection requested from a shared distinct-path read batch.</summary>
+public sealed record WorkbenchFirmwareInspectionInput(
+    string InspectionId,
+    string Path,
+    string? TpPath = null,
+    WorkbenchCtrlRamInspectionRequest? CtrlRamRequest = null);
+
+/// <summary>One named materialized result from a shared distinct-path read batch.</summary>
+public sealed record WorkbenchFirmwareInspectionResult(
+    string InspectionId,
+    WorkbenchFirmwareInspection Inspection);
+
 /// <summary>One selected firmware path candidate used by output naming metadata policy.</summary>
 public sealed record WorkbenchOutputNameCandidate(
     WorkbenchOutputNameCandidateKind Kind,
     string? Path);
+
+/// <summary>One already-inspected firmware candidate used by pure output-name projection.</summary>
+public sealed record WorkbenchOutputNameInspectionCandidate(
+    WorkbenchOutputNameCandidateKind Kind,
+    WorkbenchFirmwareInspection? Inspection);
 
 /// <summary>Firmware candidate role used by FlashCode output naming.</summary>
 public enum WorkbenchOutputNameCandidateKind
@@ -189,7 +230,12 @@ public sealed record WorkbenchRunResult(
     string OutputSha256,
     string OutputFileName,
     string? CommittedOutputId,
-    string ReportJson);
+    string ReportJson)
+{
+    /// <summary>Non-serialized in-memory bytes available to the current desktop inspection session.</summary>
+    [JsonIgnore]
+    public CompositionRunInspectionSnapshot? InspectionSnapshot { get; internal init; }
+}
 
 internal sealed record CoverageSegment(
     ByteRange Range,

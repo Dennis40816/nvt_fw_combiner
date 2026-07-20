@@ -23,12 +23,14 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(SelectedNumberChoice));
     }
 
-    private void RefreshContextState(bool resetRunResult = false)
+    private void RefreshContextState(
+        bool resetRunResult = false,
+        bool preserveReplaceSlotFiles = false)
     {
         RefreshCtrlRamRegions();
-        RefreshMemoryMapState();
         RefreshMergeSlotRequirements();
-        RefreshReplaceModeState();
+        RefreshReplaceModeState(preserveSlotFiles: preserveReplaceSlotFiles);
+        RefreshMemoryMapState();
         RefreshCommandState();
         NotifyContextTextChanged();
         if (resetRunResult)
@@ -103,7 +105,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
-        OnPropertyChanged(nameof(DeviceContextStatus));
+        NotifyActiveRunContextChanged();
     }
 
     private void ResetRunResultForContextChange()
@@ -147,7 +149,7 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(MergeReadinessStatus));
             OnPropertyChanged(nameof(MergeMemorySummary));
             ResetRunResultForContextChange();
-            RefreshMemoryMapState();
+            RefreshMergeMemoryMapState();
             RefreshCommandState();
         }
 
@@ -175,6 +177,8 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsReplaceVisible));
         OnPropertyChanged(nameof(IsHexEditorVisible));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
+        OnPropertyChanged(nameof(IsCompositionActionRailVisible));
+        OnPropertyChanged(nameof(IsLatestOutputActionVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
         OnPropertyChanged(nameof(DeviceContextStatus));
@@ -252,6 +256,14 @@ public sealed partial class MainWindowViewModel
         BuildReplaceCommand.NotifyCanExecuteChanged();
         ShowReportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsRunInProgress));
+        OnPropertyChanged(nameof(IsDeviceContextVisible));
+        OnPropertyChanged(nameof(IsNumberSelectorVisible));
+        OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
+        OnPropertyChanged(nameof(DeviceContextStatus));
+        OnPropertyChanged(nameof(HasTypedRunProgress));
+        OnPropertyChanged(nameof(RunProgressStatusLabel));
+        OnPropertyChanged(nameof(RunProgressDisplayLabel));
+        OnPropertyChanged(nameof(ShouldAnimateRunProgress));
         OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(MergeBuildActionTip));
@@ -263,31 +275,80 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedReplaceModeChanged(string value)
     {
-        RefreshCtrlRamRegions();
-        RefreshReplaceModeState();
-        RefreshMemoryMapState();
-        ResetRunResultForContextChange();
-        NotifyContextTextChanged();
-        RefreshCommandState();
+        InvalidateFirmwareInspection();
+        InvalidateCtrlRamFirmwareVersionContext();
+        RefreshContextState(resetRunResult: true);
+        RefreshCtrlRamDisplayFromInspection();
     }
 
     partial void OnSelectedIcChanged(string value)
     {
-        RefreshNumberChoicesForSelectedIc();
-        GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
-        RefreshContextState(resetRunResult: true);
-        RefreshAllSelectedSlotFirmwareFacts();
+        AcceptedFirmwareMismatchSelection? acceptedMismatch =
+            ConsumeAcceptedFirmwareMismatchSelection();
+        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
+        InvalidateCtrlRamFirmwareVersionContext();
+        _isRefreshingFirmwareInspectionContext = true;
+        try
+        {
+            RefreshNumberChoicesForSelectedIc();
+            GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
+        }
+        finally
+        {
+            _isRefreshingFirmwareInspectionContext = false;
+        }
+
+        RefreshContextState(
+            resetRunResult: true,
+            preserveReplaceSlotFiles: acceptedMismatch is not null);
+        string? acceptedMismatchSlotId = null;
+        if (acceptedMismatch is { } selection &&
+            FindSlot(selection.SlotId) is { } acceptedSlot &&
+            string.Equals(acceptedSlot.FilePath, selection.Path, StringComparison.Ordinal))
+        {
+            acceptedMismatchSlotId = selection.SlotId;
+        }
+        else if (acceptedMismatch is { } missingSelection)
+        {
+            SetShellToast(
+                Text.ContextUpdatedToastTitle,
+                Text.FormatFirmwareSelectionNotRetainedToast(Path.GetFileName(missingSelection.Path)));
+        }
+
+        _ = RefreshAllSelectedFirmwareInspectionsAsync(acceptedMismatchSlotId);
     }
 
     partial void OnSelectedNumberChanged(string value)
     {
+        if (_isRefreshingFirmwareInspectionContext)
+        {
+            InvalidateCtrlRamFirmwareVersionContext();
+            OnPropertyChanged(nameof(SelectedNumberChoice));
+            return;
+        }
+
+        if (_isApplyingFirmwareInspectionContext)
+        {
+            InvalidateCtrlRamFirmwareVersionContext();
+            OnPropertyChanged(nameof(SelectedNumberChoice));
+            RefreshContextState(
+                resetRunResult: true,
+                preserveReplaceSlotFiles: true);
+            return;
+        }
+
+        InvalidateFirmwareInspection();
+        InvalidateCtrlRamFirmwareVersionContext();
         OnPropertyChanged(nameof(SelectedNumberChoice));
-        RefreshContextState(resetRunResult: true);
+        RefreshContextState(
+            resetRunResult: true,
+            preserveReplaceSlotFiles: true);
+        RefreshCtrlRamDisplayFromInspection();
     }
 
     partial void OnGeneralMergeOutputLengthChanged(string value)
     {
-        RefreshMemoryMapState();
+        RefreshMergeMemoryMapState();
         ResetRunResultForContextChange();
         RefreshCommandState();
     }

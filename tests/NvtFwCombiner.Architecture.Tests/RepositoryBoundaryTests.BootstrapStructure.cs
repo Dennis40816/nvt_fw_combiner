@@ -2,21 +2,23 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies CLI and Workbench share the same preview-before-build execution gate.</summary>
+    /// <summary>Verifies CLI and Workbench share the Application-owned single-run automatic Build gate.</summary>
     [Fact]
-    public void BootstrapUsesOnePreviewBeforeBuildGate()
+    public void BootstrapUsesOneAutomaticBuildExecutionGate()
     {
         string bootstrapSource = ReadBootstrapSources();
-        string executionSupport = ReadText(
-            "src/NvtFwCombiner.Bootstrap/CompositionRunExecutionSupport.cs");
+        string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
+        string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
+        int cliCalls = CountOccurrences(cli, ".PreviewOrBuildAsync(");
+        int runnerCalls = CountOccurrences(runner, ".PreviewOrBuildAsync(");
 
-        Assert.Contains("CompositionRunExecutionSupport.PreviewOrBuildAsync", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionRunExecutionSupport", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildWithInternalPreviewAsync", bootstrapSource, StringComparison.Ordinal);
-        Assert.Contains("service.PreviewAsync(request, cancellationToken)", executionSupport, StringComparison.Ordinal);
-        Assert.Contains("service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!)", executionSupport, StringComparison.Ordinal);
-        Assert.Equal(
-            1,
-            CountOccurrences(bootstrapSource, "request.WithApprovedPreviewToken(preview.PreviewToken!)"));
+        Assert.Equal(1, cliCalls);
+        Assert.Equal(2, runnerCalls);
+        Assert.Contains("progress is null", runner, StringComparison.Ordinal);
+        Assert.Equal(cliCalls + runnerCalls, CountOccurrences(bootstrapSource, ".PreviewOrBuildAsync("));
+        Assert.DoesNotContain("WithApprovedPreviewToken", bootstrapSource, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies Replace CLI routes only through the registered Workbench/V2 paths.</summary>
@@ -147,6 +149,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string ctrlRamRuntime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
         string ctrlRamV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
+        string ctrlRamVersionAdapter = ReadText("src/NvtFwCombiner.Bootstrap/CtrlRamV2FirmwareVersionAdapter.cs");
         string generalRuntime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
         string generalV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.V2.cs");
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
@@ -249,8 +252,17 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("nt51950-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("nt51951-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"runtime-route\"", diagnosticProfile, StringComparison.Ordinal);
-        Assert.Contains("firmwareVersionEdit is null", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("TryReadFirmwareContextSuggestion", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains(
+            "CtrlRamV2FirmwareVersionAdapter.Create(context.FirmwareVersionWritePlan)",
+            ctrlRamV2,
+            StringComparison.Ordinal);
+        Assert.Contains("V2RuntimeReferenceReplaceFirmwareVersionEdit", ctrlRamVersionAdapter, StringComparison.Ordinal);
+        Assert.Contains(
+            "new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings, firmwareVersionEdit)",
+            ctrlRamV2,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("PatchScalar", ctrlRamV2, StringComparison.Ordinal);
+        Assert.Contains("ReadFirmwareContextSuggestion(icId, referenceBytes)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("context.PostbuildProfile!.IcId", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.DoesNotContain("string? v2ProfileId = (\n            icId,", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51920\", \"nfc.nt51920.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"1.2.0\", 1, 0xF401)", ctrlRamRuntime, StringComparison.Ordinal);
@@ -280,7 +292,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("(\"NT51931\", \"nfc.nt51931.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, \"1.3.0\", 6, 0x131B)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51932\", \"nfc.nt51932.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, \"2.0.0\", 3, 0x5601)", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("Sha256File(context.BasePath!)", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("referencePayload.Sha256", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51950\", \"nfc.nt51950.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"2.0.0\", 1, 0x4A06)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e", ctrlRamRuntime, StringComparison.Ordinal);

@@ -1,9 +1,18 @@
+using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private readonly AsyncRelayCommand _relocalizeLoadedReportCommand;
+    private CancellationTokenSource? _reportRelocalizationIterationCancellation;
+    private long _reportRelocalizationRequestVersion;
+
+    internal bool IsReportRelocalizationRunning => _relocalizeLoadedReportCommand.IsRunning;
+
+    internal Task? ReportRelocalizationTask => _relocalizeLoadedReportCommand.ExecutionTask;
+
     private void ApplyTextResources(ShellLanguage language, bool notify = true)
     {
         Text = ShellTextResources.For(language);
@@ -16,6 +25,7 @@ public sealed partial class MainWindowViewModel
         ApplyFirmwareSlotText();
         ApplyInitialRunResultText();
         HexEditorWorkspace.ApplyTextResources(Text);
+        CompositionProgress.ApplyLanguage(language);
 
         if (!notify)
         {
@@ -53,10 +63,26 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReportHistoryStorageSummary));
         OnPropertyChanged(nameof(ReportHistoryStorageWarning));
         OnPropertyChanged(nameof(NavigationPath));
-        RelocalizeLoadedReport();
+        RequestReportRelocalization();
         RefreshSettingsState();
         RefreshReplaceModeState(preserveSlotFiles: true);
+        RefreshCtrlRamDisplayFromInspection();
         RefreshReplaceSelectionState();
+    }
+
+    private void RequestReportRelocalization()
+    {
+        _ = Interlocked.Increment(ref _reportRelocalizationRequestVersion);
+        Volatile.Read(ref _reportRelocalizationIterationCancellation)?.Cancel();
+        if (!_relocalizeLoadedReportCommand.IsRunning)
+        {
+            _relocalizeLoadedReportCommand.Execute(null);
+        }
+    }
+
+    private void CancelReportRelocalization()
+    {
+        Volatile.Read(ref _reportRelocalizationIterationCancellation)?.Cancel();
     }
 
     private void ApplyInitialRunResultText()

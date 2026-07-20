@@ -16,10 +16,24 @@ public sealed partial class CtrlRamFirmwareVersionModal : UserControl
 
     private async void ConfirmCtrlRamFirmwareVersionBuildButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel ||
-            !viewModel.TryCreateCtrlRamFirmwareVersionEdit(out WorkbenchCtrlRamFirmwareVersionEdit? edit) ||
-            TopLevel.GetTopLevel(this) is not { StorageProvider: { } storageProvider })
+        if (DataContext is not MainWindowViewModel viewModel)
         {
+            return;
+        }
+
+        (bool succeeded, WorkbenchCtrlRamFirmwareVersionEdit? edit) =
+            await viewModel.TryCreateCtrlRamFirmwareVersionEditAsync();
+        if (!succeeded || TopLevel.GetTopLevel(this) is not { StorageProvider: { } storageProvider })
+        {
+            return;
+        }
+
+        await viewModel.RefreshSelectedReplaceFirmwareInspectionsAsync();
+        if (!viewModel.CanBuildReplace ||
+            !viewModel.IsCtrlRamReplaceModeSelected ||
+            !await viewModel.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync())
+        {
+            viewModel.CloseCtrlRamFirmwareVersionModal();
             return;
         }
 
@@ -28,6 +42,13 @@ public sealed partial class CtrlRamFirmwareVersionModal : UserControl
             viewModel.ReplaceOutputFileName);
         if (string.IsNullOrWhiteSpace(outputPath))
         {
+            return;
+        }
+
+        if (!viewModel.CanBuildReplace ||
+            !await viewModel.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync())
+        {
+            viewModel.CloseCtrlRamFirmwareVersionModal();
             return;
         }
 
