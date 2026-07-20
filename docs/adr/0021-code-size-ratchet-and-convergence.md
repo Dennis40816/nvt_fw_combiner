@@ -56,6 +56,22 @@ new measured baseline and lower descending ratchets instead of treating unused
 space below 60,100 as a permanent budget. The final reviewed `v0.9.10` tree must
 remain at or below 60,100 and must not exceed either named partial ratchet.
 
+### v0.9.11 owner amendment
+
+Owner decision, 2026-07-21: production-source capacity is temporarily widened
+to 75,000 nonblank C#/AXAML lines until `1.0.0`; it is a capacity ceiling, not a
+target or permission to duplicate firmware semantics. Named large aggregates
+remain descending ratchets so reductions cannot silently become new growth
+budget. The reconstructed candidate measures 4,418 lines for
+`WorkbenchCompositionService` and 4,147 lines for `MainWindowViewModel`, which
+become the new exact ceilings. The duplicate-JSON and general partial limits
+remain unchanged.
+
+After the approved `v0.9.11` release, branch and version governance will define
+the next planned convergence slice. Until then, code-size policy must not force
+unrelated refactors into the release candidate or weaken tests, evidence, and
+firmware-safety boundaries.
+
 This is a convergence control, not permission to delete safety. Tests, golden
 vectors, evidence manifests, documentation, firmware-owner gates, and useful
 comments are outside the production-source metric. A change must not weaken
