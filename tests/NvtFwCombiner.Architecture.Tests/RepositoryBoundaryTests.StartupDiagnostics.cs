@@ -25,6 +25,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("launch-options.parsed", program, StringComparison.Ordinal);
         Assert.Contains("application-xaml.ready", application, StringComparison.Ordinal);
         Assert.Contains("shell-view-model.created", window, StringComparison.Ordinal);
+        Assert.Contains("shell-data-context.assigned", window, StringComparison.Ordinal);
+        Assert.Contains("shell-initial-content.ready", window, StringComparison.Ordinal);
         Assert.Contains("main-window.opened", window, StringComparison.Ordinal);
         Assert.Contains("startup-warmup.completed", window, StringComparison.Ordinal);
         Assert.Contains("EnvironmentVariables[$TracePathEnvironmentVariable]", runner, StringComparison.Ordinal);

@@ -56,16 +56,22 @@ public sealed partial class MainWindow : Window, IDisposable
             ShellTextResources.LanguageFromPreference(preferences.Language));
         _startupTrace.Mark("shell-view-model.created");
         viewModel.LoadShellPreferences(preferences);
+        _startupTrace.Mark("shell-preferences.applied");
         DataContext = viewModel;
+        _startupTrace.Mark("shell-data-context.assigned");
         ApplyDeferredShellContent(viewModel);
+        _startupTrace.Mark("shell-initial-content.ready");
         ApplyThemePreference(viewModel.SelectedTheme);
+        _startupTrace.Mark("shell-theme.applied");
 
         if (DataContext is INotifyPropertyChanged notifier)
         {
             notifier.PropertyChanged += ViewModel_OnPropertyChanged;
         }
+        _startupTrace.Mark("shell-notifications.ready");
 
         ApplyInitialLaunchOptions(viewModel, launchOptions);
+        _startupTrace.Mark("initial-launch-options.applied");
         _startupTrace.Mark("main-window-constructor.completed");
     }
 
