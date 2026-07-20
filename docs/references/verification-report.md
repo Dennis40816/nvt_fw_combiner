@@ -22,6 +22,17 @@ the 75,358,293-byte ZIP SHA-256 is
 `36d18b6e03a6569b744187ab924f48860ce424103c12e649c618136dd520587a`.
 Visible release smoke and the closed package/external-tool policy gates passed.
 
+The same package also passed a 2026-07-21 visible UI inspection. It opened Home
+without crashing and displayed `0.9.11 workbench`; Home-to-Replace navigation
+retained the IC Number ComboBox. NT51950 CtrlRAM projected `Common` in single
+mode and separated `DIFF CtrlRAM` into `Cascade` while NF/Normal/VN remained in
+`Common` after selecting Cascade. Input and Output layout used the same groups,
+the right-side memory visualization remained present, nested sections retained
+their spacing, Base firmware displayed `FlashCode / TP FW`, and the disabled
+bottom-right Build rail exposed its blocking reason without occluding content.
+This inspection does not substitute for the owner, Narrator/NVDA, effective
+high-contrast, scaling, or reduced-motion human gates.
+
 One warm-up plus five exact-package Home launches measured a 908.146 ms
 process-to-window median (901.461 ms minimum, 932.563 ms maximum). The recorded
 first-frame synchronous UI median is 412.455 ms; background UI materialization
