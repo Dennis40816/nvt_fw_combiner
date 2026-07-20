@@ -136,36 +136,38 @@
     <ContentControl Grid.Row="1" Content="{Binding}" ContentTemplate="{StaticResource NavigationTrailPanelTemplate}" />
 
     <ContentControl
+        x:Name="DeviceContextHost"
         Grid.Row="2"
-        Content="{Binding}"
         ContentTemplate="{StaticResource DeviceContextPanelTemplate}"
         IsVisible="{Binding IsDeviceContextVisible}" />
 
     <ScrollViewer Grid.Row="3">
       <Grid Margin="28,24,28,28" RowDefinitions="*" RowSpacing="0">
         <ContentControl
+            x:Name="HomePageHost"
             Grid.Row="0"
             IsVisible="{Binding IsHomeVisible}"
-            Content="{Binding}"
             ContentTemplate="{StaticResource HomePageTemplate}" />
 
         <ContentControl
+            x:Name="SettingsPageHost"
             Grid.Row="0"
             IsVisible="{Binding IsSettingsVisible}"
-            Content="{Binding}"
             ContentTemplate="{StaticResource SettingsPageTemplate}" />
 
         <ContentControl
+            x:Name="HexEditorPageHost"
             Grid.Row="0"
             IsVisible="{Binding IsHexEditorVisible}"
-            Content="{Binding}"
             ContentTemplate="{StaticResource HexEditorPageTemplate}" />
 
-        <Grid
+        <ContentControl
+            x:Name="ReplacePageHost"
             Grid.Row="0"
-            ColumnDefinitions="1.15*,430"
-            ColumnSpacing="18"
             IsVisible="{Binding IsReplaceVisible}">
+          <ContentControl.ContentTemplate>
+            <DataTemplate DataType="vm:MainWindowViewModel">
+              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
               <StackPanel Spacing="{DynamicResource NfcSpace4}">
@@ -239,13 +241,18 @@
               Grid.Column="1"
               Content="{Binding}"
               ContentTemplate="{StaticResource ReplaceOutputLayoutPanelTemplate}" />
-        </Grid>
+              </Grid>
+            </DataTemplate>
+          </ContentControl.ContentTemplate>
+        </ContentControl>
 
-        <Grid
+        <ContentControl
+            x:Name="MergePageHost"
             Grid.Row="0"
-            ColumnDefinitions="1.15*,430"
-            ColumnSpacing="18"
             IsVisible="{Binding IsMergeVisible}">
+          <ContentControl.ContentTemplate>
+            <DataTemplate DataType="vm:MainWindowViewModel">
+              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
               <StackPanel Spacing="{DynamicResource NfcSpace4}">
@@ -283,36 +290,90 @@
               Grid.Column="1"
               Content="{Binding}"
               ContentTemplate="{StaticResource MergeOutputLayoutPanelTemplate}" />
-        </Grid>
+              </Grid>
+            </DataTemplate>
+          </ContentControl.ContentTemplate>
+        </ContentControl>
       </Grid>
     </ScrollViewer>
 
     <ContentControl
+        x:Name="ReportToastHost"
         Grid.Row="1"
         Grid.RowSpan="3"
-        Content="{Binding}"
         ContentTemplate="{StaticResource ReportToastPanelTemplate}"
         IsVisible="{Binding HasReportToast}"
         Opacity="{Binding ReportToastOpacity}" />
 
-    <views:ReplaceSelectionModal Grid.RowSpan="4" IsVisible="{Binding IsReplaceSelectionModalOpen}" />
-
-    <views:CtrlRamFirmwareVersionModal Grid.RowSpan="4" IsVisible="{Binding IsCtrlRamFirmwareVersionModalOpen}" />
-
-    <views:WorkflowContextSetupModal Grid.RowSpan="4" IsVisible="{Binding IsWorkflowContextModalOpen}" />
-
-    <views:FirmwareIcMismatchModal Grid.RowSpan="4" IsVisible="{Binding IsFirmwareIcMismatchModalOpen}" />
-
-    <views:HexEditorInsertBytesModal
+    <ContentControl
+        x:Name="ReplaceSelectionModalHost"
         Grid.RowSpan="4"
-        DataContext="{Binding LoadedHexEditorWorkspace}"
-        IsVisible="{Binding IsInsertBytesPromptOpen}" />
+        IsVisible="{Binding IsReplaceSelectionModalOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MainWindowViewModel">
+          <views:ReplaceSelectionModal />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
 
-    <views:HexEditorSaveModal
+    <ContentControl
+        x:Name="CtrlRamFirmwareVersionModalHost"
         Grid.RowSpan="4"
-        DataContext="{Binding LoadedHexEditorWorkspace}"
-        IsVisible="{Binding IsSaveConfirmationOpen}" />
+        IsVisible="{Binding IsCtrlRamFirmwareVersionModalOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MainWindowViewModel">
+          <views:CtrlRamFirmwareVersionModal />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
 
-    <views:ReportModal Grid.RowSpan="4" IsVisible="{Binding IsReportModalOpen}" />
+    <ContentControl
+        x:Name="WorkflowContextSetupModalHost"
+        Grid.RowSpan="4"
+        IsVisible="{Binding IsWorkflowContextModalOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MainWindowViewModel">
+          <views:WorkflowContextSetupModal />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl
+        x:Name="FirmwareIcMismatchModalHost"
+        Grid.RowSpan="4"
+        IsVisible="{Binding IsFirmwareIcMismatchModalOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MainWindowViewModel">
+          <views:FirmwareIcMismatchModal />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl Grid.RowSpan="4" Content="{Binding LoadedHexEditorWorkspace}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:HexEditorWorkspaceViewModel">
+          <views:HexEditorInsertBytesModal IsVisible="{Binding IsInsertBytesPromptOpen}" />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl Grid.RowSpan="4" Content="{Binding LoadedHexEditorWorkspace}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:HexEditorWorkspaceViewModel">
+          <views:HexEditorSaveModal IsVisible="{Binding IsSaveConfirmationOpen}" />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl
+        x:Name="ReportModalHost"
+        Grid.RowSpan="4"
+        IsVisible="{Binding IsReportModalOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MainWindowViewModel">
+          <views:ReportModal />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
   </Grid>
 </Window>
