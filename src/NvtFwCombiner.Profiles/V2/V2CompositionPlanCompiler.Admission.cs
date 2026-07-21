@@ -74,7 +74,8 @@ internal static partial class V2CompositionPlanCompiler
             {
                 Kind: CompositionProfileOperationKind.CopyRange,
             };
-            bool isDpReplaceRange = operation is CopyOrReplaceProfileOperation replace &&
+            bool isDpReplaceRange = isDpReplace &&
+                operation is CopyOrReplaceProfileOperation replace &&
                 replace.Kind == CompositionProfileOperationKind.ReplaceRange &&
                 IsDpReplacePayloadInputSource(profile, replace);
             bool isProcessorRun = operation is RunProcessorProfileOperation;

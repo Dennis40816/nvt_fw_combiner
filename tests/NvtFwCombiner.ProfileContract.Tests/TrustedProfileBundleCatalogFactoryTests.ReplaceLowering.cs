@@ -224,6 +224,25 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         }, modeId: "general-replace"));
 
         Assert.Null(compilation.CompiledComposition);
+        Assert.Equal(2, compilation.Issues.Count);
+        Assert.All(
+            compilation.Issues,
+            issue => Assert.Equal("profile.v2.plan.unsupported-declaration", issue.Code));
+    }
+
+    /// <summary>Verifies CtrlRAM Replace cannot admit a DP Replace range without its processor contract.</summary>
+    [Fact]
+    public void CtrlRamReplaceLoweringRejectsDpReplaceRange()
+    {
+        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedDpReplace(profile =>
+            {
+                JsonObject dpSlot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[1]);
+                Assert.IsType<JsonObject>(dpSlot["acceptance"])["normalization"] =
+                    new JsonObject { ["kind"] = "none" };
+            }, modeId: "ctrlram-replace"));
+
+        Assert.Null(compilation.CompiledComposition);
         Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(compilation.Issues).Code);
     }
 
