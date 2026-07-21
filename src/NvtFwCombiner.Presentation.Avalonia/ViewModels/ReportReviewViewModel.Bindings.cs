@@ -232,6 +232,9 @@ public sealed partial class ReportReviewViewModel
     /// <summary>True when the report should show a primary blocking reason.</summary>
     public bool HasPrimaryIssue => BlockingIssueCount > 0;
 
+    /// <summary>True when the compact success/warning summary may replace the blocking-issue focus panel.</summary>
+    public bool HasNoPrimaryIssue => !HasPrimaryIssue;
+
     /// <summary>True when the report has neither blocking issues nor warnings.</summary>
     public bool IsClean => !HasPrimaryIssue && !HasWarnings;
 

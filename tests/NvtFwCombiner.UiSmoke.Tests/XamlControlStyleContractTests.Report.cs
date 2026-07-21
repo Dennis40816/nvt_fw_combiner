@@ -4,6 +4,24 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
+    /// <summary>Blocking reports expose the exact reason, failed step, output impact, and next action without another click.</summary>
+    [Fact]
+    public void ReportBlockingIssueSummaryIsExpandedAndConcrete()
+    {
+        string panels = ReadPresentationFile("Resources/MainWindowReportPanels.axaml");
+
+        Assert.Contains("IsExpanded=\"{Binding LoadedReport.HasPrimaryIssue}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.Detail}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.Title}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.Meta}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding LoadedReport.OutcomeDetail}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding LoadedReport.NextStepDetail}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.PrimaryReasonLabel}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.FailedStepLabel}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.OutputImpactLabel}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.NextActionLabel}\"", panels, StringComparison.Ordinal);
+    }
+
     /// <summary>Shared Report group headers remain visibly inset from the Expander frame.</summary>
     [Fact]
     public void ReportGroupHeadersKeepAnInsetFromTheExpanderFrame()
