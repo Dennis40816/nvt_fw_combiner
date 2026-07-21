@@ -47,6 +47,7 @@ The runtime model must answer those questions independently.
 5. When multiple intervals exist, a readable valid Common FW version is required because runtime
    cannot safely choose between distinct byte/command profiles without it. Missing, malformed,
    below-minimum, overlapping, or ambiguous interval selection fails closed with a typed issue.
+   The independent FW/bar complement field does not validate or invalidate Common FW selection.
 6. The version embedded in a source BAT filename or golden case is provenance. It becomes an
    effective boundary only when the owner supplies that entry as another runtime profile.
 

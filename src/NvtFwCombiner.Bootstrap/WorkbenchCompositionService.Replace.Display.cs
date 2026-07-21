@@ -33,7 +33,7 @@ public static partial class WorkbenchCompositionService
         string? ctrlRamBasePath = null)
     {
         LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
-            TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
+            TryResolvePostbuildProfileFromBasePathForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
         return CreateReplaceMemoryDisplay(icId, number, replaceMode, dpBaseLength, postbuildProfile);

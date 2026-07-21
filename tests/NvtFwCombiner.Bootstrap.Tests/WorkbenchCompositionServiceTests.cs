@@ -301,9 +301,9 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
-    /// <summary>Verifies versioned CtrlRAM postbuild fails closed when FWConfig FW/bar is invalid.</summary>
+    /// <summary>FW/bar validity cannot block Common FW interval selection during CtrlRAM Preview.</summary>
     [Fact]
-    public async Task CtrlRamReplaceRejectsInvalidFwVersionBarBeforePostbuildCategorySelection()
+    public async Task CtrlRamReplaceKeepsPostbuildSelectionIndependentFromFirmwareVersionBar()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-invalid-fwbar");
         byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
@@ -329,9 +329,12 @@ public sealed class WorkbenchCompositionServiceTests
 
         Assert.False(result.Succeeded);
         using var document = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
+        Assert.DoesNotContain(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
             issue => issue.GetProperty("Code").GetString() == ReplaceCtrlRamPostbuildCategoryUnknown);
+        Assert.Contains(
+            document.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() == WorkbenchIssueCodes.ReplaceWorkflowNotSupported);
     }
 
     /// <summary>TP-version edits execute as plan patches before V2 CtrlRAM postbuild and propagate to Backup.</summary>

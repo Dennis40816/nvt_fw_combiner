@@ -1,9 +1,10 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.1",
   "profiles": [
     {
       "processorId": "nfc.nt51917.ctrlram-postbuild-v1",
       "icId": "NT51917",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51917_fw.bin",
       "singleCommands": [
@@ -1201,6 +1202,7 @@
     {
       "processorId": "nfc.nt51919.ctrlram-postbuild-v1",
       "icId": "NT51919",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51919_fw.bin",
       "singleCommands": [
@@ -1467,6 +1469,7 @@
     {
       "processorId": "nfc.nt51920.ctrlram-postbuild-v1",
       "icId": "NT51920",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51920_fw.bin",
       "singleCommands": [
@@ -1673,6 +1676,7 @@
     {
       "processorId": "nfc.nt51923.ctrlram-postbuild-v1",
       "icId": "NT51923",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51923_fw.bin",
       "singleCommands": [
@@ -1874,6 +1878,7 @@
     {
       "processorId": "nfc.nt51926.ctrlram-postbuild-v1",
       "icId": "NT51926",
+      "effectiveCommonFwVersion": "2.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51926_fw.bin",
       "singleCommands": [
@@ -2061,16 +2066,12 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
-      "commonFwVersionRule": {
-        "matchKind": "exact",
-        "pattern": "2.0.0",
-        "description": "Common FW 2.0.0 =\u003E PostbuildSetup_51926_2.0.0"
-      },
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51926_2.0.0.bat"
     },
     {
       "processorId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
       "icId": "NT51926",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51926_fw.bin",
       "singleCommands": [
@@ -2258,16 +2259,12 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
-      "commonFwVersionRule": {
-        "matchKind": "exact",
-        "pattern": "1.4.1",
-        "description": "Common FW 1.4.1 =\u003E PostbuildSetup_51926_1.4.1"
-      },
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51926_1.4.1.bat"
     },
     {
       "processorId": "nfc.nt51927.ctrlram-postbuild-v1",
       "icId": "NT51927",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51927_fw.bin",
       "singleCommands": [
@@ -3465,6 +3462,7 @@
     {
       "processorId": "nfc.nt51928.ctrlram-postbuild-v1",
       "icId": "NT51928",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51928_fw.bin",
       "singleCommands": [
@@ -4662,6 +4660,7 @@
     {
       "processorId": "nfc.nt51929.ctrlram-postbuild-v1",
       "icId": "NT51929",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51929_fw.bin",
       "singleCommands": [
@@ -4928,6 +4927,7 @@
     {
       "processorId": "nfc.nt51930.ctrlram-postbuild-v1",
       "icId": "NT51930",
+      "effectiveCommonFwVersion": "2.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "NT51930_fw.bin",
       "singleCommands": [
@@ -5189,17 +5189,13 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
-      "commonFwVersionRule": {
-        "matchKind": "exact",
-        "pattern": "2.0.0",
-        "description": "Common FW 2.0.0 =\u003E PostbuildSetup_51930_2.0.0"
-      },
       "availability": "evidence-only",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51930_2.0.0.bat"
     },
     {
       "processorId": "nfc.nt51930.ctrlram-postbuild-fw1.x",
       "icId": "NT51930",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51930_fw.bin",
       "singleCommands": [
@@ -5447,16 +5443,12 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
-      "commonFwVersionRule": {
-        "matchKind": "major",
-        "pattern": "1",
-        "description": "Common FW 1.x.x =\u003E PostbuildSetup_51930_1.4.0"
-      },
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51930_1.4.0.bat"
     },
     {
       "processorId": "nfc.nt51931.ctrlram-postbuild-v1",
       "icId": "NT51931",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51931_fw.bin",
       "singleCommands": [
@@ -5689,6 +5681,7 @@
     {
       "processorId": "nfc.nt51932.ctrlram-postbuild-v1",
       "icId": "NT51932",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51932_fw.bin",
       "singleCommands": [
@@ -5955,6 +5948,7 @@
     {
       "processorId": "nfc.nt51950.ctrlram-postbuild-v1",
       "icId": "NT51950",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51950_fw.bin",
       "singleCommands": [
@@ -6113,6 +6107,7 @@
     {
       "processorId": "nfc.nt51951.ctrlram-postbuild-v1",
       "icId": "NT51951",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51951_fw.bin",
       "singleCommands": [

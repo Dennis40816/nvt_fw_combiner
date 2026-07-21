@@ -24,7 +24,7 @@ public sealed class LegacyCombinerPostbuildProfile
         IEnumerable<LegacyCombinerPostbuildCommand>? threeChipCommands = null,
         IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules = null,
         LegacyCombinerPostbuildAssemblyKind assemblyKind = LegacyCombinerPostbuildAssemblyKind.InPlaceFirmwareImage,
-        LegacyCombinerCommonFwVersionRule? commonFwVersionRule = null,
+        LegacyCombinerCommonFwVersion? effectiveCommonFwVersion = null,
         LegacyCombinerFirmwareConfigWriteRoute firmwareConfigWriteRoute =
             LegacyCombinerFirmwareConfigWriteRoute.Unavailable)
     {
@@ -65,7 +65,7 @@ public sealed class LegacyCombinerPostbuildProfile
         Evidence = evidence;
         DisplayCategory = CreateDisplayCategory(evidence, processorId);
         AssemblyKind = assemblyKind;
-        CommonFwVersionRule = commonFwVersionRule;
+        EffectiveCommonFwVersion = effectiveCommonFwVersion ?? LegacyCombinerCommonFwVersion.MinimumSupported;
         FirmwareConfigWriteRoute = firmwareConfigWriteRoute;
     }
 
@@ -105,8 +105,8 @@ public sealed class LegacyCombinerPostbuildProfile
     /// <summary>Declares whether postbuild output is final flash or refreshed TP_FW requiring assembly.</summary>
     public LegacyCombinerPostbuildAssemblyKind AssemblyKind { get; }
 
-    /// <summary>Optional Common FW category rule for ICs with versioned postbuild references.</summary>
-    public LegacyCombinerCommonFwVersionRule? CommonFwVersionRule { get; }
+    /// <summary>Inclusive Common FW version at which this runtime profile becomes effective.</summary>
+    public LegacyCombinerCommonFwVersion EffectiveCommonFwVersion { get; }
 
     /// <summary>Reviewed pre-postbuild FWConfig source route whose result must reach canonical Backup.</summary>
     public LegacyCombinerFirmwareConfigWriteRoute FirmwareConfigWriteRoute { get; }

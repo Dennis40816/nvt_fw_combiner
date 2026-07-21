@@ -25,16 +25,16 @@ public static partial class WorkbenchCompositionService
         }
 
         string? commonFwVersion = null;
-        if (profiles.Any(static profile => profile.CommonFwVersionRule is not null) &&
+        if (profiles.Count > 1 &&
             !(baseImage is null
                 ? TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion)
-                : TryReadFirmwareConfigBackupMetadata(icId, baseImage, out FirmwareConfigMetadata metadata) && metadata.IsFirmwareVersionBarValid &&
+                : TryReadFirmwareConfigBackupMetadata(icId, baseImage, out FirmwareConfigMetadata metadata) &&
                     (commonFwVersion = metadata.CommonFwVersion) is not null))
         {
             postbuildProfile = null;
             issue = new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown,
-                $"{icId} has multiple legacy Combiner postbuild categories, but the base BIN FWConfig Common FW version could not be read or failed FW/bar validation.",
+                $"{icId} has multiple runtime postbuild profiles, but the base BIN FWConfig Common FW version could not be read.",
                 WorkbenchSlotIds.ReplaceBase);
             return false;
         }

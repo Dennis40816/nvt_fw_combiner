@@ -118,6 +118,43 @@ public sealed class BuiltInPostbuildProfileCatalogTests
             BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
     }
 
+    /// <summary>Every catalog row records an explicit effective version, including evidence-only rows.</summary>
+    [Fact]
+    public void LoadRejectsMissingEffectiveCommonFwVersion()
+    {
+        JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
+        JsonObject profile = Assert.IsType<JsonObject>(root["profiles"]![0]);
+        Assert.True(profile.Remove("effectiveCommonFwVersion"));
+        byte[] bytes = Encoding.UTF8.GetBytes(root.ToJsonString());
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
+    }
+
+    /// <summary>Runtime intervals for one IC cannot share an effective lower bound.</summary>
+    [Fact]
+    public void LoadRejectsDuplicateRuntimeEffectiveVersion()
+    {
+        JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
+        FindProfile(root, "nfc.nt51926.ctrlram-postbuild-v1")["effectiveCommonFwVersion"] = "1.0.0";
+        byte[] bytes = Encoding.UTF8.GetBytes(root.ToJsonString());
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
+    }
+
+    /// <summary>The first runtime interval for every IC begins at the owner-defined 1.0.0 minimum.</summary>
+    [Fact]
+    public void LoadRejectsRuntimeIntervalsStartingAfterMinimum()
+    {
+        JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
+        FindProfile(root, "nfc.nt51926.ctrlram-postbuild-fw1.4.1")["effectiveCommonFwVersion"] = "1.0.1";
+        byte[] bytes = Encoding.UTF8.GetBytes(root.ToJsonString());
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
+    }
+
     /// <summary>Every profile must distinguish a reviewed FWConfig write route from an omitted field.</summary>
     [Fact]
     public void LoadRejectsMissingFirmwareConfigWriteRoute()
@@ -147,6 +184,14 @@ public sealed class BuiltInPostbuildProfileCatalogTests
     private static byte[] ReadCatalog()
     {
         return File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, RelativePath.Replace('/', Path.DirectorySeparatorChar)));
+    }
+
+    private static JsonObject FindProfile(JsonObject root, string processorId)
+    {
+        return root["profiles"]!
+            .AsArray()
+            .Select(Assert.IsType<JsonObject>)
+            .Single(profile => profile["processorId"]!.GetValue<string>() == processorId);
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

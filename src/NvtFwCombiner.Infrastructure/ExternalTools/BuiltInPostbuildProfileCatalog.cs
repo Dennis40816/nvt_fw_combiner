@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Infrastructure.ExternalTools;
 internal static class BuiltInPostbuildProfileCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/catalog.json";
-    private const string ExpectedSha256 = "58748a724a96d71ffeca98dd94ea406e0ade47eacfcc632bc73ae66693b2cb33";
+    private const string ExpectedSha256 = "e6e8bd7ecefb9f9edf49ffa053e21c055f569607638bd25e357f670d8aca44f0";
     private static readonly Lazy<IReadOnlyList<LegacyCombinerPostbuildProfile>> Profiles = new(Load);
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> All => Profiles.Value;
@@ -27,9 +27,9 @@ internal static class BuiltInPostbuildProfileCatalog
             expectedSha256,
             "Built-in CtrlRAM Postbuild catalog",
             "Built-in CtrlRAM Postbuild catalog is empty.");
-        if (document.SchemaVersion != "2.0" || document.Profiles is null)
+        if (document.SchemaVersion != "2.1" || document.Profiles is null)
         {
-            throw new InvalidDataException("Built-in CtrlRAM Postbuild catalog must use schema 2.0 with profiles.");
+            throw new InvalidDataException("Built-in CtrlRAM Postbuild catalog must use schema 2.1 with profiles.");
         }
 
         ProfileDocument[] sources = [.. document.Profiles];
@@ -43,13 +43,19 @@ internal static class BuiltInPostbuildProfileCatalog
         [
             .. declaredProfiles.Where((_, index) => IsRuntimeProfile(sources[index])),
         ];
+        ValidateRuntimeIntervals(runtimeProfiles);
         return Array.AsReadOnly(runtimeProfiles);
     }
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> GetProfiles(string icId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        return [.. All.Where(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))];
+        return [
+            .. All
+                .Where(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))
+                .OrderBy(static profile => profile.EffectiveCommonFwVersion)
+                .ThenBy(static profile => profile.ProcessorId, StringComparer.Ordinal),
+        ];
     }
 
     internal static bool TryGetDefaultProfile(
@@ -75,42 +81,52 @@ internal static class BuiltInPostbuildProfileCatalog
             return false;
         }
 
-        if (profiles.Count == 1 && profiles[0].CommonFwVersionRule is null)
+        bool hasVersion = LegacyCombinerCommonFwVersion.TryParse(
+            commonFwVersion,
+            out LegacyCombinerCommonFwVersion version);
+        if (hasVersion && version.CompareTo(LegacyCombinerCommonFwVersion.MinimumSupported) < 0)
+        {
+            postbuildProfile = null;
+            issue = $"{icId} Common FW {version} is below the minimum supported version " +
+                $"{LegacyCombinerCommonFwVersion.MinimumSupported}.";
+            return false;
+        }
+
+        if (profiles.Count == 1)
         {
             postbuildProfile = profiles[0];
             issue = null;
             return true;
         }
 
-        LegacyCombinerPostbuildProfile[] matches = string.IsNullOrWhiteSpace(commonFwVersion)
-            ? []
-            : [.. profiles.Where(profile => profile.CommonFwVersionRule?.Matches(commonFwVersion) == true)];
-        if (matches.Length == 1)
+        if (!hasVersion)
         {
-            postbuildProfile = matches[0];
-            issue = null;
-            return true;
+            postbuildProfile = null;
+            issue = $"{icId} has multiple runtime postbuild profiles; a valid three-component " +
+                $"base FWConfig Common FW version is required. Intervals: {DescribeIntervals(profiles)}.";
+            return false;
         }
 
-        postbuildProfile = null;
-        issue = string.IsNullOrWhiteSpace(commonFwVersion)
-            ? $"{icId} has a versioned postbuild category; base FWConfig Common FW version is required."
-            : $"{icId} Common FW {commonFwVersion} has no approved postbuild category. Supported categories: {Describe(profiles)}.";
-        return false;
+        postbuildProfile = profiles.Last(profile =>
+            profile.EffectiveCommonFwVersion.CompareTo(version) <= 0);
+        issue = null;
+        return true;
     }
 
-    private static string Describe(IEnumerable<LegacyCombinerPostbuildProfile> profiles)
+    private static string DescribeIntervals(IReadOnlyList<LegacyCombinerPostbuildProfile> profiles)
     {
-        string[] descriptions =
-        [
-            .. profiles
-                .Select(static profile => profile.CommonFwVersionRule?.Description)
-                .Where(static description => !string.IsNullOrWhiteSpace(description))
-                .Cast<string>(),
-        ];
-        return descriptions.Length == 0
-            ? "no versioned postbuild categories declared"
-            : string.Join("; ", descriptions);
+        string[] descriptions = new string[profiles.Count];
+        for (int index = 0; index < profiles.Count; index++)
+        {
+            LegacyCombinerPostbuildProfile profile = profiles[index];
+            string end = index + 1 < profiles.Count
+                ? profiles[index + 1].EffectiveCommonFwVersion.ToString()
+                : "infinity";
+            descriptions[index] =
+                $"[{profile.EffectiveCommonFwVersion}, {end}) => {profile.DisplayCategory}";
+        }
+
+        return string.Join("; ", descriptions);
     }
 
     private static LegacyCombinerPostbuildProfile CreateProfile(ProfileDocument source)
@@ -141,17 +157,7 @@ internal static class BuiltInPostbuildProfileCatalog
                 "refreshed-tp-then-standard-merge" => LegacyCombinerPostbuildAssemblyKind.RefreshedTpThenStandardMerge,
                 _ => throw Invalid("assemblyKind"),
             },
-            source.CommonFwVersionRule is null
-                ? null
-                : new LegacyCombinerCommonFwVersionRule(
-                    source.CommonFwVersionRule.MatchKind switch
-                    {
-                        "exact" => LegacyCombinerCommonFwVersionMatchKind.Exact,
-                        "major" => LegacyCombinerCommonFwVersionMatchKind.Major,
-                        _ => throw Invalid("commonFwVersionRule.matchKind"),
-                    },
-                    source.CommonFwVersionRule.Pattern,
-                    source.CommonFwVersionRule.Description),
+            ParseEffectiveCommonFwVersion(source.EffectiveCommonFwVersion),
             source.FirmwareConfigWriteRoute switch
             {
                 "command-source-to-canonical-backup" =>
@@ -171,6 +177,39 @@ internal static class BuiltInPostbuildProfileCatalog
             "evidence-only" => false,
             _ => throw Invalid("profile availability"),
         };
+    }
+
+    private static LegacyCombinerCommonFwVersion ParseEffectiveCommonFwVersion(string? value)
+    {
+        return LegacyCombinerCommonFwVersion.TryParse(value, out LegacyCombinerCommonFwVersion version)
+            ? version
+            : throw Invalid("effectiveCommonFwVersion");
+    }
+
+    private static void ValidateRuntimeIntervals(IReadOnlyList<LegacyCombinerPostbuildProfile> profiles)
+    {
+        foreach (IGrouping<string, LegacyCombinerPostbuildProfile> group in
+                 profiles.GroupBy(static profile => profile.IcId, StringComparer.Ordinal))
+        {
+            LegacyCombinerPostbuildProfile[] ordered =
+            [
+                .. group
+                    .OrderBy(static profile => profile.EffectiveCommonFwVersion)
+                    .ThenBy(static profile => profile.ProcessorId, StringComparer.Ordinal),
+            ];
+            if (ordered[0].EffectiveCommonFwVersion != LegacyCombinerCommonFwVersion.MinimumSupported)
+            {
+                throw Invalid($"{group.Key} first runtime effectiveCommonFwVersion");
+            }
+
+            for (int index = 1; index < ordered.Length; index++)
+            {
+                if (ordered[index - 1].EffectiveCommonFwVersion == ordered[index].EffectiveCommonFwVersion)
+                {
+                    throw Invalid($"{group.Key} duplicate runtime effectiveCommonFwVersion");
+                }
+            }
+        }
     }
 
     private static LegacyCombinerPostbuildCommand CreateCommand(CommandDocument source)
@@ -249,7 +288,7 @@ internal static class BuiltInPostbuildProfileCatalog
         IReadOnlyList<CommandDocument>? ThreeChipCommands,
         IReadOnlyList<BranchRuleDocument>? BranchRules,
         string AssemblyKind,
-        CommonFwVersionRuleDocument? CommonFwVersionRule,
+        string? EffectiveCommonFwVersion,
         string FirmwareConfigWriteRoute,
         string? Availability,
         string Evidence);
@@ -272,5 +311,4 @@ internal static class BuiltInPostbuildProfileCatalog
 
     private sealed record BranchRuleDocument(string Token, string Branch);
 
-    private sealed record CommonFwVersionRuleDocument(string MatchKind, string Pattern, string Description);
 }

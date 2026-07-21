@@ -66,8 +66,7 @@ public static partial class WorkbenchCompositionService
         out string? commonFwVersion)
     {
         commonFwVersion = null;
-        if (!TryReadFirmwareConfigBackupMetadata(icId, basePath, out FirmwareConfigMetadata metadata) ||
-            !metadata.IsFirmwareVersionBarValid)
+        if (!TryReadFirmwareConfigBackupMetadata(icId, basePath, out FirmwareConfigMetadata metadata))
         {
             return false;
         }
@@ -177,7 +176,7 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
-    private static bool TryResolvePostbuildProfileForDisplay(
+    private static bool TryResolvePostbuildProfileFromBasePathForDisplay(
         string icId,
         string? basePath,
         out LegacyCombinerPostbuildProfile? postbuildProfile)
@@ -189,7 +188,7 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        if (profiles.Count == 1 && profiles[0].CommonFwVersionRule is null)
+        if (profiles.Count == 1)
         {
             postbuildProfile = profiles[0];
             return true;
