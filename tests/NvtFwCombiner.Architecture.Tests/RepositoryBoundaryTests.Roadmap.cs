@@ -47,7 +47,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Version values are informational and never route gates", roadmap, StringComparison.Ordinal);
         Assert.Contains("Unreadable versions\nshow `Unknown` with a non-modal warning", roadmap, StringComparison.Ordinal);
         Assert.Contains("one DP_AB card with DP1/DP2\nsubrows plus separate TPA/TPB rows", roadmap, StringComparison.Ordinal);
-        Assert.Contains("DP facts shown in the UI use the IC-owned three-byte CMI", specification, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.13` will move DP facts shown in the UI to the IC-owned three-byte CMI", specification, StringComparison.Ordinal);
+        Assert.Contains("No current Display or naming behavior changes in this release", specification, StringComparison.Ordinal);
         Assert.Contains("Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.12`", specification, StringComparison.Ordinal);
     }
 

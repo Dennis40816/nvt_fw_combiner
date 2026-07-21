@@ -22,7 +22,6 @@ Changes after `0.9.12` will be documented here.
 - Common FW profiles now use half-open effective intervals from `1.0.0`. NT51926 uses the 1.4.1-sourced plan for `[1.0.0,2.0.0)` and the 2.0.0-sourced plan for `[2.0.0,infinity)`; every other single-profile IC accepts missing or later informational Common FW without inventing another boundary.
 - NT51930 exposes exactly `1 IC` and `2–13 IC`; count 14 and above remains unavailable because no owner command plan exists. NT51927 and NT51928 non-NB expose only their owner-provided single/2-chip/3-chip plans.
 - Selected CtrlRAM BIN cards use the completed/green state. Base firmware and Common/topology sections retain consistent width and reusable spatial padding.
-- DP facts shown on firmware cards prefer the shared three-byte CMI Reg16h-18h model for every IC that declares one. The legacy two-byte DP token remains limited to output-filename compatibility and is not a display fallback.
 - The bottom-right actions use a vertical action rail. Circular icons expand labels to the left on hover or keyboard focus without tooltip interception, Build remains the bottom primary action, and reduced motion retains an immediate static state cue.
 - Pre-1.0 source-size governance retains the 75,000-line production ceiling and exact duplicate-JSON gate while replacing two brittle exact-equality partial ratchets with reviewed 4,500-line ceilings for `WorkbenchCompositionService` and `MainWindowViewModel`.
 
