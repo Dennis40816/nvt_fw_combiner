@@ -53,6 +53,52 @@ No AB profile is inferred from Standard Merge, DP Replace, CtrlRAM Replace, a
 similar IC name, or a matching image length. Fact-scoped reuse does not imply a
 whole-profile alias, processor equivalence, output capacity, or support stage.
 
+### First pilot: NT51919/NT51929/NT51932 perfect family
+
+The owner confirmed the following first-pilot facts on 2026-07-22:
+
+- NT51919, NT51929, and NT51932 form one perfect family for this AB layout. IC
+  Number is not an AB route selector, and the layout applies across firmware
+  versions rather than only the existing T05/D06 fixture.
+- `DP_AB` is one exact 512 KiB initial container. DP1 is
+  `[0x00000,0x40000)` and DP2 is `[0x40000,0x80000)`. Each bank reads its own
+  DP main/sub bytes at bank-relative `0x67/0x68`; the two decoded values remain
+  distinct even when equal. Formatting uses two uppercase hexadecimal digits
+  per byte and preserves leading zeroes, so main `0x00` plus sub `0x0D` is
+  displayed as `D000D`.
+- TPA and TPB are separate exact 256 KiB inputs for this fixed plan. They may
+  be the same file or different files and may carry equal or different TP
+  versions. Each selected TP BIN is inspected independently using the
+  owner/reference NVT terminal-relative (`T - 0xFFF`) TP version rule.
+- Only the TPB scalar fields at `0x7164`, `0x7168`, and `0x716C` are relocated
+  by `+0x40000`. This family has no additional CRC/header processor stage.
+- NT51919 and NT51932 may use the reviewed perfect-family relation
+  support-neutrally; their absence of separate direct goldens is not a
+  production route discriminator or automatic support promotion.
+
+Input selection reports a non-modal warning when a fixed-size artifact is too
+short or too long, but Build still rejects the size mismatch because this plan
+has no declared padding or truncation authority. A missing or unreadable
+version reports `Unknown` with a non-modal warning and does not select or
+reject the route. Version metadata is used for human confirmation, report
+traceability, and output naming only.
+
+Application owns a typed AB input-metadata projection. Presentation receives
+four explicit values and never calculates offsets or scans firmware bytes:
+
+```text
+DP_AB
+  DP1  [0x00000,0x40000)  Dxxxx
+  DP2  [0x40000,0x80000)  Dxxxx
+TPA                           Txx
+TPB                           Txx
+```
+
+The DP1/DP2 values appear as subrows of one DP_AB slot; TPA and TPB keep their
+own slot rows. Equal values are not collapsed, and mixed A/B versions are
+shown explicitly. Localized labels, technical-font values, keyboard reading
+order, screen-reader names, and warning state are part of A5 acceptance.
+
 ### Reusable and AB-owned surfaces
 
 AB continues through the one compiled composition boundary from ADR 0003 and
@@ -98,7 +144,7 @@ Each slice is an independent commit/test/review boundary.
 | Slice | Scope | Exit gate |
 | --- | --- | --- |
 | A0 | Inventory every current AB candidate, runtime rejection, UI/CLI gate, profile field, family/fact binding, processor, command, range, fixture, and support blocker. Record the exact released `v0.9.12` predecessor. | Reviewed authority/evidence matrix with no inferred facts. |
-| A1 | Define typed AB profile and build-plan selectors plus invalid-combination rules. Identify which current checks are structural production authority and which are golden-only evidence. | Contract/property tests; no runtime route enabled. |
+| A1 | Define typed AB profile and build-plan selectors, the four-value AB input-metadata projection, and invalid-combination rules. Identify which current checks are structural production authority and which are golden-only evidence. | Contract/property and version-parser tests; no runtime route enabled. |
 | A2 | Normalize address spaces, initializer ownership, source/copy/backup direction, bank targets, relocation fields, output capacity, overlaps, and processor ranges in V2 profile data. | Profile/compiler tests and architecture review; old runtime rejection retained. |
 | A3 | Compile each candidate through one AB route registry and the shared composition engine. Keep UI/CLI hidden and retain the old rejection boundary as rollback. | Negative admission, immutable-source, staging, range, and atomic-output tests. |
 | A4 | Reproduce direct or approved fact-scoped output evidence per IC/plan. Compare V2, approved reference behavior, Legacy Combiner/Python where applicable, changed ranges, report facts, and source hashes. | Exact parity or a documented firmware-owner decision for every difference. |
@@ -114,6 +160,9 @@ Each slice is an independent commit/test/review boundary.
 - cover DP_AB initializer order, TPA/TPB overlays, customer information,
   bank targets, scalar relocation, capacity boundaries, and deterministic
   operation order;
+- verify independent DP1/DP2 and TPA/TPB version parsing, mixed-version display,
+  explicit `Unknown` warnings, and prove version values cannot select or reject
+  the perfect-family production route;
 - verify processor identity, exact argv order, declared read/write views,
   independent staged diffs, and rejection outside allowed ranges;
 - verify source immutability, zero output authority on failure, atomic commit,

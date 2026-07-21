@@ -6,7 +6,7 @@
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
-> 可見性：`Public`（owner 決定維持至 `0.9.11` 完成，之後改為 `Private`）
+> 可見性：`Public`（owner 於 2026-07-22 決定維持至 stable `v1.0.0` 完成；其後改為 `Private`）
 > License：`MIT`（只涵蓋新 NFC 原創內容；`refcode/` 依個別來源與所有權處理）
 > 本文件目的：鎖定產品、Composition 架構、資料契約、Codex 治理、CI/CD、里程碑與後續開發順序。
 
@@ -46,6 +46,7 @@ As of 2026-07-21, `0.9.12` is the CtrlRAM routing and interaction stabilization 
 
 - AB Code architecture re-admission is scheduled for `v0.9.13` under ADR 0032. Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.12`; no profile is admitted or promoted without typed production authority, exact ranges, relocation fields, integrity contract, golden output, and firmware-owner approval.
 - NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919 may inherit the NT51929/NT51932 canonical AB facts only through owner-approved fact-scoped bindings and parity tests. This direction does not infer ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
+- The first `v0.9.13` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect family whose AB layout is version-independent and whose route does not depend on IC Number. Its exact 512 KiB DP_AB container exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks must have their own decoded DP version. TPA and TPB are separate 256 KiB inputs, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning, while a fixed-plan size mismatch remains Build-blocking.
 - Firmware ranges, aliases, metadata locators, capability evidence, workflow profiles, and execution promotion must converge through the versioned family/profile bundle and one compiled composition boundary defined by ADR 0015. Migration preserves current promotion stages and blockers; map coverage never grants Build authority.
 - Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.

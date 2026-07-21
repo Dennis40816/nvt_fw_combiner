@@ -29,6 +29,13 @@ Exact final-`main` CI, portable packaging, clean-machine smoke, annotated tag,
 published hashes/SBOM/provenance, and downloaded-asset verification remain the
 stable-release gates.
 
+Repository visibility was reviewed before final integration. The owner decided
+on 2026-07-22 that the repository remains Public through stable `v1.0.0` and
+becomes Private afterward; the full impact and release inventory are recorded
+in `docs/governance/v0.9.12-public-visibility-review.md`. This supersedes the
+earlier post-`v0.9.11` schedule without claiming that a later privacy change can
+retract public history, caches, or forks.
+
 ## 0.9.11 reconstructed stabilization release candidate
 
 The candidate is reconstructed from the exact final `v0.9.10` predecessor
