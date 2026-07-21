@@ -82,9 +82,13 @@ public sealed class StrictJsonDocumentReaderTests
             $"ownedAllocated={ownedAllocation} defensiveAllocated={defensiveAllocation}");
 
         Assert.True(
-            defensiveAllocation - ownedAllocation >= bytes.Length,
-            $"Expected at least one {bytes.Length}-byte defensive copy; " +
-            $"owned={ownedAllocation}, defensive={defensiveAllocation}.");
+            ownedAllocation < bytes.Length / 4,
+            $"Owned parsing allocated enough for a second complete snapshot; " +
+            $"payload={bytes.Length}, owned={ownedAllocation}.");
+        Assert.True(
+            defensiveAllocation >= bytes.Length,
+            $"Defensive parsing did not allocate the required complete snapshot; " +
+            $"payload={bytes.Length}, defensive={defensiveAllocation}.");
     }
 
     /// <summary>Verifies byte and depth bounds fail closed.</summary>
