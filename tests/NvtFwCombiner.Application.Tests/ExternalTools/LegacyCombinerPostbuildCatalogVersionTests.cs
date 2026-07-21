@@ -141,6 +141,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, last.Branch);
         Assert.Equal(2, first.Selector.ResolveTopologyCount(firstSelection, reportedChipCount: 0));
         Assert.Equal(13, last.Selector.ResolveTopologyCount(lastSelection, reportedChipCount: 0));
+        Assert.Equal(3, last.Selector.ResolveTopologyCount(lastSelection, reportedChipCount: 3));
         Assert.Equal(
             first.Commands.Select(static command => command.CommandId),
             last.Commands.Select(static command => command.CommandId));

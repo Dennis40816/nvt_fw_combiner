@@ -6,6 +6,8 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class Nt51930CtrlRamFw130EvidenceTests
 {
+    private const int NvtEndFlagMarkerOffset = 0xFFC;
+
     /// <summary>A numeric request remains the topology authority when FWConfig does not report a chip count.</summary>
     [Fact]
     public async Task NumericSelectionKeepsRequestedTopologyWhenFirmwareCountIsUnknownAsync()
@@ -42,6 +44,42 @@ public sealed partial class Nt51930CtrlRamFw130EvidenceTests
         using var twoChipReport = JsonDocument.Parse(twoChip.ReportJson);
         using var thirteenChipReport = JsonDocument.Parse(thirteenChip.ReportJson);
         Assert.NotEqual(
+            twoChipReport.RootElement.GetProperty("CompilationFingerprint").GetString(),
+            thirteenChipReport.RootElement.GetProperty("CompilationFingerprint").GetString());
+    }
+
+    /// <summary>A compatible positive FWConfig count remains authoritative over a numeric range selector alias.</summary>
+    [Fact]
+    public async Task CompatibleFirmwareCountWinsTopologyIdentityOverNumericAliasAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51930-reported-topology");
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
+            evidence.Expected.Bytes,
+            out FirmwareConfigMetadata metadata));
+        Assert.Equal(3, metadata.ChipNumber);
+
+        async Task<WorkbenchRunResult> RunAsync(string number, string outputFileName)
+        {
+            return await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+                "NT51930",
+                number,
+                CreateSlotPaths(evidence, evidence.Expected.Path),
+                build: true,
+                workspace.PathFor(outputFileName),
+                firmwareVersionEdit: null,
+                new PassThroughProcessor(),
+                TestContext.Current.CancellationToken);
+        }
+
+        WorkbenchRunResult twoChipAlias = await RunAsync("2", "two-chip-alias.bin");
+        WorkbenchRunResult thirteenChipAlias = await RunAsync("13", "thirteen-chip-alias.bin");
+
+        Assert.True(twoChipAlias.Succeeded, twoChipAlias.ReportJson);
+        Assert.True(thirteenChipAlias.Succeeded, thirteenChipAlias.ReportJson);
+        using var twoChipReport = JsonDocument.Parse(twoChipAlias.ReportJson);
+        using var thirteenChipReport = JsonDocument.Parse(thirteenChipAlias.ReportJson);
+        Assert.Equal(
             twoChipReport.RootElement.GetProperty("CompilationFingerprint").GetString(),
             thirteenChipReport.RootElement.GetProperty("CompilationFingerprint").GetString());
     }
@@ -84,5 +122,44 @@ public sealed partial class Nt51930CtrlRamFw130EvidenceTests
             "below the minimum supported version 1.0.0",
             issue.GetProperty("Message").GetString(),
             StringComparison.Ordinal);
+    }
+
+    /// <summary>Missing Common FW metadata does not become a sole-profile version gate.</summary>
+    [Fact]
+    public async Task UnreadableCommonFwContinuesToStructuralAdmissionForSoleRuntimeProfileAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51930-unreadable-common-fw");
+        byte[] reference = [.. evidence.Expected.Bytes];
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
+        int markerStart = checked((int)metadata.StructureStart + NvtEndFlagMarkerOffset);
+        reference[markerStart + 1] ^= 0x01;
+        Assert.False(FirmwareConfigMetadataReader.TryReadBackup(reference, out _));
+        string referencePath = workspace.Write("missing-backup-marker.bin", reference);
+        string referenceSha256 = Hash(reference);
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51930",
+            WorkbenchIcNumberTokens.CascadeTwoToThirteen,
+            CreateSlotPaths(evidence, referencePath),
+            build: true,
+            outputPath,
+            firmwareVersionEdit: null,
+            new PassThroughProcessor(),
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(File.Exists(outputPath));
+        Assert.Equal(referenceSha256, Hash(File.ReadAllBytes(referencePath)));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        JsonElement[] issues = [.. report.RootElement.GetProperty("Issues").EnumerateArray()];
+        Assert.NotEmpty(issues);
+        Assert.DoesNotContain(
+            issues,
+            issue => issue.GetProperty("Code").GetString() is
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown or
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported);
+        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 }

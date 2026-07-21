@@ -164,6 +164,52 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("3", viewModel.SelectedNumber);
     }
 
+    /// <summary>Reinspection of the same file and suggestion does not republish an unchanged Number prompt.</summary>
+    [Fact]
+    public async Task IdenticalFirmwareNumberMismatchPromptIsDeduplicated()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-number-mismatch-duplicate");
+        string basePath = workspace.Write("base.bin", [0x01]);
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        [
+            .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                input.InspectionId,
+                new WorkbenchFirmwareInspection(
+                    "NT51927",
+                    null,
+                    null,
+                    null,
+                    new WorkbenchFirmwareContextSuggestion("NT51927", "2", 2, "1.0.0", 0x5192),
+                    null))),
+        ]);
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
+        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
+
+        var promptPublications = new List<string?>();
+        viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(MainWindowViewModel.IsFirmwareNumberMismatchModalOpen) or
+                nameof(MainWindowViewModel.FirmwareNumberMismatchFileName) or
+                nameof(MainWindowViewModel.FirmwareNumberMismatchCurrentNumber) or
+                nameof(MainWindowViewModel.FirmwareNumberMismatchDetectedNumber) or
+                nameof(MainWindowViewModel.FirmwareNumberMismatchDetectedChipCount))
+            {
+                promptPublications.Add(args.PropertyName);
+            }
+        };
+
+        await viewModel.RefreshAllSelectedFirmwareInspectionsAsync("replace-base");
+
+        Assert.Empty(promptPublications);
+        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal("base.bin", viewModel.FirmwareNumberMismatchFileName);
+        Assert.Equal("2 IC", viewModel.FirmwareNumberMismatchDetectedNumber);
+        Assert.Equal((byte)2, viewModel.FirmwareNumberMismatchDetectedChipCount);
+    }
+
     /// <summary>Cancel preserves the UI choice but Build still reaches the backend mismatch gate and publishes no output.</summary>
     [Fact]
     public async Task FirmwareNumberMismatchCancelThenBuildRemainsFailClosed()
