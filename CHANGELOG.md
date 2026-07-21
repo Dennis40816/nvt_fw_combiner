@@ -36,8 +36,8 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ### Notes
 
-- Focused production tests cover actual Workbench output for the added routes, including DiffDLM presence/absence, 256/512 KiB container preservation, NT51928 DP/LDC tail preservation, report identity, and immutable sources. Canonical full verification, independent R3 review, protected CI, firmware-owner promotion decisions, and release packaging remain final gates.
-- The existing unsupported owner-handoff `.7z` inventory entry is not modified or silently accepted; it remains an explicit repository-verifier blocker until the owner closes that evidence intake separately.
+- Focused production tests cover actual Workbench output for the added routes, including DiffDLM presence/absence, 256/512 KiB container preservation, NT51928 DP/LDC tail preservation, report identity, and immutable sources. Clean-commit canonical verification and independent R3 code review pass. A real NT51926 Windows CLI Build matches its manifest expected output exactly, and the Number-mismatch run publishes no output; see [`v0.9.12-ctrlram-build-evidence.md`](docs/references/v0.9.12-ctrlram-build-evidence.md).
+- The existing unsupported owner-handoff `.7z` inventory entry is not modified or silently accepted. It still blocks verification in the primary worktree, while the same reviewed commit passes `verify.py --all` in a clean detached worktree. Protected CI, clean-machine package smoke, per-plan firmware-owner promotion decisions, and final release packaging remain open gates.
 - The shared Hex viewport, redesigned read-only Changes workspace, and global Button pressed acknowledgement are deferred intact to `v0.9.13`.
 
 ## [0.9.11] - 2026-07-21
