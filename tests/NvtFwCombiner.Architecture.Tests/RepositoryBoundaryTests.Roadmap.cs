@@ -39,12 +39,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("PID, filenames, complete firmware SHA-256 values", decision, StringComparison.Ordinal);
         Assert.Contains("NT51919, NT51929, and NT51932 form one perfect family", decision, StringComparison.Ordinal);
         Assert.Contains("DP1 is\n  `[0x00000,0x40000)` and DP2 is `[0x40000,0x80000)`", decision, StringComparison.Ordinal);
+        Assert.Contains("three-byte CMI Reg16h-18h layout", decision, StringComparison.Ordinal);
+        Assert.Contains("`[0x401A,0x401D)` and `[0x4401A,0x4401D)`", decision, StringComparison.Ordinal);
+        Assert.Contains("`0x67/0x68` reader remains output-naming", decision, StringComparison.Ordinal);
         Assert.Contains("Each selected TP BIN is inspected independently", decision, StringComparison.Ordinal);
-        Assert.Contains("four explicit values and never calculates offsets", decision, StringComparison.Ordinal);
+        Assert.Contains("four explicit values, never accepts a raw\noffset", decision, StringComparison.Ordinal);
         Assert.Contains("Version values are informational and never route gates", roadmap, StringComparison.Ordinal);
         Assert.Contains("Unreadable versions\nshow `Unknown` with a non-modal warning", roadmap, StringComparison.Ordinal);
-        Assert.Contains("`0x00/0x0D` is shown as `D000D`", roadmap, StringComparison.Ordinal);
         Assert.Contains("one DP_AB card with DP1/DP2\nsubrows plus separate TPA/TPB rows", roadmap, StringComparison.Ordinal);
+        Assert.Contains("DP facts shown in the UI use the IC-owned three-byte CMI", specification, StringComparison.Ordinal);
         Assert.Contains("Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.12`", specification, StringComparison.Ordinal);
     }
 
@@ -60,7 +63,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("supersedes the earlier visibility schedule", changelog, StringComparison.Ordinal);
         Assert.Contains("remain Public through stable `v1.0.0`; become Private afterward", review, StringComparison.Ordinal);
         Assert.Contains("cannot retract commit history, source archives,\ncaches, clones, or forks", review, StringComparison.Ordinal);
-        Assert.Contains("adds no raw owner firmware BIN, private\ngolden payload, credential, signing key, token, or owner-handoff archive", review, StringComparison.Ordinal);
+        Assert.Contains("already tracks owner-approved canonical golden BIN payloads", review, StringComparison.Ordinal);
+        Assert.Contains("adds no new BIN, archive,\ncredential, signing key, token, or private payload", review, StringComparison.Ordinal);
+        Assert.Contains("including already tracked owner-approved golden payloads", review, StringComparison.Ordinal);
         Assert.Contains("ignored owner-handoff `.7z` remains outside Git", review, StringComparison.Ordinal);
     }
 

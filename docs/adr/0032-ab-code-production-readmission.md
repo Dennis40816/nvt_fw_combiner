@@ -61,11 +61,14 @@ The owner confirmed the following first-pilot facts on 2026-07-22:
   Number is not an AB route selector, and the layout applies across firmware
   versions rather than only the existing T05/D06 fixture.
 - `DP_AB` is one exact 512 KiB initial container. DP1 is
-  `[0x00000,0x40000)` and DP2 is `[0x40000,0x80000)`. Each bank reads its own
-  DP main/sub bytes at bank-relative `0x67/0x68`; the two decoded values remain
-  distinct even when equal. Formatting uses two uppercase hexadecimal digits
-  per byte and preserves leading zeroes, so main `0x00` plus sub `0x0D` is
-  displayed as `D000D`.
+  `[0x00000,0x40000)` and DP2 is `[0x40000,0x80000)`. Each bank is an immutable
+  DP view and reuses the same IC-owned three-byte CMI Reg16h-18h layout. For
+  this family the in-view triple is `[0x401A,0x401D)`, producing container
+  ranges `[0x401A,0x401D)` and `[0x4401A,0x4401D)`. Reg17h is DP major;
+  Reg18h high nibble is DP minor; Reg16h and Reg18h low nibble retain Jira.
+  Leading zeroes remain explicit, so major `0x00` and minor `0x0D` display as
+  `D000D`. The legacy AB snapshot's `0x67/0x68` reader remains output-naming
+  compatibility evidence and is not the cross-workflow Display contract.
 - TPA and TPB are separate exact 256 KiB inputs for this fixed plan. They may
   be the same file or different files and may carry equal or different TP
   versions. Each selected TP BIN is inspected independently using the
@@ -80,16 +83,18 @@ Input selection reports a non-modal warning when a fixed-size artifact is too
 short or too long, but Build still rejects the size mismatch because this plan
 has no declared padding or truncation authority. A missing or unreadable
 version reports `Unknown` with a non-modal warning and does not select or
-reject the route. Version metadata is used for human confirmation, report
-traceability, and output naming only.
+reject the route. CMI metadata is used for human confirmation and report
+traceability; any output-naming migration is reviewed independently.
 
-Application owns a typed AB input-metadata projection. Presentation receives
-four explicit values and never calculates offsets or scans firmware bytes:
+Family/profile data owns the CMI layout and typed topology selector. Application
+selects an immutable DP view for each bank and exposes typed metadata through
+Bootstrap. Presentation receives four explicit values, never accepts a raw
+offset, and never scans firmware bytes:
 
 ```text
 DP_AB
-  DP1  [0x00000,0x40000)  Dxxxx
-  DP2  [0x40000,0x80000)  Dxxxx
+  DP1  [0x00000,0x40000)  Dxxxx · AUTO_PRJ-n
+  DP2  [0x40000,0x80000)  Dxxxx · AUTO_PRJ-n
 TPA                           Txx
 TPB                           Txx
 ```
@@ -163,6 +168,9 @@ Each slice is an independent commit/test/review boundary.
 - verify independent DP1/DP2 and TPA/TPB version parsing, mixed-version display,
   explicit `Unknown` warnings, and prove version values cannot select or reject
   the perfect-family production route;
+- prove Merge, DP Replace, preserved-base inspection, and AB bank views for one
+  IC share the same CMI layout/decoder; topology selects only a declared offset
+  variant and Presentation never supplies an offset;
 - verify processor identity, exact argv order, declared read/write views,
   independent staged diffs, and rejection outside allowed ranges;
 - verify source immutability, zero output authority on failure, atomic commit,
