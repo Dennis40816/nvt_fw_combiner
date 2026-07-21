@@ -483,7 +483,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         V2CompositionPlanCompileResult compilation = BuiltInV2BundleRegistry.All[
             "nt51926-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
                 "nt51926-ctrlram-replace-fw141-runtime-cascade",
-                "0.1.0",
+                "0.5.0",
                 "NT51926",
                 ExperienceIds.CtrlRamReplace,
                 new TopologySelection(

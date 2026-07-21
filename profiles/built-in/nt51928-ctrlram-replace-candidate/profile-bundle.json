@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51928-ctrlram-replace-candidate",
-  "bundleVersion": "0.9.9-candidate.1",
+  "bundleVersion": "0.9.12-candidate.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "544b7d6cae646cacc26554b08d4fc8e41d6455f4a70b090e538a56aef6c3eb2d",
+  "contentHash": "6e3b7a3c4f509b051773933da7b3221869f34ef7ae50772509baab393254706f",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,14 +25,14 @@
       "kind": "firmware-family",
       "path": "families/nt51928-ctrlram-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "f21816e2111c616b8ca9a98e81ca82251d8fb822214299383207bef799abb59e"
+      "contentHash": "b8e828ce07c05feaab1f9dfb51e6df567cf9b4015febf44d06e3e7d737bafc00"
     },
     {
       "entryId": "nt51928-ctrlram-replace-fw132-twochip-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51928-ctrlram-replace-fw132-twochip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "7421ff89743e351b8169e179972d62ffcf1215a2590c085eb207a63ff1b4755b"
+      "contentHash": "2d5c89f44c3b527744234f1573fe2a87f6a03f9ca947566b95189266d3d5b796"
     }
   ]
 }

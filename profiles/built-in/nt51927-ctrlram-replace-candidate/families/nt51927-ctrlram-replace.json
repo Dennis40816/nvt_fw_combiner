@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51927-ctrlram-replace",
-  "familyVersion": "0.4.0",
+  "familyVersion": "0.5.0",
   "members": [
     {
       "memberId": "NT51917",
@@ -103,7 +103,16 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 640, "length": 91520 },
+          "range": { "start": 640, "length": 89472 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-source",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "firmware-config",
+          "range": { "start": 90112, "length": 2048 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -291,7 +300,16 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 640, "length": 91520 },
+          "range": { "start": 640, "length": 89472 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-source",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "firmware-config",
+          "range": { "start": 90112, "length": 2048 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -605,7 +623,16 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 688, "length": 91472 },
+          "range": { "start": 688, "length": 89424 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-source",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "firmware-config",
+          "range": { "start": 90112, "length": 2048 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },

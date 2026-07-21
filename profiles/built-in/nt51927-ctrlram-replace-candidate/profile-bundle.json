@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51927-ctrlram-replace-candidate",
-  "bundleVersion": "0.9.9-candidate.4",
+  "bundleVersion": "0.9.12-candidate.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "948e1bdba09098b48fae14810dca31e29d3a4f3fa7974f3eddb39d8df879e5f8",
+  "contentHash": "36b7258c3b660156a4b920726c9d8d9b83083abf8975c3a1ba4c6516abfe01d0",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,28 +25,28 @@
       "kind": "firmware-family",
       "path": "families/nt51927-ctrlram-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "63b91660fbeaf68f70d210141d41f61f878430fc3b9ba80bc342c96b531bcf52"
+      "contentHash": "ba4637423cf8bde5524468721e980ede9cf0d1f4fa5ff3ac142e7ea75ea3ee0d"
     },
     {
       "entryId": "nt51927-ctrlram-replace-fw141-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51927-ctrlram-replace-fw141-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "b000d495e1c8e54a825d9f8a5dcb4b5bc2ddc8ef13d0d501fb8044d0a6b4b276"
+      "contentHash": "97260b8d168b9bcc6e11e83a2151a2640df98341d774623f04416a00cd81c3f3"
     },
     {
       "entryId": "nt51927-ctrlram-replace-fw132-twochip-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51927-ctrlram-replace-fw132-twochip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "9aed93c89cff2a2c6401a7432781e8d369592f96c454d41566cc47952ca04fcb"
+      "contentHash": "b743254846adc010925f460b52aed299466cec0e0b91c7fbc3dae46842a677c1"
     },
     {
       "entryId": "nt51927-ctrlram-replace-fw140-threechip-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51927-ctrlram-replace-fw140-threechip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "301c55cb3bbbb8dba5a92ed6c85480e0eddbc19c3e1777f1d2f88b3edef98022"
+      "contentHash": "2b81d9ed1f8e8dc17167e53a42893529b307196844a4879af10a478582a0ba3a"
     }
   ]
 }

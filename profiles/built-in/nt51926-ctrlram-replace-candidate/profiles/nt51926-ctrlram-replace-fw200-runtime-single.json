@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51926-ctrlram-replace-fw200-runtime-single",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -34,6 +34,7 @@
     ],
     "requiredRegionIds": [
       "flash-image",
+      "fw-config-source",
       "normal-ctrlram",
       "mp-ctrlram",
       "vn-ctrlram-fw200",

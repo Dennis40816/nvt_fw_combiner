@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51951-ctrlram-replace",
-  "familyVersion": "0.1.0",
+  "familyVersion": "0.2.0",
   "members": [
     {
       "memberId": "NT51951",
@@ -63,7 +63,25 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 41268, "length": 101068 },
+          "range": { "start": 41268, "length": 98508 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-source",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "firmware-config",
+          "range": { "start": 139776, "length": 124 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-fwconfig-to-nf",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 139900, "length": 2436 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },

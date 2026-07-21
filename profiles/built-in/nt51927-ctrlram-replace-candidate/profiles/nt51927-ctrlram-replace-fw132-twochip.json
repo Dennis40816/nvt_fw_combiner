@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51927-ctrlram-replace-fw132-twochip",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -26,11 +26,12 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51927-ctrlram-replace",
-    "familyVersion": "0.4.0",
-    "familyContentHash": "63b91660fbeaf68f70d210141d41f61f878430fc3b9ba80bc342c96b531bcf52",
+    "familyVersion": "0.5.0",
+    "familyContentHash": "ba4637423cf8bde5524468721e980ede9cf0d1f4fa5ff3ac142e7ea75ea3ee0d",
     "mapIds": [ "nt51927-ctrlram-fw132-twochip-full-flash" ],
     "requiredRegionIds": [
       "flash-image",
+      "fw-config-source",
       "header-crc-023c",
       "header-crc-024c",
       "header-crc-026c",
