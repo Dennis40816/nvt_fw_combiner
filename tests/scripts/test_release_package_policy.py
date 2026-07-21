@@ -47,7 +47,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
         smoke_script = SMOKE_SCRIPT.read_text(encoding="utf-8")
 
-        restore_index = package_script.index("& $DotNet restore $AppProject -r win-x64")
+        restore_index = package_script.index(
+            "& $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true"
+        )
         clean_index = package_script.index(
             "& $DotNet clean $AppProject -c Release -r win-x64"
         )
@@ -97,6 +99,11 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self,
     ) -> None:
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        publish_script = package_script[
+            package_script.index(
+                "& $DotNet publish $AppProject -c Release -r win-x64"
+            ) : package_script.index("$PublishExitCode = $LASTEXITCODE")
+        ]
 
         expected_publish_properties = (
             "-p:PublishSingleFile=true",
@@ -107,10 +114,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "-p:IncludeNativeLibrariesForSelfExtract=true",
         )
         for publish_property in expected_publish_properties:
-            self.assertEqual(1, package_script.count(publish_property))
+            self.assertEqual(1, publish_script.count(publish_property))
 
         property_positions = tuple(
-            package_script.index(publish_property)
+            publish_script.index(publish_property)
             for publish_property in expected_publish_properties
         )
         self.assertEqual(tuple(sorted(property_positions)), property_positions)
