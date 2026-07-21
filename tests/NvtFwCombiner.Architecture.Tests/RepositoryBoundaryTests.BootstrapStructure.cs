@@ -271,8 +271,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("PatchScalar", ctrlRamV2, StringComparison.Ordinal);
         Assert.Contains("CtrlRamV2RouteRegistry.TryResolve", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("context.CommandPlan.Selector.Token", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("context.CommandPlan.Selector.MatchesReportedChipCount", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("context.CommandPlan.Selector.MinimumCount", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("context.CommandPlan.Selector.ResolveTopologyCount", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains(
+            "ToIcNumberSelection(context.CommandPlan.Selector.Token)",
+            ctrlRamRuntime,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("CommonFwVersion", ctrlRamRoutes, StringComparison.Ordinal);
         Assert.DoesNotContain("ProjectId", ctrlRamRoutes, StringComparison.Ordinal);
         Assert.DoesNotContain("ChipNumber", ctrlRamRoutes, StringComparison.Ordinal);
