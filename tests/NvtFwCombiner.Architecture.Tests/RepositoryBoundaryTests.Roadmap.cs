@@ -14,8 +14,23 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Pointer, touch, Space, and Enter", roadmap, StringComparison.Ordinal);
         Assert.Contains("Reduced-motion mode", roadmap, StringComparison.Ordinal);
         Assert.Contains("`v0.9.12` | CtrlRAM routing and interaction stabilization", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.13` | Shared Hex viewport and Button feedback", tags, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.13` | Shared Hex viewport, Button feedback, and AB re-admission", tags, StringComparison.Ordinal);
         Assert.DoesNotContain("Shared Hex viewport and Changes redesign work remain deferred to `0.9.12`", tags, StringComparison.Ordinal);
+    }
+
+    /// <summary>Locks AB execution out of v0.9.12 and assigns typed re-admission to the separately gated v0.9.13 track.</summary>
+    [Fact]
+    public void V0913OwnsAbCodeProductionReadmissionWithoutV0912Exposure()
+    {
+        string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
+        string decision = ReadText("docs/adr/0032-ab-code-production-readmission.md");
+        string specification = ReadText("SPEC.md");
+
+        Assert.Contains("### AB Code architecture re-admission owner amendment", roadmap, StringComparison.Ordinal);
+        Assert.Contains("All AB Code execution remains unchanged, hidden, and", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Existing AB candidates remain hidden and fail closed", decision, StringComparison.Ordinal);
+        Assert.Contains("PID, filenames, complete firmware SHA-256 values", decision, StringComparison.Ordinal);
+        Assert.Contains("Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.12`", specification, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies the owner-priority roadmap schedules normal Replace before workflow convergence and deferred AB work.</summary>
