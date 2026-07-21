@@ -128,15 +128,19 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     [Fact]
     public void Nt51930CountsTwoThroughThirteenUseSameCascadeCommands()
     {
+        var firstSelection = new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]);
+        var lastSelection = new IcNumberSelection(IcNumberInputMode.NumericSelector, ["13"]);
         LegacyCombinerPostbuildCommandPlan first = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
+            firstSelection);
         LegacyCombinerPostbuildCommandPlan last = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["13"]));
+            lastSelection);
 
         Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, first.Branch);
         Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, last.Branch);
+        Assert.Equal(2, first.Selector.ResolveTopologyCount(firstSelection, reportedChipCount: 0));
+        Assert.Equal(13, last.Selector.ResolveTopologyCount(lastSelection, reportedChipCount: 0));
         Assert.Equal(
             first.Commands.Select(static command => command.CommandId),
             last.Commands.Select(static command => command.CommandId));

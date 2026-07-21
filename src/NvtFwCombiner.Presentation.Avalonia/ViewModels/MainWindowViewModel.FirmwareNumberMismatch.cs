@@ -7,6 +7,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     private string? _firmwareNumberMismatchToken;
+    private string? _firmwareNumberMismatchSlotId;
+    private string? _firmwareNumberMismatchPath;
 
     /// <summary>True while readable FWConfig chip count suggests another Number selection.</summary>
     [ObservableProperty]
@@ -34,8 +36,7 @@ public sealed partial class MainWindowViewModel
         FirmwareSlotViewModel slot,
         WorkbenchFirmwareContextSuggestion? suggestion)
     {
-        if (IsFirmwareNumberMismatchModalOpen ||
-            suggestion is null ||
+        if (suggestion is null ||
             !slot.HasFile ||
             string.IsNullOrWhiteSpace(slot.FilePath) ||
             string.Equals(SelectedNumber, suggestion.NumberToken, StringComparison.Ordinal))
@@ -43,7 +44,18 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        if (IsFirmwareNumberMismatchModalOpen &&
+            string.Equals(_firmwareNumberMismatchSlotId, slot.SlotId, StringComparison.Ordinal) &&
+            string.Equals(_firmwareNumberMismatchPath, slot.FilePath, StringComparison.Ordinal) &&
+            string.Equals(_firmwareNumberMismatchToken, suggestion.NumberToken, StringComparison.Ordinal) &&
+            FirmwareNumberMismatchDetectedChipCount == suggestion.ChipNumber)
+        {
+            return;
+        }
+
         _firmwareNumberMismatchToken = suggestion.NumberToken;
+        _firmwareNumberMismatchSlotId = slot.SlotId;
+        _firmwareNumberMismatchPath = slot.FilePath;
         FirmwareNumberMismatchFileName = Path.GetFileName(slot.FilePath);
         FirmwareNumberMismatchCurrentNumber = GetNumberDisplayLabel(SelectedNumber);
         FirmwareNumberMismatchDetectedNumber = GetNumberDisplayLabel(suggestion.NumberToken);
@@ -97,6 +109,8 @@ public sealed partial class MainWindowViewModel
         }
 
         _firmwareNumberMismatchToken = null;
+        _firmwareNumberMismatchSlotId = null;
+        _firmwareNumberMismatchPath = null;
     }
 
     private string GetNumberDisplayLabel(string numberToken)

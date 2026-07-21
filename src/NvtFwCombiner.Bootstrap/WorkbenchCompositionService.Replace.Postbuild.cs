@@ -25,11 +25,11 @@ public static partial class WorkbenchCompositionService
         }
 
         string? commonFwVersion = null;
-        if (profiles.Count > 1 &&
-            !(baseImage is null
-                ? TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion)
-                : TryReadFirmwareConfigBackupMetadata(icId, baseImage, out FirmwareConfigMetadata metadata) &&
-                    (commonFwVersion = metadata.CommonFwVersion) is not null))
+        bool hasCommonFwVersion = baseImage is null
+            ? TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion)
+            : TryReadFirmwareConfigBackupMetadata(icId, baseImage, out FirmwareConfigMetadata metadata) &&
+                (commonFwVersion = metadata.CommonFwVersion) is not null;
+        if (profiles.Count > 1 && !hasCommonFwVersion)
         {
             postbuildProfile = null;
             issue = new CompositionIssue(

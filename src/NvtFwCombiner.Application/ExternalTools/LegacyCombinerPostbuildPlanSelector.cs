@@ -98,6 +98,26 @@ public sealed class LegacyCombinerPostbuildPlanSelector
             : count >= MinimumCount && count <= MaximumCount;
     }
 
+    /// <summary>Resolves the positive topology count represented by this accepted run selection.</summary>
+    public int ResolveTopologyCount(IcNumberSelection selection, int? reportedChipCount)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+        if (!Matches(selection))
+        {
+            throw new ArgumentException("IC number selection does not match this postbuild plan selector.", nameof(selection));
+        }
+
+        if (reportedChipCount is > 0 && MatchesReportedChipCount(reportedChipCount.Value))
+        {
+            return reportedChipCount.Value;
+        }
+
+        string token = selection.Parts[^1].Trim();
+        return TryParsePositiveCount(token, out int requestedCount)
+            ? requestedCount
+            : MinimumCount;
+    }
+
     private static void ValidateShape(
         LegacyCombinerPostbuildPlanSelectorKind kind,
         LegacyCombinerPostbuildBranch branch,

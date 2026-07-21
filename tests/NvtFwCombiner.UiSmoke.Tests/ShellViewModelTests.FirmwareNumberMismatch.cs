@@ -95,6 +95,75 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(basePath, viewModel.ReplaceBaseSlot.FilePath);
     }
 
+    /// <summary>A newly selected firmware replaces every visible field and action target of an open Number prompt.</summary>
+    [Fact]
+    public async Task FirmwareNumberMismatchTracksLatestSelectedFirmware()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-number-mismatch-latest");
+        string firstPath = workspace.Write("first.bin", [0x01]);
+        string secondPath = workspace.Write("second.bin", [0x02]);
+        using var firstInspectionStarted = new ManualResetEventSlim();
+        using var releaseFirstInspection = new ManualResetEventSlim();
+        int batchCount = 0;
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        {
+            if (Interlocked.Increment(ref batchCount) == 1)
+            {
+                firstInspectionStarted.Set();
+                releaseFirstInspection.Wait(TestContext.Current.CancellationToken);
+            }
+
+            return
+            [
+                .. inputs.Select(input =>
+                {
+                    bool first = string.Equals(input.Path, firstPath, StringComparison.Ordinal);
+                    byte chipCount = first ? (byte)2 : (byte)3;
+                    return new WorkbenchFirmwareInspectionResult(
+                        input.InspectionId,
+                        new WorkbenchFirmwareInspection(
+                            "NT51927",
+                            null,
+                            null,
+                            null,
+                            new WorkbenchFirmwareContextSuggestion(
+                                "NT51927",
+                                chipCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                                chipCount,
+                                "1.0.0",
+                                0x5192),
+                            null));
+                }),
+            ];
+        });
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+
+        Task firstSelection = viewModel.SetSlotFileAsync(
+            "replace-base",
+            firstPath,
+            TestContext.Current.CancellationToken);
+        try
+        {
+            Assert.True(firstInspectionStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+            await viewModel.SetSlotFileAsync("merge-tp", secondPath, TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            releaseFirstInspection.Set();
+        }
+
+        await firstSelection;
+
+        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal("second.bin", viewModel.FirmwareNumberMismatchFileName);
+        Assert.Equal("3 IC", viewModel.FirmwareNumberMismatchDetectedNumber);
+        Assert.Equal((byte)3, viewModel.FirmwareNumberMismatchDetectedChipCount);
+        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
+        Assert.Equal("3", viewModel.SelectedNumber);
+    }
+
     /// <summary>Cancel preserves the UI choice but Build still reaches the backend mismatch gate and publishes no output.</summary>
     [Fact]
     public async Task FirmwareNumberMismatchCancelThenBuildRemainsFailClosed()
