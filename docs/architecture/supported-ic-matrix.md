@@ -2,6 +2,12 @@
 
 This is a planning inventory, not a support claim. A row becomes supported only after profile validation, integrity disposition, golden regression, and owner sign-off. `Unknown` never means `None`.
 
+v0.9.12 admission correction: [ADR 0030](../adr/0030-production-firmware-admission-without-golden-hashes.md)
+supersedes the older `reference-SHA`, `full-reference-SHA`, and "SHA as build discriminator" wording
+retained in evidence-history cells below. Golden input/output hashes continue to lock regression
+fixtures and parity claims, but production firmware inputs are admitted by typed profile facts and
+must not be accepted or rejected by comparison with a golden whole-file hash.
+
 Current owner priority as of 2026-07-18:
 
 - focus on normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows;

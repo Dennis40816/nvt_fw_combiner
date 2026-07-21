@@ -211,19 +211,20 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         Assert.Equal(beforeSha256, Hash(File.ReadAllBytes(referencePath)));
     }
 
-    /// <summary>Proves matching metadata cannot admit a different, unreviewed full reference image.</summary>
+    /// <summary>Proves production admission uses firmware facts rather than a golden-only whole-file hash.</summary>
     [Fact]
-    public async Task ExactRouteRejectsUnreviewedReferenceHashAsync()
+    public async Task ExactRouteAcceptsDifferentReferenceHashWhenFirmwareFactsStillMatchAsync()
     {
         OwnerCase evidence = ReadOwnerCase();
-        using var workspace = TempWorkspace.Create("nfc-nt51930-fw130-negative-reference");
+        using var workspace = TempWorkspace.Create("nfc-nt51930-fw130-production-reference");
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = [.. evidence.Expected.Bytes];
         reference[0x100] ^= 0x01;
         File.WriteAllBytes(referencePath, reference);
         string beforeSha256 = Hash(reference);
+        Assert.NotEqual(OwnerExpectedSha256, beforeSha256);
 
-        string outputPath = workspace.PathFor("unsupported-output.bin");
+        string outputPath = workspace.PathFor("output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51930",
             "cascade",
@@ -234,7 +235,12 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        byte[] output = File.ReadAllBytes(outputPath);
+        Assert.Equal(reference[0x100], output[0x100]);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        AssertReportIdentity(report.RootElement, "nt51930-ctrlram-replace-fw130-cascade3");
         Assert.Equal(beforeSha256, Hash(File.ReadAllBytes(referencePath)));
     }
 

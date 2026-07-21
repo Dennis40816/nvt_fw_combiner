@@ -14,7 +14,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("FirmwareArtifactPayload referencePayload", v2, StringComparison.Ordinal);
         Assert.DoesNotContain("File.ReadAllBytes(context.BasePath!)", v2, StringComparison.Ordinal);
         Assert.Contains("byte[] referenceBytes = context.BaseBytes", runner, StringComparison.Ordinal);
-        Assert.Contains("referencePayload.Sha256", runner, StringComparison.Ordinal);
+        Assert.DoesNotContain("requiredBaseSha256", runner, StringComparison.Ordinal);
+        Assert.DoesNotContain("referencePayload.Sha256", runner, StringComparison.Ordinal);
         Assert.Contains("virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)", runner, StringComparison.Ordinal);
         Assert.Contains("[context.BasePath!] = referenceBytes", runner, StringComparison.Ordinal);
     }

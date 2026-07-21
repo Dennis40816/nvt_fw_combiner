@@ -3,7 +3,13 @@
 Status: living investigation report, not a production support claim.
 Owner input gate: closed by the final 2026-07-18 intake; remaining parity,
 tool, route, and R2/R3 review gates are agent-owned.
-Last updated: 2026-07-18.
+Last updated: 2026-07-21.
+
+v0.9.12 admission correction: [ADR 0030](../adr/0030-production-firmware-admission-without-golden-hashes.md)
+supersedes every `reference-SHA`, `full-reference-SHA`, or "exact reference SHA" runtime-admission
+statement retained in the historical experiment rows below. Those hashes remain exact golden/parity
+evidence only. Production routes select declared IC, processor, Common FW, topology, project,
+capacity, structural, and range facts; a different complete firmware hash is not by itself a blocker.
 
 This file is the current single place to update CtrlRAM Replace experiment results and conclusions until the workflow is formally accepted. Lower-level notes may keep raw details, but status, blockers, and final interpretation should be reflected here.
 
@@ -18,7 +24,7 @@ This report tracks CtrlRAM Replace only:
 
 It does not establish Standard Merge, DP Replace, AB, or General Replace runtime
 support or parity. Standard Merge results cited below are used only to prove the
-exact CtrlRAM reference-base provenance; AB hashes are cited only to keep those
+CtrlRAM reference-base provenance for golden regression; AB hashes are cited only to keep those
 fixtures separate from non-AB CtrlRAM evidence.
 
 ## Current Summary
