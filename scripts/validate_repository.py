@@ -164,7 +164,9 @@ EXPECTED_SKILLS = {
     "ui-experience-change",
     "composition-experience-change",
     "dotnet-bootstrap",
-    "release-readiness", "polytail",
+    "release-readiness",
+    "polytail",
+    "supervised-branch-development",
 }
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
