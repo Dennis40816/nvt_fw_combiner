@@ -83,43 +83,6 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsFirmwareInspectionLoading);
     }
 
-    /// <summary>Verified context and CtrlRAM display reuse the one worker snapshot without rereading the base.</summary>
-    [Fact]
-    public async Task CtrlRamSlotInspectionReprojectsVerifiedNumberFromOneRead()
-    {
-        using var golden = StandardMergeGoldenManifest.Load();
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-context-preservation");
-        string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
-        int reads = 0;
-        MainWindowViewModel viewModel = CreateInspectionViewModel((icId, path, tpPath, request) =>
-        {
-            reads++;
-            return WorkbenchCompositionService.InspectFirmware(icId, path, tpPath, request);
-        });
-        viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
-        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
-        FirmwareSlotViewModel replacement = viewModel.ReplaceSlots.First(slot =>
-            !ReferenceEquals(slot, viewModel.ReplaceBaseSlot) &&
-            slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
-        string replacementPath = workspace.Write("vn-before-base.bin", [0x01]);
-        await viewModel.SetSlotFileAsync(
-            replacement.SlotId,
-            replacementPath,
-            TestContext.Current.CancellationToken);
-        reads = 0;
-
-        await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
-
-        Assert.Equal(1, reads);
-        Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.SelectedNumber);
-        Assert.NotEmpty(viewModel.CtrlRamRegions);
-        Assert.Contains(
-            viewModel.ReplaceSlots,
-            slot => slot.SlotId == replacement.SlotId && slot.FilePath == replacementPath);
-        Assert.Equal("Context updated", viewModel.ShellToastTitle);
-    }
-
     /// <summary>UI projections keep one selected snapshot until explicit reselection; Build remains authoritative.</summary>
     [Fact]
     public async Task CtrlRamCachedDisplayKeepsSelectedSnapshotUntilReselection()
@@ -212,7 +175,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(replaceCoverage, viewModel.ReplaceCoverageSegments.Select(static segment => segment.RangeLabel));
     }
 
-    /// <summary>A TP-derived Number update cannot replace profile-selected CtrlRAM slots with generic slots.</summary>
+    /// <summary>A confirmed TP-derived Number update cannot replace profile-selected CtrlRAM slots with generic slots.</summary>
     [Fact]
     public async Task MergeTpContextKeepsProfileSelectedCtrlRamSlots()
     {
@@ -244,6 +207,10 @@ public sealed partial class ShellViewModelTests
             slot => slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
 
         await viewModel.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
+
+        Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.SelectedNumber);
+        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
+        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
 
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
         Assert.Contains(
@@ -344,7 +311,7 @@ public sealed partial class ShellViewModelTests
                     null,
                     null,
                     null,
-                    new WorkbenchFirmwareContextSuggestion("NT51927", "cascade", 2, "1.4.1", 0x5102),
+                    new WorkbenchFirmwareContextSuggestion("NT51927", "2", 2, "1.4.1", 0x5102),
                     null))),
         ]);
         viewModel.SelectedIc = "NT51926";
@@ -358,7 +325,13 @@ public sealed partial class ShellViewModelTests
         await viewModel.FirmwareInspectionRefreshTask;
 
         Assert.Equal("NT51927", viewModel.SelectedIc);
-        Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.SelectedNumber);
+        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
+        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
+
+        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
+
+        Assert.Equal("2", viewModel.SelectedNumber);
+        Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
         Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
         Assert.Equal("Context updated", viewModel.ShellToastTitle);
     }
@@ -407,7 +380,7 @@ public sealed partial class ShellViewModelTests
 
         MainWindowViewModel targetContext = ShellViewModelFactory.Create();
         targetContext.SelectedIc = "NT51927";
-        targetContext.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
+        targetContext.SelectedNumber = "2";
         OpenReplace(targetContext, WorkbenchReplaceModes.CtrlRam);
         HashSet<string> targetSlotIds =
         [
@@ -442,18 +415,18 @@ public sealed partial class ShellViewModelTests
     public async Task AcceptedIcMismatchExplainsUnavailableReplacementSlot()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-accepted-missing-replacement");
-        string replacementPath = workspace.Write("NT51931_replacement.bin", [0x01]);
+        string replacementPath = workspace.Write("NT51929_replacement.bin", [0x01]);
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
         [
             .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
                 input.InspectionId,
-                new WorkbenchFirmwareInspection("NT51931", null, null, null, null, null))),
+                new WorkbenchFirmwareInspection("NT51929", null, null, null, null, null))),
         ]);
         viewModel.SelectedIc = "NT51926";
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
-        FirmwareSlotViewModel replacement = viewModel.ReplaceSlots.First(slot =>
-            !ReferenceEquals(slot, viewModel.ReplaceBaseSlot));
+        FirmwareSlotViewModel replacement = viewModel.ReplaceSlots.Single(slot =>
+            slot.SlotId == "replace-ctrlram-mp");
 
         await viewModel.SetSlotFileAsync(
             replacement.SlotId,
@@ -464,11 +437,11 @@ public sealed partial class ShellViewModelTests
         viewModel.AcceptFirmwareIcMismatchCommand.Execute(null);
         await viewModel.FirmwareInspectionRefreshTask;
 
-        Assert.Equal("NT51931", viewModel.SelectedIc);
+        Assert.Equal("NT51929", viewModel.SelectedIc);
         Assert.DoesNotContain(
             viewModel.ReplaceSlots,
             slot => string.Equals(slot.FilePath, replacementPath, StringComparison.Ordinal));
-        Assert.Contains("NT51931_replacement.bin", viewModel.ReportToastText, StringComparison.Ordinal);
+        Assert.Contains("NT51929_replacement.bin", viewModel.ReportToastText, StringComparison.Ordinal);
         Assert.Contains("same safe input slot", viewModel.ReportToastText, StringComparison.Ordinal);
     }
 

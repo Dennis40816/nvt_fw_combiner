@@ -109,6 +109,8 @@ public sealed partial class MainWindowViewModel
         CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);
         AcceptFirmwareIcMismatchCommand = new RelayCommand(AcceptFirmwareIcMismatch);
         DismissFirmwareIcMismatchCommand = new RelayCommand(DismissFirmwareIcMismatch);
+        AcceptFirmwareNumberMismatchCommand = new RelayCommand(AcceptFirmwareNumberMismatch);
+        DismissFirmwareNumberMismatchCommand = new RelayCommand(DismissFirmwareNumberMismatch);
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
         AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
         PreviewMergeCommand = new AsyncRelayCommand(

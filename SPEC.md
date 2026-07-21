@@ -1,6 +1,6 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.11 reconstructed stabilization release candidate`
+> 文件狀態：`0.9.11 released baseline with 0.9.12 development scope`
 > 文件版本：`0.9.11`
 > 基準日期：`2026-07-21`
 > 產品名稱：`NVT FW Combiner`
@@ -30,7 +30,13 @@
 
 ## 0.1 Current owner priority
 
-As of 2026-07-21, `0.9.11` is a feature-frozen stabilization candidate reconstructed from the exact final `v0.9.10` release. It preserves the final output-publication, immutable-input, CtrlRAM postbuild, report-delivery, firmware-identity, Build-completion, package-authority, stale-search, and Changes behavior from that predecessor. It adds profile-driven DP/LDC authoring coverage, measured first-frame/background startup work, compressed composite ReadyToRun packaging, persistent IC Number choice behavior, topology-aware CtrlRAM grouping, spatial padding ownership, and a fixed bottom-right Build rail. Firmware ranges, command semantics, golden verification, runtime availability, and product-support promotion remain separate evidence-gated concerns; authoring availability does not infer or promote unsupported IC shapes.
+As of 2026-07-21, `0.9.12` is the CtrlRAM routing and interaction stabilization candidate based on the released `v0.9.11`. Production admission uses requested IC, an effective Common-FW profile interval only where multiple owner-declared profiles exist, and a typed Number/build-plan selector. Golden PID/version/hash/filename/count facts remain report and regression evidence, not route gates. All 31 cataloged runtime interval/plan pairs are V2-routed support-neutrally; direct output evidence, independent R3 review, and firmware-owner support promotion remain separate. The release also adds actionable Build failure feedback, IC/Number mismatch confirmation, navigation-clear confirmation, selected-input completion state, and the vertical bottom-right action rail. Shared Hex viewport/Changes redesign and global Button pressed feedback remain deferred to `v0.9.13`.
+
+- `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
+- NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.
+- NT51950 and NT51951 expose single and generic-cascade CtrlRAM with identical TP offsets and DiffDLM `[0x33200,0x34600)`; their 256/512 KiB container capacities remain distinct, LDC is packaged inside DP, and AB stays separate.
+- Common FW starts at `1.0.0`. NT51926 alone has two current runtime intervals; one-profile ICs do not block on missing or future informational version values. PID never selects a route.
+- NT51930 exposes only single and `2–13`; NT51927/NT51928 expose only single/2/3. A decoded FWConfig chip count cross-checks the chosen plan and may require confirmation, but never silently chooses family or creates a plan.
 
 - `v0.9.10` (`b0266f312a67d644475731153b1af82f7eadcc95`) is the only accepted predecessor for `0.9.11`. The premature `0.9.11.10` lineage is recovery evidence only and cannot be merged or released as-is.
 - The measured startup lifecycle opens a meaningful Home screen first, warms immutable catalog projections on a worker thread, then materializes common page visual trees at background dispatcher priority. Warm-up cannot navigate, read user firmware, mutate a profile, launch an external processor, select support, or acquire Build authority.
@@ -643,7 +649,7 @@ through the same profile/compiler/engine and report `saved-rule` provenance.
   approved groups。
 - General：explicit mapping inside profile-approved envelope。
 
-Current Replace implementation priority is DP Replace and CtrlRAM Replace workflows. CtrlRAM postbuild command core is implemented from IC FlashMap postbuild evidence for NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951, including NT51917/NT51927/NT51928 single/2IC/3IC branches. NT51919 and NT51929 follow the NT51932 reference flow; NT51951 follows the NT51950 reference flow. Remaining production work is profile wiring, UI/report/history integration, and golden replace outputs.
+Current Replace implementation priority is DP Replace and CtrlRAM Replace workflows. CtrlRAM postbuild command core, trusted V2 profile wiring, and UI/report/history integration are implemented for all 31 modeled runtime interval/plan pairs across NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951. NT51919 and NT51929 follow the NT51932 reference flow; NT51928 non-NB follows NT51927 TP/CtrlRAM single/2IC/3IC authority while retaining a distinct DP/LDC image; NT51951 follows NT51950 TP authority with a distinct container capacity. Remaining release gates are per-plan direct expected-output evidence where recorded, independent R3 review, firmware-owner support promotion, canonical verification, and CI; they do not reintroduce golden identity as production admission.
 
 ### 10.7 Dev0 C# implementation milestone
 

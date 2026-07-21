@@ -149,14 +149,12 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("unknown option '--dp'", result.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>NT51931 Replace modes without an approved contract report the catalog gate before input parsing.</summary>
-    [Theory]
-    [InlineData("ctrlram-replace")]
-    [InlineData("general-replace")]
-    public async Task Nt51931ReplaceCommandsReportNotSupported(string command)
+    /// <summary>NT51931 General Replace reports its catalog gate before input parsing.</summary>
+    [Fact]
+    public async Task Nt51931GeneralReplaceCommandReportsNotSupported()
     {
         CliRunResult result = await RunCliAsync([
-            command,
+            "general-replace",
             "preview",
             "--profile",
             "NT51931",

@@ -165,13 +165,12 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         Assert.DoesNotContain(diffNf, artifact => Hash(artifact.Bytes) == Hash(composite.Bytes));
     }
 
-    /// <summary>Proves wrong project, version, count, or selector shapes fail closed.</summary>
+    /// <summary>Bounded requested topology admits structurally valid bases regardless of display-only metadata.</summary>
     [Theory]
     [InlineData(WorkbenchIcNumberTokens.CascadeTwoToThirteen, 1, 3, 0, 3, 0xFFFF)]
     [InlineData(WorkbenchIcNumberTokens.CascadeTwoToThirteen, 1, 2, 0, 3, 0x110D)]
     [InlineData(WorkbenchIcNumberTokens.CascadeTwoToThirteen, 1, 3, 0, 2, 0x110D)]
-    [InlineData(WorkbenchIcNumberTokens.Cascade, 1, 3, 0, 3, 0x110D)]
-    public async Task ExactRouteRejectsUnreviewedFirmwareShapesAsync(
+    public async Task ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(
         string number,
         byte commonFwMajor,
         byte commonFwMinor,
@@ -196,7 +195,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         string beforeSha256 = Hash(reference);
         var processor = new PassThroughProcessor();
 
-        string outputPath = workspace.PathFor("unsupported-output.bin");
+        string outputPath = workspace.PathFor("metadata-variation-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51930",
             number,
@@ -207,13 +206,51 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
             processor,
             TestContext.Current.CancellationToken);
 
-        AssertFailedWithoutOutput(
-            result,
-            outputPath,
-            number == WorkbenchIcNumberTokens.Cascade
-                ? WorkbenchIssueCodes.ReplaceCtrlRamIcNumberUnsupported
-                : WorkbenchIssueCodes.ReplaceWorkflowNotSupported);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        using (var report = JsonDocument.Parse(result.ReportJson))
+        {
+            AssertReportIdentity(report.RootElement, "nt51930-ctrlram-replace-fw130-cascade3");
+        }
         Assert.Equal(beforeSha256, Hash(File.ReadAllBytes(referencePath)));
+    }
+
+    /// <summary>Proves NT51930 single routes through V2 without exposing cascade-only DiffDLM authority.</summary>
+    [Fact]
+    public async Task SinglePlanBuildsWithoutDiffDlmAuthorityAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51930-fw1x-single");
+        string referencePath = workspace.PathFor("reference.bin");
+        byte[] reference = [.. evidence.Expected.Bytes];
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
+        int backupStart = checked((int)metadata.StructureStart);
+        reference[backupStart + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        File.WriteAllBytes(referencePath, reference);
+        string referenceSha256 = Hash(reference);
+        Dictionary<string, string> slotPaths = CreateSlotPaths(evidence, referencePath);
+        Assert.True(slotPaths.Remove("replace-ctrlram-diff"));
+
+        string outputPath = workspace.PathFor("single-output.bin");
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51930",
+            WorkbenchIcNumberTokens.SingleChip,
+            slotPaths,
+            build: true,
+            outputPath,
+            firmwareVersionEdit: null,
+            new PassThroughProcessor(),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        AssertReportIdentity(report.RootElement, "nt51930-ctrlram-replace-fw1x-runtime-single");
+        JsonElement session = Assert.Single(ReadProcessorSessions(report.RootElement));
+        ByteRange[] allowedWrites = ReadRanges(session, "ProcessorAllowedWriteRanges");
+        Assert.DoesNotContain(allowedWrites, range => range.Overlaps(new ByteRange(DiffStart, DiffLength)));
+        Assert.Contains(allowedWrites, range => range == new ByteRange(HeaderCopyStart, HeaderCopyLength));
+        Assert.Equal(referenceSha256, Hash(File.ReadAllBytes(referencePath)));
     }
 
     /// <summary>Proves production admission uses firmware facts rather than a golden-only whole-file hash.</summary>
@@ -588,20 +625,6 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         }
 
         return (differenceCount, [.. ranges]);
-    }
-
-    private static void AssertFailedWithoutOutput(
-        WorkbenchRunResult result,
-        string outputPath,
-        string expectedIssueCode)
-    {
-        Assert.False(result.Succeeded, result.ReportJson);
-        Assert.False(File.Exists(outputPath));
-        using var report = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == expectedIssueCode);
-        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

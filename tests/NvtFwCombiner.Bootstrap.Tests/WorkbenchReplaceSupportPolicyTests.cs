@@ -5,16 +5,14 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Shared runtime and display gates for IC-specific Replace support policy.</summary>
 public sealed class WorkbenchReplaceSupportPolicyTests
 {
-    /// <summary>NT51931 Replace routes without an approved contract fail before input or processor planning.</summary>
-    [Theory]
-    [InlineData(WorkbenchReplaceModes.CtrlRam)]
-    [InlineData(WorkbenchReplaceModes.General)]
-    public async Task Nt51931ReplaceFailsClosedWithStableIssue(string replaceMode)
+    /// <summary>NT51931 General Replace remains closed before input or processor planning.</summary>
+    [Fact]
+    public async Task Nt51931GeneralReplaceFailsClosedWithStableIssue()
     {
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51931",
             "single",
-            replaceMode,
+            WorkbenchReplaceModes.General,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 [WorkbenchSlotIds.ReplaceBase] = "\0must-not-be-resolved.bin",
@@ -32,24 +30,39 @@ public sealed class WorkbenchReplaceSupportPolicyTests
         Assert.Empty(document.RootElement.GetProperty("Inputs").EnumerateArray());
     }
 
-    /// <summary>Unsupported NT51931 projections expose a blocked state instead of executable inputs.</summary>
-    [Theory]
-    [InlineData(WorkbenchReplaceModes.CtrlRam)]
-    [InlineData(WorkbenchReplaceModes.General)]
-    public void Nt51931ReplaceDisplayIsExplicitlyNotSupported(string replaceMode)
+    /// <summary>Unsupported NT51931 General Replace projections expose a blocked state.</summary>
+    [Fact]
+    public void Nt51931GeneralReplaceDisplayIsExplicitlyNotSupported()
     {
-        Assert.False(WorkbenchCompositionService.IsReplaceWorkflowSupported("NT51931", replaceMode));
-        Assert.Empty(WorkbenchCompositionService.GetReplaceInputSlots("NT51931", "single", replaceMode));
+        Assert.False(WorkbenchCompositionService.IsReplaceWorkflowSupported("NT51931", WorkbenchReplaceModes.General));
+        Assert.Empty(WorkbenchCompositionService.GetReplaceInputSlots("NT51931", "single", WorkbenchReplaceModes.General));
         WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
             "NT51931",
             "single",
-            replaceMode);
+            WorkbenchReplaceModes.General);
         Assert.Equal("Not available", display.RangeLabel);
         WorkbenchMemoryMapRow row = Assert.Single(display.MemoryMapRows);
         Assert.Equal("Blocked", row.ActionLabel);
         Assert.Equal("No target", row.AfterSource);
         Assert.Contains("Not available", row.Detail, StringComparison.Ordinal);
         Assert.Empty(display.CoverageSegments);
+    }
+
+    /// <summary>NT51931 CtrlRAM single is exposed through its trusted support-neutral V2 route.</summary>
+    [Fact]
+    public void Nt51931CtrlRamDisplayUsesExecutableCandidate()
+    {
+        Assert.True(WorkbenchCompositionService.IsReplaceWorkflowSupported("NT51931", WorkbenchReplaceModes.CtrlRam));
+        Assert.NotEmpty(WorkbenchCompositionService.GetReplaceInputSlots(
+            "NT51931",
+            "single",
+            WorkbenchReplaceModes.CtrlRam));
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+            "NT51931",
+            "single",
+            WorkbenchReplaceModes.CtrlRam);
+        Assert.NotEqual("Not available", display.RangeLabel);
+        Assert.NotEmpty(display.CoverageSegments);
     }
 
     /// <summary>The NT51931 gate does not remove established Replace exposure from other ICs.</summary>
@@ -71,7 +84,7 @@ public sealed class WorkbenchReplaceSupportPolicyTests
         WorkbenchWorkflowReadiness gated = WorkbenchCompositionService.GetReplaceWorkflowReadiness(
             "NT51932",
             WorkbenchReplaceModes.Dp);
-        WorkbenchWorkflowReadiness unsupported = WorkbenchCompositionService.GetReplaceWorkflowReadiness(
+        WorkbenchWorkflowReadiness ctrlRamCandidate = WorkbenchCompositionService.GetReplaceWorkflowReadiness(
             "NT51931",
             WorkbenchReplaceModes.CtrlRam);
 
@@ -80,9 +93,9 @@ public sealed class WorkbenchReplaceSupportPolicyTests
         Assert.True(gated.IsAvailable);
         Assert.Equal(WorkbenchWorkflowEvidenceStatus.EvidenceGated, gated.EvidenceStatus);
         Assert.Contains("does not ban authoring", gated.OpenCondition, StringComparison.Ordinal);
-        Assert.False(unsupported.IsAvailable);
-        Assert.Equal(WorkbenchWorkflowEvidenceStatus.NotAvailable, unsupported.EvidenceStatus);
-        Assert.Contains("reactivate", unsupported.OpenCondition, StringComparison.Ordinal);
+        Assert.True(ctrlRamCandidate.IsAvailable);
+        Assert.Equal(WorkbenchWorkflowEvidenceStatus.EvidenceGated, ctrlRamCandidate.EvidenceStatus);
+        Assert.Contains("does not ban authoring", ctrlRamCandidate.OpenCondition, StringComparison.Ordinal);
     }
 
     /// <summary>Workbench exposes Reply.md perfect/partial family facts without redefining firmware maps.</summary>

@@ -13,10 +13,18 @@ further supersedes exact PID/version/count route claims: family comes only from 
 runtime revisions use effective Common FW intervals, and Number selects an owner-provided build
 plan. A different hash, PID, filename, or informational version is not by itself a blocker.
 
-Implementation status: ADR 0031 is normative, but the current Workbench switch and several V2
-family predicates still encode exact golden metadata. Their migration is open v0.9.12 work. Any
-"exact route" wording retained in experiment/evidence rows below describes the fixture whose parity
-was measured; it is not an accepted production-admission rule.
+Implementation status: the Workbench route registry now uses typed profile intervals and build
+plans, and V2 family maps no longer use exact golden metadata predicates for production admission.
+The selected trusted profile's map binding scopes canonical resolution before capacity/topology
+selection. All 31 currently modeled runtime interval/build-plan pairs now have explicit trusted V2
+routes. This includes NT51928 non-NB single/2-chip/3-chip through the matching NT51927 TP plans and
+NT51950/NT51951 single/cascade through their shared TP offsets and command contract; the distinct
+512 KiB DP/LDC tail or full-image capacity remains preserved outside those TP writes. A readable FWConfig chip-count mismatch
+fails before processing and the UI requires an explicit Switch/Cancel choice; Cancel does not bypass
+validation. Remaining v0.9.12 work is final parity/review evidence, not missing route wiring. Any
+"exact route" wording retained in experiment/evidence rows
+below describes the fixture whose parity was measured; it is not an accepted production-admission
+rule.
 
 This file is the current single place to update CtrlRAM Replace experiment results and conclusions until the workflow is formally accepted. Lower-level notes may keep raw details, but status, blockers, and final interpretation should be reflected here.
 
@@ -43,8 +51,8 @@ Flash BIN. Both forms execute the same TP-relative replacement and postbuild
 semantics. The current Workbench runs the processor against a host-created
 base clone and enforces declared write ranges, preserving the full-Flash tail.
 The schema 2.9 NT51926 executable candidate narrows this further by staging
-only the TP prefix and reinserting it into the full clone. Existing golden cases prove exact bytes
-for NT51926 1.4.1 cascade and 2.0.0 single/cascade; they do not narrow the corresponding production
+only the TP prefix and reinserting it into the full clone. Existing golden cases prove routed
+execution for NT51926 1.4.1 single/cascade and 2.0.0 single/cascade; they do not narrow the corresponding production
 profile intervals or generic cascade plan to those fixture versions/counts.
 
 Highlighted conclusion:
@@ -76,7 +84,7 @@ Known stable conclusions:
 - For NT51927 and NT51928, drift is still CRC/header-word based, but more than 16 bytes because the flow updates multiple header/copy/backup windows.
 - Keep the CRC-changing postbuild behavior for production. It is acceptable only when the diff is constrained to declared CRC/header words or documented header-copy windows for the selected category.
 - NT51926 profile selection must use the two effective intervals above. NT51926 2.0.0 current/V2/expected parity is closed for its exact golden single/cascade cases; this evidence does not restrict other versions inside the selected interval.
-- NT51930's sole runtime profile keeps numeric `2..29` on the approved cascade command shape with `DiffDLM` length `0xFE00` for all Common FW `>=1.0.0`. The 2.0.0 evidence-only profile and earlier `0x23000` section must not execute without a new owner runtime-profile decision.
+- NT51930's sole runtime profile exposes exactly single and `2..13` for all Common FW `>=1.0.0`. Single uses the owner-provided one-command shape without DiffDLM authority; `2..13` uses the bounded cascade shape with `DiffDLM` length `0xFE00`. Count `14` and above, the 2.0.0 evidence-only profile, and the earlier `0x23000` section must not execute without a new owner runtime-profile decision.
 - NT51931 now has a direct exact-case intake and a closed diagnostic record.
   InsertSID remains outside the retirement parity boundary, but registered
   Combiner 1.13 still access-violates on the official command; runtime remains
@@ -147,9 +155,9 @@ The base may be the Combiner TP work image or a declared full-Flash container. T
 | NT51919 | NT51929/NT51932 alias: `NT51932BASED_NORMAL_MODE CRC8` | owner perfect-family confirmation plus NT51929 AUTO_PRJ-594 exact fixture | The FW 2.0.0/PID `0x4703`/single fixture proves output SHA `d23f53a1...198f`, one ordered two-command session, staged identity, input immutability, and report identity. Those fixture fields do not narrow production admission. |
 | NT51920 | `CRC_Enable` | inspected BAT + 2026-07-17 owner snapshot | Single/cascade formal payload bytes match their declared targets; owner command/range review remains. |
 | NT51923 | `CRC_Enable` | inspected BAT + 2026-07-17 owner snapshot | Single/cascade formal payload bytes match their declared targets; owner command/range review remains. |
-| NT51926 | `CRC_Enable` | inspected 1.4.1/2.0.0 BAT + owner snapshots | Runtime profiles form `[1.0.0,2.0.0)` and `[2.0.0,infinity)` intervals. Exact 1.4.1 cascade and 2.0.0 single/cascade cases prove parity within those intervals; missing plan wiring remains open. |
+| NT51926 | `CRC_Enable` | inspected 1.4.1/2.0.0 BAT + owner snapshots | Runtime profiles form `[1.0.0,2.0.0)` and `[2.0.0,infinity)` intervals, with explicit single/cascade V2 routes in both. The 1.4.1 single route produces SHA `30de4735...6e7a` and differs from its owner expected only at four declared CRC words (16 bytes); 1.4.1 cascade and 2.0.0 single/cascade evidence retain their existing parity conclusions. Support remains unpromoted. |
 | NT51927 | `MERGE_MODE` + `NT51927BASED_GEN_CRC_MODE CRC32` | inspected BAT + owner snapshots | Single, two-chip, and three-chip fixtures have exact V1/V2 process parity for the three distinct plans. Two-chip residuals are 25 expected-derived header/CRC words; three-chip residuals are 29 header/CRC words plus four declared VN replacement ranges. |
-| NT51928 non-NB | NT51927 alias flow | owner partial-family confirmation plus canonical NT51928 Standard Merge golden | The approved two-chip fixture produces V1/V2 SHA `fbe011c7...f24c`, matches one ten-command session, and preserves the distinct 512 KiB DP/LDC tail `[0x34800,0x80000)`. This partial alias does not authorize NB or additional plans; PID/version/hash do not identify the family. |
+| NT51928 non-NB | NT51927 alias flow | owner partial-family confirmation plus canonical NT51928 Standard Merge golden | The owner-confirmed TP relationship authorizes support-neutral single/2-chip/3-chip routes while preserving the distinct 512 KiB DP/LDC tail `[0x34800,0x80000)`. The two-chip fixture produces V1/V2 SHA `fbe011c7...f24c` and matches one ten-command session; independent single/three-chip expected-output evidence remains a promotion gate. NT51928 NB remains excluded, and PID/version/hash do not identify the family. |
 | NT51929 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT + 2026-07-17 owner snapshot | The AUTO_PRJ-594/PID `0x4703`/Common FW 2.0.0/single fixture proves the non-AB expected and V1/V2 output SHA `d23f53a1...198f`, with zero NF/Normal/VN drift and 15 bytes confined to four CRC words. The metadata identifies evidence, not admission. |
 | NT51930 | `NT51930BASED_NORMAL_MODE CRC8` | inspected BAT + final 2026-07-18 direct INX intake | Earlier DiffDLM mismatch is historical diagnostic evidence. The exact AUTO_PRJ-302 case now proceeds through command/NF reconstruction and three-way parity. |
 | NT51931 | selected: registered 1.13.0 `NT51931BASED_NORMAL_MODE CRC8` | final 2026-07-18 direct AUTO_PRJ-158 intake plus 2026-07-19 mode experiment | The 2026-07-17 BAT is 51931-based and the 2026-07-18 BAT is 51930-based. On the same base/inputs, registered 1.13.0/51931-based equals owner 1.2.0.4/51930-based at SHA `f38fdecd...c594`. The expected-derived control has zero payload drift and 108 header/header-copy CRC bytes. InsertSID is a nonblocking out-of-scope pre-step. |
@@ -238,7 +246,7 @@ No-overlay/header-copy size cross-check:
 | NT51923 | `PostbuildSetup_51923_1.4.1.bat` | `0x100`; golden header table also reports `0x100`. |
 | NT51926 | `PostbuildSetup_51926_1.4.1.bat` and `PostbuildSetup_51926_2.0.0.bat` | Size remains `0x100`; mismatch is target address/codebase, not size. |
 | NT51929 / NT51932 | `PostbuildSetup_51932_2.0.0.bat` | `0x200`; this is the 2.0.0 NT-based header size. |
-| NT51930 | `PostbuildSetup_51930_1.4.0.bat`; `PostbuildSetup_51930_2.0.0.bat` evidence-only | Runtime accepts only 1.x through the 1.4.0 shape (`0x100`). The inspected 2.0.0 shape (`0x200`) is retained for traceability and cannot be selected. |
+| NT51930 | `PostbuildSetup_51930_1.4.0.bat`; `PostbuildSetup_51930_2.0.0.bat` evidence-only | The one runtime interval `[1.0.0,infinity)` continues to use the 1.4.0-sourced shape (`0x100`). The inspected 2.0.0 shape (`0x200`) is retained for traceability and cannot create a production boundary. |
 | NT51931 | `PostbuildSetup_51931_1.3.0.bat` | `0x100`; two supplied BAT versions disagree on mode. Registered Combiner 1.13.0/51931-based is selected after full-byte equality with the hash-only 1.2.0.4/51930-based control. The 1.2.0.4 executable is not packaged or routed. |
 | NT51950 / NT51951 | `PostbuildSetup_51950_2.0.0.bat` | `0x200`; this is the 2.0.0 NT-based header size. |
 
@@ -265,7 +273,7 @@ TP Overview evidence notes:
 - The owner workbook now carries explicit postbuild codebase/category notes for ICs where Common FW `1.x.x` and `2.0.0` use different header copy behavior.
 - NT51926 now has two documented TP Overview sections: Common FW `1.4.1` uses header copy `0x0 -> 0x32F50`, length `0x100`, VN length `0x1660`, and FWConfig backup length `0x800`; Common FW `2.0.0` uses `0x0 -> 0x32A70`, length `0x100`, VN length `0x149E`, and FWConfig backup length `0x780`. The current golden/base evidence reads Common FW `1.4.1`.
 - NT51926 `1.4.1` committed BIN evidence has one little-endian end-flag marker (`00 4E 56 54`) at `0x3BFFC`; `0x34FFC` is `00 00 00 00` in the 2026-07-05 base, Standard Merge TP input, and expected flash. Treat `0x34FFC` as the 2.0.0 mmap/TP Overview `FLASHMAP_ENDFLAG` row, not as the actual marker location for the current `1.4.1` fixture.
-- NT51930 has documented TP Overview category notes: Common FW `1.4.0/1.x.x` evidence uses `0x7000 -> 0x28FB0`, length `0x100`, single postbuild command, consumes `MP_Ctrlram.bin`, and uses VN length `0x195E`; numeric cascade `2..29` uses the approved `DiffDLM` length `0xFE00`. The inspected Common FW `2.0.0` BAT uses length `0x200`, includes a second header-only command, and does not consume `MP_Ctrlram.bin`, but it is evidence-only and not runtime-selectable. The current Standard Merge golden reads Common FW `1.3.0`.
+- NT51930 has documented TP Overview category notes: the 1.4.0-sourced runtime shape uses `0x7000 -> 0x28FB0`, length `0x100`, consumes `MP_Ctrlram.bin`, and uses VN length `0x195E`. Single has no DiffDLM input or write authority; bounded cascade `2..13` uses the approved `DiffDLM` length `0xFE00`. The inspected Common FW `2.0.0` BAT uses length `0x200`, includes a second header-only command, and does not consume `MP_Ctrlram.bin`, but it is evidence-only and not runtime-selectable. The current Standard Merge golden reads Common FW `1.3.0`.
 - The workbench uses default TP Overview rows before a base image is loaded, then refreshes visible replaceable CtrlRAM slots after FWConfig category selection so NT51930 `1.x.x` exposes MP as consumed and NT51926 `1.4.1` exposes the correct VN/FWConfig lengths.
 - TP Overview should include the primary `FLASHMAP_FW_REGISTER` start per IC because UI traceability and postbuild-category selection now read Common FW/FW/PID from FWConfig.
 - A 2026-07-06 TP Overview end-flag audit checked the row immediately before each `end_flag (0x00,N,V,T)` section:
@@ -282,9 +290,9 @@ TP Overview evidence notes:
   | NT51950 / NT51951 | FW Information for Host | `[0x36000,0x36FFC)` | `fw-information-host`, protected traceability row; not backup |
 
 - Allowed-write ranges must follow the selected postbuild command's full declared CRC/header/header-copy blocks. Do not carve a PID byte out of a declared header-copy block; CtrlRAM Replace does not run a separate Insert PID stage, and any PID-byte drift inside a wrong-version header-copy target is part of the postbuild-version mismatch evidence.
-- NT51931 runtime remains fail-closed until exact three-way parity and review.
-  The final owner intake fixes the case inputs/expected/BAT/Combiner hash;
-  `InsertSID.py` is an out-of-scope pre-step and no longer blocks this parity.
+- NT51931 single and generic cascade are V2-routed support-neutrally. The final owner intake fixes
+  the cascade-6 case inputs/expected/BAT/Combiner hash; `InsertSID.py` is an out-of-scope pre-step.
+  Independent single output evidence remains a promotion gate, not a production-route gate.
 
 NT51927 flash-header cross-check:
 
@@ -398,25 +406,29 @@ If owner later insists on production behavior, treat it as R3 firmware behavior:
 The final owner intake is pinned by the `ctrlram-replace` direct cases in
 `testdata/golden/canonical/manifest.json`; its current execution
 matrix is `docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md`.
-There is no remaining owner-input or owner-decision gate. The rows below are
-agent-owned parity, tool, route, and review work.
+There is no missing owner input for the listed direct golden cases. The new
+NT51930 single route has command-plan authority but no independent single-plan
+expected output; it remains support-neutral behind firmware-owner review. The
+rows below separate agent-owned parity/tool/route work from those residual
+human evidence gates.
 
 | Gate | Current evidence | Agent-owned closure |
 | --- | --- | --- |
 | NT51926 2.0.0 golden cases | Direct single/cascade DP, TP, physical CtrlRAM, DiffDLM where applicable, and full expected outputs are committed. Standard Merge records Common FW 2.0.0, PID `0x1309`, and chip counts 1/3. One-session/two-command V1 and V2 outputs are full-byte identical; each differs from owner expected at exactly four approved CRC words (16 bytes), with zero CtrlRAM payload drift. | Closed as exact fixture evidence for the `[2.0.0,infinity)` profile interval. The D01/D02 naming discrepancy is provenance, not an admission discriminator. Support promotion remains false. |
-| NT51930 INX golden case | AUTO_PRJ-302/PID `0x110D`/Common FW 1.3.0/cascade 3 identifies the fixture for `nt51930-ctrlram-replace-fw130-cascade3`. The pre-retirement V1 control and V2 output are byte-identical at SHA `6725c501...ff48f`; one report session runs the BAT-ordered `NT51930BASED_NORMAL_MODE CRC8` command through registered Combiner 1.13.0. | Engineering parity is closed for the fixture. PID, exact version, and count do not narrow the sole runtime profile or generic cascade plan. The owner final is an immutable reference sentinel; independent R3 review and support promotion remain separate. |
-| NT51931 cascade-6 golden case | AUTO_PRJ-158/PID `0x131B`/cascade 6 has TP, physical inputs, two conflicting BAT modes, owner expected, and both tool hashes. The supplied D8DfT82 FlashCode differs from the D8DT83 expected in 73,645 bytes and is retained as historical non-same-build input. Expected-derived self-replacement has zero payload drift and 108 bytes in eight header/header-copy CRC ranges. | The fixture's V2 profile matches the pre-retirement V1 control full-byte at SHA `f38fdecd...c594`, with one identical 1.13/51931-based command and immutable inputs. Count 6 is evidence for generic cascade, not an exact production gate. Support stays NotAvailable by policy. |
+| NT51930 INX golden case | AUTO_PRJ-302/PID `0x110D`/Common FW 1.3.0/cascade 3 identifies the fixture for `nt51930-ctrlram-replace-fw130-cascade3`. The pre-retirement V1 control and V2 output are byte-identical at SHA `6725c501...ff48f`; one report session runs the BAT-ordered `NT51930BASED_NORMAL_MODE CRC8` command through registered Combiner 1.13.0. | Engineering parity is closed for the fixture. PID, exact version, and count do not narrow the sole runtime profile or bounded `2..13` cascade plan. The owner final is an immutable reference sentinel. Single is separately wired without DiffDLM, but independent single expected-output evidence, R3 review, and support promotion remain open. |
+| NT51931 cascade-6 golden case | AUTO_PRJ-158/PID `0x131B`/cascade 6 has TP, physical inputs, two conflicting BAT modes, owner expected, and both tool hashes. The supplied D8DfT82 FlashCode differs from the D8DT83 expected in 73,645 bytes and is retained as historical non-same-build input. Expected-derived self-replacement has zero payload drift and 108 bytes in eight header/header-copy CRC ranges. | The fixture's V2 profile matches the pre-retirement V1 control full-byte at SHA `f38fdecd...c594`, with one identical 1.13/51931-based command and immutable inputs. Count 6 is evidence for the generic cascade route, not an exact admission gate. Single and cascade are exposed as support-neutral executable candidates; single independent output review remains a promotion gate. |
 | NT51932 cascade-3 golden case | AUTO_PRJ-525/PID `0x5601`/Common FW 2.0.0/cascade 3 identifies the fixture. The pre-retirement V1 control and V2 output are byte-identical at SHA `0e59a2fb...2566`; their only 16 differences from owner expected are four approved CRC words. One session runs the two BAT-ordered registered Combiner 1.13 commands. | Engineering parity is closed for the fixture. The reference hash, PID, version, and count remain evidence; production admission uses the IC's sole runtime profile and generic cascade plan. DiffNFMerge is neither executed nor claimed. |
 | NT51951 single golden case | AUTO_PRJ-695/PID `0x5901`/Common FW 2.0.0/single identifies the fixture. Standard Merge reconstructs the owner expected, and pre-retirement V1/V2 outputs are byte-identical at SHA `64ffa21a...d1ea`, with zero replacement-payload drift. | The owner-authorized 1.11→1.13 hypothesis is CRC-only, not full-byte equivalence. Hash, PID, and exact version are evidence only; the profile remains support-neutral/no-promotion. |
 | TP/full-Flash base parity | Hash-pinned config records reviewed/candidate TP prefixes and full-Flash capacities; NT51926 1.4.1 already proves exact TP and full-Flash execution shapes. | Close each release-exposed runtime profile/build plan with direct expected-output evidence and independent R3 byte review before promotion. |
-| Cascade scope exclusions | NT51950 has no cascade product case; NT51951 has no cascade project. | Exclude both cascade shapes from v0.9.9 release scope. They are not missing-evidence cases and cannot be inferred as direct support. |
+| NT51950/NT51951 cascade scope | Owner confirms each IC's single/cascade TP layout, flash offsets, DiffDLM `[0x33200,0x34600)`, and postbuild command contract are identical; existing real-tool smoke covers single/cascade for both ICs. NT51950 retains a `0x40000` container and NT51951 a `0x80000` container. LDC is already packaged in each DP payload rather than exposed as the separate section used by NT51928. | Both cascade plans are V2-routed and executable as support-neutral candidates. This is not a direct cascade golden or public support promotion, and AB remains a separate workflow. |
 
 ## V1 Retirement State
 
 The release-exposed V1 compiler path is retired: both production callers and the
 `CompositionProfileCompiler` implementation are absent. Evidence-backed
-CtrlRAM and NT51926 DP-only General Replace paths execute through V2, but CtrlRAM
-profile intervals and missing build-plan wiring still require the ADR 0031 migration. `BuiltInTpFlashMapCatalog` remains a config-backed display
+CtrlRAM and NT51926 DP-only General Replace paths execute through V2. The ADR 0031 production
+admission migration and all 31 currently modeled interval/build-plan routes are complete.
+`BuiltInTpFlashMapCatalog` remains a config-backed display
 and planning projection outside this frozen deletion scope. Stable closure still
 requires structure, `verify --all`, required CI, and independent R2/R3 review.
 Each route batch must report its remaining caller count and newly deletable
@@ -447,5 +459,5 @@ Each update should record:
 As of this report:
 
 ```text
-CtrlRAM Replace execution is traceable and the product contract requires both TP BIN and declared full Flash BIN with the same TP-relative semantics. Exact owner cases prove V1/V2 parity for the listed fixtures, but PID, hash, exact Common FW, filename, and observed generic-cascade count are evidence rather than production gates. v0.9.12 must finish the ADR 0031 migration so family is selected only by IC, NT51926 uses its two effective profile intervals, every other single-runtime-profile IC is version-neutral from Common FW 1.0.0 onward, and Number selects only owner-provided build plans. The 2026-07-18 intake closes owner-input gates; full-byte evidence, independent R3 review, and explicit support promotion remain separate. No support promotion is claimed.
+CtrlRAM Replace execution is traceable and the product contract requires both TP BIN and declared full Flash BIN with the same TP-relative semantics. Exact owner cases prove V1/V2 parity or explicitly bounded CRC-only differences for the listed fixtures, but PID, hash, exact Common FW, filename, and observed generic-cascade count are evidence rather than production gates. v0.9.12 now selects family only by IC, uses NT51926's two effective profile intervals, treats every other single-runtime-profile IC as version-neutral from Common FW 1.0.0 onward, and lets Number select only owner-provided build plans. All 31 cataloged interval/plan combinations have trusted V2 routes, including NT51928 non-NB single/2/3 and NT51950/NT51951 single/cascade. The 2026-07-18 intake plus the 2026-07-21 owner layout decisions close route-authority questions; full-byte evidence, independent R3 review, and explicit support promotion remain separate. No support promotion is claimed.
 ```

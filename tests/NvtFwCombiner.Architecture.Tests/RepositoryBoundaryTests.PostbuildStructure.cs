@@ -76,7 +76,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CreatePlan", root, StringComparison.Ordinal);
         Assert.Contains("GetStagedFileBlocks", root, StringComparison.Ordinal);
         Assert.Contains("CalculateRequiredCapacity", root, StringComparison.Ordinal);
-        Assert.Contains("ResolveBranch", root, StringComparison.Ordinal);
+        Assert.Contains("ResolveSelector", root, StringComparison.Ordinal);
         Assert.DoesNotContain("GetAllowedWriteRangeSectionsForStagedSources", root, StringComparison.Ordinal);
         Assert.DoesNotContain("NormalizeCandidateWriteRangeSections", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", root, StringComparison.Ordinal);

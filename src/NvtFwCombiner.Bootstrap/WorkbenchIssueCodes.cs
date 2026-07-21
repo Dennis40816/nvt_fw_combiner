@@ -60,6 +60,9 @@ public static class WorkbenchIssueCodes
     /// <summary>CtrlRAM Replace IC-number selection is unsupported by the selected postbuild profile.</summary>
     public const string ReplaceCtrlRamIcNumberUnsupported = "replace.ctrlram.ic-number-unsupported";
 
+    /// <summary>Selected CtrlRAM IC Number conflicts with the readable FWConfig chip count.</summary>
+    public const string ReplaceCtrlRamIcNumberMismatch = "replace.ctrlram.ic-number-mismatch";
+
     /// <summary>CtrlRAM Replace has no registered postbuild profile for the selected IC.</summary>
     public const string ReplaceCtrlRamPostbuildProfileMissing = "replace.ctrlram.postbuild-profile-missing";
 

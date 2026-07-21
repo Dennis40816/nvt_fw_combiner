@@ -170,7 +170,7 @@ public sealed class Nt51931CtrlRamEvidenceTests
         Assert.Equal(108, phaseB.GetProperty("expectedDerivedControl").GetProperty("differenceBytes").GetInt32());
         Assert.Equal(0, phaseB.GetProperty("expectedDerivedControl").GetProperty("replacementPayloadDifferenceBytes").GetInt32());
         Assert.Equal("out-of-scope-pre-step-nonblocking", phaseB.GetProperty("insertSidScope").GetString());
-        Assert.False(IcSupportCatalog.SupportsWorkflow("NT51931", IcWorkflowIds.CtrlRamReplace));
+        Assert.True(IcSupportCatalog.SupportsWorkflow("NT51931", IcWorkflowIds.CtrlRamReplace));
     }
 
     /// <summary>The exact owner shape runs through V2 with locked full-byte and process evidence.</summary>
@@ -222,9 +222,9 @@ public sealed class Nt51931CtrlRamEvidenceTests
         Assert.All(paths, pair => Assert.Equal(immutableHashes[pair.Key], Hash(File.ReadAllBytes(pair.Value))));
     }
 
-    /// <summary>A different NT51931 build cannot enter the exact candidate route by matching only IC metadata.</summary>
+    /// <summary>A structurally valid historical NT51931 base uses the sole runtime profile without hash admission.</summary>
     [Fact]
-    public async Task HistoricalBaseFailsClosedAsync()
+    public async Task HistoricalBaseUsesRuntimeRouteAsync()
     {
         using JsonDocument manifest = ReadManifest();
         Dictionary<string, string> paths = ReadPayloadPaths(manifest);
@@ -239,7 +239,7 @@ public sealed class Nt51931CtrlRamEvidenceTests
         };
         using var workspace = TempWorkspace.Create("nfc-nt51931-fw130-route-negative");
 
-        string outputPath = workspace.PathFor("unsupported-output.bin");
+        string outputPath = workspace.PathFor("historical-base-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51931",
             "cascade",
@@ -250,16 +250,58 @@ public sealed class Nt51931CtrlRamEvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Equal("nt51931-ctrlram-replace-fw130-cascade6", report.RootElement.GetProperty("ProfileId").GetString());
     }
 
-    /// <summary>Wrong project, Common FW version, chip count, or selector cannot enter the exact V2 route.</summary>
+    /// <summary>The single plan uses the same TP layout without requiring a cascade DiffDLM input.</summary>
+    [Fact]
+    public async Task SinglePlanBuildsWithoutDiffDlmAsync()
+    {
+        using JsonDocument manifest = ReadManifest();
+        Dictionary<string, string> paths = ReadPayloadPaths(manifest);
+        using var workspace = TempWorkspace.Create("nfc-nt51931-fw1x-single-route");
+        string referencePath = workspace.PathFor("single-reference.bin");
+        byte[] reference = File.ReadAllBytes(paths["NT51931_FlashCode_D8DT83_20260718.bin"]);
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
+        reference[checked((int)metadata.StructureStart) + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        File.WriteAllBytes(referencePath, reference);
+        IReadOnlyDictionary<string, string> slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [WorkbenchSlotIds.ReplaceBase] = referencePath,
+            ["replace-ctrlram-normal"] = paths["Normal_Ctrlram.bin"],
+            ["replace-ctrlram-mp"] = paths["MP_Ctrlram.bin"],
+            ["replace-ctrlram-vn"] = paths["VN_Ctrlram.bin"],
+            ["replace-ctrlram-nf"] = paths["NF_Ctrlram.bin"],
+        };
+        string outputPath = workspace.PathFor("single-output.bin");
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51931",
+            "single",
+            slotPaths,
+            build: true,
+            outputPath,
+            firmwareVersionEdit: null,
+            new PassThroughProcessor(),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        byte[] nf = File.ReadAllBytes(paths["NF_Ctrlram.bin"]);
+        Assert.Equal(nf, File.ReadAllBytes(outputPath).AsSpan(0x16800, nf.Length).ToArray());
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Equal("nt51931-ctrlram-replace-fw1x-single", report.RootElement.GetProperty("ProfileId").GetString());
+        Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
+    }
+
+    /// <summary>Display-only metadata variations do not replace requested generic-cascade authority.</summary>
     [Theory]
     [InlineData("cascade", 1, 3, 0, 6, 0xFFFF)]
     [InlineData("cascade", 1, 2, 0, 6, 0x131B)]
     [InlineData("cascade", 1, 3, 0, 5, 0x131B)]
-    [InlineData("6", 1, 3, 0, 6, 0x131B)]
-    public async Task UnreviewedShapesFailClosedAsync(
+    public async Task ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(
         string number,
         byte major,
         byte minor,
@@ -292,7 +334,7 @@ public sealed class Nt51931CtrlRamEvidenceTests
             ["replace-ctrlram-vn"] = paths["VN_Ctrlram.bin"],
             ["replace-ctrlram-nf"] = paths["NF_Ctrlram.bin"],
         };
-        string outputPath = workspace.PathFor("unsupported-output.bin");
+        string outputPath = workspace.PathFor("metadata-variation-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51931",
             number,
@@ -303,7 +345,12 @@ public sealed class Nt51931CtrlRamEvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        using (var report = JsonDocument.Parse(result.ReportJson))
+        {
+            Assert.Equal("nt51931-ctrlram-replace-fw130-cascade6", report.RootElement.GetProperty("ProfileId").GetString());
+        }
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
     }
 
@@ -322,17 +369,6 @@ public sealed class Nt51931CtrlRamEvidenceTests
                 .Select(argument => argument.GetString()!.Replace('\\', '/')),
         ];
         Assert.Equal(expectedArguments, NormalizeArguments(command));
-    }
-
-    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string outputPath)
-    {
-        Assert.False(result.Succeeded, result.ReportJson);
-        Assert.False(File.Exists(outputPath));
-        using var report = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == "replace.workflow.not-supported");
-        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
     private static string[] NormalizeArguments(JsonElement command)

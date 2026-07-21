@@ -125,7 +125,7 @@
             IsVisible="{Binding LoadedReport.HasPrimaryIssue}">
           <Grid ColumnDefinitions="112,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="10">
             <TextBlock Classes="tableHeader" Text="{Binding Text.PrimaryReasonLabel}" />
-            <StackPanel Grid.Column="1" Spacing="2">
+            <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
               <TextBlock Classes="bodyStrongText" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding LoadedReport.PrimaryIssue.Detail}" TextWrapping="Wrap" />
               <TextBlock Classes="technicalDetail" Text="{Binding LoadedReport.PrimaryIssue.Title}" TextWrapping="Wrap" />
             </StackPanel>

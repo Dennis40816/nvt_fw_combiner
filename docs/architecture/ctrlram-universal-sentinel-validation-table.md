@@ -7,7 +7,7 @@ This table defines the owner-side one-file smoke validation for CtrlRAM Replace 
 
 ## Universal BIN
 
-Create one file at least `0x23000` bytes long. This deliberately conservative size retains coverage for the largest archived CtrlRAM input evidence. The active catalog currently selects no `0x23000` branch; NT51930's sole runtime profile uses the approved `0xFE00` `DiffDLM.bin` range for numeric counts `2..29` across Common FW `>=1.0.0`.
+Create one file at least `0x23000` bytes long. This deliberately conservative size retains coverage for the largest archived CtrlRAM input evidence. The active catalog selects no `0x23000` branch; NT51930's sole runtime profile uses the approved `0xFE00` `DiffDLM.bin` range only for the admitted `2..13` plan across Common FW `>=1.0.0`.
 
 Recommended content:
 
@@ -40,13 +40,12 @@ The `51926 TP Flashmap` detail sheet still carries the 2.0.0-style single table,
 
 Committed NT51926 `1.4.1` BIN evidence has exactly one little-endian end-flag marker (`00 4E 56 54`) and it starts at `0x3BFFC`. The same check on the 2026-07-05 base, Standard Merge TP input, and Standard Merge expected flash shows `0x34FFC = 00 00 00 00`. Use the selected postbuild category for FWConfig/header-copy lengths, and do not treat the 2.0.0 mmap `FLASHMAP_ENDFLAG 0x34FFC` row as the actual marker location for the current `1.4.1` fixture.
 
-NT51930 has an archived `IC > 13, Max29` extended DiffDLM row in the 2026-07-05 10:34:14 workbook, but no current product evidence authorizes that distinct plan. Its single runtime profile therefore keeps counts `14..29` on the same approved `0xFE00` cascade DiffDLM command plan used for `2..13`. The inspected 2.0.0 category is evidence-only and creates no production version boundary.
+NT51930 has an archived `IC > 13, Max29` extended DiffDLM row in the 2026-07-05 10:34:14 workbook, but no implemented owner command plan authorizes that range. Runtime therefore exposes only `2..13`; count 14 and above are unavailable. The inspected 2.0.0 category is evidence-only and creates no production version boundary.
 
 | NT51930 source | Branch | MP | VN | DiffDLM | Header copy |
 | --- | --- | --- | --- | --- | --- |
 | Runtime profile sourced from 1.4.0 | single | consumed | len `0x195E` | none | `0x7000 -> 0x28FB0` len `0x100` |
 | Runtime profile sourced from 1.4.0 | cascade `2..13` | consumed | len `0x195E` | len `0xFE00` | `0x7000 -> 0x28FB0` len `0x100` |
-| Runtime profile sourced from 1.4.0 | cascade `14..29` | consumed | len `0x195E` | len `0xFE00` | `0x7000 -> 0x28FB0` len `0x100` |
 | Evidence-only profile sourced from 2.0.0 | cascade `2..29` | not consumed | len `0x1960` | len `0xFE00` | `0x7000 -> 0x28FB0` len `0x200`, plus second header command |
 
 ## Full IC Table
@@ -76,7 +75,6 @@ Ranges are TP work-image half-open ranges.
 | NT51929 | NT51932 alias, cascade | single slots plus DiffDLM `[0x2D100,0x35D00)` `0x8C00` |
 | NT51930 | sole runtime profile `[1.0.0, infinity)`, single | NF `[0x1FC00,0x21650)` `0x1A50`; Normal `[0x21650,0x24250)` `0x2C00`; MP `[0x24250,0x27650)` `0x3400`; VN `[0x27650,0x28FAE)` `0x195E` |
 | NT51930 | sole runtime profile, cascade `2..13` | single slots plus DiffDLM `[0x2F200,0x3F000)` `0xFE00` |
-| NT51930 | sole runtime profile, cascade `14..29` | single slots plus approved DiffDLM `[0x2F200,0x3F000)` `0xFE00`; archived extended row remains disabled pending product evidence |
 | NT51930 | evidence-only 2.0.0, single | NF `[0x1FC00,0x21650)` `0x1A50`; Normal `[0x21650,0x24250)` `0x2C00`; VN `[0x27650,0x28FB0)` `0x1960` |
 | NT51930 | evidence-only 2.0.0, cascade `2..29` | single slots plus DiffDLM `[0x2F200,0x3F000)` `0xFE00` |
 | NT51931 | single physical-slot layout | NF `[0x16800,0x177D0)` `0xFD0`; Normal `[0x177D0,0x19FD0)` `0x2800`; MP `[0x19FD0,0x1C3D0)` `0x2400`; VN `[0x1C3D0,0x1DA30)` `0x1660` |

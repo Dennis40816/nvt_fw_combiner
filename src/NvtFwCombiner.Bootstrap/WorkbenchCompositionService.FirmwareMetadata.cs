@@ -73,44 +73,33 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
-    private static bool TryResolveNumberTokenForFirmwareChipNumber(
+    private static bool TryResolveNumberTokenForFirmwareConfig(
         string icId,
-        byte chipNumber,
+        FirmwareConfigMetadata firmwareConfig,
         out string? numberToken)
     {
         numberToken = null;
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
-        if (profiles.Count == 0)
+        if (!TryResolvePostbuildProfileForDisplay(
+                icId,
+                firmwareConfig,
+                out LegacyCombinerPostbuildProfile? profile) ||
+            profile is null)
         {
             return false;
         }
 
-        string? stableToken = null;
-        foreach (LegacyCombinerPostbuildProfile profile in profiles)
-        {
-            LegacyCombinerPostbuildPlanSelector[] matches =
-            [
-                .. profile.PlanSelectors.Where(selector => selector.MatchesReportedChipCount(chipNumber)),
-            ];
-            if (matches.Length != 1)
-            {
-                return false;
-            }
-
-            if (stableToken is not null && !string.Equals(stableToken, matches[0].Token, StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            stableToken = matches[0].Token;
-        }
-
-        if (stableToken is null)
+        LegacyCombinerPostbuildPlanSelector[] matches =
+        [
+            .. profile.PlanSelectors.Where(selector =>
+                selector.MatchesReportedChipCount(firmwareConfig.ChipNumber)),
+        ];
+        if (matches.Length != 1 ||
+            !CtrlRamV2RouteRegistry.TryResolve(profile, matches[0].Branch, out _))
         {
             return false;
         }
 
-        numberToken = stableToken;
+        numberToken = matches[0].Token;
         return true;
     }
 

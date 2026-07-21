@@ -4,7 +4,41 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Changes after `0.9.11` will be documented here.
+### Added
+
+- Profile-driven CtrlRAM production routing for all 31 runtime profile/build-plan pairs across the 13 selectable ICs. Requested IC selects family, effective Common FW interval selects only among genuinely different postbuild profiles, and a typed Number selector chooses single, generic cascade, exact-count, or bounded count-range plans.
+- Support-neutral CtrlRAM routes for NT51919/NT51929 cascade, NT51931/NT51932 single, NT51928 non-NB single/2-chip/3-chip, and NT51950/NT51951 cascade. NT51928 keeps DP and LDC as separate required DP Replace inputs; NT51950/NT51951 package LDC inside the DP payload.
+- A bilingual IC Number mismatch confirmation that can switch to the detected plan without rereading or discarding compatible selections. Cancel keeps the current UI context and the authoritative Build path still blocks a contradictory exact plan.
+- A bilingual navigation confirmation before leaving Merge or Replace with selected files. Cancel retains the page; confirm clears only that workflow's file/mapping selections while keeping device context, mapping addresses, and Settings.
+- Typed failure summaries that automatically open on Build failure or missing output and show the primary reason, failed step, affected output, and next action.
+
+### Changed
+
+- Golden identities are regression evidence rather than production admission. PID, filename, exact fixture version, whole-file SHA-256, and a fixture's observed generic-cascade count remain visible in reports but do not choose a family or route.
+- Common FW profiles now use half-open effective intervals from `1.0.0`. NT51926 uses the 1.4.1-sourced plan for `[1.0.0,2.0.0)` and the 2.0.0-sourced plan for `[2.0.0,infinity)`; every other single-profile IC accepts missing or later informational Common FW without inventing another boundary.
+- NT51930 exposes exactly `1 IC` and `2–13 IC`; count 14 and above remains unavailable because no owner command plan exists. NT51927 and NT51928 non-NB expose only their owner-provided single/2-chip/3-chip plans.
+- Selected CtrlRAM BIN cards use the completed/green state. Base firmware and Common/topology sections retain consistent width and reusable spatial padding.
+- The bottom-right actions use a vertical action rail. Circular icons expand labels to the left on hover or keyboard focus without tooltip interception, Build remains the bottom primary action, and reduced motion retains an immediate static state cue.
+- Pre-1.0 source-size governance retains the 75,000-line production ceiling and exact duplicate-JSON gate while replacing two brittle exact-equality partial ratchets with reviewed 4,500-line ceilings for `WorkbenchCompositionService` and `MainWindowViewModel`.
+
+### Fixed
+
+- CtrlRAM routing no longer returns size-zero/no-output merely because production input metadata does not match a hash-pinned golden tuple.
+- CtrlRAM FWConfig reads and optional TP firmware-version edits use the canonical source/copy model rather than treating legacy copy/backup destinations as the user-edit source.
+- Perfect-family filename hints can retain the selected IC without granting cross-family authority; partial-family and incompatible IC hints still require explicit confirmation.
+- Build failures now publish a visible reason instead of silently leaving the user without an output file.
+
+### Security
+
+- Input/reference artifacts remain immutable; Legacy Combiner still operates only on host-created staging copies, and final output is independently rejected outside declared half-open write ranges.
+- The route expansion changes no CRC/header algorithm, command order, processor authority, output naming, report schema, runtime dependency, AB behavior, or public support stage. All new profile routes remain support-neutral pending their normal direct-output and firmware-owner promotion gates.
+- NT51928 NB remains excluded. NT51950/NT51951 AB remains a separate workflow and is not inferred from matching normal CtrlRAM/DP layouts.
+
+### Notes
+
+- Focused production tests cover actual Workbench output for the added routes, including DiffDLM presence/absence, 256/512 KiB container preservation, NT51928 DP/LDC tail preservation, report identity, and immutable sources. Canonical full verification, independent R3 review, protected CI, firmware-owner promotion decisions, and release packaging remain final gates.
+- The existing unsupported owner-handoff `.7z` inventory entry is not modified or silently accepted; it remains an explicit repository-verifier blocker until the owner closes that evidence intake separately.
+- The shared Hex viewport, redesigned read-only Changes workspace, and global Button pressed acknowledgement are deferred intact to `v0.9.13`.
 
 ## [0.9.11] - 2026-07-21
 

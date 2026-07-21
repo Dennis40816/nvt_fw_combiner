@@ -8,7 +8,7 @@
       {
         "blockerId": "support-neutral-partial-family-route",
         "kind": "release",
-        "reason": "This exact NT51928 non-NB route reuses only the reviewed NT51927-family CtrlRAM postbuild facts while preserving the distinct 512 KiB DP/LDC tail; NB and every other shape remain outside this V2 route.",
+        "reason": "This owner-approved NT51928 non-NB route reuses the matching NT51927 TP layout and postbuild branch while preserving the distinct 512 KiB DP/LDC tail; public support promotion remains separate.",
         "evidenceRefs": [
           "gen-flash-bin-v2-51928-golden",
           "ctrlram-replace-partial-family-51928-non-nb-to-51927"
@@ -31,8 +31,8 @@
   },
   "mapBinding": {
     "familyId": "nt51928-ctrlram-replace",
-    "familyVersion": "0.2.0",
-    "familyContentHash": "b8e828ce07c05feaab1f9dfb51e6df567cf9b4015febf44d06e3e7d737bafc00",
+    "familyVersion": "0.3.0",
+    "familyContentHash": "0ecf17a0548a9eebfab522610f53bf92ab910811b54e5c732ffe4745df7e199d",
     "mapIds": [
       "nt51928-ctrlram-fw132-twochip-full-flash"
     ],

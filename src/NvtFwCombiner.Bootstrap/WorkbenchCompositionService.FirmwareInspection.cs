@@ -221,7 +221,7 @@ public static partial class WorkbenchCompositionService
         FirmwareConfigMetadata? metadata)
     {
         return metadata is { ChipNumber: not 0 } firmwareConfig &&
-            TryResolveNumberTokenForFirmwareChipNumber(icId, firmwareConfig.ChipNumber, out string? numberToken)
+            TryResolveNumberTokenForFirmwareConfig(icId, firmwareConfig, out string? numberToken)
                 ? new WorkbenchFirmwareContextSuggestion(
                     icId,
                     numberToken!,

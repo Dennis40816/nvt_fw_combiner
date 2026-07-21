@@ -670,52 +670,9 @@
           "ctrlram-replace"
         ],
         "topologyRequirement": {
-          "kind": "exact-count",
-          "chipCount": 1
+          "kind": "single"
         },
-        "capacityBytes": 262144,
-        "metadataPredicates": [
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "chip-count",
-            "operator": "equals",
-            "expectedValues": [
-              1
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-major",
-            "operator": "equals",
-            "expectedValues": [
-              1
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-minor",
-            "operator": "equals",
-            "expectedValues": [
-              4
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-additional",
-            "operator": "equals",
-            "expectedValues": [
-              1
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "project-id",
-            "operator": "equals",
-            "expectedValues": [
-              24581
-            ]
-          }
-        ]
+        "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [
@@ -739,52 +696,10 @@
           "ctrlram-replace"
         ],
         "topologyRequirement": {
-          "kind": "exact-count",
-          "chipCount": 3
+          "kind": "cascade",
+          "minimumChipCount": 2
         },
-        "capacityBytes": 262144,
-        "metadataPredicates": [
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "chip-count",
-            "operator": "equals",
-            "expectedValues": [
-              3
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-major",
-            "operator": "equals",
-            "expectedValues": [
-              1
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-minor",
-            "operator": "equals",
-            "expectedValues": [
-              4
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-additional",
-            "operator": "equals",
-            "expectedValues": [
-              1
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "project-id",
-            "operator": "equals",
-            "expectedValues": [
-              19459
-            ]
-          }
-        ]
+        "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [

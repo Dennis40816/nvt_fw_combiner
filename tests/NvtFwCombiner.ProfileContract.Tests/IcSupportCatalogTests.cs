@@ -165,18 +165,18 @@ public sealed class IcSupportCatalogTests
             Assert.True(IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.StandardMerge), icId));
     }
 
-    /// <summary>NT51931 exposes canonical-map DP Replace while unrelated Replace routes remain closed.</summary>
+    /// <summary>NT51931 exposes canonical DP and CtrlRAM Replace while General Replace remains closed.</summary>
     [Fact]
-    public void Nt51931DpReplaceIsSupportedWhileOtherReplaceModesRemainClosed()
+    public void Nt51931DpAndCtrlRamReplaceAreExposed()
     {
         Assert.True(IcSupportCatalog.TryFind("NT51931", out IcSupportEntry? entry));
         Assert.True(entry!.SupportsWorkflow(IcWorkflowIds.StandardMerge));
         Assert.True(entry.SupportsWorkflow(IcWorkflowIds.GeneralMerge));
         Assert.True(entry.SupportsWorkflow(IcWorkflowIds.DpReplace));
-        Assert.False(entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace));
+        Assert.True(entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace));
         Assert.False(entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace));
         Assert.Contains("canonical 256 KiB", entry.Notes, StringComparison.Ordinal);
-        Assert.Contains("not exposed", entry.Notes, StringComparison.Ordinal);
+        Assert.Contains("support-neutral", entry.Notes, StringComparison.Ordinal);
     }
 
     /// <summary>Alias facts are explicit instead of being hidden in separate profile tables.</summary>

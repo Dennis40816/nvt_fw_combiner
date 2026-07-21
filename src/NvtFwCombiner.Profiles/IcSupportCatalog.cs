@@ -242,8 +242,8 @@ public static class IcSupportCatalog
             familyId: "nt51927-family",
             familySourceIcId: "NT51927",
             familyRelationship: IcFamilyRelationship.PartialAlias,
-            familyScope: "Replace follows NT51927; LDC differs and NT51928 NB is excluded.",
-            notes: "NT51928 NB is not covered."),
+            familyScope: "Non-NB CtrlRAM follows NT51927; DP Replace keeps a separate LDC section from 0x40000.",
+            notes: "Single/2-chip/3-chip CtrlRAM and DP+LDC Replace are routed support-neutrally; NT51928 NB is not covered."),
         Entry(
             "NT51929",
             ctrlRamPostbuildSourceIcId: "NT51932",
@@ -253,11 +253,11 @@ public static class IcSupportCatalog
             familyScope: "Canonical single-product member for NT51919/NT51929/NT51932 family facts."),
         Entry(
             "NT51930",
-            notes: "DP Replace reuses the canonical 256 KiB Standard Merge map and remains Evidence open pending direct golden parity; CtrlRAM Postbuild category is selected by Common FW version."),
+            notes: "DP Replace reuses the canonical 256 KiB Standard Merge map and remains Evidence open pending direct golden parity; the sole CtrlRAM runtime profile covers Common FW 1.0.0 and later."),
         Entry(
             "NT51931",
-            workflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.DpReplace, IcWorkflowIds.GeneralMerge],
-            notes: "DP Replace is backed by the canonical 256 KiB Standard Merge map. The exact AUTO_PRJ-158/PID 0x131B/cascade-6 CtrlRAM V2 route remains support-neutral and is not exposed; every non-exact CtrlRAM shape fails closed."),
+            workflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.DpReplace, IcWorkflowIds.CtrlRamReplace, IcWorkflowIds.GeneralMerge],
+            notes: "DP Replace is backed by the canonical 256 KiB Standard Merge map. CtrlRAM single and generic cascade plans are executable candidates and remain support-neutral; AUTO_PRJ-158 cascade-6 is regression evidence, not an admission gate."),
         Entry(
             "NT51932",
             familyId: "nt51929-nt51932-family",
@@ -266,12 +266,14 @@ public static class IcSupportCatalog
             familyScope: "Perfect family alias; NT51932 owns the cascade product path."),
         Entry(
             "NT51950",
-            goldenVerifiedWorkflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.DpReplace]),
+            goldenVerifiedWorkflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.DpReplace],
+            notes: "CtrlRAM single/cascade share the same TP layout and offsets; LDC is packaged inside the DP payload. AB remains separate."),
         Entry(
             "NT51951",
             standardMergeSourceIcId: "NT51950",
             ctrlRamPostbuildSourceIcId: "NT51950",
-            goldenVerifiedWorkflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.DpReplace]),
+            goldenVerifiedWorkflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.DpReplace],
+            notes: "CtrlRAM single/cascade share NT51950 TP layout and offsets; LDC is packaged inside the DP payload. AB remains separate."),
     ];
 
     private static readonly Dictionary<string, IcSupportEntry> EntriesByIc = Entries

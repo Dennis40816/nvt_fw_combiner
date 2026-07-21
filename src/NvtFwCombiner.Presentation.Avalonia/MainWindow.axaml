@@ -402,6 +402,17 @@
     </ContentControl>
 
     <ContentControl
+        x:Name="FirmwareNumberMismatchModalHost"
+        Grid.RowSpan="5"
+        IsVisible="{Binding IsFirmwareNumberMismatchModalOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MainWindowViewModel">
+          <views:FirmwareNumberMismatchModal />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl
         x:Name="NavigationClearConfirmationModalHost"
         Grid.RowSpan="5"
         IsVisible="{Binding IsNavigationClearConfirmationOpen}">

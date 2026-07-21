@@ -4,6 +4,34 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
+    /// <summary>FWConfig Number mismatch uses the shared modal surface with explicit accessible actions.</summary>
+    [Fact]
+    public void FirmwareNumberMismatchUsesAccessibleConfirmationSurface()
+    {
+        var modal = XDocument.Parse(ReadPresentationFile("Views/FirmwareNumberMismatchModal.axaml"));
+        XElement surface = Assert.Single(modal.Descendants(), element =>
+            string.Equals((string?)element.Attribute("Classes"), "modalSurface", StringComparison.Ordinal));
+        Assert.Equal("22", (string?)surface.Attribute("Padding"));
+        Assert.NotNull(surface.Attribute("AutomationProperties.Name"));
+
+        XElement cancel = Assert.Single(modal.Descendants(), element =>
+            string.Equals(
+                (string?)element.Attribute("Command"),
+                "{Binding DismissFirmwareNumberMismatchCommand}",
+                StringComparison.Ordinal));
+        XElement accept = Assert.Single(modal.Descendants(), element =>
+            string.Equals(
+                (string?)element.Attribute("Command"),
+                "{Binding AcceptFirmwareNumberMismatchCommand}",
+                StringComparison.Ordinal));
+        Assert.Equal("secondary", (string?)cancel.Attribute("Classes"));
+        Assert.Equal("primary", (string?)accept.Attribute("Classes"));
+        Assert.NotNull(cancel.Attribute("AutomationProperties.Name"));
+        Assert.NotNull(accept.Attribute("AutomationProperties.Name"));
+        Assert.Null(cancel.Attribute("ToolTip.Tip"));
+        Assert.Null(accept.Attribute("ToolTip.Tip"));
+    }
+
     /// <summary>Keeps the vertical action rail compact, left-expanding, accessible, and free of hover popups.</summary>
     [Fact]
     public void BuildActionsUseExpandableAccessibleRailStyleWithoutTooltips()

@@ -30,7 +30,7 @@
   "mapBinding": {
     "familyId": "nt51927-ctrlram-replace",
     "familyVersion": "0.5.0",
-    "familyContentHash": "ba4637423cf8bde5524468721e980ede9cf0d1f4fa5ff3ac142e7ea75ea3ee0d",
+    "familyContentHash": "3b72d1b2788463c2def4d57e1318fc392dad4a79990d03c59e1d8abe072ae4e1",
     "mapIds": [ "nt51927-ctrlram-fw140-threechip-full-flash" ],
     "requiredRegionIds": [
       "flash-image",

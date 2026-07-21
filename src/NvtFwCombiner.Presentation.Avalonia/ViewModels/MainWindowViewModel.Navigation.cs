@@ -100,6 +100,7 @@ public sealed partial class MainWindowViewModel
             return false;
         }
 
+        InvalidateFirmwareNumberMismatch();
         _pendingNavigation = new PendingNavigation(target, isBack);
         IsNavigationClearConfirmationOpen = true;
         return true;
@@ -166,6 +167,7 @@ public sealed partial class MainWindowViewModel
         InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
         InvalidateCtrlRamFirmwareVersionContext();
         InvalidateFirmwareIcMismatch();
+        InvalidateFirmwareNumberMismatch();
 
         if (page == ShellPage.Merge)
         {

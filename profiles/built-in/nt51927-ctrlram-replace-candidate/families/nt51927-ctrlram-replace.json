@@ -938,39 +938,7 @@
         "memberIds": [ "NT51917", "NT51927" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "exact-count", "chipCount": 2 },
-        "capacityBytes": 262144,
-        "metadataPredicates": [
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "chip-count",
-            "operator": "equals",
-            "expectedValues": [ 2 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "common-fw-major",
-            "operator": "equals",
-            "expectedValues": [ 1 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "common-fw-minor",
-            "operator": "equals",
-            "expectedValues": [ 3 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "common-fw-additional",
-            "operator": "equals",
-            "expectedValues": [ 2 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "project-id",
-            "operator": "equals",
-            "expectedValues": [ 5653 ]
-          }
-        ]
+        "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51927-ctrlram-fw132-twochip-full-flash" ],
@@ -987,39 +955,7 @@
         "memberIds": [ "NT51917", "NT51927" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "exact-count", "chipCount": 3 },
-        "capacityBytes": 262144,
-        "metadataPredicates": [
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "chip-count",
-            "operator": "equals",
-            "expectedValues": [ 3 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "common-fw-major",
-            "operator": "equals",
-            "expectedValues": [ 1 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "common-fw-minor",
-            "operator": "equals",
-            "expectedValues": [ 4 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "common-fw-additional",
-            "operator": "equals",
-            "expectedValues": [ 0 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "project-id",
-            "operator": "equals",
-            "expectedValues": [ 22282 ]
-          }
-        ]
+        "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51927-ctrlram-fw140-threechip-full-flash" ],
@@ -1036,39 +972,7 @@
         "memberIds": [ "NT51917", "NT51927" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "single" },
-        "capacityBytes": 262144,
-        "metadataPredicates": [
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "chip-count",
-            "operator": "equals",
-            "expectedValues": [ 1 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "common-fw-major",
-            "operator": "equals",
-            "expectedValues": [ 1 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "common-fw-minor",
-            "operator": "equals",
-            "expectedValues": [ 4 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "common-fw-additional",
-            "operator": "equals",
-            "expectedValues": [ 1 ]
-          },
-          {
-            "metadataStructureId": "nt51927-fwconfig-backup-envelope",
-            "fieldId": "project-id",
-            "operator": "equals",
-            "expectedValues": [ 22281 ]
-          }
-        ]
+        "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51927-ctrlram-fw141-single-full-flash" ],

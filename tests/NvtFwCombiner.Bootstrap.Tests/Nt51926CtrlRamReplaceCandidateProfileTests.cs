@@ -179,10 +179,10 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         CompiledComposition second = CompileCandidate([.. referenceBase]);
 
         Assert.Equal(
-            "da290270c2b8c0261ae6272c740e22c614ee90d3279312cf8ac5ee79a3953400",
+            "0d3d5b14b26d2c812b367710455293277d21be0c9f233811eeb163150d4a2e12",
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
-            "2ed59af1970deba750b205b1bf674df25fe5f57b44a00fac321a1e2f45ab7df8",
+            "12bd380c961038c34972ed343597e23cd46ed5a866c48a1e9b64d5e8867c86d9",
             first.CompilationFingerprint);
         Assert.Equal(
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,
@@ -483,7 +483,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         V2CompositionPlanCompileResult compilation = BuiltInV2BundleRegistry.All[
             "nt51926-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
                 "nt51926-ctrlram-replace-fw141-runtime-cascade",
-                "0.5.0",
+                "0.2.0",
                 "NT51926",
                 ExperienceIds.CtrlRamReplace,
                 new TopologySelection(
@@ -547,7 +547,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             referenceBase);
         return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].Compile(
             "nt51926-ctrlram-replace-fw141-cascade",
-            "0.4.0",
+            "0.5.0",
             "NT51926",
             ExperienceIds.CtrlRamReplace,
             referenceBase.Length,

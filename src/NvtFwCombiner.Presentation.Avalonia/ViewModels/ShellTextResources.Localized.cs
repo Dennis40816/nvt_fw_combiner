@@ -274,6 +274,14 @@ public sealed partial class ShellTextResources
             FirmwareIcMismatchDetectedLabel = Pick("Detected marker", "偵測 marker"),
             FirmwareIcMismatchKeepLabel = Pick("Keep current IC", "維持目前 IC"),
             FirmwareIcMismatchUseDetectedLabel = Pick("Use detected IC", "使用偵測到的 IC"),
+            FirmwareNumberMismatchTitle = Pick("Firmware IC Number differs", "韌體 IC Number 不一致"),
+            FirmwareNumberMismatchDetail = Pick(
+                "FWConfig reports a chip count that does not match the selected Number. Switch to the matching plan and review the CtrlRAM inputs before Build; Cancel keeps the current selection but does not bypass validation.",
+                "FWConfig 回報的 IC 數量與目前 Number 不一致。請切換到相符的 plan，並在 Build 前重新確認 CtrlRAM 輸入；取消會保留目前選擇，但不會略過驗證。"),
+            FirmwareNumberMismatchCurrentLabel = Pick("Selected Number", "目前 Number"),
+            FirmwareNumberMismatchDetectedLabel = Pick("FWConfig detected", "FWConfig 偵測"),
+            FirmwareNumberMismatchCancelLabel = Pick("Cancel", "取消"),
+            FirmwareNumberMismatchSwitchLabel = Pick("Switch Number", "切換 Number"),
             ContextUpdatedToastTitle = Pick("Context updated", "條件已更新"),
             FirmwareInspectionLoadingStatus = Pick(
                 "Inspecting the selected BIN… Build will be ready when the latest file snapshot is verified.",

@@ -27,7 +27,7 @@
   "mapBinding": {
     "familyId": "nt51930-ctrlram-replace",
     "familyVersion": "0.2.0",
-    "familyContentHash": "f0d1eba87fcaacc2a780c1f42f872a45fd5b093f620328c6347c774c56fa5e2a",
+    "familyContentHash": "f5fd3a0ac25ad8e914c319bdaaa97c7a6d053d7ca7206a7136c904b0ec31c562",
     "mapIds": [ "nt51930-ctrlram-fw130-cascade3-full-flash" ],
     "requiredRegionIds": [
       "flash-image",

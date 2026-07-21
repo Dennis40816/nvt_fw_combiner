@@ -127,13 +127,12 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             pair => Assert.Equal(immutableInputHashes[pair.Key], Hash(File.ReadAllBytes(pair.Value.Path))));
     }
 
-    /// <summary>Proves unreviewed FW2.0 selector/project/count shapes fail closed without output.</summary>
+    /// <summary>FW2 profile selection remains version-driven while PID and reported count do not gate the requested plan.</summary>
     [Theory]
     [InlineData("cascade", 2, 0x1309)]
     [InlineData("cascade", 3, 0xFFFF)]
-    [InlineData("1", 1, 0x1309)]
-    [InlineData("3", 3, 0x1309)]
-    public async Task Fw200RouteRequiresExactSelectorProjectAndChipCountAsync(
+    [InlineData("single", 1, 0x1309)]
+    public async Task Fw200RouteAcceptsNonAuthoritativeMetadataVariationsAsync(
         string number,
         byte chipCount,
         ushort projectId)
@@ -176,7 +175,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             ["replace-ctrlram-vn"] = evidence.Require("VN_Ctrlram.bin").Path,
             ["replace-ctrlram-nf"] = evidence.Require("NF_Ctrlram.bin").Path,
         };
-        string outputPath = workspace.PathFor("unsupported-output.bin");
+        string outputPath = workspace.PathFor("metadata-variation-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51926",
             number,
@@ -186,11 +185,14 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
         using var report = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(WorkbenchIssueCodes.ReplaceWorkflowNotSupported, issue.GetProperty("Code").GetString());
-        Assert.False(File.Exists(outputPath));
+        Assert.Equal(
+            number == "single"
+                ? "nt51926-ctrlram-replace-fw200-runtime-single"
+                : "nt51926-ctrlram-replace-fw200-runtime-cascade",
+            report.RootElement.GetProperty("ProfileId").GetString());
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
     }
 

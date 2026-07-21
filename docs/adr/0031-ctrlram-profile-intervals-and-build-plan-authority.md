@@ -75,6 +75,14 @@ Consequently:
    selected topology, but it does not select family or create a plan. A contradiction with an exact
    plan fails closed; missing count remains informational when the requested selector uniquely
    identifies one plan.
+8. NT51928 non-NB has the same TP layout and single/2-chip/3-chip postbuild plans as NT51927. Its
+   distinct DP/LDC content begins at `0x40000` and remains outside CtrlRAM authority, so all three
+   matching TP plans route through separate 512 KiB maps. NT51928 NB remains outside this decision.
+9. NT51950 and NT51951 each expose single and generic cascade. Their TP ranges, DiffDLM
+   `[0x33200,0x34600)`, offsets, and postbuild command contract match; their `0x40000` and `0x80000`
+   full-image capacities remain distinct map facts. Unlike NT51928, LDC is already packaged inside
+   each IC's DP payload and therefore creates no separate CtrlRAM or DP input. AB behavior is a
+   separate decision.
 
 ### Production route key
 
@@ -86,6 +94,39 @@ exact golden Common FW, TP FW, filename, complete-file SHA, or a generic-cascade
 Capacity, marker assertions, region containment, processor registration, immutable input handling,
 declared write ranges, final validation, and atomic output promotion remain fail-closed execution
 checks. They validate the selected execution; they do not identify a family.
+
+### V2 map admission
+
+1. After the runtime profile interval is selected, its trusted `mapBinding.mapIds` is the complete
+   candidate scope presented to canonical family resolution. Maps owned by another Common FW
+   interval are not competing candidates for that compile request.
+2. Domain still resolves exactly one physical map inside that closed scope from member, mode,
+   capacity, and the requested build-plan topology. Neither Profiles nor Bootstrap may select the
+   largest, newest, first, or otherwise default map.
+3. PID, filename, complete-file hash, exact golden Common FW, and a fixture's chip count do not
+   re-enter V2 map admission as metadata predicates. FWConfig decoding remains available for
+   display, interval selection when multiple runtime profiles exist, and the requested-topology
+   cross-check.
+4. Profile/family content hashes, allowed map ids, required regions, processor authority, write
+   ranges, and immutable reference capacity remain fail-closed admission checks.
+
+### Candidate version identity
+
+1. The v0.9.12 CtrlRAM bundles are unreleased executable candidates. Admission-only normalization
+   does not change firmware ranges, command order, processor authority, or output naming. The later
+   owner-authorized NT51928 and NT51950/NT51951 route materialization adds maps/regions, so those
+   family compatibility versions advance to `0.3.0`; new topology profiles also use `0.3.0`.
+2. Every changed JSON document receives a new content hash, every containing bundle receives a new
+   RFC 8785 entry-array hash, and Bootstrap pins that exact bundle hash. Reports and review evidence
+   therefore distinguish the revised candidate even when its compatibility version is unchanged.
+3. The newly materialized NT51926 Common FW 1.x single profile uses the same `0.2.0` runtime-profile
+   contract generation as the adjacent single/cascade runtime profiles. It does not promote support.
+4. Reusing a compatibility version is permitted only while the candidate has not shipped. A change
+   to a tagged/published profile, or a future range/operation/processor-authority change, requires a
+   semantic version bump in addition to new content hashes.
+5. The trusted built-in loader entry-count bound rises from 8 to 16 so one IC bundle can contain all
+   reviewed interval/plan profiles. Manifest size, per-entry size, JSON depth, path inventory, trust
+   anchor, and hash checks remain bounded and unchanged; this does not admit user-authored bundles.
 
 ## Consequences
 
@@ -107,14 +148,19 @@ checks. They validate the selected execution; they do not identify a family.
 
 ## Compatibility and migration
 
-- No firmware range, operation order, command argument, checksum rule, output naming token, or
-  support state changes merely because of this ADR.
+- No firmware range, operation order, command argument, checksum rule, or output naming token is
+  inferred by this ADR. The 2026-07-21 owner follow-up explicitly authorizes the additional
+  NT51928 non-NB and NT51950/NT51951 topology routes described above; all remain support-neutral.
+- NT51926's already modeled Common FW 1.x single command plan is now materialized as a trusted V2
+  route alongside its cascade route; both retain the existing processor and write authority.
 - Historical exact-case documents remain evidence records. Current normative documents and release
   notes must state that their exact metadata identifies fixtures, not production admission.
 - Existing reports continue recording Common FW, PID, chip count, filenames, and hashes for
   traceability.
-- NT51928 partial-family authority is not widened. Only its separately owner-approved facts and
-  plans may route even when another family member has additional plans.
+- NT51928 partial-family authority is limited to the separately owner-approved NT51927-equivalent
+  TP single/2-chip/3-chip plans. The partial alias does not authorize NB or reuse DP/LDC semantics.
+- The route registry now covers all 31 runtime interval/build-plan pairs in the postbuild catalog;
+  there is no golden-derived fail-closed exception list.
 
 ## Verification
 
@@ -133,3 +179,10 @@ checks. They validate the selected execution; they do not identify a family.
    fields while keeping IC, selected profile, plan, map, and processor authority valid.
 6. Existing full-byte golden, processor write-range, immutable-source, atomic-output, and report
    evidence remain unchanged and must still pass before release.
+7. V2 preparation tests prove that two same-capacity maps from different profile intervals are not
+   ambiguous after the selected profile's map binding scopes canonical resolution, while an
+   unscoped family resolution remains ambiguous.
+8. NT51928 tests compile all non-NB single/2-chip/3-chip maps at `0x80000` and retain the DP/LDC
+   tail; its DP Replace contract independently requires non-overlapping DP and LDC inputs.
+9. NT51950/NT51951 cascade tests prove identical TP processor write authority and DiffDLM offsets
+   while retaining the distinct `0x40000`/`0x80000` map capacities.

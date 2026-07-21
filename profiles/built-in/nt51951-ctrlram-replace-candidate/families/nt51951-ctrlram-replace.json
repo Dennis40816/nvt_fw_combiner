@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51951-ctrlram-replace",
-  "familyVersion": "0.2.0",
+  "familyVersion": "0.3.0",
   "members": [
     {
       "memberId": "NT51951",
@@ -122,11 +122,29 @@
           "alignment": 1
         },
         {
-          "regionId": "gap-tail-2d50c",
+          "regionId": "gap-2d50c-to-diff",
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 185612, "length": 338676 },
+          "range": { "start": 185612, "length": 23796 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "diff-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 209408, "length": 5120 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-tail-34600",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 214528, "length": 309760 },
           "writeConstraint": "forbidden",
           "alignment": 1
         }
@@ -206,40 +224,24 @@
       "applicability": {
         "memberIds": [ "NT51951" ],
         "modeIds": [ "ctrlram-replace" ],
-        "topologyRequirement": { "kind": "exact-count", "chipCount": 1 },
-        "capacityBytes": 524288,
-        "metadataPredicates": [
-          {
-            "metadataStructureId": "nt51951-fwconfig-backup-envelope",
-            "fieldId": "chip-count",
-            "operator": "equals",
-            "expectedValues": [ 1 ]
-          },
-          {
-            "metadataStructureId": "nt51951-fwconfig-backup-envelope",
-            "fieldId": "common-fw-major",
-            "operator": "equals",
-            "expectedValues": [ 2 ]
-          },
-          {
-            "metadataStructureId": "nt51951-fwconfig-backup-envelope",
-            "fieldId": "common-fw-minor",
-            "operator": "equals",
-            "expectedValues": [ 0 ]
-          },
-          {
-            "metadataStructureId": "nt51951-fwconfig-backup-envelope",
-            "fieldId": "common-fw-additional",
-            "operator": "equals",
-            "expectedValues": [ 0 ]
-          },
-          {
-            "metadataStructureId": "nt51951-fwconfig-backup-envelope",
-            "fieldId": "project-id",
-            "operator": "equals",
-            "expectedValues": [ 22785 ]
-          }
-        ]
+        "topologyRequirement": { "kind": "single" },
+        "capacityBytes": 524288
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51951-ctrlram-fw200-full-flash" ],
+      "metadataSetIds": [ "nt51951-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"
+      ]
+    },
+    {
+      "mapId": "nt51951-ctrlram-fw1x-cascade-full-flash",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51951" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "cascade", "minimumChipCount": 2 },
+        "capacityBytes": 524288
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51951-ctrlram-fw200-full-flash" ],

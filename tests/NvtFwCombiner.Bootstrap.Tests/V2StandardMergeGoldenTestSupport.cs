@@ -48,7 +48,7 @@ internal static class V2StandardMergeGoldenTestSupport
             new ProfileBundleLoadLimits(
                 maximumManifestBytes: 16384,
                 maximumJsonDepth: 32,
-                new ProfileBundleEntrySnapshotLimits(8, 131072, 262144, 8)));
+                new ProfileBundleEntrySnapshotLimits(16, 131072, 262144, 8)));
     }
 
     internal static CompiledComposition CompileV2(

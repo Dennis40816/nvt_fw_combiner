@@ -26,8 +26,8 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51950-ctrlram-replace",
-    "familyVersion": "0.2.0",
-    "familyContentHash": "7408d4212483fe24cc6be5ec3455dac1d620384e3ceae0f0126a2de8dafbfdd8",
+    "familyVersion": "0.3.0",
+    "familyContentHash": "2ec7331b0ea75fde0733ef39fa031c05fa920a6c4688b2d96c946aaee44adefe",
     "mapIds": [ "nt51950-ctrlram-fw200-single-full-flash" ],
     "requiredRegionIds": [
       "flash-image",

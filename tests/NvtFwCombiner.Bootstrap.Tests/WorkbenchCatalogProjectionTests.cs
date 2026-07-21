@@ -69,7 +69,7 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.Equal(13, settings.CatalogIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
         Assert.Equal(13, settings.DpReplaceProfileCount);
-        Assert.Equal(12, settings.CtrlRamReplaceAvailableIcCount);
+        Assert.Equal(13, settings.CtrlRamReplaceAvailableIcCount);
     }
 
     private static void AssertStandardMergeProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)

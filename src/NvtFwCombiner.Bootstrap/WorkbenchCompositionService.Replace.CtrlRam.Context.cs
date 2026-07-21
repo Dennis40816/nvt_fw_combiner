@@ -86,6 +86,18 @@ public static partial class WorkbenchCompositionService
                 "postbuild"));
         }
 
+        if (commandPlan is not null &&
+            baseBytes is not null &&
+            TryReadFirmwareConfigBackupMetadata(icId, baseBytes, out FirmwareConfigMetadata firmwareConfig) &&
+            firmwareConfig.ChipNumber != 0 &&
+            !commandPlan.Selector.MatchesReportedChipCount(firmwareConfig.ChipNumber))
+        {
+            validationIssues.Add(new CompositionIssue(
+                WorkbenchIssueCodes.ReplaceCtrlRamIcNumberMismatch,
+                $"Selected Number is {commandPlan.Selector.DisplayLabel}, but the base firmware FWConfig reports {firmwareConfig.ChipNumber} IC. Switch Number to the matching plan and review the CtrlRAM inputs before Build.",
+                "number"));
+        }
+
         if (commandPlan is not null || basePath is null)
         {
             sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(postbuildProfile?.IcId ?? icId, selection, postbuildProfile);
