@@ -98,11 +98,11 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.False(WorkbenchCompositionService.IsDpPerspectiveIc("NT51930"));
     }
 
-    /// <summary>Verifies ICs without a registered V2 DP Replace artifact are not promoted by classification.</summary>
+    /// <summary>Verifies empty ids and registered non-DP-Perspective ICs remain outside the DP Perspective family.</summary>
     [Theory]
     [InlineData("")]
     [InlineData("NT51929")]
-    public void DpPerspectiveClassificationRejectsUnregisteredIcIds(string icId)
+    public void DpPerspectiveClassificationReturnsFalseOutsidePerspectiveFamily(string icId)
     {
         Assert.False(WorkbenchCompositionService.IsDpPerspectiveIc(icId));
     }
