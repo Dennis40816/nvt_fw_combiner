@@ -35,9 +35,13 @@
           <TextBlock Classes="mutedText" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
         </StackPanel>
 
-        <ContentControl
-            Content="{Binding ReplaceBaseSlot}"
-            ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
+        <views:SpaciousPanel Classes="compact" HorizontalAlignment="Stretch">
+          <ContentControl
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Stretch"
+              Content="{Binding ReplaceBaseSlot}"
+              ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
+        </views:SpaciousPanel>
 
         <ItemsControl Classes="spaciousList" HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
           <ItemsControl.ItemTemplate>

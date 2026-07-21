@@ -210,23 +210,33 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
-  <Style Selector="Button.dockAction">
-    <Setter Property="MinHeight" Value="40" />
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  <Style Selector="Button.railAction">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="44" />
+    <Setter Property="MinWidth" Value="44" />
+    <Setter Property="MinHeight" Value="44" />
+    <Setter Property="Padding" Value="0,0,13,0" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="ClipToBounds" Value="True" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
     <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Width" Duration="0:0:0.16" />
+      </Transitions>
+    </Setter>
   </Style>
-  <Style Selector="Button.dockAction /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.railAction /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="Transitions">
       <Transitions>
         <BrushTransition Property="Background" Duration="0:0:0.12" />
@@ -234,73 +244,101 @@
       </Transitions>
     </Setter>
   </Style>
-  <Style Selector="Button.dockIconAction">
-    <Setter Property="Width" Value="40" />
-    <Setter Property="Height" Value="40" />
+  <Style Selector="TextBlock.railActionLabel">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+      </Transitions>
+    </Setter>
   </Style>
-  <Style Selector="Button.primaryDockAction">
-    <Setter Property="MinWidth" Value="88" />
-    <Setter Property="Padding" Value="12,7" />
+  <Style Selector="Button.outputRailAction:pointerover">
+    <Setter Property="Width" Value="184" />
+  </Style>
+  <Style Selector="Button.outputRailAction:focus-visible">
+    <Setter Property="Width" Value="184" />
+  </Style>
+  <Style Selector="Button.buildRailAction:pointerover">
+    <Setter Property="Width" Value="112" />
+  </Style>
+  <Style Selector="Button.buildRailAction:focus-visible">
+    <Setter Property="Width" Value="112" />
+  </Style>
+  <Style Selector="Button.railAction:pointerover TextBlock.railActionLabel">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="Button.railAction:focus-visible TextBlock.railActionLabel">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="Button.primaryRailAction">
     <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
   </Style>
-  <Style Selector="Button.primaryDockAction /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.primaryRailAction /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
   </Style>
-  <Style Selector="Button.dockAction:pointerover">
+  <Style Selector="Button.railAction:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
-  <Style Selector="Button.dockAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.railAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
   </Style>
-  <Style Selector="Button.dockAction:pressed /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.railAction:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
   </Style>
-  <Style Selector="Button.primaryDockAction:pointerover">
+  <Style Selector="Button.primaryRailAction:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
   </Style>
-  <Style Selector="Button.primaryDockAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.primaryRailAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
-  <Style Selector="Button.primaryDockAction:pressed /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.primaryRailAction:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
   </Style>
-  <Style Selector="Button.dockAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.railAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
-  <Style Selector="Button.primaryDockAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.primaryRailAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcSurfaceBrush}" />
   </Style>
-  <Style Selector="Button.dockAction.reducedMotion /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.railAction.reducedMotion">
     <Setter Property="Transitions" Value="{x:Null}" />
   </Style>
-  <Style Selector="Button.dockAction:disabled">
+  <Style Selector="Button.railAction.reducedMotion /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Transitions" Value="{x:Null}" />
+  </Style>
+  <Style Selector="Button.railAction.reducedMotion TextBlock.railActionLabel">
+    <Setter Property="Transitions" Value="{x:Null}" />
+  </Style>
+  <Style Selector="Button.railAction:disabled">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextDisabledBrush}" />
   </Style>
-  <Style Selector="Button.dockAction:disabled /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.railAction:disabled /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderThickness" Value="1" />
   </Style>
-  <Style Selector="Button.dockIconAction Path.dockActionIcon">
+  <Style Selector="Button.outputRailAction Path.railActionIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcTextBrush}" />
   </Style>
-  <Style Selector="Button.dockIconAction:pointerover Path.dockActionIcon">
+  <Style Selector="Button.outputRailAction:pointerover Path.railActionIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
-  <Style Selector="Button.primaryDockAction Path.dockActionIcon">
+  <Style Selector="Button.primaryRailAction Path.railActionIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcSurfaceBrush}" />
   </Style>
-  <Style Selector="Button.dockAction:disabled Path.dockActionIcon">
+  <Style Selector="Button.railAction:disabled Path.railActionIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcTextDisabledBrush}" />
   </Style>
   <Style Selector="Button.reportAction">
