@@ -149,7 +149,8 @@ v0.9.8          feature-frozen code-size convergence
 v0.9.9          legacy convergence and verified patch closure
 v0.9.10         end-to-end performance and Change Report remediation
 v0.9.11         reconstructed stabilization and release hygiene
-v0.9.12         code-size/shared Hex convergence and release governance
+v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance
+v0.9.13         shared Hex/Changes, global Button feedback, and separately gated AB re-admission
 v1.0.0          stable
 ```
 

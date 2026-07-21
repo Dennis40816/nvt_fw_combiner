@@ -16,6 +16,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("`v0.9.12` | CtrlRAM routing and interaction stabilization", tags, StringComparison.Ordinal);
         Assert.Contains("`v0.9.13` | Shared Hex viewport, Button feedback, and AB re-admission", tags, StringComparison.Ordinal);
         Assert.DoesNotContain("Shared Hex viewport and Changes redesign work remain deferred to `0.9.12`", tags, StringComparison.Ordinal);
+
+        int progressionStart = tags.IndexOf("## Progression", StringComparison.Ordinal);
+        int progressionEnd = tags.IndexOf("## Rules", StringComparison.Ordinal);
+        string progression = tags[progressionStart..progressionEnd];
+        Assert.Contains("v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance", progression, StringComparison.Ordinal);
+        Assert.Contains("v0.9.13         shared Hex/Changes, global Button feedback, and separately gated AB re-admission", progression, StringComparison.Ordinal);
+        Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
     }
 
     /// <summary>Locks AB execution out of v0.9.12 and assigns typed re-admission to the separately gated v0.9.13 track.</summary>

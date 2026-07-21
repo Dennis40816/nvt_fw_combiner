@@ -87,7 +87,7 @@ def collect_responses(
             timestamp is not None
             and timestamp > requested_after
             and is_bot(item, bot_login)
-            and (not commit or commit == expected_head)
+            and commit == expected_head
         ):
             responses.append(response_record("review", item, timestamp))
 
@@ -98,7 +98,7 @@ def collect_responses(
             timestamp is not None
             and timestamp > requested_after
             and is_bot(item, bot_login)
-            and (not commit or commit == expected_head)
+            and commit == expected_head
         ):
             responses.append(response_record("inline_comment", item, timestamp))
 
