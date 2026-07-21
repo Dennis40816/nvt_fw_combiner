@@ -135,7 +135,7 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         using var workspace = TempWorkspace.Create("nfc-nt51927-fw140-threechip-negative");
         byte[] reference = [.. ownerCase.Base.Bytes];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int start = checked((int)metadata.FirmwareConfigStart);
+        int start = checked((int)metadata.StructureStart);
         switch (mutation)
         {
             case "base":

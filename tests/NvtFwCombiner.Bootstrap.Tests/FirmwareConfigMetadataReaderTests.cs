@@ -140,7 +140,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(image, firmwareConfigStart, out FirmwareConfigMetadata primary));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup));
         int nvtTerminal = Assert.Single(FindNvtEndFlagTerminals(image));
-        Assert.Equal(nvtTerminal - 0xFFF, backup.FirmwareConfigStart);
+        Assert.Equal(nvtTerminal - 0xFFF, backup.StructureStart);
 
         Assert.Equal(primary.FirmwareVersion, backup.FirmwareVersion);
         Assert.Equal(primary.FirmwareVersionBar, backup.FirmwareVersionBar);
@@ -184,13 +184,13 @@ public sealed class FirmwareConfigMetadataReaderTests
         WriteEndFlag(firstMarker, 0x0FFC);
 
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(firstMarker, out FirmwareConfigMetadata first));
-        Assert.Equal(0, first.FirmwareConfigStart);
+        Assert.Equal(0, first.StructureStart);
 
         byte[] lastMarker = new byte[0x2000];
         WriteEndFlag(lastMarker, lastMarker.Length - NvtEndFlagBytes.Length);
 
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(lastMarker, out FirmwareConfigMetadata last));
-        Assert.Equal(0x1000, last.FirmwareConfigStart);
+        Assert.Equal(0x1000, last.StructureStart);
     }
 
     /// <summary>NT51926 golden evidence identifies the owner-confirmed 1.4.1 Common FW codebase.</summary>

@@ -121,7 +121,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = [.. ownerCase.Expected.Bytes];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int start = checked((int)metadata.FirmwareConfigStart);
+        int start = checked((int)metadata.StructureStart);
         switch (mutation)
         {
             case "base":

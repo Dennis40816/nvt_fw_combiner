@@ -68,7 +68,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
             .Append(new OwnerArtifact(null, BasePath, reference))
             .ToDictionary(static artifact => artifact.Path, static artifact => Hash(artifact.Bytes), StringComparer.Ordinal);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int start = checked((int)metadata.FirmwareConfigStart);
+        int start = checked((int)metadata.StructureStart);
         switch (mutation)
         {
             case "base":

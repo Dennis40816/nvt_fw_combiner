@@ -226,7 +226,7 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = [.. evidence.Expected.Bytes];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int start = checked((int)metadata.FirmwareConfigStart);
+        int start = checked((int)metadata.StructureStart);
         string number = "single";
         switch (mutation)
         {

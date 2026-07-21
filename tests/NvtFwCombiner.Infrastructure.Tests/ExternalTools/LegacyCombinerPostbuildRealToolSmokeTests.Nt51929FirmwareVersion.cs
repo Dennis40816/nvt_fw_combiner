@@ -41,19 +41,19 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             stagedFirmware,
             flashMap!.FirmwareConfigPrimaryStart,
             out FirmwareConfigMetadata primary));
-        Assert.NotEqual(backup.FirmwareConfigStart, primary.FirmwareConfigStart);
+        Assert.NotEqual(backup.StructureStart, primary.StructureStart);
 
-        int sourceStart = checked((int)primary.FirmwareConfigStart);
+        int sourceStart = checked((int)primary.StructureStart);
         stagedFirmware[sourceStart + FirmwareConfigLayout.FirmwareVersionOffset] = firmwareVersion;
         stagedFirmware[sourceStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~firmwareVersion);
         stagedFirmware[sourceStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = firmwareSubVersion;
 
         List<ByteRange> allowedChanges = DecodeRanges(Nt51929RangeValues());
         allowedChanges.Add(new ByteRange(
-            backup.FirmwareConfigStart + FirmwareConfigLayout.FirmwareVersionOffset,
+            backup.StructureStart + FirmwareConfigLayout.FirmwareVersionOffset,
             sizeof(ushort)));
         allowedChanges.Add(new ByteRange(
-            backup.FirmwareConfigStart + FirmwareConfigLayout.FirmwareSubVersionOffset,
+            backup.StructureStart + FirmwareConfigLayout.FirmwareSubVersionOffset,
             sizeof(byte)));
         string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-nt51929-version-propagation-{Guid.NewGuid():N}");
         try

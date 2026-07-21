@@ -33,7 +33,7 @@ public static partial class WorkbenchCompositionService
         }
 
         ByteRange requiredBackupRange = new(
-            backupMetadata.FirmwareConfigStart,
+            backupMetadata.StructureStart,
             FirmwareConfigLayout.RequiredLength);
         LegacyCombinerBlockArgument[] sourceBlocks =
         [
@@ -86,8 +86,8 @@ public static partial class WorkbenchCompositionService
         }
 
         writePlan = FirmwareConfigVersionWritePlan
-            .CreateForBackup(backupMetadata, edit.FirmwareVersion, edit.FirmwareSubVersion)
-            .RebaseToCombinerSource(sourceStart.Value);
+            .CreateFromCanonicalBackup(backupMetadata, edit.FirmwareVersion, edit.FirmwareSubVersion)
+            .RebaseToSourceStructure(sourceStart.Value);
         return true;
     }
 
@@ -103,12 +103,12 @@ public static partial class WorkbenchCompositionService
                 baseBytes,
                 flashMap!.FirmwareConfigPrimaryStart,
                 out FirmwareConfigMetadata primaryMetadata) ||
-            primaryMetadata with { FirmwareConfigStart = backupMetadata.FirmwareConfigStart } != backupMetadata)
+            primaryMetadata with { StructureStart = backupMetadata.StructureStart } != backupMetadata)
         {
             return false;
         }
 
-        sourceStart = primaryMetadata.FirmwareConfigStart;
+        sourceStart = primaryMetadata.StructureStart;
         return true;
     }
 }

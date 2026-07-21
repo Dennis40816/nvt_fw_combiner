@@ -116,7 +116,7 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.NotNull(metadata);
         byte[] image = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup));
-        Assert.Equal(backup.FirmwareConfigStart, metadata.FirmwareConfigBackupStart);
+        Assert.Equal(backup.StructureStart, metadata.FirmwareConfigBackupStart);
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
         Assert.Equal(0x02, metadata.ChipNumber);
         Assert.Equal("51926_1.4.1", metadata.PostbuildCategory);
@@ -308,7 +308,7 @@ public sealed class WorkbenchCompositionServiceTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-invalid-fwbar");
         byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata backup));
-        baseBytes[checked((int)backup.FirmwareConfigStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
+        baseBytes[checked((int)backup.StructureStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
 
         string basePath = workspace.Write("base-invalid-fwbar.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
@@ -358,7 +358,7 @@ public sealed class WorkbenchCompositionServiceTests
             Assert.Equal(0x04, input[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareSubVersionOffset]);
 
             byte[] output = request.InputBytes.ToArray();
-            int backupStart = checked((int)originalBackup.FirmwareConfigStart);
+            int backupStart = checked((int)originalBackup.StructureStart);
             output[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = 0x27;
             output[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = 0xD8;
             output[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = 0x04;

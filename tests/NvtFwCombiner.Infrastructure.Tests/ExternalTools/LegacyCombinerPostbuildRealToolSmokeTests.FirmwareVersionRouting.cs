@@ -66,10 +66,10 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             stagedFirmware,
             flashMap!.FirmwareConfigPrimaryStart,
             out FirmwareConfigMetadata primary));
-        Assert.NotEqual(backup.FirmwareConfigStart, primary.FirmwareConfigStart);
-        Assert.Equal(backup, primary with { FirmwareConfigStart = backup.FirmwareConfigStart });
+        Assert.NotEqual(backup.StructureStart, primary.StructureStart);
+        Assert.Equal(backup, primary with { StructureStart = backup.StructureStart });
 
-        int sourceStart = checked((int)primary.FirmwareConfigStart);
+        int sourceStart = checked((int)primary.StructureStart);
         stagedFirmware[sourceStart + FirmwareConfigLayout.FirmwareVersionOffset] = firmwareVersion;
         stagedFirmware[sourceStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~firmwareVersion);
         stagedFirmware[sourceStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = firmwareSubVersion;
@@ -100,8 +100,8 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
                         stagedTargetRanges,
                         stagedTargetRanges)
                     .Select(write => write.Range),
-                new(backup.FirmwareConfigStart + FirmwareConfigLayout.FirmwareVersionOffset, sizeof(ushort)),
-                new(backup.FirmwareConfigStart + FirmwareConfigLayout.FirmwareSubVersionOffset, sizeof(byte)),
+                new(backup.StructureStart + FirmwareConfigLayout.FirmwareVersionOffset, sizeof(ushort)),
+                new(backup.StructureStart + FirmwareConfigLayout.FirmwareSubVersionOffset, sizeof(byte)),
             ];
             byte[] output = await RunPostbuildProcessorAsync(
                 processor,

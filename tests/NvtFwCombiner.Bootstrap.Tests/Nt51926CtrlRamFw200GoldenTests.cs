@@ -160,7 +160,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
 
         byte[] reference = File.ReadAllBytes(referencePath);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int backupStart = checked((int)metadata.FirmwareConfigStart);
+        int backupStart = checked((int)metadata.StructureStart);
         reference[backupStart + FirmwareConfigLayout.ChipNumberOffset] = chipCount;
         BinaryPrimitives.WriteUInt16LittleEndian(
             reference.AsSpan(backupStart + FirmwareConfigLayout.ProjectIdOffset),

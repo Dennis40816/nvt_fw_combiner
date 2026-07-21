@@ -191,7 +191,7 @@ public static partial class WorkbenchCompositionService
     {
         return metadata is { } firmwareConfig
             ? new WorkbenchFirmwareConfigMetadata(
-                firmwareConfig.FirmwareConfigStart,
+                firmwareConfig.StructureStart,
                 firmwareConfig.CommonFwVersion,
                 firmwareConfig.FirmwareVersion,
                 firmwareConfig.FirmwareVersionBar,

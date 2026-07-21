@@ -1,6 +1,6 @@
 # ADR 0029: Explicit FWConfig version write routes
 
-- Status: Proposed for v0.9.12
+- Status: Accepted for v0.9.12 implementation; firmware-owner release gate remains
 - Date: 2026-07-21
 - Risk: R3; firmware-owner review is required before release
 
@@ -14,12 +14,12 @@ committing output. The pre-postbuild write location is not identical for every l
 - some NT-based modes implicitly propagate the TP Overview Primary FWConfig to Backup;
 - a mode without either relationship must reject version authoring.
 
-The current `LegacyCombinerFirmwareConfigPropagation.None` value does not distinguish an explicit
+Before the v0.9.12 migration, `LegacyCombinerFirmwareConfigPropagation.None` did not distinguish an explicit
 command source from an unreviewed or accidentally omitted route. The v2 family data also models the
 Primary structure as `fw-config-source` for only NT51919, NT51926, and NT51929. Other exact routes
-can therefore have a correct postbuild source offset while the compiler still sees that address as an
-unmapped gap. This is fail-closed, but it hides incomplete modeling and caused the NT51929 gap to be
-fixed as an IC-specific exception before the complete matrix was reviewed.
+could therefore have a correct postbuild source offset while the compiler still saw that address as an
+unmapped gap. The v0.9.12 implementation closes that modeling gap for every CtrlRAM profile without
+changing the processor's write authority.
 
 ## Evidence inventory
 
@@ -27,28 +27,28 @@ All offsets below are existing hash-pinned TP Overview or postbuild facts. No ne
 `Mode evidence` describes the source-to-Backup relationship only; it does not promote product support
 or replace full expected-output golden review.
 
-| IC | Primary start | Write route | Backup target | Current v2 source model | Mode evidence |
+| IC | Primary start | Write route | Backup target | v0.9.12 source model | Mode evidence |
 | --- | ---: | --- | --- | --- | --- |
-| NT51917 | `0x16000` | explicit command source | `[0x34000,0x34800)` | missing; currently an unmapped gap | NT51927-family command blocks and approved perfect-family alias |
+| NT51917 | `0x16000` | explicit command source | `[0x34000,0x34800)` | modeled | NT51927-family command blocks and approved perfect-family alias |
 | NT51919 | `0x1F200` | implicit Primary to canonical Backup | terminal-marker rule | modeled | NT51929 perfect-family alias plus real-tool propagation test |
-| NT51920 | `0x22000` | explicit command source | `[0x2F000,0x2F780)` | missing; currently an unmapped gap | direct command blocks and owner golden routes |
-| NT51923 | `0x22000` | explicit command source | `[0x3B000,0x3B800)` | missing; currently an unmapped gap | direct command blocks and owner golden routes |
+| NT51920 | `0x22000` | explicit command source | `[0x2F000,0x2F780)` | modeled | direct command blocks and owner golden routes |
+| NT51923 | `0x22000` | explicit command source | `[0x3B000,0x3B800)` | modeled | direct command blocks and owner golden routes |
 | NT51926 | `0x22000` | explicit command source | `[0x3B000,0x3B780)` or `[0x3B000,0x3B800)` by Common FW | modeled | direct versioned command blocks and existing Build-only edit test |
-| NT51927 | `0x16000` | explicit command source | `[0x34000,0x34800)` | missing; currently an unmapped gap | direct single/two-/three-chip command blocks |
-| NT51928 non-NB | `0x16000` | explicit command source | `[0x34000,0x34800)` | missing; currently an unmapped gap | owner-approved NT51927 partial-family command alias |
+| NT51927 | `0x16000` | explicit command source | `[0x34000,0x34800)` | modeled | direct single/two-/three-chip command blocks |
+| NT51928 non-NB | `0x16000` | explicit command source | `[0x34000,0x34800)` | modeled | owner-approved NT51927 partial-family command alias |
 | NT51929 | `0x1F200` | implicit Primary to canonical Backup | terminal-marker rule | modeled | direct real-tool propagation and production Build tests |
-| NT51930 | `0x1F200` | implicit Primary to canonical Backup | terminal-marker rule | missing; currently an unmapped gap | direct real-tool Common FW 1.x propagation test |
-| NT51931 | `0x16000` | explicit command source | `[0x3B000,0x3B800)` | missing; currently an unmapped gap | direct command blocks and owner golden route |
-| NT51932 | `0x1F200` | implicit Primary to canonical Backup | terminal-marker rule | missing; currently an unmapped gap | direct real-tool propagation test |
-| NT51950 | `0x22200` | implicit Primary to canonical Backup | terminal-marker rule | missing; currently an unmapped gap | direct real-tool propagation test |
-| NT51951 | `0x22200` | implicit Primary to canonical Backup | terminal-marker rule | missing; currently an unmapped gap | direct real-tool propagation test |
+| NT51930 | `0x1F200` | implicit Primary to canonical Backup | terminal-marker rule | modeled | direct real-tool Common FW 1.x propagation test |
+| NT51931 | `0x16000` | explicit command source | `[0x3B000,0x3B800)` | modeled | direct command blocks and owner golden route |
+| NT51932 | `0x1F200` | implicit Primary to canonical Backup | terminal-marker rule | modeled | direct real-tool propagation test |
+| NT51950 | `0x22200` | implicit Primary to canonical Backup | terminal-marker rule | modeled | direct real-tool propagation test |
+| NT51951 | `0x22200` | implicit Primary to canonical Backup | terminal-marker rule | modeled | direct real-tool propagation test |
 
 The executable six-mode implicit matrix is
 `LegacyCombinerPostbuildRealToolSmokeTests.FirmwareVersionRouting.cs`. Explicit command routes remain
 grounded in `ctrlram-postbuild-v2/catalog.json`; their `sourceOffset` must equal the IC's
 `firmwareConfigPrimaryStart`.
 
-## Proposed decision
+## Decision
 
 1. Replace the optional propagation flag with one required profile-owned write route:
    `command-source-to-canonical-backup`, `primary-to-canonical-backup`, or `unavailable`.

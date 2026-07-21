@@ -273,7 +273,7 @@ public sealed class Nt51931CtrlRamEvidenceTests
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = File.ReadAllBytes(paths["NT51931_FlashCode_D8DT83_20260718.bin"]);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int start = checked((int)metadata.FirmwareConfigStart);
+        int start = checked((int)metadata.StructureStart);
         reference[start + FirmwareConfigLayout.CommonFwMajorVersionOffset] = major;
         reference[start + FirmwareConfigLayout.CommonFwMinorVersionOffset] = minor;
         reference[start + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = additional;

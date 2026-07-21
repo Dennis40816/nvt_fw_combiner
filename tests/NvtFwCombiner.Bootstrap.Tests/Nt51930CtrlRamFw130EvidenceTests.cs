@@ -184,7 +184,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = [.. evidence.Expected.Bytes];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int backupStart = checked((int)metadata.FirmwareConfigStart);
+        int backupStart = checked((int)metadata.StructureStart);
         reference[backupStart + FirmwareConfigLayout.CommonFwMajorVersionOffset] = commonFwMajor;
         reference[backupStart + FirmwareConfigLayout.CommonFwMinorVersionOffset] = commonFwMinor;
         reference[backupStart + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = commonFwAdditional;

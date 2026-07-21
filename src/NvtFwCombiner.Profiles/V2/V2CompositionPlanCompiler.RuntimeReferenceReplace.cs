@@ -168,15 +168,15 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         bool fieldsShareFirmwareConfig =
-            TryResolveGoverningRegionChain(edit.FirmwareVersionAndBarRange, regionAccess.RegionsById, out FirmwareRegion[] versionChain) &&
-            TryResolveGoverningRegionChain(edit.FirmwareSubVersionRange, regionAccess.RegionsById, out FirmwareRegion[] subVersionChain) &&
+            TryResolveGoverningRegionChain(edit.SourceFirmwareVersionAndBarRange, regionAccess.RegionsById, out FirmwareRegion[] versionChain) &&
+            TryResolveGoverningRegionChain(edit.SourceFirmwareSubVersionRange, regionAccess.RegionsById, out FirmwareRegion[] subVersionChain) &&
             versionChain[^1] is { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } sourceRegion &&
             subVersionChain[^1] is { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } subVersionRegion &&
             StringComparer.Ordinal.Equals(sourceRegion.RegionId, subVersionRegion.RegionId);
         if (!StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.CtrlRamReplace) ||
             shape.ProcessorOperation is null ||
-            edit.FirmwareVersionAndBarRange.Length != 2 ||
-            edit.FirmwareSubVersionRange.Length != 1 ||
+            edit.SourceFirmwareVersionAndBarRange.Length != 2 ||
+            edit.SourceFirmwareSubVersionRange.Length != 1 ||
             !fieldsShareFirmwareConfig)
         {
             issues.Add(new CompositionIssue(RuntimeReferenceFirmwareVersionEditInvalid,
@@ -191,9 +191,9 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         return [
-            Patch("patch-fw-version-and-bar", 10, edit.FirmwareVersionAndBarRange,
+            Patch("patch-fw-version-and-bar", 10, edit.SourceFirmwareVersionAndBarRange,
                 [edit.FirmwareVersion, unchecked((byte)~edit.FirmwareVersion)]),
-            Patch("patch-fw-sub-version", 20, edit.FirmwareSubVersionRange, [edit.FirmwareSubVersion])];
+            Patch("patch-fw-sub-version", 20, edit.SourceFirmwareSubVersionRange, [edit.FirmwareSubVersion])];
     }
 
 

@@ -15,18 +15,18 @@ public static class FirmwareConfigMetadataReader
     /// </summary>
     public static bool TryReadAtAbsoluteAddress(
         ReadOnlySpan<byte> image,
-        long firmwareConfigStart,
+        long structureStart,
         out FirmwareConfigMetadata metadata)
     {
         metadata = default;
-        if (firmwareConfigStart < 0 ||
-            firmwareConfigStart > int.MaxValue ||
-            firmwareConfigStart + FirmwareConfigLayout.RequiredLength > image.Length)
+        if (structureStart < 0 ||
+            structureStart > int.MaxValue ||
+            structureStart + FirmwareConfigLayout.RequiredLength > image.Length)
         {
             return false;
         }
 
-        int start = (int)firmwareConfigStart;
+        int start = (int)structureStart;
         byte firmwareVersion = image[start + FirmwareConfigLayout.FirmwareVersionOffset];
         byte firmwareVersionBar = image[start + FirmwareConfigLayout.FirmwareVersionBarOffset];
         byte commonFwMajorVersion = image[start + FirmwareConfigLayout.CommonFwMajorVersionOffset];
@@ -54,7 +54,7 @@ public static class FirmwareConfigMetadataReader
             ReadGipTable(image, start + FirmwareConfigLayout.GipAfterRightOffset));
 
         metadata = new FirmwareConfigMetadata(
-            firmwareConfigStart,
+            structureStart,
             firmwareVersion,
             firmwareVersionBar,
             unchecked((byte)~firmwareVersion) == firmwareVersionBar,
@@ -117,7 +117,7 @@ public static class FirmwareConfigMetadataReader
 
 /// <summary>Display-oriented facts extracted from a flash image FWConfig structure.</summary>
 public readonly record struct FirmwareConfigMetadata(
-    long FirmwareConfigStart,
+    long StructureStart,
     byte FirmwareVersion,
     byte FirmwareVersionBar,
     bool IsFirmwareVersionBarValid,
