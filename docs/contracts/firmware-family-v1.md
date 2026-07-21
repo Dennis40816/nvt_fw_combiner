@@ -13,8 +13,8 @@ A family document owns only facts that can be resolved without choosing a workfl
   kind;
 - non-relaxable write constraints and alignment;
 - metadata structures, fields, and bounded locators;
-- map applicability by member, mode, topology requirement, capacity, Common FW category, and
-  decoded metadata predicates; and
+- map applicability by member, mode, topology requirement, capacity, and independently evidenced
+  physical-variant predicates; and
 - explicit, fact-scoped aliases.
 
 A family document never grants execution support, declares operation order, invokes a processor,
@@ -22,11 +22,21 @@ or exposes a UI action. Newly inventoried regions use `writeConstraint = "forbid
 evidence approves a narrower constraint. A composition profile may further restrict a map but may
 not relax it.
 
+Family identity is resolved before map applicability. The normalized requested IC must name an
+explicit member or owner-declared fact-scoped alias; PID, firmware version, chip count, filename,
+capacity, hash, and decoded payload metadata never discover, select, or change the family. Map
+predicates may validate a physical variant inside the already selected family only when independent
+owner-reviewed map or command evidence establishes that distinction. Golden fixture identity is not
+such authority. CtrlRAM runtime-profile version and build-plan selection follow
+[ADR 0031](../adr/0031-ctrlram-profile-intervals-and-build-plan-authority.md).
+
 ## Resolution
 
 `TopologyRequirement` is static applicability. Runtime `TopologySelection` and other named
 `ResolutionInputs` are Domain values and are not persisted as mutable family policy. Resolution
 must produce exactly one map or return pending/rejected; it never chooses the first matching map.
+The member id is supplied from the already resolved requested IC; resolution does not infer family
+membership from artifact bytes. Requested topology selects or validates a build plan, not a family.
 
 Every absolute or search range names its address space. Marker-relative locators require a bounded
 search range, exact marker bytes, checked signed result offset, at least one structure assertion,
@@ -107,7 +117,8 @@ is equal.
 When a composition profile requires a technical capability, Profiles evaluates only bindings whose
 effective member and map equal the resolved selection. Exactly one applicable `confirmed-present`
 binding is required; direct-source identity, declaration order, `confirmed-absent`, `unknown`,
-missing evidence, ambiguity, or unavailable Common FW category selection all fail closed. The
+missing evidence, ambiguity, or unavailable independently evidenced physical-variant selection all
+fail closed. The
 selected binding retains its effective/direct keys and complete alias provenance for later compiler
 fingerprinting; it still does not grant promotion or runtime execution authority.
 

@@ -3,6 +3,7 @@
 - Status: Accepted for v0.9.12
 - Date: 2026-07-21
 - Risk: R3; firmware-owner review remains required for firmware facts and release evidence
+- Amended by: [ADR 0031](0031-ctrlram-profile-intervals-and-build-plan-authority.md)
 
 ## Context
 
@@ -25,9 +26,10 @@ firmware shape.
 
 1. Production firmware-input admission must not compare a complete input/reference SHA-256 with a
    golden or owner-evidence artifact hash.
-2. Production route selection uses only typed, profile-owned facts required by that workflow: IC,
-   registered processor, composition branch and number mode, capacity, Common FW, chip count,
-   project id, structural markers, declared regions, and other explicitly modeled fields.
+2. Production route selection uses only typed authority required by that workflow. For CtrlRAM
+   Replace, ADR 0031 separates requested IC family identity, effective runtime-profile interval, and
+   owner-provided build plan. PID, exact golden Common FW, filename, hash, and a fixture's observed
+   chip count are not route keys merely because they are modeled fields.
 3. A changed whole-file SHA with the same required firmware facts remains eligible for the same
    route. Normal profile validation, range authority, processor authority, immutable-source, final
    structure validation, and atomic output promotion still apply.
@@ -42,9 +44,10 @@ firmware shape.
 
 ## Invariants
 
-- This decision does not add a new IC, Common FW, topology, project id, processor, capacity, range,
+- This decision does not add a new IC, Common FW profile, topology plan, processor, capacity, range,
   command, or support claim.
-- Unknown or mismatched typed firmware facts still fail closed.
+- Unknown or mismatched byte-authoritative profile, topology, structural, or processor facts still
+  fail closed. Informational metadata does not become authority by being present in FWConfig.
 - Input/reference artifacts remain immutable and external tools operate only on host staging copies.
 - Golden expected bytes cannot be weakened to accommodate a production input variation.
 - Tool, catalog, and profile-bundle integrity checks remain fail-closed.

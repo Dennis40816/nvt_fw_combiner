@@ -158,8 +158,13 @@ Minimum tests:
 1. Add or confirm TP/full-Flash shapes and TP flash-map CtrlRAM rows in hash-pinned `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`.
 2. Add or confirm TP header/write categories in `TpHeaderCatalog` when postbuild writes new header copy, backup, CRC, or TP window sections.
 3. Add postbuild structured commands in `profiles/built-in/ctrlram-postbuild-v2/catalog.json` from owner-approved postbuild/mmap evidence and update its pinned SHA-256.
-4. Declare Common FW category rules for versioned ICs, then lock selection with catalog tests so unsupported or ambiguous versions fail closed.
-5. Declare IC-number branch rules. Use `single`/`cascade` text choices unless the owner evidence requires numeric 1/2/3 branches.
+4. Declare only owner-provided runtime postbuild revisions. One runtime profile covers Common FW
+   `[1.0.0, infinity)`; multiple profiles form ordered effective-version intervals whose next entry
+   starts the next range. Evidence-only entries create no runtime boundary. Test interval edges and
+   fail closed only when multiple runtime profiles cannot be selected unambiguously.
+5. Declare build plans from distinct owner-provided command sequences. Use `single` and generic
+   `cascade` (`Number > 1`) unless command evidence requires exact 2/3-chip or non-overlapping count
+   ranges. Never create a plan from a golden's observed count.
 6. Ensure selected staged-file blocks map to visible CtrlRAM rows.
 7. Ensure every CtrlRAM Replace run executes the required postbuild sequence. A raw range replacement without postbuild is not a finished image.
 8. Confirm processor allowed write ranges include every Combiner-written byte and reject all others.
