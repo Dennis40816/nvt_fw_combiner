@@ -94,6 +94,8 @@ public sealed partial class MainWindowViewModel
         ShowMergeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Merge));
         ShowReplaceCommand = new RelayCommand(() => NavigateToPage(ShellPage.Replace));
         GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);
+        ConfirmNavigationAndClearCommand = new RelayCommand(ConfirmNavigationAndClear);
+        CancelNavigationClearCommand = new RelayCommand(CancelNavigationClear);
         BeginDpReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
         BeginCtrlRamReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
         BeginGeneralReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));

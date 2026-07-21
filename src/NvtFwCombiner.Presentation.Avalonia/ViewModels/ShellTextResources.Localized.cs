@@ -90,6 +90,12 @@ public sealed partial class ShellTextResources
             InitialRunDetail = Pick("Drop required BIN files, then run Build.", "放入必要 BIN 檔後即可建立。"),
             NoOutputLabel = Pick("No output", "無輸出"),
             WorkflowKicker = Pick("WORKFLOW", "流程"),
+            NavigationClearTitle = Pick("Clear selected files and leave this page?", "清除已選檔案並離開此頁？"),
+            NavigationClearDetail = Pick(
+                "Continuing clears the BIN and mapping-file selections on this page. IC, Number, Mode, mapping addresses, and Settings preferences are kept.",
+                "繼續後會清除此頁的 BIN 與 mapping 檔案選取；IC、Number、Mode、mapping 位址及 Settings 偏好仍會保留。"),
+            NavigationClearConfirmLabel = Pick("Clear and continue", "清除並繼續"),
+            NavigationClearCancelLabel = Pick("Stay on this page", "留在此頁"),
             OpenLabel = Pick("Open", "開啟"),
             PendingLabel = Pick("Pending", "待實作"),
             LoadJsonLabel = Pick("Load JSON", "載入 JSON"),
