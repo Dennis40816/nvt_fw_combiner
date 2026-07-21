@@ -129,9 +129,9 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         AssertWorkflowNotSupported(result, outputPath);
     }
 
-    /// <summary>Proves matching metadata cannot route a different base variant through the exact V2 path.</summary>
+    /// <summary>Proves production routing accepts a structurally valid base without golden hash admission.</summary>
     [Fact]
-    public async Task SameMetadataWithDifferentBaseBytesRetainsV1FallbackAsync()
+    public async Task SameMetadataWithDifferentBaseBytesUsesExactV2RouteAsync()
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51951-fw200-base-identity");
@@ -140,10 +140,15 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         reference[0x100] ^= 0x01;
         File.WriteAllBytes(referencePath, reference);
 
-        string outputPath = workspace.PathFor("unsupported.bin");
+        Assert.NotEqual(Hash(evidence.Expected.Bytes), Hash(reference));
+
+        string outputPath = workspace.PathFor("output.bin");
         WorkbenchRunResult result = await RunWithPassThroughAsync(evidence, "single", referencePath, outputPath);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(reference[0x100], File.ReadAllBytes(outputPath)[0x100]);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        AssertReportIdentity(report.RootElement, "nt51951-ctrlram-replace-fw200-single");
     }
 
     /// <summary>Proves accepted NT51951 identifiers select the same exact V2 route.</summary>
