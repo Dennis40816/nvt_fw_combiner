@@ -23,6 +23,13 @@ class PollingError(RuntimeError):
     """Raised when GitHub state cannot be read safely."""
 
 
+class PollArgumentParser(argparse.ArgumentParser):
+    """Map command-line errors into the poller's documented JSON contract."""
+
+    def error(self, message: str) -> None:
+        raise ValueError(message)
+
+
 def parse_utc(value: str) -> datetime:
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
@@ -248,15 +255,14 @@ def sleep_with_heartbeats(seconds: int, poll_number: int) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = PollArgumentParser(description=__doc__)
     parser.add_argument("--repo", required=True, help="GitHub owner/name")
     parser.add_argument("--pr", required=True, type=int, help="pull request number")
     parser.add_argument(
         "--expected-head", required=True, help="exact 40-character head SHA"
     )
-    identity = parser.add_mutually_exclusive_group(required=True)
-    identity.add_argument("--request-comment-id", type=int)
-    identity.add_argument("--requested-after", help="exact ISO-8601 request time")
+    parser.add_argument("--request-comment-id", type=int)
+    parser.add_argument("--requested-after", help="exact ISO-8601 request time")
     parser.add_argument("--bot-login", default=DEFAULT_BOT_LOGIN)
     parser.add_argument("--interval-seconds", type=int, default=300)
     parser.add_argument("--max-polls", type=int, default=12)
@@ -265,7 +271,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    try:
+        args = build_parser().parse_args(argv)
+    except ValueError as error:
+        emit({"status": "invalid_input", "message": str(error)})
+        return 5
+
+    identity_count = sum(
+        value is not None for value in (args.request_comment_id, args.requested_after)
+    )
     if (
         REPOSITORY_PATTERN.fullmatch(args.repo) is None
         or args.pr <= 0
@@ -276,11 +290,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         or args.interval_seconds < 1
         or args.max_polls < 1
+        or identity_count != 1
+        or (args.request_comment_id is not None and args.request_comment_id <= 0)
     ):
         emit(
             {
                 "status": "invalid_input",
-                "message": "invalid repository, PR, SHA, or poll budget",
+                "message": "invalid repository, PR, SHA, request identity, or poll budget",
             }
         )
         return 5

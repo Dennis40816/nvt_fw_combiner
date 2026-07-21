@@ -241,10 +241,63 @@ class PollGithubReviewTests(unittest.TestCase):
         self.assertEqual(exit_code, 5)
         self.assertIn('"status": "invalid_input"', output.getvalue())
 
+    def test_main_maps_incomplete_or_conflicting_identity_to_invalid_input(
+        self,
+    ) -> None:
+        base_args = [
+            "--repo",
+            "owner/repository",
+            "--pr",
+            "1",
+            "--expected-head",
+            self.head,
+            "--once",
+        ]
+        identity_cases = {
+            "missing": [],
+            "conflicting": [
+                "--request-comment-id",
+                "123",
+                "--requested-after",
+                "2026-07-21T04:00:00Z",
+            ],
+            "zero-comment-id": ["--request-comment-id", "0"],
+        }
+
+        for name, identity_args in identity_cases.items():
+            with self.subTest(name=name):
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    exit_code = POLL.main([*base_args, *identity_args])
+
+                self.assertEqual(exit_code, 5)
+                self.assertIn('"status": "invalid_input"', output.getvalue())
+
+    def test_main_maps_parser_error_to_invalid_input(self) -> None:
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            exit_code = POLL.main(
+                [
+                    "--repo",
+                    "owner/repository",
+                    "--pr",
+                    "not-an-integer",
+                    "--expected-head",
+                    self.head,
+                    "--requested-after",
+                    "2026-07-21T04:00:00Z",
+                ]
+            )
+
+        self.assertEqual(exit_code, 5)
+        self.assertIn('"status": "invalid_input"', output.getvalue())
+
     def _run_main(self, client: "_FakeClient") -> tuple[int, str]:
         output = io.StringIO()
-        with patch.object(POLL, "GitHubClient", return_value=client), redirect_stdout(
-            output
+        with (
+            patch.object(POLL, "GitHubClient", return_value=client),
+            redirect_stdout(output),
         ):
             exit_code = POLL.main(
                 [
