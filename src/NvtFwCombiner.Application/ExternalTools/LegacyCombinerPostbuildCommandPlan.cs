@@ -8,10 +8,11 @@ public sealed class LegacyCombinerPostbuildCommandPlan
     /// <summary>Creates a resolved postbuild command plan.</summary>
     public LegacyCombinerPostbuildCommandPlan(
         LegacyCombinerPostbuildProfile profile,
-        LegacyCombinerPostbuildBranch branch,
+        LegacyCombinerPostbuildPlanSelector selector,
         IEnumerable<LegacyCombinerPostbuildCommand> commands)
     {
         ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullException.ThrowIfNull(selector);
         ArgumentNullException.ThrowIfNull(commands);
 
         _commands = [.. commands];
@@ -21,14 +22,17 @@ public sealed class LegacyCombinerPostbuildCommandPlan
         }
 
         Profile = profile;
-        Branch = branch;
+        Selector = selector;
     }
 
     /// <summary>Profile selected for this run.</summary>
     public LegacyCombinerPostbuildProfile Profile { get; }
 
-    /// <summary>Single or cascade branch selected for this run.</summary>
-    public LegacyCombinerPostbuildBranch Branch { get; }
+    /// <summary>Typed topology selector resolved for this run.</summary>
+    public LegacyCombinerPostbuildPlanSelector Selector { get; }
+
+    /// <summary>Single, cascade, or distinct count command branch selected for this run.</summary>
+    public LegacyCombinerPostbuildBranch Branch => Selector.Branch;
 
     /// <summary>Process commands in execution order.</summary>
     public IReadOnlyList<LegacyCombinerPostbuildCommand> Commands => _commands;

@@ -13,7 +13,8 @@ public static partial class LegacyCombinerPostbuildPlanner
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        LegacyCombinerPostbuildBranch branch = ResolveBranch(profile, icNumberSelection);
+        LegacyCombinerPostbuildPlanSelector selector = ResolveSelector(profile, icNumberSelection);
+        LegacyCombinerPostbuildBranch branch = selector.Branch;
         IReadOnlyList<LegacyCombinerPostbuildCommand> commands = branch switch
         {
             LegacyCombinerPostbuildBranch.SingleChip => profile.SingleCommands,
@@ -22,7 +23,7 @@ public static partial class LegacyCombinerPostbuildPlanner
             LegacyCombinerPostbuildBranch.Cascade => profile.CascadeCommands,
             _ => throw new ArgumentOutOfRangeException(nameof(icNumberSelection), "Unsupported postbuild branch."),
         };
-        return new LegacyCombinerPostbuildCommandPlan(profile, branch, commands);
+        return new LegacyCombinerPostbuildCommandPlan(profile, selector, commands);
     }
 
     /// <summary>Returns staged BIN block arguments in deterministic order.</summary>
@@ -73,13 +74,14 @@ public static partial class LegacyCombinerPostbuildPlanner
         return requiredCapacity;
     }
 
-    private static LegacyCombinerPostbuildBranch ResolveBranch(
+    private static LegacyCombinerPostbuildPlanSelector ResolveSelector(
         LegacyCombinerPostbuildProfile profile,
         IcNumberSelection? selection)
     {
         if (selection is null)
         {
-            return LegacyCombinerPostbuildBranch.SingleChip;
+            return profile.PlanSelectors.Single(static selector =>
+                selector.Kind == LegacyCombinerPostbuildPlanSelectorKind.SingleChip);
         }
 
         LegacyCombinerPostbuildPlanSelector[] matches =
@@ -87,8 +89,8 @@ public static partial class LegacyCombinerPostbuildPlanner
             .. profile.PlanSelectors.Where(selector => selector.Matches(selection)),
         ];
         return matches.Length == 1
-            ? matches[0].Branch
+            ? matches[0]
             : throw new ArgumentException(
-                $"IC number selection '{selection.Parts[^1]}' is not supported by postbuild profile '{profile.ProcessorId}'.");
+                $"IC number selection '{(selection.Parts.Count == 0 ? "<empty>" : selection.Parts[^1])}' is not supported by postbuild profile '{profile.ProcessorId}'.");
     }
 }

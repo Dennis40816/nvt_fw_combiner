@@ -78,9 +78,10 @@ Consequently:
 
 ### Production route key
 
-The CtrlRAM V2 route registry is keyed by the already selected IC member, runtime postbuild profile,
-build-plan id, and composition/input mode needed by the compiler. It does not contain PID, exact
-golden Common FW, TP FW, filename, complete-file SHA, or a generic-cascade fixture count.
+The CtrlRAM-only V2 route registry is keyed by the already selected IC member, runtime postbuild
+processor profile, and resolved command branch. The resolved plan retains its typed selector; the
+registry does not repeat selector mode as another admission dimension. It does not contain PID,
+exact golden Common FW, TP FW, filename, complete-file SHA, or a generic-cascade fixture count.
 
 Capacity, marker assertions, region containment, processor registration, immutable input handling,
 declared write ranges, final validation, and atomic output promotion remain fail-closed execution
