@@ -159,6 +159,7 @@ EXPECTED_PROJECT_REFERENCES = {
 EXPECTED_SKILLS = {
     "nfc-architecture-change",
     "firmware-profile-authoring",
+    "github-review-polling",
     "crc-worker-contract",
     "golden-regression",
     "ui-experience-change",
