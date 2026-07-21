@@ -10,32 +10,33 @@ public sealed class ExternalProcessorStagingOwnershipTests
 
     /// <summary>An engine-created staged artifact retains its single owned range snapshot.</summary>
     [Fact]
-    public async Task StagedArtifactRetainsOneOwnedRangeSnapshot()
+    public void StagedArtifactRetainsOneOwnedRangeSnapshot()
     {
-        _ = await ExecuteAsync(artifactByteCount: 1);
-        CompositionPlan plan = CreatePlan(ArtifactByteCount);
-        CompositionExecutionInput input = CreateInput(ArtifactByteCount);
-
-        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
-            plan,
-            input,
-            (_, processorInput, stagedSources, stagedArtifacts, _) =>
-            {
-                Assert.Empty(stagedSources);
-                ExternalProcessorStagedArtifact artifact = Assert.Single(stagedArtifacts);
-                Assert.Equal(ArtifactByteCount, artifact.Bytes.Length);
-                Assert.Equal(0x5A, artifact.Bytes.Span[0]);
-                Assert.Equal(0x6B, artifact.Bytes.Span[^1]);
-                return ValueTask.FromResult(CompositionExternalProcessorResult.Success(processorInput));
-            },
-            TestContext.Current.CancellationToken);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        _ = MeasureStagingAllocation(artifactByteCount: 1);
+        StagingObservation baseline = MeasureStagingAllocation(artifactByteCount: 1);
+        StagingObservation largeArtifact = MeasureStagingAllocation(ArtifactByteCount);
+        long incrementalAllocation = largeArtifact.AllocatedBytes - baseline.AllocatedBytes;
 
         TestContext.Current.TestOutputHelper?.WriteLine(
-            $"STAGED_ARTIFACT_OWNERSHIP artifactBytes={ArtifactByteCount} allocated={allocated}");
-        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.InRange(allocated, 0, ArtifactByteCount + 32_768L);
+            $"STAGED_ARTIFACT_OWNERSHIP artifactBytes={ArtifactByteCount} " +
+            $"baseline={baseline.AllocatedBytes} large={largeArtifact.AllocatedBytes} " +
+            $"incremental={incrementalAllocation}");
+        Assert.Equal(CompositionExecutionStatus.Succeeded, baseline.Status);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, largeArtifact.Status);
+        Assert.Equal(0, baseline.StagedSourceCount);
+        Assert.Equal(0, largeArtifact.StagedSourceCount);
+        Assert.Equal(1, baseline.StagedArtifactCount);
+        Assert.Equal(1, largeArtifact.StagedArtifactCount);
+        Assert.Equal(ArtifactByteCount, largeArtifact.ArtifactLength);
+        Assert.Equal(0x5A, largeArtifact.FirstByte);
+        Assert.Equal(0x6B, largeArtifact.LastByte);
+
+        // Compare equal execution paths after warm-up so JIT, xUnit, and fixed execution
+        // allocations do not masquerade as a second artifact-sized byte snapshot.
+        Assert.InRange(
+            incrementalAllocation,
+            ArtifactByteCount - 4_096L,
+            ArtifactByteCount + 32_768L);
     }
 
     /// <summary>Public staged values still isolate bytes supplied by arbitrary callers.</summary>
@@ -84,15 +85,69 @@ public sealed class ExternalProcessorStagingOwnershipTests
         Assert.Same(sourceBytes, sourceBacking.Array);
     }
 
-    private static ValueTask<CompositionExecutionResult> ExecuteAsync(int artifactByteCount)
+    private static StagingObservation MeasureStagingAllocation(int artifactByteCount)
     {
-        return CompositionEngine.ExecuteAsync(
-            CreatePlan(artifactByteCount),
-            CreateInput(artifactByteCount),
-            (_, processorInput, _, _, _) =>
-                ValueTask.FromResult(CompositionExternalProcessorResult.Success(processorInput)),
-            CancellationToken.None);
+        CompositionPlan plan = CreatePlan(artifactByteCount);
+        CompositionExecutionInput input = CreateInput(artifactByteCount);
+        int stagedSourceCount = -1;
+        int stagedArtifactCount = -1;
+        int artifactLength = -1;
+        byte firstByte = 0;
+        byte lastByte = 0;
+
+        ValueTask<CompositionExternalProcessorResult> ObserveProcessor(
+            CompositionOperation operation,
+            ReadOnlyMemory<byte> processorInput,
+            IReadOnlyList<ExternalProcessorStagedSource> stagedSources,
+            IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts,
+            CancellationToken cancellationToken)
+        {
+            _ = operation;
+            _ = cancellationToken;
+            stagedSourceCount = stagedSources.Count;
+            stagedArtifactCount = stagedArtifacts.Count;
+            if (stagedArtifacts.Count == 1)
+            {
+                ReadOnlySpan<byte> artifactBytes = stagedArtifacts[0].Bytes.Span;
+                artifactLength = artifactBytes.Length;
+                firstByte = artifactBytes[0];
+                lastByte = artifactBytes[^1];
+            }
+
+            return ValueTask.FromResult(CompositionExternalProcessorResult.Success(processorInput));
+        }
+
+        CompositionExternalProcessor processor = ObserveProcessor;
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        CompositionExecutionResult result = CompositionEngine.ExecuteAsync(
+                plan,
+                input,
+                processor,
+                CancellationToken.None)
+            .AsTask()
+            .GetAwaiter()
+            .GetResult();
+        long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        return new StagingObservation(
+            allocatedBytes,
+            result.Status,
+            stagedSourceCount,
+            stagedArtifactCount,
+            artifactLength,
+            firstByte,
+            lastByte);
     }
+
+    private readonly record struct StagingObservation(
+        long AllocatedBytes,
+        CompositionExecutionStatus Status,
+        int StagedSourceCount,
+        int StagedArtifactCount,
+        int ArtifactLength,
+        byte FirstByte,
+        byte LastByte);
 
     private static CompositionPlan CreatePlan(int artifactByteCount)
     {
