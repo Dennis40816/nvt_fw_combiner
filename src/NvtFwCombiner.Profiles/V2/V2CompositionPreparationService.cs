@@ -199,7 +199,10 @@ internal static class V2CompositionPreparationService
             return V2CompositionPreparationResult.SelectionWasRejected();
         }
 
-        FirmwareMapResolutionResult mapResolution = profile.Family.Family.ResolveMap(request.ResolutionInputs);
+        var profileMapIds = profile.Profile.MapBinding.MapIds.ToHashSet(StringComparer.Ordinal);
+        FirmwareMapResolutionResult mapResolution = profile.Family.Family.ResolveMapWithin(
+            request.ResolutionInputs,
+            profileMapIds);
         switch (mapResolution.Status)
         {
             case FirmwareMapResolutionStatus.Pending:

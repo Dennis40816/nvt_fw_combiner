@@ -3,43 +3,43 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Application.FlashMaps;
 
 /// <summary>
-/// Exact FWConfig version writes derived from a canonical NVT Backup metadata record.
+/// Exact FWConfig source-version writes derived from a canonical NVT Backup metadata record.
 /// This type describes bytes only; callers remain responsible for using an approved output target.
 /// </summary>
 public sealed class FirmwareConfigVersionWritePlan
 {
     private FirmwareConfigVersionWritePlan(
-        long firmwareConfigStart,
-        long backupFirmwareConfigStart,
+        long sourceStructureStart,
+        long canonicalBackupStructureStart,
         byte firmwareVersion,
         byte firmwareSubVersion)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(firmwareConfigStart);
-        ArgumentOutOfRangeException.ThrowIfNegative(backupFirmwareConfigStart);
+        ArgumentOutOfRangeException.ThrowIfNegative(sourceStructureStart);
+        ArgumentOutOfRangeException.ThrowIfNegative(canonicalBackupStructureStart);
 
-        FirmwareConfigStart = firmwareConfigStart;
-        BackupFirmwareConfigStart = backupFirmwareConfigStart;
+        SourceStructureStart = sourceStructureStart;
+        CanonicalBackupStructureStart = canonicalBackupStructureStart;
         FirmwareVersion = firmwareVersion;
         FirmwareSubVersion = firmwareSubVersion;
-        FirmwareVersionAndBarRange = new ByteRange(
-            checked(firmwareConfigStart + FirmwareConfigLayout.FirmwareVersionOffset),
+        SourceFirmwareVersionAndBarRange = new ByteRange(
+            checked(sourceStructureStart + FirmwareConfigLayout.FirmwareVersionOffset),
             sizeof(ushort));
-        FirmwareSubVersionRange = new ByteRange(
-            checked(firmwareConfigStart + FirmwareConfigLayout.FirmwareSubVersionOffset),
+        SourceFirmwareSubVersionRange = new ByteRange(
+            checked(sourceStructureStart + FirmwareConfigLayout.FirmwareSubVersionOffset),
             sizeof(byte));
-        BackupFirmwareVersionAndBarRange = new ByteRange(
-            checked(backupFirmwareConfigStart + FirmwareConfigLayout.FirmwareVersionOffset),
+        CanonicalBackupFirmwareVersionAndBarRange = new ByteRange(
+            checked(canonicalBackupStructureStart + FirmwareConfigLayout.FirmwareVersionOffset),
             sizeof(ushort));
-        BackupFirmwareSubVersionRange = new ByteRange(
-            checked(backupFirmwareConfigStart + FirmwareConfigLayout.FirmwareSubVersionOffset),
+        CanonicalBackupFirmwareSubVersionRange = new ByteRange(
+            checked(canonicalBackupStructureStart + FirmwareConfigLayout.FirmwareSubVersionOffset),
             sizeof(byte));
     }
 
-    /// <summary>FWConfig structure start for the described writes.</summary>
-    public long FirmwareConfigStart { get; }
+    /// <summary>Original FWConfig structure whose reviewed fields are written before postbuild.</summary>
+    public long SourceStructureStart { get; }
 
     /// <summary>Canonical NVT Backup FWConfig start whose final values must be observed in the output.</summary>
-    public long BackupFirmwareConfigStart { get; }
+    public long CanonicalBackupStructureStart { get; }
 
     /// <summary>User-confirmed TP FW version byte.</summary>
     public byte FirmwareVersion { get; }
@@ -51,28 +51,28 @@ public sealed class FirmwareConfigVersionWritePlan
     public byte FirmwareSubVersion { get; }
 
     /// <summary>Contiguous <c>u8FWVersion</c> and <c>u8FWVersionBar</c> write range.</summary>
-    public ByteRange FirmwareVersionAndBarRange { get; }
+    public ByteRange SourceFirmwareVersionAndBarRange { get; }
 
     /// <summary><c>u8FWSubVersion</c> write range.</summary>
-    public ByteRange FirmwareSubVersionRange { get; }
+    public ByteRange SourceFirmwareSubVersionRange { get; }
 
     /// <summary>Canonical Backup range that must contain the final version and complement bytes after postbuild.</summary>
-    public ByteRange BackupFirmwareVersionAndBarRange { get; }
+    public ByteRange CanonicalBackupFirmwareVersionAndBarRange { get; }
 
     /// <summary>Canonical Backup range that must contain the final sub-version byte after postbuild.</summary>
-    public ByteRange BackupFirmwareSubVersionRange { get; }
+    public ByteRange CanonicalBackupFirmwareSubVersionRange { get; }
 
-    /// <summary>Exact bytes for <see cref="FirmwareVersionAndBarRange"/>.</summary>
-    public ReadOnlyMemory<byte> FirmwareVersionAndBarBytes => new byte[] { FirmwareVersion, FirmwareVersionBar };
+    /// <summary>Exact bytes for <see cref="SourceFirmwareVersionAndBarRange"/>.</summary>
+    public ReadOnlyMemory<byte> SourceFirmwareVersionAndBarBytes => new byte[] { FirmwareVersion, FirmwareVersionBar };
 
-    /// <summary>Exact bytes for <see cref="FirmwareSubVersionRange"/>.</summary>
-    public ReadOnlyMemory<byte> FirmwareSubVersionBytes => new byte[] { FirmwareSubVersion };
+    /// <summary>Exact bytes for <see cref="SourceFirmwareSubVersionRange"/>.</summary>
+    public ReadOnlyMemory<byte> SourceFirmwareSubVersionBytes => new byte[] { FirmwareSubVersion };
 
     /// <summary>
     /// Creates writes from metadata read through <see cref="FirmwareConfigMetadataReader.TryReadBackup"/>.
     /// A malformed source FW/bar pair is rejected before any output mutation can be planned.
     /// </summary>
-    public static FirmwareConfigVersionWritePlan CreateForBackup(
+    public static FirmwareConfigVersionWritePlan CreateFromCanonicalBackup(
         FirmwareConfigMetadata backupMetadata,
         byte firmwareVersion,
         byte firmwareSubVersion)
@@ -82,8 +82,8 @@ public sealed class FirmwareConfigVersionWritePlan
                 "FWConfig Backup has an invalid FW version complement byte.",
                 nameof(backupMetadata))
             : new FirmwareConfigVersionWritePlan(
-            backupMetadata.FirmwareConfigStart,
-            backupMetadata.FirmwareConfigStart,
+            backupMetadata.StructureStart,
+            backupMetadata.StructureStart,
             firmwareVersion,
             firmwareSubVersion);
     }
@@ -92,11 +92,11 @@ public sealed class FirmwareConfigVersionWritePlan
     /// Rebinds the same reviewed field writes to a legacy Combiner-declared FWConfig source block.
     /// The caller must first prove that the processor block propagates to the canonical Backup start.
     /// </summary>
-    public FirmwareConfigVersionWritePlan RebaseToCombinerSource(long firmwareConfigSourceStart)
+    public FirmwareConfigVersionWritePlan RebaseToSourceStructure(long sourceStructureStart)
     {
         return new FirmwareConfigVersionWritePlan(
-            firmwareConfigSourceStart,
-            BackupFirmwareConfigStart,
+            sourceStructureStart,
+            CanonicalBackupStructureStart,
             FirmwareVersion,
             FirmwareSubVersion);
     }

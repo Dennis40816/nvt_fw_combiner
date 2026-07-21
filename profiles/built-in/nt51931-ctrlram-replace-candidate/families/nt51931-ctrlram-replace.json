@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51931-ctrlram-replace",
-  "familyVersion": "0.1.0",
+  "familyVersion": "0.3.0",
   "members": [
     {
       "memberId": "NT51931",
@@ -63,7 +63,16 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 256, "length": 91904 },
+          "range": { "start": 256, "length": 89856 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-source",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "firmware-config",
+          "range": { "start": 90112, "length": 2048 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -228,45 +237,29 @@
   ],
   "imageMaps": [
     {
+      "mapId": "nt51931-ctrlram-fw1x-single-full-flash",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51931" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "single" },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51931-ctrlram-fw130-full-flash" ],
+      "metadataSetIds": [ "nt51931-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51931-fw130-cascade6-auto-prj-158-owner-golden-20260718"
+      ]
+    },
+    {
       "mapId": "nt51931-ctrlram-fw130-cascade6-full-flash",
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": [ "NT51931" ],
         "modeIds": [ "ctrlram-replace" ],
-        "topologyRequirement": { "kind": "exact-count", "chipCount": 6 },
-        "capacityBytes": 262144,
-        "metadataPredicates": [
-          {
-            "metadataStructureId": "nt51931-fwconfig-backup-envelope",
-            "fieldId": "chip-count",
-            "operator": "equals",
-            "expectedValues": [ 6 ]
-          },
-          {
-            "metadataStructureId": "nt51931-fwconfig-backup-envelope",
-            "fieldId": "common-fw-major",
-            "operator": "equals",
-            "expectedValues": [ 1 ]
-          },
-          {
-            "metadataStructureId": "nt51931-fwconfig-backup-envelope",
-            "fieldId": "common-fw-minor",
-            "operator": "equals",
-            "expectedValues": [ 3 ]
-          },
-          {
-            "metadataStructureId": "nt51931-fwconfig-backup-envelope",
-            "fieldId": "common-fw-additional",
-            "operator": "equals",
-            "expectedValues": [ 0 ]
-          },
-          {
-            "metadataStructureId": "nt51931-fwconfig-backup-envelope",
-            "fieldId": "project-id",
-            "operator": "equals",
-            "expectedValues": [ 4891 ]
-          }
-        ]
+        "topologyRequirement": { "kind": "cascade", "minimumChipCount": 2 },
+        "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51931-ctrlram-fw130-full-flash" ],

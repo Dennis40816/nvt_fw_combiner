@@ -88,18 +88,11 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         LegacyCombinerPostbuildCommandPlan threeChip = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51927,
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
-        LegacyCombinerPostbuildCommandPlan cascade = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51927,
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
-
         IReadOnlyList<ByteRange> twoChipRanges = IntegrityRanges(
             twoChip,
             0x40000);
         IReadOnlyList<ByteRange> threeChipRanges = IntegrityRanges(
             threeChip,
-            0x40000);
-        IReadOnlyList<ByteRange> cascadeRanges = IntegrityRanges(
-            cascade,
             0x40000);
 
         Assert.Contains(new ByteRange(0x23C, 4), twoChipRanges);
@@ -109,9 +102,10 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Contains(new ByteRange(0x22C, 4), threeChipRanges);
         Assert.Contains(new ByteRange(0x29C, 4), threeChipRanges);
         Assert.Contains(new ByteRange(0x2AC, 4), threeChipRanges);
-        Assert.Contains(new ByteRange(0x22C, 4), cascadeRanges);
-        Assert.Contains(new ByteRange(0x29C, 4), cascadeRanges);
-        Assert.Contains(new ByteRange(0x2AC, 4), cascadeRanges);
+
+        _ = Assert.Throws<ArgumentException>(() => LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51927,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"])));
     }
 
     /// <summary>Locks the source header provenance used to name copied NT51927 three-chip report fields.</summary>
@@ -149,7 +143,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     {
         LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"]));
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["13"]));
 
         long requiredCapacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(
             plan,
@@ -266,42 +260,46 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             block => block.SourceFileName == "DiffDLM.bin");
     }
 
-    /// <summary>Locks NT51930 Common FW 1.x cascade support to the approved DiffDLM branch.</summary>
+    /// <summary>Locks NT51930 Common FW 1.x 2..13 support to the approved DiffDLM branch.</summary>
     [Fact]
     public void Nt51930CascadeUsesLessOrEqual13IcDiffDlmLength()
     {
         LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade_2to13"]));
 
         LegacyCombinerBlockArgument diffBlock = plan.Commands
             .SelectMany(command => command.Blocks)
             .Single(block => block.SourceFileName == "DiffDLM.bin");
 
         Assert.Equal(new ByteRange(0x2F200, 65024), diffBlock.FirmwareRange);
+        _ = Assert.Throws<ArgumentException>(() => LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"])));
+        _ = Assert.Throws<ArgumentException>(() => LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"])));
     }
 
     private static IEnumerable<LegacyCombinerPostbuildCommandPlan> AllPlans()
     {
         foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.All)
         {
-            yield return LegacyCombinerPostbuildPlanner.CreatePlan(
-                profile,
-                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
-            yield return LegacyCombinerPostbuildPlanner.CreatePlan(
-                profile,
-                new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+            foreach (LegacyCombinerPostbuildPlanSelector selector in profile.PlanSelectors)
+            {
+                IcNumberInputMode mode = selector.Kind switch
+                {
+                    LegacyCombinerPostbuildPlanSelectorKind.SingleChip => IcNumberInputMode.SingleSelector,
+                    LegacyCombinerPostbuildPlanSelectorKind.ExactCount => IcNumberInputMode.NumericSelector,
+                    LegacyCombinerPostbuildPlanSelectorKind.GenericCascade or
+                        LegacyCombinerPostbuildPlanSelectorKind.CountRange => IcNumberInputMode.CascadeSelector,
+                    _ => throw new ArgumentOutOfRangeException(),
+                };
+                yield return LegacyCombinerPostbuildPlanner.CreatePlan(
+                    profile,
+                    new IcNumberSelection(mode, [selector.Token]));
+            }
         }
-
-        yield return LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51927,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
-        yield return LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51927,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
-        yield return LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"]));
     }
 
     private static IReadOnlyList<ByteRange> IntegrityRanges(

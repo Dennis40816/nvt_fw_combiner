@@ -58,13 +58,11 @@ public sealed class IcSupportWorkflowDependencyTests
     }
 
     /// <summary>
-    /// Postbuild profiles must be exposed through CtrlRAM Replace support unless the owner-facing support catalog
-    /// explicitly closes every Replace workflow while retaining the profile as failure evidence.
+    /// Every production postbuild profile must be exposed through CtrlRAM Replace support.
     /// </summary>
     [Fact]
     public void PostbuildProfilesHaveCtrlRamReplaceSupportOrExplicitBlockedRows()
     {
-        string[] evidenceOnlyIcIds = ["NT51931"];
         HashSet<string> ctrlRamReplaceIcIds =
         [
             .. IcSupportCatalog.All
@@ -76,19 +74,10 @@ public sealed class IcSupportWorkflowDependencyTests
                      .Select(profile => profile.IcId)
                      .Distinct(StringComparer.Ordinal))
         {
-            if (evidenceOnlyIcIds.Contains(icId, StringComparer.Ordinal))
-            {
-                Assert.True(IcSupportCatalog.TryFind(icId, out IcSupportEntry? blockedEntry));
-                Assert.NotNull(blockedEntry);
-                Assert.True(blockedEntry.SupportsWorkflow(IcWorkflowIds.DpReplace));
-                Assert.False(blockedEntry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace));
-                Assert.False(blockedEntry.SupportsWorkflow(IcWorkflowIds.GeneralReplace));
-                Assert.Contains("not exposed", blockedEntry.Notes, StringComparison.Ordinal);
-                continue;
-            }
-
             Assert.Contains(icId, ctrlRamReplaceIcIds);
         }
+
+        Assert.Equal(13, ctrlRamReplaceIcIds.Count);
     }
 
     /// <summary>DP Replace exposure stays closed to members with trusted V2 runtime registrations.</summary>

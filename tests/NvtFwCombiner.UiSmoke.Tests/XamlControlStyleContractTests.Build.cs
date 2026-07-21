@@ -4,41 +4,87 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Keeps the bottom dock compact and responsive without hover popups obscuring the first click.</summary>
+    /// <summary>FWConfig Number mismatch uses the shared modal surface with explicit accessible actions.</summary>
     [Fact]
-    public void BuildActionsUseCompactAccessibleDockStyleWithoutTooltips()
+    public void FirmwareNumberMismatchUsesAccessibleConfirmationSurface()
+    {
+        var modal = XDocument.Parse(ReadPresentationFile("Views/FirmwareNumberMismatchModal.axaml"));
+        XElement surface = Assert.Single(modal.Descendants(), element =>
+            string.Equals((string?)element.Attribute("Classes"), "modalSurface", StringComparison.Ordinal));
+        Assert.Equal("22", (string?)surface.Attribute("Padding"));
+        Assert.NotNull(surface.Attribute("AutomationProperties.Name"));
+
+        XElement cancel = Assert.Single(modal.Descendants(), element =>
+            string.Equals(
+                (string?)element.Attribute("Command"),
+                "{Binding DismissFirmwareNumberMismatchCommand}",
+                StringComparison.Ordinal));
+        XElement accept = Assert.Single(modal.Descendants(), element =>
+            string.Equals(
+                (string?)element.Attribute("Command"),
+                "{Binding AcceptFirmwareNumberMismatchCommand}",
+                StringComparison.Ordinal));
+        Assert.Equal("secondary", (string?)cancel.Attribute("Classes"));
+        Assert.Equal("primary", (string?)accept.Attribute("Classes"));
+        Assert.NotNull(cancel.Attribute("AutomationProperties.Name"));
+        Assert.NotNull(accept.Attribute("AutomationProperties.Name"));
+        Assert.Null(cancel.Attribute("ToolTip.Tip"));
+        Assert.Null(accept.Attribute("ToolTip.Tip"));
+    }
+
+    /// <summary>Keeps the vertical action rail compact, left-expanding, accessible, and free of hover popups.</summary>
+    [Fact]
+    public void BuildActionsUseExpandableAccessibleRailStyleWithoutTooltips()
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
         string replaceSelection = ReadPresentationFile("Views/ReplaceSelectionModal.axaml");
         string styles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
-        string dockAction = ExtractStyle(styles, "Button.dockAction");
-        string dockPresenter = ExtractStyle(
+        string railAction = ExtractStyle(styles, "Button.railAction");
+        string railPresenter = ExtractStyle(
             styles,
-            "Button.dockAction /template/ ContentPresenter#PART_ContentPresenter");
-        string primaryAction = ExtractStyle(styles, "Button.primaryDockAction");
+            "Button.railAction /template/ ContentPresenter#PART_ContentPresenter");
+        string primaryAction = ExtractStyle(styles, "Button.primaryRailAction");
+        string actionLabel = ExtractStyle(styles, "TextBlock.railActionLabel");
         string focusPresenter = ExtractStyle(
             styles,
-            "Button.dockAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
+            "Button.railAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
+        string reducedMotionAction = ExtractStyle(styles, "Button.railAction.reducedMotion");
         string reducedMotionPresenter = ExtractStyle(
             styles,
-            "Button.dockAction.reducedMotion /template/ ContentPresenter#PART_ContentPresenter");
+            "Button.railAction.reducedMotion /template/ ContentPresenter#PART_ContentPresenter");
+        string reducedMotionLabel = ExtractStyle(
+            styles,
+            "Button.railAction.reducedMotion TextBlock.railActionLabel");
 
-        Assert.Contains("MinHeight\" Value=\"40\"", dockAction, StringComparison.Ordinal);
-        Assert.Contains("MinWidth\" Value=\"88\"", primaryAction, StringComparison.Ordinal);
-        Assert.Contains("Padding\" Value=\"12,7\"", primaryAction, StringComparison.Ordinal);
+        Assert.Contains("Width\" Value=\"44\"", railAction, StringComparison.Ordinal);
+        Assert.Contains("Height\" Value=\"44\"", railAction, StringComparison.Ordinal);
+        Assert.Contains("ClipToBounds\" Value=\"True\"", railAction, StringComparison.Ordinal);
+        Assert.Contains("HorizontalAlignment\" Value=\"Right\"", railAction, StringComparison.Ordinal);
+        Assert.Contains("HorizontalContentAlignment\" Value=\"Right\"", railAction, StringComparison.Ordinal);
+        Assert.Contains("DoubleTransition Property=\"Width\" Duration=\"0:0:0.16\"", railAction, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBrush", primaryAction, StringComparison.Ordinal);
-        Assert.Contains("BrushTransition Property=\"Background\" Duration=\"0:0:0.12\"", dockPresenter, StringComparison.Ordinal);
-        Assert.Contains("BrushTransition Property=\"BorderBrush\" Duration=\"0:0:0.12\"", dockPresenter, StringComparison.Ordinal);
+        Assert.Contains("BrushTransition Property=\"Background\" Duration=\"0:0:0.12\"", railPresenter, StringComparison.Ordinal);
+        Assert.Contains("BrushTransition Property=\"BorderBrush\" Duration=\"0:0:0.12\"", railPresenter, StringComparison.Ordinal);
+        Assert.Contains("Opacity\" Value=\"0\"", actionLabel, StringComparison.Ordinal);
+        Assert.Contains("DoubleTransition Property=\"Opacity\" Duration=\"0:0:0.12\"", actionLabel, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.outputRailAction:pointerover\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.outputRailAction:focus-visible\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.buildRailAction:pointerover\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.buildRailAction:focus-visible\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.railAction:pointerover TextBlock.railActionLabel\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.railAction:focus-visible TextBlock.railActionLabel\"", styles, StringComparison.Ordinal);
         Assert.Contains("BorderThickness\" Value=\"2\"", focusPresenter, StringComparison.Ordinal);
+        Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionAction, StringComparison.Ordinal);
         Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionPresenter, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Button.dockAction:pointerover", styles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Button.dockAction:pressed", styles, StringComparison.Ordinal);
-        Assert.Equal(2, shell.Split("Classes=\"dockAction primaryDockAction\"", StringSplitOptions.None).Length - 1);
+        Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionLabel, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.railAction:pointerover", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.railAction:pressed", styles, StringComparison.Ordinal);
+        Assert.Equal(2, shell.Split("Classes=\"railAction primaryRailAction buildRailAction\"", StringSplitOptions.None).Length - 1);
         Assert.Equal(3, shell.Split("Classes.reducedMotion=\"{Binding IsReducedMotionEnabled}\"", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("BuildActionTip", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildActionTip", replaceSelection, StringComparison.Ordinal);
         Assert.DoesNotContain("ToolTip.Tip=\"{Binding Text.BuildActionLabel}\"", shell, StringComparison.Ordinal);
-        Assert.DoesNotContain("RenderTransform", dockAction + dockPresenter + primaryAction, StringComparison.Ordinal);
+        Assert.DoesNotContain("RenderTransform", railAction + railPresenter + primaryAction + actionLabel, StringComparison.Ordinal);
     }
 
     /// <summary>Build stays in the fixed bottom-right rail established by the stable v0.9.10 shell.</summary>
@@ -65,7 +111,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("Bottom", (string?)rail.Attribute("VerticalAlignment"));
         Assert.Equal("0,0,24,16", (string?)rail.Attribute("Margin"));
         XElement actions = Assert.Single(rail.Elements());
-        Assert.Equal("Horizontal", (string?)actions.Attribute("Orientation"));
+        Assert.Equal("Vertical", (string?)actions.Attribute("Orientation"));
+        Assert.Equal("Right", (string?)actions.Attribute("HorizontalAlignment"));
         Assert.Equal("{DynamicResource NfcSpace8}", (string?)actions.Attribute("Spacing"));
         Assert.Equal(
             ["BuildMergeButton_OnClick", "BuildReplaceButton_OnClick"],
@@ -78,8 +125,10 @@ public sealed partial class XamlControlStyleContractTests
         XElement folder = Assert.Single(
             rail.Descendants(),
             element => (string?)element.Attribute("Click") == "OpenLatestOutputFolderButton_OnClick");
-        Assert.Equal("dockAction dockIconAction", (string?)folder.Attribute("Classes"));
-        Assert.NotNull(folder.Attribute("ToolTip.Tip"));
+        Assert.Equal("railAction outputRailAction", (string?)folder.Attribute("Classes"));
+        Assert.NotNull(folder.Attribute("AutomationProperties.Name"));
+        Assert.NotNull(folder.Attribute("AutomationProperties.HelpText"));
+        Assert.Null(folder.Attribute("ToolTip.Tip"));
 
         XElement[] buildButtons =
         [
@@ -88,7 +137,7 @@ public sealed partial class XamlControlStyleContractTests
         ];
         Assert.All(buildButtons, button =>
         {
-            Assert.Equal("dockAction primaryDockAction", (string?)button.Attribute("Classes"));
+            Assert.Equal("railAction primaryRailAction buildRailAction", (string?)button.Attribute("Classes"));
             Assert.NotNull(button.Attribute("AutomationProperties.HelpText"));
             Assert.Null(button.Attribute("ToolTip.Tip"));
         });

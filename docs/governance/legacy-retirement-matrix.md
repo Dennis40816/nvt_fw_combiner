@@ -91,7 +91,8 @@ NVT Backup at terminal `T - 0xFFF`, with no primary-address fallback.
   only when genuinely family-wide; do not add per-IC executors or subclasses.
 - Do not add a second executor, compiler, loader, schema hierarchy, or
   adapter layer merely to bridge a migration.
-- Production C# and XAML are measured by the exact ratchets in
+- Production C# and XAML are measured by the aggregate, duplication, and
+  partial-type limits in
   [the v0.9.8 code-size policy](v0.9.8-code-size-policy.md). The `v0.9.7`
   baseline is 60,237 nonblank lines; every verified reduction lowers the
   ratchet in the same commit.

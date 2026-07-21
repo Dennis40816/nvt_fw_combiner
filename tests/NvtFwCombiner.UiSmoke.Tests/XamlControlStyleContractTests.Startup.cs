@@ -24,6 +24,7 @@ public sealed partial class XamlControlStyleContractTests
             "CtrlRamFirmwareVersionModalHost",
             "WorkflowContextSetupModalHost",
             "FirmwareIcMismatchModalHost",
+            "NavigationClearConfirmationModalHost",
             "ReportModalHost",
             "BuildCompletedModalHost",
         ];
@@ -73,6 +74,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("ReportModalHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportToastHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareIcMismatchModalHost,", warmup, StringComparison.Ordinal);
+        Assert.DoesNotContain("NavigationClearConfirmationModalHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("File.", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("Process.", warmup, StringComparison.Ordinal);
     }

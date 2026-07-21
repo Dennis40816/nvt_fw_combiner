@@ -206,6 +206,28 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ValidateCtrlRamFirmwareVersionOutput", bootstrapSources, StringComparison.Ordinal);
     }
 
+    /// <summary>FWConfig authoring names distinguish the original source from the canonical postbuild copy.</summary>
+    [Fact]
+    public void FirmwareConfigAuthoringNamesSeparateSourceFromCanonicalBackup()
+    {
+        string metadata = ReadText(
+            "src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigMetadataReader.cs");
+        string writePlan = ReadText(
+            "src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigVersionWritePlan.cs");
+        string runtimeEdit = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/V2RuntimeReferenceReplaceCompileRequest.cs");
+
+        Assert.Contains("long StructureStart", metadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("long FirmwareConfigStart", metadata, StringComparison.Ordinal);
+        Assert.Contains("SourceStructureStart", writePlan, StringComparison.Ordinal);
+        Assert.Contains("CanonicalBackupStructureStart", writePlan, StringComparison.Ordinal);
+        Assert.Contains("CreateFromCanonicalBackup", writePlan, StringComparison.Ordinal);
+        Assert.Contains("RebaseToSourceStructure", writePlan, StringComparison.Ordinal);
+        Assert.DoesNotContain("RebaseToCombinerSource", writePlan, StringComparison.Ordinal);
+        Assert.Contains("SourceFirmwareVersionAndBarRange", runtimeEdit, StringComparison.Ordinal);
+        Assert.Contains("SourceFirmwareSubVersionRange", runtimeEdit, StringComparison.Ordinal);
+    }
+
     /// <summary>Unexpected Replace differences become run errors before any output commit is attempted.</summary>
     [Fact]
     public void OutputDifferenceVerdictPrecedesTheCommitGate()

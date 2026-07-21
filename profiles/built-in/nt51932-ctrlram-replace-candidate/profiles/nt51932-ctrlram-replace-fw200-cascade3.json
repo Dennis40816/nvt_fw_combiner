@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51932-ctrlram-replace-fw200-cascade3",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -26,11 +26,12 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51932-ctrlram-replace",
-    "familyVersion": "0.1.0",
-    "familyContentHash": "805e0d332d905035c814b4887d4e9c6f235c52c8d9d7b83e0412de47aafc6b74",
+    "familyVersion": "0.3.0",
+    "familyContentHash": "5a03d7d59a6f5f8859fcaeefa667fc53ee2fe5da20a64a059d7f9b7f5d6b06cf",
     "mapIds": [ "nt51932-ctrlram-fw200-cascade3-full-flash" ],
     "requiredRegionIds": [
       "flash-image",
+      "fw-config-source",
       "header-crc-7100",
       "header-crc-7118",
       "nf-ctrlram",

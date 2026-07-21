@@ -38,7 +38,7 @@ Category ids remain report metadata and do not replace `TpFlashMapRegionKind`:
 | --- | --- | --- |
 | `CtrlRam` | CtrlRAM | Existing CtrlRAM Replace access and postbuild selection are unchanged. |
 | `Other` with a header tag/id | TP Flash Header | Header backup rows are inspection metadata, not a new write rule. |
-| `Other` with FW Config tag/id | FW Configuration | Report classification covers documented postbuild Backup changes; the primary FW Config address remains TP Overview evidence only, and runtime metadata values come only from the NVT Backup. |
+| `Other` with FW Config tag/id | FW Configuration | Report classification covers documented postbuild Backup changes. Runtime inspection and routing metadata come from the canonical NVT Backup. A separately declared, evidence-backed CtrlRAM Build version-write route may use the TP Overview Primary FWConfig as its pre-postbuild authoring source; final Backup validation remains mandatory. |
 | Remaining `Other` | Other documented regions | No access-policy change. |
 
 `Dp`, `CustomerInfo`, `ProjectId`, and `fw-information` rows retain their

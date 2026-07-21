@@ -13,13 +13,17 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpCtrlRamPostbuildSource> sources,
         IReadOnlyDictionary<string, string> slotPaths,
         bool runnablePreview,
-        LegacyCombinerPostbuildProfile? postbuildProfile = null)
+        LegacyCombinerPostbuildProfile? postbuildProfile,
+        LegacyCombinerPostbuildCommandPlan? commandPlan)
     {
         OperationRunStatus status = runnablePreview ? OperationRunStatus.Succeeded : OperationRunStatus.Skipped;
         List<OperationRunSummary> operations = [];
         long capacity = Math.Max(
             1,
-            BuiltInTpFlashMapCatalog.GetRegions(icId, selection, postbuildProfile).Max(region => region.Range.EndExclusive));
+            BuiltInTpFlashMapCatalog.GetRegions(
+                icId,
+                selection,
+                commandPlan is null ? null : postbuildProfile).Max(region => region.Range.EndExclusive));
         int sequence = 100;
         foreach (TpFlashMapRegion region in sources.SelectMany(source => source.Regions).DistinctBy(region => region.RegionId, StringComparer.Ordinal).OrderBy(region => region.Range.Start))
         {
@@ -74,16 +78,14 @@ public static partial class WorkbenchCompositionService
             }
         }
 
-        if (postbuildProfile is null &&
-            !TryGetDefaultPostbuildProfile(icId, out postbuildProfile))
+        if (postbuildProfile is null || commandPlan is null)
         {
             return operations;
         }
 
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile!, selection);
-        string firmwarePath = Path.Combine("output", postbuildProfile!.FirmwareFileName);
+        string firmwarePath = Path.Combine("output", postbuildProfile.FirmwareFileName);
         string binDirectory = "BIN";
-        foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
+        foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
         {
             IReadOnlyList<string> args = LegacyCombinerPostbuildCommandLineBuilder.CreateArguments(
                 command,
@@ -103,7 +105,7 @@ public static partial class WorkbenchCompositionService
                 postbuildProfile.ToolBindingId,
                 [new ByteRange(0, capacity)],
                 [new ByteRange(0, capacity)],
-                $"Generated {plan.Branch} Combiner command: Combiner.exe {string.Join(' ', args)}."));
+                $"Generated {commandPlan.Branch} Combiner command: Combiner.exe {string.Join(' ', args)}."));
             sequence += 10;
         }
 

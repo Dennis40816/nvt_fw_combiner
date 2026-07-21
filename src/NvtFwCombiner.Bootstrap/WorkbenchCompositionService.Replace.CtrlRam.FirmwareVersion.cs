@@ -10,12 +10,14 @@ public static partial class WorkbenchCompositionService
 
     private static bool TryCreateCtrlRamFirmwareVersionWritePlan(
         FirmwareConfigMetadata backupMetadata,
+        LegacyCombinerPostbuildProfile postbuildProfile,
         LegacyCombinerPostbuildCommandPlan commandPlan,
         WorkbenchCtrlRamFirmwareVersionEdit edit,
-        long baseLength,
+        ReadOnlySpan<byte> baseBytes,
         out FirmwareConfigVersionWritePlan? writePlan,
         out CompositionIssue? issue)
     {
+        ArgumentNullException.ThrowIfNull(postbuildProfile);
         ArgumentNullException.ThrowIfNull(commandPlan);
         ArgumentNullException.ThrowIfNull(edit);
 
@@ -31,7 +33,7 @@ public static partial class WorkbenchCompositionService
         }
 
         ByteRange requiredBackupRange = new(
-            backupMetadata.FirmwareConfigStart,
+            backupMetadata.StructureStart,
             FirmwareConfigLayout.RequiredLength);
         LegacyCombinerBlockArgument[] sourceBlocks =
         [
@@ -47,17 +49,34 @@ public static partial class WorkbenchCompositionService
                 .OrderBy(block => block.SourceOffset)
                 .ThenBy(block => block.FirmwareRange.Start),
         ];
-        if (sourceBlocks.Length != 1)
+        long? sourceStart = postbuildProfile.FirmwareConfigWriteRoute switch
+        {
+            LegacyCombinerFirmwareConfigWriteRoute.CommandSourceToCanonicalBackup
+                when sourceBlocks.Length == 1 => sourceBlocks[0].SourceOffset,
+            LegacyCombinerFirmwareConfigWriteRoute.PrimaryToCanonicalBackup
+                when sourceBlocks.Length == 0 && TryResolveImplicitFirmwareConfigSource(
+                    postbuildProfile,
+                    baseBytes,
+                    backupMetadata,
+                    out long implicitSourceStart) => implicitSourceStart,
+            LegacyCombinerFirmwareConfigWriteRoute.CommandSourceToCanonicalBackup => null,
+            LegacyCombinerFirmwareConfigWriteRoute.PrimaryToCanonicalBackup => null,
+            LegacyCombinerFirmwareConfigWriteRoute.Unavailable => null,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(postbuildProfile),
+                postbuildProfile.FirmwareConfigWriteRoute,
+                "Unsupported FWConfig write route."),
+        };
+        if (sourceStart is null)
         {
             issue = new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionPropagationUnavailable,
-                "TP FW version editing requires exactly one legacy Combiner FWConfig source block that propagates to the canonical NVT Backup.",
+                "TP FW version editing requires one reviewed legacy Combiner path from the modeled primary FWConfig to the canonical NVT Backup.",
                 "postbuild");
             return false;
         }
 
-        LegacyCombinerBlockArgument sourceBlock = sourceBlocks[0];
-        if (sourceBlock.SourceOffset + FirmwareConfigLayout.RequiredLength > baseLength)
+        if (sourceStart.Value + FirmwareConfigLayout.RequiredLength > baseBytes.Length)
         {
             issue = new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionPropagationUnavailable,
@@ -67,8 +86,29 @@ public static partial class WorkbenchCompositionService
         }
 
         writePlan = FirmwareConfigVersionWritePlan
-            .CreateForBackup(backupMetadata, edit.FirmwareVersion, edit.FirmwareSubVersion)
-            .RebaseToCombinerSource(sourceBlock.SourceOffset);
+            .CreateFromCanonicalBackup(backupMetadata, edit.FirmwareVersion, edit.FirmwareSubVersion)
+            .RebaseToSourceStructure(sourceStart.Value);
+        return true;
+    }
+
+    private static bool TryResolveImplicitFirmwareConfigSource(
+        LegacyCombinerPostbuildProfile postbuildProfile,
+        ReadOnlySpan<byte> baseBytes,
+        FirmwareConfigMetadata backupMetadata,
+        out long sourceStart)
+    {
+        sourceStart = 0;
+        if (!BuiltInTpFlashMapCatalog.TryFind(postbuildProfile.IcId, out TpFlashMapProfile? flashMap) ||
+            !FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(
+                baseBytes,
+                flashMap!.FirmwareConfigPrimaryStart,
+                out FirmwareConfigMetadata primaryMetadata) ||
+            primaryMetadata with { StructureStart = backupMetadata.StructureStart } != backupMetadata)
+        {
+            return false;
+        }
+
+        sourceStart = primaryMetadata.StructureStart;
         return true;
     }
 }

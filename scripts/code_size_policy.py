@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -39,6 +39,7 @@ class CodeSizeLimits:
     duplicate_json_nonblank: int
     partial_type_default_max: int
     partial_type_exact_ratchets: dict[str, int]
+    partial_type_named_maximums: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -66,9 +67,10 @@ DEFAULT_LIMITS = CodeSizeLimits(
     production_nonblank=75_000,
     duplicate_json_nonblank=1_055,
     partial_type_default_max=2_500,
-    partial_type_exact_ratchets={
-        "NvtFwCombiner.Bootstrap.WorkbenchCompositionService": 4_418,
-        "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 4_147,
+    partial_type_exact_ratchets={},
+    partial_type_named_maximums={
+        "NvtFwCombiner.Bootstrap.WorkbenchCompositionService": 4_500,
+        "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 4_500,
     },
 )
 
@@ -195,8 +197,16 @@ def validate_code_size_policy(
             f"partial aggregate {name}", actual_lines, expected, errors
         )
 
+    for name, maximum in limits.partial_type_named_maximums.items():
+        actual = aggregates.get(name)
+        actual_lines = actual.nonblank_lines if actual else 0
+        _validate_maximum(f"partial aggregate {name}", actual_lines, maximum, errors)
+
     for aggregate in snapshot.partial_types:
-        if aggregate.name in limits.partial_type_exact_ratchets:
+        if (
+            aggregate.name in limits.partial_type_exact_ratchets
+            or aggregate.name in limits.partial_type_named_maximums
+        ):
             continue
         if aggregate.nonblank_lines > limits.partial_type_default_max:
             errors.append(

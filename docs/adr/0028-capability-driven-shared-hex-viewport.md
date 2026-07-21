@@ -1,8 +1,8 @@
 # ADR 0028: Capability-Driven Shared Hex Viewport
 
-- Status: Proposed for `v0.9.11`; implementation is not authorized by this ADR
+- Status: Proposed for `v0.9.13`; implementation is not authorized by this ADR
 - Date: 2026-07-19
-- Last amended: 2026-07-20
+- Last amended: 2026-07-21
 - Owners: Architecture owner, UI owner
 - Risk class when implemented: R2
 
@@ -25,8 +25,8 @@ state and authority:
 The Change Report description above records the `v0.9.10` candidate inspected
 on 2026-07-19. Owner direction on 2026-07-20 expects final `v0.9.10` Changes to
 return to the `v0.9.9` presentation. That rollback is not part of this ADR and
-must not be performed from the `v0.9.11` branch. U0 re-inspects the exact final
-predecessor before implementation.
+must not be performed from a later feature branch. U0 re-inspects the exact
+released `v0.9.12` predecessor before implementation.
 
 The two surfaces currently duplicate renderer geometry and row presentation.
 Merging their host ViewModels or Application models would incorrectly combine
@@ -36,7 +36,7 @@ Presentation maintenance and code-size cost.
 
 ## Decision
 
-`v0.9.11` may introduce one Presentation-owned inner Hex viewport foundation.
+`v0.9.13` may introduce one Presentation-owned inner Hex viewport foundation.
 It owns only:
 
 - address, hexadecimal, and ASCII geometry with 16 bytes per row;
@@ -57,7 +57,7 @@ Construction requires one immutable, validated
 `HexViewportCapabilityProfile`. The profile uses typed dimensions rather than
 independent XAML Boolean switches:
 
-| Dimension | Closed values for `v0.9.11` |
+| Dimension | Closed values for `v0.9.13` |
 | --- | --- |
 | Columns | `address`, `hexadecimal`, `ascii` |
 | Interaction | `inspect`, `select`, `overwrite`, `structural-edit` |
@@ -131,12 +131,12 @@ remain available through U3 and U4 for rollback and parity comparison.
 Duplicate renderer/template/style code is removed only in U5 after both hosts
 pass their complete behavior, performance, accessibility, and read-only gates.
 
-The temporary dual-renderer period is not permission to raise the current
-60,000-line production ceiling or either named partial ratchet. U0 records the
-exact final `v0.9.10` predecessor baseline and the deletion budget. U5 must
-leave the shared-viewport slice net negative and lower the applicable
-`v0.9.11` descending ratchets; no safety test or evidence may be removed to
-manufacture a reduction.
+The temporary dual-renderer period is not permission to evade the code-size
+policy active when U0 begins. U0 records the exact released `v0.9.12`
+predecessor baseline, then-current ratchets, and deletion budget without
+inventing a universal line target. U5 must delete only proven duplicate
+renderer/template/style ownership; no safety test or evidence may be removed
+to manufacture a reduction.
 
 ## Alternatives rejected
 
@@ -170,5 +170,5 @@ manufacture a reduction.
 Implementation requires independent architecture and UI review, Polytail, the
 canonical final verifier, and the manual accessibility/performance evidence
 listed in the roadmap. The implementation branch must start from the exact
-final `v0.9.10` protected-main/tag predecessor. This planning ADR does not
-authorize implementation from a candidate commit.
+released `v0.9.12` predecessor. This planning ADR does not authorize
+implementation from a candidate commit.

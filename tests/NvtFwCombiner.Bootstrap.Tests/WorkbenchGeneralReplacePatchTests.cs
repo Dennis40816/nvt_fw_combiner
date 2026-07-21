@@ -158,7 +158,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
-    /// <summary>Rejects unsupported IC numbers even when mappings touch only DP bytes.</summary>
+    /// <summary>Rejects counts outside an owner-declared range before evaluating DP-only route support.</summary>
     [Fact]
     public async Task GeneralReplaceDpOnlyPatchStillValidatesIcNumber()
     {
@@ -166,8 +166,8 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x72));
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51950",
-            "999",
+            "NT51930",
+            "14",
             "General",
             CreateBaseSlots(basePath),
             [],

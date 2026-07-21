@@ -248,7 +248,7 @@ public sealed partial class MainWindowViewModel
 
             if (item.ApplyVerifiedContext && !IsFirmwareIcMismatchModalOpen)
             {
-                ApplyVerifiedFirmwareContext(inspection.ContextSuggestion);
+                PromptForFirmwareNumberMismatch(slot, inspection.ContextSuggestion);
             }
 
             if (item.SlotId == ReplaceBaseSlotId && IsCtrlRamReplaceModeSelected)
@@ -395,31 +395,6 @@ public sealed partial class MainWindowViewModel
                 applyVerifiedContext: false),
         ];
         FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, CancellationToken.None);
-    }
-
-    private void ApplyVerifiedFirmwareContext(WorkbenchFirmwareContextSuggestion? suggestion)
-    {
-        if (suggestion is null || string.Equals(SelectedNumber, suggestion.NumberToken, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        _isApplyingFirmwareInspectionContext = true;
-        try
-        {
-            SelectedNumber = suggestion.NumberToken;
-        }
-        finally
-        {
-            _isApplyingFirmwareInspectionContext = false;
-        }
-
-        string selectionLabel = NumberSelectionChoices.FirstOrDefault(choice =>
-            string.Equals(choice.Token, suggestion.NumberToken, StringComparison.Ordinal))?.DisplayLabel ??
-            suggestion.NumberToken;
-        SetShellToast(
-            Text.ContextUpdatedToastTitle,
-            Text.FormatVerifiedFirmwareContextToast(selectionLabel, suggestion.ChipNumber));
     }
 
     private void InvalidateFirmwareInspection(

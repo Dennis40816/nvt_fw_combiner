@@ -147,6 +147,18 @@ public sealed partial class ShellTextResources
 
     public string FirmwareIcMismatchUseDetectedLabel { get; private init; } = string.Empty;
 
+    public string FirmwareNumberMismatchTitle { get; private init; } = string.Empty;
+
+    public string FirmwareNumberMismatchDetail { get; private init; } = string.Empty;
+
+    public string FirmwareNumberMismatchCurrentLabel { get; private init; } = string.Empty;
+
+    public string FirmwareNumberMismatchDetectedLabel { get; private init; } = string.Empty;
+
+    public string FirmwareNumberMismatchCancelLabel { get; private init; } = string.Empty;
+
+    public string FirmwareNumberMismatchSwitchLabel { get; private init; } = string.Empty;
+
     public string ContextUpdatedToastTitle { get; private init; } = string.Empty;
 
     public string FirmwareInspectionLoadingStatus { get; private init; } = string.Empty;

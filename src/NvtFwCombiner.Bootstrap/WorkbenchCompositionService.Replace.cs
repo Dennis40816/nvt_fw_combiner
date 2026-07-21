@@ -12,7 +12,7 @@ public static partial class WorkbenchCompositionService
         string number,
         string? basePath)
     {
-        _ = TryResolvePostbuildProfileForDisplay(icId, basePath, out LegacyCombinerPostbuildProfile? postbuildProfile);
+        _ = TryResolvePostbuildProfileFromBasePathForDisplay(icId, basePath, out LegacyCombinerPostbuildProfile? postbuildProfile);
         return CreateCtrlRamReplaceInputSlots(
             icId,
             number,

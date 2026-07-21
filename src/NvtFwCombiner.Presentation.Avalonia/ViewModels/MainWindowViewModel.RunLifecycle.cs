@@ -158,6 +158,10 @@ public sealed partial class MainWindowViewModel
                 succeeded: false);
             OnPropertyChanged(nameof(LastRunResult));
             loadErrorReport(action, exception.Message);
+            if (build)
+            {
+                ShowReport();
+            }
         }
         finally
         {

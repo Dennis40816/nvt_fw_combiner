@@ -1,11 +1,10 @@
-using System.Globalization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.FlashMaps;
 
-/// <summary>Projects profile-declared postbuild branch tokens into validated request and UI choices.</summary>
+/// <summary>Projects typed postbuild plan selectors into validated request and UI choices.</summary>
 public static class IcNumberChoicePolicy
 {
     /// <summary>Returns true when at least one approved postbuild profile accepts the selection.</summary>
@@ -15,18 +14,9 @@ public static class IcNumberChoicePolicy
     {
         ArgumentNullException.ThrowIfNull(selection);
         ArgumentNullException.ThrowIfNull(profiles);
-        if (selection.Parts.Count == 0)
-        {
-            return false;
-        }
-
-        if (profiles.Count == 0)
-        {
-            return IcNumberSelectionTokens.IsSingle(selection.Parts[^1]);
-        }
-
-        string token = LegacyCombinerPostbuildBranchRule.NormalizeToken(selection.Parts[^1]);
-        return profiles.Any(profile => profile.BranchRules.ContainsKey(token));
+        return selection.Parts.Count != 0 && (profiles.Count == 0
+            ? IcNumberSelectionTokens.IsSingle(selection.Parts[^1])
+            : profiles.All(profile => profile.PlanSelectors.Any(selector => selector.Matches(selection))));
     }
 
     /// <summary>
@@ -42,35 +32,15 @@ public static class IcNumberChoicePolicy
             return [new IcNumberChoice(IcNumberSelectionTokens.SingleChip, "1 IC")];
         }
 
-        IReadOnlyList<(int Count, LegacyCombinerPostbuildBranch Branch)> numericBranches =
+        LegacyCombinerPostbuildPlanSelector[] selectors =
         [
-            .. profiles
-                .SelectMany(profile => profile.BranchRules)
-                .Where(pair => int.TryParse(pair.Key, NumberStyles.None, CultureInfo.InvariantCulture, out _))
-                .Select(pair => (
-                    int.Parse(pair.Key, CultureInfo.InvariantCulture),
-                    pair.Value))
-                .Distinct()
-                .OrderBy(pair => pair.Item1),
+            .. profiles[0].PlanSelectors
+                .Where(selector => profiles.All(profile => profile.PlanSelectors.Any(candidate =>
+                    string.Equals(candidate.Token, selector.Token, StringComparison.Ordinal) &&
+                    candidate.Branch == selector.Branch)))
+                .OrderBy(static selector => selector.MinimumCount),
         ];
-
-        bool hasExplicitCountBranches = numericBranches.Any(pair =>
-            pair.Branch is LegacyCombinerPostbuildBranch.TwoChip or LegacyCombinerPostbuildBranch.ThreeChip);
-        return hasExplicitCountBranches
-            ?
-            [
-                new IcNumberChoice(IcNumberSelectionTokens.SingleChip, "1 IC"),
-                .. numericBranches
-                    .Where(pair => pair.Branch is LegacyCombinerPostbuildBranch.TwoChip or LegacyCombinerPostbuildBranch.ThreeChip)
-                    .Select(pair => new IcNumberChoice(
-                        pair.Count.ToString(CultureInfo.InvariantCulture),
-                        $"{pair.Count} IC")),
-            ]
-            :
-            [
-                new IcNumberChoice(IcNumberSelectionTokens.SingleChip, "1 IC"),
-                new IcNumberChoice(IcNumberSelectionTokens.Cascade, "Cascade"),
-            ];
+        return [.. selectors.Select(static selector => new IcNumberChoice(selector.Token, selector.DisplayLabel))];
     }
 
 }

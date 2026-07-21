@@ -2,16 +2,20 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Locks the exact NT51928 non-NB CtrlRAM V2 route without exposing it as a public registration.</summary>
+    /// <summary>Locks all owner-approved NT51928 non-NB CtrlRAM V2 plans without a public profile registration.</summary>
     [Fact]
     public void Nt51928CtrlRamCandidateStaysExactAndPrivate()
     {
         string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
-        string runtime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
+        string routes = ReadText("src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs");
         string profile = ReadText(
             "profiles/built-in/nt51928-ctrlram-replace-candidate/profiles/nt51928-ctrlram-replace-fw132-twochip.json");
+        string singleProfile = ReadText(
+            "profiles/built-in/nt51928-ctrlram-replace-candidate/profiles/nt51928-ctrlram-replace-fw141-single.json");
+        string threeChipProfile = ReadText(
+            "profiles/built-in/nt51928-ctrlram-replace-candidate/profiles/nt51928-ctrlram-replace-fw140-threechip.json");
         string family = ReadText(
             "profiles/built-in/nt51928-ctrlram-replace-candidate/families/nt51928-ctrlram-replace.json");
 
@@ -19,20 +23,26 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("nt51928-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51928-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
         Assert.Contains(
-            "(\"NT51928\", \"nfc.nt51928.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.TwoChip, IcNumberInputMode.NumericSelector, \"1.3.2\", 2, 0xF206)",
-            runtime,
+            "Route(\"NT51928\", \"nfc.nt51928.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.TwoChip",
+            routes,
             StringComparison.Ordinal);
         Assert.Contains(
-            "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e",
-            runtime,
+            "Route(\"NT51928\", \"nfc.nt51928.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip",
+            routes,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Route(\"NT51928\", \"nfc.nt51928.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.ThreeChip",
+            routes,
             StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"support-neutral-partial-family-route\"", profile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51928.ctrlram-postbuild-v1", profile, StringComparison.Ordinal);
         Assert.Contains("nt51928-ctrlram-fw132-twochip-full-flash", profile, StringComparison.Ordinal);
+        Assert.Contains("nt51928-ctrlram-fw141-single-full-flash", singleProfile, StringComparison.Ordinal);
+        Assert.Contains("nt51928-ctrlram-fw140-threechip-full-flash", threeChipProfile, StringComparison.Ordinal);
         Assert.Contains("\"memberId\": \"NT51928\"", family, StringComparison.Ordinal);
         Assert.Contains("\"capacityBytes\": 524288", family, StringComparison.Ordinal);
-        Assert.Contains("\"expectedValues\": [\n              61958", family, StringComparison.Ordinal);
+        Assert.DoesNotContain("metadataPredicates", family, StringComparison.Ordinal);
         Assert.Contains("ctrlram-replace-partial-family-51928-non-nb-to-51927", family, StringComparison.Ordinal);
     }
 }

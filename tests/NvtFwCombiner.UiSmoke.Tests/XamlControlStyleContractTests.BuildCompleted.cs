@@ -43,7 +43,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.True(latestOutputAction >= 0);
         Assert.True(mergeBuildAction > latestOutputAction);
         Assert.True(replaceBuildAction > mergeBuildAction);
-        Assert.Contains("Selector=\"Button.dockAction\"", buttonStyles, StringComparison.Ordinal);
+        Assert.Contains("Orientation=\"Vertical\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Button.railAction\"", buttonStyles, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"Button.floatingAction.build\"", buttonStyles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Border.compositionActionRail\"", shellStyles, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceCornerRadius", railStyle, StringComparison.Ordinal);
@@ -68,5 +69,25 @@ public sealed partial class XamlControlStyleContractTests
             "<StackPanel Spacing=\"{DynamicResource NfcSpace8}\" />",
             spaciousListStyle,
             StringComparison.Ordinal);
+    }
+
+    /// <summary>The CtrlRAM Base firmware uses the same self-padding section inset as topology groups.</summary>
+    [Fact]
+    public void CtrlRamBaseAndTopologyGroupsShareSpaciousPanelWidthBoundary()
+    {
+        var workflows = System.Xml.Linq.XDocument.Parse(
+            ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml"));
+        System.Xml.Linq.XElement baseSlot = Assert.Single(
+            workflows.Descendants(),
+            element =>
+                element.Name.LocalName == "ContentControl" &&
+                (string?)element.Attribute("Content") == "{Binding ReplaceBaseSlot}" &&
+                element.Parent?.Name.LocalName == "SpaciousPanel");
+        System.Xml.Linq.XElement section = Assert.IsType<System.Xml.Linq.XElement>(baseSlot.Parent);
+
+        Assert.Equal("compact", (string?)section.Attribute("Classes"));
+        Assert.Equal("Stretch", (string?)section.Attribute("HorizontalAlignment"));
+        Assert.Equal("Stretch", (string?)baseSlot.Attribute("HorizontalAlignment"));
+        Assert.Equal("Stretch", (string?)baseSlot.Attribute("HorizontalContentAlignment"));
     }
 }

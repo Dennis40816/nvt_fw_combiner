@@ -116,7 +116,7 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.NotNull(metadata);
         byte[] image = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup));
-        Assert.Equal(backup.FirmwareConfigStart, metadata.FirmwareConfigBackupStart);
+        Assert.Equal(backup.StructureStart, metadata.FirmwareConfigBackupStart);
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
         Assert.Equal(0x02, metadata.ChipNumber);
         Assert.Equal("51926_1.4.1", metadata.PostbuildCategory);
@@ -156,6 +156,32 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal((byte)0x02, suggestion.ChipNumber);
         Assert.Equal("cascade", suggestion.NumberToken);
         Assert.Equal("1.4.1", suggestion.CommonFwVersion);
+    }
+
+    /// <summary>Number suggestions use the effective runtime profile and only offer a registered V2 route.</summary>
+    [Fact]
+    public void FirmwareContextSuggestionUsesEffectiveProfileAndRegisteredV2Route()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-effective-number-suggestion");
+        byte[] bytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(bytes, out FirmwareConfigMetadata metadata));
+        int start = checked((int)metadata.StructureStart);
+        bytes[start + FirmwareConfigLayout.CommonFwMajorVersionOffset] = 2;
+        bytes[start + FirmwareConfigLayout.CommonFwMinorVersionOffset] = 0;
+        bytes[start + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = 0;
+        bytes[start + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        string path = workspace.Write("fw200-single.bin", bytes);
+
+        WorkbenchFirmwareContextSuggestion suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
+            WorkbenchCompositionService.TryReadFirmwareContextSuggestion("NT51926", path));
+
+        Assert.Equal("single", suggestion.NumberToken);
+        Assert.Equal("2.0.0", suggestion.CommonFwVersion);
+        WorkbenchFirmwareContextSuggestion nt51928Suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
+            WorkbenchCompositionService.TryReadFirmwareContextSuggestion("NT51928", path));
+        Assert.Equal("NT51928", nt51928Suggestion.IcId);
+        Assert.Equal("single", nt51928Suggestion.NumberToken);
+        Assert.Equal("2.0.0", nt51928Suggestion.CommonFwVersion);
     }
 
     /// <summary>Firmware display readers fail closed when the selected image disappears before reading.</summary>
@@ -301,14 +327,14 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
-    /// <summary>Verifies versioned CtrlRAM postbuild fails closed when FWConfig FW/bar is invalid.</summary>
+    /// <summary>FW/bar validity cannot block Common FW interval selection during CtrlRAM Preview.</summary>
     [Fact]
-    public async Task CtrlRamReplaceRejectsInvalidFwVersionBarBeforePostbuildCategorySelection()
+    public async Task CtrlRamReplaceKeepsPostbuildSelectionIndependentFromFirmwareVersionBar()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-invalid-fwbar");
         byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata backup));
-        baseBytes[checked((int)backup.FirmwareConfigStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
+        baseBytes[checked((int)backup.StructureStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
 
         string basePath = workspace.Write("base-invalid-fwbar.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
@@ -321,15 +347,15 @@ public sealed class WorkbenchCompositionServiceTests
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51926",
-            "single",
+            "cascade",
             "CtrlRAM",
             slotPaths,
             build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded);
+        Assert.True(result.Succeeded, result.ReportJson);
         using var document = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
+        Assert.DoesNotContain(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
             issue => issue.GetProperty("Code").GetString() == ReplaceCtrlRamPostbuildCategoryUnknown);
     }
@@ -358,7 +384,7 @@ public sealed class WorkbenchCompositionServiceTests
             Assert.Equal(0x04, input[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareSubVersionOffset]);
 
             byte[] output = request.InputBytes.ToArray();
-            int backupStart = checked((int)originalBackup.FirmwareConfigStart);
+            int backupStart = checked((int)originalBackup.StructureStart);
             output[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = 0x27;
             output[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = 0xD8;
             output[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = 0x04;
@@ -438,10 +464,10 @@ public sealed class WorkbenchCompositionServiceTests
     }
 
     /// <summary>
-    /// A CtrlRAM shape without an exact V2 evidence route does not fall back to V1.
+    /// A selected plan that contradicts readable FWConfig chip count fails before V2 compilation.
     /// </summary>
     [Fact]
-    public async Task CtrlRamReplaceBuildWithoutExactV2RouteFailsClosed()
+    public async Task CtrlRamReplaceBuildWithFirmwareCountMismatchFailsClosed()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fw-version-preserve");
         byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
@@ -463,7 +489,11 @@ public sealed class WorkbenchCompositionServiceTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(File.Exists(outputPath));
+        using var document = JsonDocument.Parse(result.ReportJson);
+        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal(ReplaceCtrlRamIcNumberMismatch, issue.GetProperty("Code").GetString());
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 

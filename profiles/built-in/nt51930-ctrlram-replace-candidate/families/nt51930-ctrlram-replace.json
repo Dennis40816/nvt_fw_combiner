@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51930-ctrlram-replace",
-  "familyVersion": "0.1.0",
+  "familyVersion": "0.2.0",
   "members": [
     {
       "memberId": "NT51930",
@@ -63,7 +63,25 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 28956, "length": 101092 },
+          "range": { "start": 28956, "length": 98532 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-source",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "firmware-config",
+          "range": { "start": 127488, "length": 124 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-fwconfig-to-nf",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 127612, "length": 2436 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -224,40 +242,8 @@
       "applicability": {
         "memberIds": [ "NT51930" ],
         "modeIds": [ "ctrlram-replace" ],
-        "topologyRequirement": { "kind": "exact-count", "chipCount": 3 },
-        "capacityBytes": 262144,
-        "metadataPredicates": [
-          {
-            "metadataStructureId": "nt51930-fwconfig-backup-envelope",
-            "fieldId": "chip-count",
-            "operator": "equals",
-            "expectedValues": [ 3 ]
-          },
-          {
-            "metadataStructureId": "nt51930-fwconfig-backup-envelope",
-            "fieldId": "common-fw-major",
-            "operator": "equals",
-            "expectedValues": [ 1 ]
-          },
-          {
-            "metadataStructureId": "nt51930-fwconfig-backup-envelope",
-            "fieldId": "common-fw-minor",
-            "operator": "equals",
-            "expectedValues": [ 3 ]
-          },
-          {
-            "metadataStructureId": "nt51930-fwconfig-backup-envelope",
-            "fieldId": "common-fw-additional",
-            "operator": "equals",
-            "expectedValues": [ 0 ]
-          },
-          {
-            "metadataStructureId": "nt51930-fwconfig-backup-envelope",
-            "fieldId": "project-id",
-            "operator": "equals",
-            "expectedValues": [ 4365 ]
-          }
-        ]
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51930-ctrlram-fw130-full-flash" ],

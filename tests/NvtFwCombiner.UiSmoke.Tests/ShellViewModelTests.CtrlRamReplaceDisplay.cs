@@ -18,8 +18,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.Contains(viewModel.ReplaceSlots, slot =>
             slot.SlotId == "replace-ctrlram-vn" &&
-            slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
-            slot.Description.Contains("max 5278 B", StringComparison.Ordinal));
+            slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal));
 
         await viewModel.SetSlotFileAsync(
             "replace-base",

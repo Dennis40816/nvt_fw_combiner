@@ -1,9 +1,10 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.2",
   "profiles": [
     {
       "processorId": "nfc.nt51917.ctrlram-postbuild-v1",
       "icId": "NT51917",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51917_fw.bin",
       "singleCommands": [
@@ -1172,34 +1173,30 @@
           "blocks": []
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
+          "kind": "exact-count",
+          "branch": "two-chip",
+          "count": 2
         },
         {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "two-chip"
-        },
-        {
-          "token": "3",
-          "branch": "three-chip"
+          "kind": "exact-count",
+          "branch": "three-chip",
+          "count": 3
         }
       ],
       "assemblyKind": "refreshed-tp-then-standard-merge",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51917 follows NT51927"
     },
     {
       "processorId": "nfc.nt51919.ctrlram-postbuild-v1",
       "icId": "NT51919",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51919_fw.bin",
       "singleCommands": [
@@ -1333,138 +1330,24 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
-          "branch": "cascade"
-        },
-        {
-          "token": "20",
-          "branch": "cascade"
-        },
-        {
-          "token": "21",
-          "branch": "cascade"
-        },
-        {
-          "token": "22",
-          "branch": "cascade"
-        },
-        {
-          "token": "23",
-          "branch": "cascade"
-        },
-        {
-          "token": "24",
-          "branch": "cascade"
-        },
-        {
-          "token": "25",
-          "branch": "cascade"
-        },
-        {
-          "token": "26",
-          "branch": "cascade"
-        },
-        {
-          "token": "27",
-          "branch": "cascade"
-        },
-        {
-          "token": "28",
-          "branch": "cascade"
-        },
-        {
-          "token": "29",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51919 follows NT51929"
     },
     {
       "processorId": "nfc.nt51920.ctrlram-postbuild-v1",
       "icId": "NT51920",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51920_fw.bin",
       "singleCommands": [
@@ -1646,30 +1529,24 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "0",
-          "branch": "single"
-        },
-        {
-          "token": "1",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51920_1.3.1.bat"
     },
     {
       "processorId": "nfc.nt51923.ctrlram-postbuild-v1",
       "icId": "NT51923",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51923_fw.bin",
       "singleCommands": [
@@ -1842,34 +1719,24 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51923_1.4.1.bat"
     },
     {
       "processorId": "nfc.nt51926.ctrlram-postbuild-v1",
       "icId": "NT51926",
+      "effectiveCommonFwVersion": "2.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51926_fw.bin",
       "singleCommands": [
@@ -2033,39 +1900,24 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
       "assemblyKind": "in-place-firmware-image",
-      "commonFwVersionRule": {
-        "matchKind": "exact",
-        "pattern": "2.0.0",
-        "description": "Common FW 2.0.0 =\u003E PostbuildSetup_51926_2.0.0"
-      },
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51926_2.0.0.bat"
     },
     {
       "processorId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
       "icId": "NT51926",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51926_fw.bin",
       "singleCommands": [
@@ -2229,39 +2081,24 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
       "assemblyKind": "in-place-firmware-image",
-      "commonFwVersionRule": {
-        "matchKind": "exact",
-        "pattern": "1.4.1",
-        "description": "Common FW 1.4.1 =\u003E PostbuildSetup_51926_1.4.1"
-      },
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51926_1.4.1.bat"
     },
     {
       "processorId": "nfc.nt51927.ctrlram-postbuild-v1",
       "icId": "NT51927",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51927_fw.bin",
       "singleCommands": [
@@ -3430,34 +3267,30 @@
           "blocks": []
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
+          "kind": "exact-count",
+          "branch": "two-chip",
+          "count": 2
         },
         {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "two-chip"
-        },
-        {
-          "token": "3",
-          "branch": "three-chip"
+          "kind": "exact-count",
+          "branch": "three-chip",
+          "count": 3
         }
       ],
       "assemblyKind": "refreshed-tp-then-standard-merge",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat"
     },
     {
       "processorId": "nfc.nt51928.ctrlram-postbuild-v1",
       "icId": "NT51928",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51928_fw.bin",
       "singleCommands": [
@@ -4626,34 +4459,30 @@
           "blocks": []
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
+          "kind": "exact-count",
+          "branch": "two-chip",
+          "count": 2
         },
         {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "two-chip"
-        },
-        {
-          "token": "3",
-          "branch": "three-chip"
+          "kind": "exact-count",
+          "branch": "three-chip",
+          "count": 3
         }
       ],
       "assemblyKind": "refreshed-tp-then-standard-merge",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51928 follows NT51927; NT51928 NB is not covered"
     },
     {
       "processorId": "nfc.nt51929.ctrlram-postbuild-v1",
       "icId": "NT51929",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51929_fw.bin",
       "singleCommands": [
@@ -4787,138 +4616,24 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
-          "branch": "cascade"
-        },
-        {
-          "token": "20",
-          "branch": "cascade"
-        },
-        {
-          "token": "21",
-          "branch": "cascade"
-        },
-        {
-          "token": "22",
-          "branch": "cascade"
-        },
-        {
-          "token": "23",
-          "branch": "cascade"
-        },
-        {
-          "token": "24",
-          "branch": "cascade"
-        },
-        {
-          "token": "25",
-          "branch": "cascade"
-        },
-        {
-          "token": "26",
-          "branch": "cascade"
-        },
-        {
-          "token": "27",
-          "branch": "cascade"
-        },
-        {
-          "token": "28",
-          "branch": "cascade"
-        },
-        {
-          "token": "29",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51929 follows NT51932"
     },
     {
       "processorId": "nfc.nt51930.ctrlram-postbuild-v1",
       "icId": "NT51930",
+      "effectiveCommonFwVersion": "2.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "NT51930_fw.bin",
       "singleCommands": [
@@ -5052,144 +4767,27 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
-          "branch": "cascade"
-        },
-        {
-          "token": "20",
-          "branch": "cascade"
-        },
-        {
-          "token": "21",
-          "branch": "cascade"
-        },
-        {
-          "token": "22",
-          "branch": "cascade"
-        },
-        {
-          "token": "23",
-          "branch": "cascade"
-        },
-        {
-          "token": "24",
-          "branch": "cascade"
-        },
-        {
-          "token": "25",
-          "branch": "cascade"
-        },
-        {
-          "token": "26",
-          "branch": "cascade"
-        },
-        {
-          "token": "27",
-          "branch": "cascade"
-        },
-        {
-          "token": "28",
-          "branch": "cascade"
-        },
-        {
-          "token": "29",
-          "branch": "cascade"
+          "kind": "count-range",
+          "branch": "cascade",
+          "minimumCount": 2,
+          "maximumCount": 13
         }
       ],
       "assemblyKind": "in-place-firmware-image",
-      "commonFwVersionRule": {
-        "matchKind": "exact",
-        "pattern": "2.0.0",
-        "description": "Common FW 2.0.0 =\u003E PostbuildSetup_51930_2.0.0"
-      },
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "availability": "evidence-only",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51930_2.0.0.bat"
     },
     {
       "processorId": "nfc.nt51930.ctrlram-postbuild-fw1.x",
       "icId": "NT51930",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51930_fw.bin",
       "singleCommands": [
@@ -5309,143 +4907,26 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
-          "branch": "cascade"
-        },
-        {
-          "token": "20",
-          "branch": "cascade"
-        },
-        {
-          "token": "21",
-          "branch": "cascade"
-        },
-        {
-          "token": "22",
-          "branch": "cascade"
-        },
-        {
-          "token": "23",
-          "branch": "cascade"
-        },
-        {
-          "token": "24",
-          "branch": "cascade"
-        },
-        {
-          "token": "25",
-          "branch": "cascade"
-        },
-        {
-          "token": "26",
-          "branch": "cascade"
-        },
-        {
-          "token": "27",
-          "branch": "cascade"
-        },
-        {
-          "token": "28",
-          "branch": "cascade"
-        },
-        {
-          "token": "29",
-          "branch": "cascade"
+          "kind": "count-range",
+          "branch": "cascade",
+          "minimumCount": 2,
+          "maximumCount": 13
         }
       ],
       "assemblyKind": "in-place-firmware-image",
-      "commonFwVersionRule": {
-        "matchKind": "major",
-        "pattern": "1",
-        "description": "Common FW 1.x.x =\u003E PostbuildSetup_51930_1.4.0"
-      },
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51930_1.4.0.bat"
     },
     {
       "processorId": "nfc.nt51931.ctrlram-postbuild-v1",
       "icId": "NT51931",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51931_fw.bin",
       "singleCommands": [
@@ -5581,102 +5062,24 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "0",
-          "branch": "single"
-        },
-        {
-          "token": "1",
-          "branch": "cascade"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "Owner 2026-07-17 NT51931-based BAT plus 2026-07-19 full-byte parity: Combiner 1.13.0 NT51931-based equals Combiner 1.2.0.4 NT51930-based"
     },
     {
       "processorId": "nfc.nt51932.ctrlram-postbuild-v1",
       "icId": "NT51932",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51932_fw.bin",
       "singleCommands": [
@@ -5810,138 +5213,24 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
-          "branch": "cascade"
-        },
-        {
-          "token": "20",
-          "branch": "cascade"
-        },
-        {
-          "token": "21",
-          "branch": "cascade"
-        },
-        {
-          "token": "22",
-          "branch": "cascade"
-        },
-        {
-          "token": "23",
-          "branch": "cascade"
-        },
-        {
-          "token": "24",
-          "branch": "cascade"
-        },
-        {
-          "token": "25",
-          "branch": "cascade"
-        },
-        {
-          "token": "26",
-          "branch": "cascade"
-        },
-        {
-          "token": "27",
-          "branch": "cascade"
-        },
-        {
-          "token": "28",
-          "branch": "cascade"
-        },
-        {
-          "token": "29",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat"
     },
     {
       "processorId": "nfc.nt51950.ctrlram-postbuild-v1",
       "icId": "NT51950",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51950_fw.bin",
       "singleCommands": [
@@ -6075,30 +5364,24 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat"
     },
     {
       "processorId": "nfc.nt51951.ctrlram-postbuild-v1",
       "icId": "NT51951",
+      "effectiveCommonFwVersion": "1.0.0",
       "toolBindingId": "legacy-combiner-1.13.0",
       "firmwareFileName": "nt51951_fw.bin",
       "singleCommands": [
@@ -6232,25 +5515,18 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat; owner confirmation: NT51951 follows NT51950"
     }
   ]

@@ -10,7 +10,10 @@ public sealed partial class RepositoryBoundaryTests
         string loader = ReadText("src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs");
         string pinnedJsonLoader = ReadText("src/NvtFwCombiner.Infrastructure/PinnedJsonCatalogLoader.cs");
 
-        Assert.Contains("\"schemaVersion\": \"2.0\"", catalog, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\": \"2.2\"", catalog, StringComparison.Ordinal);
+        Assert.Equal(15, catalog.Split("\"effectiveCommonFwVersion\":", StringSplitOptions.None).Length - 1);
+        Assert.Equal(15, catalog.Split("\"planSelectors\":", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("\"branchRules\":", catalog, StringComparison.Ordinal);
         Assert.Equal(15, catalog.Split("\"processorId\":", StringSplitOptions.None).Length - 1);
         Assert.Contains("NT51917", catalog, StringComparison.Ordinal);
         Assert.Contains("NT51951", catalog, StringComparison.Ordinal);
@@ -31,10 +34,10 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildProfile.cs");
         string enums = ReadText(
             "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildEnums.cs");
-        string commonFwRule = ReadText(
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerCommonFwVersionRule.cs");
-        string branchRule = ReadText(
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildBranchRule.cs");
+        string commonFwVersion = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerCommonFwVersion.cs");
+        string planSelector = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanSelector.cs");
         string blockArgument = ReadText(
             "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerBlockArgument.cs");
         string command = ReadText(
@@ -48,8 +51,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("public sealed class LegacyCombinerPostbuildCommandPlan", profile, StringComparison.Ordinal);
         Assert.Contains("public enum LegacyCombinerCommandFamily", enums, StringComparison.Ordinal);
         Assert.Contains("public enum LegacyCombinerBlockSourceKind", enums, StringComparison.Ordinal);
-        Assert.Contains("public sealed class LegacyCombinerCommonFwVersionRule", commonFwRule, StringComparison.Ordinal);
-        Assert.Contains("public sealed class LegacyCombinerPostbuildBranchRule", branchRule, StringComparison.Ordinal);
+        Assert.Contains("public readonly record struct LegacyCombinerCommonFwVersion", commonFwVersion, StringComparison.Ordinal);
+        Assert.Contains("public sealed class LegacyCombinerPostbuildPlanSelector", planSelector, StringComparison.Ordinal);
+        Assert.Contains("public enum LegacyCombinerPostbuildPlanSelectorKind", planSelector, StringComparison.Ordinal);
         Assert.Contains("public sealed class LegacyCombinerBlockArgument", blockArgument, StringComparison.Ordinal);
         Assert.Contains("public sealed class LegacyCombinerPostbuildCommand", command, StringComparison.Ordinal);
         Assert.Contains("public sealed class LegacyCombinerPostbuildCommandPlan", commandPlan, StringComparison.Ordinal);
@@ -72,7 +76,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CreatePlan", root, StringComparison.Ordinal);
         Assert.Contains("GetStagedFileBlocks", root, StringComparison.Ordinal);
         Assert.Contains("CalculateRequiredCapacity", root, StringComparison.Ordinal);
-        Assert.Contains("ResolveBranch", root, StringComparison.Ordinal);
+        Assert.Contains("ResolveSelector", root, StringComparison.Ordinal);
         Assert.DoesNotContain("GetAllowedWriteRangeSectionsForStagedSources", root, StringComparison.Ordinal);
         Assert.DoesNotContain("NormalizeCandidateWriteRangeSections", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", root, StringComparison.Ordinal);

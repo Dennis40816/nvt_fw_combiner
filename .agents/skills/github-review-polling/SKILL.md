@@ -36,8 +36,11 @@ resources on every poll:
 
 Normalize the reviewer login so both `chatgpt-codex-connector` and
 `chatgpt-codex-connector[bot]` identify the same bot. Require response timestamps
-to be strictly later than the request. Treat `eyes` as pending; a later bot
-review, inline comment, issue comment, or non-`eyes` reaction is a response that
+to be strictly later than the request. Reviews and inline comments count only
+when their commit identity exactly equals the expected head; a missing commit
+identity is not exact-head evidence. Issue comments and request-comment
+reactions remain headless request-window signals because the current PR head is
+checked separately on every poll. Treat `eyes` as pending; any accepted response
 still requires thread-aware inspection.
 
 ## Run The Poller

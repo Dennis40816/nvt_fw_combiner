@@ -121,19 +121,93 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
             artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
     }
 
-    /// <summary>Proves another base, project, version, count, or selector fails closed.</summary>
+    /// <summary>A declared source route still fails closed when the injected processor does not propagate to Backup.</summary>
+    [Fact]
+    public async Task FirmwareVersionEditRejectsProcessorThatDoesNotPropagateToBackupAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51929-fw200-version-edit");
+        string basePath = workspace.Write("base.bin", evidence.Expected.Bytes);
+        string outputPath = workspace.PathFor("version-edited.bin");
+        var processor = new PassThroughProcessor();
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51929",
+            "single",
+            CreateSlotPaths(evidence, basePath),
+            build: true,
+            outputPath: outputPath,
+            firmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04),
+            externalProcessor: processor,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.Null(result.CommittedOutputId);
+        Assert.False(File.Exists(outputPath));
+        Assert.Equal(1, processor.CallCount);
+        Assert.Equal(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+
+        using var report = JsonDocument.Parse(result.ReportJson);
+        JsonElement issue = Assert.Single(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            candidate => candidate.GetProperty("Code").GetString() ==
+                WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionOutputMismatch);
+        Assert.Equal("verify-nvt-fwconfig-backup-version", issue.GetProperty("OperationId").GetString());
+        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
+    }
+
+    /// <summary>The production NT51929 mode edits Primary, propagates Backup, and commits a full output.</summary>
+    [Fact]
+    public async Task FirmwareVersionEditBuildPropagatesPrimaryToBackupAsync()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        const byte firmwareVersion = 0x27;
+        const byte firmwareSubVersion = 0x04;
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51929-fw200-version-edit-real");
+        string basePath = workspace.Write("base.bin", evidence.Expected.Bytes);
+        string outputPath = workspace.PathFor("version-edited.bin");
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51929",
+            "single",
+            WorkbenchReplaceModes.CtrlRam,
+            CreateSlotPaths(evidence, basePath),
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath,
+            ctrlRamFirmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(firmwareVersion, firmwareSubVersion));
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(outputPath, result.CommittedOutputId);
+        Assert.Equal(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.Equal(Capacity, output.Length);
+        Assert.True(BuiltInTpFlashMapCatalog.TryFind("NT51929", out TpFlashMapProfile? flashMap));
+        Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(
+            output,
+            flashMap!.FirmwareConfigPrimaryStart,
+            out FirmwareConfigMetadata primary));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(output, out FirmwareConfigMetadata backup));
+        Assert.Equal(firmwareVersion, primary.FirmwareVersion);
+        Assert.Equal(unchecked((byte)~firmwareVersion), primary.FirmwareVersionBar);
+        Assert.Equal(firmwareSubVersion, primary.FirmwareSubVersion);
+        Assert.Equal(firmwareVersion, backup.FirmwareVersion);
+        Assert.Equal(unchecked((byte)~firmwareVersion), backup.FirmwareVersionBar);
+        Assert.Equal(firmwareSubVersion, backup.FirmwareSubVersion);
+    }
+
+    /// <summary>NT51919/NT51929 aliases retain the requested single route across non-authoritative metadata.</summary>
     [Theory]
-    [InlineData("NT51929", "base")]
     [InlineData("NT51929", "pid")]
     [InlineData("NT51929", "version")]
-    [InlineData("NT51929", "chip")]
-    [InlineData("NT51929", "selector")]
-    [InlineData("NT51919", "base")]
     [InlineData("NT51919", "pid")]
     [InlineData("NT51919", "version")]
-    [InlineData("NT51919", "chip")]
-    [InlineData("NT51919", "selector")]
-    public async Task UnreviewedShapesFailClosedAsync(string icId, string mutation)
+    public async Task ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(string icId, string mutation)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
 
@@ -146,13 +220,9 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = [.. evidence.Expected.Bytes];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int start = checked((int)metadata.FirmwareConfigStart);
-        string number = "single";
+        int start = checked((int)metadata.StructureStart);
         switch (mutation)
         {
-            case "base":
-                reference[0x100] ^= 0x01;
-                break;
             case "pid":
                 BinaryPrimitives.WriteUInt16LittleEndian(
                     reference.AsSpan(start + FirmwareConfigLayout.ProjectIdOffset),
@@ -161,27 +231,70 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
             case "version":
                 reference[start + FirmwareConfigLayout.CommonFwAdditionalVersionOffset]++;
                 break;
-            case "chip":
-                reference[start + FirmwareConfigLayout.ChipNumberOffset] = 2;
-                break;
-            case "selector":
-                number = "1";
-                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(mutation), mutation, "Unknown route mutation.");
         }
 
         File.WriteAllBytes(referencePath, reference);
-        string outputPath = workspace.PathFor("unsupported.bin");
+        string outputPath = workspace.PathFor("metadata-variation-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
-            icId, number, CreateSlotPaths(evidence, referencePath), true,
+            icId, "single", CreateSlotPaths(evidence, referencePath), true,
             outputPath, null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        using (var report = JsonDocument.Parse(result.ReportJson))
+        {
+            string canonicalIcId = icId.ToUpperInvariant();
+            AssertReportIdentity(
+                report.RootElement,
+                $"{canonicalIcId.ToLowerInvariant()}-ctrlram-replace-fw200-single",
+                canonicalIcId);
+        }
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
         Assert.All(
             evidence.Artifacts,
             artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
+    }
+
+    /// <summary>NT51919 and NT51929 generic cascade routes consume the owner-declared DiffDLM range.</summary>
+    [Theory]
+    [InlineData("NT51919", "nt51919-ctrlram-replace-fw1x-cascade")]
+    [InlineData("NT51929", "nt51929-ctrlram-replace-fw1x-cascade")]
+    public async Task CascadeFamilyRoutesBuildWithDiffDlmAsync(
+        string icId,
+        string expectedProfileId)
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51929-fw1x-cascade-route");
+        string referencePath = workspace.PathFor("cascade-reference.bin");
+        byte[] reference = [.. evidence.Expected.Bytes];
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
+        reference[checked((int)metadata.StructureStart) + FirmwareConfigLayout.ChipNumberOffset] = 2;
+        File.WriteAllBytes(referencePath, reference);
+
+        byte[] diff = [.. Enumerable.Range(0, 0x8C00).Select(static index => (byte)((index * 17) + 3))];
+        string diffPath = workspace.Write("DiffDLM.bin", diff);
+        Dictionary<string, string> slotPaths = CreateSlotPaths(evidence, referencePath);
+        slotPaths["replace-ctrlram-diff"] = diffPath;
+        string outputPath = workspace.PathFor("cascade-output.bin");
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            icId,
+            "cascade",
+            slotPaths,
+            build: true,
+            outputPath,
+            firmwareVersionEdit: null,
+            new PassThroughProcessor(),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        byte[] output = File.ReadAllBytes(outputPath);
+        Assert.Equal(diff, output.AsSpan(0x2D100, diff.Length).ToArray());
+        using var report = JsonDocument.Parse(result.ReportJson);
+        AssertReportIdentity(report.RootElement, expectedProfileId, icId);
+        Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
     }
 
     /// <summary>Proves accepted NT51929 identifiers select the same exact V2 route.</summary>
@@ -245,22 +358,11 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
         ByteRange[] expectedWrites = [
             new(0x7100, 4), new(0x7118, 4), new(NfStart, 1624), new(NormalStart, NormalLength),
             new(VnStart, VnMaximumLength), new(HeaderCopyStart, HeaderCopyLength),
+            new(0x2E000, FirmwareConfigLayout.RequiredLength),
         ];
         Assert.Equal(expectedWrites, ReadRanges(session, "ProcessorAllowedWriteRanges"));
         string executable = session.GetProperty("ExecutedCommands")[0].GetProperty("ExecutablePath").GetString()!;
         Assert.Equal(RegisteredCombinerSha256, Hash(File.ReadAllBytes(executable)));
-    }
-
-    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string outputPath)
-    {
-        Assert.False(result.Succeeded, result.ReportJson);
-        Assert.Null(result.CommittedOutputId);
-        Assert.False(File.Exists(outputPath));
-        using var report = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == WorkbenchIssueCodes.ReplaceWorkflowNotSupported);
-        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
     private static string[][] ExpectedArguments(string icId)
@@ -440,10 +542,13 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
 
     private sealed class PassThroughProcessor : IExternalProcessor
     {
+        public int CallCount { get; private set; }
+
         public ValueTask<ExternalProcessorResult> TransformAsync(
             ExternalProcessorRequest request,
             CancellationToken cancellationToken)
         {
+            CallCount++;
             return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
         }
     }

@@ -135,7 +135,6 @@ public static partial class WorkbenchCompositionService
         LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
             icId,
             firmwareConfig?.CommonFwVersion,
-            firmwareConfig?.IsFirmwareVersionBarValid == true,
             out LegacyCombinerPostbuildProfile? resolvedProfile)
                 ? resolvedProfile
                 : null;
@@ -191,7 +190,7 @@ public static partial class WorkbenchCompositionService
     {
         return metadata is { } firmwareConfig
             ? new WorkbenchFirmwareConfigMetadata(
-                firmwareConfig.FirmwareConfigStart,
+                firmwareConfig.StructureStart,
                 firmwareConfig.CommonFwVersion,
                 firmwareConfig.FirmwareVersion,
                 firmwareConfig.FirmwareVersionBar,
@@ -222,7 +221,7 @@ public static partial class WorkbenchCompositionService
         FirmwareConfigMetadata? metadata)
     {
         return metadata is { ChipNumber: not 0 } firmwareConfig &&
-            TryResolveNumberTokenForFirmwareChipNumber(icId, firmwareConfig.ChipNumber, out string? numberToken)
+            TryResolveNumberTokenForFirmwareConfig(icId, firmwareConfig, out string? numberToken)
                 ? new WorkbenchFirmwareContextSuggestion(
                     icId,
                     numberToken!,
@@ -262,14 +261,12 @@ public static partial class WorkbenchCompositionService
         return TryResolvePostbuildProfileForDisplay(
             icId,
             metadata?.CommonFwVersion,
-            metadata?.IsFirmwareVersionBarValid == true,
             out postbuildProfile);
     }
 
     private static bool TryResolvePostbuildProfileForDisplay(
         string icId,
         string? commonFwVersion,
-        bool isFirmwareVersionBarValid,
         out LegacyCombinerPostbuildProfile? postbuildProfile)
     {
         IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
@@ -285,8 +282,7 @@ public static partial class WorkbenchCompositionService
             return true;
         }
 
-        return isFirmwareVersionBarValid &&
-            !string.IsNullOrWhiteSpace(commonFwVersion) &&
+        return !string.IsNullOrWhiteSpace(commonFwVersion) &&
             TrySelectPostbuildProfileByCommonFwVersion(
                 icId,
                 commonFwVersion,

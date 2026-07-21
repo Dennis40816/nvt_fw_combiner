@@ -2,6 +2,44 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Locks the shared viewport and global Button acknowledgement backlog to v0.9.13.</summary>
+    [Fact]
+    public void V0913OwnsSharedViewportAndGlobalButtonFeedback()
+    {
+        string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
+        string tags = ReadText("docs/governance/development-tags.md");
+
+        Assert.Contains("## v0.9.13: shared Hex viewport, Changes redesign, and interaction feedback", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Every interactive\nAvalonia `Button`", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Pointer, touch, Space, and Enter", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Reduced-motion mode", roadmap, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.12` | CtrlRAM routing and interaction stabilization", tags, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.13` | Shared Hex viewport, Button feedback, and AB re-admission", tags, StringComparison.Ordinal);
+        Assert.DoesNotContain("Shared Hex viewport and Changes redesign work remain deferred to `0.9.12`", tags, StringComparison.Ordinal);
+
+        int progressionStart = tags.IndexOf("## Progression", StringComparison.Ordinal);
+        int progressionEnd = tags.IndexOf("## Rules", StringComparison.Ordinal);
+        string progression = tags[progressionStart..progressionEnd];
+        Assert.Contains("v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance", progression, StringComparison.Ordinal);
+        Assert.Contains("v0.9.13         shared Hex/Changes, global Button feedback, and separately gated AB re-admission", progression, StringComparison.Ordinal);
+        Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
+    }
+
+    /// <summary>Locks AB execution out of v0.9.12 and assigns typed re-admission to the separately gated v0.9.13 track.</summary>
+    [Fact]
+    public void V0913OwnsAbCodeProductionReadmissionWithoutV0912Exposure()
+    {
+        string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
+        string decision = ReadText("docs/adr/0032-ab-code-production-readmission.md");
+        string specification = ReadText("SPEC.md");
+
+        Assert.Contains("### AB Code architecture re-admission owner amendment", roadmap, StringComparison.Ordinal);
+        Assert.Contains("All AB Code execution remains unchanged, hidden, and", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Existing AB candidates remain hidden and fail closed", decision, StringComparison.Ordinal);
+        Assert.Contains("PID, filenames, complete firmware SHA-256 values", decision, StringComparison.Ordinal);
+        Assert.Contains("Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.12`", specification, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the owner-priority roadmap schedules normal Replace before workflow convergence and deferred AB work.</summary>
     [Fact]
     public void OwnerPriorityTargetsNormalMergeReplaceBeforeAb()

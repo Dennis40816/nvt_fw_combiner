@@ -6,11 +6,9 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private const string Nt51926Fw200ProcessorId = "nfc.nt51926.ctrlram-postbuild-v1";
-
     private static V2CompositionPlanCompileResult CompileCtrlRamV2(
         CtrlRamReplaceRunContext context,
-        string profileId,
+        CtrlRamV2Route route,
         TopologySelection topology,
         FirmwareArtifactPayload referencePayload)
     {
@@ -54,16 +52,10 @@ public static partial class WorkbenchCompositionService
         V2RuntimeReferenceReplaceFirmwareVersionEdit? firmwareVersionEdit =
             CtrlRamV2FirmwareVersionAdapter.Create(context.FirmwareVersionWritePlan);
 
-        string bundleId = context.PostbuildProfile!.IcId switch
-        {
-            "NT51917" => "nt51917-ctrlram-replace-alias-candidate",
-            "NT51919" => "nt51929-ctrlram-replace-candidate",
-            _ => $"{context.PostbuildProfile.IcId.ToLowerInvariant()}-ctrlram-replace-candidate",
-        };
-        return BuiltInV2BundleRegistry.All[bundleId].CompileRuntimeReferenceReplace(
-            profileId,
-            "0.1.0",
-            context.PostbuildProfile.IcId,
+        return BuiltInV2BundleRegistry.All[route.BundleId].CompileRuntimeReferenceReplace(
+            route.ProfileId,
+            route.ProfileVersion,
+            route.Key.IcId,
             ExperienceIds.CtrlRamReplace,
             topology,
             [referencePayload],

@@ -181,8 +181,10 @@ FirmwareMapResolutionInputs
 ```
 
 Domain snapshots each payload and computes its identity; callers cannot supply bytes and hashes as
-parallel authorities. Decoded fields, locator outcomes, Common FW category, and derived topology are
-resolver-owned candidate data. Pre-resolver applicability leaves those discriminators pending. Every
+parallel authorities. Family identity is already fixed by the requested IC and explicit family
+membership. Decoded fields, locator outcomes, an independently evidenced runtime-profile interval,
+and derived topology are resolver-owned candidate data inside that family; they never rediscover or
+change the family. Pre-resolver applicability leaves those discriminators pending. Every
 predicate names its metadata structure, and that structure names its artifact binding; comparison is
 therefore limited to the exact `(artifactId, metadataStructureId, fieldId)` scope. Only outcomes from
 the uniquely selected map enter `ResolvedFirmwareImageMap`, which retains identities but never bytes.

@@ -378,6 +378,25 @@ public sealed class FirmwareMapResolutionTests
         Assert.Equal(FirmwareMapResolutionRejectionKind.AmbiguousMaps, result.RejectionKind);
     }
 
+    /// <summary>Verifies a trusted profile map binding scopes resolution without selecting a default physical map.</summary>
+    [Fact]
+    public void ResolveMapWithinProfileCandidatesExcludesUnboundSiblingMaps()
+    {
+        FirmwareImageMap first = Map("first", []);
+        FirmwareImageMap second = Map("second", []);
+        FirmwareFamilyResolutionDefinition definition = Definition([first, second], []);
+
+        FirmwareMapResolutionResult unscoped = definition.ResolveMap(Inputs([]));
+        FirmwareMapResolutionResult scoped = definition.ResolveMapWithin(
+            Inputs([]),
+            new HashSet<string>(["second"], StringComparer.Ordinal));
+
+        Assert.Equal(FirmwareMapResolutionStatus.Rejected, unscoped.Status);
+        Assert.Equal(FirmwareMapResolutionRejectionKind.AmbiguousMaps, unscoped.RejectionKind);
+        Assert.Equal(FirmwareMapResolutionStatus.Unique, scoped.Status);
+        Assert.Equal("second", Assert.IsType<ResolvedFirmwareImageMap>(scoped.ResolvedMap).ImageMap.MapId);
+    }
+
     /// <summary>Verifies technical capability evidence neither selects a map nor appears in resolved physical provenance.</summary>
     [Fact]
     public void ResolveMapExcludesCapabilityEvidenceFromResolvedMap()

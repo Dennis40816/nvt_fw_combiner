@@ -273,6 +273,7 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedReplaceModeChanged(string value)
     {
+        InvalidateFirmwareNumberMismatch();
         InvalidateFirmwareInspection();
         InvalidateCtrlRamFirmwareVersionContext();
         RefreshContextState(resetRunResult: true);
@@ -281,6 +282,7 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedIcChanged(string value)
     {
+        InvalidateFirmwareNumberMismatch();
         AcceptedFirmwareMismatchSelection? acceptedMismatch =
             ConsumeAcceptedFirmwareMismatchSelection();
         InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
@@ -318,6 +320,7 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedNumberChanged(string value)
     {
+        InvalidateFirmwareNumberMismatch();
         if (_isRefreshingFirmwareInspectionContext)
         {
             InvalidateCtrlRamFirmwareVersionContext();

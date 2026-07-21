@@ -13,6 +13,27 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
     private const int VnStart = 0x315D0;
     private const int VnMaximum = 0x1660;
 
+    /// <summary>Verifies the owner-modeled Common FW 1.x single plan has a trusted runtime profile.</summary>
+    [Fact]
+    public void SingleCandidateCompilesWithTheSameReviewedMapAndProcessorAuthority()
+    {
+        const string profileId = "nt51926-ctrlram-replace-fw141-runtime-single";
+        V2CompositionPlanCompileResult result = Compile(profileId, chipCount: 1, TpWorkCapacity, sourceLength: 1);
+
+        Assert.True(result.IsCompiled, FormatIssues(result.Issues));
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
+        Assert.Equal(profileId, composition.ProfileId);
+        Assert.Equal(
+            "nt51926-ctrlram-fw141-tp-work-240k",
+            composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+        ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
+            composition.Plan.OrderedOperations.Single(static operation =>
+                operation.Kind == CompositionOperationKind.RunExternalProcessor).ExternalProcessorInvocation);
+        Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", invocation.ProcessorId);
+        Assert.Equal([new ByteRange(0, TpWorkCapacity)], invocation.AllowedReadRanges);
+        Assert.DoesNotContain(new ByteRange(0x27800, 0x2800), invocation.AllowedWriteRanges);
+    }
+
     /// <summary>Verifies the cascade candidate compiles a short-source prefix without full-region authority.</summary>
     [Fact]
     public void CandidateCompilesShortCtrlRamPrefixWithNarrowProcessorAuthority()
@@ -165,7 +186,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         new byte[] { 0x00, 0x4E, 0x56, 0x54 }.CopyTo(reference, 0x3BFFC);
         return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
             profileId,
-            "0.1.0",
+            "0.2.0",
             "NT51926",
             ExperienceIds.CtrlRamReplace,
             new TopologySelection(

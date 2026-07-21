@@ -96,13 +96,11 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
             artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
     }
 
-    /// <summary>Proves wrong project, version, count, or selector shapes fail closed.</summary>
+    /// <summary>Requested single routing accepts display-only metadata variations.</summary>
     [Theory]
     [InlineData("single", 2, 0, 0, 1, 0xFFFF)]
     [InlineData("single", 1, 3, 0, 1, 0x5901)]
-    [InlineData("single", 2, 0, 0, 2, 0x5901)]
-    [InlineData("1", 2, 0, 0, 1, 0x5901)]
-    public async Task UnreviewedShapesRetainV1FallbackAsync(
+    public async Task ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(
         string number,
         byte major,
         byte minor,
@@ -115,7 +113,7 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = [.. evidence.Expected.Bytes];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int start = checked((int)metadata.FirmwareConfigStart);
+        int start = checked((int)metadata.StructureStart);
         reference[start + FirmwareConfigLayout.CommonFwMajorVersionOffset] = major;
         reference[start + FirmwareConfigLayout.CommonFwMinorVersionOffset] = minor;
         reference[start + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = additional;
@@ -123,15 +121,18 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         BinaryPrimitives.WriteUInt16LittleEndian(reference.AsSpan(start + FirmwareConfigLayout.ProjectIdOffset), projectId);
         File.WriteAllBytes(referencePath, reference);
 
-        string outputPath = workspace.PathFor("unsupported.bin");
+        string outputPath = workspace.PathFor("metadata-variation-output.bin");
         WorkbenchRunResult result = await RunWithPassThroughAsync(evidence, number, referencePath, outputPath);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        AssertReportIdentity(report.RootElement, "nt51951-ctrlram-replace-fw200-single");
     }
 
-    /// <summary>Proves matching metadata cannot route a different base variant through the exact V2 path.</summary>
+    /// <summary>Proves production routing accepts a structurally valid base without golden hash admission.</summary>
     [Fact]
-    public async Task SameMetadataWithDifferentBaseBytesRetainsV1FallbackAsync()
+    public async Task SameMetadataWithDifferentBaseBytesUsesExactV2RouteAsync()
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51951-fw200-base-identity");
@@ -140,10 +141,44 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         reference[0x100] ^= 0x01;
         File.WriteAllBytes(referencePath, reference);
 
-        string outputPath = workspace.PathFor("unsupported.bin");
+        Assert.NotEqual(Hash(evidence.Expected.Bytes), Hash(reference));
+
+        string outputPath = workspace.PathFor("output.bin");
         WorkbenchRunResult result = await RunWithPassThroughAsync(evidence, "single", referencePath, outputPath);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(reference[0x100], File.ReadAllBytes(outputPath)[0x100]);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        AssertReportIdentity(report.RootElement, "nt51951-ctrlram-replace-fw200-single");
+    }
+
+    /// <summary>Proves the owner-approved cascade TP layout builds while preserving the larger image tail.</summary>
+    [Fact]
+    public async Task CascadeSelectorBuildsThroughSharedTpLayoutAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51951-fw200-cascade");
+        byte[] cascadeReference = [.. evidence.Expected.Bytes];
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(cascadeReference, out FirmwareConfigMetadata metadata));
+        cascadeReference[checked((int)metadata.StructureStart + FirmwareConfigLayout.ChipNumberOffset)] = 2;
+        string referencePath = workspace.Write("cascade-reference.bin", cascadeReference);
+        byte[] diffBytes = [.. Enumerable.Range(0, 0x1400).Select(static index => unchecked((byte)(index * 19)))];
+        string diffPath = workspace.Write("DiffDLM.bin", diffBytes);
+        Dictionary<string, string> slots = CreateSlotPaths(evidence, referencePath);
+        slots[WorkbenchSlotIds.CreateReplaceCtrlRam("diff")] = diffPath;
+
+        string outputPath = workspace.PathFor("cascade.bin");
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51951", "cascade", slots, true, outputPath, null,
+            new PassThroughProcessor(), TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        byte[] output = File.ReadAllBytes(outputPath);
+        Assert.Equal(diffBytes, output.AsSpan(0x33200, 0x1400).ToArray());
+        Assert.Equal(cascadeReference.AsSpan(0x34600).ToArray(), output.AsSpan(0x34600).ToArray());
+        using var report = JsonDocument.Parse(result.ReportJson);
+        AssertReportIdentity(report.RootElement, "nt51951-ctrlram-replace-fw1x-cascade");
     }
 
     /// <summary>Proves accepted NT51951 identifiers select the same exact V2 route.</summary>
@@ -220,17 +255,6 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         Assert.Equal(expectedWrites, ReadRanges(session, "ProcessorAllowedWriteRanges"));
         string executable = session.GetProperty("ExecutedCommands")[0].GetProperty("ExecutablePath").GetString()!;
         Assert.Equal(RegisteredCombinerSha256, Hash(File.ReadAllBytes(executable)));
-    }
-
-    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string outputPath)
-    {
-        Assert.False(result.Succeeded, result.ReportJson);
-        Assert.False(File.Exists(outputPath));
-        using var report = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == "replace.workflow.not-supported");
-        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
     private static string[][] ExpectedArguments()

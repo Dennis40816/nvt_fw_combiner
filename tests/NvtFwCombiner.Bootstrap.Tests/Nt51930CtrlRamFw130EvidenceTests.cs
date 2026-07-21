@@ -10,7 +10,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Exact V1/V2 route parity from NT51930 Common FW 1.3.0 owner evidence.</summary>
-public sealed class Nt51930CtrlRamFw130EvidenceTests
+public sealed partial class Nt51930CtrlRamFw130EvidenceTests
 {
     private const string CaseId = "nt51930-fw130-cascade3-auto-prj-302-inx-20260718";
     private const string StandardMergeSha256 = "f831e6348af02d9cb8ad833433b165764c495c17b385b996a6fb270dbcddb08d";
@@ -71,7 +71,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
 
         WorkbenchFirmwareContextSuggestion suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
             WorkbenchCompositionService.TryReadFirmwareContextSuggestion("NT51930", referencePath));
-        Assert.Equal("cascade", suggestion.NumberToken);
+        Assert.Equal(WorkbenchIcNumberTokens.CascadeTwoToThirteen, suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
         Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);
         Assert.Equal(metadata.ProjectId, suggestion.ProjectId);
@@ -112,7 +112,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51930",
-            "cascade",
+            WorkbenchIcNumberTokens.CascadeTwoToThirteen,
             WorkbenchReplaceModes.CtrlRam,
             slotPaths,
             build: true,
@@ -165,13 +165,12 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         Assert.DoesNotContain(diffNf, artifact => Hash(artifact.Bytes) == Hash(composite.Bytes));
     }
 
-    /// <summary>Proves wrong project, version, count, or selector shapes fail closed.</summary>
+    /// <summary>Bounded requested topology admits structurally valid bases regardless of display-only metadata.</summary>
     [Theory]
-    [InlineData("cascade", 1, 3, 0, 3, 0xFFFF)]
-    [InlineData("cascade", 1, 2, 0, 3, 0x110D)]
-    [InlineData("cascade", 1, 3, 0, 2, 0x110D)]
-    [InlineData("3", 1, 3, 0, 3, 0x110D)]
-    public async Task ExactRouteRejectsUnreviewedFirmwareShapesAsync(
+    [InlineData(WorkbenchIcNumberTokens.CascadeTwoToThirteen, 1, 3, 0, 3, 0xFFFF)]
+    [InlineData(WorkbenchIcNumberTokens.CascadeTwoToThirteen, 1, 2, 0, 3, 0x110D)]
+    [InlineData(WorkbenchIcNumberTokens.CascadeTwoToThirteen, 1, 3, 0, 2, 0x110D)]
+    public async Task ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(
         string number,
         byte commonFwMajor,
         byte commonFwMinor,
@@ -184,7 +183,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = [.. evidence.Expected.Bytes];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int backupStart = checked((int)metadata.FirmwareConfigStart);
+        int backupStart = checked((int)metadata.StructureStart);
         reference[backupStart + FirmwareConfigLayout.CommonFwMajorVersionOffset] = commonFwMajor;
         reference[backupStart + FirmwareConfigLayout.CommonFwMinorVersionOffset] = commonFwMinor;
         reference[backupStart + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = commonFwAdditional;
@@ -196,7 +195,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         string beforeSha256 = Hash(reference);
         var processor = new PassThroughProcessor();
 
-        string outputPath = workspace.PathFor("unsupported-output.bin");
+        string outputPath = workspace.PathFor("metadata-variation-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51930",
             number,
@@ -207,26 +206,70 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
             processor,
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        using (var report = JsonDocument.Parse(result.ReportJson))
+        {
+            AssertReportIdentity(report.RootElement, "nt51930-ctrlram-replace-fw130-cascade3");
+        }
         Assert.Equal(beforeSha256, Hash(File.ReadAllBytes(referencePath)));
     }
 
-    /// <summary>Proves matching metadata cannot admit a different, unreviewed full reference image.</summary>
+    /// <summary>Proves NT51930 single routes through V2 without exposing cascade-only DiffDLM authority.</summary>
     [Fact]
-    public async Task ExactRouteRejectsUnreviewedReferenceHashAsync()
+    public async Task SinglePlanBuildsWithoutDiffDlmAuthorityAsync()
     {
         OwnerCase evidence = ReadOwnerCase();
-        using var workspace = TempWorkspace.Create("nfc-nt51930-fw130-negative-reference");
+        using var workspace = TempWorkspace.Create("nfc-nt51930-fw1x-single");
+        string referencePath = workspace.PathFor("reference.bin");
+        byte[] reference = [.. evidence.Expected.Bytes];
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
+        int backupStart = checked((int)metadata.StructureStart);
+        reference[backupStart + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        File.WriteAllBytes(referencePath, reference);
+        string referenceSha256 = Hash(reference);
+        Dictionary<string, string> slotPaths = CreateSlotPaths(evidence, referencePath);
+        Assert.True(slotPaths.Remove("replace-ctrlram-diff"));
+
+        string outputPath = workspace.PathFor("single-output.bin");
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51930",
+            WorkbenchIcNumberTokens.SingleChip,
+            slotPaths,
+            build: true,
+            outputPath,
+            firmwareVersionEdit: null,
+            new PassThroughProcessor(),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        AssertReportIdentity(report.RootElement, "nt51930-ctrlram-replace-fw1x-runtime-single");
+        JsonElement session = Assert.Single(ReadProcessorSessions(report.RootElement));
+        ByteRange[] allowedWrites = ReadRanges(session, "ProcessorAllowedWriteRanges");
+        Assert.DoesNotContain(allowedWrites, range => range.Overlaps(new ByteRange(DiffStart, DiffLength)));
+        Assert.Contains(allowedWrites, range => range == new ByteRange(HeaderCopyStart, HeaderCopyLength));
+        Assert.Equal(referenceSha256, Hash(File.ReadAllBytes(referencePath)));
+    }
+
+    /// <summary>Proves production admission uses firmware facts rather than a golden-only whole-file hash.</summary>
+    [Fact]
+    public async Task ExactRouteAcceptsDifferentReferenceHashWhenFirmwareFactsStillMatchAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51930-fw130-production-reference");
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = [.. evidence.Expected.Bytes];
         reference[0x100] ^= 0x01;
         File.WriteAllBytes(referencePath, reference);
         string beforeSha256 = Hash(reference);
+        Assert.NotEqual(OwnerExpectedSha256, beforeSha256);
 
-        string outputPath = workspace.PathFor("unsupported-output.bin");
+        string outputPath = workspace.PathFor("output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51930",
-            "cascade",
+            WorkbenchIcNumberTokens.CascadeTwoToThirteen,
             CreateSlotPaths(evidence, referencePath),
             build: true,
             outputPath,
@@ -234,7 +277,12 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        byte[] output = File.ReadAllBytes(outputPath);
+        Assert.Equal(reference[0x100], output[0x100]);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        AssertReportIdentity(report.RootElement, "nt51930-ctrlram-replace-fw130-cascade3");
         Assert.Equal(beforeSha256, Hash(File.ReadAllBytes(referencePath)));
     }
 
@@ -249,7 +297,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51930",
-            "cascade",
+            WorkbenchIcNumberTokens.CascadeTwoToThirteen,
             CreateSlotPaths(evidence, referencePath),
             build: true,
             outputPath,
@@ -274,7 +322,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         using var workspace = TempWorkspace.Create("nfc-nt51930-fw130-canonical-id");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             icId,
-            "cascade",
+            WorkbenchIcNumberTokens.CascadeTwoToThirteen,
             CreateSlotPaths(evidence, evidence.Expected.Path),
             build: true,
             workspace.PathFor("canonical-output.bin"),
@@ -577,17 +625,6 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         }
 
         return (differenceCount, [.. ranges]);
-    }
-
-    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string outputPath)
-    {
-        Assert.False(result.Succeeded, result.ReportJson);
-        Assert.False(File.Exists(outputPath));
-        using var report = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == "replace.workflow.not-supported");
-        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

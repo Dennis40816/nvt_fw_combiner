@@ -53,6 +53,14 @@ public sealed partial class ShellTextResources
 
     public string RunResultReportReadyLabel { get; private init; } = string.Empty;
 
+    public string PrimaryReasonLabel { get; private init; } = string.Empty;
+
+    public string FailedStepLabel { get; private init; } = string.Empty;
+
+    public string OutputImpactLabel { get; private init; } = string.Empty;
+
+    public string NextActionLabel { get; private init; } = string.Empty;
+
     public string ChangeReviewTitle { get; private init; } = string.Empty;
 
     public string EvidenceTitle { get; private init; } = string.Empty;

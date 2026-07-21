@@ -156,19 +156,22 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Contains("is not supported", exception.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>Locks NT51931's postbuild-specific IC number mapping: 0 is single, 1 starts cascade.</summary>
+    /// <summary>NT51931 follows the production count rule: one is single and counts above one are cascade.</summary>
     [Fact]
-    public void Nt51931ResolvesPostbuildSpecificZeroAndOneMapping()
+    public void Nt51931UsesGenericMultiChipCountRule()
     {
         LegacyCombinerPostbuildCommandPlan single = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51931,
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["NT51931", "0"]));
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["1"]));
         LegacyCombinerPostbuildCommandPlan cascade = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51931,
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["NT51931", "1"]));
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
 
         Assert.Equal(LegacyCombinerPostbuildBranch.SingleChip, single.Branch);
         Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, cascade.Branch);
+        _ = Assert.Throws<ArgumentException>(() => LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51931,
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["0"])));
         Assert.Equal("legacy-combiner-1.13.0", cascade.Profile.ToolBindingId);
         Assert.All(cascade.Commands, command =>
         {

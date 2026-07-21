@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -6,6 +7,11 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     private readonly List<ShellPage> _pageHistory = [ShellPage.Home];
+    private PendingNavigation? _pendingNavigation;
+
+    /// <summary>True while leaving a composition page awaits confirmation to clear selected files.</summary>
+    [ObservableProperty]
+    public partial bool IsNavigationClearConfirmationOpen { get; set; }
 
     /// <summary>Gets the clickable shell navigation hierarchy.</summary>
     public ObservableCollection<ShellNavigationEntryViewModel> NavigationTrail { get; } = [];
@@ -47,6 +53,12 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that returns to the previous navigation entry.</summary>
     public IRelayCommand GoBackCommand { get; }
 
+    /// <summary>Command that clears the current page file selections and completes navigation.</summary>
+    public IRelayCommand ConfirmNavigationAndClearCommand { get; }
+
+    /// <summary>Command that keeps the current page and all of its selections.</summary>
+    public IRelayCommand CancelNavigationClearCommand { get; }
+
     private bool ShouldShowNumberSelectorForSelectedPage()
     {
         return SelectedPage is ShellPage.Merge or ShellPage.Replace &&
@@ -55,12 +67,16 @@ public sealed partial class MainWindowViewModel
 
     private void NavigateToPage(ShellPage page)
     {
-        if (SelectedPage != page)
+        if (SelectedPage == page)
         {
-            _pageHistory.Add(page);
+            ApplySelectedPage(page);
+            return;
         }
 
-        ApplySelectedPage(page);
+        if (!RequestNavigation(page, isBack: false))
+        {
+            CompleteNavigation(page, isBack: false);
+        }
     }
 
     private void GoBack()
@@ -70,8 +86,126 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        _pageHistory.RemoveAt(_pageHistory.Count - 1);
-        ApplySelectedPage(_pageHistory[^1]);
+        ShellPage target = _pageHistory[^2];
+        if (!RequestNavigation(target, isBack: true))
+        {
+            CompleteNavigation(target, isBack: true);
+        }
+    }
+
+    private bool RequestNavigation(ShellPage target, bool isBack)
+    {
+        if (!HasSelectedInputs(SelectedPage))
+        {
+            return false;
+        }
+
+        InvalidateFirmwareNumberMismatch();
+        _pendingNavigation = new PendingNavigation(target, isBack);
+        IsNavigationClearConfirmationOpen = true;
+        return true;
+    }
+
+    private void ConfirmNavigationAndClear()
+    {
+        if (_pendingNavigation is not { } pending)
+        {
+            IsNavigationClearConfirmationOpen = false;
+            return;
+        }
+
+        ShellPage pageBeingLeft = SelectedPage;
+        _pendingNavigation = null;
+        IsNavigationClearConfirmationOpen = false;
+        ClearSelectedInputs(pageBeingLeft);
+        CompleteNavigation(pending.Target, pending.IsBack);
+    }
+
+    private void CancelNavigationClear()
+    {
+        _pendingNavigation = null;
+        IsNavigationClearConfirmationOpen = false;
+    }
+
+    private void CompleteNavigation(ShellPage target, bool isBack)
+    {
+        if (isBack)
+        {
+            if (_pageHistory.Count > 1)
+            {
+                _pageHistory.RemoveAt(_pageHistory.Count - 1);
+            }
+        }
+        else if (SelectedPage != target)
+        {
+            _pageHistory.Add(target);
+        }
+
+        ApplySelectedPage(target);
+    }
+
+    private bool HasSelectedInputs(ShellPage page)
+    {
+        return page switch
+        {
+            ShellPage.Merge =>
+                _mergeDpSlot.HasFile ||
+                _mergeTpSlot.HasFile ||
+                _mergeLdSlot.HasFile ||
+                GeneralMergeMappings.Any(static mapping => mapping.HasFile),
+            ShellPage.Replace =>
+                ReplaceBaseSlot.HasFile ||
+                ReplaceSlots.Any(static slot => slot.HasFile) ||
+                GeneralReplaceMappings.Any(static mapping => mapping.HasFile),
+            ShellPage.Home or ShellPage.Settings or ShellPage.HexEditor => false,
+            _ => false,
+        };
+    }
+
+    private void ClearSelectedInputs(ShellPage page)
+    {
+        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
+        InvalidateCtrlRamFirmwareVersionContext();
+        InvalidateFirmwareIcMismatch();
+        InvalidateFirmwareNumberMismatch();
+
+        if (page == ShellPage.Merge)
+        {
+            ClearFirmwareSlot(_mergeDpSlot);
+            ClearFirmwareSlot(_mergeTpSlot);
+            ClearFirmwareSlot(_mergeLdSlot);
+            foreach (GeneralMergeMappingViewModel mapping in GeneralMergeMappings)
+            {
+                mapping.FilePath = null;
+            }
+
+            RefreshMergeMemoryMapState();
+        }
+        else if (page == ShellPage.Replace)
+        {
+            foreach (FirmwareSlotViewModel slot in ReplaceSlots.Concat([ReplaceBaseSlot]).Distinct())
+            {
+                ClearFirmwareSlot(slot);
+            }
+
+            foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
+            {
+                mapping.FilePath = null;
+            }
+
+            ClearCtrlRamInspectionDisplay();
+            RefreshReplaceMemoryMapState();
+        }
+
+        NotifySlotFileOutputNames();
+        ResetRunResultForContextChange();
+        RefreshCommandState();
+    }
+
+    private static void ClearFirmwareSlot(FirmwareSlotViewModel slot)
+    {
+        slot.FilePath = null;
+        slot.SetFirmwareFacts([]);
     }
 
     private ShellNavigationEntryViewModel CreateNavigationEntry(ShellPage page, bool isCurrent)
@@ -118,4 +252,6 @@ public sealed partial class MainWindowViewModel
             NavigationTrail.Add(CreateNavigationEntry(SelectedPage, isCurrent: true));
         }
     }
+
+    private readonly record struct PendingNavigation(ShellPage Target, bool IsBack);
 }

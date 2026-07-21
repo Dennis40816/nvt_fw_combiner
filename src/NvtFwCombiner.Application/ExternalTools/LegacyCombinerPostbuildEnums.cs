@@ -42,16 +42,6 @@ public enum LegacyCombinerPostbuildAssemblyKind
     RefreshedTpThenStandardMerge,
 }
 
-/// <summary>How a postbuild profile matches FWConfig Common FW versions.</summary>
-public enum LegacyCombinerCommonFwVersionMatchKind
-{
-    /// <summary>The profile applies to exactly one Common FW semantic version.</summary>
-    Exact,
-
-    /// <summary>The profile applies to a major Common FW family, such as 1.x.x.</summary>
-    Major,
-}
-
 /// <summary>Where a combiner block argument reads its source bytes from.</summary>
 public enum LegacyCombinerBlockSourceKind
 {

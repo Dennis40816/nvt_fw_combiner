@@ -139,7 +139,10 @@ public sealed class TpFlashMapProfile
     /// <summary>TP Overview source section label.</summary>
     public string OverviewSource { get; }
 
-    /// <summary>Primary FLASHMAP_FW_REGISTER address retained only for TP Overview and evidence cross-checks.</summary>
+    /// <summary>
+    /// Primary FLASHMAP_FW_REGISTER address from TP Overview. Runtime mutation requires a separately declared
+    /// processor propagation capability and an exact source/Backup metadata cross-check.
+    /// </summary>
     public long FirmwareConfigPrimaryStart { get; }
 
     /// <summary>Zero-based TP work prefix passed to the CtrlRAM Postbuild processor.</summary>

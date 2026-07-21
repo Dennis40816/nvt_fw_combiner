@@ -113,17 +113,13 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
             artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
     }
 
-    /// <summary>Proves a different full reference or metadata tuple cannot enter the exact V2 route.</summary>
+    /// <summary>NT51917/NT51927 aliases retain the requested three-chip route across non-authoritative metadata.</summary>
     [Theory]
-    [InlineData("NT51927", "base")]
     [InlineData("NT51927", "pid")]
     [InlineData("NT51927", "version")]
-    [InlineData("NT51927", "chip")]
-    [InlineData("NT51917", "base")]
     [InlineData("NT51917", "pid")]
     [InlineData("NT51917", "version")]
-    [InlineData("NT51917", "chip")]
-    public async Task UnreviewedShapeFailsClosedAsync(string icId, string mutation)
+    public async Task ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(string icId, string mutation)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
 
@@ -135,12 +131,9 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         using var workspace = TempWorkspace.Create("nfc-nt51927-fw140-threechip-negative");
         byte[] reference = [.. ownerCase.Base.Bytes];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int start = checked((int)metadata.FirmwareConfigStart);
+        int start = checked((int)metadata.StructureStart);
         switch (mutation)
         {
-            case "base":
-                reference[0x1000] ^= 0x01;
-                break;
             case "pid":
                 BinaryPrimitives.WriteUInt16LittleEndian(
                     reference.AsSpan(start + FirmwareConfigLayout.ProjectIdOffset),
@@ -149,9 +142,6 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
             case "version":
                 reference[start + FirmwareConfigLayout.CommonFwAdditionalVersionOffset]++;
                 break;
-            case "chip":
-                reference[start + FirmwareConfigLayout.ChipNumberOffset]--;
-                break;
             default:
                 throw new InvalidOperationException($"Unknown mutation '{mutation}'.");
         }
@@ -159,7 +149,7 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         string referencePath = workspace.Write("reference.bin", reference);
         Dictionary<string, string> slots = CreateSlotPaths(ownerCase);
         slots[WorkbenchSlotIds.ReplaceBase] = referencePath;
-        string outputPath = workspace.PathFor("unsupported-output.bin");
+        string outputPath = workspace.PathFor("metadata-variation-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             icId,
             "3",
@@ -170,7 +160,15 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(File.Exists(outputPath));
+        using (var report = JsonDocument.Parse(result.ReportJson))
+        {
+            AssertReportIdentity(
+                report.RootElement,
+                $"{icId.ToLowerInvariant()}-ctrlram-replace-fw140-threechip",
+                icId);
+        }
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
         Assert.All(
             ownerCase.Artifacts,
@@ -229,18 +227,6 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         Assert.Equal("ctrlram-replace", report.GetProperty("ModeId").GetString());
         Assert.Equal("ctrlram-replace", report.GetProperty("ExperienceId").GetString());
         Assert.Equal("Replace", report.GetProperty("CompositionKind").GetString());
-    }
-
-    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string outputPath)
-    {
-        Assert.False(result.Succeeded, result.ReportJson);
-        Assert.Null(result.CommittedOutputId);
-        Assert.False(File.Exists(outputPath));
-        using var report = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == WorkbenchIssueCodes.ReplaceWorkflowNotSupported);
-        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
     private static void AssertProcessEvidence(

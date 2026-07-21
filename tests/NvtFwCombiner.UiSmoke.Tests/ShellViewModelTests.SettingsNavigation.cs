@@ -51,7 +51,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "13 profiles");
         SettingSummaryViewModel capability = Assert.Single(viewModel.SettingsCapabilityRows);
         Assert.Equal("CtrlRAM Replace available ICs", capability.Title);
-        Assert.Equal("12 ICs", capability.Value);
+        Assert.Equal("13 ICs", capability.Value);
         Assert.Equal("Available", capability.Status);
         Assert.Equal(["System", "Light", "Dark"], viewModel.ThemeChoices);
 
@@ -67,7 +67,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "IC 目錄" && row.Status == "Catalog");
         Assert.Contains(viewModel.SettingsCapabilityRows, row =>
             row.Title == "CtrlRAM Replace 可用 IC" &&
-            row.Value == "12 ICs" &&
+            row.Value == "13 ICs" &&
             row.Status == "可用" &&
             row.Description.Contains("golden 驗證狀態", StringComparison.Ordinal));
 
@@ -150,7 +150,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsMergeVisible);
     }
 
-    /// <summary>Verifies filename markers ask before changing the selected IC and verified TP FWConfig updates the number token.</summary>
+    /// <summary>Verifies filename and verified TP FWConfig context changes both require confirmation.</summary>
     [Fact]
     public void SlotLoadingPromptsForIcMarkerAndAppliesVerifiedTpNumber()
     {
@@ -169,6 +169,10 @@ public sealed partial class ShellViewModelTests
         using var golden = StandardMergeGoldenManifest.Load();
         string tpPath = golden.ManifestPath(golden.CaseByIc("51926").GetProperty("inputs").GetProperty("tp-input"));
         viewModel.SetSlotFile("merge-tp", tpPath);
+
+        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal("single", viewModel.SelectedNumber);
+        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
 
         Assert.Equal("cascade", viewModel.SelectedNumber);
         Assert.Equal("Context updated", viewModel.ShellToastTitle);

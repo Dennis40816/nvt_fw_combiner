@@ -23,7 +23,7 @@ internal sealed class V2RuntimeReferenceReplaceInputBinding
 }
 
 internal sealed record V2RuntimeReferenceReplaceFirmwareVersionEdit(
-    ByteRange FirmwareVersionAndBarRange, ByteRange FirmwareSubVersionRange,
+    ByteRange SourceFirmwareVersionAndBarRange, ByteRange SourceFirmwareSubVersionRange,
     byte FirmwareVersion, byte FirmwareSubVersion, string InvalidOutputIssueCode,
     string MismatchOutputIssueCode);
 

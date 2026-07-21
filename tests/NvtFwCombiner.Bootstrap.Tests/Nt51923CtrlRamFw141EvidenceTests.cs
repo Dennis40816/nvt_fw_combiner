@@ -105,17 +105,14 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
             artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
     }
 
-    /// <summary>Proves a different base, metadata tuple, or selector cannot enter either exact V2 route.</summary>
+    /// <summary>Structurally valid base and display-only metadata variations retain the requested V2 route.</summary>
     [Theory]
-    [InlineData("single", "single", "base")]
     [InlineData("single", "single", "pid")]
     [InlineData("single", "single", "version")]
-    [InlineData("single", "single", "chip")]
-    [InlineData("cascade", "cascade", "base")]
     [InlineData("cascade", "cascade", "pid")]
     [InlineData("cascade", "cascade", "version")]
     [InlineData("cascade", "cascade", "chip")]
-    public async Task UnreviewedShapeFailsClosedWithoutOutputAsync(
+    public async Task ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(
         string topology,
         string number,
         string mutation)
@@ -125,12 +122,9 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = [.. ownerCase.Expected.Bytes];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
-        int start = checked((int)metadata.FirmwareConfigStart);
+        int start = checked((int)metadata.StructureStart);
         switch (mutation)
         {
-            case "base":
-                reference[0x1000] ^= 0x01;
-                break;
             case "pid":
                 BinaryPrimitives.WriteUInt16LittleEndian(
                     reference.AsSpan(start + FirmwareConfigLayout.ProjectIdOffset),
@@ -149,7 +143,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         File.WriteAllBytes(referencePath, reference);
         Dictionary<string, string> slots = CreateSlotPaths(ownerCase);
         slots[WorkbenchSlotIds.ReplaceBase] = referencePath;
-        string outputPath = workspace.PathFor("unsupported-output.bin");
+        string outputPath = workspace.PathFor("metadata-variation-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51923",
             number,
@@ -159,11 +153,14 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, result.ReportJson);
         using var report = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(WorkbenchIssueCodes.ReplaceWorkflowNotSupported, issue.GetProperty("Code").GetString());
-        Assert.False(File.Exists(outputPath));
+        AssertReportIdentity(
+            report.RootElement,
+            topology == "single"
+                ? "nt51923-ctrlram-replace-fw141-single"
+                : "nt51923-ctrlram-replace-fw141-cascade3");
+        Assert.True(File.Exists(outputPath));
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
     }
 

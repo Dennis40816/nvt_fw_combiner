@@ -205,6 +205,10 @@ public sealed partial class MainWindowViewModel
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportGeneratedToast(action));
         NotifyReportChanged();
+        if (build && (!result.Succeeded || string.IsNullOrWhiteSpace(result.CommittedOutputId)))
+        {
+            ShowReport();
+        }
     }
 
     private FirmwareSlotViewModel? MergeSlotForAddressSpace(string addressSpaceId)
