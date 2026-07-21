@@ -66,7 +66,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("BeginNormalMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("BeginGeneralMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("WindowState=\"Maximized\"", shell, StringComparison.Ordinal);
-        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*\"", shell, StringComparison.Ordinal);
+        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<ScrollViewer Grid.Row=\"3\">", shell, StringComparison.Ordinal);
+        Assert.Contains(
+            "x:Name=\"CompositionBuildActionRail\"\n        Grid.Row=\"4\"",
+            shell,
+            StringComparison.Ordinal);
         Assert.Contains("DeviceContextTitle", shellPanels, StringComparison.Ordinal);
         Assert.Contains("IsDeviceContextVisible", shell, StringComparison.Ordinal);
         Assert.Contains("NavigationTrail", shellPanels, StringComparison.Ordinal);
@@ -178,8 +183,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Command=\"{Binding PreviewReplaceCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding CanBuildMerge}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding MergeBuildActionTip}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding ReplaceBuildActionTip}\"", shellSurface, StringComparison.Ordinal);
+        Assert.DoesNotContain("MergeBuildActionTip", shellSurface, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReplaceBuildActionTip", shellSurface, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.GeneralMergeMappingTitle}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralMergeMappings}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralMergeMappingRow", workflowTemplates, StringComparison.Ordinal);

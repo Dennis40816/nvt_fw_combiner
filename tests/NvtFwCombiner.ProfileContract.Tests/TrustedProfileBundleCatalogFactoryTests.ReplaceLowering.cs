@@ -79,9 +79,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(compilation.Issues).Code);
     }
 
-    /// <summary>Verifies the closed Replace subset does not accept an initial write from a non-DP input.</summary>
+    /// <summary>Verifies an auxiliary DP Replace payload cannot write a canonical DP-owned region.</summary>
     [Fact]
-    public void DpReplaceLoweringRejectsNonDpReplaceRangeSource()
+    public void DpReplaceLoweringRejectsAuxiliaryPayloadForDpRegion()
     {
         V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(PrepareSupportedDpReplace(profile =>
         {
@@ -91,7 +91,126 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         }));
 
         Assert.Null(compilation.CompiledComposition);
-        Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(compilation.Issues).Code);
+        Assert.Equal("profile.v2.plan.region-access-denied", Assert.Single(compilation.Issues).Code);
+    }
+
+    /// <summary>Verifies a declared auxiliary LDC payload can replace only one whole canonical LDC region.</summary>
+    [Fact]
+    public void DpReplaceLoweringAcceptsAuxiliaryPayloadForDeclaredLdcRegion()
+    {
+        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(PrepareSupportedDpReplace(
+            profile =>
+            {
+                JsonArray requiredRegions = Assert.IsType<JsonArray>(
+                    Assert.IsType<JsonObject>(profile["mapBinding"])["requiredRegionIds"]);
+                requiredRegions.Add("ldc-code");
+
+                Assert.IsType<JsonArray>(profile["inputSlots"]).Add(new JsonObject
+                {
+                    ["slotId"] = "ldc-input",
+                    ["role"] = "ldc",
+                    ["artifactClass"] = "auxiliary",
+                    ["required"] = true,
+                    ["cardinality"] = "exactly-one",
+                    ["acceptedExtensions"] = new JsonArray(".bin"),
+                    ["acceptance"] = new JsonObject
+                    {
+                        ["lengthRule"] = new JsonObject { ["kind"] = "exact-resolved-map-capacity" },
+                        ["normalization"] = new JsonObject { ["kind"] = "none" },
+                    },
+                });
+                Assert.IsType<JsonArray>(profile["spaces"]).Add(new JsonObject
+                {
+                    ["spaceId"] = "ldc-source",
+                    ["kind"] = "input-artifact",
+                    ["slotId"] = "ldc-input",
+                    ["instancePolicy"] = "singleton",
+                });
+                JsonArray views = Assert.IsType<JsonArray>(profile["views"]);
+                views.Add(new JsonObject
+                {
+                    ["viewId"] = "ldc-source-view",
+                    ["spaceId"] = "ldc-source",
+                    ["selector"] = new JsonObject { ["kind"] = "map-region", ["regionId"] = "ldc-code" },
+                });
+                views.Add(new JsonObject
+                {
+                    ["viewId"] = "ldc-output-view",
+                    ["spaceId"] = "output",
+                    ["selector"] = new JsonObject { ["kind"] = "map-region", ["regionId"] = "ldc-code" },
+                });
+                Assert.IsType<JsonArray>(profile["regionAccessRules"]).Add(new JsonObject
+                {
+                    ["regionId"] = "ldc-code",
+                    ["access"] = "whole",
+                    ["reason"] = "Synthetic profile-declared LDC replacement access.",
+                });
+                Assert.IsType<JsonArray>(profile["operations"]).Add(new JsonObject
+                {
+                    ["operationId"] = "replace-ldc",
+                    ["sequence"] = 1,
+                    ["overlapPolicy"] = "reject",
+                    ["reason"] = "Replace the complete declared LDC region.",
+                    ["kind"] = "replace-range",
+                    ["sourceViewId"] = "ldc-source-view",
+                    ["targetViewId"] = "ldc-output-view",
+                });
+            },
+            configureFamily: family =>
+            {
+                JsonArray regions = Assert.IsType<JsonArray>(Assert.IsType<JsonObject>(
+                    Assert.IsType<JsonArray>(family["regionSets"])[0])["regions"]);
+                regions.Add(new JsonObject
+                {
+                    ["regionId"] = "dp-code",
+                    ["parentRegionId"] = "root",
+                    ["owner"] = "dp",
+                    ["kind"] = "code",
+                    ["range"] = new JsonObject { ["start"] = 0, ["length"] = 4 },
+                    ["writeConstraint"] = "whole-region",
+                    ["alignment"] = 1,
+                });
+                regions.Add(new JsonObject
+                {
+                    ["regionId"] = "ldc-code",
+                    ["parentRegionId"] = "root",
+                    ["owner"] = "ldc",
+                    ["kind"] = "code",
+                    ["range"] = new JsonObject { ["start"] = 4, ["length"] = 4 },
+                    ["writeConstraint"] = "whole-region",
+                    ["alignment"] = 1,
+                });
+                regions.Add(new JsonObject
+                {
+                    ["regionId"] = "reserved-tail",
+                    ["parentRegionId"] = "root",
+                    ["owner"] = "unknown",
+                    ["kind"] = "unmapped",
+                    ["range"] = new JsonObject { ["start"] = 8, ["length"] = 8 },
+                    ["writeConstraint"] = "forbidden",
+                    ["alignment"] = 1,
+                });
+            }));
+
+        Assert.Empty(compilation.Issues);
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        Assert.Equal(
+            ["copy-code", "replace-ldc"],
+            composition.Plan.OrderedOperations.Select(static operation => operation.OperationId));
+
+        CompositionExecutionResult execution = CompositionEngine.Execute(
+            composition.Plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]>
+            {
+                ["reference-source"] = [.. Enumerable.Repeat((byte)0xCC, 16)],
+                ["dp-source"] = [0x10, 0x11, 0x12, 0x13],
+                ["ldc-source"] = [0, 0, 0, 0, 0xA4, 0xA5, 0xA6, 0xA7, 0, 0, 0, 0, 0, 0, 0, 0],
+            }));
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
+        Assert.Equal(
+            [0x10, 0x11, 0x12, 0x13, 0xA4, 0xA5, 0xA6, 0xA7, .. Enumerable.Repeat((byte)0xCC, 8)],
+            execution.OutputBytes.ToArray());
     }
 
     /// <summary>Verifies no other Replace experience can enter the DP runtime lowering subset.</summary>
@@ -103,6 +222,25 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             JsonObject dpSlot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[1]);
             Assert.IsType<JsonObject>(dpSlot["acceptance"])["normalization"] = new JsonObject { ["kind"] = "none" };
         }, modeId: "general-replace"));
+
+        Assert.Null(compilation.CompiledComposition);
+        Assert.Equal(2, compilation.Issues.Count);
+        Assert.All(
+            compilation.Issues,
+            issue => Assert.Equal("profile.v2.plan.unsupported-declaration", issue.Code));
+    }
+
+    /// <summary>Verifies CtrlRAM Replace cannot admit a DP Replace range without its processor contract.</summary>
+    [Fact]
+    public void CtrlRamReplaceLoweringRejectsDpReplaceRange()
+    {
+        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedDpReplace(profile =>
+            {
+                JsonObject dpSlot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[1]);
+                Assert.IsType<JsonObject>(dpSlot["acceptance"])["normalization"] =
+                    new JsonObject { ["kind"] = "none" };
+            }, modeId: "ctrlram-replace"));
 
         Assert.Null(compilation.CompiledComposition);
         Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(compilation.Issues).Code);
@@ -193,12 +331,17 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
     private static V2CompositionPreparationResult PrepareSupportedDpReplace(
         Action<JsonObject>? configureProfile = null,
-        string modeId = "dp-replace")
+        string modeId = "dp-replace",
+        Action<JsonObject>? configureFamily = null)
     {
         JsonObject family = Assert.IsType<JsonObject>(JsonNode.Parse(FamilyJsonWithRootWriteConstraint("explicit-range")));
+        JsonObject rootRegion = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(Assert.IsType<JsonObject>(
+            Assert.IsType<JsonArray>(family["regionSets"])[0])["regions"])[0]);
+        rootRegion["owner"] = "dp";
         JsonObject applicability = Assert.IsType<JsonObject>(
             Assert.IsType<JsonObject>(Assert.Single(Assert.IsType<JsonArray>(family["imageMaps"])))["applicability"]);
         Assert.IsType<JsonArray>(applicability["modeIds"])[0] = modeId;
+        configureFamily?.Invoke(family);
         string familyJson = family.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
         string familyHash = Hash(familyJson);
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(SupportedProfileJson(familyHash, access: "explicit-range")));

@@ -68,7 +68,7 @@ public sealed class WorkbenchCatalogProjectionTests
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
         Assert.Equal(13, settings.CatalogIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
-        Assert.Equal(3, settings.DpReplaceProfileCount);
+        Assert.Equal(13, settings.DpReplaceProfileCount);
         Assert.Equal(12, settings.CtrlRamReplaceAvailableIcCount);
     }
 
@@ -105,15 +105,19 @@ public sealed class WorkbenchCatalogProjectionTests
     private static void AssertV2DpReplaceProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)
     {
         Assert.Equal(
-            ["NT51930", "NT51950", "NT51951"],
+            [
+                "NT51917", "NT51919", "NT51920", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51929", "NT51930", "NT51931", "NT51932", "NT51950", "NT51951",
+            ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
         foreach (WorkbenchProfileSummary summary in summaries)
         {
+            long baseCapacity = summary.IcId == "NT51928" ? 0x80000 : 0x40000;
             Assert.True(
                 WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
                     summary.IcId,
-                    0x40000,
+                    baseCapacity,
                     out CompiledComposition? composition,
                     out IReadOnlyList<CompositionIssue> issues),
                 string.Join(Environment.NewLine, issues.Select(static issue => $"{issue.Code}: {issue.Message}")));

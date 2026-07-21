@@ -25,10 +25,11 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/legacy-combiner/1.13.0/manifest.json",
 )
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
-MAXIMUM_PACKAGE_BYTES = 58_076_715
 PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
 SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
+MAXIMUM_PACKAGE_BYTES = 80_000_000
+MAXIMUM_APPLICATION_BYTES = 80_000_000
 ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
@@ -46,7 +47,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
         smoke_script = SMOKE_SCRIPT.read_text(encoding="utf-8")
 
-        restore_index = package_script.index("& $DotNet restore $AppProject -r win-x64")
+        restore_index = package_script.index(
+            "& $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true"
+        )
         clean_index = package_script.index(
             "& $DotNet clean $AppProject -c Release -r win-x64"
         )
@@ -91,6 +94,33 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
         self.assertIn(f"$DistributionOwner = '{DISTRIBUTION_OWNER}'", package_script)
         self.assertIn(f"$SourceIdentity = '{SOURCE_IDENTITY}'", package_script)
+
+    def test_packager_compresses_the_composite_ready_to_run_single_file(
+        self,
+    ) -> None:
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        publish_script = package_script[
+            package_script.index(
+                "& $DotNet publish $AppProject -c Release -r win-x64"
+            ) : package_script.index("$PublishExitCode = $LASTEXITCODE")
+        ]
+
+        expected_publish_properties = (
+            "-p:PublishSingleFile=true",
+            "-p:EnableCompressionInSingleFile=true",
+            "-p:PublishReadyToRun=true",
+            "-p:PublishReadyToRunComposite=true",
+            "-p:PublishTrimmed=false",
+            "-p:IncludeNativeLibrariesForSelfExtract=true",
+        )
+        for publish_property in expected_publish_properties:
+            self.assertEqual(1, publish_script.count(publish_property))
+
+        property_positions = tuple(
+            publish_script.index(publish_property)
+            for publish_property in expected_publish_properties
+        )
+        self.assertEqual(tuple(sorted(property_positions)), property_positions)
 
     def test_external_tool_catalog_matches_packager_and_smoke_allowlists(self) -> None:
         catalog = json.loads(
@@ -270,7 +300,58 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(
-            "exceeds the owner-approved maximum 58076715 bytes",
+            "exceeds the owner-approved maximum 80000000 bytes",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_application_above_owner_approved_budget(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-release-application-size-policy-test-"
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            package_name = "NvtFwCombiner-v0.0.0-win-x64"
+            package_root = temporary_root / package_name
+            package_root.mkdir()
+
+            for required_file in (
+                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                "RELEASE-MANIFEST.json",
+                "SHA256SUMS.txt",
+                "README.txt",
+                "LICENSE.txt",
+                "THIRD-PARTY-NOTICES.txt",
+            ):
+                required_path = package_root / required_file
+                required_path.parent.mkdir(parents=True, exist_ok=True)
+                required_path.write_bytes(b"release-policy fixture\n")
+
+            application_path = package_root / "NvtFwCombiner.exe"
+            with application_path.open("wb") as application:
+                application.truncate(MAXIMUM_APPLICATION_BYTES + 1)
+
+            package_path = temporary_root / f"{package_name}.zip"
+            with zipfile.ZipFile(
+                package_path, "w", compression=zipfile.ZIP_DEFLATED
+            ) as archive:
+                for path in sorted(package_root.rglob("*")):
+                    if path.is_file():
+                        archive.write(path, path.relative_to(temporary_root))
+
+            result = self.run_powershell(
+                SMOKE_SCRIPT,
+                "-PackagePath",
+                str(package_path),
+                "-SkipUiLaunch",
+            )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "application size 80000001 exceeds the owner-approved maximum 80000000 bytes",
             normalize_console_output(result.stdout + result.stderr),
         )
 

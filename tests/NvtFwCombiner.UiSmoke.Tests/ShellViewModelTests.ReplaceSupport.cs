@@ -4,7 +4,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
-    /// <summary>NT51931 visibly reports Not available and never enables a Replace action.</summary>
+    /// <summary>NT51931 General Replace remains unavailable even though DP Replace is supported.</summary>
     [Fact]
     public void Nt51931ReplaceShowsCatalogSupportGate()
     {
@@ -34,7 +34,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.IsSelectedReplaceModeGoldenVerified);
         Assert.Equal("Golden verified", viewModel.SelectedReplaceModeEvidenceLabel);
-        Assert.Equal("Reference FlashCode", viewModel.ReplaceBaseSlot.Title);
+        Assert.Equal("Base firmware (FlashCode)", viewModel.ReplaceBaseSlot.Title);
         Assert.Contains("Complete FlashCode", viewModel.ReplaceBaseSlot.Description, StringComparison.Ordinal);
         Assert.Contains("Only declared DP ranges change", viewModel.ReplaceBaseSlot.Description, StringComparison.Ordinal);
 

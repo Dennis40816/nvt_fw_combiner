@@ -40,13 +40,16 @@ public sealed partial class ShellViewModelTests
 
     /// <summary>Verifies CtrlRAM guidance names accepted base forms once and retains source-size safety.</summary>
     [Fact]
-    public void CtrlRamBaseSlotUsesGenericFirmwareWording()
+    public void ReplaceBaseSlotNamesAcceptedFirmwareKindsWithoutBadges()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         OpenReplace(viewModel, "CtrlRAM");
         var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
 
-        Assert.Equal("Reference firmware", viewModel.ReplaceBaseSlot.Title);
+        Assert.Equal("Base firmware (FlashCode / TP FW)", viewModel.ReplaceBaseSlot.Title);
+        Assert.Equal(
+            "基底韌體 (FlashCode / TP FW)",
+            traditionalChinese.GetReplaceBaseTitle("CtrlRAM"));
         Assert.Contains("complete FlashCode or TP FW", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
         Assert.Contains("short files stop at EOF", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
         Assert.Contains("完整 FlashCode 或 TP FW", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.Ordinal);
@@ -56,7 +59,15 @@ public sealed partial class ShellViewModelTests
         Assert.DoesNotContain("base flash", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("FlashCode", viewModel.Text.CtrlRamFirmwareVersionCurrentLabel, StringComparison.Ordinal);
         Assert.DoesNotContain("FlashCode", traditionalChinese.CtrlRamFirmwareVersionSourceDetail, StringComparison.Ordinal);
-        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Reference firmware");
+        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
+
+        OpenReplace(viewModel, "DP");
+        Assert.Equal("Base firmware (FlashCode)", viewModel.ReplaceBaseSlot.Title);
+        Assert.DoesNotContain("TP FW", viewModel.ReplaceBaseSlot.Title, StringComparison.Ordinal);
+
+        OpenReplace(viewModel, "General");
+        Assert.Equal("Base firmware (FlashCode)", viewModel.ReplaceBaseSlot.Title);
+        Assert.DoesNotContain("TP FW", viewModel.ReplaceBaseSlot.Title, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies CtrlRAM plan rows promote readable region labels over raw postbuild filenames.</summary>
@@ -89,6 +100,48 @@ public sealed partial class ShellViewModelTests
             });
     }
 
+    /// <summary>Verifies topology-neutral NT51950 inputs use Common while DiffDLM belongs to Cascade.</summary>
+    [Fact]
+    public void Nt51950DiffDlmUsesCommonOnlyForCascade()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.SelectedNumber = "cascade";
+        OpenReplace(viewModel, "CtrlRAM");
+
+        Assert.Equal(["Cascade", "Common"], viewModel.ReplaceSlotGroups.Select(group => group.Title));
+        FirmwareSlotGroupViewModel cascade = viewModel.ReplaceSlotGroups[0];
+        FirmwareSlotGroupViewModel common = viewModel.ReplaceSlotGroups[1];
+        Assert.Contains(cascade.Slots, slot => slot.Title == "DIFF CtrlRAM");
+        Assert.DoesNotContain(common.Slots, slot => slot.Title == "DIFF CtrlRAM");
+        Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
+            group.Title == "Cascade" &&
+            group.Segments.Any(segment => segment.SourceLabel == "DIFF CtrlRAM"));
+        Assert.DoesNotContain(viewModel.ReplaceSlotGroups, group => group.Title == "Single IC");
+
+        viewModel.SelectedNumber = "single";
+
+        Assert.DoesNotContain(viewModel.ReplaceSlots, slot => slot.Title == "DIFF CtrlRAM");
+        Assert.Equal("Common", Assert.Single(viewModel.ReplaceSlotGroups).Title);
+    }
+
+    /// <summary>Verifies NT51926 keeps DiffDLM in a dedicated cascade group.</summary>
+    [Fact]
+    public void Nt51926DiffDlmBelongsToCascade()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        viewModel.SelectedNumber = "cascade";
+        OpenReplace(viewModel, "CtrlRAM");
+
+        Assert.Equal(["Cascade", "Common"], viewModel.ReplaceSlotGroups.Select(group => group.Title));
+        Assert.Contains(viewModel.ReplaceSlotGroups[0].Slots, slot => slot.SlotId == "replace-ctrlram-diff");
+        Assert.DoesNotContain(viewModel.ReplaceSlotGroups[1].Slots, slot => slot.SlotId == "replace-ctrlram-diff");
+        Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
+            group.Title == "Cascade" &&
+            group.Segments.Any(segment => segment.SourceLabel == "DIFF CtrlRAM"));
+    }
+
     /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes physical shared and per-chip inputs.</summary>
     [Fact]
     public void CtrlRamReplaceSlotsIncludeNt51927RightAndLeftSlaves()
@@ -109,10 +162,13 @@ public sealed partial class ShellViewModelTests
         Assert.DoesNotContain(viewModel.ReplaceSlots, slot => slot.Title == "VN CtrlRAM (Slave L)");
         Assert.Contains(viewModel.CtrlRamRegions, region => region.Name == "Normal CtrlRAM (Slave R)");
         Assert.Contains(viewModel.CtrlRamRegions, region => region.Name == "Normal CtrlRAM (Slave L)");
-        Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Shared inputs" && group.IsExpanded);
+        Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Common" && group.IsExpanded);
         Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Master" && group.IsExpanded);
         Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Slave R" && !group.IsExpanded);
         Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Slave L" && !group.IsExpanded);
+        Assert.Equal(
+            ["Common", "Master", "Slave R", "Slave L"],
+            viewModel.ReplaceSlotGroups.Select(group => group.Title));
         Assert.True(viewModel.IsReplaceCoverageGrouped);
         Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Master" && group.IsExpanded);
         Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Slave R" && !group.IsExpanded);
@@ -129,7 +185,7 @@ public sealed partial class ShellViewModelTests
         OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
-            group.Title == "Base firmware" &&
+            group.Title == "Base firmware (FlashCode / TP FW)" &&
             group.Summary.Contains("base firmware BIN", StringComparison.Ordinal));
         Assert.DoesNotContain(viewModel.ReplaceCoverageSegments, segment =>
             segment.SourceLabel.Contains("Base flash", StringComparison.OrdinalIgnoreCase));
@@ -156,19 +212,19 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("0 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
         Assert.Contains("Build blocked", viewModel.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
-        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Reference firmware");
+        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
         FirmwareSlotGroupViewModel slaveLGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
         Assert.Equal("0/2", slaveLGroup.CountLabel);
         Assert.Equal("2 areas. None selected.", slaveLGroup.SelectionSummary);
-        FirmwareSlotGroupViewModel sharedGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Shared inputs");
+        FirmwareSlotGroupViewModel sharedGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Common");
         Assert.Equal("0/2", sharedGroup.CountLabel);
 
         FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile("replace-base", workspace.PathFor("base.bin"));
         viewModel.SetSlotFile(vn.SlotId, workspace.PathFor("vn.bin"));
 
-        sharedGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Shared inputs");
+        sharedGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Common");
         Assert.Equal("1 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
         Assert.Equal("1/2", sharedGroup.CountLabel);
         Assert.Equal("1 selected / 2 areas.", sharedGroup.SelectionSummary);

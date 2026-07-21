@@ -30,7 +30,7 @@ public sealed partial class ShellViewModelTests
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
 
         Assert.True(viewModel.IsDeviceContextNumberSelectionVisible);
-        Assert.False(viewModel.IsActiveRunNumberVisible);
+        Assert.False(viewModel.IsRunInProgress);
         Assert.NotNull(viewModel.SelectedNumberChoice);
         Assert.NotEmpty(viewModel.SelectedNumberChoice.DisplayLabel);
     }

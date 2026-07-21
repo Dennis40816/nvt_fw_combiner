@@ -767,7 +767,7 @@ New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublis
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj'
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
 try {
-    & $DotNet restore $AppProject -r win-x64
+    & $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true
     if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed before clean publish.' }
 
     & $DotNet clean $AppProject -c Release -r win-x64
@@ -776,6 +776,9 @@ try {
     & $DotNet publish $AppProject -c Release -r win-x64 --self-contained true --no-restore `
         -p:Version=$SemanticVersion `
         -p:PublishSingleFile=true `
+        -p:EnableCompressionInSingleFile=true `
+        -p:PublishReadyToRun=true `
+        -p:PublishReadyToRunComposite=true `
         -p:PublishTrimmed=false `
         -p:IncludeNativeLibrariesForSelfExtract=true `
         -p:DebugType=None `

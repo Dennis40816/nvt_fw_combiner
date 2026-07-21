@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles;
 
@@ -22,7 +23,7 @@ public static class DpReplaceAuthoringCatalog
             "replace-ldc",
             "LDC replacement BIN",
             "NT51928-only LDC payload under DP Replace.",
-            "ldc-replacement"),
+            CompositionAddressSpaceIds.LdReplacement),
     ];
 
     private static readonly Dictionary<string, DpReplaceAdditionalPayloadRule[]> AdditionalPayloadRulesByIc =

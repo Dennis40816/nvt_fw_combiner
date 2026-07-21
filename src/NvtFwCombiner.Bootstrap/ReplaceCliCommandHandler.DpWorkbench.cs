@@ -30,6 +30,22 @@ internal static partial class ReplaceCliCommandHandler
             [WorkbenchSlotIds.ReplaceBase] = Path.GetFullPath(basePath),
             [WorkbenchSlotIds.ReplaceDp] = Path.GetFullPath(dpPath),
         };
+        bool requiresLdc = DpReplaceAuthoringCatalog.GetAdditionalPayloads(icId)
+            .Any(static rule => rule.SlotId == WorkbenchSlotIds.ReplaceLdc);
+        if (requiresLdc)
+        {
+            if (!RequireOption(options, "--ldc", error, out string? ldcPath))
+            {
+                return UsageError;
+            }
+
+            slotPaths[WorkbenchSlotIds.ReplaceLdc] = Path.GetFullPath(ldcPath);
+        }
+        else if (options.Values.ContainsKey("--ldc"))
+        {
+            error.WriteLine($"error: --ldc is not declared by the {icId} DP Replace profile");
+            return UsageError;
+        }
 
         return await RunWorkbenchReplaceAsync(
                 action,

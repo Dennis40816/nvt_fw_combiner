@@ -108,6 +108,79 @@ public sealed class DpReplaceGoldenRegressionTests
                 .Select(static operation => operation.GetProperty("OperationId").GetString()));
     }
 
+    /// <summary>Every Gen Flash IC replaces its declared DP payload and NT51928 LDC without changing the approved base.</summary>
+    [Theory]
+    [InlineData("51917", "51927", "nt51917-dp-replace-gen-flash-alias", false)]
+    [InlineData("51919", "51929", "nt51919-dp-replace-gen-flash-alias", false)]
+    [InlineData("51920", "51920", "nt51920-dp-replace-gen-flash", false)]
+    [InlineData("51923", "51923", "nt51923-dp-replace-gen-flash", false)]
+    [InlineData("51926", "51926", "nt51926-dp-replace-gen-flash", false)]
+    [InlineData("51927", "51927", "nt51927-dp-replace-gen-flash", false)]
+    [InlineData("51928", "51928", "nt51928-dp-replace-gen-flash", true)]
+    [InlineData("51929", "51929", "nt51929-dp-replace-gen-flash", false)]
+    [InlineData("51931", "51931", "nt51931-dp-replace-gen-flash", false)]
+    [InlineData("51932", "51932", "nt51932-dp-replace-gen-flash", false)]
+    public async Task GenFlashDpReplaceWithOriginalInputsMatchesGoldenBaseBytes(
+        string ic,
+        string goldenIc,
+        string expectedProfileId,
+        bool expectsLdc)
+    {
+        string goldenRoot = CanonicalGoldenTestData.Root;
+        using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("ic").GetString() == goldenIc)
+            .Clone();
+        byte[] expectedBaseBytes = ReadManifestFile(goldenRoot, goldenCase.GetProperty("expectedOutput"));
+        JsonElement inputs = goldenCase.GetProperty("inputs");
+
+        using var workspace = TempWorkspace.Create($"nvt-fw-combiner-dp-replace-golden-{ic}");
+        var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["replace-base"] = workspace.Write("reference-flash.bin", expectedBaseBytes),
+            ["replace-dp"] = workspace.Write(
+                "replacement-dp.bin",
+                ReadManifestFile(goldenRoot, inputs.GetProperty("dp-input"))),
+        };
+        if (expectsLdc)
+        {
+            slotPaths["replace-ldc"] = workspace.Write(
+                "replacement-ldc.bin",
+                ReadManifestFile(goldenRoot, inputs.GetProperty("ld-input")));
+        }
+
+        string outputPath = workspace.PathFor($"nt{ic}-dp-replace.bin");
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            $"NT{ic}",
+            "single",
+            "DP",
+            slotPaths,
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(expectedBaseBytes, await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken));
+        Assert.Equal(expectedBaseBytes.LongLength, result.OutputSize);
+        Assert.Equal(Sha256Hex(expectedBaseBytes), result.OutputSha256);
+        using var reportDocument = JsonDocument.Parse(result.ReportJson);
+        JsonElement root = reportDocument.RootElement;
+        Assert.Equal(expectedProfileId, root.GetProperty("ProfileId").GetString());
+        JsonElement[] issues = [.. root.GetProperty("Issues").EnumerateArray()];
+        Assert.All(issues, issue =>
+        {
+            Assert.Equal("DP_SIZE_WARNING", issue.GetProperty("Code").GetString());
+            Assert.Equal("warning", issue.GetProperty("Severity").GetString());
+        });
+        Assert.Empty(root.GetProperty("OutputDifferences").EnumerateArray());
+        Assert.Equal(
+            expectsLdc ? ["replace-dp-code", "replace-ldc-code"] : ["replace-dp-code"],
+            root.GetProperty("Operations")
+                .EnumerateArray()
+                .Select(static operation => operation.GetProperty("OperationId").GetString()));
+    }
+
     private static JsonElement FindDpPerspectiveCase(JsonElement manifest, string ic, string variant)
     {
         return manifest.GetProperty("cases")

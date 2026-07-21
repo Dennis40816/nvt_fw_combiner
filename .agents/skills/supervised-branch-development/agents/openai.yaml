@@ -1,0 +1,4 @@
+interface:
+  display_name: "Supervised Branch Development"
+  short_description: "Coordinate branch work with continuous local review"
+  default_prompt: "Use $supervised-branch-development to supervise this branch through implementation, review, and integration without premature blocking."

@@ -1,3 +1,5 @@
+using NvtFwCombiner.Bootstrap;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal static class ReplaceRegionGroupBuilder
@@ -6,14 +8,14 @@ internal static class ReplaceRegionGroupBuilder
         IEnumerable<FirmwareSlotViewModel> slots)
     {
         return slots
-            .GroupBy(slot => RegionGroupKey(slot.Title), StringComparer.Ordinal)
+            .GroupBy(slot => RegionGroupKey(slot.SlotId, slot.Title), StringComparer.Ordinal)
             .OrderBy(group => RegionGroupOrder(group.Key))
             .Select(group =>
             {
                 FirmwareSlotViewModel[] groupSlots = [.. group.OrderBy(slot => slot.Title, StringComparer.Ordinal)];
                 return new FirmwareSlotGroupViewModel(
                     RegionGroupTitle(group.Key),
-                    SlotGroupSummary(group.Key, groupSlots.Length),
+                    SlotGroupSummary(group.Key, groupSlots),
                     groupSlots,
                     RegionGroupDefaultExpanded(group.Key));
             });
@@ -23,7 +25,7 @@ internal static class ReplaceRegionGroupBuilder
         IEnumerable<MemoryCoverageSegmentViewModel> segments)
     {
         return segments
-            .GroupBy(segment => RegionGroupKey(segment.SourceLabel), StringComparer.Ordinal)
+            .GroupBy(segment => RegionGroupKey(slotId: null, segment.SourceLabel), StringComparer.Ordinal)
             .OrderBy(group => RegionGroupOrder(group.Key))
             .Select(group =>
             {
@@ -37,35 +39,38 @@ internal static class ReplaceRegionGroupBuilder
             });
     }
 
-    private static string RegionGroupKey(string label)
+    private static string RegionGroupKey(string? slotId, string label)
     {
-        return label switch
-        {
-            string value when value.Contains("(Shared)", StringComparison.OrdinalIgnoreCase) =>
-                ReplaceRegionGroupKeys.Shared,
-            string value when value.Contains("(Master)", StringComparison.OrdinalIgnoreCase) =>
-                ReplaceRegionGroupKeys.Master,
-            string value when value.Contains("(Slave R)", StringComparison.OrdinalIgnoreCase) =>
-                ReplaceRegionGroupKeys.SlaveRight,
-            string value when value.Contains("(Slave L)", StringComparison.OrdinalIgnoreCase) =>
-                ReplaceRegionGroupKeys.SlaveLeft,
-            string value when value.Contains("Base", StringComparison.OrdinalIgnoreCase) ||
-                              value.Contains("Preserve", StringComparison.OrdinalIgnoreCase) ||
-                              value.Contains("Restored", StringComparison.OrdinalIgnoreCase) =>
-                ReplaceRegionGroupKeys.Base,
-            _ => ReplaceRegionGroupKeys.Single,
-        };
+        return string.Equals(slotId, WorkbenchSlotIds.CreateReplaceCtrlRam("diff"), StringComparison.Ordinal) ||
+            label.Contains("DIFF CtrlRAM", StringComparison.OrdinalIgnoreCase)
+            ? ReplaceRegionGroupKeys.Cascade
+            : label switch
+            {
+                string value when value.Contains("(Shared)", StringComparison.OrdinalIgnoreCase) =>
+                    ReplaceRegionGroupKeys.Common,
+                string value when value.Contains("(Master)", StringComparison.OrdinalIgnoreCase) =>
+                    ReplaceRegionGroupKeys.Master,
+                string value when value.Contains("(Slave R)", StringComparison.OrdinalIgnoreCase) =>
+                    ReplaceRegionGroupKeys.SlaveRight,
+                string value when value.Contains("(Slave L)", StringComparison.OrdinalIgnoreCase) =>
+                    ReplaceRegionGroupKeys.SlaveLeft,
+                string value when value.Contains("Base", StringComparison.OrdinalIgnoreCase) ||
+                                  value.Contains("Preserve", StringComparison.OrdinalIgnoreCase) ||
+                                  value.Contains("Restored", StringComparison.OrdinalIgnoreCase) =>
+                    ReplaceRegionGroupKeys.Base,
+                _ => ReplaceRegionGroupKeys.Common,
+            };
     }
 
     private static int RegionGroupOrder(string key)
     {
         return key switch
         {
-            ReplaceRegionGroupKeys.Shared => 0,
-            ReplaceRegionGroupKeys.Master => 1,
-            ReplaceRegionGroupKeys.SlaveRight => 2,
-            ReplaceRegionGroupKeys.SlaveLeft => 3,
-            ReplaceRegionGroupKeys.Single => 4,
+            ReplaceRegionGroupKeys.Cascade => 0,
+            ReplaceRegionGroupKeys.Common => 1,
+            ReplaceRegionGroupKeys.Master => 2,
+            ReplaceRegionGroupKeys.SlaveRight => 3,
+            ReplaceRegionGroupKeys.SlaveLeft => 4,
             ReplaceRegionGroupKeys.Base => 5,
             _ => 6,
         };
@@ -73,30 +78,33 @@ internal static class ReplaceRegionGroupBuilder
 
     private static bool RegionGroupDefaultExpanded(string key)
     {
-        return key is ReplaceRegionGroupKeys.Shared or ReplaceRegionGroupKeys.Master or ReplaceRegionGroupKeys.Single;
+        return key is ReplaceRegionGroupKeys.Cascade or ReplaceRegionGroupKeys.Common or ReplaceRegionGroupKeys.Master;
     }
 
     private static string RegionGroupTitle(string key)
     {
         return key switch
         {
-            ReplaceRegionGroupKeys.Shared => "Shared inputs",
+            ReplaceRegionGroupKeys.Cascade => "Cascade",
+            ReplaceRegionGroupKeys.Common => "Common",
             ReplaceRegionGroupKeys.Master => "Master",
             ReplaceRegionGroupKeys.SlaveRight => "Slave R",
             ReplaceRegionGroupKeys.SlaveLeft => "Slave L",
-            ReplaceRegionGroupKeys.Base => "Base firmware",
-            ReplaceRegionGroupKeys.Single => "Single IC",
+            ReplaceRegionGroupKeys.Base => "Base firmware (FlashCode / TP FW)",
             _ => "Other",
         };
     }
 
-    private static string SlotGroupSummary(string key, int count)
+    private static string SlotGroupSummary(string key, FirmwareSlotViewModel[] slots)
     {
         return key switch
         {
+            ReplaceRegionGroupKeys.Cascade => $"{slots.Length} cascade-only areas.",
             ReplaceRegionGroupKeys.Base => "Original firmware used as the starting point.",
-            ReplaceRegionGroupKeys.Shared => $"{count} physical input files reused by the approved Postbuild.",
-            _ => $"{count} replaceable areas. Add files only for areas you want to change.",
+            ReplaceRegionGroupKeys.Common when slots.Any(slot =>
+                slot.Title.Contains("(Shared)", StringComparison.OrdinalIgnoreCase)) =>
+                $"{slots.Length} physical input files reused by the approved Postbuild.",
+            _ => $"{slots.Length} replaceable areas. Add files only for areas you want to change.",
         };
     }
 
@@ -104,6 +112,7 @@ internal static class ReplaceRegionGroupBuilder
     {
         return key switch
         {
+            ReplaceRegionGroupKeys.Cascade => $"{count} cascade-only areas that can be replaced.",
             ReplaceRegionGroupKeys.Base => $"{count} areas retained from the base firmware BIN.",
             _ => $"{count} areas that can be replaced for this IC group.",
         };

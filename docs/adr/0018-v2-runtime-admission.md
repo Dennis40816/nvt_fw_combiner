@@ -23,8 +23,10 @@ Profiles is the only production assembly that can mint either artifact. A V2 run
 - trusted bundle/profile identity and a unique resolved map;
 - exactly one immutable singleton space per input slot and one engine-owned output. `Merge` uses a
   blank output; `dp-replace` uses an exact, unnormalized `reference-image` clone;
-- `Merge` may lower copy/fill/patch/checked-transform operations. `dp-replace` may lower a rejected
-  `replace-range` from its declared DP source, followed only by a `copy-range` with
+- `Merge` may lower copy/fill/patch/checked-transform operations. `dp-replace` may lower rejected
+  `replace-range` operations only from a declared `dp-firmware` source to a canonical DP-owned
+  region or from a profile-declared `auxiliary` source to a canonical LDC-owned region. It may
+  then use only a `copy-range` with
   `replace-existing` from the cloned reference input at the identical resolved half-open range. A later `copy-range` may declare
   `replace-existing` only when one earlier write in the same output space fully contains its target
   range; partial, uncovered, cross-space, and reversed writes remain rejected;

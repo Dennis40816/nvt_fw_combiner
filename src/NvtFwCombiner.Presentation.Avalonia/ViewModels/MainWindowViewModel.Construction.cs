@@ -34,6 +34,7 @@ public sealed partial class MainWindowViewModel
         isOptional: true);
     private int _generalReplaceMappingCounter;
     private int _generalMergeMappingCounter;
+    private readonly DeferredShellState _deferredState = new();
     private readonly bool _isInitializing = true;
     private string _selectedMergeMode = NormalMergeMode;
 
@@ -83,18 +84,15 @@ public sealed partial class MainWindowViewModel
         _firmwareInspectionReader = firmwareInspectionReader;
         ShellVersion = shellVersion;
         AppVersion = appVersion;
-        HexEditorWorkspace = new HexEditorWorkspaceViewModel(Text);
         CompositionProgress = new CompositionRunProgressViewModel(language);
-        SelectedLanguage = language == ShellLanguage.ChineseTraditional
-            ? "Traditional Chinese"
-            : "English";
+        SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
         _relocalizeLoadedReportCommand = new AsyncRelayCommand(RelocalizeLoadedReportAsync);
         CompositionProgress.PropertyChanged += CompositionProgress_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
-        ShowHomeCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Home));
-        ShowSettingsCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Settings));
-        ShowMergeCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Merge));
-        ShowReplaceCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Replace));
+        ShowHomeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Home));
+        ShowSettingsCommand = new RelayCommand(() => NavigateToPage(ShellPage.Settings));
+        ShowMergeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Merge));
+        ShowReplaceCommand = new RelayCommand(() => NavigateToPage(ShellPage.Replace));
         GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);
         BeginDpReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
         BeginCtrlRamReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
@@ -112,16 +110,16 @@ public sealed partial class MainWindowViewModel
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
         AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
         PreviewMergeCommand = new AsyncRelayCommand(
-            () => RunMergeAsync(build: false),
+            () => RunMergeAsync(build: false, outputPath: null),
             CanRunMerge);
         BuildMergeCommand = new AsyncRelayCommand(
-            () => RunMergeAsync(build: true),
+            () => RunMergeAsync(build: true, outputPath: null),
             () => CanBuildMerge);
         PreviewReplaceCommand = new AsyncRelayCommand(
-            () => RunReplaceAsync(build: false),
+            () => RunReplaceAsync(build: false, outputPath: null, ctrlRamFirmwareVersionEdit: null),
             CanRunReplace);
         BuildReplaceCommand = new AsyncRelayCommand(
-            () => RunReplaceAsync(build: true),
+            () => RunReplaceAsync(build: true, outputPath: null, ctrlRamFirmwareVersionEdit: null),
             () => CanBuildReplace);
         ShowReportCommand = new RelayCommand(ShowReport, () => CanOpenReport);
         CloseReportCommand = new RelayCommand(CloseReport);
@@ -141,13 +139,7 @@ public sealed partial class MainWindowViewModel
         SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
         CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);
         CloseBuildCompletedModalCommand = new RelayCommand(CloseBuildCompletedModal);
-        HexEditorWorkspace.PropertyChanged += HexEditorWorkspace_OnPropertyChanged;
-
-        AddGeneralReplaceMapping();
-        AddGeneralMergeMapping();
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
-        RefreshContextState();
-        RefreshSettingsState();
         _isInitializing = false;
     }
 }

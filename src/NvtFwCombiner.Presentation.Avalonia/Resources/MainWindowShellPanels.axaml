@@ -87,28 +87,32 @@
             Classes="tableHeader"
             IsVisible="{Binding IsNumberSelectorVisible}"
             Text="{Binding Text.NumberLabel}" />
-        <ComboBox
+        <Grid
             Grid.Row="1"
             Grid.Column="1"
-            Classes="technicalSelect"
             Width="132"
-            IsVisible="{Binding IsDeviceContextNumberSelectionVisible}"
-            ItemsSource="{Binding NumberSelectionChoices}"
-            SelectedItem="{Binding SelectedNumberChoice, Mode=TwoWay}">
-          <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="vm:IcNumberChoiceViewModel">
-              <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="{DynamicResource NfcFontSize13}" Text="{Binding DisplayLabel}" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-        <TextBox
-            Grid.Row="1"
-            Grid.Column="1"
-            Classes="technicalCenteredInput"
-            Width="132"
-            IsReadOnly="True"
-            IsVisible="{Binding IsActiveRunNumberVisible}"
-            Text="{Binding ActiveRunNumber}" />
+            IsVisible="{Binding IsNumberSelectorVisible}">
+          <ComboBox
+              Classes="technicalSelect"
+              Width="132"
+              AutomationProperties.Name="{Binding Text.NumberLabel}"
+              IsVisible="{Binding IsDeviceContextSelectionVisible}"
+              ItemsSource="{Binding NumberSelectionChoices}"
+              SelectedItem="{Binding SelectedNumberChoice, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:IcNumberChoiceViewModel">
+                <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="{DynamicResource NfcFontSize13}" Text="{Binding DisplayLabel}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBox
+              Classes="technicalCenteredInput"
+              Width="132"
+              AutomationProperties.Name="{Binding Text.NumberLabel}"
+              IsReadOnly="True"
+              IsVisible="{Binding IsRunInProgress}"
+              Text="{Binding ActiveRunNumber}" />
+        </Grid>
         <StackPanel
             Grid.Row="1"
             Grid.Column="2"

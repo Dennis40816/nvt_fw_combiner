@@ -7,11 +7,37 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    /// <summary>Verifies Home does not compile page-specific workflow projections before navigation.</summary>
+    [Fact]
+    public void HomeDefersWorkflowProjectionUntilWorkflowNavigation()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        Assert.Empty(viewModel.NumberSelectionChoices);
+        Assert.Empty(viewModel.GeneralMergeOutputLength);
+        Assert.Empty(viewModel.MergeSlots);
+        Assert.Empty(viewModel.ReplaceSlots);
+        Assert.Empty(viewModel.GeneralMergeMappings);
+        Assert.Empty(viewModel.GeneralReplaceMappings);
+        Assert.Null(viewModel.LoadedHexEditorWorkspace);
+
+        viewModel.ShowMergeCommand.Execute(null);
+
+        Assert.NotEmpty(viewModel.NumberSelectionChoices);
+        Assert.NotEmpty(viewModel.GeneralMergeOutputLength);
+        Assert.NotEmpty(viewModel.MergeSlots);
+        _ = Assert.Single(viewModel.GeneralMergeMappings);
+        _ = Assert.Single(viewModel.GeneralReplaceMappings);
+    }
+
     /// <summary>Verifies Settings exposes catalog-backed status without requiring workflow context.</summary>
     [Fact]
     public void SettingsUsesCatalogBackedRowsWithoutDeviceContext()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        Assert.Empty(viewModel.SettingsOverviewRows);
+        Assert.Empty(viewModel.SettingsCapabilityRows);
 
         viewModel.ShowSettingsCommand.Execute(null);
 
@@ -22,7 +48,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "IC catalog" && row.Value == "13");
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Standard Merge" && row.Value == "13 profiles");
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "3 profiles");
+        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "13 profiles");
         SettingSummaryViewModel capability = Assert.Single(viewModel.SettingsCapabilityRows);
         Assert.Equal("CtrlRAM Replace available ICs", capability.Title);
         Assert.Equal("12 ICs", capability.Value);
@@ -35,10 +61,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("設定", viewModel.SettingsPreview.Title);
         Assert.Equal("建立", viewModel.Text.BuildActionLabel);
         Assert.Equal("首頁 > 設定", viewModel.NavigationPath);
-        Assert.Contains(viewModel.MergeSlots, slot =>
-            slot.Title == "DP BIN" &&
-            slot.RequirementLabel == "必填" &&
-            slot.DisplayName == "尚未選擇 BIN");
+        Assert.Empty(viewModel.MergeSlots);
         Assert.Equal("必填", viewModel.ReplaceBaseSlot.RequirementLabel);
         Assert.Equal("尚未選擇 BIN", viewModel.ReplaceBaseSlot.DisplayName);
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "IC 目錄" && row.Status == "Catalog");
@@ -47,6 +70,13 @@ public sealed partial class ShellViewModelTests
             row.Value == "12 ICs" &&
             row.Status == "可用" &&
             row.Description.Contains("golden 驗證狀態", StringComparison.Ordinal));
+
+        viewModel.ShowMergeCommand.Execute(null);
+
+        Assert.Contains(viewModel.MergeSlots, slot =>
+            slot.Title == "DP BIN" &&
+            slot.RequirementLabel == "必填" &&
+            slot.DisplayName == "尚未選擇 BIN");
     }
 
     /// <summary>Verifies breadcrumbs show page hierarchy while Back returns to the previous page.</summary>
@@ -92,6 +122,8 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
+        Assert.False(viewModel.IsNumberSelectorVisible);
+        Assert.True(viewModel.IsDeviceContextSelectionVisible);
         viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
 
         Assert.True(viewModel.IsWorkflowContextModalOpen);
@@ -103,8 +135,12 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(viewModel.IsWorkflowContextModalOpen);
         Assert.True(viewModel.IsReplaceVisible);
+        Assert.True(viewModel.IsNumberSelectorVisible);
+        Assert.True(viewModel.IsDeviceContextSelectionVisible);
+        Assert.NotEmpty(viewModel.NumberSelectionChoices);
         Assert.Equal("NT51927", viewModel.SelectedIc);
         Assert.Equal("3", viewModel.SelectedNumber);
+        Assert.Equal("3", viewModel.SelectedNumberChoice?.Token);
 
         viewModel.ShowHomeCommand.Execute(null);
         viewModel.BeginNormalMergeFromHomeCommand.Execute(null);

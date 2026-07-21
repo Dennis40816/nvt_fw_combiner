@@ -517,12 +517,12 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Empty(document.RootElement.GetProperty("Operations").EnumerateArray());
     }
 
-    /// <summary>Unsupported DP Replace stays blocked without projecting legacy flash-map operations.</summary>
+    /// <summary>An unknown IC DP Replace stays blocked without projecting legacy flash-map operations.</summary>
     [Fact]
     public async Task UnsupportedDpReplacePlanningReportHasNoLegacyOperations()
     {
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51927",
+            "NT00000",
             "single",
             "DP",
             new Dictionary<string, string>(StringComparer.Ordinal),

@@ -203,6 +203,7 @@ public static class IcSupportCatalog
     private static readonly string[] DefaultWorkflowIds =
     [
         IcWorkflowIds.StandardMerge,
+        IcWorkflowIds.DpReplace,
         IcWorkflowIds.CtrlRamReplace,
         IcWorkflowIds.GeneralMerge,
         IcWorkflowIds.GeneralReplace,
@@ -252,12 +253,11 @@ public static class IcSupportCatalog
             familyScope: "Canonical single-product member for NT51919/NT51929/NT51932 family facts."),
         Entry(
             "NT51930",
-            workflowIds: [.. DefaultWorkflowIds, IcWorkflowIds.DpReplace],
             notes: "DP Replace reuses the canonical 256 KiB Standard Merge map and remains Evidence open pending direct golden parity; CtrlRAM Postbuild category is selected by Common FW version."),
         Entry(
             "NT51931",
-            workflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.GeneralMerge],
-            notes: "The exact AUTO_PRJ-158/PID 0x131B/cascade-6 V2 route is materialized and byte-equal to the pre-retirement V1 control, but Replace remains Not available under support-neutral/no-promotion policy. Registered Combiner 1.13.0 NT51931BASED_NORMAL_MODE matches the reviewed 1.2.0.4 NT51930-based control byte-for-byte; the shared output differs from the owner expected only in 108 classified header/header-copy CRC bytes. Every non-exact shape fails closed."),
+            workflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.DpReplace, IcWorkflowIds.GeneralMerge],
+            notes: "DP Replace is backed by the canonical 256 KiB Standard Merge map. The exact AUTO_PRJ-158/PID 0x131B/cascade-6 CtrlRAM V2 route remains support-neutral and is not exposed; every non-exact CtrlRAM shape fails closed."),
         Entry(
             "NT51932",
             familyId: "nt51929-nt51932-family",
@@ -266,11 +266,9 @@ public static class IcSupportCatalog
             familyScope: "Perfect family alias; NT51932 owns the cascade product path."),
         Entry(
             "NT51950",
-            workflowIds: [.. DefaultWorkflowIds, IcWorkflowIds.DpReplace],
             goldenVerifiedWorkflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.DpReplace]),
         Entry(
             "NT51951",
-            workflowIds: [.. DefaultWorkflowIds, IcWorkflowIds.DpReplace],
             standardMergeSourceIcId: "NT51950",
             ctrlRamPostbuildSourceIcId: "NT51950",
             goldenVerifiedWorkflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.DpReplace]),

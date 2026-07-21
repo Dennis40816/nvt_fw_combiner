@@ -7,7 +7,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
     <Setter Property="BoxShadow" Value="{DynamicResource NfcWorkflowCardHoverShadow}" />
   </Style>
   <Style Selector="Border.runProgressNode">

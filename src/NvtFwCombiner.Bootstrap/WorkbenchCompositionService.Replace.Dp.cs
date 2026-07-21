@@ -1,4 +1,3 @@
-using System.Globalization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -64,14 +63,13 @@ public static partial class WorkbenchCompositionService
                 compiledComposition,
                 CompositionAddressSpaceIds.ReferenceBase,
                 context.BasePath),
-            context.SlotPaths.TryGetValue(WorkbenchSlotIds.ReplaceDp, out string? path) &&
-                !string.IsNullOrWhiteSpace(path)
-                ? CompiledCompositionInputBindingFactory.Create(
+            .. GetDpReplaceInputSlots(icId).Select(slot =>
+                CompiledCompositionInputBindingFactory.Create(
                     compiledComposition,
-                    CompositionAddressSpaceIds.DpReplacement,
-                    Path.GetFullPath(path))
-                : throw new InvalidOperationException($"Input slot '{WorkbenchSlotIds.ReplaceDp}' is required."),
+                    slot.AddressSpaceId,
+                    Path.GetFullPath(context.SlotPaths[slot.SlotId]))),
         ];
+
         return await RunCompiledCompositionAsync(
             DpReplaceRunIdPrefix,
             compiledComposition,
@@ -112,11 +110,6 @@ public static partial class WorkbenchCompositionService
         }
 
         return slots;
-    }
-
-    private static string FormatHexLength(long length)
-    {
-        return string.Create(CultureInfo.InvariantCulture, $"0x{length:X}");
     }
 
 }

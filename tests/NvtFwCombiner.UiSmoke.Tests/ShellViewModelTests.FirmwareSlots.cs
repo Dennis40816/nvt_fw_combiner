@@ -56,6 +56,7 @@ public sealed partial class ShellViewModelTests
     public void FirmwareSlotTypeIconsExposeInputCategories()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
 
         Assert.Contains(viewModel.MergeSlots, slot =>
             slot.Title == "DP BIN" &&

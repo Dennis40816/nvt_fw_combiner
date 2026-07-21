@@ -1,8 +1,77 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.10 performance-remediation stable release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.11 reconstructed stabilization release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.10`
+Specification package version: `0.9.11`
+
+## 0.9.11 reconstructed stabilization release candidate
+
+The candidate is reconstructed from the exact final `v0.9.10` predecessor
+`b0266f312a67d644475731153b1af82f7eadcc95`; the premature integration lineage
+is not release authority. Reconciliation retained the nine effective
+`v0.9.10` behavior groups recorded in
+`docs/governance/v0.9.11-baseline-reconstruction.md` and reapplied only the
+reviewed DP/LDC authoring, startup/package, IC Number, topology-group, spacing,
+and Build-rail intent.
+
+The exact M3 package application commit is
+`b73f8876ad3af41ec792141a929b866c59df4462`. Its self-contained compressed
+composite-ReadyToRun EXE is 69,990,762 bytes with SHA-256
+`bf5f7e3e5d035e9a1cd2dbeff85cb0d137aa20ca1a8270304c4f147d71fd707e`;
+the 75,358,293-byte ZIP SHA-256 is
+`36d18b6e03a6569b744187ab924f48860ce424103c12e649c618136dd520587a`.
+Visible release smoke and the closed package/external-tool policy gates passed.
+
+The same package also passed a 2026-07-21 visible UI inspection. It opened Home
+without crashing and displayed `0.9.11 workbench`; Home-to-Replace navigation
+retained the IC Number ComboBox. NT51950 CtrlRAM projected `Common` in single
+mode and separated `DIFF CtrlRAM` into `Cascade` while NF/Normal/VN remained in
+`Common` after selecting Cascade. Input and Output layout used the same groups,
+the right-side memory visualization remained present, nested sections retained
+their spacing, Base firmware displayed `FlashCode / TP FW`, and the disabled
+bottom-right Build rail exposed its blocking reason without occluding content.
+This inspection does not substitute for the owner, Narrator/NVDA, effective
+high-contrast, scaling, or reduced-motion human gates.
+
+One warm-up plus five exact-package Home launches measured a 908.146 ms
+process-to-window median (901.461 ms minimum, 932.563 ms maximum). The recorded
+first-frame synchronous UI median is 412.455 ms; background UI materialization
+totals 53.388 ms with a 25.528 ms longest interval. Median working set is
+220,708,864 bytes when the Home window appears and 286,752,768 bytes after
+warm-up. The largest synchronous Home interval is root DataContext assignment,
+which causes the visible template to instantiate and bind: 276.016 ms and
+33,824,392 cumulative allocated bytes. No firmware/profile/user-file/processor
+I/O occurs in that interval. These are same-machine observations, not universal
+wall-clock or live-managed-heap claims.
+
+UI Smoke `271/271`, Architecture `99/99`, release package policy `14/14`,
+external-tool policy dry run, package construction, and visible package smoke
+passed during M3. A clean short-path detached worktree at `c58711ce` passed
+`python scripts/verify.py --structure-only`, including Polytail fast checks.
+
+The exact code and metadata candidate `22f8f517` then passed the canonical
+`python scripts/verify.py --all` gate in clean short-path detached worktree
+`C:\n11v-all-22f8`. Release build completed with zero warnings and errors.
+Repository policy tests passed `107/107`; Python CRC Worker passed `28/28` at
+98.88% branch coverage. .NET results were Domain `357/357`, Application
+`186/186`, ProfileContract `351/351`, Architecture `99/99`, GoldenRegression
+`19/19`, Infrastructure `245/245` with two expected Windows platform skips,
+Bootstrap `622/622`, and UI Smoke `271/271`. The CtrlRAM fixture manifest and
+payload hashes also passed.
+
+Independent R2/R3 and owner review, the existing `總代理` conversation review,
+protected CI, reviewed-main packaging, clean Windows x64 execution without
+separately installed .NET/Python, representative firmware UAT,
+accessibility/visual review, signing, and immutable release publication remain
+mandatory. This evidence-only follow-up does not change the verified executable
+tree or self-approve those gates.
+
+The owner classified `v0.9.11` as support-neutral on 2026-07-21. It promotes no
+IC/workflow support stage. Existing golden, alias, same-build, and private
+CtrlRAM evidence retain their documented scope; missing IC-specific direct
+parity, including the separately recorded NT51930 DP Replace package, remains a
+future support-promotion gate rather than a blanket `v0.9.11` release blocker.
+No firmware behavior or evidence result is changed by this classification.
 
 ## 0.9.10 performance-remediation stable release candidate
 

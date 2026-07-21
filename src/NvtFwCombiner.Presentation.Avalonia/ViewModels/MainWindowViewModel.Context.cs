@@ -27,6 +27,13 @@ public sealed partial class MainWindowViewModel
         bool resetRunResult = false,
         bool preserveReplaceSlotFiles = false)
     {
+        _deferredState.EnsureWorkflow(
+            RefreshNumberChoicesForSelectedIc,
+            () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(SelectedIc),
+            value => GeneralMergeOutputLength = value,
+            AddGeneralReplaceMapping,
+            AddGeneralMergeMapping);
+
         RefreshCtrlRamRegions();
         RefreshMergeSlotRequirements();
         RefreshReplaceModeState(preserveSlotFiles: preserveReplaceSlotFiles);
@@ -88,9 +95,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(GeneralMergeOutputFileName));
         OnPropertyChanged(nameof(MergeOutputFileName));
         OnPropertyChanged(nameof(MergeReadinessStatus));
-        OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
         OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
         OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
@@ -116,8 +121,6 @@ public sealed partial class MainWindowViewModel
             "No output",
             succeeded: false);
         OnPropertyChanged(nameof(LastRunResult));
-        OnPropertyChanged(nameof(MergeBuildActionTip));
-        OnPropertyChanged(nameof(ReplaceBuildActionTip));
     }
 
     private void SelectReplaceMode(string mode)
@@ -127,7 +130,7 @@ public sealed partial class MainWindowViewModel
             SelectedReplaceMode = mode;
         }
 
-        SetSelectedPage(ShellPage.Replace);
+        NavigateToPage(ShellPage.Replace);
     }
 
     private void SelectMergeMode(string mode)
@@ -153,16 +156,13 @@ public sealed partial class MainWindowViewModel
             RefreshCommandState();
         }
 
-        SetSelectedPage(ShellPage.Merge);
-    }
-
-    private void SetSelectedPage(ShellPage page)
-    {
-        NavigateToPage(page);
+        NavigateToPage(ShellPage.Merge);
     }
 
     private void ApplySelectedPage(ShellPage page)
     {
+        _deferredState.EnsurePage(page, RefreshSettingsState, () => RefreshContextState());
+
         if (SelectedPage == page)
         {
             UpdateNavigationState();
@@ -266,10 +266,8 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ShouldAnimateRunProgress));
         OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(MergeReadinessStatus));
-        OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         RefreshReplaceSelectionState();
     }
 
@@ -348,6 +346,11 @@ public sealed partial class MainWindowViewModel
 
     partial void OnGeneralMergeOutputLengthChanged(string value)
     {
+        if (_deferredState.IsLoadingWorkflow || !_deferredState.IsWorkflowLoaded)
+        {
+            return;
+        }
+
         RefreshMergeMemoryMapState();
         ResetRunResultForContextChange();
         RefreshCommandState();

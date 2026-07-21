@@ -16,6 +16,19 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"reportInputGroupHeader\"", inputs, StringComparison.Ordinal);
     }
 
+    /// <summary>Report input groups, headers, and rows use the self-padding panel contract.</summary>
+    [Fact]
+    public void ReportInputsUseSpaciousPanelBoundaries()
+    {
+        string inputs = ReadPresentationFile("Resources/MainWindowReportInputTemplates.axaml");
+        string audit = ReadPresentationFile("Resources/MainWindowReportAuditTemplates.axaml");
+
+        Assert.Equal(3, inputs.Split("<views:SpaciousPanel Classes=\"compact\">", StringSplitOptions.None).Length - 1);
+        Assert.Contains("<ItemsControl Classes=\"spaciousList\" ItemsSource=\"{Binding Rows}\">", inputs, StringComparison.Ordinal);
+        Assert.Contains("<views:SpaciousPanel Classes=\"compactSurface\" IsVisible=\"{Binding LoadedReport.HasInputGroups}\">", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("Classes=\"compactSurface contentPanel\" IsVisible=\"{Binding LoadedReport.HasInputGroups}\"", audit, StringComparison.Ordinal);
+    }
+
     /// <summary>Ensures the Report raw payload uses the shared read-only text control.</summary>
     [Fact]
     public void ReportRawPayloadUsesTheSharedReadOnlyTextBox()

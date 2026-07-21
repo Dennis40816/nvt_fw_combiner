@@ -42,6 +42,7 @@ internal static partial class ReplaceCliCommandHandler
         {
             case IcWorkflowIds.DpReplace:
                 valueOptions.Add("--dp");
+                valueOptions.Add("--ldc");
                 break;
             case IcWorkflowIds.CtrlRamReplace:
                 valueOptions.Add("--ctrlram");

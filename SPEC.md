@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.10 performance-remediation stable release candidate`
-> 文件版本：`0.9.10`
-> 基準日期：`2026-07-20`
+> 文件狀態：`0.9.11 reconstructed stabilization release candidate`
+> 文件版本：`0.9.11`
+> 基準日期：`2026-07-21`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,7 +30,11 @@
 
 ## 0.1 Current owner priority
 
-As of 2026-07-19, `0.9.10` completes the feature-frozen end-to-end performance and Change Report remediation candidate on stable `v0.9.9`. Automatic Build has one authoritative execution; Legacy Combiner keeps exact sequential commands while removing unevidenced intermediate full-image reads; report/history/inspection/editor paths are bounded; and typed progress plus a read-only Hex Diff keep the UI responsive and understandable. Firmware ranges, command semantics, golden verification, runtime availability, and product-support promotion remain separate evidence-gated concerns, so this release does not infer or promote unsupported IC shapes.
+As of 2026-07-21, `0.9.11` is a feature-frozen stabilization candidate reconstructed from the exact final `v0.9.10` release. It preserves the final output-publication, immutable-input, CtrlRAM postbuild, report-delivery, firmware-identity, Build-completion, package-authority, stale-search, and Changes behavior from that predecessor. It adds profile-driven DP/LDC authoring coverage, measured first-frame/background startup work, compressed composite ReadyToRun packaging, persistent IC Number choice behavior, topology-aware CtrlRAM grouping, spatial padding ownership, and a fixed bottom-right Build rail. Firmware ranges, command semantics, golden verification, runtime availability, and product-support promotion remain separate evidence-gated concerns; authoring availability does not infer or promote unsupported IC shapes.
+
+- `v0.9.10` (`b0266f312a67d644475731153b1af82f7eadcc95`) is the only accepted predecessor for `0.9.11`. The premature `0.9.11.10` lineage is recovery evidence only and cannot be merged or released as-is.
+- The measured startup lifecycle opens a meaningful Home screen first, warms immutable catalog projections on a worker thread, then materializes common page visual trees at background dispatcher priority. Warm-up cannot navigate, read user firmware, mutate a profile, launch an external processor, select support, or acquire Build authority.
+- Main EXE at or below 70,000,000 bytes is a soft optimization target. Main EXE and complete release ZIP at or below 80,000,000 bytes are hard candidate ceilings; required safety, profiles, processors, evidence, accessibility, and self-contained runtime content cannot be removed to meet them.
 
 - Post-commit background report preparation is an explicit `0.9.10` requirement. A successful Build publishes the atomically committed output identity as soon as the BIN is usable, while complete JSON, Hex Diff, and history projection continue off the dispatcher. Preview and uncommitted failures publish no artifact, and the run retains command ownership until the complete report is ready.
 
@@ -49,6 +53,7 @@ As of 2026-07-19, `0.9.10` completes the feature-frozen end-to-end performance a
   `<= 0x40000`; oversize is a build error. NT51950/NT51951 remain the exception because they paste a
   full DP container and require exact selected-map capacity.
 - NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
+- DP Replace has a trusted V2 authoring route for all 13 selectable ICs. Gen Flash routes clone an exact same-IC Standard/Normal Reference FlashCode and replace only the canonical DP partition; NT51928 non-NB additionally requires a separate full FlashCode-shaped LDC input for `[0x40000, 0x62000)`, distinct from DP `[0x3C000, 0x40000)`. This authoring availability does not by itself grant a public support claim.
 - NT51930 currently has no `>13 IC` product target; map cascade to the `<=13 IC` DiffDLM branch (`0x2F200`, size `65024`) until owner data reactivates larger counts.
 - FW Register ranges are first-class map evidence. REG Replace is represented as a pending capability over those regions, but remains without an executable profile or UI exposure until owner evidence is approved. Current executable Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
 - Merge and Replace runs must produce a report modal after Preview/Build and persist run history. The report must show each operation step, input/output hashes, IC/IC-num context, normalized ranges, external Combiner command sequence, processor result, warnings, and final artifact path.

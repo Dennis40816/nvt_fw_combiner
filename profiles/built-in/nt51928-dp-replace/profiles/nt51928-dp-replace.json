@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "2.0",
+  "profileId": "nt51928-dp-replace-gen-flash",
+  "profileVersion": "0.1.0",
+  "promotion": { "stage": "supported", "blockers": [] },
+  "compositionKind": "replace",
+  "icNumberInputMode": "single-selector",
+  "experience": {
+    "experienceId": "dp-replace",
+    "audience": "dp",
+    "layoutPolicy": "constrained",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51928.dp-replace"
+  },
+  "mapBinding": {
+    "familyId": "nt51928",
+    "familyVersion": "1.1.0",
+    "familyContentHash": "e287d131f6501b6b66cda888b3f32ee687ea2a9c614091e6d300ba285282fbe7",
+    "mapIds": ["nt51928-standard-merge-512k"],
+    "requiredRegionIds": ["dp-code", "ldc-code"],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "reference-base", "role": "reference", "artifactClass": "reference-image",
+      "required": true, "cardinality": "exactly-one", "acceptedExtensions": [".bin"],
+      "acceptance": { "lengthRule": { "kind": "exact-resolved-map-capacity" }, "normalization": { "kind": "none" } }
+    },
+    {
+      "slotId": "dp-replacement", "role": "dp", "artifactClass": "dp-firmware",
+      "required": true, "cardinality": "exactly-one", "acceptedExtensions": [".bin"],
+      "acceptance": { "lengthRule": { "kind": "normal-dp-extract-with-warning", "issueCode": "DP_SIZE_WARNING" }, "normalization": { "kind": "none" } }
+    },
+    {
+      "slotId": "ld-replacement", "role": "ldc", "artifactClass": "auxiliary",
+      "required": true, "cardinality": "exactly-one", "acceptedExtensions": [".bin"],
+      "acceptance": { "lengthRule": { "kind": "exact-resolved-map-capacity" }, "normalization": { "kind": "none" } }
+    }
+  ],
+  "spaces": [
+    { "spaceId": "reference-base", "kind": "input-artifact", "slotId": "reference-base", "instancePolicy": "singleton" },
+    { "spaceId": "dp-replacement", "kind": "input-artifact", "slotId": "dp-replacement", "instancePolicy": "singleton" },
+    { "spaceId": "ld-replacement", "kind": "input-artifact", "slotId": "ld-replacement", "instancePolicy": "singleton" },
+    {
+      "spaceId": "output-image", "kind": "output-image",
+      "capacity": { "kind": "resolved-map" },
+      "initializer": { "kind": "clone", "sourceSlotId": "reference-base" }
+    }
+  ],
+  "views": [
+    { "viewId": "dp-code-source", "spaceId": "dp-replacement", "selector": { "kind": "map-region", "regionId": "dp-code" } },
+    { "viewId": "dp-code-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "dp-code" } },
+    { "viewId": "ldc-code-source", "spaceId": "ld-replacement", "selector": { "kind": "map-region", "regionId": "ldc-code" } },
+    { "viewId": "ldc-code-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "ldc-code" } }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    { "regionId": "dp-code", "access": "whole", "reason": "Replace the complete owner-approved NT51928 DP region [0x3C000, 0x40000)." },
+    { "regionId": "ldc-code", "access": "whole", "reason": "Replace the separate owner-approved NT51928 LDC region [0x40000, 0x62000)." }
+  ],
+  "operations": [
+    {
+      "operationId": "replace-dp-code", "sequence": 100, "overlapPolicy": "reject",
+      "reason": "Replace only the canonical NT51928 DP range.",
+      "kind": "replace-range", "sourceViewId": "dp-code-source", "targetViewId": "dp-code-output"
+    },
+    {
+      "operationId": "replace-ldc-code", "sequence": 200, "overlapPolicy": "reject",
+      "reason": "Replace only the canonical NT51928 LDC range and preserve TP, gaps, and tail bytes from the reference.",
+      "kind": "replace-range", "sourceViewId": "ldc-code-source", "targetViewId": "ldc-code-output"
+    }
+  ],
+  "validations": [],
+  "processorStages": [],
+  "output": { "fileNameTemplate": "nt51928-dp-replace.bin", "allowOverride": true, "invalidCharacterPolicy": "reject", "requiredTokenIds": [] },
+  "evidenceRefs": ["gen-flash-bin-v2-51928-golden", "dp-replace-owner-decision-2026-07-20"]
+}

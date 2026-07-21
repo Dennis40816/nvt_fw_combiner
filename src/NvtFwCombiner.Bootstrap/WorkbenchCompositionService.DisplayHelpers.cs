@@ -28,7 +28,7 @@ public static partial class WorkbenchCompositionService
             CompositionAddressSpaceIds.LdInput => "LD BIN",
             CompositionAddressSpaceIds.ReferenceBase => "Base flash",
             CompositionAddressSpaceIds.DpReplacement => "DP replacement",
-            "ldc-replacement" => "LDC replacement",
+            CompositionAddressSpaceIds.LdReplacement => "LDC replacement",
             CompositionAddressSpaceIds.OutputImage => "Output",
             _ => addressSpaceId,
         };

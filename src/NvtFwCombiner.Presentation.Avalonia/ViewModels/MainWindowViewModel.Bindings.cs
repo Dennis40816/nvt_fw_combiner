@@ -19,7 +19,10 @@ public sealed partial class MainWindowViewModel
     public ShellTextResources Text { get; private set; } = ShellTextResources.For(ShellLanguage.English);
 
     /// <summary>Gets the standalone raw-BIN utility workspace exposed from Home Util Tools.</summary>
-    public HexEditorWorkspaceViewModel HexEditorWorkspace { get; }
+    public HexEditorWorkspaceViewModel HexEditorWorkspace =>
+        _deferredState.GetHexEditorWorkspace(Text, HexEditorWorkspace_OnPropertyChanged);
+
+    internal HexEditorWorkspaceViewModel? LoadedHexEditorWorkspace => _deferredState.LoadedHexEditorWorkspace;
 
     /// <summary>Gets the workspace title.</summary>
     public string WorkspaceTitle { get; private set; } = string.Empty;
@@ -250,12 +253,6 @@ public sealed partial class MainWindowViewModel
             IsStandardMergeSupported,
             GeneralMergeMappings.Count(mapping => mapping.HasFile));
 
-    /// <summary>One-line Build action hint for Merge.</summary>
-    public string MergeBuildActionTip => CreateBuildActionTip(MergeReadinessStatus, CanRunMerge());
-
-    /// <summary>One-line Build action hint for Replace.</summary>
-    public string ReplaceBuildActionTip => CreateBuildActionTip(ReplaceReadinessStatus, CanRunReplace());
-
     /// <summary>True when active Merge build can run.</summary>
     public bool CanBuildMerge => CanRunMerge();
 
@@ -351,8 +348,7 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Gets grouped display choices for the IC-count control.</summary>
     [ObservableProperty]
-    public partial IReadOnlyList<IcNumberChoiceViewModel> NumberSelectionChoices { get; set; } =
-        UiCompositionRunner.GetNumberSelectionChoices(DefaultIcId);
+    public partial IReadOnlyList<IcNumberChoiceViewModel> NumberSelectionChoices { get; set; } = [];
 
     /// <summary>Gets or sets the selected displayed IC-count choice while retaining its planner token.</summary>
     public IcNumberChoiceViewModel? SelectedNumberChoice
@@ -383,6 +379,5 @@ public sealed partial class MainWindowViewModel
     [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
     [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
     [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
-    public partial string GeneralMergeOutputLength { get; set; } =
-        WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(DefaultIcId);
+    public partial string GeneralMergeOutputLength { get; set; } = string.Empty;
 }

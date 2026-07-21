@@ -188,6 +188,25 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs"), StringComparison.Ordinal);
     }
 
+    /// <summary>Locks the shared Hex viewport redesign out of v0.9.11 while preserving both existing hosts.</summary>
+    [Fact]
+    public void V0911KeepsRawEditorAndReportDiffRenderersSeparate()
+    {
+        string rawEditor = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml");
+        string reportDiff = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml");
+        string reportViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewModel.cs");
+        string rawEditorViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.cs");
+
+        Assert.Contains("HexEditorViewportControl", rawEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexEditorViewportControl", reportDiff, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexEditorWorkspaceViewModel", reportViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportHexDiffViewModel", rawEditorViewModel, StringComparison.Ordinal);
+    }
+
     /// <summary>Prevents retired, unbound shell inspector projections from returning.</summary>
     [Fact]
     public void ShellViewModelOmitsUnboundInspectorCompatibilityState()
@@ -277,6 +296,20 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("InlineValidationMessage", hexCell, StringComparison.Ordinal);
     }
 
+    /// <summary>Locks stale internal Hex searches to the unfiltered cancellation boundary.</summary>
+    [Fact]
+    public void HexEditorSearchAcceptsCancellationFromAnObsoleteInternalGeneration()
+    {
+        string search = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.Search.cs");
+
+        Assert.Equal(1, CountOccurrences(search, "catch (OperationCanceledException)"));
+        Assert.DoesNotContain(
+            "catch (OperationCanceledException) when",
+            search,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies non-critical local UI stores share one JSON and atomic-promotion mechanism.</summary>
     [Fact]
     public void LocalUiFileStoresShareBestEffortJsonPersistence()
@@ -288,6 +321,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
         string settings = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Settings.cs");
+        string context = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Context.cs");
         string persistenceCoordinator = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/LatestSnapshotPersistenceCoordinator.cs");
         string stores = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs") +
@@ -310,6 +345,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ShellTextResources.LanguageFromPreference(preferences.Language)", mainWindow, StringComparison.Ordinal);
         Assert.Contains("private readonly bool _isInitializing = true;", construction, StringComparison.Ordinal);
         Assert.Contains("_isInitializing = false;", construction, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshContextState();", construction, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshSettingsState();", construction, StringComparison.Ordinal);
+        Assert.Contains("_deferredState.EnsurePage(page, RefreshSettingsState", context, StringComparison.Ordinal);
         Assert.Contains("if (!_isInitializing)", settings, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportHistoryFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);
         Assert.DoesNotContain("ShellPreferenceFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);

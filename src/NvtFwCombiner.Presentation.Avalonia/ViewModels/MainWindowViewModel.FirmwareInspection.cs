@@ -31,6 +31,11 @@ public sealed partial class MainWindowViewModel
         string path,
         CancellationToken cancellationToken = default)
     {
+        if (!_deferredState.IsWorkflowLoaded)
+        {
+            RefreshContextState();
+        }
+
         bool preservePendingCtrlRamBase = IsFirmwareInspectionLoading &&
             IsCtrlRamReplaceModeSelected &&
             ReplaceBaseSlot.HasFile;
@@ -446,8 +451,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsFirmwareInspectionLoading));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(MergeBuildActionTip));
-        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         RefreshCommandState();
     }
 

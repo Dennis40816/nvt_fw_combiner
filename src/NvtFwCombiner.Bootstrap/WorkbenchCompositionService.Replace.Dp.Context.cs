@@ -38,6 +38,21 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
+        foreach (WorkbenchReplaceInputSlot slot in GetDpReplaceInputSlots(icId).Where(static slot => !slot.IsOptional))
+        {
+            if (!slotPaths.TryGetValue(slot.SlotId, out string? inputPath) || string.IsNullOrWhiteSpace(inputPath))
+            {
+                failure = CreatePlanningRunResult(
+                    icId,
+                    WorkbenchReplaceModes.Dp,
+                    slotPaths,
+                    build,
+                    WorkbenchIssueCodes.InputMissing,
+                    $"{slot.Title} is required for {icId} DP Replace.");
+                return false;
+            }
+        }
+
         long baseLength = new FileInfo(fullBasePath).Length;
         context = new BuiltInV2DpReplaceRunContext(
             ToIcNumberSelection(number),

@@ -31,9 +31,16 @@ public sealed partial class ShellTextResources
 
     public string GetReplaceBaseTitle(string mode)
     {
-        return mode == WorkbenchReplaceModes.Dp
-            ? "Reference FlashCode"
-            : SelectLanguage("Reference firmware", "參考韌體");
+        return mode switch
+        {
+            WorkbenchReplaceModes.CtrlRam => SelectLanguage(
+                "Base firmware (FlashCode / TP FW)",
+                "基底韌體 (FlashCode / TP FW)"),
+            WorkbenchReplaceModes.Dp or WorkbenchReplaceModes.General => SelectLanguage(
+                "Base firmware (FlashCode)",
+                "基底韌體 (FlashCode)"),
+            _ => SelectLanguage("Base firmware", "基底韌體"),
+        };
     }
 
     public string GetReplaceBaseDescription(string mode, string? dpReferenceCapacityLabel)
@@ -188,20 +195,6 @@ public sealed partial class ShellTextResources
                 "AB Code Merge is reserved for a later workflow.",
                 "AB Code Merge 保留給後續流程。"),
         };
-    }
-
-    public string GetBuildActionTip(string readinessStatus, bool canBuild)
-    {
-        return canBuild
-            ? SelectLanguage(
-                $"{readinessStatus} Build validates first, then writes output and report.",
-                $"{readinessStatus} Build 會先驗證，再寫出 output 與 report。")
-            : readinessStatus;
-    }
-
-    public string GetOpenReportForDetailsSentence()
-    {
-        return SelectLanguage("Open report for details.", "開啟 report 查看詳細內容。");
     }
 
     public string GetReportHistorySummary(int count)

@@ -2,10 +2,10 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal static class ReplaceRegionGroupKeys
 {
-    public const string Shared = "shared";
+    public const string Cascade = "cascade";
+    public const string Common = "common";
     public const string Master = "master";
     public const string SlaveRight = "slave-r";
     public const string SlaveLeft = "slave-l";
-    public const string Single = "single";
     public const string Base = "base";
 }

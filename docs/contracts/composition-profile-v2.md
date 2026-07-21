@@ -87,7 +87,9 @@ and exact physical region-chain identity so the artifact can verify that provena
 
 The Merge subset lowers `copy-range`, `fill-range`, `patch-scalar`, and checked `transform-scalar`
 operations with `reject` overlap policy. The DP Replace subset lowers one or more rejected
-`replace-range` operations from declared DP inputs and only fully-covered `replace-existing`
+`replace-range` operations from declared `dp-firmware` inputs to canonical DP-owned regions or
+from profile-declared `auxiliary` inputs to canonical LDC-owned regions. Every other source/owner
+pair fails closed. DP Replace also permits only fully-covered `replace-existing`
 `copy-range` operations sourced from the exact cloned reference image at the identical resolved half-open
 range. `replace-range` is not a Merge
 operation; a Replace `copy-range` from DP or a rejected replacement copy fails closed. Clone initialization

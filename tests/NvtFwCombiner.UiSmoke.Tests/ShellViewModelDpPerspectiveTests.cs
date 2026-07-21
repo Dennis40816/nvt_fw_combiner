@@ -64,6 +64,7 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = icId;
 
         MemoryMapRowViewModel initialRow = Assert.Single(
@@ -114,23 +115,27 @@ public sealed partial class ShellViewModelTests
         });
     }
 
-    /// <summary>Verifies Standard Merge LDC evidence does not promote NT51927/NT51928 to DP Replace support.</summary>
+    /// <summary>Verifies canonical DP slots and the NT51928-only LDC slot are exposed independently.</summary>
     [Fact]
-    public void DpReplaceSlotsStayClosedForNonV2Ics()
+    public void GenFlashDpReplaceSlotsIncludeLdcOnlyForNt51928()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = "NT51927";
         OpenReplace(viewModel, "DP");
 
-        Assert.Empty(viewModel.ReplaceSlots);
-        Assert.False(viewModel.IsStructuredReplaceModeSelected);
+        Assert.True(viewModel.IsStructuredReplaceModeSelected);
+        Assert.Equal(
+            ["replace-base", "replace-dp"],
+            viewModel.ReplaceSlots.Select(static slot => slot.SlotId));
 
         viewModel.SelectedIc = "NT51928";
 
-        Assert.Empty(viewModel.ReplaceSlots);
-        Assert.False(viewModel.IsStructuredReplaceModeSelected);
-        Assert.Contains("Not available", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
+        Assert.True(viewModel.IsStructuredReplaceModeSelected);
+        Assert.Equal(
+            ["replace-base", "replace-dp", "replace-ldc"],
+            viewModel.ReplaceSlots.Select(static slot => slot.SlotId));
+        Assert.Equal("Reference FlashCode length: 0x80000", viewModel.ReplaceMemoryRangeLabel);
     }
 
     /// <summary>Verifies NT51950 DP Replace restores only TP bytes while customer information follows replacement DP.</summary>
