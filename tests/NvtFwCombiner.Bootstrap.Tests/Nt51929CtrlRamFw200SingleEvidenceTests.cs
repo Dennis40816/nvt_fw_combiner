@@ -121,6 +121,42 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
             artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
     }
 
+    /// <summary>An NT51929 version edit fails closed because its reviewed command plan has no FWConfig propagation block.</summary>
+    [Fact]
+    public async Task FirmwareVersionEditRequiresAnEvidenceBackedFwConfigPropagationBlockAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51929-fw200-version-edit");
+        string basePath = workspace.Write("base.bin", evidence.Expected.Bytes);
+        string outputPath = workspace.PathFor("version-edited.bin");
+        var processor = new PassThroughProcessor();
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51929",
+            "single",
+            CreateSlotPaths(evidence, basePath),
+            build: true,
+            outputPath: outputPath,
+            firmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04),
+            externalProcessor: processor,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.Null(result.CommittedOutputId);
+        Assert.False(File.Exists(outputPath));
+        Assert.Equal(0, processor.CallCount);
+        Assert.Equal(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+
+        using var report = JsonDocument.Parse(result.ReportJson);
+        JsonElement issue = Assert.Single(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            candidate => candidate.GetProperty("Code").GetString() ==
+                WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionPropagationUnavailable);
+        Assert.Equal("postbuild", issue.GetProperty("OperationId").GetString());
+        Assert.Contains("FWConfig source block", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
+        Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
+    }
+
     /// <summary>Proves another base, project, version, count, or selector fails closed.</summary>
     [Theory]
     [InlineData("NT51929", "base")]
@@ -440,10 +476,13 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
 
     private sealed class PassThroughProcessor : IExternalProcessor
     {
+        public int CallCount { get; private set; }
+
         public ValueTask<ExternalProcessorResult> TransformAsync(
             ExternalProcessorRequest request,
             CancellationToken cancellationToken)
         {
+            CallCount++;
             return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
         }
     }
