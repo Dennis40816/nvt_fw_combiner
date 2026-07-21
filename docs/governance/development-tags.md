@@ -26,6 +26,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.9.9` — legacy convergence and patch-closure milestone: reduce production C#/AXAML to at most 54,000 nonblank lines, retire only exactly replaced legacy paths, preserve the Legacy Combiner executable/constrained runner exception, and close verified security gaps.
 - `v0.9.10` — end-to-end performance and Change Report remediation milestone: preserve exact firmware/process/report evidence while reducing repeated execution, I/O, allocation, history, and UI-thread costs; add typed progress and a read-only Hex Diff without changing support truth.
 - `v0.9.11` — reconstructed stabilization milestone: start only from the exact final `v0.9.10` predecessor; retain its safety and report behavior while adding DP/LDC authoring coverage, measured first-frame/background warm-up, bounded self-contained packaging, topology-aware CtrlRAM grouping, spatial padding ownership, and the fixed bottom-right Build rail without support promotion.
+- `v0.9.12` — post-release convergence milestone: start only from exact stable `v0.9.11`; restore descending code-size ratchets, implement the separately reviewed capability-driven shared Hex viewport/Changes redesign, and adopt complete release notes plus deterministic branch/review governance without changing firmware support truth.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.10` are maintained in
@@ -52,6 +53,7 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.9` integrates and releases after reviewed `0.9.8` and retires only legacy paths with an exact reviewed replacement. The Legacy Combiner executable and constrained runner remain; its static command declarations are replaced by the hash-pinned typed data catalog without changing support claims. R3 evidence still gates IC/mode promotion.
 - `0.9.10` integrates and releases after reviewed `0.9.9` and performs measured end-to-end performance and Change Report remediation under ADRs 0026 and 0027. Candidate intake, new profile/runtime registration, support promotion, firmware ranges, and processor behavior remain outside this milestone unless separately reassigned and reviewed.
 - `0.9.11` integrates and releases only after reviewed final `v0.9.10`. Its predecessor tag and peeled SHA must be recorded before feature work; a branch created from an earlier performance candidate is invalid release lineage. Shared Hex viewport and Changes redesign work remain deferred to `0.9.12`.
+- `0.9.12` starts from stable `v0.9.11` at peeled commit `14470f95eafe810de08db03d3e0370e81d086338`. Its integration and feature branches follow [Branch, Version, and Release Governance](branch-version-and-release-governance.md); no stale `0.9.11` feature branch is a valid substitute baseline.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
@@ -59,6 +61,7 @@ It never waives evidence, support-promotion, integration, or release-tag gates.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
+- Starting with `v0.9.12`, complete user-facing release notes are a stable-release gate; generated commit lists are supporting material only.
 
 ### Temporary local integration exception
 
@@ -95,6 +98,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.9` | Legacy convergence and patch closure | Enforce the 54,000-line and 1%-package ceilings, retire exactly replaced legacy paths except Legacy Combiner, and close evidence-backed security gaps. |
 | `v0.9.10` | End-to-end performance and Change Report remediation | Keep byte/process/report parity while delivering one authoritative Build, typed progress, scalable reports/history, and a read-only virtualized Hex Diff. |
 | `v0.9.11` | Reconstructed stabilization | Preserve final `v0.9.10` behavior while completing DP/LDC authoring, measured startup/background warm-up, package-size bounds, IC Number/topology grouping, spatial padding, and bottom-right Build interaction without support promotion. |
+| `v0.9.12` | Code-size and Hex viewport convergence | Re-establish descending ratchets from exact `v0.9.11`, deliver the reviewed shared viewport/Changes UX slices, and require complete release notes and branch/review governance without support promotion. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -142,6 +146,7 @@ v0.9.8          feature-frozen code-size convergence
 v0.9.9          legacy convergence and verified patch closure
 v0.9.10         end-to-end performance and Change Report remediation
 v0.9.11         reconstructed stabilization and release hygiene
+v0.9.12         code-size/shared Hex convergence and release governance
 v1.0.0          stable
 ```
 
@@ -152,6 +157,7 @@ v1.0.0          stable
 - `VERSION`, changelog, assembly/worker versions, manifest, commit, and tag must agree.
 - Development tags do not trigger stable publishing; only exact `vX.Y.Z` tags do.
 - Stable release tags are signed once the signing policy and key custody are approved.
+- `v0.9.12` and later stable releases require complete feature-level release notes using [Branch, Version, and Release Governance](branch-version-and-release-governance.md).
 
 ## `v0.5.0` release candidate gate
 

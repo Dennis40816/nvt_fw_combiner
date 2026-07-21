@@ -59,6 +59,12 @@ Request GitHub `@codex review` as required by `AGENTS.md`, but separate developm
 - When GitHub responds, inspect thread-aware findings, route fixes to the implementer, and request re-review only after the fix is pushed and locally reviewed.
 - Never merge or tag merely because the remote reviewer is slow or unavailable.
 
+When polling is requested, use `$github-review-polling`. Lock the request comment
+and exact head SHA, then read direct REST reviews, inline comments, issue
+comments, and reactions. Do not infer completion from `gh pr view` aggregation,
+an `eyes` reaction, an earlier-head response, or a bot login mismatch caused by
+the `[bot]` suffix.
+
 CI in progress is also pending, not blocked. Diagnose a failed check once, apply the repository retry policy, and continue unrelated safe work.
 
 ## Block Only at a Real Impasse
@@ -95,6 +101,29 @@ Allow integration only when:
 6. the integrator confirms target ancestry and reviewed-tree equivalence.
 
 Run `python scripts/verify.py --all` once on the final R1-R3 candidate. Keep package, protected-`main`, tag, provenance, and release checks separate from feature completion.
+
+## Close A Release And Clean Branches
+
+After a stable release, create the next exact-version integration branch from the
+peeled stable tag/current `main`, never from the newest-looking feature name or
+timestamp. Record the predecessor SHA before opening new work.
+
+Inventory every open PR and local/remote branch before cleanup. Classify each as
+`keep`, `superseded`, `archive`, or `delete-candidate` using ancestry, patch/tree
+equivalence, open-review intent, and replacement evidence. A merged or old base
+name alone is not proof that unique work is disposable.
+
+- Close a PR only when it is merged, explicitly abandoned, or demonstrably
+  replaced. Leave a closing comment naming the replacement PR/commit/tag and any
+  intentionally deferred residue.
+- Keep ambiguous or independently valuable work open and route it to the owner.
+- Preserve a recovery ref/bundle before history reconstruction.
+- Do not delete remote branches until the owner approves an exact deletion list.
+- Never batch-close PRs or delete refs based only on age, naming, or
+  `git branch --merged`.
+
+Use `docs/governance/branch-version-and-release-governance.md` for version
+selection, admission, release-note, and post-release cleanup rules.
 
 ## Require a Complete Handoff
 

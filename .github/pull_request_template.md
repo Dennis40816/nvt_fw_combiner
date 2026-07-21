@@ -10,6 +10,13 @@
 - Ranges/offsets/patches/CRC/order changed: Yes / No
 - Golden hashes changed: Yes / No
 
+## Release-note and support status
+
+- User-facing release-note entry:
+- Support status: promoted / unchanged-support-neutral / removed
+- Compatibility or migration impact:
+- Known limitation or deferred work:
+
 ## Contracts and compatibility
 
 - Schema/protocol/API impact:
