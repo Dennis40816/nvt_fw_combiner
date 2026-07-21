@@ -26,6 +26,8 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.9.9` — legacy convergence and patch-closure milestone: reduce production C#/AXAML to at most 54,000 nonblank lines, retire only exactly replaced legacy paths, preserve the Legacy Combiner executable/constrained runner exception, and close verified security gaps.
 - `v0.9.10` — end-to-end performance and Change Report remediation milestone: preserve exact firmware/process/report evidence while reducing repeated execution, I/O, allocation, history, and UI-thread costs; add typed progress and a read-only Hex Diff without changing support truth.
 - `v0.9.11` — reconstructed stabilization milestone: start only from the exact final `v0.9.10` predecessor; retain its safety and report behavior while adding DP/LDC authoring coverage, measured first-frame/background warm-up, bounded self-contained packaging, topology-aware CtrlRAM grouping, spatial padding ownership, and the fixed bottom-right Build rail without support promotion.
+- `v0.9.12` — CtrlRAM production-routing and interaction-stabilization milestone: replace golden-identity admission with IC/profile/typed-plan authority, improve failure feedback and navigation safety, and retain support-neutral firmware gates.
+- `v0.9.13` — shared Hex viewport and interaction-feedback milestone: implement the owner-reviewed Changes redesign and make every Button expose a distinct accessible pressed/click acknowledgement without moving host or firmware semantics into Presentation.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.10` are maintained in
@@ -51,7 +53,9 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.8` integrates and releases after reviewed `0.9.7` and is feature-frozen and support-neutral. It enforces the reviewed production-line and package-size ceilings while retaining required validation, golden evidence, and tests.
 - `0.9.9` integrates and releases after reviewed `0.9.8` and retires only legacy paths with an exact reviewed replacement. The Legacy Combiner executable and constrained runner remain; its static command declarations are replaced by the hash-pinned typed data catalog without changing support claims. R3 evidence still gates IC/mode promotion.
 - `0.9.10` integrates and releases after reviewed `0.9.9` and performs measured end-to-end performance and Change Report remediation under ADRs 0026 and 0027. Candidate intake, new profile/runtime registration, support promotion, firmware ranges, and processor behavior remain outside this milestone unless separately reassigned and reviewed.
-- `0.9.11` integrates and releases only after reviewed final `v0.9.10`. Its predecessor tag and peeled SHA must be recorded before feature work; a branch created from an earlier performance candidate is invalid release lineage. Shared Hex viewport and Changes redesign work remain deferred to `0.9.12`.
+- `0.9.11` integrates and releases only after reviewed final `v0.9.10`. Its predecessor tag and peeled SHA must be recorded before feature work; a branch created from an earlier performance candidate is invalid release lineage. Shared Hex viewport and Changes redesign work remain deferred to `0.9.13`.
+- `0.9.12` integrates and releases after reviewed `v0.9.11`; CtrlRAM runtime/profile work remains support-neutral until its normal R3 evidence and firmware-owner gates close.
+- `0.9.13` integrates and releases after reviewed `v0.9.12`; shared viewport and global Button feedback remain Presentation work and cannot infer firmware meaning or alter composition authority.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
@@ -95,6 +99,8 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.9` | Legacy convergence and patch closure | Enforce the 54,000-line and 1%-package ceilings, retire exactly replaced legacy paths except Legacy Combiner, and close evidence-backed security gaps. |
 | `v0.9.10` | End-to-end performance and Change Report remediation | Keep byte/process/report parity while delivering one authoritative Build, typed progress, scalable reports/history, and a read-only virtualized Hex Diff. |
 | `v0.9.11` | Reconstructed stabilization | Preserve final `v0.9.10` behavior while completing DP/LDC authoring, measured startup/background warm-up, package-size bounds, IC Number/topology grouping, spatial padding, and bottom-right Build interaction without support promotion. |
+| `v0.9.12` | CtrlRAM routing and interaction stabilization | Use IC/effective profile/typed plan production authority, surface actionable failures, and preserve support-neutral R3 gates. |
+| `v0.9.13` | Shared Hex viewport and Button feedback | Deliver the reviewed read-only Changes redesign plus consistent accessible pressed/click acknowledgement for all Buttons. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate

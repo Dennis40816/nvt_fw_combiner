@@ -24,7 +24,7 @@ Changes after `0.9.11` will be documented here.
 ### Security
 
 - No firmware range, operation order, CRC/header algorithm, processor authority, support stage, report schema, or runtime dependency is changed by the startup, package, and spatial UI work.
-- The shared Raw Hex Editor/Change Report Hex viewport and redesigned range-only Changes workspace remain deferred to `0.9.12`.
+- The shared Raw Hex Editor/Change Report Hex viewport and redesigned range-only Changes workspace remain deferred to `0.9.13`.
 
 ### Notes
 
