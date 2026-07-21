@@ -4,6 +4,10 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
+Changes after `0.9.12` will be documented here.
+
+## [0.9.12] - 2026-07-22
+
 ### Added
 
 - Profile-driven CtrlRAM production routing for all 31 runtime profile/build-plan pairs across the 13 selectable ICs. Requested IC selects family, effective Common FW interval selects only among genuinely different postbuild profiles, and a typed Number selector chooses single, generic cascade, exact-count, or bounded count-range plans.
@@ -39,6 +43,8 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 - Focused production tests cover actual Workbench output for the added routes, including DiffDLM presence/absence, 256/512 KiB container preservation, NT51928 DP/LDC tail preservation, report identity, and immutable sources. Clean-commit canonical verification and independent R3 code review pass. A real NT51926 Windows CLI Build matches its manifest expected output exactly, and the Number-mismatch run publishes no output; see [`v0.9.12-ctrlram-build-evidence.md`](docs/references/v0.9.12-ctrlram-build-evidence.md).
 - The existing unsupported owner-handoff `.7z` inventory entry is not modified or silently accepted. It still blocks verification in the primary worktree, while the same reviewed commit passes `verify.py --all` in a clean detached worktree. Protected CI, clean-machine package smoke, per-plan firmware-owner promotion decisions, and final release packaging remain open gates.
 - The shared Hex viewport, redesigned read-only Changes workspace, global Button pressed acknowledgement, and AB Code architecture re-admission are deferred to `v0.9.13`. All existing AB candidates remain hidden, support-neutral, and rejected by the Application run boundary in this release.
+- No saved-data or report-schema migration is required. Upgrade by replacing the previous portable application folder; rollback uses the untouched `v0.9.11` package and does not require profile conversion.
+- Stable downloads will include `NvtFwCombiner-v0.9.12-win-x64.zip` plus GitHub-generated source `.zip`/`.tar.gz`. Verify the published SHA-256, SBOM, and provenance before distribution; final values are generated only from the tagged `main` commit.
 
 ## [0.9.11] - 2026-07-21
 

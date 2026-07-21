@@ -1,8 +1,33 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.11 reconstructed stabilization release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.12 CtrlRAM routing and interaction-stabilization release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.11`
+Specification package version: `0.9.12`
+
+## 0.9.12 CtrlRAM routing and interaction-stabilization release candidate
+
+The reviewed feature head is
+`34e97dfb73f261fb820ac34b9fd4aabaf5d45c1b`. Pull request 156 merged it into
+the `0.9.12` integration branch as
+`bf3805ab445dc0d1c066b5888a9c6d4d50d12086`; the merge tree
+`f9fe776e4078a8cb2aa2fe57fafad6f81a49cd54` exactly equals the reviewed
+feature tree. Thread-aware review found no unresolved comments, exact-head
+Codex review found no major issues, and independent local review reported no
+P0-P3 findings.
+
+Clean detached `python scripts/verify.py --all` passed at the reviewed head:
+123 repository script tests, 28 CRC-worker tests at 98.88% coverage, and 2,221
+.NET tests passed with two declared Unix-only skips. Release build, formatting,
+analyzers, profile/golden inventory, fixture validation, Polytail, and all three
+protected feature CI jobs passed. A real NT51926 cascade Build is byte-identical
+to its manifest expected output; that one case is evidence, not support
+promotion for every routed plan.
+
+The release remains support-neutral. Per-plan firmware-owner evidence is a
+future support-promotion gate, not a claim or blanket blocker for this release.
+Exact final-`main` CI, portable packaging, clean-machine smoke, annotated tag,
+published hashes/SBOM/provenance, and downloaded-asset verification remain the
+stable-release gates.
 
 ## 0.9.11 reconstructed stabilization release candidate
 

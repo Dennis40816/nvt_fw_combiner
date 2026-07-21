@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.11 released baseline with 0.9.12 development scope`
-> 文件版本：`0.9.11`
-> 基準日期：`2026-07-21`
+> 文件狀態：`0.9.12 release baseline with 0.9.13 development scope`
+> 文件版本：`0.9.12`
+> 基準日期：`2026-07-22`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
