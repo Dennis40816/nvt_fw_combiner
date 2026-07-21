@@ -1,0 +1,41 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.NavigationClearConfirmationModal"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MainWindowViewModel"
+    Background="{DynamicResource NfcModalScrimBrush}">
+  <Border
+      Classes="modalSurface"
+      Width="520"
+      Padding="22"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center"
+      BorderBrush="{DynamicResource NfcWarningAccentBrush}">
+    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+      <StackPanel Spacing="5">
+        <TextBlock Classes="modalTitle" Text="{Binding Text.NavigationClearTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding Text.NavigationClearDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+
+      <Border Grid.Row="1" Classes="insetSurface" Padding="10,8">
+        <TextBlock
+            Classes="detailText"
+            Text="{Binding NavigationPath}"
+            TextWrapping="Wrap"
+            AutomationProperties.Name="{Binding NavigationPath}" />
+      </Border>
+
+      <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+        <Button
+            Classes="secondary"
+            Command="{Binding CancelNavigationClearCommand}"
+            Content="{Binding Text.NavigationClearCancelLabel}" />
+        <Button
+            Classes="primary"
+            Command="{Binding ConfirmNavigationAndClearCommand}"
+            Content="{Binding Text.NavigationClearConfirmLabel}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

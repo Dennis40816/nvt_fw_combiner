@@ -7,7 +7,7 @@ internal static class CtrlRamV2FirmwareVersionAdapter
 {
     internal static V2RuntimeReferenceReplaceFirmwareVersionEdit? Create(FirmwareConfigVersionWritePlan? plan)
     {
-        return plan is null ? null : new(plan.FirmwareVersionAndBarRange, plan.FirmwareSubVersionRange,
+        return plan is null ? null : new(plan.SourceFirmwareVersionAndBarRange, plan.SourceFirmwareSubVersionRange,
             plan.FirmwareVersion, plan.FirmwareSubVersion,
             WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionOutputInvalid,
             WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionOutputMismatch);

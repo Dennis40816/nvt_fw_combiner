@@ -1,13 +1,13 @@
 # CtrlRAM Universal Sentinel Validation Table
 
-Status: active 0.7.0 validation aid.
-Last updated: 2026-07-05.
+Status: active v0.9.12 validation aid.
+Last updated: 2026-07-21.
 
 This table defines the owner-side one-file smoke validation for CtrlRAM Replace mapping. It does not replace byte-for-byte golden output approval. It is meant to catch wrong slot, wrong range, wrong branch, and wrong postbuild-category selection before final golden parity.
 
 ## Universal BIN
 
-Create one file at least `0x23000` bytes long. This deliberately conservative size retains coverage for the largest archived CtrlRAM input evidence. The active catalog currently selects no `0x23000` branch; NT51930 Common FW `1.x` uses the approved `0xFE00` `DiffDLM.bin` range for numeric counts `2..29`.
+Create one file at least `0x23000` bytes long. This deliberately conservative size retains coverage for the largest archived CtrlRAM input evidence. The active catalog selects no `0x23000` branch; NT51930's sole runtime profile uses the approved `0xFE00` `DiffDLM.bin` range only for the admitted `2..13` plan across Common FW `>=1.0.0`.
 
 Recommended content:
 
@@ -29,25 +29,24 @@ For stronger slot-swap detection, duplicate this same file per slot and change t
 
 ## IC FlashMap Evidence Notes
 
-The current `IC_FlashMap_20260705.xlsx` `TP Overview` sheet splits NT51926 into `51926 (2.0.0)` and `51926 (1.X.X)` sections:
+The current `IC_FlashMap_20260705.xlsx` `TP Overview` sheet splits NT51926 into `51926 (2.0.0)` and `51926 (1.X.X)` sections. Production interprets these as effective intervals rather than exact-version gates:
 
 | NT51926 source | VN range | FWConfig backup | Header copy |
 | --- | --- | --- | --- |
-| Common FW 1.4.1 postbuild | `[0x315D0,0x32C30)` len `0x1660` | `[0x3B000,0x3B800)` len `0x800` | `0x0 -> 0x32F50` len `0x100` |
-| Common FW 2.0.0 postbuild | `[0x315D0,0x32A6E)` len `0x149E` | `[0x3B000,0x3B780)` len `0x780` | `0x0 -> 0x32A70` len `0x100` |
+| Profile sourced from 1.4.1, interval `[1.0.0, 2.0.0)` | `[0x315D0,0x32C30)` len `0x1660` | `[0x3B000,0x3B800)` len `0x800` | `0x0 -> 0x32F50` len `0x100` |
+| Profile sourced from 2.0.0, interval `[2.0.0, infinity)` | `[0x315D0,0x32A6E)` len `0x149E` | `[0x3B000,0x3B780)` len `0x780` | `0x0 -> 0x32A70` len `0x100` |
 
 The `51926 TP Flashmap` detail sheet still carries the 2.0.0-style single table, so code and reports continue to use the selected postbuild category rather than an IC-only detail-sheet row.
 
 Committed NT51926 `1.4.1` BIN evidence has exactly one little-endian end-flag marker (`00 4E 56 54`) and it starts at `0x3BFFC`. The same check on the 2026-07-05 base, Standard Merge TP input, and Standard Merge expected flash shows `0x34FFC = 00 00 00 00`. Use the selected postbuild category for FWConfig/header-copy lengths, and do not treat the 2.0.0 mmap `FLASHMAP_ENDFLAG 0x34FFC` row as the actual marker location for the current `1.4.1` fixture.
 
-NT51930 has an archived `IC > 13, Max29` extended DiffDLM row in the 2026-07-05 10:34:14 workbook, but no current product evidence authorizes that branch. Runtime Common FW 1.x therefore keeps counts `14..29` on the approved `0xFE00` cascade DiffDLM range until the owner explicitly reactivates the extended command. The inspected 2.0.0 category is evidence-only.
+NT51930 has an archived `IC > 13, Max29` extended DiffDLM row in the 2026-07-05 10:34:14 workbook, but no implemented owner command plan authorizes that range. Runtime therefore exposes only `2..13`; count 14 and above are unavailable. The inspected 2.0.0 category is evidence-only and creates no production version boundary.
 
 | NT51930 source | Branch | MP | VN | DiffDLM | Header copy |
 | --- | --- | --- | --- | --- | --- |
-| Common FW 1.x postbuild | single | consumed | len `0x195E` | none | `0x7000 -> 0x28FB0` len `0x100` |
-| Common FW 1.x postbuild | cascade `2..13` | consumed | len `0x195E` | len `0xFE00` | `0x7000 -> 0x28FB0` len `0x100` |
-| Common FW 1.x postbuild | cascade `14..29` | consumed | len `0x195E` | len `0xFE00` | `0x7000 -> 0x28FB0` len `0x100` |
-| Common FW 2.0.0 postbuild | cascade `2..29` | not consumed | len `0x1960` | len `0xFE00` | `0x7000 -> 0x28FB0` len `0x200`, plus second header command |
+| Runtime profile sourced from 1.4.0 | single | consumed | len `0x195E` | none | `0x7000 -> 0x28FB0` len `0x100` |
+| Runtime profile sourced from 1.4.0 | cascade `2..13` | consumed | len `0x195E` | len `0xFE00` | `0x7000 -> 0x28FB0` len `0x100` |
+| Evidence-only profile sourced from 2.0.0 | cascade `2..29` | not consumed | len `0x1960` | len `0xFE00` | `0x7000 -> 0x28FB0` len `0x200`, plus second header command |
 
 ## Full IC Table
 
@@ -64,21 +63,20 @@ Ranges are TP work-image half-open ranges.
 | NT51920 | cascade | single slots plus Normal slave `[0x26780,0x28F80)` `0x2800`; MP slave `[0x28F80,0x2A680)` `0x1700`; Vector `[0x2D728,0x2D980)` `0x258` |
 | NT51923 | single | Normal `[0x22800,0x26000)` `0x3800`; MP `[0x26000,0x28800)` `0x2800`; NF `[0x2A000,0x2E4B0)` `0x44B0`; VN `[0x2E800,0x2FE60)` `0x1660` |
 | NT51923 | cascade | single slots plus DiffDLM `[0x28800,0x2A000)` `0x1800` |
-| NT51926 | Common FW 1.4.1 single | Normal `[0x22800,0x25400)` `0x2C00`; MP `[0x25400,0x27800)` `0x2400`; NF `[0x2C800,0x2F5D0)` `0x2DD0`; VN `[0x315D0,0x32C30)` `0x1660` |
-| NT51926 | Common FW 1.4.1 cascade | single slots plus DiffDLM `[0x27800,0x2A000)` `0x2800` |
-| NT51926 | Common FW 2.0.0 single | Normal `[0x22800,0x25400)` `0x2C00`; MP `[0x25400,0x27800)` `0x2400`; NF `[0x2C800,0x2F5D0)` `0x2DD0`; VN `[0x315D0,0x32A6E)` `0x149E` |
-| NT51926 | Common FW 2.0.0 cascade | single slots plus DiffDLM `[0x27800,0x2A000)` `0x2800` |
+| NT51926 | `[1.0.0, 2.0.0)` profile, single | Normal `[0x22800,0x25400)` `0x2C00`; MP `[0x25400,0x27800)` `0x2400`; NF `[0x2C800,0x2F5D0)` `0x2DD0`; VN `[0x315D0,0x32C30)` `0x1660` |
+| NT51926 | `[1.0.0, 2.0.0)` profile, cascade | single slots plus DiffDLM `[0x27800,0x2A000)` `0x2800` |
+| NT51926 | `[2.0.0, infinity)` profile, single | Normal `[0x22800,0x25400)` `0x2C00`; MP `[0x25400,0x27800)` `0x2400`; NF `[0x2C800,0x2F5D0)` `0x2DD0`; VN `[0x315D0,0x32A6E)` `0x149E` |
+| NT51926 | `[2.0.0, infinity)` profile, cascade | single slots plus DiffDLM `[0x27800,0x2A000)` `0x2800` |
 | NT51927 | single | NF master `[0x16800,0x177D0)` `0xFD0`; Normal master `[0x177D0,0x1A7D0)` `0x3000`; MP master `[0x1A7D0,0x1CBD0)` `0x2400`; VN master `[0x1CBD0,0x1E230)` `0x1660` |
 | NT51927 | 2-chip | single slots plus right NF `[0x1F800,0x207D0)` `0xFD0`; right Normal `[0x207D0,0x237D0)` `0x3000`; right MP `[0x237D0,0x25BD0)` `0x2400`; right VN `[0x25BD0,0x27230)` `0x1660` |
 | NT51927 | 3-chip | 2-chip slots plus left NF `[0x28800,0x297D0)` `0xFD0`; left Normal `[0x297D0,0x2C7D0)` `0x3000`; left MP `[0x2C7D0,0x2EBD0)` `0x2400`; left VN `[0x2EBD0,0x30230)` `0x1660` |
 | NT51928 | non-NB, NT51927 alias | Same slots as NT51927. NB is not covered. |
 | NT51929 | NT51932 alias, single | NF `[0x1FC00,0x21B90)` `0x1F90`; Normal `[0x21B90,0x26590)` `0x4A00`; VN `[0x26590,0x27EF0)` `0x1960` |
 | NT51929 | NT51932 alias, cascade | single slots plus DiffDLM `[0x2D100,0x35D00)` `0x8C00` |
-| NT51930 | Common FW 1.x single | NF `[0x1FC00,0x21650)` `0x1A50`; Normal `[0x21650,0x24250)` `0x2C00`; MP `[0x24250,0x27650)` `0x3400`; VN `[0x27650,0x28FAE)` `0x195E` |
-| NT51930 | Common FW 1.x cascade `2..13` | single slots plus DiffDLM `[0x2F200,0x3F000)` `0xFE00` |
-| NT51930 | Common FW 1.x cascade `14..29` | single slots plus approved DiffDLM `[0x2F200,0x3F000)` `0xFE00`; archived extended row remains disabled pending product evidence |
-| NT51930 | Common FW 2.0.0 single | NF `[0x1FC00,0x21650)` `0x1A50`; Normal `[0x21650,0x24250)` `0x2C00`; VN `[0x27650,0x28FB0)` `0x1960` |
-| NT51930 | Common FW 2.0.0 cascade `2..29` | single slots plus DiffDLM `[0x2F200,0x3F000)` `0xFE00` |
+| NT51930 | sole runtime profile `[1.0.0, infinity)`, single | NF `[0x1FC00,0x21650)` `0x1A50`; Normal `[0x21650,0x24250)` `0x2C00`; MP `[0x24250,0x27650)` `0x3400`; VN `[0x27650,0x28FAE)` `0x195E` |
+| NT51930 | sole runtime profile, cascade `2..13` | single slots plus DiffDLM `[0x2F200,0x3F000)` `0xFE00` |
+| NT51930 | evidence-only 2.0.0, single | NF `[0x1FC00,0x21650)` `0x1A50`; Normal `[0x21650,0x24250)` `0x2C00`; VN `[0x27650,0x28FB0)` `0x1960` |
+| NT51930 | evidence-only 2.0.0, cascade `2..29` | single slots plus DiffDLM `[0x2F200,0x3F000)` `0xFE00` |
 | NT51931 | single physical-slot layout | NF `[0x16800,0x177D0)` `0xFD0`; Normal `[0x177D0,0x19FD0)` `0x2800`; MP `[0x19FD0,0x1C3D0)` `0x2400`; VN `[0x1C3D0,0x1DA30)` `0x1660` |
 | NT51931 | cascade; exact AUTO_PRJ-158 cascade-6 V2 route materialized; registered 1.13.0/51931-based parity validated | single slots plus DLM `[0x22800,0x3A400)` `0x17C00` |
 | NT51932 | single | NF `[0x1FC00,0x21B90)` `0x1F90`; Normal `[0x21B90,0x26590)` `0x4A00`; VN `[0x26590,0x27EF0)` `0x1960` |

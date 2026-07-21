@@ -25,6 +25,78 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.HasLatestCommittedOutput);
     }
 
+    /// <summary>A blocked Build opens its structured report immediately so the no-output reason is visible.</summary>
+    [Fact]
+    public async Task BlockedBuildProjectionOpensFailureReport()
+    {
+        var result = new WorkbenchRunResult(
+            false,
+            "blocked",
+            "nt51927-ctrlram-replace",
+            0,
+            string.Empty,
+            "No output",
+            null,
+            ReportJsonSamples.CtrlRamCommandIssue());
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        await viewModel.ProjectAndApplyRunResultAsync(
+            result,
+            build: true,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(viewModel.IsReportModalOpen);
+        Assert.False(viewModel.IsBuildCompletedModalOpen);
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Contains("Combiner executable is not available", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
+    }
+
+    /// <summary>A blocked Preview retains the report toast without treating its expected lack of committed output as Build failure.</summary>
+    [Fact]
+    public async Task BlockedPreviewDoesNotAutoOpenFailureReport()
+    {
+        var result = new WorkbenchRunResult(
+            false,
+            "blocked",
+            "nt51927-ctrlram-replace",
+            0,
+            string.Empty,
+            "No output",
+            null,
+            ReportJsonSamples.CtrlRamCommandIssue());
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        await viewModel.ProjectAndApplyRunResultAsync(
+            result,
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(viewModel.IsReportModalOpen);
+        Assert.True(viewModel.HasReportToast);
+    }
+
+    /// <summary>A Build exception also opens the structured UI error report produced by the workflow callback.</summary>
+    [Fact]
+    public async Task BuildExceptionOpensFailureReport()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        await viewModel.RunCompositionAsync(
+            build: true,
+            (_, _) => throw new InvalidOperationException("No exact CtrlRAM route."),
+            (action, message) => viewModel.LoadRunErrorReport(
+                action,
+                "nt51926-ctrlram-replace-workbench",
+                "NT51926",
+                "single",
+                message,
+                new Dictionary<string, string>()));
+
+        Assert.True(viewModel.IsReportModalOpen);
+        Assert.Equal("No exact CtrlRAM route.", Assert.Single(viewModel.LoadedReport.Issues).Detail);
+        Assert.Equal("No output", viewModel.LastRunResult.Output);
+    }
+
     /// <summary>A committed Build opens one confirmation while OK retains the latest-output shortcut.</summary>
     [Fact]
     public void CommittedBuildShowsOutputConfirmation()

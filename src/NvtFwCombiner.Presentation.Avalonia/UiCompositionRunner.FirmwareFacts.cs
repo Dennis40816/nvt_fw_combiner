@@ -45,7 +45,7 @@ public static partial class UiCompositionRunner
 
         string dpVersion = legacyMetadata is WorkbenchDpVersionMetadata legacy
             ? FormatDpVersion(legacy.VersionToken)
-            : FormatCmiDpVersion(cmiMetadata!.Value);
+            : FormatDpVersion(cmiMetadata!.Value.VersionToken);
         List<FirmwareSlotFactViewModel> facts = [new FirmwareSlotFactViewModel("DP", dpVersion)];
         if (cmiMetadata is WorkbenchCmiDpCodeMetadata cmi && !string.IsNullOrWhiteSpace(cmi.JiraBadge))
         {
@@ -60,11 +60,6 @@ public static partial class UiCompositionRunner
         return versionToken.Length == 4
             ? $"D{versionToken[..2]}-{versionToken[2..]}"
             : $"D{versionToken}";
-    }
-
-    private static string FormatCmiDpVersion(WorkbenchCmiDpCodeMetadata metadata)
-    {
-        return FormattableString.Invariant($"D{metadata.MajorVersionByte:X2}-{metadata.MinorVersionNibble:X1}0");
     }
 
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51923-ctrlram-replace-fw141-single",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -30,13 +30,14 @@
   },
   "mapBinding": {
     "familyId": "nt51923-ctrlram-replace",
-    "familyVersion": "0.1.0",
-    "familyContentHash": "79f59ab9d5fbf3902a45e04e9ab97019f290b4e6d89329352dde1fbc147d4e76",
+    "familyVersion": "0.2.0",
+    "familyContentHash": "a368c79061f2d95e9c845de3db69b8116f38541ee8d59962abff4a37ddcfc7e7",
     "mapIds": [
       "nt51923-ctrlram-fw141-single-full-flash"
     ],
     "requiredRegionIds": [
       "flash-image",
+      "fw-config-source",
       "header-crc-001c",
       "header-crc-003c",
       "header-crc-00fc",

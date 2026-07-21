@@ -1,14 +1,14 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51928-ctrlram-replace-fw132-twochip",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
       {
         "blockerId": "support-neutral-partial-family-route",
         "kind": "release",
-        "reason": "This exact NT51928 non-NB route reuses only the reviewed NT51927-family CtrlRAM postbuild facts while preserving the distinct 512 KiB DP/LDC tail; NB and every other shape remain outside this V2 route.",
+        "reason": "This owner-approved NT51928 non-NB route reuses the matching NT51927 TP layout and postbuild branch while preserving the distinct 512 KiB DP/LDC tail; public support promotion remains separate.",
         "evidenceRefs": [
           "gen-flash-bin-v2-51928-golden",
           "ctrlram-replace-partial-family-51928-non-nb-to-51927"
@@ -31,13 +31,14 @@
   },
   "mapBinding": {
     "familyId": "nt51928-ctrlram-replace",
-    "familyVersion": "0.1.0",
-    "familyContentHash": "f21816e2111c616b8ca9a98e81ca82251d8fb822214299383207bef799abb59e",
+    "familyVersion": "0.3.0",
+    "familyContentHash": "0ecf17a0548a9eebfab522610f53bf92ab910811b54e5c732ffe4745df7e199d",
     "mapIds": [
       "nt51928-ctrlram-fw132-twochip-full-flash"
     ],
     "requiredRegionIds": [
       "flash-image",
+      "fw-config-source",
       "header-crc-023c",
       "header-crc-024c",
       "header-crc-026c",

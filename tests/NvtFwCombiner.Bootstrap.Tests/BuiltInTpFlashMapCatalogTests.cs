@@ -195,6 +195,44 @@ public sealed class BuiltInTpFlashMapCatalogTests
         Assert.Equal(expectedStart, profile!.FirmwareConfigPrimaryStart);
     }
 
+    /// <summary>Every deployed postbuild branch has one explicit, internally consistent FWConfig write route.</summary>
+    [Fact]
+    public void PostbuildFirmwareConfigWriteRoutesMatchPrimarySourceFacts()
+    {
+        Assert.DoesNotContain(
+            LegacyCombinerPostbuildCatalog.All,
+            profile => profile.FirmwareConfigWriteRoute == LegacyCombinerFirmwareConfigWriteRoute.Unavailable);
+
+        foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
+        {
+            Assert.True(BuiltInTpFlashMapCatalog.TryFind(profile.IcId, out TpFlashMapProfile? flashMap));
+            LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            LegacyCombinerBlockArgument[] sourceBlocks =
+            [
+                .. plan.Commands
+                    .SelectMany(command => command.Blocks)
+                    .Where(block =>
+                        block.SourceKind == LegacyCombinerBlockSourceKind.FirmwareImage &&
+                        StringComparer.Ordinal.Equals(block.BlockId, "fw-config-backup")),
+            ];
+
+            if (profile.FirmwareConfigWriteRoute ==
+                LegacyCombinerFirmwareConfigWriteRoute.CommandSourceToCanonicalBackup)
+            {
+                LegacyCombinerBlockArgument sourceBlock = Assert.Single(sourceBlocks);
+                Assert.Equal(flashMap!.FirmwareConfigPrimaryStart, sourceBlock.SourceOffset);
+                Assert.True(sourceBlock.FirmwareRange.Length >= FirmwareConfigLayout.RequiredLength);
+            }
+            else
+            {
+                Assert.Equal(
+                    LegacyCombinerFirmwareConfigWriteRoute.PrimaryToCanonicalBackup,
+                    profile.FirmwareConfigWriteRoute);
+                Assert.Empty(sourceBlocks);
+            }
+        }
+    }
+
     /// <summary>TP Overview backup rows used by postbuild traceability are declared explicitly.</summary>
     [Theory]
     [InlineData("NT51920", "fw-config-backup", 0x2F000, 0x00780)]
@@ -286,7 +324,7 @@ public sealed class BuiltInTpFlashMapCatalogTests
             TpFlashMapRegionKind.CtrlRam);
         IReadOnlyList<TpFlashMapRegion> postbuildMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]),
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade_2to13"]),
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
 
         Assert.Contains(regions, region => region.RegionId == "mp" && region.Tags.Contains("overview-only"));
@@ -318,41 +356,42 @@ public sealed class BuiltInTpFlashMapCatalogTests
             commonFw200Regions.Single(region => region.RegionId == "fw-config-backup").Range);
     }
 
-    /// <summary>NT51930 Common FW 1.x keeps its approved MP/VN and large-count DiffDLM mapping.</summary>
+    /// <summary>NT51930 Common FW 1.x keeps its approved MP/VN and 2..13 DiffDLM mapping.</summary>
     [Fact]
     public void Nt51930PostbuildCategoryControlsMpConsumption()
     {
-        var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
+        var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade_2to13"]);
 
         IReadOnlyList<TpFlashMapRegion> commonFw1xMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
             selection,
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
-        IReadOnlyList<TpFlashMapRegion> commonFw1xLargeCountMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> commonFw1xRangeEndMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"]),
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["13"]),
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
 
         Assert.Contains(commonFw1xMapped, region => region.RegionId == "mp" && region.Range == new ByteRange(0x24250, 0x3400));
         Assert.Contains(commonFw1xMapped, region => region.RegionId == "vn" && region.Range == new ByteRange(0x27650, 0x195E));
-        Assert.Contains(commonFw1xLargeCountMapped, region => region.RegionId == "diff" && region.Range == new ByteRange(0x2F200, 0xFE00));
+        Assert.Contains(commonFw1xRangeEndMapped, region => region.RegionId == "diff" && region.Range == new ByteRange(0x2F200, 0xFE00));
     }
 
-    /// <summary>NT51930 retains serialized numeric aliases for the owner-approved cascade count range.</summary>
+    /// <summary>NT51930 exposes one typed 2..13 selector and no generic or 14+ plan.</summary>
     [Fact]
-    public void Nt51930BranchRulesRetainApprovedCascadeCounts()
+    public void Nt51930PlanSelectorsBoundApprovedCascadeCounts()
     {
-        string[] choices =
-        [
-            .. LegacyCombinerPostbuildCatalog.GetProfiles("NT51930")
-                .SelectMany(static profile => profile.BranchRules.Keys)
-                .Distinct(StringComparer.Ordinal),
-        ];
+        LegacyCombinerPostbuildProfile profile = Assert.Single(
+            LegacyCombinerPostbuildCatalog.GetProfiles("NT51930"));
+        LegacyCombinerPostbuildPlanSelector range = Assert.Single(
+            profile.PlanSelectors,
+            static selector => selector.Kind == LegacyCombinerPostbuildPlanSelectorKind.CountRange);
 
-        Assert.Contains("single", choices);
-        Assert.Contains("13", choices);
-        Assert.Contains("14", choices);
-        Assert.Contains("29", choices);
+        Assert.Equal("cascade_2to13", range.Token);
+        Assert.Equal(2, range.MinimumCount);
+        Assert.Equal(13, range.MaximumCount);
+        Assert.DoesNotContain(
+            profile.PlanSelectors,
+            static selector => selector.Kind == LegacyCombinerPostbuildPlanSelectorKind.GenericCascade);
     }
 
     /// <summary>Projects legacy numeric branch aliases into one concise UI choice per command branch.</summary>
@@ -375,7 +414,7 @@ public sealed class BuiltInTpFlashMapCatalogTests
         Assert.Equal(
             [
                 new IcNumberChoice("single", "1 IC"),
-                new IcNumberChoice("cascade", "Cascade"),
+                new IcNumberChoice("cascade_2to13", "2–13 IC"),
             ],
             nt51930);
         Assert.Equal(

@@ -263,6 +263,8 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(CtrlRamFirmwareVersionModalHost, viewModel.IsCtrlRamFirmwareVersionModalOpen, viewModel);
         LoadContent(WorkflowContextSetupModalHost, viewModel.IsWorkflowContextModalOpen, viewModel);
         LoadContent(FirmwareIcMismatchModalHost, viewModel.IsFirmwareIcMismatchModalOpen, viewModel);
+        LoadContent(FirmwareNumberMismatchModalHost, viewModel.IsFirmwareNumberMismatchModalOpen, viewModel);
+        LoadContent(NavigationClearConfirmationModalHost, viewModel.IsNavigationClearConfirmationOpen, viewModel);
         LoadContent(ReportModalHost, viewModel.IsReportModalOpen, viewModel);
         LoadContent(BuildCompletedModalHost, viewModel.IsBuildCompletedModalOpen, viewModel);
     }

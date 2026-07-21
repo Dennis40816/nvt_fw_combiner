@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -7,6 +8,32 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    /// <summary>Legacy and CMI readers display hexadecimal DP minor version D identically.</summary>
+    [Fact]
+    public void DpMinorHexDigitDisplaysConsistentlyAcrossMetadataSources()
+    {
+        var legacy = new WorkbenchFirmwareInspection(
+            null,
+            null,
+            new WorkbenchDpVersionMetadata("000D"),
+            null,
+            null,
+            null);
+        var cmi = new WorkbenchFirmwareInspection(
+            null,
+            null,
+            null,
+            new WorkbenchCmiDpCodeMetadata(0x00, 0x0D, 0, 0),
+            null,
+            null);
+
+        FirmwareSlotFactViewModel legacyFact = Assert.Single(UiCompositionRunner.GetDpFirmwareSlotFacts(legacy));
+        FirmwareSlotFactViewModel cmiFact = Assert.Single(UiCompositionRunner.GetDpFirmwareSlotFacts(cmi));
+
+        Assert.Equal(new FirmwareSlotFactViewModel("DP", "D00-0D"), legacyFact);
+        Assert.Equal(legacyFact, cmiFact);
+    }
+
     /// <summary>Verifies slot completion retains required and optional semantics for XAML state selectors.</summary>
     [Fact]
     public void FirmwareSlotCompletionToneHighlightsOnlyRequiredInputs()

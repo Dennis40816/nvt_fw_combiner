@@ -147,11 +147,15 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Empty(preparation.Issues);
     }
 
-    /// <summary>Verifies multiple fully matching maps remain an ambiguous resolver rejection before admission.</summary>
+    /// <summary>Verifies multiple fully matching maps inside the selected profile remain ambiguous before admission.</summary>
     [Fact]
     public void PreparationPreservesAmbiguousMapRejection()
     {
-        TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson: FamilyJsonWithAmbiguousMap());
+        string familyJson = FamilyJsonWithAmbiguousMap();
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
+            TrustedV2BundleTestDocuments.ProfileJson(Hash(familyJson))));
+        Assert.IsType<JsonArray>(Assert.IsType<JsonObject>(profile["mapBinding"])["mapIds"]).Add("alternate-map");
+        TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profile.ToJsonString());
         TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
             catalog.SelectProfile("profile", "1.0.0").Selection);
 

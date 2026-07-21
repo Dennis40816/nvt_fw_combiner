@@ -11,7 +11,7 @@ public static partial class WorkbenchCompositionService
         string number,
         string? basePath = null)
     {
-        LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
+        LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileFromBasePathForDisplay(
             icId,
             basePath,
             out LegacyCombinerPostbuildProfile? profile)

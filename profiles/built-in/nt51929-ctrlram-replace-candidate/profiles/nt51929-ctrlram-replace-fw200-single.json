@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51929-ctrlram-replace-fw200-single",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -26,17 +26,19 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51929-ctrlram-replace",
-    "familyVersion": "0.2.0",
-    "familyContentHash": "4f61baff700480a53b164a710b8ca32e1265ad77a9e26ea5e7eff9369b906126",
+    "familyVersion": "0.4.0",
+    "familyContentHash": "339782c058c8c2cc6cd373cf6e49406170974233c892e79e0c5c4b228b6b2a71",
     "mapIds": [ "nt51929-ctrlram-fw200-single-full-flash" ],
     "requiredRegionIds": [
       "flash-image",
       "header-crc-7100",
       "header-crc-7118",
+      "fw-config-source",
       "nf-ctrlram",
       "normal-ctrlram",
       "vn-ctrlram",
-      "header-copy"
+      "header-copy",
+      "fw-config-backup"
     ],
     "requiredMetadataStructureIds": [ "nt51929-fwconfig-envelope" ],
     "requiredCapabilityIds": []
@@ -98,7 +100,8 @@
     { "viewId": "nf-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "nf-ctrlram" } },
     { "viewId": "normal-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "normal-ctrlram" } },
     { "viewId": "vn-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-ctrlram" } },
-    { "viewId": "header-copy-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy" } }
+    { "viewId": "header-copy-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy" } },
+    { "viewId": "fw-config-backup-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "fw-config-backup" } }
   ],
   "metadataBindings": [],
   "regionAccessRules": [
@@ -107,7 +110,8 @@
     { "regionId": "nf-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x1F90 bytes and preserve the reference tail when the immutable source is shorter." },
     { "regionId": "normal-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x4A00 bytes; oversized immutable input is truncated by the profile-declared CtrlRAM rule." },
     { "regionId": "vn-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x1960 bytes and preserve the reference tail when the immutable source is shorter." },
-    { "regionId": "header-copy", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the 0x200-byte TP header copy and its CRC words." }
+    { "regionId": "header-copy", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the 0x200-byte TP header copy and its CRC words." },
+    { "regionId": "fw-config-backup", "access": "hidden", "reason": "Only the declared NT51932-based Legacy Combiner mode may propagate the modeled primary FWConfig into the canonical Backup." }
   ],
   "operations": [
     {
@@ -138,7 +142,8 @@
         "nf-ctrlram-output",
         "normal-ctrlram-output",
         "vn-ctrlram-output",
-        "header-copy-output"
+        "header-copy-output",
+        "fw-config-backup-output"
       ],
       "stagedSourceBindings": [],
       "stagedArtifactBindings": [],

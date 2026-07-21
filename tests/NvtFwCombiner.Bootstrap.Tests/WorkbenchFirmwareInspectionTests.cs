@@ -223,9 +223,9 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         Assert.InRange(allocatedBytes, 0, 64 * 1024);
     }
 
-    /// <summary>Invalid multi-profile firmware metadata cannot select a postbuild display category.</summary>
+    /// <summary>FW/bar validity is independent from Common FW interval selection.</summary>
     [Fact]
-    public void InspectionRejectsInvalidVersionBarForMultiProfileDisplaySelection()
+    public void InspectionKeepsMultiProfileSelectionIndependentFromFirmwareVersionBar()
     {
         byte[] validBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         WorkbenchFirmwareInspection validInspection = WorkbenchCompositionService.InspectFirmware(
@@ -253,8 +253,42 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         WorkbenchFirmwareConfigMetadata invalidMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
             invalidInspection.FirmwareConfig);
         Assert.False(invalidMetadata.IsFirmwareVersionBarValid);
-        Assert.Null(invalidMetadata.PostbuildCategory);
-        Assert.Empty(Assert.IsType<WorkbenchCtrlRamInspectionDisplay>(invalidInspection.CtrlRamDisplay).InputSlots);
+        Assert.Equal(validMetadata.PostbuildCategory, invalidMetadata.PostbuildCategory);
+        Assert.NotEmpty(Assert.IsType<WorkbenchCtrlRamInspectionDisplay>(invalidInspection.CtrlRamDisplay).InputSlots);
+    }
+
+    /// <summary>Informational Common FW metadata cannot hide an IC's sole runtime postbuild profile.</summary>
+    [Fact]
+    public void InspectionKeepsSoleProfileWhenVersionMetadataIsUnreadable()
+    {
+        byte[] validBytes = File.ReadAllBytes(GoldenArtifactPath("51930", "expected-output"));
+        WorkbenchFirmwareInspection validInspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51930",
+            "base.bin",
+            "base.bin",
+            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.CascadeTwoToThirteen),
+            _ => validBytes);
+        WorkbenchFirmwareConfigMetadata validMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
+            validInspection.FirmwareConfig);
+        Assert.True(validMetadata.IsFirmwareVersionBarValid);
+        Assert.NotNull(validMetadata.PostbuildCategory);
+
+        byte[] invalidBytes = (byte[])validBytes.Clone();
+        int versionBarOffset = checked(
+            (int)validMetadata.FirmwareConfigBackupStart + FirmwareConfigLayout.FirmwareVersionBarOffset);
+        invalidBytes[versionBarOffset] ^= 0x01;
+
+        WorkbenchFirmwareInspection invalidInspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51930",
+            "base.bin",
+            "base.bin",
+            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.CascadeTwoToThirteen),
+            _ => invalidBytes);
+        WorkbenchFirmwareConfigMetadata invalidMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
+            invalidInspection.FirmwareConfig);
+        Assert.False(invalidMetadata.IsFirmwareVersionBarValid);
+        Assert.Equal(validMetadata.PostbuildCategory, invalidMetadata.PostbuildCategory);
+        Assert.NotEmpty(Assert.IsType<WorkbenchCtrlRamInspectionDisplay>(invalidInspection.CtrlRamDisplay).InputSlots);
     }
 
     private static void AssertHeaderHintMatchesLegacyRegex(byte[] image, Regex legacyMarker)

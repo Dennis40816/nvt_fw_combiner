@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Readiness"
+  short_description: "Audit NFC release identity, evidence, notes, and artifacts"
+  default_prompt: "Use $release-readiness to audit this NFC release candidate, its release notes, and its immutable artifacts."

@@ -5,12 +5,35 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     /// <summary>Resolves exactly one candidate map from immutable selections and private artifact snapshots.</summary>
     public FirmwareMapResolutionResult ResolveMap(FirmwareMapResolutionInputs inputs)
     {
+        return ResolveMapCore(inputs, candidateMapIds: null);
+    }
+
+    /// <summary>Resolves only physical maps named by an already trusted workflow profile binding.</summary>
+    internal FirmwareMapResolutionResult ResolveMapWithin(
+        FirmwareMapResolutionInputs inputs,
+        IReadOnlySet<string> candidateMapIds)
+    {
+        ArgumentNullException.ThrowIfNull(candidateMapIds);
+        ArgumentOutOfRangeException.ThrowIfZero(candidateMapIds.Count, nameof(candidateMapIds));
+
+        return ResolveMapCore(inputs, candidateMapIds);
+    }
+
+    private FirmwareMapResolutionResult ResolveMapCore(
+        FirmwareMapResolutionInputs inputs,
+        IReadOnlySet<string>? candidateMapIds)
+    {
         ArgumentNullException.ThrowIfNull(inputs);
         var uniqueCandidates = new List<ResolvedFirmwareImageMap>();
         var pendingRequirements = new HashSet<FirmwareMapResolutionPendingRequirement>();
 
         foreach (FirmwareImageMap map in _imageMaps)
         {
+            if (candidateMapIds is not null && !candidateMapIds.Contains(map.MapId))
+            {
+                continue;
+            }
+
             CandidateResolution candidate = EvaluateCandidate(map, inputs);
             switch (candidate.Result)
             {

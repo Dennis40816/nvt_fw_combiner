@@ -53,9 +53,11 @@ public sealed partial class XamlControlStyleContractTests
         string missingSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot");
         string selectedSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile");
         string optionalSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.optional");
+        string selectedOptionalSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.optional.hasFile");
         string missingBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement");
         string selectedBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement.hasFile");
         string optionalBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement.optional");
+        string selectedOptionalBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement.optional.hasFile");
 
         Assert.Contains("x:Key=\"NfcRequiredMissingBorderBrush\" Color=\"#FCA5A5\"", tokens, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"NfcRequiredMissingBadgeSurfaceBrush\" Color=\"#FEE2E2\"", tokens, StringComparison.Ordinal);
@@ -72,7 +74,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcBorderBrush", optionalSlot, StringComparison.Ordinal);
         Assert.True(
             styles.IndexOf(optionalSlot, StringComparison.Ordinal) > styles.IndexOf(selectedSlot, StringComparison.Ordinal),
-            "The optional slot selector must follow the selected selector so an optional selected slot stays neutral.");
+            "An empty optional slot remains neutral.");
+        Assert.Contains("NfcSuccessSurfaceBrush", selectedOptionalSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcRequiredSelectedBorderBrush", selectedOptionalSlot, StringComparison.Ordinal);
+        Assert.True(
+            styles.IndexOf(selectedOptionalSlot, StringComparison.Ordinal) > styles.IndexOf(optionalSlot, StringComparison.Ordinal),
+            "A selected optional slot must override the empty optional state with completion feedback.");
 
         Assert.Contains("NfcRequiredMissingBadgeSurfaceBrush", missingBadge, StringComparison.Ordinal);
         Assert.Contains("NfcDangerTextBrush", missingBadge, StringComparison.Ordinal);
@@ -82,7 +89,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcAccentStrongBrush", optionalBadge, StringComparison.Ordinal);
         Assert.True(
             styles.IndexOf(optionalBadge, StringComparison.Ordinal) > styles.IndexOf(selectedBadge, StringComparison.Ordinal),
-            "The optional badge selector must follow the selected selector so its meaning does not drift after selection.");
+            "The empty optional badge remains distinct from a missing required input.");
+        Assert.Contains("NfcRequiredSelectedBadgeSurfaceBrush", selectedOptionalBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcSuccessEmphasisBrush", selectedOptionalBadge, StringComparison.Ordinal);
+        Assert.True(
+            styles.IndexOf(selectedOptionalBadge, StringComparison.Ordinal) > styles.IndexOf(optionalBadge, StringComparison.Ordinal),
+            "A selected optional badge must expose the same completed state as any selected BIN.");
 
         Assert.Contains("Classes=\"fileDropZone firmwareSlot\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.hasFile=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);

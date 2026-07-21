@@ -1,0 +1,123 @@
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
+
+namespace NvtFwCombiner.UiSmoke.Tests;
+
+public sealed partial class ShellViewModelTests
+{
+    /// <summary>Cancel keeps Merge selections; confirmation clears only files and then completes navigation.</summary>
+    [Fact]
+    public void MergeNavigationWarnsBeforeClearingSelectedFiles()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-merge");
+        string inputPath = workspace.Write("input.bin", [0x10, 0x11]);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedMergeMode = "General";
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
+        mapping.SourceStartAddress = "0x1";
+        mapping.TargetStartAddress = "0x2";
+        mapping.Length = "0x1";
+        viewModel.SetSlotFile("merge-dp", inputPath);
+        viewModel.SetSlotFile(mapping.MappingId, inputPath);
+
+        viewModel.ShowHomeCommand.Execute(null);
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.Contains(viewModel.MergeSlots, static slot => slot.HasFile);
+        Assert.True(mapping.HasFile);
+
+        viewModel.CancelNavigationClearCommand.Execute(null);
+
+        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.True(mapping.HasFile);
+
+        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.All(viewModel.MergeSlots, static slot => Assert.False(slot.HasFile));
+        Assert.False(mapping.HasFile);
+        Assert.Equal("0x1", mapping.SourceStartAddress);
+        Assert.Equal("0x2", mapping.TargetStartAddress);
+        Assert.Equal("0x1", mapping.Length);
+        Assert.Equal("NT51927", viewModel.SelectedIc);
+        Assert.Equal("General", viewModel.SelectedMergeMode);
+    }
+
+    /// <summary>Replace confirmation clears Base and mapping files while preserving device and mapping context.</summary>
+    [Fact]
+    public void ReplaceNavigationClearsFilesButKeepsAuthoringContext()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-replace");
+        string inputPath = workspace.Write("input.bin", [0x20, 0x21]);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = "2";
+        OpenReplace(viewModel, "General");
+        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
+        mapping.StartAddress = "0x10";
+        mapping.EndAddress = "0x11";
+        viewModel.SetSlotFile("replace-base", inputPath);
+        viewModel.SetSlotFile(mapping.MappingId, inputPath);
+
+        viewModel.ShowSettingsCommand.Execute(null);
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsReplaceVisible);
+
+        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+
+        Assert.True(viewModel.IsSettingsVisible);
+        Assert.False(viewModel.ReplaceBaseSlot.HasFile);
+        Assert.All(viewModel.ReplaceSlots, static slot => Assert.False(slot.HasFile));
+        Assert.False(mapping.HasFile);
+        Assert.Equal("0x10", mapping.StartAddress);
+        Assert.Equal("0x11", mapping.EndAddress);
+        Assert.Equal("NT51927", viewModel.SelectedIc);
+        Assert.Equal("2", viewModel.SelectedNumber);
+        Assert.Equal("General", viewModel.SelectedReplaceMode);
+    }
+
+    /// <summary>Back navigation does not mutate history or inputs until its clear action is confirmed.</summary>
+    [Fact]
+    public void BackNavigationWaitsForClearConfirmation()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-back");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SetSlotFile("merge-dp", workspace.Write("dp.bin", [0x30]));
+
+        viewModel.GoBackCommand.Execute(null);
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.True(viewModel.CanGoBack);
+
+        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+
+        Assert.True(viewModel.IsHomeVisible);
+        Assert.False(viewModel.CanGoBack);
+        Assert.All(viewModel.MergeSlots, static slot => Assert.False(slot.HasFile));
+    }
+
+    /// <summary>Navigation warning text remains complete in both supported languages.</summary>
+    [Theory]
+    [InlineData(ShellLanguage.English, "Clear selected files", "Clear and continue")]
+    [InlineData(ShellLanguage.ChineseTraditional, "清除已選檔案", "清除並繼續")]
+    public void NavigationClearWarningIsLocalized(
+        ShellLanguage language,
+        string expectedTitle,
+        string expectedAction)
+    {
+        var text = ShellTextResources.For(language);
+
+        Assert.Contains(expectedTitle, text.NavigationClearTitle, StringComparison.Ordinal);
+        Assert.Equal(expectedAction, text.NavigationClearConfirmLabel);
+        Assert.False(string.IsNullOrWhiteSpace(text.NavigationClearDetail));
+        Assert.False(string.IsNullOrWhiteSpace(text.NavigationClearCancelLabel));
+    }
+}

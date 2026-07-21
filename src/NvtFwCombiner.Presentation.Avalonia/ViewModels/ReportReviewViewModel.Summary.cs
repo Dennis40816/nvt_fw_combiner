@@ -100,9 +100,19 @@ public sealed partial class ReportReviewViewModel
 
     private static string CreateNextStepTitle(ReportLineViewModel issue, ShellLanguage language)
     {
-        return string.Equals(issue.Title, WorkbenchCompositionIssueCodes.InputAddressSpaceLengthMismatch, StringComparison.Ordinal)
-            ? T(language, "Fix input size", "修正輸入大小")
-            : T(language, "Start with this issue", "先查看此問題");
+        return issue.Title switch
+        {
+            WorkbenchCompositionIssueCodes.InputAddressSpaceLengthMismatch =>
+                T(language, "Fix input size", "修正輸入大小"),
+            WorkbenchIssueCodes.ReplaceWorkflowNotSupported =>
+                T(language, "Check IC and input roles", "確認 IC 與輸入用途"),
+            WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown or
+            WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported =>
+                T(language, "Check Base firmware", "確認 Base firmware"),
+            WorkbenchIssueCodes.ReplaceCtrlRamNoRegionInput =>
+                T(language, "Select a CtrlRAM BIN", "選擇 CtrlRAM BIN"),
+            _ => T(language, "Start with this issue", "先查看此問題"),
+        };
     }
 
     private static string CreateCleanNextStepTitle(
@@ -130,20 +140,30 @@ public sealed partial class ReportReviewViewModel
                 string.Create(CultureInfo.InvariantCulture, $"沒有回報 output comparison 變更；請到 Operations 確認 {operations.Count} 個已記錄步驟。"));
     }
 
-    private static string CreateOutputSizeLabel(long outputSize, ShellLanguage language)
+    private static string CreateOutputSizeLabel(
+        long outputSize,
+        bool isOutputNotGenerated,
+        ShellLanguage language)
     {
-        return outputSize <= 0
-            ? T(language, "No size", "無大小")
-            : string.Create(CultureInfo.InvariantCulture, $"{outputSize} bytes");
+        return isOutputNotGenerated
+            ? T(language, "Not created", "未建立")
+            : outputSize <= 0
+                ? T(language, "No size", "無大小")
+                : string.Create(CultureInfo.InvariantCulture, $"{outputSize} bytes");
     }
 
-    private static string CreateOutputCommitmentLabel(bool? committed, ShellLanguage language)
+    private static string CreateOutputCommitmentLabel(
+        bool? committed,
+        bool isOutputNotGenerated,
+        ShellLanguage language)
     {
-        return committed == true
-            ? T(language, "Committed output", "已寫出輸出")
-            : committed == false
-                ? T(language, "Preview only", "僅預覽")
-                : T(language, "Output state unknown", "輸出狀態未知");
+        return isOutputNotGenerated
+            ? T(language, "No output generated", "未產生輸出")
+            : committed == true
+                ? T(language, "Committed output", "已寫出輸出")
+                : committed == false
+                    ? T(language, "Preview only", "僅預覽")
+                    : T(language, "Output state unknown", "輸出狀態未知");
     }
 
     private static string CreateIssueAction(ReportLineViewModel issue, ShellLanguage language)
@@ -160,6 +180,22 @@ public sealed partial class ReportReviewViewModel
                     language,
                     "The selected profile allowed truncation for this CtrlRAM input. Review the warning and output differences before using the artifact as evidence.",
                     "所選 profile 允許此 CtrlRAM input truncation；使用輸出作為證據前，請確認警告與輸出差異。"),
+            WorkbenchIssueCodes.ReplaceWorkflowNotSupported =>
+                T(
+                    language,
+                    "Confirm that IC, Number, and Mode match the Base firmware, then place region-specific CtrlRAM BINs in their matching slots. A complete FlashCode is valid only as Base firmware; it is not a CtrlRAM replacement BIN.",
+                    "請確認 IC、Number、Mode 與 Base firmware 相符，並把各區專用 CtrlRAM BIN 放入對應 slot。完整 FlashCode 只能作為 Base firmware，不能當成 CtrlRAM replacement BIN。"),
+            WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown or
+            WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported =>
+                T(
+                    language,
+                    "Select a complete FlashCode or TP FW whose verified metadata matches the chosen IC/profile. The filename alone cannot select a postbuild category.",
+                    "請選擇 verified metadata 與所選 IC/profile 相符的完整 FlashCode 或 TP FW；不能只靠檔名決定 postbuild category。"),
+            WorkbenchIssueCodes.ReplaceCtrlRamNoRegionInput =>
+                T(
+                    language,
+                    "Select at least one region-specific CtrlRAM BIN in an available replacement slot, then run Build again.",
+                    "請至少在可用的 replacement slot 選擇一個區域專用 CtrlRAM BIN，再重新建立。"),
             _ => T(language, "Fix the reported issue, then run Build again.", "修正回報問題後再重新建立。"),
         };
     }

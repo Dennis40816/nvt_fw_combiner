@@ -513,12 +513,7 @@
         "memberIds": [ "NT51926" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "none" },
-        "capacityBytes": 245760,
-        "metadataPredicates": [
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-major", "operator": "equals", "expectedValues": [ 1 ] },
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-minor", "operator": "equals", "expectedValues": [ 4 ] },
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-additional", "operator": "equals", "expectedValues": [ 1 ] }
-        ]
+        "capacityBytes": 245760
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51926-ctrlram-fw141-tp-work" ],
@@ -535,12 +530,7 @@
         "memberIds": [ "NT51926" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "none" },
-        "capacityBytes": 262144,
-        "metadataPredicates": [
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-major", "operator": "equals", "expectedValues": [ 1 ] },
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-minor", "operator": "equals", "expectedValues": [ 4 ] },
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-additional", "operator": "equals", "expectedValues": [ 1 ] }
-        ]
+        "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [
@@ -561,12 +551,7 @@
         "memberIds": [ "NT51926" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "none" },
-        "capacityBytes": 245760,
-        "metadataPredicates": [
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-major", "operator": "equals", "expectedValues": [ 2 ] },
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-minor", "operator": "equals", "expectedValues": [ 0 ] },
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-additional", "operator": "equals", "expectedValues": [ 0 ] }
-        ]
+        "capacityBytes": 245760
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51926-ctrlram-fw200-tp-work" ],
@@ -583,12 +568,7 @@
         "memberIds": [ "NT51926" ],
         "modeIds": [ "ctrlram-replace" ],
         "topologyRequirement": { "kind": "none" },
-        "capacityBytes": 262144,
-        "metadataPredicates": [
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-major", "operator": "equals", "expectedValues": [ 2 ] },
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-minor", "operator": "equals", "expectedValues": [ 0 ] },
-          { "metadataStructureId": "nt51926-fwconfig-backup-envelope", "fieldId": "common-fw-additional", "operator": "equals", "expectedValues": [ 0 ] }
-        ]
+        "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [

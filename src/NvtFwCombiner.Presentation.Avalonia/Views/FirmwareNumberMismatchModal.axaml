@@ -1,0 +1,50 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.FirmwareNumberMismatchModal"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MainWindowViewModel"
+    Background="{DynamicResource NfcModalScrimBrush}">
+  <Border
+      Classes="modalSurface"
+      Width="560"
+      Padding="22"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center"
+      BorderBrush="{DynamicResource NfcWarningAccentBrush}"
+      AutomationProperties.Name="{Binding Text.FirmwareNumberMismatchTitle}">
+    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+      <StackPanel Spacing="5">
+        <TextBlock Classes="modalTitle" Text="{Binding Text.FirmwareNumberMismatchTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding Text.FirmwareNumberMismatchDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+
+      <Grid Grid.Row="1" ColumnDefinitions="132,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace8}">
+        <TextBlock Classes="fieldLabel" Text="{Binding Text.FileLabel}" />
+        <TextBlock Grid.Column="1" Classes="monoText bodyText" Text="{Binding FirmwareNumberMismatchFileName}" TextWrapping="Wrap" />
+        <TextBlock Grid.Row="1" Classes="fieldLabel" Text="{Binding Text.FirmwareNumberMismatchCurrentLabel}" />
+        <TextBlock Grid.Row="1" Grid.Column="1" Classes="monoText" FontSize="{DynamicResource NfcFontSize13}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextBrush}" Text="{Binding FirmwareNumberMismatchCurrentNumber}" />
+        <TextBlock Grid.Row="2" Classes="fieldLabel" Text="{Binding Text.FirmwareNumberMismatchDetectedLabel}" />
+        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+          <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="{DynamicResource NfcFontSize13}" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextMutedBrush}" Text="{Binding FirmwareNumberMismatchDetectedNumber}" />
+          <TextBlock Classes="mutedText" Text="(" />
+          <TextBlock Classes="monoText mutedText" Text="{Binding FirmwareNumberMismatchDetectedChipCount}" />
+          <TextBlock Classes="mutedText" Text=" IC)" />
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+        <Button
+            Classes="secondary"
+            Command="{Binding DismissFirmwareNumberMismatchCommand}"
+            Content="{Binding Text.FirmwareNumberMismatchCancelLabel}"
+            AutomationProperties.Name="{Binding Text.FirmwareNumberMismatchCancelLabel}" />
+        <Button
+            Classes="primary"
+            Command="{Binding AcceptFirmwareNumberMismatchCommand}"
+            Content="{Binding Text.FirmwareNumberMismatchSwitchLabel}"
+            AutomationProperties.Name="{Binding Text.FirmwareNumberMismatchSwitchLabel}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

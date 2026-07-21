@@ -1,12 +1,12 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.11 reconstructed stabilization release candidate`
-> 文件版本：`0.9.11`
-> 基準日期：`2026-07-21`
+> 文件狀態：`0.9.12 release baseline with 0.9.13 development scope`
+> 文件版本：`0.9.12`
+> 基準日期：`2026-07-22`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
-> 可見性：`Public`（owner 決定維持至 `0.9.11` 完成，之後改為 `Private`）
+> 可見性：`Public`（owner 於 2026-07-22 決定維持至 stable `v1.0.0` 完成；其後改為 `Private`）
 > License：`MIT`（只涵蓋新 NFC 原創內容；`refcode/` 依個別來源與所有權處理）
 > 本文件目的：鎖定產品、Composition 架構、資料契約、Codex 治理、CI/CD、里程碑與後續開發順序。
 
@@ -30,7 +30,13 @@
 
 ## 0.1 Current owner priority
 
-As of 2026-07-21, `0.9.11` is a feature-frozen stabilization candidate reconstructed from the exact final `v0.9.10` release. It preserves the final output-publication, immutable-input, CtrlRAM postbuild, report-delivery, firmware-identity, Build-completion, package-authority, stale-search, and Changes behavior from that predecessor. It adds profile-driven DP/LDC authoring coverage, measured first-frame/background startup work, compressed composite ReadyToRun packaging, persistent IC Number choice behavior, topology-aware CtrlRAM grouping, spatial padding ownership, and a fixed bottom-right Build rail. Firmware ranges, command semantics, golden verification, runtime availability, and product-support promotion remain separate evidence-gated concerns; authoring availability does not infer or promote unsupported IC shapes.
+As of 2026-07-21, `0.9.12` is the CtrlRAM routing and interaction stabilization candidate based on the released `v0.9.11`. Production admission uses requested IC, an effective Common-FW profile interval only where multiple owner-declared profiles exist, and a typed Number/build-plan selector. Golden PID/version/hash/filename/count facts remain report and regression evidence, not route gates. All 31 cataloged runtime interval/plan pairs are V2-routed support-neutrally; direct output evidence, independent R3 review, and firmware-owner support promotion remain separate. The release also adds actionable Build failure feedback, IC/Number mismatch confirmation, navigation-clear confirmation, selected-input completion state, and the vertical bottom-right action rail. Shared Hex viewport/Changes redesign and global Button pressed feedback remain deferred to `v0.9.13`.
+
+- `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
+- NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.
+- NT51950 and NT51951 expose single and generic-cascade CtrlRAM with identical TP offsets and DiffDLM `[0x33200,0x34600)`; their 256/512 KiB container capacities remain distinct, LDC is packaged inside DP, and AB stays separate.
+- Common FW starts at `1.0.0`. NT51926 alone has two current runtime intervals; one-profile ICs do not block on missing or future informational version values. PID never selects a route.
+- NT51930 exposes only single and `2–13`; NT51927/NT51928 expose only single/2/3. A decoded FWConfig chip count cross-checks the chosen plan and may require confirmation, but never silently chooses family or creates a plan.
 
 - `v0.9.10` (`b0266f312a67d644475731153b1af82f7eadcc95`) is the only accepted predecessor for `0.9.11`. The premature `0.9.11.10` lineage is recovery evidence only and cannot be merged or released as-is.
 - The measured startup lifecycle opens a meaningful Home screen first, warms immutable catalog projections on a worker thread, then materializes common page visual trees at background dispatcher priority. Warm-up cannot navigate, read user firmware, mutate a profile, launch an external processor, select support, or acquire Build authority.
@@ -38,14 +44,15 @@ As of 2026-07-21, `0.9.11` is a feature-frozen stabilization candidate reconstru
 
 - Post-commit background report preparation is an explicit `0.9.10` requirement. A successful Build publishes the atomically committed output identity as soon as the BIN is usable, while complete JSON, Hex Diff, and history projection continue off the dispatcher. Preview and uncommitted failures publish no artifact, and the run retains command ownership until the complete report is ready.
 
-- AB Code architecture and evidence intake are reactivated. Executable AB behavior remains a separate R3 phase and no profile is promoted without its exact ranges, relocation fields, integrity contract, golden output, and firmware-owner approval.
+- AB Code architecture re-admission is scheduled for `v0.9.13` under ADR 0032. Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.12`; no profile is admitted or promoted without typed production authority, exact ranges, relocation fields, integrity contract, golden output, and firmware-owner approval.
 - NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919 may inherit the NT51929/NT51932 canonical AB facts only through owner-approved fact-scoped bindings and parity tests. This direction does not infer ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
+- The first `v0.9.13` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect family whose AB layout is version-independent and whose route does not depend on IC Number. Its exact 512 KiB DP_AB container exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB are separate 256 KiB inputs, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning, while a fixed-plan size mismatch remains Build-blocking.
 - Firmware ranges, aliases, metadata locators, capability evidence, workflow profiles, and execution promotion must converge through the versioned family/profile bundle and one compiled composition boundary defined by ADR 0015. Migration preserves current promotion stages and blockers; map coverage never grants Build authority.
 - Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
 - Owner-provided postbuild scripts are the behavioral truth for CtrlRAM Replace command order; mmap files explain offsets and sizes; TP Overview is the documentation baseline to correct when it conflicts with postbuild/mmap evidence.
 - CtrlRAM postbuild command sequences must be generated as structured command/argv data and tested against the hsi Combiner guide, not assembled as one shell command string. NT51927 requires explicit single, 2IC, and 3IC Replace branches.
-- FlashCode output naming uses the fixed `NT51xxx_FlashCode_DxxxxTxxxx_YYYYMMDD.bin` form and treats DP version as two contiguous bytes: main version byte followed by sub version byte. TP uses the validated FW version and FW sub-version bytes. The offsets are catalog-owned facts; UI must display decoded tokens or explicit unknown placeholders, never infer version bytes from file names.
+- FlashCode output naming uses the fixed `NT51xxx_FlashCode_DxxxxTxxxx_YYYYMMDD.bin` form and retains its catalog-owned legacy two-byte DP token for compatibility in `v0.9.12`. No current Display or naming behavior changes in this release. `v0.9.13` will move DP facts shown in the UI to the IC-owned three-byte CMI Reg16h-18h decoder whenever that layout exists, without falling back to the legacy naming pair; output-naming migration remains a separate compatibility decision. TP uses the validated FW version and FW sub-version bytes. UI never infers version bytes from file names.
 - NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
 - Other Standard Merge profiles extract only their declared DP source views. A DP artifact that
   reaches every required end offset may have an arbitrary total length; a non-map length is a report
@@ -643,7 +650,7 @@ through the same profile/compiler/engine and report `saved-rule` provenance.
   approved groups。
 - General：explicit mapping inside profile-approved envelope。
 
-Current Replace implementation priority is DP Replace and CtrlRAM Replace workflows. CtrlRAM postbuild command core is implemented from IC FlashMap postbuild evidence for NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951, including NT51917/NT51927/NT51928 single/2IC/3IC branches. NT51919 and NT51929 follow the NT51932 reference flow; NT51951 follows the NT51950 reference flow. Remaining production work is profile wiring, UI/report/history integration, and golden replace outputs.
+Current Replace implementation priority is DP Replace and CtrlRAM Replace workflows. CtrlRAM postbuild command core, trusted V2 profile wiring, and UI/report/history integration are implemented for all 31 modeled runtime interval/plan pairs across NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951. NT51919 and NT51929 follow the NT51932 reference flow; NT51928 non-NB follows NT51927 TP/CtrlRAM single/2IC/3IC authority while retaining a distinct DP/LDC image; NT51951 follows NT51950 TP authority with a distinct container capacity. Remaining release gates are per-plan direct expected-output evidence where recorded, independent R3 review, firmware-owner support promotion, canonical verification, and CI; they do not reintroduce golden identity as production admission.
 
 ### 10.7 Dev0 C# implementation milestone
 
@@ -673,7 +680,7 @@ Reports and diagnostics are secondary surfaces. Preview/Build reports and diagno
 
 ### 11.2 Merge page
 
- Must support Standard, AB, and General at the product taxonomy level, but current implementation priority is Standard/normal Merge. AB UI implementation is deferred. General mode provides mapping table + optional visual memory map editor. Every UI edit compiles to typed mapping override. Merge uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Replace. Memory coverage is visual-first; tables are supporting detail. NT51950 and NT51951 normal Merge profiles accept only DP sizes `0x40000`, `0x80000`, and `0x100000`, produce the selected DP length, and use the confirmed TP overlay range `0x0A000-0x36FFF (len 0x2D000)`.
+ Must support Standard, AB, and General at the product taxonomy level, but current implementation priority is Standard/normal Merge. AB UI implementation is deferred to the `v0.9.13` architecture re-admission in ADR 0032 and remains hidden until its independent R3 gates close. General mode provides mapping table + optional visual memory map editor. Every UI edit compiles to typed mapping override. Merge uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Replace. Memory coverage is visual-first; tables are supporting detail. NT51950 and NT51951 normal Merge profiles accept only DP sizes `0x40000`, `0x80000`, and `0x100000`, produce the selected DP length, and use the confirmed TP overlay range `0x0A000-0x36FFF (len 0x2D000)`.
 
 ### 11.3 Replace page
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51950-ctrlram-replace-fw200-single",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -26,11 +26,12 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51950-ctrlram-replace",
-    "familyVersion": "0.1.0",
-    "familyContentHash": "90e8a5ebdeacb61705102930d21692f0d25a21651a7a5786b478fba3020402b3",
+    "familyVersion": "0.3.0",
+    "familyContentHash": "2ec7331b0ea75fde0733ef39fa031c05fa920a6c4688b2d96c946aaee44adefe",
     "mapIds": [ "nt51950-ctrlram-fw200-single-full-flash" ],
     "requiredRegionIds": [
       "flash-image",
+      "fw-config-source",
       "header-crc-a11c",
       "header-crc-a130",
       "nf-ctrlram",

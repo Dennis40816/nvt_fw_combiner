@@ -1,0 +1,591 @@
+{
+  "schemaVersion": "2.9",
+  "profileId": "nt51928-ctrlram-replace-fw140-threechip",
+  "profileVersion": "0.3.0",
+  "promotion": {
+    "stage": "executable-candidate",
+    "blockers": [
+      {
+        "blockerId": "support-neutral-partial-family-route",
+        "kind": "release",
+        "reason": "This owner-approved NT51928 non-NB route reuses the matching NT51927 TP layout and postbuild branch while preserving the distinct 512 KiB DP/LDC tail; public support promotion remains separate.",
+        "evidenceRefs": [
+          "gen-flash-bin-v2-51928-golden",
+          "ctrlram-replace-partial-family-51928-non-nb-to-51927"
+        ]
+      }
+    ]
+  },
+  "compositionKind": "replace",
+  "icNumberInputMode": "numeric-selector",
+  "experience": {
+    "experienceId": "ctrlram-replace",
+    "audience": "ctrlram",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51928.ctrlram.replace.fw140.threechip"
+  },
+  "compilationContext": {
+    "kind": "runtime-reference-replace"
+  },
+  "mapBinding": {
+    "familyId": "nt51928-ctrlram-replace",
+    "familyVersion": "0.3.0",
+    "familyContentHash": "0ecf17a0548a9eebfab522610f53bf92ab910811b54e5c732ffe4745df7e199d",
+    "mapIds": [
+      "nt51928-ctrlram-fw140-threechip-full-flash"
+    ],
+    "requiredRegionIds": [
+      "flash-image",
+      "fw-config-source",
+      "header-crc-022c",
+      "header-crc-023c",
+      "header-crc-024c",
+      "header-crc-026c",
+      "header-crc-027c",
+      "header-crc-029c",
+      "header-crc-02ac",
+      "nf-master",
+      "normal-master",
+      "mp-master",
+      "vn-master",
+      "header-copy-master",
+      "right-window-prefix",
+      "nf-slave-r",
+      "normal-slave-r",
+      "mp-slave-r",
+      "vn-slave-r",
+      "header-copy-slave-r",
+      "right-window-tail",
+      "left-window-prefix",
+      "nf-slave-l",
+      "normal-slave-l",
+      "mp-slave-l",
+      "vn-slave-l",
+      "header-copy-slave-l",
+      "left-window-tail",
+      "final-header-backup",
+      "fw-config-backup-copy"
+    ],
+    "requiredMetadataStructureIds": [
+      "nt51928-fwconfig-backup-envelope"
+    ],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "reference-base",
+      "role": "reference-base",
+      "artifactClass": "reference-image",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "exact-resolved-map-capacity"
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "slotId": "ctrlram-source",
+      "role": "ctrlram-source",
+      "artifactClass": "ctrlram-replacement",
+      "required": true,
+      "cardinality": "one-or-more",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "bounded",
+          "minimumBytes": 1,
+          "maximumBytes": 2147483647
+        },
+        "normalization": {
+          "kind": "truncate-ctrlram",
+          "warningIssueCode": "CTRLRAM_SIZE_WARNING",
+          "evidenceRef": "ctrlram-replace-partial-family-51928-non-nb-to-51927"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "reference-base",
+      "kind": "input-artifact",
+      "slotId": "reference-base",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "ctrlram-source-template",
+      "kind": "input-artifact",
+      "slotId": "ctrlram-source",
+      "instancePolicy": "per-binding"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": {
+        "kind": "runtime-request"
+      },
+      "initializer": {
+        "kind": "clone",
+        "sourceSlotId": "reference-base"
+      }
+    }
+  ],
+  "views": [
+    {
+      "viewId": "processor-image",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "flash-image"
+      }
+    },
+    {
+      "viewId": "header-crc-022c-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-crc-022c"
+      }
+    },
+    {
+      "viewId": "header-crc-023c-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-crc-023c"
+      }
+    },
+    {
+      "viewId": "header-crc-024c-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-crc-024c"
+      }
+    },
+    {
+      "viewId": "header-crc-026c-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-crc-026c"
+      }
+    },
+    {
+      "viewId": "header-crc-027c-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-crc-027c"
+      }
+    },
+    {
+      "viewId": "header-crc-029c-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-crc-029c"
+      }
+    },
+    {
+      "viewId": "header-crc-02ac-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-crc-02ac"
+      }
+    },
+    {
+      "viewId": "nf-master-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "nf-master"
+      }
+    },
+    {
+      "viewId": "normal-master-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "normal-master"
+      }
+    },
+    {
+      "viewId": "mp-master-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "mp-master"
+      }
+    },
+    {
+      "viewId": "vn-master-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "vn-master"
+      }
+    },
+    {
+      "viewId": "header-copy-master-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-copy-master"
+      }
+    },
+    {
+      "viewId": "right-window-prefix-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "right-window-prefix"
+      }
+    },
+    {
+      "viewId": "nf-slave-r-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "nf-slave-r"
+      }
+    },
+    {
+      "viewId": "normal-slave-r-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "normal-slave-r"
+      }
+    },
+    {
+      "viewId": "mp-slave-r-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "mp-slave-r"
+      }
+    },
+    {
+      "viewId": "vn-slave-r-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "vn-slave-r"
+      }
+    },
+    {
+      "viewId": "header-copy-slave-r-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-copy-slave-r"
+      }
+    },
+    {
+      "viewId": "right-window-tail-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "right-window-tail"
+      }
+    },
+    {
+      "viewId": "left-window-prefix-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "left-window-prefix"
+      }
+    },
+    {
+      "viewId": "nf-slave-l-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "nf-slave-l"
+      }
+    },
+    {
+      "viewId": "normal-slave-l-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "normal-slave-l"
+      }
+    },
+    {
+      "viewId": "mp-slave-l-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "mp-slave-l"
+      }
+    },
+    {
+      "viewId": "vn-slave-l-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "vn-slave-l"
+      }
+    },
+    {
+      "viewId": "header-copy-slave-l-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-copy-slave-l"
+      }
+    },
+    {
+      "viewId": "left-window-tail-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "left-window-tail"
+      }
+    },
+    {
+      "viewId": "final-header-backup-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "final-header-backup"
+      }
+    },
+    {
+      "viewId": "fw-config-backup-copy-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "fw-config-backup-copy"
+      }
+    }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    {
+      "regionId": "header-crc-022c",
+      "access": "hidden",
+      "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word."
+    },
+    {
+      "regionId": "header-crc-023c",
+      "access": "hidden",
+      "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word."
+    },
+    {
+      "regionId": "header-crc-024c",
+      "access": "hidden",
+      "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word."
+    },
+    {
+      "regionId": "header-crc-026c",
+      "access": "hidden",
+      "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word."
+    },
+    {
+      "regionId": "header-crc-027c",
+      "access": "hidden",
+      "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word."
+    },
+    {
+      "regionId": "header-crc-029c",
+      "access": "hidden",
+      "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word."
+    },
+    {
+      "regionId": "header-crc-02ac",
+      "access": "hidden",
+      "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word."
+    },
+    {
+      "regionId": "nf-master",
+      "access": "explicit-range",
+      "reason": "Copy the approved master NF slices from shared source offsets 0 and 0xFD0."
+    },
+    {
+      "regionId": "normal-master",
+      "access": "explicit-range",
+      "reason": "Copy at most 0x3000 bytes from the immutable master Normal input."
+    },
+    {
+      "regionId": "mp-master",
+      "access": "explicit-range",
+      "reason": "Copy at most 0x2400 bytes from the immutable master MP input."
+    },
+    {
+      "regionId": "vn-master",
+      "access": "explicit-range",
+      "reason": "Copy at most 0x1660 bytes from the immutable shared VN input."
+    },
+    {
+      "regionId": "header-copy-master",
+      "access": "hidden",
+      "reason": "Only the declared processor may refresh the master header copy."
+    },
+    {
+      "regionId": "right-window-prefix",
+      "access": "hidden",
+      "reason": "Only the declared processor may copy the approved right-chip source window."
+    },
+    {
+      "regionId": "nf-slave-r",
+      "access": "explicit-range",
+      "reason": "Copy the approved right NF slices from shared source offsets 0 and 0x1F90."
+    },
+    {
+      "regionId": "normal-slave-r",
+      "access": "explicit-range",
+      "reason": "Copy at most 0x3000 bytes from the immutable right Normal input."
+    },
+    {
+      "regionId": "mp-slave-r",
+      "access": "explicit-range",
+      "reason": "Copy at most 0x2400 bytes from the immutable right MP input."
+    },
+    {
+      "regionId": "vn-slave-r",
+      "access": "explicit-range",
+      "reason": "Copy at most 0x1660 bytes from the immutable shared VN input."
+    },
+    {
+      "regionId": "header-copy-slave-r",
+      "access": "hidden",
+      "reason": "Only the declared processor may refresh the right-chip header copy."
+    },
+    {
+      "regionId": "right-window-tail",
+      "access": "hidden",
+      "reason": "Only the declared processor may copy the approved right-chip source window."
+    },
+    {
+      "regionId": "left-window-prefix",
+      "access": "hidden",
+      "reason": "Only the declared processor may copy the approved left-chip source window."
+    },
+    {
+      "regionId": "nf-slave-l",
+      "access": "explicit-range",
+      "reason": "Copy the approved 0xFD0-byte left NF slice from shared source offset zero."
+    },
+    {
+      "regionId": "normal-slave-l",
+      "access": "explicit-range",
+      "reason": "Copy at most 0x3000 bytes from the immutable left Normal input."
+    },
+    {
+      "regionId": "mp-slave-l",
+      "access": "explicit-range",
+      "reason": "Copy at most 0x2400 bytes from the immutable left MP input."
+    },
+    {
+      "regionId": "vn-slave-l",
+      "access": "explicit-range",
+      "reason": "Copy at most 0x1660 bytes from the immutable shared VN input."
+    },
+    {
+      "regionId": "header-copy-slave-l",
+      "access": "hidden",
+      "reason": "Only the declared processor may refresh the left-chip header copy."
+    },
+    {
+      "regionId": "left-window-tail",
+      "access": "hidden",
+      "reason": "Only the declared processor may copy the approved left-chip source window."
+    },
+    {
+      "regionId": "final-header-backup",
+      "access": "hidden",
+      "reason": "Only the declared processor may refresh the final 0x460-byte header backup."
+    },
+    {
+      "regionId": "fw-config-backup-copy",
+      "access": "hidden",
+      "reason": "Only the declared processor may copy the approved 0x800-byte FWConfig backup."
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "postbuild-threechip",
+      "sequence": 2147483647,
+      "overlapPolicy": "replace-existing",
+      "reason": "Run the exact thirteen-command nt51928 three-chip postbuild after every runtime CtrlRAM mapping.",
+      "kind": "run-processor",
+      "processorStageId": "nt51928-fw140-threechip-combiner"
+    }
+  ],
+  "validations": [],
+  "processorStages": [
+    {
+      "processorStageId": "nt51928-fw140-threechip-combiner",
+      "kind": "legacy-combiner-v1",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "invocationProfileId": "nfc.nt51928.ctrlram-postbuild-v1",
+      "targetSpaceId": "output-image",
+      "targetViewId": "processor-image",
+      "authority": "transform",
+      "purpose": "header-and-integrity",
+      "integrityDisposition": "recalculate-and-write",
+      "allowedReadViewIds": [
+        "processor-image"
+      ],
+      "allowedWriteViewIds": [
+        "header-crc-022c-output",
+        "header-crc-023c-output",
+        "header-crc-024c-output",
+        "header-crc-026c-output",
+        "header-crc-027c-output",
+        "header-crc-029c-output",
+        "header-crc-02ac-output",
+        "nf-master-output",
+        "normal-master-output",
+        "mp-master-output",
+        "vn-master-output",
+        "header-copy-master-output",
+        "right-window-prefix-output",
+        "nf-slave-r-output",
+        "normal-slave-r-output",
+        "mp-slave-r-output",
+        "vn-slave-r-output",
+        "header-copy-slave-r-output",
+        "right-window-tail-output",
+        "left-window-prefix-output",
+        "nf-slave-l-output",
+        "normal-slave-l-output",
+        "mp-slave-l-output",
+        "vn-slave-l-output",
+        "header-copy-slave-l-output",
+        "left-window-tail-output",
+        "final-header-backup-output",
+        "fw-config-backup-copy-output"
+      ],
+      "stagedSourceBindings": [],
+      "stagedArtifactBindings": [],
+      "evidenceRef": "ctrlram-replace-partial-family-51928-non-nb-to-51927",
+      "failurePolicy": "fail-closed"
+    }
+  ],
+  "output": {
+    "fileNameTemplate": "nt51928-ctrlram-replace.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "gen-flash-bin-v2-51928-golden",
+    "ctrlram-replace-partial-family-51928-non-nb-to-51927"
+  ]
+}

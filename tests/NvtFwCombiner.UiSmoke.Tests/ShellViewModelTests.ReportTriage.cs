@@ -1,3 +1,4 @@
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -29,6 +30,11 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Needs attention", report.OutcomeTitle);
         Assert.Equal("Start with this issue", report.NextStepTitle);
         Assert.Equal("processor.tool.missing", report.PrimaryIssue.Title);
+        Assert.True(report.IsOutputNotGenerated);
+        Assert.False(report.IsOutputPreview);
+        Assert.Equal("Not created", report.OutputSizeLabel);
+        Assert.Equal("No output generated", report.OutputCommitmentLabel);
+        Assert.Equal("No output hash", report.OutputHashLabel);
         Assert.Equal(1, report.PostbuildInvocationCount);
         ReportPostbuildInvocationViewModel invocation = Assert.Single(report.PostbuildInvocations);
         Assert.Equal("900.01", invocation.Number);
@@ -78,6 +84,26 @@ public sealed partial class ShellViewModelTests
             row.AddressSpace == "output-image" &&
             row.Range == "0x7118-0x711B (len 0x4)" &&
             row.Source == "postbuild write policy");
+    }
+
+    /// <summary>A missing exact CtrlRAM route gives a concrete correction instead of a generic retry instruction.</summary>
+    [Fact]
+    public void CtrlRamRouteIssueExplainsContextAndSlotCorrection()
+    {
+        string json = ReportJsonSamples.CtrlRamWarning(
+            issueCode: WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+            severity: "error",
+            message: "The selected CtrlRAM Replace shape has no exact evidence-backed V2 route.",
+            operationId: "number");
+
+        var report = ReportReviewViewModel.FromJson(json, "ctrlram-route.json");
+
+        Assert.True(report.HasPrimaryIssue);
+        Assert.False(report.HasNoPrimaryIssue);
+        Assert.Equal("Check IC and input roles", report.NextStepTitle);
+        Assert.Contains("IC, Number, and Mode", report.NextStepDetail, StringComparison.Ordinal);
+        Assert.Contains("complete FlashCode", report.NextStepDetail, StringComparison.Ordinal);
+        Assert.Contains("region-specific CtrlRAM BIN", report.NextStepDetail, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies every recorded external process call receives an independently numbered Postbuild row.</summary>

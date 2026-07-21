@@ -1,7 +1,5 @@
-using System.Globalization;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -66,8 +64,7 @@ public static partial class WorkbenchCompositionService
         out string? commonFwVersion)
     {
         commonFwVersion = null;
-        if (!TryReadFirmwareConfigBackupMetadata(icId, basePath, out FirmwareConfigMetadata metadata) ||
-            !metadata.IsFirmwareVersionBarValid)
+        if (!TryReadFirmwareConfigBackupMetadata(icId, basePath, out FirmwareConfigMetadata metadata))
         {
             return false;
         }
@@ -76,54 +73,34 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
-    private static bool TryResolveNumberTokenForFirmwareChipNumber(
+    private static bool TryResolveNumberTokenForFirmwareConfig(
         string icId,
-        byte chipNumber,
+        FirmwareConfigMetadata firmwareConfig,
         out string? numberToken)
     {
         numberToken = null;
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
-        if (profiles.Count == 0)
+        if (!TryResolvePostbuildProfileForDisplay(
+                icId,
+                firmwareConfig,
+                out LegacyCombinerPostbuildProfile? profile) ||
+            profile is null)
         {
             return false;
         }
 
-        string numericToken = chipNumber.ToString(CultureInfo.InvariantCulture);
-        LegacyCombinerPostbuildBranch? branch = null;
-        foreach (LegacyCombinerPostbuildProfile profile in profiles)
-        {
-            if (!profile.BranchRules.TryGetValue(numericToken, out LegacyCombinerPostbuildBranch candidate) &&
-                (chipNumber <= 1 || !profile.BranchRules.TryGetValue(IcNumberSelectionTokens.Cascade, out candidate)))
-            {
-                return false;
-            }
-
-            if (branch is not null && branch != candidate)
-            {
-                return false;
-            }
-
-            branch = candidate;
-        }
-
-        if (branch is null)
+        LegacyCombinerPostbuildPlanSelector[] matches =
+        [
+            .. profile.PlanSelectors.Where(selector =>
+                selector.MatchesReportedChipCount(firmwareConfig.ChipNumber)),
+        ];
+        if (matches.Length != 1 ||
+            !CtrlRamV2RouteRegistry.TryResolve(profile, matches[0].Branch, out _))
         {
             return false;
         }
 
-        foreach (IcNumberChoice choice in IcNumberChoicePolicy.GetNumberSelectionChoices(profiles))
-        {
-            bool matchesEveryProfile = profiles.All(profile =>
-                profile.BranchRules.TryGetValue(choice.Token, out LegacyCombinerPostbuildBranch candidate) &&
-                candidate == branch);
-            if (matchesEveryProfile)
-            {
-                numberToken = choice.Token;
-                return true;
-            }
-        }
-
-        return false;
+        numberToken = matches[0].Token;
+        return true;
     }
 
     private static bool TryReadFirmwareConfigBackupMetadata(
@@ -177,7 +154,7 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
-    private static bool TryResolvePostbuildProfileForDisplay(
+    private static bool TryResolvePostbuildProfileFromBasePathForDisplay(
         string icId,
         string? basePath,
         out LegacyCombinerPostbuildProfile? postbuildProfile)
@@ -189,7 +166,7 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        if (profiles.Count == 1 && profiles[0].CommonFwVersionRule is null)
+        if (profiles.Count == 1)
         {
             postbuildProfile = profiles[0];
             return true;

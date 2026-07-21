@@ -37,7 +37,7 @@ internal static class BuiltInProfileMaterializationTestSupport
             new ProfileBundleLoadLimits(
                 maximumManifestBytes: 16384,
                 maximumJsonDepth: 32,
-                new ProfileBundleEntrySnapshotLimits(8, 131072, 262144, 8)));
+                new ProfileBundleEntrySnapshotLimits(16, 131072, 262144, 8)));
         return TrustedProfileBundleCatalogProjection.Create(bundle.CreateDocumentProjection());
     }
 

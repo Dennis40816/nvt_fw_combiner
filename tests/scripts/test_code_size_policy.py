@@ -36,12 +36,14 @@ class CodeSizePolicyTests(unittest.TestCase):
         duplicates: int = 0,
         partial_max: int = 100,
         exact_partials: dict[str, int] | None = None,
+        named_partial_maximums: dict[str, int] | None = None,
     ) -> CodeSizeLimits:
         return CodeSizeLimits(
             production_nonblank=production,
             duplicate_json_nonblank=duplicates,
             partial_type_default_max=partial_max,
             partial_type_exact_ratchets=exact_partials or {},
+            partial_type_named_maximums=named_partial_maximums or {},
         )
 
     def validate(self, limits: CodeSizeLimits) -> list[str]:
@@ -125,6 +127,34 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertTrue(any("grew: 4 > ratchet 3" in error for error in exact_growth))
         self.assertTrue(
             any("lower the ratchet from 5 to 4" in error for error in exact_reduction)
+        )
+
+    def test_named_partial_maximum_accepts_reduction_without_rebaselining(self) -> None:
+        declaration = "namespace Product;\npublic partial class Workbench {}\n"
+        self.write("src/Product/Workbench.One.cs", declaration)
+        self.write("src/Product/Workbench.Two.cs", declaration)
+
+        accepted = self.validate(
+            self.limits(
+                production=4,
+                partial_max=3,
+                named_partial_maximums={"Product.Workbench": 5},
+            )
+        )
+        growth = self.validate(
+            self.limits(
+                production=4,
+                partial_max=5,
+                named_partial_maximums={"Product.Workbench": 3},
+            )
+        )
+
+        self.assertEqual([], accepted)
+        self.assertTrue(
+            any(
+                "partial aggregate Product.Workbench exceeded maximum: 4 > 3" in error
+                for error in growth
+            )
         )
 
     def test_tracks_each_partial_type_once_per_source_file(self) -> None:

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51923-ctrlram-replace",
-  "familyVersion": "0.1.0",
+  "familyVersion": "0.2.0",
   "members": [
     {
       "memberId": "NT51923",
@@ -104,8 +104,17 @@
           "kind": "unmapped",
           "range": {
             "start": 256,
-            "length": 141056
+            "length": 139008
           },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-source",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "firmware-config",
+          "range": { "start": 139264, "length": 2048 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -376,8 +385,17 @@
           "kind": "unmapped",
           "range": {
             "start": 256,
-            "length": 141056
+            "length": 139008
           },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-source",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "firmware-config",
+          "range": { "start": 139264, "length": 2048 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -652,52 +670,9 @@
           "ctrlram-replace"
         ],
         "topologyRequirement": {
-          "kind": "exact-count",
-          "chipCount": 1
+          "kind": "single"
         },
-        "capacityBytes": 262144,
-        "metadataPredicates": [
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "chip-count",
-            "operator": "equals",
-            "expectedValues": [
-              1
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-major",
-            "operator": "equals",
-            "expectedValues": [
-              1
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-minor",
-            "operator": "equals",
-            "expectedValues": [
-              4
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-additional",
-            "operator": "equals",
-            "expectedValues": [
-              1
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "project-id",
-            "operator": "equals",
-            "expectedValues": [
-              24581
-            ]
-          }
-        ]
+        "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [
@@ -721,52 +696,10 @@
           "ctrlram-replace"
         ],
         "topologyRequirement": {
-          "kind": "exact-count",
-          "chipCount": 3
+          "kind": "cascade",
+          "minimumChipCount": 2
         },
-        "capacityBytes": 262144,
-        "metadataPredicates": [
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "chip-count",
-            "operator": "equals",
-            "expectedValues": [
-              3
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-major",
-            "operator": "equals",
-            "expectedValues": [
-              1
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-minor",
-            "operator": "equals",
-            "expectedValues": [
-              4
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "common-fw-additional",
-            "operator": "equals",
-            "expectedValues": [
-              1
-            ]
-          },
-          {
-            "metadataStructureId": "nt51923-fwconfig-backup-envelope",
-            "fieldId": "project-id",
-            "operator": "equals",
-            "expectedValues": [
-              19459
-            ]
-          }
-        ]
+        "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [

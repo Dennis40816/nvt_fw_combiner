@@ -53,10 +53,13 @@ public sealed partial class ReportReviewViewModel
         OutputFileName = outputFileName;
         OutputSize = outputSize;
         this.outputCommitted = outputCommitted;
-        OutputSizeLabel = CreateOutputSizeLabel(outputSize, language);
-        OutputCommitmentLabel = CreateOutputCommitmentLabel(outputCommitted, language);
+        IsOutputNotGenerated = outputCommitted == false &&
+            outputSize <= 0 &&
+            issues.Any(issue => !IsWarning(issue));
+        OutputSizeLabel = CreateOutputSizeLabel(outputSize, IsOutputNotGenerated, language);
+        OutputCommitmentLabel = CreateOutputCommitmentLabel(outputCommitted, IsOutputNotGenerated, language);
         OutputSha256 = outputSha256;
-        OutputHashLabel = string.IsNullOrWhiteSpace(outputSha256)
+        OutputHashLabel = IsOutputNotGenerated || string.IsNullOrWhiteSpace(outputSha256)
             ? T(language, "No output hash", "無輸出雜湊")
             : Shorten(outputSha256, 16);
         OutputArtifactPath = string.IsNullOrWhiteSpace(outputArtifactPath) ? string.Empty : outputArtifactPath;
