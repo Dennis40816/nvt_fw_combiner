@@ -99,6 +99,29 @@ public static partial class WorkbenchCompositionService
             : new WorkbenchIcFamilySummary(null, null, WorkbenchIcFamilyRelationship.Standalone, null);
     }
 
+    /// <summary>
+    /// Returns whether two ICs are owner-declared perfect members of the same family.
+    /// This advisory relationship does not grant workflow, profile, or byte-write authority.
+    /// </summary>
+    public static bool ArePerfectFamilyMembers(string firstIcId, string secondIcId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(firstIcId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(secondIcId);
+
+        WorkbenchIcFamilySummary first = GetIcFamilySummary(firstIcId);
+        WorkbenchIcFamilySummary second = GetIcFamilySummary(secondIcId);
+        return !string.IsNullOrWhiteSpace(first.FamilyId) &&
+            string.Equals(first.FamilyId, second.FamilyId, StringComparison.Ordinal) &&
+            IsPerfectFamilyRelationship(first.Relationship) &&
+            IsPerfectFamilyRelationship(second.Relationship);
+    }
+
+    private static bool IsPerfectFamilyRelationship(WorkbenchIcFamilyRelationship relationship)
+    {
+        return relationship is WorkbenchIcFamilyRelationship.Canonical or
+            WorkbenchIcFamilyRelationship.PerfectAlias;
+    }
+
     /// <summary>Gets current profile-derived DP Replace Reference FlashCode capacities.</summary>
     public static string? GetDpReplaceReferenceCapacityLabel(string icId)
     {

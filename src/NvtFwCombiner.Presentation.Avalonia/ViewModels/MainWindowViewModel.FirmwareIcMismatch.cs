@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -40,6 +41,11 @@ public sealed partial class MainWindowViewModel
         if (string.IsNullOrWhiteSpace(detectedIc) ||
             !IcChoices.Contains(detectedIc, StringComparer.OrdinalIgnoreCase) ||
             string.Equals(detectedIc, SelectedIc, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (WorkbenchCompositionService.ArePerfectFamilyMembers(SelectedIc, detectedIc))
         {
             return;
         }

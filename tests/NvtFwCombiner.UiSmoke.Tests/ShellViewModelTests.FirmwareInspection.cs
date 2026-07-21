@@ -363,6 +363,27 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Context updated", viewModel.ShellToastTitle);
     }
 
+    /// <summary>A non-authoritative marker within one perfect family keeps the selected IC without prompting.</summary>
+    [Fact]
+    public async Task PerfectFamilyIcHintKeepsCurrentContextWithoutPrompt()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-perfect-family-context");
+        string basePath = workspace.Write("NT51927_base.bin", [0x01]);
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        [
+            .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                input.InspectionId,
+                new WorkbenchFirmwareInspection("NT51927", null, null, null, null, null))),
+        ]);
+        viewModel.SelectedIc = "NT51917";
+
+        await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
+
+        Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51917", viewModel.SelectedIc);
+        Assert.Equal(basePath, viewModel.ReplaceBaseSlot.FilePath);
+    }
+
     /// <summary>Accepting a replacement hint retains a compatible slot and reinspects it in the new IC context.</summary>
     [Fact]
     public async Task AcceptedIcMismatchRetainsCompatibleCtrlRamReplacement()

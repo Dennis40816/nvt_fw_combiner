@@ -103,4 +103,19 @@ public sealed class WorkbenchReplaceSupportPolicyTests
         Assert.Equal(relationship, summary.Relationship);
         Assert.False(string.IsNullOrWhiteSpace(summary.Scope));
     }
+
+    /// <summary>Only canonical/perfect members of one declared family qualify for advisory context reuse.</summary>
+    [Theory]
+    [InlineData("NT51917", "NT51927", true)]
+    [InlineData("NT51919", "NT51932", true)]
+    [InlineData("NT51928", "NT51927", false)]
+    [InlineData("NT51923", "NT51926", false)]
+    public void PerfectFamilyPairExcludesPartialAndUnrelatedIcs(
+        string firstIcId,
+        string secondIcId,
+        bool expected)
+    {
+        Assert.Equal(expected, WorkbenchCompositionService.ArePerfectFamilyMembers(firstIcId, secondIcId));
+        Assert.Equal(expected, WorkbenchCompositionService.ArePerfectFamilyMembers(secondIcId, firstIcId));
+    }
 }
