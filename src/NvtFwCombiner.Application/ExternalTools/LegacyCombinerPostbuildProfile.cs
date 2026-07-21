@@ -24,7 +24,8 @@ public sealed class LegacyCombinerPostbuildProfile
         IEnumerable<LegacyCombinerPostbuildCommand>? threeChipCommands = null,
         IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules = null,
         LegacyCombinerPostbuildAssemblyKind assemblyKind = LegacyCombinerPostbuildAssemblyKind.InPlaceFirmwareImage,
-        LegacyCombinerCommonFwVersionRule? commonFwVersionRule = null)
+        LegacyCombinerCommonFwVersionRule? commonFwVersionRule = null,
+        LegacyCombinerFirmwareConfigPropagation firmwareConfigPropagation = LegacyCombinerFirmwareConfigPropagation.None)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -64,6 +65,7 @@ public sealed class LegacyCombinerPostbuildProfile
         DisplayCategory = CreateDisplayCategory(evidence, processorId);
         AssemblyKind = assemblyKind;
         CommonFwVersionRule = commonFwVersionRule;
+        FirmwareConfigPropagation = firmwareConfigPropagation;
     }
 
     /// <summary>Processor id referenced by composition profiles.</summary>
@@ -105,6 +107,9 @@ public sealed class LegacyCombinerPostbuildProfile
     /// <summary>Optional Common FW category rule for ICs with versioned postbuild references.</summary>
     public LegacyCombinerCommonFwVersionRule? CommonFwVersionRule { get; }
 
+    /// <summary>Reviewed FWConfig propagation behavior performed implicitly by the selected legacy mode.</summary>
+    public LegacyCombinerFirmwareConfigPropagation FirmwareConfigPropagation { get; }
+
     private static Dictionary<string, LegacyCombinerPostbuildBranch> BuildBranchRules(
         IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules)
     {
@@ -142,4 +147,14 @@ public sealed class LegacyCombinerPostbuildProfile
             ? category[prefix.Length..]
             : category;
     }
+}
+
+/// <summary>Typed firmware-config propagation capability of a legacy postbuild profile.</summary>
+public enum LegacyCombinerFirmwareConfigPropagation
+{
+    /// <summary>No implicit firmware-config propagation is declared.</summary>
+    None,
+
+    /// <summary>The legacy mode copies the TP flash-map primary FWConfig into the canonical NVT Backup.</summary>
+    PrimaryToCanonicalBackup,
 }

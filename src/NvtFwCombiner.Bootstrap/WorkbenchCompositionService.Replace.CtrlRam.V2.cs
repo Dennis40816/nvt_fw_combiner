@@ -11,6 +11,7 @@ public static partial class WorkbenchCompositionService
     private static V2CompositionPlanCompileResult CompileCtrlRamV2(
         CtrlRamReplaceRunContext context,
         string profileId,
+        string profileVersion,
         TopologySelection topology,
         FirmwareArtifactPayload referencePayload)
     {
@@ -62,7 +63,7 @@ public static partial class WorkbenchCompositionService
         };
         return BuiltInV2BundleRegistry.All[bundleId].CompileRuntimeReferenceReplace(
             profileId,
-            "0.1.0",
+            profileVersion,
             context.PostbuildProfile.IcId,
             ExperienceIds.CtrlRamReplace,
             topology,

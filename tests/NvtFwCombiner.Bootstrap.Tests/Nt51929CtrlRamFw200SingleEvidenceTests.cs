@@ -121,9 +121,9 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
             artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
     }
 
-    /// <summary>An NT51929 version edit fails closed because its reviewed command plan has no FWConfig propagation block.</summary>
+    /// <summary>A declared source route still fails closed when the injected processor does not propagate to Backup.</summary>
     [Fact]
-    public async Task FirmwareVersionEditRequiresAnEvidenceBackedFwConfigPropagationBlockAsync()
+    public async Task FirmwareVersionEditRejectsProcessorThatDoesNotPropagateToBackupAsync()
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51929-fw200-version-edit");
@@ -144,17 +144,61 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
         Assert.False(result.Succeeded, result.ReportJson);
         Assert.Null(result.CommittedOutputId);
         Assert.False(File.Exists(outputPath));
-        Assert.Equal(0, processor.CallCount);
+        Assert.Equal(1, processor.CallCount);
         Assert.Equal(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
 
         using var report = JsonDocument.Parse(result.ReportJson);
         JsonElement issue = Assert.Single(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
             candidate => candidate.GetProperty("Code").GetString() ==
-                WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionPropagationUnavailable);
-        Assert.Equal("postbuild", issue.GetProperty("OperationId").GetString());
-        Assert.Contains("FWConfig source block", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
+                WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionOutputMismatch);
+        Assert.Equal("verify-nvt-fwconfig-backup-version", issue.GetProperty("OperationId").GetString());
         Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
+    }
+
+    /// <summary>The production NT51929 mode edits Primary, propagates Backup, and commits a full output.</summary>
+    [Fact]
+    public async Task FirmwareVersionEditBuildPropagatesPrimaryToBackupAsync()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        const byte firmwareVersion = 0x27;
+        const byte firmwareSubVersion = 0x04;
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51929-fw200-version-edit-real");
+        string basePath = workspace.Write("base.bin", evidence.Expected.Bytes);
+        string outputPath = workspace.PathFor("version-edited.bin");
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51929",
+            "single",
+            WorkbenchReplaceModes.CtrlRam,
+            CreateSlotPaths(evidence, basePath),
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath,
+            ctrlRamFirmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(firmwareVersion, firmwareSubVersion));
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(outputPath, result.CommittedOutputId);
+        Assert.Equal(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.Equal(Capacity, output.Length);
+        Assert.True(BuiltInTpFlashMapCatalog.TryFind("NT51929", out TpFlashMapProfile? flashMap));
+        Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(
+            output,
+            flashMap!.FirmwareConfigPrimaryStart,
+            out FirmwareConfigMetadata primary));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(output, out FirmwareConfigMetadata backup));
+        Assert.Equal(firmwareVersion, primary.FirmwareVersion);
+        Assert.Equal(unchecked((byte)~firmwareVersion), primary.FirmwareVersionBar);
+        Assert.Equal(firmwareSubVersion, primary.FirmwareSubVersion);
+        Assert.Equal(firmwareVersion, backup.FirmwareVersion);
+        Assert.Equal(unchecked((byte)~firmwareVersion), backup.FirmwareVersionBar);
+        Assert.Equal(firmwareSubVersion, backup.FirmwareSubVersion);
     }
 
     /// <summary>Proves another base, project, version, count, or selector fails closed.</summary>
@@ -281,6 +325,7 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
         ByteRange[] expectedWrites = [
             new(0x7100, 4), new(0x7118, 4), new(NfStart, 1624), new(NormalStart, NormalLength),
             new(VnStart, VnMaximumLength), new(HeaderCopyStart, HeaderCopyLength),
+            new(0x2E000, FirmwareConfigLayout.RequiredLength),
         ];
         Assert.Equal(expectedWrites, ReadRanges(session, "ProcessorAllowedWriteRanges"));
         string executable = session.GetProperty("ExecutedCommands")[0].GetProperty("ExecutablePath").GetString()!;

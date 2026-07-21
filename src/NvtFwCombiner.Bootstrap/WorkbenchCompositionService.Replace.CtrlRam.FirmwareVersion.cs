@@ -10,12 +10,14 @@ public static partial class WorkbenchCompositionService
 
     private static bool TryCreateCtrlRamFirmwareVersionWritePlan(
         FirmwareConfigMetadata backupMetadata,
+        LegacyCombinerPostbuildProfile postbuildProfile,
         LegacyCombinerPostbuildCommandPlan commandPlan,
         WorkbenchCtrlRamFirmwareVersionEdit edit,
-        long baseLength,
+        ReadOnlySpan<byte> baseBytes,
         out FirmwareConfigVersionWritePlan? writePlan,
         out CompositionIssue? issue)
     {
+        ArgumentNullException.ThrowIfNull(postbuildProfile);
         ArgumentNullException.ThrowIfNull(commandPlan);
         ArgumentNullException.ThrowIfNull(edit);
 
@@ -47,17 +49,25 @@ public static partial class WorkbenchCompositionService
                 .OrderBy(block => block.SourceOffset)
                 .ThenBy(block => block.FirmwareRange.Start),
         ];
-        if (sourceBlocks.Length != 1)
+        long? sourceStart = sourceBlocks.Length == 1
+            ? sourceBlocks[0].SourceOffset
+            : TryResolveImplicitFirmwareConfigSource(
+                postbuildProfile,
+                baseBytes,
+                backupMetadata,
+                out long implicitSourceStart)
+                ? implicitSourceStart
+                : null;
+        if (sourceBlocks.Length > 1 || sourceStart is null)
         {
             issue = new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionPropagationUnavailable,
-                "TP FW version editing requires exactly one legacy Combiner FWConfig source block that propagates to the canonical NVT Backup.",
+                "TP FW version editing requires one reviewed legacy Combiner path from the modeled primary FWConfig to the canonical NVT Backup.",
                 "postbuild");
             return false;
         }
 
-        LegacyCombinerBlockArgument sourceBlock = sourceBlocks[0];
-        if (sourceBlock.SourceOffset + FirmwareConfigLayout.RequiredLength > baseLength)
+        if (sourceStart.Value + FirmwareConfigLayout.RequiredLength > baseBytes.Length)
         {
             issue = new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionPropagationUnavailable,
@@ -68,7 +78,30 @@ public static partial class WorkbenchCompositionService
 
         writePlan = FirmwareConfigVersionWritePlan
             .CreateForBackup(backupMetadata, edit.FirmwareVersion, edit.FirmwareSubVersion)
-            .RebaseToCombinerSource(sourceBlock.SourceOffset);
+            .RebaseToCombinerSource(sourceStart.Value);
+        return true;
+    }
+
+    private static bool TryResolveImplicitFirmwareConfigSource(
+        LegacyCombinerPostbuildProfile postbuildProfile,
+        ReadOnlySpan<byte> baseBytes,
+        FirmwareConfigMetadata backupMetadata,
+        out long sourceStart)
+    {
+        sourceStart = 0;
+        if (postbuildProfile.FirmwareConfigPropagation !=
+                LegacyCombinerFirmwareConfigPropagation.PrimaryToCanonicalBackup ||
+            !BuiltInTpFlashMapCatalog.TryFind(postbuildProfile.IcId, out TpFlashMapProfile? flashMap) ||
+            !FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(
+                baseBytes,
+                flashMap!.FirmwareConfigPrimaryStart,
+                out FirmwareConfigMetadata primaryMetadata) ||
+            primaryMetadata with { FirmwareConfigStart = backupMetadata.FirmwareConfigStart } != backupMetadata)
+        {
+            return false;
+        }
+
+        sourceStart = primaryMetadata.FirmwareConfigStart;
         return true;
     }
 }

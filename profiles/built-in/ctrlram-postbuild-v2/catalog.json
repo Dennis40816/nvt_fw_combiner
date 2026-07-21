@@ -1460,6 +1460,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigPropagation": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51919 follows NT51929"
     },
     {
@@ -4914,6 +4915,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigPropagation": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51929 follows NT51932"
     },
     {

@@ -284,6 +284,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51929\", \"nfc.nt51929.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"2.0.0\", 1, 0x4703)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51919\", \"nfc.nt51919.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"2.0.0\", 1, 0x4703)", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("(\"nt51929-ctrlram-replace-fw200-single\", \"0.2.0\"", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("(\"nt51919-ctrlram-replace-fw200-single\", \"0.2.0\"", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51926\", \"nfc.nt51926.ctrlram-postbuild-fw1.4.1\", LegacyCombinerPostbuildBranch.Cascade, IcNumberInputMode.CascadeSelector, _, > 1, _)", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("(\"NT51926\", Nt51926Fw200ProcessorId, LegacyCombinerPostbuildBranch.SingleChip, IcNumberInputMode.SingleSelector, \"2.0.0\", 1, 0x1309)", ctrlRamRuntime, StringComparison.Ordinal);
@@ -378,6 +380,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("nt51929-ctrlram-fw200-single-full-flash", nt51929Profile, StringComparison.Ordinal);
         Assert.Contains("\"chipCount\": 1", nt51929Family, StringComparison.Ordinal);
         Assert.Contains("\"expectedValues\": [ 18179 ]", nt51929Family, StringComparison.Ordinal);
+        Assert.Contains("\"regionId\": \"fw-config-source\"", nt51929Family, StringComparison.Ordinal);
+        Assert.Contains("\"regionId\": \"fw-config-backup\"", nt51929Family, StringComparison.Ordinal);
         Assert.Contains("\"memberId\": \"NT51919\"", nt51929Family, StringComparison.Ordinal);
         Assert.Contains("\"memberIds\": [ \"NT51919\", \"NT51929\" ]", nt51929Family, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", nt51919Profile, StringComparison.Ordinal);

@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Infrastructure.ExternalTools;
 internal static class BuiltInPostbuildProfileCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/catalog.json";
-    private const string ExpectedSha256 = "736fb7fe989b3a9eaba203ec1deac8645efde2fbf45ab6ba650d860545079b51";
+    private const string ExpectedSha256 = "907145a9c58df848de7b81d8b0dbceb9b3886c05bd30fa9504cf75f1f521875e";
     private static readonly Lazy<IReadOnlyList<LegacyCombinerPostbuildProfile>> Profiles = new(Load);
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> All => Profiles.Value;
@@ -151,7 +151,13 @@ internal static class BuiltInPostbuildProfileCatalog
                         _ => throw Invalid("commonFwVersionRule.matchKind"),
                     },
                     source.CommonFwVersionRule.Pattern,
-                    source.CommonFwVersionRule.Description));
+                    source.CommonFwVersionRule.Description),
+            source.FirmwareConfigPropagation switch
+            {
+                null => LegacyCombinerFirmwareConfigPropagation.None,
+                "primary-to-canonical-backup" => LegacyCombinerFirmwareConfigPropagation.PrimaryToCanonicalBackup,
+                _ => throw Invalid("firmwareConfigPropagation"),
+            });
     }
 
     private static bool IsRuntimeProfile(ProfileDocument source)
@@ -241,6 +247,7 @@ internal static class BuiltInPostbuildProfileCatalog
         IReadOnlyList<BranchRuleDocument>? BranchRules,
         string AssemblyKind,
         CommonFwVersionRuleDocument? CommonFwVersionRule,
+        string? FirmwareConfigPropagation,
         string? Availability,
         string Evidence);
 

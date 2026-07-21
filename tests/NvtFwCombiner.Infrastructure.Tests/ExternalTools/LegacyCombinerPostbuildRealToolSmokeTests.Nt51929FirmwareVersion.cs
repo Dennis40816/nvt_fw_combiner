@@ -29,6 +29,9 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         string executableSource = Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName);
         Assert.Equal(manifest.Sha256, Sha256(executableSource));
         Assert.True(LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out LegacyCombinerPostbuildProfile? profile));
+        Assert.Equal(
+            LegacyCombinerFirmwareConfigPropagation.PrimaryToCanonicalBackup,
+            profile!.FirmwareConfigPropagation);
         Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? flashMap));
 
         byte[] ownerGolden = File.ReadAllBytes(FindGoldenExpectedOutput("51929"));
@@ -58,13 +61,13 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             var registry = new ExternalCombinerToolRegistry([manifest]);
             var processor = new LegacyCombinerPostbuildProcessor(
                 registry,
-                [profile!],
+                [profile],
                 toolRoot,
                 stagingRoot,
                 new SystemExternalProcessRunner());
             byte[] output = await RunPostbuildProcessorAsync(
                 processor,
-                profile!,
+                profile,
                 new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
                 stagedFirmware,
                 allowedChanges,

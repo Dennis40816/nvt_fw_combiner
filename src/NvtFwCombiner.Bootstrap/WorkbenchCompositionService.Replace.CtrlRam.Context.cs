@@ -164,9 +164,10 @@ public static partial class WorkbenchCompositionService
         if (firmwareVersionEdit is not null && baseBytes is not null && commandPlan is not null && TryReadFirmwareConfigBackupMetadata(icId, baseBytes, out FirmwareConfigMetadata backupMetadata) &&
             !TryCreateCtrlRamFirmwareVersionWritePlan(
                 backupMetadata,
+                postbuildProfile!,
                 commandPlan,
                 firmwareVersionEdit,
-                baseLength,
+                baseBytes,
                 out firmwareVersionWritePlan,
                 out CompositionIssue? firmwareVersionIssue))
         {
