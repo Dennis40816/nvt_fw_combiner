@@ -6,7 +6,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-MODULE_PATH = Path(__file__).with_name("poll_github_review.py")
+MODULE_PATH = (
+    Path(__file__).resolve().parents[2]
+    / ".agents"
+    / "skills"
+    / "github-review-polling"
+    / "scripts"
+    / "poll_github_review.py"
+)
 SPEC = importlib.util.spec_from_file_location("poll_github_review", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 POLL = importlib.util.module_from_spec(SPEC)
@@ -100,7 +107,7 @@ class PollGithubReviewTests(unittest.TestCase):
 
         self.assertEqual(responses, [])
 
-    def test_ignores_unrelated_bot_issue_comment(self) -> None:
+    def test_treats_error_issue_comment_as_response_for_inspection(self) -> None:
         snapshot = {
             "reviews": [],
             "inline_comments": [],
@@ -108,7 +115,8 @@ class PollGithubReviewTests(unittest.TestCase):
                 {
                     "user": {"login": "chatgpt-codex-connector[bot]"},
                     "created_at": "2026-07-21T04:01:00Z",
-                    "body": "I answered a question unrelated to the requested review.",
+                    "html_url": "https://example.invalid/error-response",
+                    "body": "Unknown error",
                 }
             ],
             "reactions": [],
@@ -118,7 +126,9 @@ class PollGithubReviewTests(unittest.TestCase):
             snapshot, self.requested, self.head, "chatgpt-codex-connector"
         )
 
-        self.assertEqual(responses, [])
+        self.assertEqual(len(responses), 1)
+        self.assertEqual(responses[0]["kind"], "issue_comment")
+        self.assertEqual(responses[0]["body"], "Unknown error")
 
     def test_json_output_is_safe_on_windows_cp950_console(self) -> None:
         output = POLL.serialize_payload({"body": "Codex review information ℹ"})

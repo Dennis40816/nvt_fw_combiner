@@ -85,7 +85,6 @@ only after a new locally reviewed SHA or after actionable feedback was fixed.
 Run both deterministic tests and the skill validator:
 
 ```powershell
-python .agents/skills/github-review-polling/scripts/test_poll_github_review.py
-python C:/Users/liusx/.codex/skills/.system/skill-creator/scripts/quick_validate.py `
-  .agents/skills/github-review-polling
+python tests/scripts/test_github_review_polling.py
+python scripts/validate_repository.py
 ```

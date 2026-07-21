@@ -17,7 +17,6 @@ DEFAULT_BOT_LOGIN = "chatgpt-codex-connector"
 MAX_SLEEP_SECONDS = 60
 REPOSITORY_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 REQUEST_PATTERN = re.compile(r"(?im)^\s*@codex\s+review\b")
-REVIEW_RESULT_PATTERN = re.compile(r"(?i)\bCodex Review:|\bReviewed commit:")
 
 
 class PollingError(RuntimeError):
@@ -59,11 +58,9 @@ def short_body(item: dict[str, Any]) -> str:
     return " ".join(str(item.get("body") or "").split())[:300]
 
 
-def is_review_result_comment(item: dict[str, Any]) -> bool:
-    return REVIEW_RESULT_PATTERN.search(str(item.get("body") or "")) is not None
-
-
-def response_record(kind: str, item: dict[str, Any], timestamp: datetime) -> dict[str, Any]:
+def response_record(
+    kind: str, item: dict[str, Any], timestamp: datetime
+) -> dict[str, Any]:
     return {
         "kind": kind,
         "timestamp": timestamp.isoformat().replace("+00:00", "Z"),
@@ -111,13 +108,16 @@ def collect_responses(
             timestamp is not None
             and timestamp > requested_after
             and is_bot(item, bot_login)
-            and is_review_result_comment(item)
         ):
             responses.append(response_record("issue_comment", item, timestamp))
 
     for item in snapshot.get("reactions", []):
         timestamp = item_time(item, "created_at")
-        if timestamp is None or timestamp <= requested_after or not is_bot(item, bot_login):
+        if (
+            timestamp is None
+            or timestamp <= requested_after
+            or not is_bot(item, bot_login)
+        ):
             continue
         record = response_record("reaction", item, timestamp)
         if str(item.get("content") or "").lower() == "eyes":
@@ -151,11 +151,15 @@ class GitHubClient:
             detail = (error.stderr or error.stdout or "gh api failed").strip()
             raise PollingError(detail) from error
         except json.JSONDecodeError as error:
-            raise PollingError(f"GitHub API returned invalid JSON for {path}") from error
+            raise PollingError(
+                f"GitHub API returned invalid JSON for {path}"
+            ) from error
 
         if paginate:
             if not isinstance(payload, list):
-                raise PollingError(f"paginated GitHub response was not a list for {path}")
+                raise PollingError(
+                    f"paginated GitHub response was not a list for {path}"
+                )
             if payload and all(isinstance(page, list) for page in payload):
                 return [item for page in payload for item in page]
         return payload
@@ -172,9 +176,13 @@ def request_time(
         comment = client.get(f"repos/{repo}/issues/comments/{comment_id}")
         issue_url = str(comment.get("issue_url") or "")
         if not issue_url.endswith(f"/issues/{pr_number}"):
-            raise ValueError("request comment does not belong to the selected pull request")
+            raise ValueError(
+                "request comment does not belong to the selected pull request"
+            )
         if REQUEST_PATTERN.search(str(comment.get("body") or "")) is None:
-            raise ValueError("request comment does not contain an @codex review request")
+            raise ValueError(
+                "request comment does not contain an @codex review request"
+            )
         created = comment.get("created_at")
         if not created:
             raise ValueError("request comment has no creation timestamp")
@@ -230,14 +238,22 @@ def sleep_with_heartbeats(seconds: int, poll_number: int) -> None:
         time.sleep(tick)
         remaining -= tick
         if remaining > 0:
-            emit({"status": "waiting", "poll": poll_number, "secondsRemaining": remaining})
+            emit(
+                {
+                    "status": "waiting",
+                    "poll": poll_number,
+                    "secondsRemaining": remaining,
+                }
+            )
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", required=True, help="GitHub owner/name")
     parser.add_argument("--pr", required=True, type=int, help="pull request number")
-    parser.add_argument("--expected-head", required=True, help="exact 40-character head SHA")
+    parser.add_argument(
+        "--expected-head", required=True, help="exact 40-character head SHA"
+    )
     identity = parser.add_mutually_exclusive_group(required=True)
     identity.add_argument("--request-comment-id", type=int)
     identity.add_argument("--requested-after", help="exact ISO-8601 request time")
@@ -254,11 +270,19 @@ def main(argv: list[str] | None = None) -> int:
         REPOSITORY_PATTERN.fullmatch(args.repo) is None
         or args.pr <= 0
         or len(args.expected_head) != 40
-        or any(character not in "0123456789abcdefABCDEF" for character in args.expected_head)
+        or any(
+            character not in "0123456789abcdefABCDEF"
+            for character in args.expected_head
+        )
         or args.interval_seconds < 1
         or args.max_polls < 1
     ):
-        emit({"status": "invalid_input", "message": "invalid repository, PR, SHA, or poll budget"})
+        emit(
+            {
+                "status": "invalid_input",
+                "message": "invalid repository, PR, SHA, or poll budget",
+            }
+        )
         return 5
 
     expected_head = args.expected_head.lower()
@@ -308,7 +332,9 @@ def main(argv: list[str] | None = None) -> int:
                     "status": "response",
                     "poll": poll_number,
                     "head": expected_head,
-                    "requestedAfter": requested_after.isoformat().replace("+00:00", "Z"),
+                    "requestedAfter": requested_after.isoformat().replace(
+                        "+00:00", "Z"
+                    ),
                     "responses": responses,
                     "pendingReactions": pending_reactions,
                 }
