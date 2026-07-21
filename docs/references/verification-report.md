@@ -61,9 +61,17 @@ payload hashes also passed.
 
 Independent R2/R3 and owner review, the existing `總代理` conversation review,
 protected CI, reviewed-main packaging, clean Windows x64 execution without
-separately installed .NET/Python, accessibility/visual review, signing, and
-immutable release publication remain mandatory. This evidence-only follow-up
-does not change the verified executable tree or self-approve those gates.
+separately installed .NET/Python, representative firmware UAT,
+accessibility/visual review, signing, and immutable release publication remain
+mandatory. This evidence-only follow-up does not change the verified executable
+tree or self-approve those gates.
+
+The owner classified `v0.9.11` as support-neutral on 2026-07-21. It promotes no
+IC/workflow support stage. Existing golden, alias, same-build, and private
+CtrlRAM evidence retain their documented scope; missing IC-specific direct
+parity, including the separately recorded NT51930 DP Replace package, remains a
+future support-promotion gate rather than a blanket `v0.9.11` release blocker.
+No firmware behavior or evidence result is changed by this classification.
 
 ## 0.9.10 performance-remediation stable release candidate
 

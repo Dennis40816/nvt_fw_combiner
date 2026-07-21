@@ -29,7 +29,8 @@ Changes after `0.9.11` will be documented here.
 ### Notes
 
 - On the recorded Windows machine, one warm-up plus five packaged Home launches measured a 908.146 ms process-to-window median. The one-second goal passes; the aspirational 0.8-second target does not and is not a universal claim.
-- Clean Windows x64 execution without separately installed .NET/Python, accessibility/visual review, firmware-owner gates, protected CI, final reviewed-main packaging, signing, and immutable release publication remain release gates.
+- By owner decision on 2026-07-21, `0.9.11` is support-neutral: no IC/workflow support stage is promoted. Existing per-IC golden and firmware-owner gaps remain future support-promotion gates rather than blanket blockers for this release.
+- Clean Windows x64 execution without separately installed .NET/Python, representative firmware UAT, accessibility/visual review, protected CI, final reviewed-main packaging, signing, and immutable release publication remain release gates.
 
 ## [0.9.10] - 2026-07-20
 

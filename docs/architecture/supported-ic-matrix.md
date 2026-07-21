@@ -10,6 +10,12 @@ Current owner priority as of 2026-07-18:
 - require Replace UI to collect IC num before profile-specific regions are shown. ICs with only single/cascade choices use text labels; ICs with three or more concrete choices such as NT51917/NT51927/NT51928 use numeric count selection, optionally with an Other/custom path later;
 - expect CtrlRAM Replace CRC/header recalculation through approved legacy `combiner.exe` postbuild sequences.
 
+Owner release decision as of 2026-07-21: `v0.9.11` is support-neutral and does
+not promote any row below. Existing authoring availability and evidence stages
+remain unchanged. Direct golden or firmware-owner gaps continue to gate future
+promotion of the selected IC/workflow, but they are not blanket blockers for
+the support-neutral `v0.9.11` release.
+
 The per-IC Merge/Replace flowchart reference is [`ic-workflow-flowcharts.md`](ic-workflow-flowcharts.md). When adding a new IC workflow, follow [`adding-ic-merge-replace-workflow.md`](adding-ic-merge-replace-workflow.md). Update both documents together when IC workflow status changes.
 
 The active 0.8.0 cleanup goal and milestone acceptance criteria are tracked in
