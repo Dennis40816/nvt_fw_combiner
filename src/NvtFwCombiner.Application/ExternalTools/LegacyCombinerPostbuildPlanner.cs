@@ -17,8 +17,8 @@ public static partial class LegacyCombinerPostbuildPlanner
         IReadOnlyList<LegacyCombinerPostbuildCommand> commands = branch switch
         {
             LegacyCombinerPostbuildBranch.SingleChip => profile.SingleCommands,
-            LegacyCombinerPostbuildBranch.TwoChip => profile.TwoChipCommands ?? profile.CascadeCommands,
-            LegacyCombinerPostbuildBranch.ThreeChip => profile.ThreeChipCommands ?? profile.CascadeCommands,
+            LegacyCombinerPostbuildBranch.TwoChip => profile.TwoChipCommands!,
+            LegacyCombinerPostbuildBranch.ThreeChip => profile.ThreeChipCommands!,
             LegacyCombinerPostbuildBranch.Cascade => profile.CascadeCommands,
             _ => throw new ArgumentOutOfRangeException(nameof(icNumberSelection), "Unsupported postbuild branch."),
         };
@@ -82,9 +82,12 @@ public static partial class LegacyCombinerPostbuildPlanner
             return LegacyCombinerPostbuildBranch.SingleChip;
         }
 
-        string token = LegacyCombinerPostbuildBranchRule.NormalizeToken(selection.Parts[^1]);
-        return profile.BranchRules.TryGetValue(token, out LegacyCombinerPostbuildBranch branch)
-            ? branch
+        LegacyCombinerPostbuildPlanSelector[] matches =
+        [
+            .. profile.PlanSelectors.Where(selector => selector.Matches(selection)),
+        ];
+        return matches.Length == 1
+            ? matches[0].Branch
             : throw new ArgumentException(
                 $"IC number selection '{selection.Parts[^1]}' is not supported by postbuild profile '{profile.ProcessorId}'.");
     }

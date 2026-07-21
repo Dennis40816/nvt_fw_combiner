@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Infrastructure.ExternalTools;
 internal static class BuiltInPostbuildProfileCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/catalog.json";
-    private const string ExpectedSha256 = "e6e8bd7ecefb9f9edf49ffa053e21c055f569607638bd25e357f670d8aca44f0";
+    private const string ExpectedSha256 = "9c4c1b3fdfead13bacea02fffb991cc5dcb61403e1c29bc62439e6998d428c2e";
     private static readonly Lazy<IReadOnlyList<LegacyCombinerPostbuildProfile>> Profiles = new(Load);
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> All => Profiles.Value;
@@ -27,9 +27,9 @@ internal static class BuiltInPostbuildProfileCatalog
             expectedSha256,
             "Built-in CtrlRAM Postbuild catalog",
             "Built-in CtrlRAM Postbuild catalog is empty.");
-        if (document.SchemaVersion != "2.1" || document.Profiles is null)
+        if (document.SchemaVersion != "2.2" || document.Profiles is null)
         {
-            throw new InvalidDataException("Built-in CtrlRAM Postbuild catalog must use schema 2.1 with profiles.");
+            throw new InvalidDataException("Built-in CtrlRAM Postbuild catalog must use schema 2.2 with profiles.");
         }
 
         ProfileDocument[] sources = [.. document.Profiles];
@@ -131,6 +131,20 @@ internal static class BuiltInPostbuildProfileCatalog
 
     private static LegacyCombinerPostbuildProfile CreateProfile(ProfileDocument source)
     {
+        try
+        {
+            return CreateValidatedProfile(source);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new InvalidDataException(
+                $"Built-in CtrlRAM Postbuild catalog has an invalid profile '{source.ProcessorId}'.",
+                exception);
+        }
+    }
+
+    private static LegacyCombinerPostbuildProfile CreateValidatedProfile(ProfileDocument source)
+    {
         return new LegacyCombinerPostbuildProfile(
             source.ProcessorId,
             source.IcId,
@@ -141,16 +155,7 @@ internal static class BuiltInPostbuildProfileCatalog
             source.Evidence,
             source.TwoChipCommands?.Select(CreateCommand),
             source.ThreeChipCommands?.Select(CreateCommand),
-            Required(source.BranchRules, "branchRules").Select(rule => new LegacyCombinerPostbuildBranchRule(
-                rule.Token,
-                rule.Branch switch
-                {
-                    "single" => LegacyCombinerPostbuildBranch.SingleChip,
-                    "cascade" => LegacyCombinerPostbuildBranch.Cascade,
-                    "two-chip" => LegacyCombinerPostbuildBranch.TwoChip,
-                    "three-chip" => LegacyCombinerPostbuildBranch.ThreeChip,
-                    _ => throw Invalid("branch"),
-                })),
+            Required(source.PlanSelectors, "planSelectors").Select(CreatePlanSelector),
             source.AssemblyKind switch
             {
                 "in-place-firmware-image" => LegacyCombinerPostbuildAssemblyKind.InPlaceFirmwareImage,
@@ -184,6 +189,30 @@ internal static class BuiltInPostbuildProfileCatalog
         return LegacyCombinerCommonFwVersion.TryParse(value, out LegacyCombinerCommonFwVersion version)
             ? version
             : throw Invalid("effectiveCommonFwVersion");
+    }
+
+    private static LegacyCombinerPostbuildPlanSelector CreatePlanSelector(PlanSelectorDocument source)
+    {
+        return new LegacyCombinerPostbuildPlanSelector(
+            source.Kind switch
+            {
+                "single" => LegacyCombinerPostbuildPlanSelectorKind.SingleChip,
+                "generic-cascade" => LegacyCombinerPostbuildPlanSelectorKind.GenericCascade,
+                "exact-count" => LegacyCombinerPostbuildPlanSelectorKind.ExactCount,
+                "count-range" => LegacyCombinerPostbuildPlanSelectorKind.CountRange,
+                _ => throw Invalid("planSelectors.kind"),
+            },
+            source.Branch switch
+            {
+                "single" => LegacyCombinerPostbuildBranch.SingleChip,
+                "cascade" => LegacyCombinerPostbuildBranch.Cascade,
+                "two-chip" => LegacyCombinerPostbuildBranch.TwoChip,
+                "three-chip" => LegacyCombinerPostbuildBranch.ThreeChip,
+                _ => throw Invalid("planSelectors.branch"),
+            },
+            source.Count,
+            source.MinimumCount,
+            source.MaximumCount);
     }
 
     private static void ValidateRuntimeIntervals(IReadOnlyList<LegacyCombinerPostbuildProfile> profiles)
@@ -286,7 +315,7 @@ internal static class BuiltInPostbuildProfileCatalog
         IReadOnlyList<CommandDocument>? CascadeCommands,
         IReadOnlyList<CommandDocument>? TwoChipCommands,
         IReadOnlyList<CommandDocument>? ThreeChipCommands,
-        IReadOnlyList<BranchRuleDocument>? BranchRules,
+        IReadOnlyList<PlanSelectorDocument>? PlanSelectors,
         string AssemblyKind,
         string? EffectiveCommonFwVersion,
         string FirmwareConfigWriteRoute,
@@ -309,6 +338,11 @@ internal static class BuiltInPostbuildProfileCatalog
         long TargetLength,
         string? StagedArtifactId);
 
-    private sealed record BranchRuleDocument(string Token, string Branch);
+    private sealed record PlanSelectorDocument(
+        string Kind,
+        string Branch,
+        int? Count,
+        int? MinimumCount,
+        int? MaximumCount);
 
 }

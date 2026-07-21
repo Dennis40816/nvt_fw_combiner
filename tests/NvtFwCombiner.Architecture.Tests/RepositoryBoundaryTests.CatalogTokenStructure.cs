@@ -180,7 +180,8 @@ public sealed partial class RepositoryBoundaryTests
     {
         string domainTokens = ReadText("src/NvtFwCombiner.Domain/Composition/IcNumberSelectionTokens.cs");
         string flashMapChoices = ReadText("src/NvtFwCombiner.Application/FlashMaps/IcNumberChoicePolicy.cs");
-        string postbuildProfile = ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildProfile.cs");
+        string postbuildSelector = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanSelector.cs");
         string workbenchTokens = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberTokens.cs");
         string workbenchSelections = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberSelections.cs");
         string presentationBindings = ReadText(
@@ -189,10 +190,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string SingleChip = \"single\"", domainTokens, StringComparison.Ordinal);
         Assert.Contains("public const string Cascade = \"cascade\"", domainTokens, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.SingleChip", flashMapChoices, StringComparison.Ordinal);
-        Assert.Contains("IcNumberSelectionTokens.Cascade", flashMapChoices, StringComparison.Ordinal);
-        Assert.Contains("IcNumberSelectionTokens.SingleChip", postbuildProfile, StringComparison.Ordinal);
-        Assert.Contains("IcNumberSelectionTokens.Cascade", postbuildProfile, StringComparison.Ordinal);
+        Assert.Contains("IcNumberSelectionTokens.SingleChip", postbuildSelector, StringComparison.Ordinal);
+        Assert.Contains("IcNumberSelectionTokens.Cascade", postbuildSelector, StringComparison.Ordinal);
         Assert.Contains("public const string SingleChip = IcNumberSelectionTokens.SingleChip;", workbenchTokens, StringComparison.Ordinal);
+        Assert.Contains("public const string CascadeTwoToThirteen = \"cascade_2to13\";", workbenchTokens, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.IsSingle(number)", workbenchSelections, StringComparison.Ordinal);
         Assert.Contains("WorkbenchIcNumberTokens.SingleChip", presentationBindings, StringComparison.Ordinal);
         Assert.DoesNotContain("\"single\"", flashMapChoices, StringComparison.Ordinal);

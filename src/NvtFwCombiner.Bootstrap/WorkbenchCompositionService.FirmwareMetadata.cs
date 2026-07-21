@@ -1,7 +1,5 @@
-using System.Globalization;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -87,42 +85,33 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        string numericToken = chipNumber.ToString(CultureInfo.InvariantCulture);
-        LegacyCombinerPostbuildBranch? branch = null;
+        string? stableToken = null;
         foreach (LegacyCombinerPostbuildProfile profile in profiles)
         {
-            if (!profile.BranchRules.TryGetValue(numericToken, out LegacyCombinerPostbuildBranch candidate) &&
-                (chipNumber <= 1 || !profile.BranchRules.TryGetValue(IcNumberSelectionTokens.Cascade, out candidate)))
+            LegacyCombinerPostbuildPlanSelector[] matches =
+            [
+                .. profile.PlanSelectors.Where(selector => selector.MatchesReportedChipCount(chipNumber)),
+            ];
+            if (matches.Length != 1)
             {
                 return false;
             }
 
-            if (branch is not null && branch != candidate)
+            if (stableToken is not null && !string.Equals(stableToken, matches[0].Token, StringComparison.Ordinal))
             {
                 return false;
             }
 
-            branch = candidate;
+            stableToken = matches[0].Token;
         }
 
-        if (branch is null)
+        if (stableToken is null)
         {
             return false;
         }
 
-        foreach (IcNumberChoice choice in IcNumberChoicePolicy.GetNumberSelectionChoices(profiles))
-        {
-            bool matchesEveryProfile = profiles.All(profile =>
-                profile.BranchRules.TryGetValue(choice.Token, out LegacyCombinerPostbuildBranch candidate) &&
-                candidate == branch);
-            if (matchesEveryProfile)
-            {
-                numberToken = choice.Token;
-                return true;
-            }
-        }
-
-        return false;
+        numberToken = stableToken;
+        return true;
     }
 
     private static bool TryReadFirmwareConfigBackupMetadata(

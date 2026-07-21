@@ -71,7 +71,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
 
         WorkbenchFirmwareContextSuggestion suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
             WorkbenchCompositionService.TryReadFirmwareContextSuggestion("NT51930", referencePath));
-        Assert.Equal("cascade", suggestion.NumberToken);
+        Assert.Equal(WorkbenchIcNumberTokens.CascadeTwoToThirteen, suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
         Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);
         Assert.Equal(metadata.ProjectId, suggestion.ProjectId);
@@ -112,7 +112,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51930",
-            "cascade",
+            WorkbenchIcNumberTokens.CascadeTwoToThirteen,
             WorkbenchReplaceModes.CtrlRam,
             slotPaths,
             build: true,
@@ -167,10 +167,10 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
 
     /// <summary>Proves wrong project, version, count, or selector shapes fail closed.</summary>
     [Theory]
-    [InlineData("cascade", 1, 3, 0, 3, 0xFFFF)]
-    [InlineData("cascade", 1, 2, 0, 3, 0x110D)]
-    [InlineData("cascade", 1, 3, 0, 2, 0x110D)]
-    [InlineData("3", 1, 3, 0, 3, 0x110D)]
+    [InlineData(WorkbenchIcNumberTokens.CascadeTwoToThirteen, 1, 3, 0, 3, 0xFFFF)]
+    [InlineData(WorkbenchIcNumberTokens.CascadeTwoToThirteen, 1, 2, 0, 3, 0x110D)]
+    [InlineData(WorkbenchIcNumberTokens.CascadeTwoToThirteen, 1, 3, 0, 2, 0x110D)]
+    [InlineData(WorkbenchIcNumberTokens.Cascade, 1, 3, 0, 3, 0x110D)]
     public async Task ExactRouteRejectsUnreviewedFirmwareShapesAsync(
         string number,
         byte commonFwMajor,
@@ -207,7 +207,12 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
             processor,
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        AssertFailedWithoutOutput(
+            result,
+            outputPath,
+            number == WorkbenchIcNumberTokens.Cascade
+                ? WorkbenchIssueCodes.ReplaceCtrlRamIcNumberUnsupported
+                : WorkbenchIssueCodes.ReplaceWorkflowNotSupported);
         Assert.Equal(beforeSha256, Hash(File.ReadAllBytes(referencePath)));
     }
 
@@ -227,7 +232,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         string outputPath = workspace.PathFor("output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51930",
-            "cascade",
+            WorkbenchIcNumberTokens.CascadeTwoToThirteen,
             CreateSlotPaths(evidence, referencePath),
             build: true,
             outputPath,
@@ -255,7 +260,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51930",
-            "cascade",
+            WorkbenchIcNumberTokens.CascadeTwoToThirteen,
             CreateSlotPaths(evidence, referencePath),
             build: true,
             outputPath,
@@ -280,7 +285,7 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         using var workspace = TempWorkspace.Create("nfc-nt51930-fw130-canonical-id");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             icId,
-            "cascade",
+            WorkbenchIcNumberTokens.CascadeTwoToThirteen,
             CreateSlotPaths(evidence, evidence.Expected.Path),
             build: true,
             workspace.PathFor("canonical-output.bin"),
@@ -585,14 +590,17 @@ public sealed class Nt51930CtrlRamFw130EvidenceTests
         return (differenceCount, [.. ranges]);
     }
 
-    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string outputPath)
+    private static void AssertFailedWithoutOutput(
+        WorkbenchRunResult result,
+        string outputPath,
+        string expectedIssueCode)
     {
         Assert.False(result.Succeeded, result.ReportJson);
         Assert.False(File.Exists(outputPath));
         using var report = JsonDocument.Parse(result.ReportJson);
         Assert.Contains(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == "replace.workflow.not-supported");
+            issue => issue.GetProperty("Code").GetString() == expectedIssueCode);
         Assert.False(report.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 

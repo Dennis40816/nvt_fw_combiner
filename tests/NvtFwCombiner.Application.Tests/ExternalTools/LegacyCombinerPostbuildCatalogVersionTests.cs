@@ -144,6 +144,12 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             first.Commands.SelectMany(static command => command.Blocks),
             block => block.SourceFileName == "DiffDLM.bin" &&
                      block.FirmwareRange == new ByteRange(0x2F200, 65024));
+        _ = Assert.Throws<ArgumentException>(() => LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"])));
+        _ = Assert.Throws<ArgumentException>(() => LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"])));
     }
 
     /// <summary>Duplicate runtime IC rows must form unique ordered intervals beginning at 1.0.0.</summary>

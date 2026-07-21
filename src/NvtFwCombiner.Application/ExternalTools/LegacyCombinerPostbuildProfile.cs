@@ -1,5 +1,3 @@
-using NvtFwCombiner.Domain.Composition;
-
 namespace NvtFwCombiner.Application.ExternalTools;
 
 /// <summary>Postbuild command profile for one IC family.</summary>
@@ -9,7 +7,7 @@ public sealed class LegacyCombinerPostbuildProfile
     private readonly LegacyCombinerPostbuildCommand[] _cascadeCommands;
     private readonly LegacyCombinerPostbuildCommand[]? _twoChipCommands;
     private readonly LegacyCombinerPostbuildCommand[]? _threeChipCommands;
-    private readonly Dictionary<string, LegacyCombinerPostbuildBranch> _branchRules;
+    private readonly LegacyCombinerPostbuildPlanSelector[] _planSelectors;
 
     /// <summary>Creates a postbuild command profile.</summary>
     public LegacyCombinerPostbuildProfile(
@@ -22,7 +20,7 @@ public sealed class LegacyCombinerPostbuildProfile
         string evidence,
         IEnumerable<LegacyCombinerPostbuildCommand>? twoChipCommands = null,
         IEnumerable<LegacyCombinerPostbuildCommand>? threeChipCommands = null,
-        IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules = null,
+        IEnumerable<LegacyCombinerPostbuildPlanSelector>? planSelectors = null,
         LegacyCombinerPostbuildAssemblyKind assemblyKind = LegacyCombinerPostbuildAssemblyKind.InPlaceFirmwareImage,
         LegacyCombinerCommonFwVersion? effectiveCommonFwVersion = null,
         LegacyCombinerFirmwareConfigWriteRoute firmwareConfigWriteRoute =
@@ -46,7 +44,7 @@ public sealed class LegacyCombinerPostbuildProfile
         _cascadeCommands = [.. cascadeCommands];
         _twoChipCommands = twoChipCommands is null ? null : [.. twoChipCommands];
         _threeChipCommands = threeChipCommands is null ? null : [.. threeChipCommands];
-        _branchRules = BuildBranchRules(branchRules);
+        _planSelectors = BuildPlanSelectors(planSelectors);
         if (_singleCommands.Length == 0 || _cascadeCommands.Length == 0)
         {
             throw new ArgumentException("Postbuild profile must declare both single and cascade command branches.");
@@ -57,6 +55,8 @@ public sealed class LegacyCombinerPostbuildProfile
         {
             throw new ArgumentException("Explicit IC-count command branches cannot be empty.");
         }
+
+        ValidateSelectorBranches(_planSelectors, _twoChipCommands, _threeChipCommands);
 
         ProcessorId = processorId;
         IcId = icId;
@@ -93,8 +93,8 @@ public sealed class LegacyCombinerPostbuildProfile
     /// <summary>Optional explicit three-chip command branch.</summary>
     public IReadOnlyList<LegacyCombinerPostbuildCommand>? ThreeChipCommands => _threeChipCommands;
 
-    /// <summary>Profile-specific IC number tokens accepted by the source postbuild script.</summary>
-    public IReadOnlyDictionary<string, LegacyCombinerPostbuildBranch> BranchRules => _branchRules;
+    /// <summary>Typed, non-overlapping IC-count selectors exposed by this command profile.</summary>
+    public IReadOnlyList<LegacyCombinerPostbuildPlanSelector> PlanSelectors => _planSelectors;
 
     /// <summary>Reference files that justify this command profile.</summary>
     public string Evidence { get; }
@@ -111,29 +111,54 @@ public sealed class LegacyCombinerPostbuildProfile
     /// <summary>Reviewed pre-postbuild FWConfig source route whose result must reach canonical Backup.</summary>
     public LegacyCombinerFirmwareConfigWriteRoute FirmwareConfigWriteRoute { get; }
 
-    private static Dictionary<string, LegacyCombinerPostbuildBranch> BuildBranchRules(
-        IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules)
+    private static LegacyCombinerPostbuildPlanSelector[] BuildPlanSelectors(
+        IEnumerable<LegacyCombinerPostbuildPlanSelector>? planSelectors)
     {
-        LegacyCombinerPostbuildBranchRule[] rules = branchRules is null
+        LegacyCombinerPostbuildPlanSelector[] selectors = planSelectors is null
             ? [
-                new LegacyCombinerPostbuildBranchRule(IcNumberSelectionTokens.SingleChip, LegacyCombinerPostbuildBranch.SingleChip),
-                new LegacyCombinerPostbuildBranchRule("1", LegacyCombinerPostbuildBranch.SingleChip),
-                new LegacyCombinerPostbuildBranchRule(IcNumberSelectionTokens.Cascade, LegacyCombinerPostbuildBranch.Cascade),
+                new LegacyCombinerPostbuildPlanSelector(
+                    LegacyCombinerPostbuildPlanSelectorKind.SingleChip,
+                    LegacyCombinerPostbuildBranch.SingleChip),
+                new LegacyCombinerPostbuildPlanSelector(
+                    LegacyCombinerPostbuildPlanSelectorKind.GenericCascade,
+                    LegacyCombinerPostbuildBranch.Cascade),
             ]
-            : [.. branchRules];
-
-        Dictionary<string, LegacyCombinerPostbuildBranch> byToken = new(StringComparer.Ordinal);
-        foreach (LegacyCombinerPostbuildBranchRule rule in rules)
+            : [.. planSelectors];
+        if (selectors.Length == 0)
         {
-            if (!byToken.TryAdd(rule.Token, rule.Branch))
+            throw new ArgumentException("Postbuild profile must declare at least one plan selector.", nameof(planSelectors));
+        }
+
+        for (int left = 0; left < selectors.Length; left++)
+        {
+            for (int right = left + 1; right < selectors.Length; right++)
             {
-                throw new ArgumentException(
-                    $"Postbuild branch token '{rule.Token}' is declared more than once.",
-                    nameof(branchRules));
+                if (selectors[left].MinimumCount <= selectors[right].MaximumCount &&
+                    selectors[right].MinimumCount <= selectors[left].MaximumCount)
+                {
+                    throw new ArgumentException("Postbuild plan selector count ranges cannot overlap.", nameof(planSelectors));
+                }
             }
         }
 
-        return byToken;
+        return !selectors.Any(static selector => selector.Kind == LegacyCombinerPostbuildPlanSelectorKind.SingleChip)
+            ? throw new ArgumentException("Postbuild profile must declare one single-chip selector.", nameof(planSelectors))
+            : selectors;
+    }
+
+    private static void ValidateSelectorBranches(
+        IEnumerable<LegacyCombinerPostbuildPlanSelector> selectors,
+        IReadOnlyList<LegacyCombinerPostbuildCommand>? twoChipCommands,
+        IReadOnlyList<LegacyCombinerPostbuildCommand>? threeChipCommands)
+    {
+        foreach (LegacyCombinerPostbuildPlanSelector selector in selectors)
+        {
+            if ((selector.Branch == LegacyCombinerPostbuildBranch.TwoChip && twoChipCommands is null) ||
+                (selector.Branch == LegacyCombinerPostbuildBranch.ThreeChip && threeChipCommands is null))
+            {
+                throw new ArgumentException($"Postbuild selector '{selector.Token}' has no distinct command branch.");
+            }
+        }
     }
 
     private static string CreateDisplayCategory(string evidence, string processorId)

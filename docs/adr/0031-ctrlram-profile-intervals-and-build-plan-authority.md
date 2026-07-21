@@ -65,11 +65,13 @@ Consequently:
    non-overlapping count range. A count range exists only when a distinct command plan requires it.
 3. A golden's observed count never creates an exact-count or count-range plan. Generic cascade is
    not narrowed to the count used by a fixture.
-4. Count ranges are non-overlapping and deterministic. If evidence distinguishes `2..13` from the
-   next cascade plan, the next interval starts at `14`; an overlapping `13+` declaration is invalid.
+4. Count ranges are non-overlapping and deterministic. NT51930 currently declares only `2..13`;
+   count `14` and above remain unavailable until the owner supplies a distinct command plan.
 5. NT51927 has exactly three production plans: single, 2-chip, and 3-chip. A storage-level generic
    cascade command collection is not a fourth selectable plan.
-6. Requested Number/topology selects the plan. A decoded FWConfig chip count may cross-check the
+6. NT51930 has exactly two selectable plans: single and `cascade_2to13`; the UI labels them `1 IC`
+   and `2–13 IC` and does not expose a generic Cascade choice.
+7. Requested Number/topology selects the plan. A decoded FWConfig chip count may cross-check the
    selected topology, but it does not select family or create a plan. A contradiction with an exact
    plan fails closed; missing count remains informational when the requested selector uniquely
    identifies one plan.
@@ -97,8 +99,8 @@ checks. They validate the selected execution; they do not identify a family.
 ### Trade-offs
 
 - The current exact/major version matcher must be replaced by an effective-version interval model.
-- The current fixed postbuild branch enum cannot represent general count ranges cleanly and requires
-  a typed plan-selector contract.
+- The typed plan-selector contract adds one explicit topology layer above the retained command
+  branch enum; storage-only duplicate command collections do not create selectors.
 - Existing exact-case V2 family applicability and route tests must be migrated without weakening
   byte ranges, processor authority, or expected-output evidence.
 
@@ -123,8 +125,9 @@ checks. They validate the selected execution; they do not identify a family.
 3. NT51926 tests prove 1.x versions use the 1.4.1-sourced profile and 2.x/later versions use the
    2.0.0-sourced profile. NT51930 tests prove 1.x, 2.x, later, and missing Common FW all select its
    only runtime profile.
-4. Plan tests prove NT51927 exposes only single/2-chip/3-chip and that generic cascade accepts every
-   declared count without inheriting a golden count.
+4. Plan tests prove NT51927 exposes only single/2-chip/3-chip, NT51930 exposes only single/2–13,
+   count 14 and generic Cascade are rejected for NT51930, and generic cascade on other ICs accepts
+   every count above one without inheriting a golden fixture count.
 5. Production-route tests vary PID, filename, preserved bytes/hash, and informational firmware
    fields while keeping IC, selected profile, plan, map, and processor authority valid.
 6. Existing full-byte golden, processor write-range, immutable-source, atomic-output, and report

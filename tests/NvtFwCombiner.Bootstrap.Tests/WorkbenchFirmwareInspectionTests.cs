@@ -266,7 +266,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             "NT51930",
             "base.bin",
             "base.bin",
-            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.Cascade),
+            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.CascadeTwoToThirteen),
             _ => validBytes);
         WorkbenchFirmwareConfigMetadata validMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
             validInspection.FirmwareConfig);
@@ -282,7 +282,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             "NT51930",
             "base.bin",
             "base.bin",
-            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.Cascade),
+            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.CascadeTwoToThirteen),
             _ => invalidBytes);
         WorkbenchFirmwareConfigMetadata invalidMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
             invalidInspection.FirmwareConfig);

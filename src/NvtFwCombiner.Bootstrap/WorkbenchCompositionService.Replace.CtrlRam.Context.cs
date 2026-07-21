@@ -86,7 +86,7 @@ public static partial class WorkbenchCompositionService
                 "postbuild"));
         }
 
-        if (postbuildProfile is not null || basePath is null)
+        if (commandPlan is not null || basePath is null)
         {
             sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(postbuildProfile?.IcId ?? icId, selection, postbuildProfile);
             regions = [.. sources.SelectMany(source => source.Regions)

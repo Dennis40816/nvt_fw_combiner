@@ -131,6 +131,51 @@ public sealed class BuiltInPostbuildProfileCatalogTests
             BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
     }
 
+    /// <summary>Every catalog profile must declare its supported plan topology explicitly.</summary>
+    [Fact]
+    public void LoadRejectsMissingPlanSelectors()
+    {
+        JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
+        JsonObject profile = Assert.IsType<JsonObject>(root["profiles"]![0]);
+        Assert.True(profile.Remove("planSelectors"));
+        byte[] bytes = Encoding.UTF8.GetBytes(root.ToJsonString());
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
+    }
+
+    /// <summary>Count-range and generic selectors cannot claim the same multi-chip topology.</summary>
+    [Fact]
+    public void LoadRejectsOverlappingPlanSelectors()
+    {
+        JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
+        JsonObject profile = FindProfile(root, "nfc.nt51930.ctrlram-postbuild-fw1.x");
+        JsonArray selectors = Assert.IsType<JsonArray>(profile["planSelectors"]);
+        selectors.Add(new JsonObject
+        {
+            ["kind"] = "generic-cascade",
+            ["branch"] = "cascade",
+        });
+        byte[] bytes = Encoding.UTF8.GetBytes(root.ToJsonString());
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
+    }
+
+    /// <summary>A one-count interval must be modeled as an exact selector, not a degenerate range.</summary>
+    [Fact]
+    public void LoadRejectsDegenerateCountRange()
+    {
+        JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
+        JsonObject profile = FindProfile(root, "nfc.nt51930.ctrlram-postbuild-fw1.x");
+        JsonObject range = Assert.IsType<JsonObject>(profile["planSelectors"]![1]);
+        range["maximumCount"] = 2;
+        byte[] bytes = Encoding.UTF8.GetBytes(root.ToJsonString());
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
+    }
+
     /// <summary>Runtime intervals for one IC cannot share an effective lower bound.</summary>
     [Fact]
     public void LoadRejectsDuplicateRuntimeEffectiveVersion()

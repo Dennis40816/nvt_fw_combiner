@@ -84,7 +84,8 @@ public static partial class WorkbenchCompositionService
                     context.Sources,
                     slotPaths,
                     runnablePreview: false,
-                    context.PostbuildProfile),
+                    context.PostbuildProfile,
+                    context.CommandPlan),
                 issues,
                 outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam));
         }

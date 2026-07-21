@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "2.1",
+  "schemaVersion": "2.2",
   "profiles": [
     {
       "processorId": "nfc.nt51917.ctrlram-postbuild-v1",
@@ -1173,26 +1173,20 @@
           "blocks": []
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
+          "kind": "exact-count",
+          "branch": "two-chip",
+          "count": 2
         },
         {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "two-chip"
-        },
-        {
-          "token": "3",
-          "branch": "three-chip"
+          "kind": "exact-count",
+          "branch": "three-chip",
+          "count": 3
         }
       ],
       "assemblyKind": "refreshed-tp-then-standard-merge",
@@ -1336,129 +1330,13 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
-          "branch": "cascade"
-        },
-        {
-          "token": "20",
-          "branch": "cascade"
-        },
-        {
-          "token": "21",
-          "branch": "cascade"
-        },
-        {
-          "token": "22",
-          "branch": "cascade"
-        },
-        {
-          "token": "23",
-          "branch": "cascade"
-        },
-        {
-          "token": "24",
-          "branch": "cascade"
-        },
-        {
-          "token": "25",
-          "branch": "cascade"
-        },
-        {
-          "token": "26",
-          "branch": "cascade"
-        },
-        {
-          "token": "27",
-          "branch": "cascade"
-        },
-        {
-          "token": "28",
-          "branch": "cascade"
-        },
-        {
-          "token": "29",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
@@ -1651,21 +1529,13 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "0",
-          "branch": "single"
-        },
-        {
-          "token": "1",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
@@ -1849,25 +1719,13 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
@@ -2042,25 +1900,13 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
@@ -2235,25 +2081,13 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
@@ -3433,26 +3267,20 @@
           "blocks": []
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
+          "kind": "exact-count",
+          "branch": "two-chip",
+          "count": 2
         },
         {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "two-chip"
-        },
-        {
-          "token": "3",
-          "branch": "three-chip"
+          "kind": "exact-count",
+          "branch": "three-chip",
+          "count": 3
         }
       ],
       "assemblyKind": "refreshed-tp-then-standard-merge",
@@ -4631,26 +4459,20 @@
           "blocks": []
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
+          "kind": "exact-count",
+          "branch": "two-chip",
+          "count": 2
         },
         {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "two-chip"
-        },
-        {
-          "token": "3",
-          "branch": "three-chip"
+          "kind": "exact-count",
+          "branch": "three-chip",
+          "count": 3
         }
       ],
       "assemblyKind": "refreshed-tp-then-standard-merge",
@@ -4794,129 +4616,13 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
-          "branch": "cascade"
-        },
-        {
-          "token": "20",
-          "branch": "cascade"
-        },
-        {
-          "token": "21",
-          "branch": "cascade"
-        },
-        {
-          "token": "22",
-          "branch": "cascade"
-        },
-        {
-          "token": "23",
-          "branch": "cascade"
-        },
-        {
-          "token": "24",
-          "branch": "cascade"
-        },
-        {
-          "token": "25",
-          "branch": "cascade"
-        },
-        {
-          "token": "26",
-          "branch": "cascade"
-        },
-        {
-          "token": "27",
-          "branch": "cascade"
-        },
-        {
-          "token": "28",
-          "branch": "cascade"
-        },
-        {
-          "token": "29",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
@@ -5061,130 +4767,16 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
-          "branch": "cascade"
-        },
-        {
-          "token": "20",
-          "branch": "cascade"
-        },
-        {
-          "token": "21",
-          "branch": "cascade"
-        },
-        {
-          "token": "22",
-          "branch": "cascade"
-        },
-        {
-          "token": "23",
-          "branch": "cascade"
-        },
-        {
-          "token": "24",
-          "branch": "cascade"
-        },
-        {
-          "token": "25",
-          "branch": "cascade"
-        },
-        {
-          "token": "26",
-          "branch": "cascade"
-        },
-        {
-          "token": "27",
-          "branch": "cascade"
-        },
-        {
-          "token": "28",
-          "branch": "cascade"
-        },
-        {
-          "token": "29",
-          "branch": "cascade"
+          "kind": "count-range",
+          "branch": "cascade",
+          "minimumCount": 2,
+          "maximumCount": 13
         }
       ],
       "assemblyKind": "in-place-firmware-image",
@@ -5315,130 +4907,16 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
-          "branch": "cascade"
-        },
-        {
-          "token": "20",
-          "branch": "cascade"
-        },
-        {
-          "token": "21",
-          "branch": "cascade"
-        },
-        {
-          "token": "22",
-          "branch": "cascade"
-        },
-        {
-          "token": "23",
-          "branch": "cascade"
-        },
-        {
-          "token": "24",
-          "branch": "cascade"
-        },
-        {
-          "token": "25",
-          "branch": "cascade"
-        },
-        {
-          "token": "26",
-          "branch": "cascade"
-        },
-        {
-          "token": "27",
-          "branch": "cascade"
-        },
-        {
-          "token": "28",
-          "branch": "cascade"
-        },
-        {
-          "token": "29",
-          "branch": "cascade"
+          "kind": "count-range",
+          "branch": "cascade",
+          "minimumCount": 2,
+          "maximumCount": 13
         }
       ],
       "assemblyKind": "in-place-firmware-image",
@@ -5584,93 +5062,13 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "0",
-          "branch": "single"
-        },
-        {
-          "token": "1",
-          "branch": "cascade"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
@@ -5815,129 +5213,13 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
-          "branch": "cascade"
-        },
-        {
-          "token": "3",
-          "branch": "cascade"
-        },
-        {
-          "token": "4",
-          "branch": "cascade"
-        },
-        {
-          "token": "5",
-          "branch": "cascade"
-        },
-        {
-          "token": "6",
-          "branch": "cascade"
-        },
-        {
-          "token": "7",
-          "branch": "cascade"
-        },
-        {
-          "token": "8",
-          "branch": "cascade"
-        },
-        {
-          "token": "9",
-          "branch": "cascade"
-        },
-        {
-          "token": "10",
-          "branch": "cascade"
-        },
-        {
-          "token": "11",
-          "branch": "cascade"
-        },
-        {
-          "token": "12",
-          "branch": "cascade"
-        },
-        {
-          "token": "13",
-          "branch": "cascade"
-        },
-        {
-          "token": "14",
-          "branch": "cascade"
-        },
-        {
-          "token": "15",
-          "branch": "cascade"
-        },
-        {
-          "token": "16",
-          "branch": "cascade"
-        },
-        {
-          "token": "17",
-          "branch": "cascade"
-        },
-        {
-          "token": "18",
-          "branch": "cascade"
-        },
-        {
-          "token": "19",
-          "branch": "cascade"
-        },
-        {
-          "token": "20",
-          "branch": "cascade"
-        },
-        {
-          "token": "21",
-          "branch": "cascade"
-        },
-        {
-          "token": "22",
-          "branch": "cascade"
-        },
-        {
-          "token": "23",
-          "branch": "cascade"
-        },
-        {
-          "token": "24",
-          "branch": "cascade"
-        },
-        {
-          "token": "25",
-          "branch": "cascade"
-        },
-        {
-          "token": "26",
-          "branch": "cascade"
-        },
-        {
-          "token": "27",
-          "branch": "cascade"
-        },
-        {
-          "token": "28",
-          "branch": "cascade"
-        },
-        {
-          "token": "29",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
@@ -6082,21 +5364,13 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
@@ -6241,21 +5515,13 @@
           ]
         }
       ],
-      "branchRules": [
+      "planSelectors": [
         {
-          "token": "single",
+          "kind": "single",
           "branch": "single"
         },
         {
-          "token": "cascade",
-          "branch": "cascade"
-        },
-        {
-          "token": "1",
-          "branch": "single"
-        },
-        {
-          "token": "2",
+          "kind": "generic-cascade",
           "branch": "cascade"
         }
       ],
