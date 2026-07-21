@@ -91,21 +91,32 @@ public sealed partial class ShellViewModelTests
         var unknown = ReportReviewViewModel.FromJson(
             ReportJsonSamples.Succeeded(committed: null),
             "unknown-report.json");
+        var blocked = ReportReviewViewModel.FromJson(
+            ReportJsonSamples.CtrlRamCommandIssue(),
+            "blocked-report.json");
 
         Assert.Equal("Committed output", committed.OutputCommitmentLabel);
         Assert.True(committed.IsOutputCommitted);
         Assert.False(committed.IsOutputPreview);
+        Assert.False(committed.IsOutputNotGenerated);
         Assert.False(committed.IsOutputStateUnknown);
 
         Assert.Equal("Preview only", preview.OutputCommitmentLabel);
         Assert.False(preview.IsOutputCommitted);
         Assert.True(preview.IsOutputPreview);
+        Assert.False(preview.IsOutputNotGenerated);
         Assert.False(preview.IsOutputStateUnknown);
 
         Assert.Equal("Output state unknown", unknown.OutputCommitmentLabel);
         Assert.False(unknown.IsOutputCommitted);
         Assert.False(unknown.IsOutputPreview);
+        Assert.False(unknown.IsOutputNotGenerated);
         Assert.True(unknown.IsOutputStateUnknown);
+
+        Assert.Equal("No output generated", blocked.OutputCommitmentLabel);
+        Assert.False(blocked.IsOutputPreview);
+        Assert.True(blocked.IsOutputNotGenerated);
+        Assert.False(blocked.IsOutputStateUnknown);
     }
 
     /// <summary>Verifies report loading errors still produce a reopenable report modal.</summary>

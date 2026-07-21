@@ -68,6 +68,19 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("preview-report.json", viewModel.LoadedReport.SourceName);
     }
 
+    /// <summary>A blocked build is recorded as having no artifact, not as a zero-byte output file.</summary>
+    [Fact]
+    public void ReportHistoryDistinguishesMissingOutputFromZeroByteArtifact()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportJson(ReportJsonSamples.CtrlRamCommandIssue(), "blocked-report.json");
+
+        ReportHistoryEntryViewModel entry = Assert.Single(viewModel.ReportHistoryEntries);
+        Assert.Equal("No output generated", entry.Output);
+        Assert.Equal("No output hash", entry.OutputHash);
+    }
+
     /// <summary>Verifies local report history reports oversized storage and can be cleared in one action.</summary>
     [Fact]
     public void ReportHistoryFlagsOversizedStorageForOneClickCleanup()

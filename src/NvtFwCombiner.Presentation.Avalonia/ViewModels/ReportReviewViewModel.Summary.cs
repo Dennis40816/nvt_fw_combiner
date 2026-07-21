@@ -140,20 +140,30 @@ public sealed partial class ReportReviewViewModel
                 string.Create(CultureInfo.InvariantCulture, $"沒有回報 output comparison 變更；請到 Operations 確認 {operations.Count} 個已記錄步驟。"));
     }
 
-    private static string CreateOutputSizeLabel(long outputSize, ShellLanguage language)
+    private static string CreateOutputSizeLabel(
+        long outputSize,
+        bool isOutputNotGenerated,
+        ShellLanguage language)
     {
-        return outputSize <= 0
-            ? T(language, "No size", "無大小")
-            : string.Create(CultureInfo.InvariantCulture, $"{outputSize} bytes");
+        return isOutputNotGenerated
+            ? T(language, "Not created", "未建立")
+            : outputSize <= 0
+                ? T(language, "No size", "無大小")
+                : string.Create(CultureInfo.InvariantCulture, $"{outputSize} bytes");
     }
 
-    private static string CreateOutputCommitmentLabel(bool? committed, ShellLanguage language)
+    private static string CreateOutputCommitmentLabel(
+        bool? committed,
+        bool isOutputNotGenerated,
+        ShellLanguage language)
     {
-        return committed == true
-            ? T(language, "Committed output", "已寫出輸出")
-            : committed == false
-                ? T(language, "Preview only", "僅預覽")
-                : T(language, "Output state unknown", "輸出狀態未知");
+        return isOutputNotGenerated
+            ? T(language, "No output generated", "未產生輸出")
+            : committed == true
+                ? T(language, "Committed output", "已寫出輸出")
+                : committed == false
+                    ? T(language, "Preview only", "僅預覽")
+                    : T(language, "Output state unknown", "輸出狀態未知");
     }
 
     private static string CreateIssueAction(ReportLineViewModel issue, ShellLanguage language)

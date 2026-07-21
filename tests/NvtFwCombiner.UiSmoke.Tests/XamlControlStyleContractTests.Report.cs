@@ -16,6 +16,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.Meta}\"", panels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding LoadedReport.OutcomeDetail}\"", panels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding LoadedReport.NextStepDetail}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding LoadedReport.IsOutputNotGenerated}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("NfcDangerTextBrush", panels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.PrimaryReasonLabel}\"", panels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.FailedStepLabel}\"", panels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.OutputImpactLabel}\"", panels, StringComparison.Ordinal);

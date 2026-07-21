@@ -527,7 +527,9 @@ public sealed partial class MainWindowViewModel
                 report.Title,
                 report.Status,
                 CreateReportHistoryContext(report),
-                string.IsNullOrWhiteSpace(report.OutputFileName)
+                report.IsOutputNotGenerated
+                    ? "No output generated"
+                    : string.IsNullOrWhiteSpace(report.OutputFileName)
                     ? "No output"
                     : $"{report.OutputFileName} / {report.OutputSize} bytes",
                 report.OutputHashLabel,

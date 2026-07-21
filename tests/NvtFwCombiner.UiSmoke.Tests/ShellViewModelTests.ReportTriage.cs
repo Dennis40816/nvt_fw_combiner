@@ -30,6 +30,11 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Needs attention", report.OutcomeTitle);
         Assert.Equal("Start with this issue", report.NextStepTitle);
         Assert.Equal("processor.tool.missing", report.PrimaryIssue.Title);
+        Assert.True(report.IsOutputNotGenerated);
+        Assert.False(report.IsOutputPreview);
+        Assert.Equal("Not created", report.OutputSizeLabel);
+        Assert.Equal("No output generated", report.OutputCommitmentLabel);
+        Assert.Equal("No output hash", report.OutputHashLabel);
         Assert.Equal(1, report.PostbuildInvocationCount);
         ReportPostbuildInvocationViewModel invocation = Assert.Single(report.PostbuildInvocations);
         Assert.Equal("900.01", invocation.Number);

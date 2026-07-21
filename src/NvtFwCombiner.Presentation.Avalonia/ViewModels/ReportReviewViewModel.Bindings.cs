@@ -53,7 +53,10 @@ public sealed partial class ReportReviewViewModel
     public bool IsOutputCommitted => outputCommitted == true;
 
     /// <summary>True when the report describes a preview-only output.</summary>
-    public bool IsOutputPreview => outputCommitted == false;
+    public bool IsOutputPreview => outputCommitted == false && !IsOutputNotGenerated;
+
+    /// <summary>True when a blocked run committed no output artifact; zero is not presented as a file size.</summary>
+    public bool IsOutputNotGenerated { get; }
 
     /// <summary>True when the report does not state whether output was committed.</summary>
     public bool IsOutputStateUnknown => outputCommitted is null;
