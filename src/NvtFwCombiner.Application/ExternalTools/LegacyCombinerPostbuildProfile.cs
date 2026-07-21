@@ -25,7 +25,8 @@ public sealed class LegacyCombinerPostbuildProfile
         IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules = null,
         LegacyCombinerPostbuildAssemblyKind assemblyKind = LegacyCombinerPostbuildAssemblyKind.InPlaceFirmwareImage,
         LegacyCombinerCommonFwVersionRule? commonFwVersionRule = null,
-        LegacyCombinerFirmwareConfigPropagation firmwareConfigPropagation = LegacyCombinerFirmwareConfigPropagation.None)
+        LegacyCombinerFirmwareConfigWriteRoute firmwareConfigWriteRoute =
+            LegacyCombinerFirmwareConfigWriteRoute.Unavailable)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -65,7 +66,7 @@ public sealed class LegacyCombinerPostbuildProfile
         DisplayCategory = CreateDisplayCategory(evidence, processorId);
         AssemblyKind = assemblyKind;
         CommonFwVersionRule = commonFwVersionRule;
-        FirmwareConfigPropagation = firmwareConfigPropagation;
+        FirmwareConfigWriteRoute = firmwareConfigWriteRoute;
     }
 
     /// <summary>Processor id referenced by composition profiles.</summary>
@@ -107,8 +108,8 @@ public sealed class LegacyCombinerPostbuildProfile
     /// <summary>Optional Common FW category rule for ICs with versioned postbuild references.</summary>
     public LegacyCombinerCommonFwVersionRule? CommonFwVersionRule { get; }
 
-    /// <summary>Reviewed FWConfig propagation behavior performed implicitly by the selected legacy mode.</summary>
-    public LegacyCombinerFirmwareConfigPropagation FirmwareConfigPropagation { get; }
+    /// <summary>Reviewed pre-postbuild FWConfig source route whose result must reach canonical Backup.</summary>
+    public LegacyCombinerFirmwareConfigWriteRoute FirmwareConfigWriteRoute { get; }
 
     private static Dictionary<string, LegacyCombinerPostbuildBranch> BuildBranchRules(
         IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules)
@@ -149,11 +150,14 @@ public sealed class LegacyCombinerPostbuildProfile
     }
 }
 
-/// <summary>Typed firmware-config propagation capability of a legacy postbuild profile.</summary>
-public enum LegacyCombinerFirmwareConfigPropagation
+/// <summary>Typed pre-postbuild firmware-config write route of a legacy postbuild profile.</summary>
+public enum LegacyCombinerFirmwareConfigWriteRoute
 {
-    /// <summary>No implicit firmware-config propagation is declared.</summary>
-    None,
+    /// <summary>No reviewed source-to-Backup route is available; version authoring must fail closed.</summary>
+    Unavailable,
+
+    /// <summary>The selected command plan explicitly copies one firmware-image source to canonical Backup.</summary>
+    CommandSourceToCanonicalBackup,
 
     /// <summary>The legacy mode copies the TP flash-map primary FWConfig into the canonical NVT Backup.</summary>
     PrimaryToCanonicalBackup,

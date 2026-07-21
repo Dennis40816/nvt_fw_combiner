@@ -195,6 +195,44 @@ public sealed class BuiltInTpFlashMapCatalogTests
         Assert.Equal(expectedStart, profile!.FirmwareConfigPrimaryStart);
     }
 
+    /// <summary>Every deployed postbuild branch has one explicit, internally consistent FWConfig write route.</summary>
+    [Fact]
+    public void PostbuildFirmwareConfigWriteRoutesMatchPrimarySourceFacts()
+    {
+        Assert.DoesNotContain(
+            LegacyCombinerPostbuildCatalog.All,
+            profile => profile.FirmwareConfigWriteRoute == LegacyCombinerFirmwareConfigWriteRoute.Unavailable);
+
+        foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
+        {
+            Assert.True(BuiltInTpFlashMapCatalog.TryFind(profile.IcId, out TpFlashMapProfile? flashMap));
+            LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            LegacyCombinerBlockArgument[] sourceBlocks =
+            [
+                .. plan.Commands
+                    .SelectMany(command => command.Blocks)
+                    .Where(block =>
+                        block.SourceKind == LegacyCombinerBlockSourceKind.FirmwareImage &&
+                        StringComparer.Ordinal.Equals(block.BlockId, "fw-config-backup")),
+            ];
+
+            if (profile.FirmwareConfigWriteRoute ==
+                LegacyCombinerFirmwareConfigWriteRoute.CommandSourceToCanonicalBackup)
+            {
+                LegacyCombinerBlockArgument sourceBlock = Assert.Single(sourceBlocks);
+                Assert.Equal(flashMap!.FirmwareConfigPrimaryStart, sourceBlock.SourceOffset);
+                Assert.True(sourceBlock.FirmwareRange.Length >= FirmwareConfigLayout.RequiredLength);
+            }
+            else
+            {
+                Assert.Equal(
+                    LegacyCombinerFirmwareConfigWriteRoute.PrimaryToCanonicalBackup,
+                    profile.FirmwareConfigWriteRoute);
+                Assert.Empty(sourceBlocks);
+            }
+        }
+    }
+
     /// <summary>TP Overview backup rows used by postbuild traceability are declared explicitly.</summary>
     [Theory]
     [InlineData("NT51920", "fw-config-backup", 0x2F000, 0x00780)]

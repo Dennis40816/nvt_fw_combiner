@@ -53,6 +53,9 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             LegacyCombinerPostbuildCatalog.All,
             candidate => StringComparer.Ordinal.Equals(candidate.ProcessorId, processorId));
         Assert.Equal(icId, profile.IcId);
+        Assert.Equal(
+            LegacyCombinerFirmwareConfigWriteRoute.PrimaryToCanonicalBackup,
+            profile.FirmwareConfigWriteRoute);
         Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? flashMap));
 
         string goldenPath = FindGoldenExpectedOutput(manifestIc);

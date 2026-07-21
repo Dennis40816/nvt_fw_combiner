@@ -118,6 +118,32 @@ public sealed class BuiltInPostbuildProfileCatalogTests
             BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
     }
 
+    /// <summary>Every profile must distinguish a reviewed FWConfig write route from an omitted field.</summary>
+    [Fact]
+    public void LoadRejectsMissingFirmwareConfigWriteRoute()
+    {
+        JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
+        JsonObject profile = Assert.IsType<JsonObject>(root["profiles"]![0]);
+        Assert.True(profile.Remove("firmwareConfigWriteRoute"));
+        byte[] bytes = Encoding.UTF8.GetBytes(root.ToJsonString());
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
+    }
+
+    /// <summary>An unknown FWConfig write route cannot become implicit version-authoring authority.</summary>
+    [Fact]
+    public void LoadRejectsUnknownFirmwareConfigWriteRoute()
+    {
+        JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
+        JsonObject profile = Assert.IsType<JsonObject>(root["profiles"]![0]);
+        profile["firmwareConfigWriteRoute"] = "infer-from-ic";
+        byte[] bytes = Encoding.UTF8.GetBytes(root.ToJsonString());
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            BuiltInPostbuildProfileCatalog.Load(bytes, Hash(bytes)));
+    }
+
     private static byte[] ReadCatalog()
     {
         return File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, RelativePath.Replace('/', Path.DirectorySeparatorChar)));

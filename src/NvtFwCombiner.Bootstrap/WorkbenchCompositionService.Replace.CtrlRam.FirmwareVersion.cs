@@ -49,16 +49,25 @@ public static partial class WorkbenchCompositionService
                 .OrderBy(block => block.SourceOffset)
                 .ThenBy(block => block.FirmwareRange.Start),
         ];
-        long? sourceStart = sourceBlocks.Length == 1
-            ? sourceBlocks[0].SourceOffset
-            : TryResolveImplicitFirmwareConfigSource(
-                postbuildProfile,
-                baseBytes,
-                backupMetadata,
-                out long implicitSourceStart)
-                ? implicitSourceStart
-                : null;
-        if (sourceBlocks.Length > 1 || sourceStart is null)
+        long? sourceStart = postbuildProfile.FirmwareConfigWriteRoute switch
+        {
+            LegacyCombinerFirmwareConfigWriteRoute.CommandSourceToCanonicalBackup
+                when sourceBlocks.Length == 1 => sourceBlocks[0].SourceOffset,
+            LegacyCombinerFirmwareConfigWriteRoute.PrimaryToCanonicalBackup
+                when sourceBlocks.Length == 0 && TryResolveImplicitFirmwareConfigSource(
+                    postbuildProfile,
+                    baseBytes,
+                    backupMetadata,
+                    out long implicitSourceStart) => implicitSourceStart,
+            LegacyCombinerFirmwareConfigWriteRoute.CommandSourceToCanonicalBackup => null,
+            LegacyCombinerFirmwareConfigWriteRoute.PrimaryToCanonicalBackup => null,
+            LegacyCombinerFirmwareConfigWriteRoute.Unavailable => null,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(postbuildProfile),
+                postbuildProfile.FirmwareConfigWriteRoute,
+                "Unsupported FWConfig write route."),
+        };
+        if (sourceStart is null)
         {
             issue = new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionPropagationUnavailable,
@@ -89,9 +98,7 @@ public static partial class WorkbenchCompositionService
         out long sourceStart)
     {
         sourceStart = 0;
-        if (postbuildProfile.FirmwareConfigPropagation !=
-                LegacyCombinerFirmwareConfigPropagation.PrimaryToCanonicalBackup ||
-            !BuiltInTpFlashMapCatalog.TryFind(postbuildProfile.IcId, out TpFlashMapProfile? flashMap) ||
+        if (!BuiltInTpFlashMapCatalog.TryFind(postbuildProfile.IcId, out TpFlashMapProfile? flashMap) ||
             !FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(
                 baseBytes,
                 flashMap!.FirmwareConfigPrimaryStart,

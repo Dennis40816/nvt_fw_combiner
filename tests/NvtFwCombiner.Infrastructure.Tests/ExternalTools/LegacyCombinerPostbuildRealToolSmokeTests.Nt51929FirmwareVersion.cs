@@ -30,8 +30,8 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         Assert.Equal(manifest.Sha256, Sha256(executableSource));
         Assert.True(LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out LegacyCombinerPostbuildProfile? profile));
         Assert.Equal(
-            LegacyCombinerFirmwareConfigPropagation.PrimaryToCanonicalBackup,
-            profile!.FirmwareConfigPropagation);
+            LegacyCombinerFirmwareConfigWriteRoute.PrimaryToCanonicalBackup,
+            profile!.FirmwareConfigWriteRoute);
         Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? flashMap));
 
         byte[] ownerGolden = File.ReadAllBytes(FindGoldenExpectedOutput("51929"));

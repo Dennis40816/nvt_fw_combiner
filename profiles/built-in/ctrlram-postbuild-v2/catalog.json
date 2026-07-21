@@ -1195,6 +1195,7 @@
         }
       ],
       "assemblyKind": "refreshed-tp-then-standard-merge",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51917 follows NT51927"
     },
     {
@@ -1460,7 +1461,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
-      "firmwareConfigPropagation": "primary-to-canonical-backup",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51919 follows NT51929"
     },
     {
@@ -1666,6 +1667,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51920_1.3.1.bat"
     },
     {
@@ -1866,6 +1868,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51923_1.4.1.bat"
     },
     {
@@ -2057,6 +2060,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "commonFwVersionRule": {
         "matchKind": "exact",
         "pattern": "2.0.0",
@@ -2253,6 +2257,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "commonFwVersionRule": {
         "matchKind": "exact",
         "pattern": "1.4.1",
@@ -3454,6 +3459,7 @@
         }
       ],
       "assemblyKind": "refreshed-tp-then-standard-merge",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat"
     },
     {
@@ -4650,6 +4656,7 @@
         }
       ],
       "assemblyKind": "refreshed-tp-then-standard-merge",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51928 follows NT51927; NT51928 NB is not covered"
     },
     {
@@ -4915,7 +4922,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
-      "firmwareConfigPropagation": "primary-to-canonical-backup",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51929 follows NT51932"
     },
     {
@@ -5181,6 +5188,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "commonFwVersionRule": {
         "matchKind": "exact",
         "pattern": "2.0.0",
@@ -5438,6 +5446,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "commonFwVersionRule": {
         "matchKind": "major",
         "pattern": "1",
@@ -5674,6 +5683,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
       "evidence": "Owner 2026-07-17 NT51931-based BAT plus 2026-07-19 full-byte parity: Combiner 1.13.0 NT51931-based equals Combiner 1.2.0.4 NT51930-based"
     },
     {
@@ -5939,6 +5949,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat"
     },
     {
@@ -6096,6 +6107,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat"
     },
     {
@@ -6253,6 +6265,7 @@
         }
       ],
       "assemblyKind": "in-place-firmware-image",
+      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat; owner confirmation: NT51951 follows NT51950"
     }
   ]

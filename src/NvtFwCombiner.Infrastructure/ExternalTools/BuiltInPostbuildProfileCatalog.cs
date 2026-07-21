@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Infrastructure.ExternalTools;
 internal static class BuiltInPostbuildProfileCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/catalog.json";
-    private const string ExpectedSha256 = "907145a9c58df848de7b81d8b0dbceb9b3886c05bd30fa9504cf75f1f521875e";
+    private const string ExpectedSha256 = "58748a724a96d71ffeca98dd94ea406e0ade47eacfcc632bc73ae66693b2cb33";
     private static readonly Lazy<IReadOnlyList<LegacyCombinerPostbuildProfile>> Profiles = new(Load);
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> All => Profiles.Value;
@@ -152,11 +152,14 @@ internal static class BuiltInPostbuildProfileCatalog
                     },
                     source.CommonFwVersionRule.Pattern,
                     source.CommonFwVersionRule.Description),
-            source.FirmwareConfigPropagation switch
+            source.FirmwareConfigWriteRoute switch
             {
-                null => LegacyCombinerFirmwareConfigPropagation.None,
-                "primary-to-canonical-backup" => LegacyCombinerFirmwareConfigPropagation.PrimaryToCanonicalBackup,
-                _ => throw Invalid("firmwareConfigPropagation"),
+                "command-source-to-canonical-backup" =>
+                    LegacyCombinerFirmwareConfigWriteRoute.CommandSourceToCanonicalBackup,
+                "primary-to-canonical-backup" =>
+                    LegacyCombinerFirmwareConfigWriteRoute.PrimaryToCanonicalBackup,
+                "unavailable" => LegacyCombinerFirmwareConfigWriteRoute.Unavailable,
+                _ => throw Invalid("firmwareConfigWriteRoute"),
             });
     }
 
@@ -247,7 +250,7 @@ internal static class BuiltInPostbuildProfileCatalog
         IReadOnlyList<BranchRuleDocument>? BranchRules,
         string AssemblyKind,
         CommonFwVersionRuleDocument? CommonFwVersionRule,
-        string? FirmwareConfigPropagation,
+        string FirmwareConfigWriteRoute,
         string? Availability,
         string Evidence);
 
