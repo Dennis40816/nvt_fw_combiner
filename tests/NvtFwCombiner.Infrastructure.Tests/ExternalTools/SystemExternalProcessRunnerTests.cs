@@ -177,14 +177,22 @@ public sealed class SystemExternalProcessRunnerTests
         }
 
         using var workspace = TempWorkspace.Create("nfc-process-runner-timeout-output");
-        string scriptPath = workspace.PathFor("large-output-then-wait.ps1");
+        string standardOutputPath = workspace.PathFor("stdout-partial.txt");
+        string standardErrorPath = workspace.PathFor("stderr-partial.txt");
+        string scriptPath = workspace.PathFor("large-output-then-wait.cmd");
+        File.WriteAllText(standardOutputPath, new string('O', 131072) + "OUT-PARTIAL-END");
+        File.WriteAllText(standardErrorPath, new string('E', 131072) + "ERR-PARTIAL-END");
         File.WriteAllText(
             scriptPath,
-            "[Console]::Out.Write(('O' * 131072) + 'OUT-PARTIAL-END')" + Environment.NewLine +
-            "[Console]::Error.Write(('E' * 131072) + 'ERR-PARTIAL-END')" + Environment.NewLine +
-            "Start-Sleep -Seconds 30" + Environment.NewLine);
+            "@type stdout-partial.txt" + Environment.NewLine +
+            "@type stderr-partial.txt 1>&2" + Environment.NewLine +
+            "@ping -n 31 127.0.0.1 >nul" + Environment.NewLine);
         var runner = new SystemExternalProcessRunner();
-        ExternalProcessStartInfo startInfo = CreateStartInfo(workspace.Root, scriptPath, TimeSpan.FromSeconds(2));
+        var startInfo = new ExternalProcessStartInfo(
+            Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+            workspace.Root,
+            ["/d", "/q", "/c", scriptPath],
+            TimeSpan.FromSeconds(2));
 
         ExternalProcessResult result = await runner.RunAsync(
             startInfo,
