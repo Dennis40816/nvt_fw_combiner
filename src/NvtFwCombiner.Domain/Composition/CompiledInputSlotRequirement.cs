@@ -488,7 +488,10 @@ public sealed class CompiledInputSlotRequirement
     private static bool IsApprovedTpLengthRequirement(CompiledInputLengthRequirement lengthRequirement)
     {
         return lengthRequirement is CompiledTpMaximum256KInputLengthRequirement or
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement or
+            CompiledDeclaredPrefixWithWarningInputLengthRequirement
+        {
+            RequiredEndExclusive: <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
+        } or
             CompiledExactBytesInputLengthRequirement
         {
             Bytes: <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,

@@ -257,6 +257,11 @@ public sealed class CompositionProfileV2InputNormalizerTests
                 "auxiliary",
                 DeclaredPrefix("2147483648", [Number("2147483648")]),
                 None()));
+        CompositionProfileNormalizationException oversizedTpPrefix = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(
+                "tp-firmware",
+                DeclaredPrefix("262145", [Number("262145")]),
+                None()));
         CompositionProfileNormalizationException normalized = Assert.Throws<CompositionProfileNormalizationException>(() =>
             Normalize(
                 "dp-firmware",
@@ -266,6 +271,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
         Assert.Equal("inputSlots[0].acceptance.lengthRule.kind", oldSchema.Path);
         Assert.Equal("inputSlots[0].acceptance.lengthRule", shortExpectation.Path);
         Assert.Equal("inputSlots[0].acceptance.lengthRule.requiredEndExclusive", oversizedRequiredEnd.Path);
+        Assert.Equal("inputSlots[0]", oversizedTpPrefix.Path);
         Assert.Equal("inputSlots[0]", normalized.Path);
     }
 

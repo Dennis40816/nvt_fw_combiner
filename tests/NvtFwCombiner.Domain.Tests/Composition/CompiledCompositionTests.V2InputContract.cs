@@ -173,6 +173,14 @@ public sealed partial class CompiledCompositionTests
             [".bin"], new CompiledExactBytesInputLengthRequirement(
                 CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1), new CompiledNoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
+            "bad-tp-prefix", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
+            [".bin"], new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+                CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1,
+                [CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1],
+                "INPUT_SHORT",
+                "INPUT_OUTER_LENGTH"),
+            new CompiledNoInputNormalization()));
+        _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
             "bad-pad", "reference", CompiledInputArtifactClass.ReferenceImage, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
             new CompiledExactResolvedMapCapacityInputLengthRequirement(16),

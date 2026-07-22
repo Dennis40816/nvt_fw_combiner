@@ -219,8 +219,9 @@ route, change a profile promotion stage, or connect Application Build/report beh
 
 ## Input size policy
 
-Every input declares an `artifactClass` and a closed length policy. `tp-firmware` uses either
-`tp-maximum-256k` or `exact-bytes` no greater than 262144 bytes, always without normalization.
+Every input declares an `artifactClass` and a closed length policy. `tp-firmware` uses
+`tp-maximum-256k`, `exact-bytes` no greater than 262144 bytes, or `declared-prefix-with-warning` whose
+`requiredEndExclusive` is no greater than 262144, always without normalization.
 `tp-maximum-256k` extracts the exact declared source span from a TP artifact within the fixed owner
 limit; `exact-bytes` requires one exact TP artifact length and permits a same-capacity engine-owned
 work buffer to clone it. A normal

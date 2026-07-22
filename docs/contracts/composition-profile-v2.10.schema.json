@@ -834,8 +834,15 @@
                         "required": ["kind", "bytes"]
                       },
                       {
-                        "properties": { "kind": { "const": "declared-prefix-with-warning" } },
-                        "required": ["kind"]
+                        "properties": {
+                          "kind": { "const": "declared-prefix-with-warning" },
+                          "requiredEndExclusive": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 262144
+                          }
+                        },
+                        "required": ["kind", "requiredEndExclusive"]
                       }
                     ]
                   },

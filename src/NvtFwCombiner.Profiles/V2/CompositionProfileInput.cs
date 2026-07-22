@@ -397,7 +397,10 @@ internal sealed partial class CompositionProfileInputSlot
     private static bool IsApprovedTpLengthRule(CompositionProfileLengthRule lengthRule)
     {
         return lengthRule is TpMaximum256KLengthRule or
-            DeclaredPrefixWithWarningLengthRule or
+            DeclaredPrefixWithWarningLengthRule
+        {
+            RequiredEndExclusive: <= TpMaximum256KLengthRule.MaximumBytes,
+        } or
             ExactBytesLengthRule { Bytes: <= TpMaximum256KLengthRule.MaximumBytes };
     }
 

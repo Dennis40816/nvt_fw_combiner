@@ -154,6 +154,14 @@ public sealed class CompositionProfileV2InputTests
             new ExactBytesLengthRule(TpMaximum256KLengthRule.MaximumBytes + 1),
             new NoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => Slot(
+            CompositionProfileArtifactClass.TpFirmware,
+            new DeclaredPrefixWithWarningLengthRule(
+                TpMaximum256KLengthRule.MaximumBytes + 1,
+                [TpMaximum256KLengthRule.MaximumBytes + 1],
+                "INPUT_SHORT",
+                "INPUT_OUTER_LENGTH"),
+            new NoInputNormalization()));
+        _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.DpFirmware,
             new ExactBytesLengthRule(16),
             new NoInputNormalization()));

@@ -75,6 +75,22 @@ public sealed partial class ProfileBundleSchemaValidatorTests
             32));
     }
 
+    /// <summary>Verifies a TP declared execution prefix cannot exceed the fixed 256 KiB owner limit.</summary>
+    [Fact]
+    public void ValidateEntriesRejectsTpDeclaredPrefixAbove256KiBForV210()
+    {
+        JsonObject profile = DeclaredPrefixProfile("tp-firmware");
+        JsonObject slot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[0]);
+        JsonObject lengthRule = Assert.IsType<JsonObject>(
+            Assert.IsType<JsonObject>(slot["acceptance"])["lengthRule"]);
+        lengthRule["requiredEndExclusive"] = 262145;
+        lengthRule["expectedOuterLengths"] = new JsonArray(262145);
+
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleSchemaValidator.ValidateEntries(
+            CaptureCompositionProfile(profile.ToJsonString(), "composition-profile-v2.10.schema.json"),
+            32));
+    }
+
     private static JsonObject DeclaredPrefixProfile(string artifactClass)
     {
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
