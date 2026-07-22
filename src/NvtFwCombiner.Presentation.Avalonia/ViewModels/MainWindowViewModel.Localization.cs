@@ -159,11 +159,12 @@ public sealed partial class MainWindowViewModel
 
     private string ApplySelectedIcDpSlotHint(string slotId, string description)
     {
-        const string hint = "(Initial Code + LDC)";
-        return string.Equals(SelectedIc, "NT51951", StringComparison.Ordinal) &&
-            slotId is MergeDpSlotId or WorkbenchSlotIds.ReplaceDp &&
-            !description.Contains(hint, StringComparison.Ordinal)
-                ? $"{description} {hint}"
-                : description;
+        string? hint = WorkbenchCompositionService.GetFirmwareSlotHint(SelectedIc, slotId) ==
+            WorkbenchFirmwareSlotHint.InitialCodeAndLdc
+            ? Text.InitialCodeAndLdcSlotHint
+            : null;
+        return !string.IsNullOrWhiteSpace(hint) && !description.Contains(hint, StringComparison.Ordinal)
+            ? $"{description} {hint}"
+            : description;
     }
 }

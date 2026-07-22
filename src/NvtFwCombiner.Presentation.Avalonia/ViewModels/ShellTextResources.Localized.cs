@@ -161,6 +161,7 @@ public sealed partial class ShellTextResources
             CtrlRamFirmwareVersionInvalidByteDetail = Pick("Enter each version field as one hexadecimal byte from 00 to FF.", "每個版本欄位須輸入 00 到 FF 的一個十六進位 byte。"),
             CtrlRamFirmwareVersionChooseOutputLabel = Pick("Continue to output", "繼續選擇輸出"),
             AbCodeMergeTitle = "AB Code Merge",
+            InitialCodeAndLdcSlotHint = Pick("(Initial Code + LDC)", "（Initial Code + LDC）"),
             AbCodeMergeDetail = Pick("Reserved until the dedicated AB Code profile and TP CRC/start-address behavior are approved.", "保留到 dedicated AB Code profile 與 TP CRC/start-address 行為核准後再啟用。"),
             SettingsOverviewTitle = Pick("Product information", "產品資訊"),
             SettingsOverviewSubtitle = Pick("Installed version and executable profile coverage.", "已安裝版本與可執行 profile coverage。"),

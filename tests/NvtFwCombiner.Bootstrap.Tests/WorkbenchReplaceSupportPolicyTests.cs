@@ -131,4 +131,18 @@ public sealed class WorkbenchReplaceSupportPolicyTests
         Assert.Equal(expected, WorkbenchCompositionService.ArePerfectFamilyMembers(firstIcId, secondIcId));
         Assert.Equal(expected, WorkbenchCompositionService.ArePerfectFamilyMembers(secondIcId, firstIcId));
     }
+
+    /// <summary>DP payload guidance follows registered profile identity instead of a Presentation IC branch.</summary>
+    [Theory]
+    [InlineData("NT51951", WorkbenchSlotIds.MergeDp, WorkbenchFirmwareSlotHint.InitialCodeAndLdc)]
+    [InlineData("NT51951", WorkbenchSlotIds.ReplaceDp, WorkbenchFirmwareSlotHint.InitialCodeAndLdc)]
+    [InlineData("NT51950", WorkbenchSlotIds.MergeDp, WorkbenchFirmwareSlotHint.None)]
+    [InlineData("NT51951", WorkbenchSlotIds.MergeTp, WorkbenchFirmwareSlotHint.None)]
+    public void FirmwareSlotGuidanceComesFromRegisteredProfile(
+        string icId,
+        string slotId,
+        WorkbenchFirmwareSlotHint expected)
+    {
+        Assert.Equal(expected, WorkbenchCompositionService.GetFirmwareSlotHint(icId, slotId));
+    }
 }

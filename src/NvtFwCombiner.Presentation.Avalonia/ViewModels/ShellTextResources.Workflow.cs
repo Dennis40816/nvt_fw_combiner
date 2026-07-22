@@ -5,6 +5,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ShellTextResources
 {
+    public string InitialCodeAndLdcSlotHint { get; private init; } = string.Empty;
+
     public string ReviewReplacementInputsTooltip { get; private init; } = string.Empty;
 
     public string InputFilesTitle { get; private init; } = string.Empty;
