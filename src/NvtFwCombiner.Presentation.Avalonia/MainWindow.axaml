@@ -338,11 +338,7 @@
                   Width="18"
                   Height="18"
                   Classes="railActionIcon"
-                  Data="M3.5 8.5L7 12L13.5 5.5"
-                  Fill="Transparent"
-                  StrokeLineCap="Round"
-                  StrokeJoin="Round"
-                  StrokeThickness="1.8" />
+                  Data="M4 8.5H11V5L16 10L11 15V11.5H4Z" />
             </Border>
           </Grid>
         </Button>
@@ -361,11 +357,7 @@
                   Width="18"
                   Height="18"
                   Classes="railActionIcon"
-                  Data="M3.5 8.5L7 12L13.5 5.5"
-                  Fill="Transparent"
-                  StrokeLineCap="Round"
-                  StrokeJoin="Round"
-                  StrokeThickness="1.8" />
+                  Data="M4 8.5H11V5L16 10L11 15V11.5H4Z" />
             </Border>
           </Grid>
         </Button>

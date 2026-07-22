@@ -84,6 +84,7 @@ public sealed partial class XamlControlStyleContractTests
         string railIconSlot = ExtractStyle(styles, "Border.railActionIconSlot");
         string railIcon = ExtractStyle(styles, "Path.railActionIcon");
         string outputRailIcon = ExtractStyle(styles, "Button.outputRailAction Path.railActionIcon");
+        string primaryRailIcon = ExtractStyle(styles, "Button.primaryRailAction Path.railActionIcon");
 
         Assert.Contains("Width\" Value=\"44\"", railAction, StringComparison.Ordinal);
         Assert.Contains("Height\" Value=\"44\"", railAction, StringComparison.Ordinal);
@@ -125,6 +126,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("StrokeThickness\" Value=\"1.8\"", railIcon, StringComparison.Ordinal);
         Assert.Contains("Fill\" Value=\"{DynamicResource NfcTextBrush}\"", outputRailIcon, StringComparison.Ordinal);
         Assert.Contains("Stroke\" Value=\"Transparent\"", outputRailIcon, StringComparison.Ordinal);
+        Assert.Contains("Fill\" Value=\"{DynamicResource NfcSurfaceBrush}\"", primaryRailIcon, StringComparison.Ordinal);
+        Assert.Contains("Stroke\" Value=\"Transparent\"", primaryRailIcon, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Button.railAction:pointerover", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Button.railAction:pressed", styles, StringComparison.Ordinal);
         Assert.Equal(2, shell.Split("Classes=\"railAction primaryRailAction buildRailAction\"", StringSplitOptions.None).Length - 1);
@@ -182,7 +185,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.NotNull(folder.Attribute("AutomationProperties.Name"));
         Assert.NotNull(folder.Attribute("AutomationProperties.HelpText"));
         Assert.Null(folder.Attribute("ToolTip.Tip"));
-        AssertRailContentUsesFixedIconSlot(folder);
+        _ = AssertRailContentUsesFixedIconSlot(folder);
 
         XElement[] buildButtons =
         [
@@ -194,11 +197,12 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal("railAction primaryRailAction buildRailAction", (string?)button.Attribute("Classes"));
             Assert.NotNull(button.Attribute("AutomationProperties.HelpText"));
             Assert.Null(button.Attribute("ToolTip.Tip"));
-            AssertRailContentUsesFixedIconSlot(button);
+            XElement icon = AssertRailContentUsesFixedIconSlot(button);
+            Assert.Equal("M4 8.5H11V5L16 10L11 15V11.5H4Z", (string?)icon.Attribute("Data"));
         });
     }
 
-    private static void AssertRailContentUsesFixedIconSlot(XElement button)
+    private static XElement AssertRailContentUsesFixedIconSlot(XElement button)
     {
         XElement content = Assert.Single(button.Elements());
         Assert.Equal("Grid", content.Name.LocalName);
@@ -213,5 +217,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("18", (string?)icon.Attribute("Width"));
         Assert.Equal("18", (string?)icon.Attribute("Height"));
         Assert.Equal("railActionIcon", (string?)icon.Attribute("Classes"));
+        return icon;
     }
 }

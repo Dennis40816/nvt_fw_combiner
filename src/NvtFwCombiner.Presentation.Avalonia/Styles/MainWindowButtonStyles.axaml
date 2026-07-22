@@ -398,7 +398,8 @@
     <Setter Property="Fill" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="Button.primaryRailAction Path.railActionIcon">
-    <Setter Property="Stroke" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="Fill" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="Stroke" Value="Transparent" />
   </Style>
   <Style Selector="Button.railAction:disabled Path.railActionIcon">
     <Setter Property="Fill" Value="{DynamicResource NfcTextDisabledBrush}" />
