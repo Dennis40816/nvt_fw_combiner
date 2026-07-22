@@ -1,6 +1,6 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.14 planning baseline; AB and release implementation remain gated`
+> 文件狀態：`0.9.14 implementation in progress; AB UI and stable release remain gated`
 > 文件版本：`0.9.13`
 > 基準日期：`2026-07-22`
 > 產品名稱：`NVT FW Combiner`

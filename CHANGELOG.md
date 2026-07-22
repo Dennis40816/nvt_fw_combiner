@@ -4,7 +4,19 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Changes after `0.9.13` will be documented here.
+### Added
+
+- Added the owner-approved support-neutral AB Merge runtime pilot for NT51919, NT51929, and NT51932 through the shared V2 composition service and CLI. NT51950/NT51951 AB candidates remain closed.
+- AB input reports now retain the full selected-source size/SHA-256 and the accepted declared-prefix range/SHA-256 plus any ignored trailing range. DP_AB below 512 KiB or TPA/TPB below 256 KiB blocks without output; longer sources warn without changing the declared-prefix result.
+
+### Changed
+
+- Stable release promotion is CI-owned and bound to an exact protected-main SHA, reviewed PR/tree, protected release environment approval, immutable tag, closed asset manifest, package smoke, SBOM, provenance, hashes, and source-archive verification.
+- The canonical Windows toolchain entry can re-enter under PowerShell 7 and bootstrap the repository-pinned .NET SDK while retaining `scripts/verify.py` as the only repository verifier.
+
+### Fixed
+
+- Filename hover content no longer intercepts reveal-and-focus clicks, byte-cell hover uses the full calculated cell rectangle, and composition action buttons disappear from hit testing while a modal/report/prompt is open.
 
 ## [0.9.13] - 2026-07-22
 
