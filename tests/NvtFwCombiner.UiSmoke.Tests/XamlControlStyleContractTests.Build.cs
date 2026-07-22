@@ -113,7 +113,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("RenderTransform", railAction + railPresenter + primaryAction + actionLabel, StringComparison.Ordinal);
     }
 
-    /// <summary>Build stays in the fixed bottom-right rail established by the stable v0.9.10 shell.</summary>
+    /// <summary>Build floats inside the scroll-content row without reserving a full-width bottom band.</summary>
     [Fact]
     public void CompositionBuildActionsStayInTheBottomRightRail()
     {
@@ -131,8 +131,9 @@ public sealed partial class XamlControlStyleContractTests
                 .Cast<string>(),
         ];
 
-        Assert.Equal("4", (string?)rail.Attribute("Grid.Row"));
+        Assert.Equal("3", (string?)rail.Attribute("Grid.Row"));
         Assert.Null(rail.Attribute("Grid.RowSpan"));
+        Assert.Equal("1", (string?)rail.Attribute("ZIndex"));
         Assert.Equal("Right", (string?)rail.Attribute("HorizontalAlignment"));
         Assert.Equal("Bottom", (string?)rail.Attribute("VerticalAlignment"));
         Assert.Equal("0,0,24,16", (string?)rail.Attribute("Margin"));

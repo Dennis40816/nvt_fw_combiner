@@ -277,8 +277,9 @@
 
     <Border
         x:Name="CompositionBuildActionRail"
-        Grid.Row="4"
+        Grid.Row="3"
         Margin="0,0,24,16"
+        ZIndex="1"
         HorizontalAlignment="Right"
         VerticalAlignment="Bottom"
         Classes="compositionActionRail"

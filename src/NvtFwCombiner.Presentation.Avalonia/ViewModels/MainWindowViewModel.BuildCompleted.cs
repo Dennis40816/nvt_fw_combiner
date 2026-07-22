@@ -10,6 +10,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the committed BIN path shown in the successful Build confirmation.</summary>
     public string BuildCompletedOutputPath { get; private set; } = string.Empty;
 
+    /// <summary>Gets the committed BIN file name shown in the successful Build confirmation.</summary>
+    public string BuildCompletedOutputDisplayName => Path.GetFileName(BuildCompletedOutputPath);
+
     /// <summary>Gets the most recent successfully committed BIN path for the fixed action rail.</summary>
     public string LatestCommittedOutputPath { get; private set; } = string.Empty;
 
@@ -72,10 +75,16 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(HasBuildCompletedOpenFolderError));
     }
 
+    internal void NotifyFileRevealFailed()
+    {
+        SetShellToast(Text.FileRevealFailedTitle, Text.FileRevealFailedDetail);
+    }
+
     private void NotifyBuildCompletedChanged()
     {
         OnPropertyChanged(nameof(IsBuildCompletedModalOpen));
         OnPropertyChanged(nameof(BuildCompletedOutputPath));
+        OnPropertyChanged(nameof(BuildCompletedOutputDisplayName));
         OnPropertyChanged(nameof(LatestCommittedOutputPath));
         OnPropertyChanged(nameof(HasLatestCommittedOutput));
         OnPropertyChanged(nameof(IsLatestOutputActionVisible));

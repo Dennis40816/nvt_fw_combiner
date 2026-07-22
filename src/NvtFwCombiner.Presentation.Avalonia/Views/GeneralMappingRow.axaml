@@ -67,8 +67,17 @@
         <Grid>
           <Border Classes="dropZoneOverlay" />
           <StackPanel Margin="10,0" VerticalAlignment="Center" Spacing="{DynamicResource NfcSpace2}">
-            <TextBlock Classes="bodyEmphasisText" Text="{Binding DisplayName}" TextWrapping="Wrap" />
-            <TextBlock Classes="technicalCaption" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
+            <TextBlock Classes="bodyEmphasisText" IsVisible="{Binding IsGuidanceVisible}" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+            <Button
+                AutomationProperties.HelpText="{Binding DisplayDetail}"
+                AutomationProperties.Name="{Binding DisplayName}"
+                Classes="fileRevealAction"
+                Click="RevealFileButton_OnClick"
+                Content="{Binding DisplayName}"
+                HorizontalAlignment="Left"
+                IsVisible="{Binding HasFile}"
+                Tag="{Binding FilePath}"
+                ToolTip.Tip="{Binding DisplayDetail}" />
           </StackPanel>
         </Grid>
       </Border>

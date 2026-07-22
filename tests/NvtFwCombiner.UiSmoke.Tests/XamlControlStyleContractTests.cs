@@ -95,6 +95,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Selector=\"Border.fileDropZone\"", styles, StringComparison.Ordinal);
         Assert.Contains("Classes=\"subtleSurface\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileDropZone\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"fileRevealAction\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("Click=\"RevealFileButton_OnClick\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("Tag=\"{Binding FilePath}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding SelectBinTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding RemoveMappingTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#F8FAFC\"", mappingRow, StringComparison.Ordinal);
@@ -114,9 +117,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsGuidanceVisible}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"technicalMeta firmwarePath\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"fileRevealAction\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Click=\"RevealFileButton_OnClick\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding DisplayName}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Tag=\"{Binding FilePath}\"", slotCard, StringComparison.Ordinal);
     }
 
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>

@@ -21,11 +21,14 @@
       <Border Grid.Row="1" Classes="subtleSurface" Padding="12,10">
         <StackPanel Spacing="{DynamicResource NfcSpace4}">
           <TextBlock Classes="fieldLabel" Text="{Binding Text.BuildCompletedOutputLabel}" />
-          <TextBlock
-              Classes="technicalValue"
-              Text="{Binding BuildCompletedOutputPath}"
-              TextTrimming="CharacterEllipsis"
-              TextWrapping="Wrap"
+          <Button
+              AutomationProperties.HelpText="{Binding BuildCompletedOutputPath}"
+              AutomationProperties.Name="{Binding BuildCompletedOutputDisplayName}"
+              Classes="fileRevealAction"
+              Click="RevealOutputFileButton_OnClick"
+              Content="{Binding BuildCompletedOutputDisplayName}"
+              HorizontalAlignment="Left"
+              Tag="{Binding BuildCompletedOutputPath}"
               ToolTip.Tip="{Binding BuildCompletedOutputPath}" />
         </StackPanel>
       </Border>
@@ -42,7 +45,7 @@
         <Button
             Classes="secondary"
             AutomationProperties.Name="{Binding Text.BuildCompletedOpenFolderLabel}"
-            Click="OpenOutputFolderButton_OnClick"
+            Click="RevealOutputFileButton_OnClick"
             Content="{Binding Text.BuildCompletedOpenFolderLabel}" />
         <Button
             Classes="primary"

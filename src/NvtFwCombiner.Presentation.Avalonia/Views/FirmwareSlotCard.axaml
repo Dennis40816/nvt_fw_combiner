@@ -45,19 +45,21 @@
           </StackPanel>
           <TextBlock Classes="mutedText" IsVisible="{Binding IsGuidanceVisible}" Text="{Binding Description}" TextWrapping="Wrap" />
           <TextBlock
+              IsVisible="{Binding IsGuidanceVisible}"
               FontSize="{DynamicResource NfcFontSize13}"
               FontWeight="SemiBold"
               Foreground="{DynamicResource NfcTextBrush}"
               Text="{Binding DisplayName}"
-              TextWrapping="Wrap"
-              ToolTip.Tip="{Binding DisplayDetail}" />
-          <TextBlock
+              TextWrapping="Wrap" />
+          <Button
               AutomationProperties.HelpText="{Binding DisplayDetail}"
-              Classes="technicalMeta firmwarePath"
+              AutomationProperties.Name="{Binding DisplayName}"
+              Classes="fileRevealAction"
+              Click="RevealFileButton_OnClick"
+              Content="{Binding DisplayName}"
+              HorizontalAlignment="Left"
               IsVisible="{Binding HasFile}"
-              Text="{Binding DisplayDetail}"
-              TextTrimming="CharacterEllipsis"
-              TextWrapping="NoWrap"
+              Tag="{Binding FilePath}"
               ToolTip.Tip="{Binding DisplayDetail}" />
           <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
             <ItemsControl.ItemsPanel>

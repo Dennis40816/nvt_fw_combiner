@@ -107,4 +107,14 @@ public sealed partial class GeneralMappingRow : UserControl
             viewModel.RemoveGeneralMappingRow(mapping);
         }
     }
+
+    private void RevealFileButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { Tag: string filePath } || FileRevealLauncher.TryReveal(filePath))
+        {
+            return;
+        }
+
+        ShellViewModel?.NotifyFileRevealFailed();
+    }
 }

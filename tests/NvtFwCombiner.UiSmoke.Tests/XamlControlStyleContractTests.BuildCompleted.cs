@@ -13,12 +13,11 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("<views:BuildCompletedModal", shell, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsBuildCompletedModalOpen}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding BuildCompletedOutputPath}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OpenOutputFolderButton_OnClick\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding BuildCompletedOutputDisplayName}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Click=\"RevealOutputFileButton_OnClick\"", modal, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding CloseBuildCompletedModalCommand}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("LaunchDirectoryInfoAsync", modalCode, StringComparison.Ordinal);
-        Assert.Contains("OutputFolderLauncher.TryOpenAsync", buildCode, StringComparison.Ordinal);
-        Assert.DoesNotContain("Process.Start", modalCode, StringComparison.Ordinal);
+        Assert.Contains("FileRevealLauncher.TryReveal", modalCode, StringComparison.Ordinal);
+        Assert.Contains("FileRevealLauncher.TryReveal", buildCode, StringComparison.Ordinal);
     }
 
     /// <summary>Composition Build remains fixed at the bottom of the right-side action rail.</summary>
@@ -34,7 +33,10 @@ public sealed partial class XamlControlStyleContractTests
         int replaceBuildAction = shell.IndexOf("Click=\"BuildReplaceButton_OnClick\"", StringComparison.Ordinal);
 
         Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Grid.Row=\"4\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<ScrollViewer Grid.Row=\"3\">", shell, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CompositionBuildActionRail\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Grid.Row=\"3\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ZIndex=\"1\"", shell, StringComparison.Ordinal);
         Assert.Contains("HorizontalAlignment=\"Right\"", shell, StringComparison.Ordinal);
         Assert.Contains("VerticalAlignment=\"Bottom\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compositionActionRail\"", shell, StringComparison.Ordinal);
