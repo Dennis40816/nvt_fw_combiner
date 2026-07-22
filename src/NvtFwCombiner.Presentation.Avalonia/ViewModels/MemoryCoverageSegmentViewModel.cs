@@ -29,6 +29,7 @@ public sealed class MemoryCoverageSegmentViewModel
         FillBrush = Brush.Parse(fill);
         BarWidth = barWidth;
         IsChanged = isChanged;
+        UsesBaseFirmwarePattern = UsesBaseFirmwareSource(displaySourceLabel);
         ChangeLabel = isChanged ? "Changed" : "Kept";
     }
 
@@ -55,6 +56,9 @@ public sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>True when the segment is written by the active replace operation.</summary>
     public bool IsChanged { get; }
+
+    /// <summary>True when retained base-firmware bytes need a non-color visual pattern.</summary>
+    public bool UsesBaseFirmwarePattern { get; }
 
     /// <summary>Compact changed/kept label for the legend.</summary>
     public string ChangeLabel { get; }
@@ -83,6 +87,14 @@ public sealed class MemoryCoverageSegmentViewModel
         return sourceLabel.StartsWith("Changed ", StringComparison.OrdinalIgnoreCase)
             ? sourceLabel["Changed ".Length..]
             : sourceLabel;
+    }
+
+    private static bool UsesBaseFirmwareSource(string sourceLabel)
+    {
+        return sourceLabel.Contains("Base firmware", StringComparison.OrdinalIgnoreCase) ||
+            sourceLabel.Contains("Base flash", StringComparison.OrdinalIgnoreCase) ||
+            sourceLabel.Equals("Preserve", StringComparison.OrdinalIgnoreCase) ||
+            sourceLabel.Contains("Restored", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizeSourceLabel(string sourceLabel)

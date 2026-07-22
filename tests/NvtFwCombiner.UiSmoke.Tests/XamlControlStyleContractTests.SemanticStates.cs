@@ -190,9 +190,18 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("memoryCoverageMarker", mergeList, StringComparison.Ordinal);
         Assert.Contains("Background=\"{Binding FillBrush}\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("Background=\"{Binding FillBrush}\"", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"BaseFirmwareDiagonalStripeBrush\"", templates, StringComparison.Ordinal);
+        Assert.Contains("Brush=\"{DynamicResource NfcBaseFirmwareStripeBrush}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("TileMode=\"Tile\"", templates, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding UsesBaseFirmwarePattern}\"", tooltip, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding UsesBaseFirmwarePattern}\"", replaceBar, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding UsesBaseFirmwarePattern}\"", replaceList, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsesBaseFirmwarePattern", mergeBar, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsesBaseFirmwarePattern", mergeList, StringComparison.Ordinal);
 
         Assert.Contains("public IBrush FillBrush", viewModel, StringComparison.Ordinal);
         Assert.Contains("public bool IsChanged", viewModel, StringComparison.Ordinal);
+        Assert.Contains("public bool UsesBaseFirmwarePattern", viewModel, StringComparison.Ordinal);
         Assert.Contains("public string ChangeLabel", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ChangeBadgeBackgroundBrush", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ChangeBadgeBorderBrush", viewModel, StringComparison.Ordinal);
@@ -209,10 +218,12 @@ public sealed partial class XamlControlStyleContractTests
         MemoryCoverageSegmentViewModel changed = new("0x0010-0x0020", "TP input", "Written bytes", "#2563EB", 20, isChanged: true);
 
         Assert.False(kept.IsChanged);
+        Assert.True(kept.UsesBaseFirmwarePattern);
         Assert.Equal("Kept", kept.ChangeLabel);
         Assert.Equal("#334155", kept.Fill);
         Assert.NotNull(kept.FillBrush);
         Assert.True(changed.IsChanged);
+        Assert.False(changed.UsesBaseFirmwarePattern);
         Assert.Equal("Changed", changed.ChangeLabel);
         Assert.Equal("#2563EB", changed.Fill);
         Assert.NotNull(changed.FillBrush);

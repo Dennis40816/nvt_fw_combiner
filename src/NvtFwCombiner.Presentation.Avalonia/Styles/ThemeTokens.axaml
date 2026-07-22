@@ -14,6 +14,7 @@
   <SolidColorBrush x:Key="NfcTextSecondaryBrush" Color="#475569" />
   <SolidColorBrush x:Key="NfcTextMutedBrush" Color="#64748B" />
   <SolidColorBrush x:Key="NfcTextDisabledBrush" Color="#94A3B8" />
+  <SolidColorBrush x:Key="NfcBaseFirmwareStripeBrush" Color="#99000000" />
   <SolidColorBrush x:Key="NfcAccentBrush" Color="#2563EB" />
   <SolidColorBrush x:Key="NfcAccentStrongBrush" Color="#1D4ED8" />
   <SolidColorBrush x:Key="NfcAccentSurfaceBrush" Color="#EAF3FF" />
