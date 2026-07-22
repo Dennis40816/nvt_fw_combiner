@@ -155,7 +155,8 @@ public static partial class WorkbenchCompositionService
                 segment.Detail,
                 segment.Fill,
                 Math.Max(8, Math.Round(300d * segment.Range.Length / capacity, 1)),
-                segment.IsChanged)),
+                segment.IsChanged,
+                segment.Role)),
         ];
     }
 
@@ -168,7 +169,14 @@ public static partial class WorkbenchCompositionService
             rangeLabel,
             [new WorkbenchMemoryMapRow(row.Range, row.Before, row.Action, row.After, row.Detail)],
             coverage is { } item
-                ? [new WorkbenchMemoryCoverageSegment(item.Range, item.Source, item.Detail, item.Fill, 280, false)]
+                ? [new WorkbenchMemoryCoverageSegment(
+                    item.Range,
+                    item.Source,
+                    item.Detail,
+                    item.Fill,
+                    280,
+                    false,
+                    WorkbenchMemoryCoverageRole.Standard)]
                 : []);
     }
 

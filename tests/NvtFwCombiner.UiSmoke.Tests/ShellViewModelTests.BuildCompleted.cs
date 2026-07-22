@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -151,6 +152,78 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsLatestOutputActionVisible);
     }
 
+    /// <summary>The general reveal command forwards source and generated paths without rewriting them.</summary>
+    [Theory]
+    [InlineData(@"C:\firmware\selected source.bin")]
+    [InlineData(@"C:\output\generated.bin")]
+    public void RevealFileCommandForwardsExactPath(string filePath)
+    {
+        var reveal = new RecordingFileRevealService(result: true);
+        MainWindowViewModel viewModel = CreateFileRevealViewModel(reveal);
+
+        viewModel.RevealFileCommand.Execute(filePath);
+
+        Assert.Equal([filePath], reveal.Paths);
+    }
+
+    /// <summary>A failed source-file reveal reports the localized visible toast.</summary>
+    [Fact]
+    public void RevealFileFailureShowsVisibleToast()
+    {
+        var reveal = new RecordingFileRevealService(result: false);
+        MainWindowViewModel viewModel = CreateFileRevealViewModel(reveal);
+
+        viewModel.RevealFileCommand.Execute(@"C:\firmware\missing.bin");
+
+        Assert.True(viewModel.HasReportToast);
+        Assert.Equal("File unavailable", viewModel.ShellToastTitle);
+        Assert.False(string.IsNullOrWhiteSpace(viewModel.ReportToastText));
+    }
+
+    /// <summary>A successful Build-output reveal closes the confirmation after forwarding the exact path.</summary>
+    [Fact]
+    public void BuildCompletedRevealSuccessClosesModal()
+    {
+        const string outputPath = @"C:\output\generated.bin";
+        var reveal = new RecordingFileRevealService(result: true);
+        MainWindowViewModel viewModel = CreateFileRevealViewModel(reveal);
+        Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
+
+        viewModel.RevealBuildCompletedOutputCommand.Execute(null);
+
+        Assert.Equal([outputPath], reveal.Paths);
+        Assert.False(viewModel.IsBuildCompletedModalOpen);
+        Assert.Equal(string.Empty, viewModel.BuildCompletedOutputPath);
+    }
+
+    /// <summary>A failed Build-output reveal keeps the confirmation open with its specific inline error.</summary>
+    [Fact]
+    public void BuildCompletedRevealFailureKeepsModalOpen()
+    {
+        const string outputPath = @"C:\output\generated.bin";
+        var reveal = new RecordingFileRevealService(result: false);
+        MainWindowViewModel viewModel = CreateFileRevealViewModel(reveal);
+        Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
+
+        viewModel.RevealBuildCompletedOutputCommand.Execute(null);
+
+        Assert.Equal([outputPath], reveal.Paths);
+        Assert.True(viewModel.IsBuildCompletedModalOpen);
+        Assert.True(viewModel.HasBuildCompletedOpenFolderError);
+        Assert.Equal(viewModel.Text.BuildCompletedOpenFolderError, viewModel.BuildCompletedOpenFolderError);
+    }
+
+    private static MainWindowViewModel CreateFileRevealViewModel(IFileRevealService fileRevealService)
+    {
+        return new MainWindowViewModel(
+            "test-shell",
+            "test-app",
+            ShellLanguage.English,
+            static (_, _) => null,
+            WorkbenchCompositionService.InspectFirmwareBatch,
+            fileRevealService);
+    }
+
     private static WorkbenchRunResult CreateRunResult(bool succeeded, string? outputPath)
     {
         return new WorkbenchRunResult(
@@ -162,5 +235,16 @@ public sealed partial class ShellViewModelTests
             "firmware.bin",
             outputPath,
             "{}");
+    }
+
+    private sealed class RecordingFileRevealService(bool result) : IFileRevealService
+    {
+        public List<string?> Paths { get; } = [];
+
+        public bool TryRevealFile(string? filePath)
+        {
+            Paths.Add(filePath);
+            return result;
+        }
     }
 }

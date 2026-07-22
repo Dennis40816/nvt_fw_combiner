@@ -12,7 +12,8 @@ public sealed class MemoryCoverageSegmentViewModel
         string detail,
         string fill,
         double barWidth,
-        bool isChanged = false)
+        bool isChanged = false,
+        bool usesBaseFirmwarePattern = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -29,7 +30,7 @@ public sealed class MemoryCoverageSegmentViewModel
         FillBrush = Brush.Parse(fill);
         BarWidth = barWidth;
         IsChanged = isChanged;
-        UsesBaseFirmwarePattern = UsesBaseFirmwareSource(displaySourceLabel);
+        UsesBaseFirmwarePattern = usesBaseFirmwarePattern;
         ChangeLabel = isChanged ? "Changed" : "Kept";
     }
 
@@ -87,14 +88,6 @@ public sealed class MemoryCoverageSegmentViewModel
         return sourceLabel.StartsWith("Changed ", StringComparison.OrdinalIgnoreCase)
             ? sourceLabel["Changed ".Length..]
             : sourceLabel;
-    }
-
-    private static bool UsesBaseFirmwareSource(string sourceLabel)
-    {
-        return sourceLabel.Contains("Base firmware", StringComparison.OrdinalIgnoreCase) ||
-            sourceLabel.Contains("Base flash", StringComparison.OrdinalIgnoreCase) ||
-            sourceLabel.Equals("Preserve", StringComparison.OrdinalIgnoreCase) ||
-            sourceLabel.Contains("Restored", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizeSourceLabel(string sourceLabel)

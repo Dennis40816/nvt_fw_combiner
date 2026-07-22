@@ -2,7 +2,7 @@
 
 - Status: Proposed for `v0.9.15`; implementation is not authorized by this ADR
 - Date: 2026-07-19
-- Last amended: 2026-07-21
+- Last amended: 2026-07-22
 - Owners: Architecture owner, UI owner
 - Risk class when implemented: R2
 
@@ -26,7 +26,7 @@ The Change Report description above records the `v0.9.10` candidate inspected
 on 2026-07-19. Owner direction on 2026-07-20 expects final `v0.9.10` Changes to
 return to the `v0.9.9` presentation. That rollback is not part of this ADR and
 must not be performed from a later feature branch. U0 re-inspects the exact
-released `v0.9.12` predecessor before implementation.
+released predecessor that exists when U0 begins.
 
 The two surfaces currently duplicate renderer geometry and row presentation.
 Merging their host ViewModels or Application models would incorrectly combine
@@ -132,8 +132,8 @@ Duplicate renderer/template/style code is removed only in U5 after both hosts
 pass their complete behavior, performance, accessibility, and read-only gates.
 
 The temporary dual-renderer period is not permission to evade the code-size
-policy active when U0 begins. U0 records the exact released `v0.9.12`
-predecessor baseline, then-current ratchets, and deletion budget without
+policy active when U0 begins. U0 records the exact released predecessor at that
+time, then-current ratchets, and deletion budget without
 inventing a universal line target. U5 must delete only proven duplicate
 renderer/template/style ownership; no safety test or evidence may be removed
 to manufacture a reduction.
@@ -170,5 +170,5 @@ to manufacture a reduction.
 Implementation requires independent architecture and UI review, Polytail, the
 canonical final verifier, and the manual accessibility/performance evidence
 listed in the roadmap. The implementation branch must start from the exact
-released `v0.9.12` predecessor. This planning ADR does not authorize
+released predecessor when U0 begins. This planning ADR does not authorize
 implementation from a candidate commit.

@@ -36,7 +36,8 @@ public static partial class WorkbenchCompositionService
                 $"Blank 0x{GeneralMergeFillByte:X2}",
                 "No source mapping writes this output range.",
                 "#CBD5E1",
-                false),
+                false,
+                WorkbenchMemoryCoverageRole.Standard),
         ];
         ByteRange outputRange = new(0, capacity);
 
@@ -76,7 +77,8 @@ public static partial class WorkbenchCompositionService
                     "Source BIN",
                     $"Written by {mapping.MappingId} from {GeneralMergeSourceLabel(mapping)}.",
                     CoverageFill("Source BIN"),
-                    true));
+                    true,
+                    WorkbenchMemoryCoverageRole.Standard));
         }
 
         return new WorkbenchMemoryDisplay(

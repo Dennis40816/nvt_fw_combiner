@@ -48,21 +48,22 @@ public static partial class WorkbenchCompositionService
                 "Base flash",
                 "Kept from the original base firmware unless a V2 plan operation covers it.",
                 "#CBD5E1",
-                false),
+                false,
+                WorkbenchMemoryCoverageRole.BaseFirmware),
         ];
         foreach (CompositionOperation operation in composition.Plan.OrderedOperations)
         {
-            (string before, string action, string after, string sourceLabel, bool isChanged) =
+            (string before, string action, string after, string sourceLabel, bool isChanged, WorkbenchMemoryCoverageRole role) =
                 operation.SourceSpaceId switch
                 {
                     CompositionAddressSpaceIds.DpReplacement =>
-                        ("Base flash", ActionLabel(operation.Kind), "DP replacement", "Changed DP BIN", true),
+                        ("Base flash", ActionLabel(operation.Kind), "DP replacement", "Changed DP BIN", true, WorkbenchMemoryCoverageRole.Standard),
                     CompositionAddressSpaceIds.LdReplacement =>
-                        ("Base flash", ActionLabel(operation.Kind), "LDC replacement", "Changed LDC BIN", true),
+                        ("Base flash", ActionLabel(operation.Kind), "LDC replacement", "Changed LDC BIN", true, WorkbenchMemoryCoverageRole.Standard),
                     CompositionAddressSpaceIds.ReferenceBase =>
-                        ("DP replacement", "Restore", "Base TP", "Base flash", false),
+                        ("DP replacement", "Restore", "Base TP", "Base flash", false, WorkbenchMemoryCoverageRole.BaseFirmware),
                     _ =>
-                        ("Output image", ActionLabel(operation.Kind), AddressSpaceLabel(operation.SourceSpaceId ?? operation.TargetSpaceId), AddressSpaceLabel(operation.SourceSpaceId ?? operation.TargetSpaceId), true),
+                        ("Output image", ActionLabel(operation.Kind), AddressSpaceLabel(operation.SourceSpaceId ?? operation.TargetSpaceId), AddressSpaceLabel(operation.SourceSpaceId ?? operation.TargetSpaceId), true, WorkbenchMemoryCoverageRole.Standard),
                 };
             string targetRange = FormatDisplayRange(operation.TargetRange);
             string? sourceRange = operation.SourceRange is ByteRange range ? FormatDisplayRange(range) : null;
@@ -81,7 +82,8 @@ public static partial class WorkbenchCompositionService
                         ? $"{operation.Reason} Output {targetRange}."
                         : $"{operation.Reason} Source {sourceRange} -> output {targetRange}.",
                     CoverageFill(sourceLabel),
-                    isChanged));
+                    isChanged,
+                    role));
         }
 
         return new WorkbenchMemoryDisplay(

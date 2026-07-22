@@ -1,3 +1,5 @@
+using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -214,7 +216,7 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void MemoryCoverageRetainsStateAndFillData()
     {
-        MemoryCoverageSegmentViewModel kept = new("0x0000-0x0010", "Base flash", "Kept bytes", "#334155", 20);
+        MemoryCoverageSegmentViewModel kept = new("0x0000-0x0010", "Base flash", "Kept bytes", "#334155", 20, usesBaseFirmwarePattern: true);
         MemoryCoverageSegmentViewModel changed = new("0x0010-0x0020", "TP input", "Written bytes", "#2563EB", 20, isChanged: true);
 
         Assert.False(kept.IsChanged);
@@ -227,6 +229,26 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("Changed", changed.ChangeLabel);
         Assert.Equal("#2563EB", changed.Fill);
         Assert.NotNull(changed.FillBrush);
+    }
+
+    /// <summary>Bootstrap's typed coverage role reaches Replace hatching while Merge stays plain.</summary>
+    [Fact]
+    public void MemoryCoveragePatternUsesTypedWorkbenchRole()
+    {
+        (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverage) = UiCompositionRunner.GetReplaceMemoryDisplay(
+            "NT51951",
+            "single",
+            WorkbenchReplaceModes.Dp,
+            dpBaseLength: 0x80000);
+        (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> standardMergeCoverage) =
+            UiCompositionRunner.GetStandardMergeMemoryDisplay("NT51926");
+        (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> customizedMergeCoverage) =
+            UiCompositionRunner.GetGeneralMergeMemoryDisplay("0x100", []);
+
+        Assert.Contains(replaceCoverage, segment => segment.UsesBaseFirmwarePattern);
+        Assert.Contains(replaceCoverage, segment => !segment.UsesBaseFirmwarePattern);
+        Assert.All(standardMergeCoverage, segment => Assert.False(segment.UsesBaseFirmwarePattern));
+        Assert.All(customizedMergeCoverage, segment => Assert.False(segment.UsesBaseFirmwarePattern));
     }
 
     private static string ExtractDataTemplate(string xaml, string key)

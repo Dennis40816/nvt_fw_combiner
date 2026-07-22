@@ -91,7 +91,8 @@ public static partial class WorkbenchCompositionService
                 initializationLabel,
                 "No source input writes this output range.",
                 "#CBD5E1",
-                false),
+                false,
+                WorkbenchMemoryCoverageRole.Standard),
         ];
 
         foreach (CompositionOperation operation in composition.Plan.OrderedOperations)
@@ -122,7 +123,8 @@ public static partial class WorkbenchCompositionService
                     coverageLabel,
                     coverageDetail,
                     CoverageFill(coverageLabel),
-                    false));
+                    false,
+                    WorkbenchMemoryCoverageRole.Standard));
         }
 
         return new WorkbenchMemoryDisplay(
