@@ -160,7 +160,7 @@ public sealed partial class MainWindowViewModel
     public string SelectedMergeMode
     {
         get => _selectedMergeMode;
-        set => ApplyMergeMode(value);
+        set => SelectMergeMode(value);
     }
 
     /// <summary>True when the clean home view is visible.</summary>

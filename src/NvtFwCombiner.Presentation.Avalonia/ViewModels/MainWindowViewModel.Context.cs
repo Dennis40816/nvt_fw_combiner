@@ -144,12 +144,6 @@ public sealed partial class MainWindowViewModel
 
     private void SelectMergeMode(string mode)
     {
-        ApplyMergeMode(mode);
-        NavigateToPage(ShellPage.Merge);
-    }
-
-    private void ApplyMergeMode(string mode)
-    {
         string nextMode = MergeModeChoices.Contains(mode, StringComparer.Ordinal)
             ? mode
             : NormalMergeMode;

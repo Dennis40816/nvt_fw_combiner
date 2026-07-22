@@ -61,6 +61,7 @@ public sealed partial class MainWindowViewModel
         else
         {
             SelectMergeMode(target.Mode);
+            NavigateToPage(ShellPage.Merge);
         }
     }
 
