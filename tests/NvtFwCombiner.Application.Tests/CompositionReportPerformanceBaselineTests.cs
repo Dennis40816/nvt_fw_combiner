@@ -83,6 +83,7 @@ public sealed class CompositionReportPerformanceBaselineTests
             reportJson.AsSpan().SequenceEqual(repeatedReportJson),
             "Repeated report serialization must preserve the exact JSON text.");
         Assert.Contains("\"OutputDifferences\": [", reportJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"ExecutionSnapshot\"", reportJson, StringComparison.Ordinal);
 
         TestContext.Current.TestOutputHelper?.WriteLine(
             $"REPORT_BASELINE differences={DifferenceCount} outputSha256={result.Report.Output.Sha256} " +

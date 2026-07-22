@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -66,6 +67,7 @@ public sealed class InputArtifactSummary
     public string? OriginalFileName { get; }
 
     /// <summary>Accepted execution prefix and ignored outer tail when the compiled contract declares one.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public InputArtifactExecutionSnapshotSummary? ExecutionSnapshot { get; }
 }
 

@@ -35,7 +35,7 @@ internal static class WorkbenchAbMergeInputProjection
                 out IReadOnlyList<CompositionIssue> compileIssues) ||
             composition.V2Details is not { } details)
         {
-            throw new InvalidOperationException(FormatIssues(compileIssues));
+            throw new InvalidOperationException(WorkbenchCompositionService.FormatIssues(compileIssues));
         }
 
         WorkbenchAbMergeInputSlot slot = CreateInputSlots(composition).Single(candidate =>
@@ -253,8 +253,4 @@ internal static class WorkbenchAbMergeInputProjection
         };
     }
 
-    private static string FormatIssues(IEnumerable<CompositionIssue> issues)
-    {
-        return string.Join(Environment.NewLine, issues.Select(static issue => $"{issue.Code}: {issue.Message}"));
-    }
 }

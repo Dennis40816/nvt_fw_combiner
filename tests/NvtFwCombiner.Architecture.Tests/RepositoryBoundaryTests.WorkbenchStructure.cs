@@ -116,6 +116,7 @@ public sealed partial class RepositoryBoundaryTests
         string mergeUi = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Merge.cs");
         string firmwareMetadata = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs");
         string firmwareInspection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareInspection.cs");
+        string abInputProjection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchAbMergeInputProjection.cs");
         string workbenchModels = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionModels.cs");
         string outputNaming = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.OutputNaming.cs");
         string ctrlRamDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs");
@@ -144,7 +145,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ToRunProfile", common, StringComparison.Ordinal);
         Assert.Contains("CompositionRunRequest request = new(", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledCompositionRunAdapter", runner, StringComparison.Ordinal);
-        Assert.Contains("private static string FormatIssues", common, StringComparison.Ordinal);
+        Assert.Contains("internal static string FormatIssues", common, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.FormatIssues", abInputProjection, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static string FormatIssues", abInputProjection, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeProfilesByIc", standardMergeCompilation, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInStandardMergeProfiles", standardMergeCompilation, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInStandardMergeProfiles", catalog, StringComparison.Ordinal);
