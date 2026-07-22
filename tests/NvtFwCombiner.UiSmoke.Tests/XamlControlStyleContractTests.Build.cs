@@ -1,9 +1,24 @@
 using System.Xml.Linq;
+using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
+    /// <summary>Mode selectors use new product wording while stable contract tokens remain unchanged.</summary>
+    [Fact]
+    public void CompositionModeSelectorsUseDisplayOnlyProductNames()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+
+        Assert.Equal("Normal", WorkbenchMergeModes.Standard);
+        Assert.Equal("General", WorkbenchMergeModes.General);
+        Assert.Equal("Standard", WorkbenchModeDisplayConverters.GetDisplayName(WorkbenchMergeModes.Standard));
+        Assert.Equal("Customized", WorkbenchModeDisplayConverters.GetDisplayName(WorkbenchMergeModes.General));
+        Assert.Equal(2, shell.Split("WorkbenchModeDisplayConverters.DisplayName", StringSplitOptions.None).Length - 1);
+    }
+
     /// <summary>FWConfig Number mismatch uses the shared modal surface with explicit accessible actions.</summary>
     [Fact]
     public void FirmwareNumberMismatchUsesAccessibleConfirmationSurface()

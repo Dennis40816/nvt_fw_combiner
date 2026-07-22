@@ -68,7 +68,7 @@ public sealed partial class ShellTextResources
             ReplacePreview = Pick(
                 new PlanningCardText(
                     "Replace",
-                    "DP, CtrlRAM, and General policies.",
+                    "DP, CtrlRAM, and Customized policies.",
                     [
                         "Device context: shared IC and Number",
                         "DP Replace includes separate DP and LD payloads",
@@ -78,7 +78,7 @@ public sealed partial class ShellTextResources
                     "Build wired; CtrlRAM postbuild enabled"),
                 new PlanningCardText(
                     "取代",
-                    "DP、CtrlRAM 與 General policy。",
+                    "DP、CtrlRAM 與 Customized policy。",
                     [
                         "裝置條件：共用 IC 與數量",
                         "DP Replace 包含分開的 DP 與 LD payload",
@@ -108,8 +108,8 @@ public sealed partial class ShellTextResources
             OutputLayoutTitle = Pick("Output layout", "輸出配置"),
             PlanTitle = Pick("Plan", "計畫"),
             ValidationTitle = Pick("Validation", "驗證"),
-            GeneralReplaceMappingTitle = "General replace mapping",
-            GeneralMergeMappingTitle = "General merge mapping",
+            GeneralReplaceMappingTitle = "Customized Replace mapping",
+            GeneralMergeMappingTitle = "Customized Merge mapping",
             ExplicitMappingsTitle = Pick("Explicit mappings", "明確 mappings"),
             AddRangeLabel = Pick("+ Add range", "+ 新增範圍"),
             AddMappingLabel = Pick("+ Add mapping", "+ 新增 mapping"),
@@ -268,9 +268,9 @@ public sealed partial class ShellTextResources
             AddressSpaceLabel = "Address space",
             CopyCommandTooltip = Pick("Copy command evidence", "複製命令證據"),
             DeleteReportTooltip = Pick("Delete this report", "刪除此 report"),
-            MergeModeTooltip = Pick("Select Standard, reserved AB Code, or high-freedom General Merge.", "選擇 Standard、保留的 AB Code 或高自由度 General Merge。"),
+            MergeModeTooltip = Pick("Select Standard, reserved AB Code, or Customized Merge.", "選擇 Standard、保留的 AB Code 或 Customized Merge。"),
             WorkflowContextReplaceDetail = Pick("Choose the IC and IC count before opening Replace. You can change them later from the shared context row.", "進入 Replace 前先選擇 IC 與 IC 數量；之後仍可從共用條件列調整。"),
-            WorkflowContextMergeDetail = Pick("Choose the IC before opening Merge. IC count is not part of the Standard or General Merge authoring context.", "進入 Merge 前先選擇 IC；Standard 與 General Merge 的 authoring context 不使用 IC 數量。"),
+            WorkflowContextMergeDetail = Pick("Choose the IC before opening Merge. IC count is not part of the Standard or Customized Merge authoring context.", "進入 Merge 前先選擇 IC；Standard 與 Customized Merge 的 authoring context 不使用 IC 數量。"),
             WorkflowContextSafetyDetail = Pick("This only selects the catalog context. It does not inspect, modify, or write any firmware file.", "這只會選擇 catalog 條件，不會讀取、修改或寫入任何 firmware 檔案。"),
             FirmwareIcMismatchTitle = Pick("Selected BIN suggests another IC", "選擇的 BIN 顯示另一個 IC"),
             FirmwareIcMismatchDetail = Pick("A marker found in the file name or printable header text differs from the current catalog context. This is a prompt only; it does not validate the BIN or change it.", "檔名或可讀 header 文字中的 IC marker 與目前 catalog 條件不同。此提示不會驗證或修改 BIN，也不會自動變更 IC。"),
