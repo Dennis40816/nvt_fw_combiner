@@ -96,7 +96,9 @@
     <BuiltInProfileBundle Include="nt51928-standard-merge" />
     <BuiltInProfileBundle Include="nt51929-dp-replace" />
     <BuiltInProfileBundle Include="nt51929-standard-merge" />
-    <BuiltInProfileBundle Include="nt51919-nt51929-nt51932-ab-merge" />
+    <BuiltInProfileBundle Include="nt51919-nt51929-nt51932-ab-merge">
+      <CompositionProfileSchemaFile>composition-profile-v2.10.schema.json</CompositionProfileSchemaFile>
+    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51930-standard-merge" />
     <BuiltInProfileBundle Include="nt51931-dp-replace" />
     <BuiltInProfileBundle Include="nt51931-standard-merge" />

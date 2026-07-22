@@ -11,20 +11,20 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Owner-approved AB fixture evidence for V2 candidate profiles.</summary>
+/// <summary>Owner-approved AB fixture evidence for supported and retained candidate profiles.</summary>
 public sealed class AbMergeGoldenRegressionTests
 {
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string Nt51929BundleContentHash = "b5035b9c4afa8691adb98632b4ce9a1088d74d04948ea1f20690aade889445fb";
+    private const string Nt51929BundleContentHash = "80caf42295b8dcb2c7dfbfcfe8cc0d03cb94e3b9696cea60e82519453c8dafb1";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
     private const string Nt51950BundleContentHash = "06a671a3a6a6cb16e5cef7ed356a61626fdbd4395cd47299b95f60bb645885af";
 
-    /// <summary>Verifies the NT51929 V2 candidate reproduces the supplied AB output byte-for-byte.</summary>
+    /// <summary>Verifies the supported NT51929 profile reproduces the supplied AB output byte-for-byte.</summary>
     [Fact]
-    public void Nt51929CandidateMatchesOwnerApprovedAbGolden()
+    public void Nt51929SupportedProfileMatchesOwnerApprovedAbGolden()
     {
         JsonElement goldenCase = ReadGoldenCase("nt51929-ab-t05-d06");
-        CompiledComposition composition = CompileCandidate(
+        CompiledComposition composition = CompileProfile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(Nt51929BundleDirectory, Nt51929BundleContentHash),
             goldenCase,
             "NT51929");
@@ -65,7 +65,7 @@ public sealed class AbMergeGoldenRegressionTests
             .Single(item => StringComparer.Ordinal.Equals(item.Ic, icId));
         Assert.Equal("nt51929-ab-t05-d06", alias.SourceCaseId);
         Assert.Equal("NT51929", alias.SourceIc);
-        CompiledComposition composition = CompileCandidate(
+        CompiledComposition composition = CompileProfile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(Nt51929BundleDirectory, Nt51929BundleContentHash),
             goldenCase,
             icId,
@@ -90,7 +90,7 @@ public sealed class AbMergeGoldenRegressionTests
     [Theory]
     [InlineData("NT51929", "nt51929-ab-merge", "51929")]
     [InlineData("NT51932", "nt51932-ab-merge", "51932")]
-    public async Task Nt51929AndNt51932CandidatesMatchNamedPythonReferenceAsync(
+    public async Task Nt51929AndNt51932SupportedProfilesMatchNamedPythonReferenceAsync(
         string icId,
         string profileId,
         string referenceConfiguration)
@@ -99,10 +99,10 @@ public sealed class AbMergeGoldenRegressionTests
         const int tpLength = 0x40000;
         const string expectedSha256 = "cd54e124b02f2a91a5f43836ab49cc28db811a4a8e1ff407eb98e47437de10ce";
 
-        CompiledComposition composition = CompileCandidate(
+        CompiledComposition composition = CompileProfile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(Nt51929BundleDirectory, Nt51929BundleContentHash),
             profileId,
-            "0.1.0",
+            "0.2.0",
             icId,
             capacity);
         byte[] dp = CreateAddressSensitivePattern(capacity, 0x31);
@@ -159,7 +159,7 @@ public sealed class AbMergeGoldenRegressionTests
                 StringComparer.Ordinal.Equals(item.SourceCaseId, caseId));
         Assert.Equal("NT51950", alias.SourceIc);
         using var workspace = TempWorkspace.Create($"nfc-{caseId}");
-        CompiledComposition composition = CompileCandidate(
+        CompiledComposition composition = CompileProfile(
             AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
                 workspace,
                 Nt51950BundleDirectory,
@@ -272,7 +272,7 @@ public sealed class AbMergeGoldenRegressionTests
         const string expectedSha256 = "e1524ba52b41d5a49eb58fcdb75326d5f0c78a6df7af2fcfdaa632a12e628c71";
 
         using var workspace = TempWorkspace.Create("nfc-nt51951-ab-topology");
-        CompiledComposition composition = CompileCandidate(
+        CompiledComposition composition = CompileProfile(
             AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
                 workspace,
                 Nt51950BundleDirectory,
@@ -369,13 +369,13 @@ public sealed class AbMergeGoldenRegressionTests
         }
     }
 
-    private static CompiledComposition CompileCandidate(
+    private static CompiledComposition CompileProfile(
         TrustedProfileBundleCatalog catalog,
         JsonElement goldenCase,
         string icId,
         string? profileId = null)
     {
-        return CompileCandidate(
+        return CompileProfile(
             catalog,
             profileId ?? goldenCase.GetProperty("profileId").GetString()!,
             goldenCase.GetProperty("profileVersion").GetString()!,
@@ -383,7 +383,7 @@ public sealed class AbMergeGoldenRegressionTests
             goldenCase.GetProperty("mapCapacity").GetInt64());
     }
 
-    private static CompiledComposition CompileCandidate(
+    private static CompiledComposition CompileProfile(
         TrustedProfileBundleCatalog catalog,
         string profileId,
         string profileVersion,

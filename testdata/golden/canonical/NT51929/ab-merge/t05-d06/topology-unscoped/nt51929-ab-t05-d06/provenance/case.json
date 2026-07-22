@@ -7,9 +7,9 @@
   "topology": "topology-unscoped",
   "directGolden": true,
   "sourceClassification": "private-owner-approved-golden",
-  "ownerApproval": "Repository owner supplied the AB archive and directed these golden BIN fixtures to be tracked on 2026-07-14.",
+  "ownerApproval": "Repository owner supplied and approved the direct AB golden on 2026-07-14, approved NT51919/NT51932 fact-scoped family applicability on 2026-07-18, and approved the version-independent NT51919/NT51929/NT51932 runtime pilot on 2026-07-22.",
   "profileId": "nt51929-ab-merge",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "mapCapacity": 524288,
   "artifacts": [
     {
@@ -142,7 +142,7 @@
     ],
     "standaloneSingleGolden": false,
     "fullByteParity": false,
-    "runtimePromotion": "blocked pending independent expected output and firmware-owner review"
+    "runtimePromotion": "Owner accepted the fixed no-processor NT51919/NT51929/NT51932 pilot on 2026-07-22; the recorded legacy comparison differs only in the classified Header CRC and Header Copy CRC ranges and remains audit evidence rather than runtime processor authority."
   },
-  "promotion": "executable-candidate only; firmware-owner review remains required"
+  "promotion": "supported runtime pilot for NT51919, NT51929, and NT51932 under the owner-approved fixed AB plan; NT51950/NT51951 remain excluded"
 }

@@ -31,7 +31,7 @@
         "transfer": "HackMD CJK14 numbered-note transfer",
         "sourceClassification": "private-owner-approved-golden",
         "approval": "Repository owner supplied the archive and directed AB golden BIN fixtures to be tracked on 2026-07-14.",
-        "evidenceApplicabilityApproval": "On 2026-07-18 the repository owner approved NT51929 AB evidence as fact-scoped NT51919 and NT51932 family aliases, and NT51950 AB evidence as fact-scoped NT51951 workflow-logic evidence; none promotes runtime support."
+        "evidenceApplicabilityApproval": "On 2026-07-18 the repository owner approved NT51929 AB evidence as fact-scoped NT51919 and NT51932 family aliases, and NT51950 AB evidence as fact-scoped NT51951 workflow-logic evidence. On 2026-07-22 the owner separately approved the fixed NT51919/NT51929/NT51932 version-independent runtime pilot; NT51950/NT51951 remain excluded."
       }
     },
     {

@@ -161,5 +161,22 @@ public sealed partial class CompositionPlanTests
                 spaces,
                 []));
         }
+
+        AddressSpace[] extractedOutputSource =
+        [
+            new(
+                "reference",
+                4,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: [4],
+                unexpectedInputLengthIssueCode: "INPUT_OUTER_LENGTH"),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+        _ = Assert.Throws<ArgumentException>(() => new CompositionPlan(
+            [ImageInitialization.Reference("output-image", "reference", 4)],
+            "output-image",
+            extractedOutputSource,
+            []));
     }
 }

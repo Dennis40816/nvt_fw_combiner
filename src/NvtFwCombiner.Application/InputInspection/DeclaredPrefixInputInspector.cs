@@ -5,8 +5,8 @@ namespace NvtFwCombiner.Application.InputInspection;
 
 /// <summary>
 /// Inspects an immutable source against one compiler-owned declared-prefix policy without retaining
-/// source bytes. This substrate is not connected to runtime admission until the compiled contract
-/// carries the corresponding firmware authority.
+/// source bytes. Runtime and load-time callers may project it only from the corresponding compiled
+/// input contract; filenames, IC labels, and Presentation state are never policy authority.
 /// </summary>
 internal static class DeclaredPrefixInputInspector
 {

@@ -49,6 +49,8 @@ public static partial class CliApplication
                 "profiles" => await RunProfilesAsync(args[1..], output, error).ConfigureAwait(false),
                 IcWorkflowIds.StandardMerge => await RunStandardMergeAsync(args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
+                IcWorkflowIds.AbMerge => await RunAbMergeAsync(args[1..], output, error, cancellationToken)
+                    .ConfigureAwait(false),
                 IcWorkflowIds.GeneralMerge => await MergeCliCommandHandler.RunAsync(
                         args[0],
                         args[1..],

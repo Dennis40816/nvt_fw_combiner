@@ -10,6 +10,7 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private const string StandardMergeRunIdPrefix = "ui";
+    private const string AbMergeRunIdPrefix = "ui-merge-ab";
     private const string GeneralMergeRunIdPrefix = "ui-merge-general";
     private const string DpReplaceRunIdPrefix = "ui-replace-dp";
     private const string CtrlRamReplaceRunIdPrefix = "ui-replace-ctrlram";

@@ -44,6 +44,52 @@ public sealed partial class CompositionEngineTests
         Assert.Equal([0xFF, 0xFF], source);
     }
 
+    /// <summary>Verifies a work-buffer clone consumes only the normalized declared prefix and reports the outer tail.</summary>
+    [Fact]
+    public void ClonedWorkBufferUsesDeclaredPrefixSnapshot()
+    {
+        byte[] source = [0x12, 0x34, 0x99];
+        var plan = new CompositionPlan(
+            [
+                ImageInitialization.Blank("output-image", 2, 0),
+                ImageInitialization.Reference("scratch", "source", 2),
+            ],
+            "output-image",
+            [
+                new AddressSpace(
+                    "source",
+                    2,
+                    AddressSpaceMutability.Immutable,
+                    inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                    expectedInputLengths: [2],
+                    unexpectedInputLengthIssueCode: "INPUT_OUTER_LENGTH"),
+                new AddressSpace("output-image", 2, AddressSpaceMutability.Mutable),
+                new AddressSpace("scratch", 2, AddressSpaceMutability.Mutable),
+            ],
+            [
+                CompositionOperation.CopyRange(
+                    "copy-scratch",
+                    10,
+                    "scratch",
+                    new ByteRange(0, 2),
+                    "output-image",
+                    new ByteRange(0, 2),
+                    OverlapPolicy.Reject,
+                    "copy declared prefix"),
+            ]);
+
+        CompositionExecutionResult result = CompositionEngine.Execute(
+            plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]> { ["source"] = source }));
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x12, 0x34], result.OutputBytes.ToArray());
+        CompositionIssue warning = Assert.Single(result.Issues);
+        Assert.Equal("INPUT_OUTER_LENGTH", warning.Code);
+        Assert.Equal(CompositionIssueSeverity.Warning, warning.Severity);
+        Assert.Equal([0x12, 0x34, 0x99], source);
+    }
+
     /// <summary>Verifies caller bytes cannot seed any engine-owned work buffer.</summary>
     [Fact]
     public void CallerSuppliedWorkBufferBytesAreRejected()
