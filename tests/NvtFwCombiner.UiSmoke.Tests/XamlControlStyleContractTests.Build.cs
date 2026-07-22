@@ -70,9 +70,6 @@ public sealed partial class XamlControlStyleContractTests
         string reducedMotionLabel = ExtractStyle(
             styles,
             "Button.railAction.reducedMotion TextBlock.railActionLabel");
-        string globalPressed = ExtractStyle(
-            styles,
-            "Button:pressed /template/ ContentPresenter#PART_ContentPresenter");
         string primaryHover = ExtractStyle(styles, "Button.primary:pointerover");
         string primaryHoverPresenter = ExtractStyle(
             styles,
@@ -106,8 +103,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionAction, StringComparison.Ordinal);
         Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionPresenter, StringComparison.Ordinal);
         Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionLabel, StringComparison.Ordinal);
-        Assert.Contains("BorderThickness\" Value=\"2\"", globalPressed, StringComparison.Ordinal);
-        Assert.Contains("Opacity\" Value=\"0.84\"", globalPressed, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceBrush", primaryHover, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", primaryHoverPresenter, StringComparison.Ordinal);
         Assert.Contains("TextElement.Foreground\" Value=\"{DynamicResource NfcSurfaceBrush}", primaryPresenter, StringComparison.Ordinal);

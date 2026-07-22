@@ -453,8 +453,4 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
-  <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="BorderThickness" Value="2" />
-    <Setter Property="Opacity" Value="0.84" />
-  </Style>
 </Styles>
