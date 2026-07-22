@@ -268,8 +268,14 @@ def validate_diagnostic_golden_separation(
     for path in owner_entries:
         if path.is_symlink():
             errors.append(f"diagnostic ownerHandoff cannot contain symlinks: {path}")
+    # CASE.md records owner-provided investigation payloads under ignored intake directories.
+    # They are private workspace evidence, never repository inventory or release material.
     owner_files = [
-        path for path in owner_entries if path.is_file() and not path.is_symlink()
+        path
+        for path in owner_entries
+        if path.is_file()
+        and not path.is_symlink()
+        and "intake" not in path.relative_to(owner_root).parts
     ]
     if owner_handoff.get("fileCount") != len(owner_files):
         errors.append("diagnostic ownerHandoff fileCount does not match its inventory")

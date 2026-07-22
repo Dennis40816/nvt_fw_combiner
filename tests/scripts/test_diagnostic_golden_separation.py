@@ -194,6 +194,13 @@ class DiagnosticGoldenSeparationTests(unittest.TestCase):
             any("ownerHandoff contains a binary" in error for error in self.validate())
         )
 
+    def test_ignores_private_owner_handoff_intake_payload(self) -> None:
+        self.write_bytes(
+            self.handoff / "nt51929/intake/source-code.7z", b"private archive"
+        )
+
+        self.assertEqual([], self.validate())
+
     def test_rejects_owner_handoff_content_drift(self) -> None:
         self.write_bytes(self.handoff / "CASE.md", b"changed\n")
         self.assertIn(
