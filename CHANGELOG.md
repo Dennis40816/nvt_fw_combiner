@@ -30,11 +30,11 @@ for `v0.9.15`.
 
 #### Load-time diagnostics, IC details, and targeted UI correctness
 
-- Before → After: input problems appeared too late or as noisy page badges, empty Replace targets could look changed, coverage could leave unused width, filename tips could obstruct clicks, byte hover required touching glyphs, and the action rail could overlap modals; loaded slots now show one severity/action state, IC facts live in a pass-through hover/focus detail card, empty targets stay neutral, bars fill the available width, full byte cells hover, file reveal remains operable, and modal state removes background actions from hit testing.
+- Before → After: input problems appeared too late or as noisy page badges, empty Replace targets could look changed, coverage could leave unused width, filename tips could obstruct clicks, byte hover required touching glyphs, and the action rail could overlap modals; loaded slots now show one severity/action state, IC facts live in a compact icon-first pass-through hover/focus card that closes after selection, empty targets stay neutral, bars fill the available width, full byte cells hover, file reveal remains operable, and modal state removes background actions from hit testing.
 - Affected: Merge/Replace slot cards, IC selector, Output layout, Hex Editor byte cells, filename reveal, and the bottom-right `View file`/Build actions.
 - Support status: Support-neutral presentation and typed Bootstrap projection; no IC range, processor, operation order, or support stage changes.
 - Compatibility: Existing file selection, Explorer reveal-and-focus, Build/report commands, keyboard focus, English/Traditional Chinese resources, and base-firmware hatch semantics remain intact.
-- Verification: UI smoke tests cover 321 cases including AB readiness, neutral/selected coverage, exact 300-unit normalization, pointer pass-through, focus tooltips, modal hit testing, and action-rail contracts.
+- Verification: UI smoke tests cover 324 cases including AB readiness, hidden AB cache clearing, neutral/selected coverage, exact 300-unit normalization, pointer pass-through, focus tooltips, modal hit testing, and action-rail contracts.
 - Limitations: A global Button interaction/state rollout, shared Hex/Changes viewport, and Report issue-triage redesign remain scheduled for `v0.9.15`.
 
 #### Canonical toolchain and CI-owned stable promotion
