@@ -51,6 +51,14 @@
               Text="{Binding DisplayName}"
               TextWrapping="Wrap"
               ToolTip.Tip="{Binding DisplayDetail}" />
+          <TextBlock
+              AutomationProperties.HelpText="{Binding DisplayDetail}"
+              Classes="technicalMeta firmwarePath"
+              IsVisible="{Binding HasFile}"
+              Text="{Binding DisplayDetail}"
+              TextTrimming="CharacterEllipsis"
+              TextWrapping="NoWrap"
+              ToolTip.Tip="{Binding DisplayDetail}" />
           <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
