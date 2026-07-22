@@ -30,11 +30,11 @@ for `v0.9.15`.
 
 #### Load-time diagnostics, IC details, and targeted UI correctness
 
-- Before → After: input problems appeared too late or as noisy page badges, empty Replace targets could look changed, coverage could leave unused width, filename tips could obstruct clicks, byte hover required touching glyphs, and the action rail could overlap modals; loaded slots now show one severity/action state, IC facts live in a compact icon-first pass-through hover/focus card that closes after selection, empty targets stay neutral, bars fill the available width, full byte cells hover, file reveal remains operable, and modal state removes background actions from hit testing.
+- Before → After: input problems appeared too late or as noisy page badges, loaded slots could lose their accepted green state, empty Replace targets could look changed, coverage could leave unused width, filename tips could obstruct clicks, byte hover required touching glyphs, and the action rail could overlap modals; loaded slots now show a green accepted state overridden only by pending/warning/error health, IC facts live in a compact icon-first pass-through hover/focus card that closes immediately after selection, empty targets stay neutral, bars fill the available width, full byte cells hover, file reveal remains operable, and modal state removes background actions from hit testing.
 - Affected: Merge/Replace slot cards, IC selector, Output layout, Hex Editor byte cells, filename reveal, and the bottom-right `View file`/Build actions.
 - Support status: Support-neutral presentation and typed Bootstrap projection; no IC range, processor, operation order, or support stage changes.
 - Compatibility: Existing file selection, Explorer reveal-and-focus, Build/report commands, keyboard focus, English/Traditional Chinese resources, and base-firmware hatch semantics remain intact.
-- Verification: UI smoke tests cover 324 cases including AB readiness, hidden AB cache clearing, neutral/selected coverage, exact 300-unit normalization, pointer pass-through, focus tooltips, modal hit testing, and action-rail contracts.
+- Verification: UI smoke tests cover 325 cases including AB readiness, hidden AB cache clearing, semantic slot severity, neutral/selected coverage, exact 300-unit normalization, pointer pass-through, focus-tooltip selection lifecycle, modal hit testing, and action-rail contracts. IC evidence now names verified/open workflows instead of presenting workflow counts as golden-case counts.
 - Limitations: A global Button interaction/state rollout, shared Hex/Changes viewport, and Report issue-triage redesign remain scheduled for `v0.9.15`.
 
 #### Canonical toolchain and CI-owned stable promotion

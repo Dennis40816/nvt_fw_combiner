@@ -267,7 +267,6 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Evidence summary shown without badge clusters.</summary>
     public string SelectedIcDetailEvidence => Text.GetIcDetailEvidenceValue(
-        IsAbMergeSupported,
         WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, DpReplaceMode),
         WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, CtrlRamReplaceMode),
         WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, GeneralReplaceMode));

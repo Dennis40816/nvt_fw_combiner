@@ -10,6 +10,8 @@
       Classes="fileDropZone firmwareSlot"
       Classes.hasFile="{Binding HasFile}"
       Classes.blocking="{Binding IsInputInspectionBlocking}"
+      Classes.pending="{Binding IsInputInspectionPending}"
+      Classes.valid="{Binding IsInputInspectionValid}"
       Classes.warning="{Binding IsInputInspectionWarning}"
       Classes.optional="{Binding IsOptional}"
       HorizontalAlignment="Stretch"

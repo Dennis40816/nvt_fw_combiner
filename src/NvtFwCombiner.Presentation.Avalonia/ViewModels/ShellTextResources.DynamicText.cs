@@ -243,21 +243,56 @@ public sealed partial class ShellTextResources
     }
 
     public string GetIcDetailEvidenceValue(
-        bool abMerge,
         WorkbenchWorkflowReadiness dp,
         WorkbenchWorkflowReadiness ctrlRam,
         WorkbenchWorkflowReadiness general)
     {
-        int golden = new[] { dp, ctrlRam, general }.Count(static item =>
-            item.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.GoldenVerified);
-        int open = new[] { dp, ctrlRam, general }.Count(static item =>
-            item.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.EvidenceGated);
-        string ab = abMerge
-            ? SelectLanguage("AB pilot admitted", "AB pilot 已開放")
-            : SelectLanguage("AB unavailable", "AB 尚未開放");
-        return SelectLanguage(
-            $"{ab} · {golden} golden · {open} open",
-            $"{ab} · {golden} golden · {open} 待補");
+        ArgumentNullException.ThrowIfNull(dp);
+        ArgumentNullException.ThrowIfNull(ctrlRam);
+        ArgumentNullException.ThrowIfNull(general);
+
+        List<string> verified = [];
+        List<string> open = [];
+        List<string> unavailable = [];
+        Add("DP", dp);
+        Add("CtrlRAM", ctrlRam);
+        Add("Customized", general);
+
+        List<string> summaries = [];
+        if (verified.Count > 0)
+        {
+            summaries.Add(SelectLanguage(
+                $"✓ Verified: {string.Join(", ", verified)}",
+                $"✓ 已驗證：{string.Join("、", verified)}"));
+        }
+
+        if (open.Count > 0)
+        {
+            summaries.Add(SelectLanguage(
+                $"! Open: {string.Join(", ", open)}",
+                $"! 待補：{string.Join("、", open)}"));
+        }
+
+        if (unavailable.Count > 0)
+        {
+            summaries.Add(SelectLanguage(
+                $"— Unavailable: {string.Join(", ", unavailable)}",
+                $"— 未開放：{string.Join("、", unavailable)}"));
+        }
+
+        return string.Join(" · ", summaries);
+
+        void Add(string label, WorkbenchWorkflowReadiness readiness)
+        {
+            List<string> destination = readiness.EvidenceStatus switch
+            {
+                WorkbenchWorkflowEvidenceStatus.GoldenVerified => verified,
+                WorkbenchWorkflowEvidenceStatus.EvidenceGated => open,
+                WorkbenchWorkflowEvidenceStatus.NotAvailable => unavailable,
+                _ => unavailable,
+            };
+            destination.Add(label);
+        }
     }
 
     public string GetIcDetailSupportValue(bool abMerge)

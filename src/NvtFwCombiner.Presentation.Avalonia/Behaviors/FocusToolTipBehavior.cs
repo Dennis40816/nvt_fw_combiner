@@ -40,9 +40,12 @@ public sealed class FocusToolTipBehavior : AvaloniaObject
         control.GotFocus -= Control_OnGotFocus;
         control.LostFocus -= Control_OnLostFocus;
         control.KeyDown -= Control_OnKeyDown;
+        control.PointerEntered -= Control_OnPointerEntered;
+        control.PointerExited -= Control_OnPointerExited;
         if (control is ComboBox comboBox)
         {
             comboBox.SelectionChanged -= ComboBox_OnSelectionChanged;
+            comboBox.DropDownClosed -= ComboBox_OnDropDownClosed;
         }
 
         if (e.NewValue is true)
@@ -50,14 +53,17 @@ public sealed class FocusToolTipBehavior : AvaloniaObject
             control.GotFocus += Control_OnGotFocus;
             control.LostFocus += Control_OnLostFocus;
             control.KeyDown += Control_OnKeyDown;
+            control.PointerEntered += Control_OnPointerEntered;
+            control.PointerExited += Control_OnPointerExited;
             if (control is ComboBox enabledComboBox)
             {
                 enabledComboBox.SelectionChanged += ComboBox_OnSelectionChanged;
+                enabledComboBox.DropDownClosed += ComboBox_OnDropDownClosed;
             }
         }
         else
         {
-            ToolTip.SetIsOpen(control, false);
+            CloseAndRestoreTooltip(control);
         }
     }
 
@@ -65,7 +71,10 @@ public sealed class FocusToolTipBehavior : AvaloniaObject
     {
         if (sender is Control control)
         {
-            ToolTip.SetIsOpen(control, true);
+            if (ToolTip.GetServiceEnabled(control))
+            {
+                ToolTip.SetIsOpen(control, true);
+            }
         }
     }
 
@@ -74,6 +83,7 @@ public sealed class FocusToolTipBehavior : AvaloniaObject
         if (sender is Control control)
         {
             ToolTip.SetIsOpen(control, false);
+            ToolTip.SetServiceEnabled(control, true);
         }
     }
 
@@ -81,7 +91,23 @@ public sealed class FocusToolTipBehavior : AvaloniaObject
     {
         if (sender is Control control && e.Key == Key.Escape)
         {
-            ToolTip.SetIsOpen(control, false);
+            CloseAndSuppressTooltip(control);
+        }
+    }
+
+    private static void Control_OnPointerEntered(object? sender, PointerEventArgs e)
+    {
+        if (sender is Control { IsFocused: false } control)
+        {
+            ToolTip.SetServiceEnabled(control, true);
+        }
+    }
+
+    private static void Control_OnPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is Control control)
+        {
+            ToolTip.SetServiceEnabled(control, true);
         }
     }
 
@@ -89,7 +115,27 @@ public sealed class FocusToolTipBehavior : AvaloniaObject
     {
         if (sender is ComboBox comboBox)
         {
-            ToolTip.SetIsOpen(comboBox, false);
+            CloseAndSuppressTooltip(comboBox);
         }
+    }
+
+    private static void ComboBox_OnDropDownClosed(object? sender, EventArgs e)
+    {
+        if (sender is ComboBox comboBox)
+        {
+            CloseAndSuppressTooltip(comboBox);
+        }
+    }
+
+    private static void CloseAndSuppressTooltip(Control control)
+    {
+        ToolTip.SetIsOpen(control, false);
+        ToolTip.SetServiceEnabled(control, false);
+    }
+
+    private static void CloseAndRestoreTooltip(Control control)
+    {
+        ToolTip.SetIsOpen(control, false);
+        ToolTip.SetServiceEnabled(control, true);
     }
 }

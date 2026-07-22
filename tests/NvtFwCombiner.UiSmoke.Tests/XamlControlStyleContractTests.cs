@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
@@ -187,17 +188,28 @@ public sealed partial class XamlControlStyleContractTests
             detailCard.Descendants(),
             element => (string?)element.Attribute("Text") is "{Binding SelectedIcDetailReuse}" or "{Binding SelectedIcDetailSupport}");
 
-        var control = new ComboBox();
+        var control = new ComboBox
+        {
+            ItemsSource = new[] { "NT51929", "NT51932" },
+            SelectedIndex = 0,
+        };
         ToolTip.SetTip(control, new ToolTip { IsHitTestVisible = false });
         FocusToolTipBehavior.SetIsEnabled(control, true);
         Assert.True(FocusToolTipBehavior.GetIsEnabled(control));
         Assert.False(Assert.IsType<ToolTip>(ToolTip.GetTip(control)).IsHitTestVisible);
 
-        control.ItemsSource = new[] { "NT51929", "NT51932" };
-        control.SelectedIndex = 0;
         ToolTip.SetIsOpen(control, true);
         control.SelectedIndex = 1;
         Assert.False(ToolTip.GetIsOpen(control));
+        Assert.False(ToolTip.GetServiceEnabled(control));
+
+        control.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent));
+        Assert.False(ToolTip.GetIsOpen(control));
+
+        control.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
+        Assert.True(ToolTip.GetServiceEnabled(control));
+        control.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent));
+        Assert.True(ToolTip.GetIsOpen(control));
     }
 
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>

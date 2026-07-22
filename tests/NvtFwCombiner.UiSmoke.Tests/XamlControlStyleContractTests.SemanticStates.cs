@@ -53,58 +53,62 @@ public sealed partial class XamlControlStyleContractTests
         string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
         string viewModel = ReadPresentationFile("ViewModels/FirmwareSlotViewModel.cs");
         string missingSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot");
-        string selectedSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile");
         string optionalSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.optional");
-        string selectedOptionalSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.optional.hasFile");
+        string selectedSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile");
+        string pendingSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile.pending");
+        string validSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile.valid");
         string warningSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile.warning");
         string blockingSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile.blocking");
         string missingBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement");
-        string selectedBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement.hasFile");
         string optionalBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement.optional");
-        string selectedOptionalBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement.optional.hasFile");
+        string selectedBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement.hasFile");
 
         Assert.Contains("x:Key=\"NfcRequiredMissingBorderBrush\" Color=\"#FCA5A5\"", tokens, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"NfcRequiredMissingBadgeSurfaceBrush\" Color=\"#FEE2E2\"", tokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcRequiredSelectedBorderBrush\" Color=\"#86EFAC\"", tokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcRequiredSelectedBadgeSurfaceBrush\" Color=\"#DCFCE7\"", tokens, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"NfcSuccessEmphasisBrush\" Color=\"#15803D\"", tokens, StringComparison.Ordinal);
 
         Assert.Contains("NfcCriticalSurfaceBrush", missingSlot, StringComparison.Ordinal);
         Assert.Contains("NfcRequiredMissingBorderBrush", missingSlot, StringComparison.Ordinal);
         Assert.Contains("Value=\"1.5\"", missingSlot, StringComparison.Ordinal);
-        Assert.Contains("NfcSurfaceBrush", selectedSlot, StringComparison.Ordinal);
-        Assert.Contains("NfcBorderBrush", selectedSlot, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceSubtleBrush", optionalSlot, StringComparison.Ordinal);
         Assert.Contains("NfcBorderBrush", optionalSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcSuccessSurfaceBrush", selectedSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcRequiredSelectedBorderBrush", selectedSlot, StringComparison.Ordinal);
         Assert.True(
-            styles.IndexOf(optionalSlot, StringComparison.Ordinal) > styles.IndexOf(selectedSlot, StringComparison.Ordinal),
-            "An empty optional slot remains neutral.");
-        Assert.Contains("NfcSurfaceBrush", selectedOptionalSlot, StringComparison.Ordinal);
-        Assert.Contains("NfcBorderBrush", selectedOptionalSlot, StringComparison.Ordinal);
-        Assert.True(
-            styles.IndexOf(selectedOptionalSlot, StringComparison.Ordinal) > styles.IndexOf(optionalSlot, StringComparison.Ordinal),
-            "A selected optional slot must override the empty optional state with a neutral selected surface.");
+            styles.IndexOf(selectedSlot, StringComparison.Ordinal) > styles.IndexOf(optionalSlot, StringComparison.Ordinal),
+            "A selected optional slot must override the empty optional state with the common success surface.");
+        Assert.Contains("NfcSurfaceBrush", pendingSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcBorderBrush", pendingSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcSuccessSurfaceBrush", validSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcRequiredSelectedBorderBrush", validSlot, StringComparison.Ordinal);
         Assert.Contains("NfcWarningSurfaceBrush", warningSlot, StringComparison.Ordinal);
         Assert.Contains("NfcWarningBorderStrongBrush", warningSlot, StringComparison.Ordinal);
         Assert.Contains("NfcCriticalSurfaceBrush", blockingSlot, StringComparison.Ordinal);
         Assert.Contains("NfcRequiredMissingBorderBrush", blockingSlot, StringComparison.Ordinal);
+        Assert.True(
+            styles.IndexOf(pendingSlot, StringComparison.Ordinal) > styles.IndexOf(selectedSlot, StringComparison.Ordinal) &&
+            styles.IndexOf(validSlot, StringComparison.Ordinal) > styles.IndexOf(pendingSlot, StringComparison.Ordinal) &&
+            styles.IndexOf(warningSlot, StringComparison.Ordinal) > styles.IndexOf(validSlot, StringComparison.Ordinal) &&
+            styles.IndexOf(blockingSlot, StringComparison.Ordinal) > styles.IndexOf(warningSlot, StringComparison.Ordinal),
+            "Pending, valid, warning, and blocking health must override generic selected styling in severity order.");
 
         Assert.Contains("NfcRequiredMissingBadgeSurfaceBrush", missingBadge, StringComparison.Ordinal);
         Assert.Contains("NfcDangerTextBrush", missingBadge, StringComparison.Ordinal);
-        Assert.Contains("NfcSurfaceSubtleBrush", selectedBadge, StringComparison.Ordinal);
-        Assert.Contains("NfcTextSecondaryBrush", selectedBadge, StringComparison.Ordinal);
         Assert.Contains("NfcAccentSurfaceBrush", optionalBadge, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", optionalBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcRequiredSelectedBadgeSurfaceBrush", selectedBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcSuccessEmphasisBrush", selectedBadge, StringComparison.Ordinal);
         Assert.True(
-            styles.IndexOf(optionalBadge, StringComparison.Ordinal) > styles.IndexOf(selectedBadge, StringComparison.Ordinal),
-            "The empty optional badge remains distinct from a missing required input.");
-        Assert.Contains("NfcSurfaceSubtleBrush", selectedOptionalBadge, StringComparison.Ordinal);
-        Assert.Contains("NfcTextSecondaryBrush", selectedOptionalBadge, StringComparison.Ordinal);
-        Assert.True(
-            styles.IndexOf(selectedOptionalBadge, StringComparison.Ordinal) > styles.IndexOf(optionalBadge, StringComparison.Ordinal),
-            "A selected optional badge must use the same neutral selected state as any selected BIN.");
+            styles.IndexOf(selectedBadge, StringComparison.Ordinal) > styles.IndexOf(optionalBadge, StringComparison.Ordinal),
+            "A selected optional badge must override the empty optional state with the common success state.");
 
         Assert.Contains("Classes=\"fileDropZone firmwareSlot\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.hasFile=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.blocking=\"{Binding IsInputInspectionBlocking}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.pending=\"{Binding IsInputInspectionPending}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.valid=\"{Binding IsInputInspectionValid}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.warning=\"{Binding IsInputInspectionWarning}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Stretch=\"Uniform\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding InputInspectionStatus}\"", slotCard, StringComparison.Ordinal);
@@ -115,6 +119,58 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("RequirementBadgeForegroundBrush", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotBackgroundBrush", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("RequirementBadgeForegroundBrush", viewModel, StringComparison.Ordinal);
+    }
+
+    /// <summary>Notifies every property bound by the slot's semantic classes as one selected input changes health.</summary>
+    [Fact]
+    public void FirmwareSlotInspectionStatesNotifyEveryBoundVisualClass()
+    {
+        var slot = new FirmwareSlotViewModel(
+            "base",
+            "Base firmware",
+            "Complete firmware",
+            FirmwareSlotKind.Base);
+        var notifications = new HashSet<string>(StringComparer.Ordinal);
+        slot.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is not null)
+            {
+                _ = notifications.Add(args.PropertyName);
+            }
+        };
+
+        Assert.False(slot.HasFile);
+        slot.FilePath = "C:\\firmware\\base.bin";
+        Assert.True(slot.HasFile);
+        Assert.Contains(nameof(FirmwareSlotViewModel.HasFile), notifications);
+
+        notifications.Clear();
+        slot.SetInputInspectionPending("Inspecting");
+        Assert.True(slot.IsInputInspectionPending);
+        Assert.False(slot.IsInputInspectionValid);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionPending), notifications);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionValid), notifications);
+
+        notifications.Clear();
+        slot.SetInputInspection(WorkbenchInputInspectionSeverity.Valid, "Ready");
+        Assert.False(slot.IsInputInspectionPending);
+        Assert.True(slot.IsInputInspectionValid);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionPending), notifications);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionValid), notifications);
+
+        notifications.Clear();
+        slot.SetInputInspection(WorkbenchInputInspectionSeverity.Warning, "Review warning");
+        Assert.False(slot.IsInputInspectionValid);
+        Assert.True(slot.IsInputInspectionWarning);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionValid), notifications);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionWarning), notifications);
+
+        notifications.Clear();
+        slot.SetInputInspection(WorkbenchInputInspectionSeverity.Blocking, "Fix input");
+        Assert.False(slot.IsInputInspectionWarning);
+        Assert.True(slot.IsInputInspectionBlocking);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionWarning), notifications);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionBlocking), notifications);
     }
 
     /// <summary>Keeps each slot icon category visually distinct while geometry and accessible tooltips stay in the ViewModel.</summary>

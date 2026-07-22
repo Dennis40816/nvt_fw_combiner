@@ -63,6 +63,8 @@ public sealed partial class ShellViewModelTests
 
         Assert.Contains("IC Family source", viewModel.SelectedIcDetailFamily, StringComparison.Ordinal);
         Assert.Contains("AB", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
+        Assert.Equal("! Open: DP, CtrlRAM, Customized", viewModel.SelectedIcDetailEvidence);
+        Assert.DoesNotContain("golden", viewModel.SelectedIcDetailEvidence, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("NT51929", viewModel.SelectedIcDetailAutomationText, StringComparison.Ordinal);
         Assert.Contains(viewModel.SelectedIcDetailEvidence, viewModel.SelectedIcDetailAutomationText, StringComparison.Ordinal);
         Assert.Contains(viewModel.SelectedIcDetailSupport, viewModel.SelectedIcDetailAutomationText, StringComparison.Ordinal);
@@ -70,6 +72,11 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51950";
 
         Assert.DoesNotContain("AB", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
+        Assert.Equal("✓ Verified: DP · ! Open: CtrlRAM, Customized", viewModel.SelectedIcDetailEvidence);
         Assert.Contains("compiled profiles", viewModel.SelectedIcDetailSupport, StringComparison.Ordinal);
+
+        viewModel.SelectedIc = "NT51931";
+
+        Assert.Contains("— Unavailable: Customized", viewModel.SelectedIcDetailEvidence, StringComparison.Ordinal);
     }
 }

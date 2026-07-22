@@ -82,10 +82,24 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcRequiredMissingBorderBrush}" />
     <Setter Property="BorderThickness" Value="1.5" />
   </Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot.optional">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
   <Style Selector="Border.fileDropZone.firmwareSlot.hasFile">
+    <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcRequiredSelectedBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot.hasFile.pending">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot.hasFile.valid">
+    <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcRequiredSelectedBorderBrush}" />
   </Style>
   <Style Selector="Border.fileDropZone.firmwareSlot.hasFile.warning">
     <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
@@ -95,16 +109,6 @@
     <Setter Property="Background" Value="{DynamicResource NfcCriticalSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcRequiredMissingBorderBrush}" />
     <Setter Property="BorderThickness" Value="1.5" />
-  </Style>
-  <Style Selector="Border.fileDropZone.firmwareSlot.optional">
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-  </Style>
-  <Style Selector="Border.fileDropZone.firmwareSlot.optional.hasFile">
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="Border.shellBar">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
@@ -392,20 +396,15 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcDangerBorderBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcDangerTextBrush}" />
   </Style>
-  <Style Selector="Label.slotBadge.firmwareSlotRequirement.hasFile">
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
-  </Style>
   <Style Selector="Label.slotBadge.firmwareSlotRequirement.optional">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
-  <Style Selector="Label.slotBadge.firmwareSlotRequirement.optional.hasFile">
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+  <Style Selector="Label.slotBadge.firmwareSlotRequirement.hasFile">
+    <Setter Property="Background" Value="{DynamicResource NfcRequiredSelectedBadgeSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
   </Style>
   <Style Selector="Path.slotHealthIcon">
     <Setter Property="Fill" Value="Transparent" />

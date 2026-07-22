@@ -63,6 +63,8 @@
   <SolidColorBrush x:Key="NfcCriticalBorderBrush" Color="#DC2626" />
   <SolidColorBrush x:Key="NfcRequiredMissingBorderBrush" Color="#FCA5A5" />
   <SolidColorBrush x:Key="NfcRequiredMissingBadgeSurfaceBrush" Color="#FEE2E2" />
+  <SolidColorBrush x:Key="NfcRequiredSelectedBorderBrush" Color="#86EFAC" />
+  <SolidColorBrush x:Key="NfcRequiredSelectedBadgeSurfaceBrush" Color="#DCFCE7" />
   <CornerRadius x:Key="NfcCompactCornerRadius">6</CornerRadius>
   <CornerRadius x:Key="NfcSurfaceCornerRadius">8</CornerRadius>
   <CornerRadius x:Key="NfcPillCornerRadius">999</CornerRadius>
