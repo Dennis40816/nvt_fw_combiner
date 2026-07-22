@@ -114,6 +114,12 @@ internal static partial class V2CompositionPlanCompiler
                 new CompiledNormalDpExtractWithWarningInputLengthRequirement(
                     normalDp.IssueCode,
                     ResolveNormalDpExpectedInputLengths(normalDp, resolvedMapCapacity)),
+            DeclaredPrefixWithWarningLengthRule declaredPrefix =>
+                new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+                    declaredPrefix.RequiredEndExclusive,
+                    declaredPrefix.ExpectedOuterLengths,
+                    declaredPrefix.ShortInputIssueCode,
+                    declaredPrefix.UnexpectedOuterLengthIssueCode),
             TpMaximum256KLengthRule => new CompiledTpMaximum256KInputLengthRequirement(),
             _ => throw new ArgumentOutOfRangeException(nameof(lengthRule), "Unknown profile input length rule."),
         };

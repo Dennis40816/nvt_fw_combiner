@@ -105,7 +105,7 @@ internal sealed class RuntimeReferenceReplaceProfileCompilationContext : Composi
             mapBinding.FamilyContentHash)
     {
         MapBinding = mapBinding;
-        AllowsConditionalProcessor = StringComparer.Ordinal.Equals(schemaVersion, "2.9");
+        AllowsConditionalProcessor = schemaVersion is "2.9" or "2.10";
     }
 
     internal CompositionProfileMapBinding MapBinding { get; }

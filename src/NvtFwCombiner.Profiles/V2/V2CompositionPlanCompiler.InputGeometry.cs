@@ -7,7 +7,8 @@ internal static partial class V2CompositionPlanCompiler
 {
     private static bool IsCurrentInputLengthRuleSupported(CompositionProfileInputSlot slot)
     {
-        return slot.LengthRule is ExactResolvedMapCapacityLengthRule or NormalDpExtractWithWarningLengthRule ||
+        return slot.LengthRule is ExactResolvedMapCapacityLengthRule or NormalDpExtractWithWarningLengthRule or
+            DeclaredPrefixWithWarningLengthRule ||
             (slot.ArtifactClass == CompositionProfileArtifactClass.TpFirmware &&
              (slot.LengthRule is TpMaximum256KLengthRule ||
               slot.LengthRule is ExactBytesLengthRule { Bytes: <= TpMaximum256KLengthRule.MaximumBytes })) ||
@@ -36,6 +37,9 @@ internal static partial class V2CompositionPlanCompiler
                 return TryResolveTpSourceSpan(profile, input, resolvedMap, issues, out length);
             case NormalDpExtractWithWarningLengthRule:
                 return TryResolveNormalDpSourceSpan(profile, input, resolvedMap, issues, out length);
+            case DeclaredPrefixWithWarningLengthRule declaredPrefix:
+                length = declaredPrefix.RequiredEndExclusive;
+                return true;
             default:
                 throw new InvalidOperationException("Validated V2 lowering encountered an unsupported input length rule.");
         }

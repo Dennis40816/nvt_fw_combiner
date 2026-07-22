@@ -48,6 +48,8 @@ public enum CompiledInputLengthRequirementKind
     NormalDpExtractWithWarning,
     /// <inheritdoc/>
     TpMaximum256K,
+    /// <inheritdoc/>
+    DeclaredPrefixWithWarning,
 }
 
 /// <summary>Base value for one immutable compiled input length requirement.</summary>
@@ -66,6 +68,72 @@ public abstract record CompiledInputLengthRequirement
 
     /// <summary>Closed requirement kind.</summary>
     public CompiledInputLengthRequirementKind Kind { get; }
+}
+
+/// <summary>Accepts one immutable execution prefix while retaining full-source diagnostic authority.</summary>
+public sealed record CompiledDeclaredPrefixWithWarningInputLengthRequirement : CompiledInputLengthRequirement
+{
+    private readonly long[] _expectedOuterLengths;
+
+    /// <summary>Creates one checked declared-prefix requirement.</summary>
+    public CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+        long requiredEndExclusive,
+        IReadOnlyList<long> expectedOuterLengths,
+        string shortInputIssueCode,
+        string unexpectedOuterLengthIssueCode)
+        : base(CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning)
+    {
+        if (requiredEndExclusive is <= 0 or > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(requiredEndExclusive),
+                requiredEndExclusive,
+                "Required end must fit the in-memory execution snapshot limit.");
+        }
+
+        ArgumentNullException.ThrowIfNull(expectedOuterLengths);
+        if (expectedOuterLengths.Count is 0 or > InputLengthPolicyLimits.MaximumExpectedInputLengths)
+        {
+            throw new ArgumentException(
+                $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
+                nameof(expectedOuterLengths));
+        }
+
+        _expectedOuterLengths = new long[expectedOuterLengths.Count];
+        long previous = 0;
+        for (int index = 0; index < expectedOuterLengths.Count; index++)
+        {
+            long value = expectedOuterLengths[index];
+            if (value < requiredEndExclusive || value > int.MaxValue || (index > 0 && value <= previous))
+            {
+                throw new ArgumentException(
+                    "Expected outer lengths must fit the in-memory limit, cover the required end, and be strictly ascending.",
+                    nameof(expectedOuterLengths));
+            }
+
+            _expectedOuterLengths[index] = value;
+            previous = value;
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(shortInputIssueCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(unexpectedOuterLengthIssueCode);
+        RequiredEndExclusive = requiredEndExclusive;
+        ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
+        ShortInputIssueCode = shortInputIssueCode;
+        UnexpectedOuterLengthIssueCode = unexpectedOuterLengthIssueCode;
+    }
+
+    /// <summary>First unavailable byte that makes a shorter source blocking.</summary>
+    public long RequiredEndExclusive { get; }
+
+    /// <summary>Complete source lengths that do not emit an outer-length warning.</summary>
+    public IReadOnlyList<long> ExpectedOuterLengths { get; }
+
+    /// <summary>Stable blocking issue code for a source shorter than the required end.</summary>
+    public string ShortInputIssueCode { get; }
+
+    /// <summary>Stable warning issue code for an accepted unexpected outer length.</summary>
+    public string UnexpectedOuterLengthIssueCode { get; }
 }
 
 /// <summary>Requires one exact positive source length.</summary>
@@ -369,7 +437,8 @@ public sealed class CompiledInputSlotRequirement
 
         if (artifactClass == CompiledInputArtifactClass.DpFirmware &&
             lengthRequirement.Kind is not CompiledInputLengthRequirementKind.ExactResolvedMapCapacity and
-                not CompiledInputLengthRequirementKind.NormalDpExtractWithWarning)
+                not CompiledInputLengthRequirementKind.NormalDpExtractWithWarning and
+                not CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning)
         {
             throw new ArgumentException("DP firmware requires an approved DP length rule.");
         }
@@ -405,11 +474,21 @@ public sealed class CompiledInputSlotRequirement
         {
             throw new ArgumentException("Normal DP extraction warnings cannot normalize input bytes.");
         }
+
+        if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning &&
+            (artifactClass is CompiledInputArtifactClass.ReferenceImage or
+                CompiledInputArtifactClass.CtrlRamReplacement ||
+             normalization.Kind != CompiledInputNormalizationKind.None))
+        {
+            throw new ArgumentException(
+                "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
+        }
     }
 
     private static bool IsApprovedTpLengthRequirement(CompiledInputLengthRequirement lengthRequirement)
     {
         return lengthRequirement is CompiledTpMaximum256KInputLengthRequirement or
+            CompiledDeclaredPrefixWithWarningInputLengthRequirement or
             CompiledExactBytesInputLengthRequirement
         {
             Bytes: <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,

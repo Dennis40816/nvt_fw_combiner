@@ -57,6 +57,8 @@ public sealed class CompositionProfileV2InputNormalizerTests
             Normalize("dp-firmware", NormalDpWarning(), None()).LengthRule);
         TpMaximum256KLengthRule tpMaximum = Assert.IsType<TpMaximum256KLengthRule>(
             Normalize("tp-firmware", TpMaximum(), None()).LengthRule);
+        DeclaredPrefixWithWarningLengthRule declaredPrefix = Assert.IsType<DeclaredPrefixWithWarningLengthRule>(
+            Normalize("auxiliary", DeclaredPrefix("524288"), None()).LengthRule);
 
         Assert.Equal(16, exact.Bytes);
         Assert.Equal(10, bounded.MinimumBytes);
@@ -64,6 +66,10 @@ public sealed class CompositionProfileV2InputNormalizerTests
         Assert.Equal("DP_SIZE_WARNING", dpWarning.IssueCode);
         Assert.Equal(262144, TpMaximum256KLengthRule.MaximumBytes);
         Assert.Equal(CompositionProfileLengthRuleKind.TpMaximum256K, tpMaximum.Kind);
+        Assert.Equal(0x80000, declaredPrefix.RequiredEndExclusive);
+        Assert.Equal([0x80000L], declaredPrefix.ExpectedOuterLengths);
+        Assert.Equal("AB_INPUT_SHORT", declaredPrefix.ShortInputIssueCode);
+        Assert.Equal("AB_INPUT_OUTER_LENGTH", declaredPrefix.UnexpectedOuterLengthIssueCode);
     }
 
     /// <summary>Verifies all transient normalization policies preserve their evidence and values.</summary>
@@ -233,6 +239,36 @@ public sealed class CompositionProfileV2InputNormalizerTests
         _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);
     }
 
+    /// <summary>Verifies declared-prefix authority is versioned and rejects one-byte-invalid boundaries.</summary>
+    [Fact]
+    public void DeclaredPrefixAuthorityRequiresV210AndCanonicalBoundaries()
+    {
+        CompositionProfileNormalizationException oldSchema = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeInputSlot(
+                Slot("auxiliary", DeclaredPrefix("16"), None()),
+                "2.9"));
+        CompositionProfileNormalizationException shortExpectation = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(
+                "auxiliary",
+                DeclaredPrefix("16", [Number("15")]),
+                None()));
+        CompositionProfileNormalizationException oversizedRequiredEnd = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(
+                "auxiliary",
+                DeclaredPrefix("2147483648", [Number("2147483648")]),
+                None()));
+        CompositionProfileNormalizationException normalized = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(
+                "dp-firmware",
+                DeclaredPrefix("16"),
+                PadShorter("255")));
+
+        Assert.Equal("inputSlots[0].acceptance.lengthRule.kind", oldSchema.Path);
+        Assert.Equal("inputSlots[0].acceptance.lengthRule", shortExpectation.Path);
+        Assert.Equal("inputSlots[0].acceptance.lengthRule.requiredEndExclusive", oversizedRequiredEnd.Path);
+        Assert.Equal("inputSlots[0]", normalized.Path);
+    }
+
     private static CompositionProfileInputSlot Normalize(
         string artifactClass,
         CompositionProfileLengthRuleDocument lengthRule,
@@ -287,6 +323,18 @@ public sealed class CompositionProfileV2InputNormalizerTests
         return new CompositionProfileLengthRuleDocument(
             "tp-maximum-256k",
             MaximumBytes: Number(maximumBytes));
+    }
+
+    private static CompositionProfileLengthRuleDocument DeclaredPrefix(
+        string requiredEndExclusive,
+        IReadOnlyList<JsonElement>? expectedOuterLengths = null)
+    {
+        return new CompositionProfileLengthRuleDocument(
+            "declared-prefix-with-warning",
+            RequiredEndExclusive: Number(requiredEndExclusive),
+            ExpectedOuterLengths: expectedOuterLengths ?? [Number(requiredEndExclusive)],
+            ShortInputIssueCode: "AB_INPUT_SHORT",
+            UnexpectedOuterLengthIssueCode: "AB_INPUT_OUTER_LENGTH");
     }
 
     private static CompositionProfileInputNormalizationDocument None()

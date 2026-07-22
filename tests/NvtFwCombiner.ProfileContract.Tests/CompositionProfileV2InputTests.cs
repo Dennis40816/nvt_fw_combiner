@@ -6,7 +6,7 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 /// <summary>Tests immutable map-independent v2 input slot policy.</summary>
 public sealed class CompositionProfileV2InputTests
 {
-    /// <summary>Verifies all five closed length rules retain checked typed values.</summary>
+    /// <summary>Verifies all six closed length rules retain checked typed values.</summary>
     [Fact]
     public void LengthRulesKeepClosedTypedValues()
     {
@@ -18,6 +18,11 @@ public sealed class CompositionProfileV2InputTests
             "DP_SIZE_WARNING",
             [0x80000, 0x200000]);
         var tp = new TpMaximum256KLengthRule();
+        var declaredPrefix = new DeclaredPrefixWithWarningLengthRule(
+            0x80000,
+            [0x80000],
+            "INPUT_SHORT",
+            "INPUT_OUTER_LENGTH");
 
         Assert.Equal(16, exact.Bytes);
         Assert.Equal(CompositionProfileLengthRuleKind.ExactResolvedMapCapacity, map.Kind);
@@ -28,6 +33,10 @@ public sealed class CompositionProfileV2InputTests
         Assert.Equal([0x80000L, 0x200000L], normalDpWithContainers.ExpectedInputLengths);
         Assert.Equal(262144, TpMaximum256KLengthRule.MaximumBytes);
         Assert.Equal(CompositionProfileLengthRuleKind.TpMaximum256K, tp.Kind);
+        Assert.Equal(0x80000, declaredPrefix.RequiredEndExclusive);
+        Assert.Equal([0x80000L], declaredPrefix.ExpectedOuterLengths);
+        Assert.Equal("INPUT_SHORT", declaredPrefix.ShortInputIssueCode);
+        Assert.Equal("INPUT_OUTER_LENGTH", declaredPrefix.UnexpectedOuterLengthIssueCode);
     }
 
     /// <summary>Verifies invalid lengths and issue codes never enter normalized rules.</summary>
@@ -45,6 +54,16 @@ public sealed class CompositionProfileV2InputTests
         _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule(
             "DP_SIZE_WARNING",
             [.. Enumerable.Range(1, InputLengthPolicyLimits.MaximumExpectedInputLengths + 1).Select(static value => (long)value)]));
+        _ = Assert.Throws<ArgumentException>(() => new DeclaredPrefixWithWarningLengthRule(
+            16,
+            [15],
+            "INPUT_SHORT",
+            "INPUT_OUTER_LENGTH"));
+        _ = Assert.Throws<ArgumentException>(() => new DeclaredPrefixWithWarningLengthRule(
+            16,
+            [32, 16],
+            "INPUT_SHORT",
+            "INPUT_OUTER_LENGTH"));
     }
 
     /// <summary>Verifies evidenced normalization values retain exact byte and issue policy.</summary>
@@ -102,6 +121,14 @@ public sealed class CompositionProfileV2InputTests
             new NoInputNormalization(),
             required: false,
             cardinality: CompositionProfileSlotCardinality.OneOrMore);
+        CompositionProfileInputSlot declaredPrefix = Slot(
+            CompositionProfileArtifactClass.Auxiliary,
+            new DeclaredPrefixWithWarningLengthRule(
+                16,
+                [16],
+                "INPUT_SHORT",
+                "INPUT_OUTER_LENGTH"),
+            new NoInputNormalization());
 
         Assert.Equal(CompositionProfileArtifactClass.TpFirmware, tp.ArtifactClass);
         Assert.Equal(TpMaximum256KLengthRule.MaximumBytes, Assert.IsType<ExactBytesLengthRule>(exactTp.LengthRule).Bytes);
@@ -111,6 +138,7 @@ public sealed class CompositionProfileV2InputTests
         Assert.Equal(CompositionProfileInputNormalizationKind.TruncateCtrlRam, ctrlRam.Normalization.Kind);
         Assert.False(auxiliary.Required);
         Assert.Equal(CompositionProfileSlotCardinality.OneOrMore, auxiliary.Cardinality);
+        Assert.Equal(CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning, declaredPrefix.LengthRule.Kind);
     }
 
     /// <summary>Verifies firmware-specific size and normalization policy fails closed.</summary>
@@ -153,6 +181,22 @@ public sealed class CompositionProfileV2InputTests
             CompositionProfileArtifactClass.CtrlRamReplacement,
             new TpMaximum256KLengthRule(),
             new NoInputNormalization()));
+        _ = Assert.Throws<ArgumentException>(() => Slot(
+            CompositionProfileArtifactClass.ReferenceImage,
+            new DeclaredPrefixWithWarningLengthRule(
+                16,
+                [16],
+                "INPUT_SHORT",
+                "INPUT_OUTER_LENGTH"),
+            new NoInputNormalization()));
+        _ = Assert.Throws<ArgumentException>(() => Slot(
+            CompositionProfileArtifactClass.DpFirmware,
+            new DeclaredPrefixWithWarningLengthRule(
+                16,
+                [16],
+                "INPUT_SHORT",
+                "INPUT_OUTER_LENGTH"),
+            new PadShorterInputNormalization(0xFF, "padding-evidence")));
     }
 
     /// <summary>Verifies slot cardinality, extensions, and caller collections stay canonical and immutable.</summary>

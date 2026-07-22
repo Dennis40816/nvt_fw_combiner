@@ -250,6 +250,13 @@ internal sealed partial class CompositionProfileDefinition
 
     private void ValidateInputPolicy()
     {
+        bool extractsDeclaredPrefix = _inputSlots.Any(static slot =>
+            slot.LengthRule.Kind == CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning);
+        if (extractsDeclaredPrefix && CompositionKind != CompositionKind.Merge)
+        {
+            throw new ArgumentException("Declared-prefix input authority requires Merge composition.");
+        }
+
         bool padsInput = _inputSlots.Any(static slot =>
             slot.Normalization.Kind == CompositionProfileInputNormalizationKind.PadShorter);
         if (padsInput &&

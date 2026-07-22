@@ -373,6 +373,15 @@ public sealed partial class CompiledComposition
                 AppendField(builder, $"{prefix}.issue-code", normalDp.IssueCode);
                 AppendIntegerList(builder, $"{prefix}.expected-input-length", normalDp.ExpectedInputLengths);
                 break;
+            case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix:
+                AppendInteger(builder, $"{prefix}.required-end-exclusive", declaredPrefix.RequiredEndExclusive);
+                AppendIntegerList(builder, $"{prefix}.expected-outer-length", declaredPrefix.ExpectedOuterLengths);
+                AppendField(builder, $"{prefix}.short-input-issue-code", declaredPrefix.ShortInputIssueCode);
+                AppendField(
+                    builder,
+                    $"{prefix}.unexpected-outer-length-issue-code",
+                    declaredPrefix.UnexpectedOuterLengthIssueCode);
+                break;
             case CompiledTpMaximum256KInputLengthRequirement:
                 AppendInteger(builder, $"{prefix}.maximum-bytes", CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);
                 break;

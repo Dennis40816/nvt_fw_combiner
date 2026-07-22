@@ -166,6 +166,66 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 .ExpectedInputLengths);
     }
 
+    /// <summary>Verifies the pilot DP_AB, TPA, and TPB facts lower independently through one generic declared-prefix rule.</summary>
+    [Theory]
+    [InlineData("dp-ab", "dp-firmware", 0x80000)]
+    [InlineData("tp-a", "tp-firmware", 0x40000)]
+    [InlineData("tp-b", "tp-firmware", 0x40000)]
+    public void BlankOutputLoweringBindsPilotDeclaredPrefixAuthority(
+        string role,
+        string artifactClass,
+        int requiredEndExclusive)
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithDeclaredPrefix(
+                SupportedProfileJson(familyHash),
+                role,
+                artifactClass,
+                requiredEndExclusive),
+            FamilyJsonWithRootWriteConstraint("explicit-range", capacity: requiredEndExclusive),
+            capacityBytes: requiredEndExclusive));
+
+        Assert.True(
+            result.IsCompiled,
+            string.Join(Environment.NewLine, result.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
+        AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
+        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details!.InputContract.Slots);
+        CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement = Assert.IsType<
+            CompiledDeclaredPrefixWithWarningInputLengthRequirement>(slot.LengthRequirement);
+
+        Assert.Equal(role, slot.Role);
+        Assert.Equal(requiredEndExclusive, input.Length);
+        Assert.Equal(new ByteRange(0, requiredEndExclusive), new ByteRange(0, input.Length));
+        Assert.Null(input.InputPaddingByte);
+        Assert.Empty(input.AllowedInputLengths);
+        Assert.Equal([requiredEndExclusive], input.ExpectedInputLengths);
+        Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, input.InputOversizePolicy);
+        Assert.Equal("INPUT_OUTER_LENGTH", input.UnexpectedInputLengthIssueCode);
+        Assert.Equal(requiredEndExclusive, requirement.RequiredEndExclusive);
+        Assert.Equal([requiredEndExclusive], requirement.ExpectedOuterLengths);
+        Assert.Equal("INPUT_SHORT", requirement.ShortInputIssueCode);
+        Assert.Equal("INPUT_OUTER_LENGTH", requirement.UnexpectedOuterLengthIssueCode);
+    }
+
+    /// <summary>Verifies a source view one byte beyond the declared execution prefix fails before artifact construction.</summary>
+    [Fact]
+    public void BlankOutputLoweringRejectsViewBeyondDeclaredPrefix()
+    {
+        const int requiredEndExclusive = 0x40000;
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithDeclaredPrefix(
+                SupportedProfileJson(familyHash),
+                "tp-a",
+                "tp-firmware",
+                requiredEndExclusive),
+            FamilyJsonWithRootWriteConstraint("explicit-range", capacity: requiredEndExclusive + 1),
+            capacityBytes: requiredEndExclusive + 1));
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Equal("profile.v2.plan.invalid-view", Assert.Single(result.Issues).Code);
+    }
+
     /// <summary>Verifies a TP input slot without a resolved source view fails before any plan artifact is produced.</summary>
     [Fact]
     public void BlankOutputLoweringRejectsTpInputWithoutResolvedSourceView()
@@ -273,6 +333,36 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             lengthRule["expectedInputLengths"] = new JsonArray(
                 expectedInputLengths.Select(static value => JsonValue.Create(value)).ToArray());
         }
+        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithDeclaredPrefix(
+        string profileJson,
+        string role,
+        string artifactClass,
+        long requiredEndExclusive)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        profile["schemaVersion"] = "2.10";
+        profile["compilationContext"] = new JsonObject { ["kind"] = "resolved-map" };
+        JsonObject slot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[0]);
+        slot["role"] = role;
+        slot["artifactClass"] = artifactClass;
+        Assert.IsType<JsonObject>(slot["acceptance"])["lengthRule"] = new JsonObject
+        {
+            ["kind"] = "declared-prefix-with-warning",
+            ["requiredEndExclusive"] = requiredEndExclusive,
+            ["expectedOuterLengths"] = new JsonArray(requiredEndExclusive),
+            ["shortInputIssueCode"] = "INPUT_SHORT",
+            ["unexpectedOuterLengthIssueCode"] = "INPUT_OUTER_LENGTH",
+        };
+        Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["views"])[1])["selector"] = new JsonObject
+        {
+            ["kind"] = "space-range",
+            ["range"] = new JsonObject { ["start"] = 0, ["length"] = requiredEndExclusive },
+        };
+        Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["regionAccessRules"])[0])["access"] =
+            "explicit-range";
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 

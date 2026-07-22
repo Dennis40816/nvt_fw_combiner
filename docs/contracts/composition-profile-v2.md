@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0 through 2.9
+# Composition Profile Contract 2.0 through 2.10
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -9,7 +9,8 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.6.schema.json`](composition-profile-v2.6.schema.json), and
 [`composition-profile-v2.7.schema.json`](composition-profile-v2.7.schema.json), and
 [`composition-profile-v2.8.schema.json`](composition-profile-v2.8.schema.json), and
-[`composition-profile-v2.9.schema.json`](composition-profile-v2.9.schema.json). A trusted bundle
+[`composition-profile-v2.9.schema.json`](composition-profile-v2.9.schema.json), and
+[`composition-profile-v2.10.schema.json`](composition-profile-v2.10.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -207,6 +208,15 @@ writes without exposing those ranges as General Replace mapping targets. Schema 
 authority only; it does not register a UI/CLI route, promote support, or replace Legacy Combiner golden
 and firmware-owner review.
 
+Schema 2.10 keeps every 2.9 execution and processor contract and adds the generic
+`declared-prefix-with-warning` immutable Merge-source length rule. The declaration carries a positive
+`requiredEndExclusive`, one to eight strictly ascending `expectedOuterLengths` that each cover that end,
+a blocking `shortInputIssueCode`, and a non-blocking `unexpectedOuterLengthIssueCode`. The compiler binds
+the accepted execution snapshot to `[0, requiredEndExclusive)`, rejects padding and non-Merge, reference,
+or CtrlRAM use, and retains the complete policy in `CompiledInputContract` and its fingerprint. Every
+source view and processor read must remain within the declared prefix. This contract does not admit an AB
+route, change a profile promotion stage, or connect Application Build/report behavior by itself.
+
 ## Input size policy
 
 Every input declares an `artifactClass` and a closed length policy. `tp-firmware` uses either
@@ -224,6 +234,16 @@ NT51950/NT51951 full-copy path uses `exact-resolved-map-capacity` and fails on m
 `bounded` remains available only for artifact classes whose owner policy does not require one of
 those firmware-specific rules. `exact-bytes` is otherwise available only for artifact classes whose
 owner policy permits it.
+
+`declared-prefix-with-warning` is available only to unnormalized immutable Merge sources with artifact
+class `dp-firmware`, `tp-firmware`, or `auxiliary`. A source shorter than `requiredEndExclusive` is
+blocking and receives no accepted execution snapshot. An accepted source exposes exactly the half-open
+prefix `[0, requiredEndExclusive)`; bytes after that end remain immutable, are ignored by execution, and
+must be retained as actual-source identity plus an ignored trailing range by the Application/report
+integration. A supplied length absent from `expectedOuterLengths` emits the declared warning without
+granting padding or changing any operation, metadata, or processor range. The first v0.9.14 pilot is
+expected to declare `0x80000` for DP_AB and `0x40000` independently for TPA and TPB, each also as its sole
+expected outer length; built-in profile wiring and firmware-owner/golden approval remain separate R3 gates.
 
 `pad-shorter` and `truncate-ctrlram` require evidence and mutate only a transient input buffer.
 Padding is DP-only, `dp-replace` only, and forbidden when any processor/integrity stage exists.

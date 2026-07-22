@@ -30,7 +30,15 @@ public sealed record CompositionProfileLengthRuleDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? IssueCode = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    IReadOnlyList<JsonElement>? ExpectedInputLengths = null);
+    IReadOnlyList<JsonElement>? ExpectedInputLengths = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    JsonElement? RequiredEndExclusive = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<JsonElement>? ExpectedOuterLengths = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? ShortInputIssueCode = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? UnexpectedOuterLengthIssueCode = null);
 
 /// <summary>DTO for one closed transient input-normalization shape.</summary>
 public sealed record CompositionProfileInputNormalizationDocument(
