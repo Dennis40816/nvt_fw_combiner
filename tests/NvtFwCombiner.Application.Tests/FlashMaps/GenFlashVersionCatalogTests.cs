@@ -65,7 +65,7 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void CmiDpCodeRulesFitInsideExpectedPayloadLengths()
     {
-        string[] ruleIds = ["51923", "51926", "51927", "51929", "51932", "51950", "51951"];
+        string[] ruleIds = ["51923", "51926", "51927", "51929", "51930", "51932", "51950", "51951"];
         foreach (string ruleId in ruleIds)
         {
             Assert.True(GenFlashVersionCatalog.TryGetCmiDpCodeRule(ruleId, out CmiDpCodeRule rule));
@@ -247,6 +247,28 @@ public sealed class GenFlashVersionCatalogTests
         Assert.Equal(0, cmi.MinorVersionNibble);
     }
 
+    /// <summary>Reads the owner-confirmed NT51930 FlashCode CMI register triple without guessing a legacy DP offset.</summary>
+    [Fact]
+    public void GoldenNt51930OutputExposesOwnerConfirmedCmiJiraAndDpVersion()
+    {
+        byte[] image = ReadCanonicalGolden(
+            "nt51930-fw130-cascade3-auto-prj-302-inx-20260718",
+            "expected-output");
+
+        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
+            "NT51930",
+            image,
+            out CmiDpCodeMetadata metadata));
+
+        Assert.Equal(0x18, metadata.Register16Offset);
+        Assert.Equal(0x1A, metadata.Register18Offset);
+        Assert.Equal(0x2E, metadata.SystemCodeLowByte);
+        Assert.Equal(0x05, metadata.MajorVersionByte);
+        Assert.Equal(0x0, metadata.MinorVersionNibble);
+        Assert.Equal(302, metadata.JiraNumber);
+        Assert.True(metadata.IsExpectedPayloadLength);
+    }
+
     /// <summary>Unobserved DP sizes remain readable for metadata and are surfaced as warnings rather than build blockers.</summary>
     [Fact]
     public void CmiDpCodeAcceptsUnexpectedPayloadLengthWithWarning()
@@ -288,7 +310,7 @@ public sealed class GenFlashVersionCatalogTests
         Assert.True(metadata.IsExpectedPayloadLength);
     }
 
-    /// <summary>ICs without gen_flash DP version evidence stay unclassified instead of guessing offsets.</summary>
+    /// <summary>ICs without a legacy contiguous DP rule retain only their separately declared CMI evidence.</summary>
     [Theory]
     [InlineData("NT51930")]
     [InlineData("NT51950")]

@@ -26,12 +26,7 @@ public sealed class WorkbenchOutputNamingTests
             }
         }
 
-        Assert.Equal(["nt51930-fw130-cascade3-auto-prj-302-inx-20260718"], gaps);
-        WorkbenchOutputFileNameSuggestion evidenceGap = InspectDirectCtrlRamGolden(
-            "NT51930",
-            gaps[0]);
-        Assert.Equal("xxxx", evidenceGap.DpVersionToken);
-        Assert.Equal("0305", evidenceGap.TpVersionToken);
+        Assert.Empty(gaps);
     }
 
     /// <summary>Every direct CtrlRAM owner golden retains its exact full-flash D/T metadata bytes.</summary>
@@ -46,7 +41,7 @@ public sealed class WorkbenchOutputNamingTests
     [InlineData("NT51926", "nt51926-fw200-cascade3-auto-prj-597-20260718", "0202", "0000")]
     [InlineData("NT51927", "nt51927-fw141-single-auto-prj-529-20260717", "0400", "0100")]
     [InlineData("NT51929", "nt51929-fw200-single-auto-prj-594-20260717", "0602", "0500")]
-    [InlineData("NT51930", "nt51930-fw130-cascade3-auto-prj-302-inx-20260718", "xxxx", "0305")]
+    [InlineData("NT51930", "nt51930-fw130-cascade3-auto-prj-302-inx-20260718", "0500", "0305")]
     [InlineData("NT51931", "nt51931-fw130-cascade6-auto-prj-158-20260718", "8D60", "8300")]
     [InlineData("NT51932", "nt51932-fw200-cascade3-auto-prj-525-20260718", "0200", "8800")]
     [InlineData("NT51950", "nt51950-fw200-single-auto-prj-676-20260717", "8600", "8000")]
@@ -61,6 +56,20 @@ public sealed class WorkbenchOutputNamingTests
 
         Assert.Equal(expectedDp, suggestion.DpVersionToken);
         Assert.Equal(expectedTp, suggestion.TpVersionToken);
+    }
+
+    /// <summary>NT51930 full FlashCode inspection resolves the owner-confirmed CMI triple into the final output name.</summary>
+    [Fact]
+    public void Nt51930OutputNameUsesOwnerConfirmedCmiDpVersion()
+    {
+        WorkbenchOutputFileNameSuggestion suggestion = InspectDirectCtrlRamGolden(
+            "NT51930",
+            "nt51930-fw130-cascade3-auto-prj-302-inx-20260718",
+            new DateOnly(2026, 7, 23));
+
+        Assert.Equal("0500", suggestion.DpVersionToken);
+        Assert.True(suggestion.HasDpVersion);
+        Assert.Equal("NT51930_FlashCode_D0500T0305_20260723.bin", suggestion.FileName);
     }
 
     /// <summary>Verifies FlashCode output naming reads DP/FWConfig metadata outside the UI layer.</summary>
@@ -342,7 +351,10 @@ public sealed class WorkbenchOutputNamingTests
         Assert.True(suggestion.HasTpVersion);
     }
 
-    private static WorkbenchOutputFileNameSuggestion InspectDirectCtrlRamGolden(string icId, string caseId)
+    private static WorkbenchOutputFileNameSuggestion InspectDirectCtrlRamGolden(
+        string icId,
+        string caseId,
+        DateOnly? date = null)
     {
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
         JsonElement expected = goldenCase.GetProperty("artifacts")
@@ -355,6 +367,6 @@ public sealed class WorkbenchOutputNamingTests
         return WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(
             icId,
             [new WorkbenchOutputNameInspectionCandidate(WorkbenchOutputNameCandidateKind.Base, inspection)],
-            new DateOnly(2026, 7, 22));
+            date ?? new DateOnly(2026, 7, 22));
     }
 }
