@@ -171,29 +171,19 @@ internal static partial class V2CompositionPlanCompiler
             return RuntimeFirmwareVersionEditLowering.Empty;
         }
 
-        bool hasVersionChain = TryResolveGoverningRegionChain(
-            edit.SourceFirmwareVersionAndBarRange,
-            regionAccess.RegionsById,
-            out FirmwareRegion[] versionChain);
-        bool hasSubVersionChain = TryResolveGoverningRegionChain(
-            edit.SourceFirmwareSubVersionRange,
-            regionAccess.RegionsById,
-            out FirmwareRegion[] subVersionChain);
-        FirmwareRegion? sourceRegion = hasVersionChain ? versionChain[^1] : null;
-        FirmwareRegion? subVersionRegion = hasSubVersionChain ? subVersionChain[^1] : null;
-        bool fieldsShareFirmwareConfig =
-            sourceRegion is { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } &&
-            subVersionRegion is { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } &&
-            StringComparer.Ordinal.Equals(sourceRegion.RegionId, subVersionRegion.RegionId);
         if (!StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.CtrlRamReplace) ||
             shape.ProcessorOperation is null ||
             edit.SourceFirmwareVersionAndBarRange.Length != 2 ||
             edit.SourceFirmwareSubVersionRange.Length != 1 ||
-            !fieldsShareFirmwareConfig ||
+            !TryResolveGoverningRegionChain(edit.SourceFirmwareVersionAndBarRange, regionAccess.RegionsById, out FirmwareRegion[] versionChain) ||
+            !TryResolveGoverningRegionChain(edit.SourceFirmwareSubVersionRange, regionAccess.RegionsById, out FirmwareRegion[] subVersionChain) ||
+            versionChain[^1] is not { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } sourceRegion ||
+            subVersionChain[^1] is not { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } subVersionRegion ||
+            !StringComparer.Ordinal.Equals(sourceRegion.RegionId, subVersionRegion.RegionId) ||
             !TryResolveFirmwareVersionBackupWrites(
                 resolvedMap,
                 shape.ReferenceSlot.SlotId,
-                sourceRegion!,
+                sourceRegion,
                 edit,
                 out ByteRange[] postbuildWriteRanges))
         {
@@ -233,32 +223,28 @@ internal static partial class V2CompositionPlanCompiler
 
         long versionOffset = checked(edit.SourceFirmwareVersionAndBarRange.Start - sourceRegion.Range.Start);
         long subVersionOffset = checked(edit.SourceFirmwareSubVersionRange.Start - sourceRegion.Range.Start);
-        var candidates = new List<ByteRange>();
-        foreach (FirmwareMetadataLocatorOutcome locator in resolvedMap.ResolvedMetadataStructures
-                     .Where(structure => StringComparer.Ordinal.Equals(
-                         structure.DecodedStructure.ArtifactBindingId,
-                         referenceSlotId))
-                     .Select(structure => structure.LocatorOutcome))
-        {
-            ByteRange backupEnvelope = locator.ResolvedRange.Range;
-            ByteRange versionRange = new(
-                checked(backupEnvelope.Start + versionOffset),
-                edit.SourceFirmwareVersionAndBarRange.Length);
-            ByteRange subVersionRange = new(
-                checked(backupEnvelope.Start + subVersionOffset),
-                edit.SourceFirmwareSubVersionRange.Length);
-            if (backupEnvelope.Contains(versionRange) && backupEnvelope.Contains(subVersionRange))
-            {
-                candidates.Add(versionRange);
-                candidates.Add(subVersionRange);
-            }
-        }
-        if (candidates.Count != 2)
+        ByteRange[] candidates =
+        [
+            .. resolvedMap.ResolvedMetadataStructures
+                .Where(structure => StringComparer.Ordinal.Equals(
+                    structure.DecodedStructure.ArtifactBindingId,
+                    referenceSlotId))
+                .SelectMany(structure =>
+                {
+                    ByteRange envelope = structure.LocatorOutcome.ResolvedRange.Range;
+                    ByteRange version = new(checked(envelope.Start + versionOffset), edit.SourceFirmwareVersionAndBarRange.Length);
+                    ByteRange subVersion = new(checked(envelope.Start + subVersionOffset), edit.SourceFirmwareSubVersionRange.Length);
+                    return envelope.Contains(version) && envelope.Contains(subVersion)
+                        ? [version, subVersion]
+                        : Array.Empty<ByteRange>();
+                }),
+        ];
+        if (candidates.Length != 2)
         {
             return false;
         }
 
-        postbuildWriteRanges = [.. candidates];
+        postbuildWriteRanges = candidates;
         return true;
     }
 
