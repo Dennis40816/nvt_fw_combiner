@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.Behaviors;
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 
@@ -99,8 +100,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"subtleSurface\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileDropZone\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileRevealAction\"", mappingRow, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Placement=\"Top\"", mappingRow, StringComparison.Ordinal);
-        AssertFileRevealToolTipRootDoesNotHitTest(mappingRow);
+        Assert.Contains("ToolTip.Placement=\"BottomEdgeAlignedLeft\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.VerticalOffset=\"8\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.BetweenShowDelay=\"-1\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding DisplayDetail}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Command=\"{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("CommandParameter=\"{Binding FilePath}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding SelectBinTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
@@ -121,8 +124,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsGuidanceVisible}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Placement=\"Top\"", slotCard, StringComparison.Ordinal);
-        AssertFileRevealToolTipRootDoesNotHitTest(slotCard);
+        Assert.Contains("ToolTip.Placement=\"BottomEdgeAlignedLeft\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.VerticalOffset=\"8\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.BetweenShowDelay=\"-1\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileRevealAction\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Command=\"{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding DisplayName}\"", slotCard, StringComparison.Ordinal);
@@ -130,18 +135,38 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("CommandParameter=\"{Binding FilePath}\"", slotCard, StringComparison.Ordinal);
     }
 
-    /// <summary>An already-open explicit tooltip is non-interactive and leaves the filename button's routed click intact.</summary>
+    /// <summary>The full-path hover card stays offset from the filename and leaves its routed click intact.</summary>
     [Fact]
-    public void OpenFileRevealToolTipDoesNotConsumeTheFilenameClick()
+    public void FileRevealHoverCardShowsTheAbsolutePathWithoutCompetingForThePointer()
     {
-        Control[] views = [new FirmwareSlotCard(), new GeneralMappingRow()];
-        foreach (Control view in views)
+        const string selectedPath = @"C:\firmware\selected source.bin";
+        (Control View, object Context)[] cases =
+        [
+            (
+                new FirmwareSlotCard(),
+                new FirmwareSlotViewModel("base", "Base firmware", "Complete firmware", FirmwareSlotKind.Base)
+                {
+                    FilePath = selectedPath,
+                }),
+            (
+                new GeneralMappingRow(),
+                new GeneralMergeMappingViewModel("source-1", 1)
+                {
+                    FilePath = selectedPath,
+                }),
+        ];
+        foreach ((Control view, object context) in cases)
         {
+            view.DataContext = context;
             Button fileButton = Assert.Single(
                 view.GetLogicalDescendants().OfType<Button>(),
                 button => button.Classes.Contains("fileRevealAction"));
-            ToolTip tip = Assert.IsType<ToolTip>(ToolTip.GetTip(fileButton));
-            Assert.False(tip.IsHitTestVisible);
+            string pathText = Assert.IsType<string>(ToolTip.GetTip(fileButton));
+
+            Assert.Equal(selectedPath, pathText);
+            Assert.Equal(PlacementMode.BottomEdgeAlignedLeft, ToolTip.GetPlacement(fileButton));
+            Assert.Equal(8, ToolTip.GetVerticalOffset(fileButton));
+            Assert.Equal(-1, ToolTip.GetBetweenShowDelay(fileButton));
 
             bool clicked = false;
             fileButton.Click += (_, _) => clicked = true;
@@ -598,27 +623,6 @@ public sealed partial class XamlControlStyleContractTests
     {
         return File.ReadAllText(
             RepositoryPaths.FromRepositoryRoot("src", "NvtFwCombiner.Presentation.Avalonia", relativePath));
-    }
-
-    private static void AssertFileRevealToolTipRootDoesNotHitTest(string xaml)
-    {
-        var document = XDocument.Parse(xaml);
-        XElement fileButton = Assert.Single(
-            document.Descendants(),
-            element =>
-                element.Name.LocalName == "Button" &&
-                ((string?)element.Attribute("Classes"))?
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                    .Contains("fileRevealAction", StringComparer.Ordinal) == true);
-        XElement tipProperty = Assert.Single(
-            fileButton.Elements(),
-            element => element.Name.LocalName == "ToolTip.Tip");
-        XElement toolTip = Assert.Single(
-            tipProperty.Elements(),
-            element => element.Name.LocalName == "ToolTip");
-
-        Assert.Equal("False", (string?)toolTip.Attribute("IsHitTestVisible"));
-        Assert.Null(fileButton.Attribute("IsHitTestVisible"));
     }
 
     private static IEnumerable<string> ReadPresentationXamlFiles()

@@ -77,17 +77,11 @@
                 Content="{Binding DisplayName}"
                 HorizontalAlignment="Left"
                 IsVisible="{Binding HasFile}"
-                ToolTip.Placement="Top">
-              <ToolTip.Tip>
-                <ToolTip IsHitTestVisible="False">
-                  <TextBlock
-                      MaxWidth="480"
-                      Classes="monoText"
-                      Text="{Binding DisplayDetail}"
-                      TextWrapping="Wrap" />
-                </ToolTip>
-              </ToolTip.Tip>
-            </Button>
+                ToolTip.BetweenShowDelay="-1"
+                ToolTip.Placement="BottomEdgeAlignedLeft"
+                ToolTip.ShowDelay="300"
+                ToolTip.Tip="{Binding DisplayDetail}"
+                ToolTip.VerticalOffset="8" />
           </StackPanel>
         </Grid>
       </Border>
