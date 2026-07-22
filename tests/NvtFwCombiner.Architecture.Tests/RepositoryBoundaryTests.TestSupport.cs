@@ -29,8 +29,24 @@ public sealed partial class RepositoryBoundaryTests
         ];
     }
 
-    [GeneratedRegex(@"new BuiltInV2Registration\(\s*""NT(?<ic>\d{5})""")]
+    private static string[] ReadAbMergeIcIds()
+    {
+        string source = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
+        return
+        [
+            .. AbMergeProfileRegex().Matches(source)
+                .Cast<Match>()
+                .Select(match => $"NT{match.Groups["ic"].Value}")
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
+    }
+
+    [GeneratedRegex(@"new BuiltInV2Registration\(\s*""NT(?<ic>\d{5})""[^\r\n]*CompositionKind\.Merge\),")]
     private static partial Regex StandardMergeProfileRegex();
+
+    [GeneratedRegex(@"new BuiltInV2Registration\(\s*""NT(?<ic>\d{5})""[^\r\n]*CompositionKind\.Merge,\s*IcWorkflowIds\.AbMerge\),")]
+    private static partial Regex AbMergeProfileRegex();
 
     [GeneratedRegex(@"""icId""\s*:\s*""NT(?<ic>\d{5})""")]
     private static partial Regex CtrlRamPostbuildProfileRegex();

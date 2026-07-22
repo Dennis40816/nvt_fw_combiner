@@ -139,7 +139,16 @@ public sealed partial class RepositoryBoundaryTests
             XAttribute include = Assert.Single(bundle.Attributes());
 
             Assert.Equal("Include", include.Name.LocalName);
-            if (logicalOutputCandidateBundleIds.Contains(
+            if (string.Equals(
+                    bundle.Attribute("Include")?.Value,
+                    "nt51919-nt51929-nt51932-ab-merge",
+                    StringComparison.Ordinal))
+            {
+                Assert.Equal(
+                    "composition-profile-v2.10.schema.json",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
+            }
+            else if (logicalOutputCandidateBundleIds.Contains(
                     bundle.Attribute("Include")?.Value,
                     StringComparer.Ordinal))
             {

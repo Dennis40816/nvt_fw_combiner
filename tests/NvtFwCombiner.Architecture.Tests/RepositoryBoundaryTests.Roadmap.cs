@@ -14,14 +14,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Pointer, touch, Space, and Enter", roadmap, StringComparison.Ordinal);
         Assert.Contains("Reduced-motion mode", roadmap, StringComparison.Ordinal);
         Assert.Contains("`v0.9.12` | CtrlRAM routing and interaction stabilization", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.15` | Shared Hex viewport and Button feedback", tags, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.15` | UI unification, shared Hex viewport, and Button feedback", tags, StringComparison.Ordinal);
         Assert.DoesNotContain("Shared Hex viewport and Changes redesign work remain deferred to `0.9.12`", tags, StringComparison.Ordinal);
 
         int progressionStart = tags.IndexOf("## Progression", StringComparison.Ordinal);
         int progressionEnd = tags.IndexOf("## Rules", StringComparison.Ordinal);
         string progression = tags[progressionStart..progressionEnd];
         Assert.Contains("v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance", progression, StringComparison.Ordinal);
-        Assert.Contains("v0.9.15         shared Hex/Changes and global Button feedback", progression, StringComparison.Ordinal);
+        Assert.Contains("v0.9.15         cross-workflow UI unification, shared Hex/Changes, and global Button feedback", progression, StringComparison.Ordinal);
         Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
     }
 
@@ -30,6 +30,7 @@ public sealed partial class RepositoryBoundaryTests
     public void V0914OwnsAbCodeProductionReadmissionWithoutV0913Exposure()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
+        string releaseRoadmap = ReadText("docs/architecture/v0.9.14-roadmap-and-release-gates.md");
         string decision = ReadText("docs/adr/0032-ab-code-production-readmission.md");
         string specification = ReadText("SPEC.md");
 
@@ -44,14 +45,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("`0x67/0x68` reader remains output-naming", decision, StringComparison.Ordinal);
         Assert.Contains("Each selected TP BIN is inspected independently", decision, StringComparison.Ordinal);
         Assert.Contains("four explicit values, never accepts a raw\noffset", decision, StringComparison.Ordinal);
-        Assert.Contains("Version values are informational and never route gates", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Unreadable versions\nshow `Unknown` with a non-modal warning", roadmap, StringComparison.Ordinal);
-        Assert.Contains("one DP_AB card with DP1/DP2\nsubrows plus separate TPA/TPB rows", roadmap, StringComparison.Ordinal);
+        Assert.Contains("cannot select a route from filename, PID, version, hash, or payload metadata", releaseRoadmap, StringComparison.Ordinal);
+        Assert.Contains("decoded metadata or Unknown", releaseRoadmap, StringComparison.Ordinal);
+        Assert.Contains("equal or `Unknown` values never collapse", releaseRoadmap, StringComparison.Ordinal);
+        Assert.Contains("AB uses one DP_AB card with distinct DP1/DP2 subrows", releaseRoadmap, StringComparison.Ordinal);
         Assert.Contains("The first `v0.9.14` AB pilot", specification, StringComparison.Ordinal);
         Assert.Contains("output-naming migration remains a separate compatibility decision", specification, StringComparison.Ordinal);
         Assert.Contains("Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.13`", specification, StringComparison.Ordinal);
-        Assert.Contains("aligns Merge/Replace Mode placement", roadmap, StringComparison.Ordinal);
-        Assert.Contains("non-color-dependent icon", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Cross-workflow Merge/Replace header, Evidence, and Memory coverage unification", releaseRoadmap, StringComparison.Ordinal);
+        Assert.Contains("slot cards show one highest-severity icon", releaseRoadmap, StringComparison.Ordinal);
     }
 
     /// <summary>Locks the owner-approved Public-through-v1.0.0 schedule and its disclosure boundary.</summary>
@@ -119,6 +121,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string reference = ReadText("docs/architecture/ic-workflow-flowcharts.md");
         string[] standardMergeIcIds = ReadStandardMergeIcIds();
+        string[] abMergeIcIds = ReadAbMergeIcIds();
         string[] builtInIcIds =
         [
             .. standardMergeIcIds
@@ -129,10 +132,11 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Equal(13, standardMergeIcIds.Length);
         Assert.Equal(standardMergeIcIds.Length, standardMergeIcIds.Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(["NT51919", "NT51929", "NT51932"], abMergeIcIds);
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2RegistrationRegistry.cs", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2Bundle.cs", reference, StringComparison.Ordinal);
-        Assert.Contains("explicit production Standard Merge and DP Replace registration lists", reference, StringComparison.Ordinal);
+        Assert.Contains("explicit Standard Merge, AB pilot, and DP Replace registration lists", reference, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowFlowchartReferenceCoversBuiltInIcLists", reference, StringComparison.Ordinal);
         Assert.Contains("NT51928 NB is not covered", reference, StringComparison.Ordinal);
         Assert.Contains("0x37000-0x37FFF (len 0x1000)", reference, StringComparison.Ordinal);

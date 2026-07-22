@@ -47,10 +47,11 @@ public sealed partial class RepositoryBoundaryTests
         string replace = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
 
-        Assert.Equal(2, CountOccurrences(merge, "return RunCompositionAsync("));
+        Assert.Equal(3, CountOccurrences(merge, "return RunCompositionAsync("));
         Assert.Equal(1, CountOccurrences(replace, "return RunCompositionAsync("));
         Assert.Contains("WorkbenchCompositionService.RunStandardMergeWithProgressAsync", merge, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.RunGeneralMergeWithProgressAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("AbMergeWorkbenchCompositionService.RunAbMergeWithProgressAsync", merge, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.RunReplaceWithProgressAsync", replace, StringComparison.Ordinal);
         Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("await Task.Run(", lifecycle, StringComparison.Ordinal);

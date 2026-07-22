@@ -15,6 +15,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplaceRefresh.cs");
         string outputNamingViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.OutputNaming.cs");
+        string firmwareInspectionSession = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs");
 
         Assert.Contains("SetSlotFileAsync", viewModels, StringComparison.Ordinal);
         Assert.Contains("Task.Run", viewModels, StringComparison.Ordinal);
@@ -37,8 +39,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ValidateCachedCtrlRamDisplayAsync", viewModels, StringComparison.Ordinal);
         Assert.Contains(
             "CreateFlashCodeOutputFileNameFromInspections",
-            outputNamingViewModel,
+            firmwareInspectionSession,
             StringComparison.Ordinal);
+        Assert.Contains("FirmwareOutputNamingProjection.CreateFlashCodeOutputFileName", outputNamingViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("FileInfo", outputNamingViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("File.Exists", outputNamingViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -222,8 +225,13 @@ public sealed partial class RepositoryBoundaryTests
             return value.Length == 64 && value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
         }
 
-        Assert.Equal(34, bundle.Split('"').Count(IsSha256Literal));
-        Assert.Equal(39, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
+        Assert.Equal(35, bundle.Split('"').Count(IsSha256Literal));
+        Assert.Equal(42, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
+        Assert.Equal(1, CountOccurrences(bundle, "nt51919-nt51929-nt51932-ab-merge"));
+        Assert.Contains(
+            "80caf42295b8dcb2c7dfbfcfe8cc0d03cb94e3b9696cea60e82519453c8dafb1",
+            bundle,
+            StringComparison.Ordinal);
         Assert.Equal(
             1,
             CountOccurrences(
