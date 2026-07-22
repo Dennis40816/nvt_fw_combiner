@@ -293,6 +293,7 @@
   <Style Selector="TextBlock.railActionLabel">
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="16,0,10,0" />
     <Setter Property="Opacity" Value="0" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     <Setter Property="Transitions">
@@ -375,10 +376,15 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderThickness" Value="1" />
   </Style>
-  <Style Selector="Path.railActionIcon">
-    <Setter Property="HorizontalAlignment" Value="Right" />
+  <Style Selector="Border.railActionIconSlot">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="44" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Margin" Value="0,1,15,0" />
+  </Style>
+  <Style Selector="Path.railActionIcon">
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Stretch" Value="Uniform" />
     <Setter Property="StrokeThickness" Value="1.8" />
     <Setter Property="StrokeLineCap" Value="Round" />

@@ -306,16 +306,21 @@
             Command="{Binding RevealFileCommand}"
             CommandParameter="{Binding LatestCommittedOutputPath}"
             IsVisible="{Binding IsLatestOutputActionVisible}">
-          <Grid>
-            <TextBlock Classes="railActionLabel" Text="{Binding Text.LatestOutputActionLabel}" />
-            <Path
-                Width="18"
-                Height="18"
-                Classes="railActionIcon"
-                Data="M2 5H7L9 7H16V9H7.5L5.5 16H2Z M7.8 10H16L14.2 16H6Z"
-                StrokeLineCap="Round"
-                StrokeJoin="Round"
-                StrokeThickness="1.7" />
+          <Grid ColumnDefinitions="*,44">
+            <TextBlock
+                Grid.Column="0"
+                Classes="railActionLabel"
+                Text="{Binding Text.LatestOutputActionLabel}" />
+            <Border Grid.Column="1" Classes="railActionIconSlot">
+              <Path
+                  Width="18"
+                  Height="18"
+                  Classes="railActionIcon"
+                  Data="M2 5H7L9 7H16V9H7.5L5.5 16H2Z M7.8 10H16L14.2 16H6Z"
+                  StrokeLineCap="Round"
+                  StrokeJoin="Round"
+                  StrokeThickness="1.7" />
+            </Border>
           </Grid>
         </Button>
         <Button
@@ -326,17 +331,19 @@
             Click="BuildMergeButton_OnClick"
             IsEnabled="{Binding CanBuildMerge}"
             IsVisible="{Binding IsMergeVisible}">
-          <Grid>
-            <TextBlock Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
-            <Path
-                Width="18"
-                Height="18"
-                Classes="railActionIcon"
-                Data="M3.5 8.5L7 12L13.5 5.5"
-                Fill="Transparent"
-                StrokeLineCap="Round"
-                StrokeJoin="Round"
-                StrokeThickness="1.8" />
+          <Grid ColumnDefinitions="*,44">
+            <TextBlock Grid.Column="0" Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
+            <Border Grid.Column="1" Classes="railActionIconSlot">
+              <Path
+                  Width="18"
+                  Height="18"
+                  Classes="railActionIcon"
+                  Data="M3.5 8.5L7 12L13.5 5.5"
+                  Fill="Transparent"
+                  StrokeLineCap="Round"
+                  StrokeJoin="Round"
+                  StrokeThickness="1.8" />
+            </Border>
           </Grid>
         </Button>
         <Button
@@ -347,17 +354,19 @@
             Click="BuildReplaceButton_OnClick"
             IsEnabled="{Binding CanBuildReplace}"
             IsVisible="{Binding IsReplaceVisible}">
-          <Grid>
-            <TextBlock Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
-            <Path
-                Width="18"
-                Height="18"
-                Classes="railActionIcon"
-                Data="M3.5 8.5L7 12L13.5 5.5"
-                Fill="Transparent"
-                StrokeLineCap="Round"
-                StrokeJoin="Round"
-                StrokeThickness="1.8" />
+          <Grid ColumnDefinitions="*,44">
+            <TextBlock Grid.Column="0" Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
+            <Border Grid.Column="1" Classes="railActionIconSlot">
+              <Path
+                  Width="18"
+                  Height="18"
+                  Classes="railActionIcon"
+                  Data="M3.5 8.5L7 12L13.5 5.5"
+                  Fill="Transparent"
+                  StrokeLineCap="Round"
+                  StrokeJoin="Round"
+                  StrokeThickness="1.8" />
+            </Border>
           </Grid>
         </Button>
     </StackPanel>
