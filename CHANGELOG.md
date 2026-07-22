@@ -4,7 +4,35 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Changes after `0.9.12` will be documented here.
+Changes after `0.9.13` will be documented here.
+
+## [0.9.13] - 2026-07-22
+
+### Changed
+
+- Firmware filenames are concise again instead of always showing an ambiguous partial or noisy absolute path. Clicking a selected source filename, generated-output filename, or recent-output action now opens Windows Explorer with that exact existing BIN selected; inaccessible or missing files report a visible failure without invoking a shell command string.
+- The bottom-right action rail now overlays only its own compact footprint instead of reserving a full-width bottom band, so Build remains reachable without covering or shortening the lower workflow content. The report Inputs workspace owns its vertical scrolling, including when an expanded summary makes the page taller than the modal.
+- User-facing workflow labels are now `Standard Merge`, `Customized Merge`, and `Customized Replace`. Existing `Normal` and `General` contract tokens, CLI behavior, saved data, profiles, and automation remain unchanged.
+- NT51951 DP slot descriptions now state `(Initial Code + LDC)` for both Merge and DP Replace. This is guidance for the existing packaged payload shape and does not add a new input, range, or support claim.
+- Base-firmware memory coverage keeps its gray fill and adds black diagonal hatching, preserving the existing byte meaning while making retained base regions visibly distinct from the panel background.
+
+### Fixed
+
+- Restored the bottom-right action icons and kept primary blue-button text white during hover so Build, dialog, and report actions remain readable. The TP-version confirmation now presents the keep/edit choice and base value with clearer visual hierarchy.
+- CtrlRAM Replace output naming now uses the edited TP firmware version selected for the output backup; previously the bytes changed while the generated filename could retain the base version.
+- A profile bundle rejected because its package path crosses a Windows reparse point now explains that OneDrive Files On-Demand can trigger the safety boundary and instructs users to re-extract the complete portable folder to a local non-synchronized directory such as `C:\Tools`. The fail-closed path validation is intentionally retained.
+- Home workflow cards now use the same Standard/Customized terminology as their selectors, and the action-rail architecture contract matches the non-reserving overlay row.
+
+### Security
+
+- This release changes no firmware range, operation order, padding/truncation rule, CRC/header algorithm, processor authority, profile admission, report schema, or support stage. Source artifacts remain immutable, Explorer reveal accepts only an existing fully qualified file, and reparse-point profile roots remain rejected.
+- AB Code candidates remain hidden and rejected at the Application run boundary. NT51919/NT51929/NT51932/NT51950/NT51951 evidence is not promoted by this UI stabilization release.
+
+### Notes
+
+- Upgrade by replacing the complete previous portable folder with `NvtFwCombiner-v0.9.13-win-x64`; do not copy only the EXE into an older or OneDrive-synchronized profile tree. Rollback restores the untouched `v0.9.12` folder and requires no saved-data or report migration.
+- AB Code production re-admission plus aligned Merge/Replace Mode placement and compact evidence-status icons are scheduled for `v0.9.14`. The shared Raw Hex Editor/Change Report viewport, redesigned Changes workspace, and full global Button pressed rollout remain scheduled for `v0.9.15`; the latter still requires routed pointer/keyboard, disabled-state, reduced-motion, and effective high-contrast evidence.
+- The release package is a self-contained Windows x64 ZIP with SHA-256, SBOM, and provenance sidecars. Verify those files before distribution. Clean-machine validation, accessibility assistive-technology review, legal review, and firmware-owner support promotion remain organizational gates and are not claimed by the local candidate.
 
 ## [0.9.12] - 2026-07-22
 

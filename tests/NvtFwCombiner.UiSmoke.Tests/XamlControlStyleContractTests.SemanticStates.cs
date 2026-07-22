@@ -1,3 +1,5 @@
+using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -190,9 +192,18 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("memoryCoverageMarker", mergeList, StringComparison.Ordinal);
         Assert.Contains("Background=\"{Binding FillBrush}\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("Background=\"{Binding FillBrush}\"", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"BaseFirmwareDiagonalStripeBrush\"", templates, StringComparison.Ordinal);
+        Assert.Contains("Brush=\"{DynamicResource NfcBaseFirmwareStripeBrush}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("TileMode=\"Tile\"", templates, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding UsesBaseFirmwarePattern}\"", tooltip, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding UsesBaseFirmwarePattern}\"", replaceBar, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding UsesBaseFirmwarePattern}\"", replaceList, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsesBaseFirmwarePattern", mergeBar, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsesBaseFirmwarePattern", mergeList, StringComparison.Ordinal);
 
         Assert.Contains("public IBrush FillBrush", viewModel, StringComparison.Ordinal);
         Assert.Contains("public bool IsChanged", viewModel, StringComparison.Ordinal);
+        Assert.Contains("public bool UsesBaseFirmwarePattern", viewModel, StringComparison.Ordinal);
         Assert.Contains("public string ChangeLabel", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ChangeBadgeBackgroundBrush", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ChangeBadgeBorderBrush", viewModel, StringComparison.Ordinal);
@@ -205,17 +216,39 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void MemoryCoverageRetainsStateAndFillData()
     {
-        MemoryCoverageSegmentViewModel kept = new("0x0000-0x0010", "Base flash", "Kept bytes", "#334155", 20);
+        MemoryCoverageSegmentViewModel kept = new("0x0000-0x0010", "Base flash", "Kept bytes", "#334155", 20, usesBaseFirmwarePattern: true);
         MemoryCoverageSegmentViewModel changed = new("0x0010-0x0020", "TP input", "Written bytes", "#2563EB", 20, isChanged: true);
 
         Assert.False(kept.IsChanged);
+        Assert.True(kept.UsesBaseFirmwarePattern);
         Assert.Equal("Kept", kept.ChangeLabel);
         Assert.Equal("#334155", kept.Fill);
         Assert.NotNull(kept.FillBrush);
         Assert.True(changed.IsChanged);
+        Assert.False(changed.UsesBaseFirmwarePattern);
         Assert.Equal("Changed", changed.ChangeLabel);
         Assert.Equal("#2563EB", changed.Fill);
         Assert.NotNull(changed.FillBrush);
+    }
+
+    /// <summary>Bootstrap's typed coverage role reaches Replace hatching while Merge stays plain.</summary>
+    [Fact]
+    public void MemoryCoveragePatternUsesTypedWorkbenchRole()
+    {
+        (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverage) = UiCompositionRunner.GetReplaceMemoryDisplay(
+            "NT51951",
+            "single",
+            WorkbenchReplaceModes.Dp,
+            dpBaseLength: 0x80000);
+        (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> standardMergeCoverage) =
+            UiCompositionRunner.GetStandardMergeMemoryDisplay("NT51926");
+        (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> customizedMergeCoverage) =
+            UiCompositionRunner.GetGeneralMergeMemoryDisplay("0x100", []);
+
+        Assert.Contains(replaceCoverage, segment => segment.UsesBaseFirmwarePattern);
+        Assert.Contains(replaceCoverage, segment => !segment.UsesBaseFirmwarePattern);
+        Assert.All(standardMergeCoverage, segment => Assert.False(segment.UsesBaseFirmwarePattern));
+        Assert.All(customizedMergeCoverage, segment => Assert.False(segment.UsesBaseFirmwarePattern));
     }
 
     private static string ExtractDataTemplate(string xaml, string key)

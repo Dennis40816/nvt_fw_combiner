@@ -1,8 +1,18 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.12 CtrlRAM routing and interaction-stabilization release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.13 support-neutral stabilization release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.12`
+Specification package version: `0.9.13`
+
+## 0.9.13 support-neutral stabilization release candidate
+
+The `0.9.13` branch starts from the exact latest `origin/0.9.12` head
+`c34c45f7df06bdc5552db6b8157c2da11922d298`. Its scope is limited to the UI,
+file-reveal, TP-version naming, OneDrive diagnostic, terminology, and release
+fixes listed in `CHANGELOG.md`; it changes no firmware execution authority or
+support stage. Canonical verification, exact candidate packaging, visible
+package smoke, Release-EXE startup measurement, and independent exact-head
+review are required before handoff.
 
 ## 0.9.12 CtrlRAM routing and interaction-stabilization release candidate
 

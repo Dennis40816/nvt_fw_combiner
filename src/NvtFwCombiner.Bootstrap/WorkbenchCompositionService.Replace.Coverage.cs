@@ -22,7 +22,8 @@ public static partial class WorkbenchCompositionService
                 "Base firmware",
                 "Kept from the original base firmware unless a replacement covers it.",
                 "#CBD5E1",
-                false),
+                false,
+                WorkbenchMemoryCoverageRole.BaseFirmware),
         ];
 
         IEnumerable<TpFlashMapRegion> replacementRegions = replaceMode == WorkbenchReplaceModes.CtrlRam
@@ -40,7 +41,8 @@ public static partial class WorkbenchCompositionService
                     label,
                     detail,
                     CoverageFill(label),
-                    true));
+                    true,
+                    WorkbenchMemoryCoverageRole.Standard));
         }
 
         return ToWorkbenchCoverageSegments(segments, capacity);

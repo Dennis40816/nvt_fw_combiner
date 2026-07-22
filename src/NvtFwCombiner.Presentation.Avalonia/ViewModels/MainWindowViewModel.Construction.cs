@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -35,6 +36,7 @@ public sealed partial class MainWindowViewModel
     private int _generalReplaceMappingCounter;
     private int _generalMergeMappingCounter;
     private readonly DeferredShellState _deferredState = new();
+    private readonly IFileRevealService _fileRevealService;
     private readonly bool _isInitializing = true;
     private string _selectedMergeMode = NormalMergeMode;
 
@@ -48,7 +50,8 @@ public sealed partial class MainWindowViewModel
             appVersion,
             language,
             static (icId, path) => WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path),
-            WorkbenchCompositionService.InspectFirmwareBatch)
+            WorkbenchCompositionService.InspectFirmwareBatch,
+            WorkbenchHostServices.CreateFileRevealService())
     {
     }
 
@@ -63,7 +66,8 @@ public sealed partial class MainWindowViewModel
             appVersion,
             language,
             firmwareConfigMetadataReader,
-            WorkbenchCompositionService.InspectFirmwareBatch)
+            WorkbenchCompositionService.InspectFirmwareBatch,
+            WorkbenchHostServices.CreateFileRevealService())
     {
     }
 
@@ -76,10 +80,12 @@ public sealed partial class MainWindowViewModel
         Func<
             string,
             IReadOnlyList<WorkbenchFirmwareInspectionInput>,
-            IReadOnlyList<WorkbenchFirmwareInspectionResult>> firmwareInspectionReader)
+            IReadOnlyList<WorkbenchFirmwareInspectionResult>> firmwareInspectionReader,
+        IFileRevealService? fileRevealService = null)
     {
         ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
         ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
+        _fileRevealService = fileRevealService ?? WorkbenchHostServices.CreateFileRevealService();
         _ctrlRamFirmwareVersionMetadataReader = firmwareConfigMetadataReader;
         _firmwareInspectionReader = firmwareInspectionReader;
         ShellVersion = shellVersion;
@@ -143,6 +149,8 @@ public sealed partial class MainWindowViewModel
         SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
         CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);
         CloseBuildCompletedModalCommand = new RelayCommand(CloseBuildCompletedModal);
+        RevealFileCommand = new RelayCommand<string>(RevealFile);
+        RevealBuildCompletedOutputCommand = new RelayCommand(RevealBuildCompletedOutput);
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         _isInitializing = false;
     }

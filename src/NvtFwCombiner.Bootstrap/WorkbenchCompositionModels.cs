@@ -190,6 +190,16 @@ public sealed record WorkbenchMemoryMapRow(
     string AfterSource,
     string Detail);
 
+/// <summary>Typed byte provenance used only to choose coverage presentation.</summary>
+public enum WorkbenchMemoryCoverageRole
+{
+    /// <summary>A normal initialized, input, replacement, or informational segment.</summary>
+    Standard,
+
+    /// <summary>Bytes retained or restored from the selected base firmware.</summary>
+    BaseFirmware,
+}
+
 /// <summary>One visual memory coverage segment for shell display.</summary>
 public sealed record WorkbenchMemoryCoverageSegment(
     string RangeLabel,
@@ -197,7 +207,8 @@ public sealed record WorkbenchMemoryCoverageSegment(
     string Detail,
     string Fill,
     double BarWidth,
-    bool IsChanged);
+    bool IsChanged,
+    WorkbenchMemoryCoverageRole Role);
 
 /// <summary>One coherent range, row, and coverage projection from a single compiled workflow state.</summary>
 public sealed record WorkbenchMemoryDisplay(
@@ -242,4 +253,5 @@ internal sealed record CoverageSegment(
     string SourceLabel,
     string Detail,
     string Fill,
-    bool IsChanged);
+    bool IsChanged,
+    WorkbenchMemoryCoverageRole Role);

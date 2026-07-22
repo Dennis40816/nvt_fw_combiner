@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -136,6 +137,29 @@ public sealed partial class ShellViewModelTests
             ["replace-base", "replace-dp", "replace-ldc"],
             viewModel.ReplaceSlots.Select(static slot => slot.SlotId));
         Assert.Equal("Reference FlashCode length: 0x80000", viewModel.ReplaceMemoryRangeLabel);
+    }
+
+    /// <summary>NT51951 DP inputs explain that the container includes Initial Code and LDC.</summary>
+    [Fact]
+    public void Nt51951DpSlotsExposeInitialCodeAndLdcHint()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51951";
+        viewModel.ShowMergeCommand.Execute(null);
+
+        FirmwareSlotViewModel mergeDp = Assert.Single(
+            viewModel.MergeSlots,
+            slot => slot.SlotId == WorkbenchSlotIds.MergeDp);
+        Assert.EndsWith("(Initial Code + LDC)", mergeDp.Description, StringComparison.Ordinal);
+
+        OpenReplace(viewModel, "DP");
+        FirmwareSlotViewModel replaceDp = Assert.Single(
+            viewModel.ReplaceSlots,
+            slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
+        Assert.EndsWith("(Initial Code + LDC)", replaceDp.Description, StringComparison.Ordinal);
+
+        viewModel.SelectedIc = "NT51950";
+        Assert.DoesNotContain("Initial Code + LDC", viewModel.MergeSlots.Single(slot => slot.SlotId == WorkbenchSlotIds.MergeDp).Description, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51950 DP Replace restores only TP bytes while customer information follows replacement DP.</summary>

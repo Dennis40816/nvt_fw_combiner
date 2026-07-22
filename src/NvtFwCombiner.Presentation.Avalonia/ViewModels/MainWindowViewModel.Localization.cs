@@ -103,7 +103,7 @@ public sealed partial class MainWindowViewModel
     {
         _mergeDpSlot.ApplyDisplayText(
             "DP BIN",
-            Text.MergeDpSlotDescription,
+            ApplySelectedIcDpSlotHint(MergeDpSlotId, Text.MergeDpSlotDescription),
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
@@ -142,7 +142,7 @@ public sealed partial class MainWindowViewModel
         {
             slot.ApplyDisplayText(
                 Text.DpReplacementBinTitle,
-                slot.Description,
+                ApplySelectedIcDpSlotHint(slot.SlotId, slot.Description),
                 Text.RequiredLabel,
                 Text.OptionalLabel,
                 Text.NoBinSelectedLabel);
@@ -155,5 +155,16 @@ public sealed partial class MainWindowViewModel
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
+    }
+
+    private string ApplySelectedIcDpSlotHint(string slotId, string description)
+    {
+        string? hint = WorkbenchCompositionService.GetFirmwareSlotHint(SelectedIc, slotId) ==
+            WorkbenchFirmwareSlotHint.InitialCodeAndLdc
+            ? Text.InitialCodeAndLdcSlotHint
+            : null;
+        return !string.IsNullOrWhiteSpace(hint) && !description.Contains(hint, StringComparison.Ordinal)
+            ? $"{description} {hint}"
+            : description;
     }
 }

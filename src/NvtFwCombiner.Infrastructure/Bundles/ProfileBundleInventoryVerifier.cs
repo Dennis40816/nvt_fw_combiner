@@ -48,8 +48,7 @@ internal static class ProfileBundleInventoryVerifier
             {
                 if ((child.Attributes & FileAttributes.ReparsePoint) != 0)
                 {
-                    throw new UnauthorizedAccessException(
-                        $"Bundle inventory contains reparse point '{child.FullName}'.");
+                    throw CreateReparsePointException(child.FullName);
                 }
 
                 if ((child.Attributes & FileAttributes.Directory) != 0)
@@ -93,5 +92,15 @@ internal static class ProfileBundleInventoryVerifier
         {
             throw new FileNotFoundException($"Bundle inventory is missing listed file '{missingPath}'.");
         }
+    }
+
+    internal static UnauthorizedAccessException CreateReparsePointException(string fullName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fullName);
+        return new UnauthorizedAccessException(
+            $"Bundle inventory contains reparse point '{fullName}'. " +
+            "OneDrive Files On-Demand and other synchronized folders can use Windows reparse points. " +
+            "Re-extract the complete portable package to a local non-synchronized directory " +
+            "(for example, C:\\Tools) and retry; do not copy only the executable.");
     }
 }

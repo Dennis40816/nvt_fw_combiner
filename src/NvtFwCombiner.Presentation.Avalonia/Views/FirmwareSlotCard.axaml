@@ -45,11 +45,21 @@
           </StackPanel>
           <TextBlock Classes="mutedText" IsVisible="{Binding IsGuidanceVisible}" Text="{Binding Description}" TextWrapping="Wrap" />
           <TextBlock
+              IsVisible="{Binding IsGuidanceVisible}"
               FontSize="{DynamicResource NfcFontSize13}"
               FontWeight="SemiBold"
               Foreground="{DynamicResource NfcTextBrush}"
               Text="{Binding DisplayName}"
-              TextWrapping="Wrap"
+              TextWrapping="Wrap" />
+          <Button
+              AutomationProperties.HelpText="{Binding DisplayDetail}"
+              AutomationProperties.Name="{Binding DisplayName}"
+              Classes="fileRevealAction"
+              Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
+              CommandParameter="{Binding FilePath}"
+              Content="{Binding DisplayName}"
+              HorizontalAlignment="Left"
+              IsVisible="{Binding HasFile}"
               ToolTip.Tip="{Binding DisplayDetail}" />
           <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
             <ItemsControl.ItemsPanel>

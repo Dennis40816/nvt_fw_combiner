@@ -95,6 +95,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Selector=\"Border.fileDropZone\"", styles, StringComparison.Ordinal);
         Assert.Contains("Classes=\"subtleSurface\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileDropZone\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"fileRevealAction\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("CommandParameter=\"{Binding FilePath}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding SelectBinTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding RemoveMappingTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#F8FAFC\"", mappingRow, StringComparison.Ordinal);
@@ -114,7 +117,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsGuidanceVisible}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"fileRevealAction\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding DisplayName}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("CommandParameter=\"{Binding FilePath}\"", slotCard, StringComparison.Ordinal);
     }
 
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
@@ -331,15 +338,20 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsVisible=\"{Binding IsCtrlRamFirmwareVersionModalOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionPreserveCommand", modal, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionEditCommand", modal, StringComparison.Ordinal);
+        Assert.Equal(2, modal.Split("Classes=\"segment versionChoice\"", StringSplitOptions.None).Length - 1);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionKeepLabel}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionEditLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("<TextBlock Text=\"{Binding Text.CtrlRamFirmwareVersionKeepLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("<TextBlock Text=\"{Binding Text.CtrlRamFirmwareVersionEditLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("TryCreateCtrlRamFirmwareVersionEdit", ReadPresentationFile("Views/CtrlRamFirmwareVersionModal.axaml.cs"), StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionByteLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareSubVersionByteLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBox.hexByteInput\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"ToggleButton.versionChoice\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Border.versionSummaryCard\"", styles, StringComparison.Ordinal);
         Assert.Contains("Classes=\"technicalCenteredInput hexByteInput\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"compactBadge neutralBadge\"", modal, StringComparison.Ordinal);
-        Assert.Contains("FontFamily=\"{DynamicResource NfcTechnicalFontFamily}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"versionSummaryCard\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"technicalValue versionValue\"", modal, StringComparison.Ordinal);
         Assert.Contains("behaviors:HexTextInputBehavior.Mode\" Value=\"ByteSequence\"", styles, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigLayout", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("Combiner.exe", modal, StringComparison.Ordinal);

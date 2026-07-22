@@ -92,4 +92,29 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Keeps Windows process launch inside one constrained Infrastructure adapter.</summary>
+    [Fact]
+    public void FileRevealProcessAuthorityStaysOutsidePresentation()
+    {
+        string port = ReadText("src/NvtFwCombiner.Application/Ports/IFileRevealService.cs");
+        string hostFactory = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchHostServices.cs");
+        string adapter = ReadText("src/NvtFwCombiner.Infrastructure/Shell/WindowsExplorerFileRevealService.cs");
+        string presentation = string.Join(
+            Environment.NewLine,
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.BuildCompleted.cs"));
+
+        Assert.Contains("interface IFileRevealService", port, StringComparison.Ordinal);
+        Assert.Contains("new WindowsExplorerFileRevealService()", hostFactory, StringComparison.Ordinal);
+        Assert.Contains("Environment.SpecialFolder.Windows", adapter, StringComparison.Ordinal);
+        Assert.Contains("Path.IsPathFullyQualified", adapter, StringComparison.Ordinal);
+        Assert.Contains("UseShellExecute = false", adapter, StringComparison.Ordinal);
+        Assert.Contains("Process.Start(startInfo)", adapter, StringComparison.Ordinal);
+        Assert.Contains("IFileRevealService", presentation, StringComparison.Ordinal);
+        Assert.Contains("RevealFileCommand", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("Process.Start", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("System.Diagnostics", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Infrastructure", presentation, StringComparison.Ordinal);
+    }
+
 }

@@ -58,7 +58,7 @@
               Command="{Binding BeginGeneralReplaceFromHomeCommand}">
             <Border Classes="workflowCard">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <TextBlock Classes="strongText" Text="General Replace" />
+                <TextBlock Classes="strongText" Text="Customized Replace" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
                   <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
                 </Border>
@@ -92,7 +92,7 @@
               Command="{Binding BeginNormalMergeFromHomeCommand}">
             <Border Classes="workflowCard">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <TextBlock Classes="strongText" Text="Normal Merge" />
+                <TextBlock Classes="strongText" Text="Standard Merge" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
                   <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
                 </Border>
@@ -105,7 +105,7 @@
               Command="{Binding BeginGeneralMergeFromHomeCommand}">
             <Border Classes="workflowCard">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <TextBlock Classes="strongText" Text="General Merge" />
+                <TextBlock Classes="strongText" Text="Customized Merge" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
                   <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
                 </Border>

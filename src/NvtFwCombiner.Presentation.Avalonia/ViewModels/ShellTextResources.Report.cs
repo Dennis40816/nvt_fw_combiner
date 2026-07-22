@@ -33,6 +33,10 @@ public sealed partial class ShellTextResources
 
     public string BuildCompletedOpenFolderError { get; private init; } = string.Empty;
 
+    public string FileRevealFailedTitle { get; private init; } = string.Empty;
+
+    public string FileRevealFailedDetail { get; private init; } = string.Empty;
+
     public string CloseReportTooltip { get; private init; } = string.Empty;
 
     public string ReportHistoryTitle { get; private init; } = string.Empty;

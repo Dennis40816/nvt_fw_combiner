@@ -186,8 +186,8 @@ public sealed partial class ShellTextResources
                 $"{ic}: Standard Merge is not available yet.",
                 $"{ic}：Standard Merge 尚未可用。"),
             WorkbenchMergeModes.General when generalMappingFileCount > 0 => SelectLanguage(
-                $"{ic}: General Merge maps {generalMappingFileCount} source BIN file(s) into a blank output.",
-                $"{ic}：General Merge 會將 {generalMappingFileCount} 個 source BIN mapping 寫入 blank output。"),
+                $"{ic}: Customized Merge maps {generalMappingFileCount} source BIN file(s) into a blank output.",
+                $"{ic}：Customized Merge 會將 {generalMappingFileCount} 個 source BIN mapping 寫入 blank output。"),
             WorkbenchMergeModes.General => SelectLanguage(
                 $"{ic}: add at least one source BIN mapping.",
                 $"{ic}：至少新增一筆 source BIN mapping。"),

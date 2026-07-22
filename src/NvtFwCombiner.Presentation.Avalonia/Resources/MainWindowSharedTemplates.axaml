@@ -9,6 +9,21 @@
   <Setter Property="HorizontalContentAlignment" Value="Stretch" />
 </ControlTheme>
 
+<DrawingBrush
+    x:Key="BaseFirmwareDiagonalStripeBrush"
+    DestinationRect="0,0,8,8"
+    SourceRect="0,0,8,8"
+    Stretch="None"
+    TileMode="Tile">
+  <DrawingBrush.Drawing>
+    <GeometryDrawing Geometry="M -2,8 L 8,-2 M 2,10 L 10,2">
+      <GeometryDrawing.Pen>
+        <Pen Brush="{DynamicResource NfcBaseFirmwareStripeBrush}" Thickness="1" />
+      </GeometryDrawing.Pen>
+    </GeometryDrawing>
+  </DrawingBrush.Drawing>
+</DrawingBrush>
+
 <DataTemplate x:Key="FirmwareSlotGroupTemplate" DataType="vm:FirmwareSlotGroupViewModel">
   <views:SpaciousPanel Classes="compact">
     <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
@@ -44,7 +59,12 @@
             Height="10"
             VerticalAlignment="Center"
             Background="{Binding FillBrush}"
-            CornerRadius="2" />
+            CornerRadius="2">
+          <Border
+              Background="{StaticResource BaseFirmwareDiagonalStripeBrush}"
+              CornerRadius="2"
+              IsVisible="{Binding UsesBaseFirmwarePattern}" />
+        </Border>
         <TextBlock
             Grid.Column="1"
             VerticalAlignment="Center"
@@ -94,6 +114,9 @@
       Width="{Binding BarWidth}"
       Height="22"
       Background="{Binding FillBrush}">
+    <Border
+        Background="{StaticResource BaseFirmwareDiagonalStripeBrush}"
+        IsVisible="{Binding UsesBaseFirmwarePattern}" />
     <ToolTip.Tip>
       <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
     </ToolTip.Tip>
@@ -125,7 +148,12 @@
           Margin="0,3,0,0"
           VerticalAlignment="Top"
           Background="{Binding FillBrush}"
-          CornerRadius="2" />
+          CornerRadius="2">
+        <Border
+            Background="{StaticResource BaseFirmwareDiagonalStripeBrush}"
+            CornerRadius="2"
+            IsVisible="{Binding UsesBaseFirmwarePattern}" />
+      </Border>
       <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
         <TextBlock Classes="bodyEmphasisText" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
         <TextBlock Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" />

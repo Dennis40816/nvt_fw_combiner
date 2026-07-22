@@ -23,7 +23,8 @@ public static partial class UiCompositionRunner
             segment.Detail,
             segment.Fill,
             segment.BarWidth,
-            segment.IsChanged);
+            segment.IsChanged,
+            segment.Role == WorkbenchMemoryCoverageRole.BaseFirmware);
     }
 
     private static string ToRange(long start, long length)

@@ -65,11 +65,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ShowHexEditorCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("BeginNormalMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("BeginGeneralMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Standard Merge\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Customized Merge\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Customized Replace\"", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"Normal Merge\"", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"General Merge\"", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"General Replace\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("WindowState=\"Maximized\"", shell, StringComparison.Ordinal);
         Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
         Assert.Contains("<ScrollViewer Grid.Row=\"3\">", shell, StringComparison.Ordinal);
+        Assert.Contains("<Grid Margin=\"28,24,28,132\"", shell, StringComparison.Ordinal);
         Assert.Contains(
-            "x:Name=\"CompositionBuildActionRail\"\n        Grid.Row=\"4\"",
+            "x:Name=\"CompositionBuildActionRail\"\n        Grid.Row=\"3\"",
             shell,
             StringComparison.Ordinal);
         Assert.Contains("DeviceContextTitle", shellPanels, StringComparison.Ordinal);

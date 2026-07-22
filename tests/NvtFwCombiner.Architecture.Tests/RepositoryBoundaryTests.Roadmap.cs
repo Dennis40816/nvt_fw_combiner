@@ -2,32 +2,32 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Locks the shared viewport and global Button acknowledgement backlog to v0.9.13.</summary>
+    /// <summary>Locks the shared viewport and global Button acknowledgement backlog to v0.9.15.</summary>
     [Fact]
-    public void V0913OwnsSharedViewportAndGlobalButtonFeedback()
+    public void V0915OwnsSharedViewportAndGlobalButtonFeedback()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string tags = ReadText("docs/governance/development-tags.md");
 
-        Assert.Contains("## v0.9.13: shared Hex viewport, Changes redesign, and interaction feedback", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## v0.9.15: shared Hex viewport, Changes redesign, and interaction feedback", roadmap, StringComparison.Ordinal);
         Assert.Contains("Every interactive\nAvalonia `Button`", roadmap, StringComparison.Ordinal);
         Assert.Contains("Pointer, touch, Space, and Enter", roadmap, StringComparison.Ordinal);
         Assert.Contains("Reduced-motion mode", roadmap, StringComparison.Ordinal);
         Assert.Contains("`v0.9.12` | CtrlRAM routing and interaction stabilization", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.13` | Shared Hex viewport, Button feedback, and AB re-admission", tags, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.15` | Shared Hex viewport and Button feedback", tags, StringComparison.Ordinal);
         Assert.DoesNotContain("Shared Hex viewport and Changes redesign work remain deferred to `0.9.12`", tags, StringComparison.Ordinal);
 
         int progressionStart = tags.IndexOf("## Progression", StringComparison.Ordinal);
         int progressionEnd = tags.IndexOf("## Rules", StringComparison.Ordinal);
         string progression = tags[progressionStart..progressionEnd];
         Assert.Contains("v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance", progression, StringComparison.Ordinal);
-        Assert.Contains("v0.9.13         shared Hex/Changes, global Button feedback, and separately gated AB re-admission", progression, StringComparison.Ordinal);
+        Assert.Contains("v0.9.15         shared Hex/Changes and global Button feedback", progression, StringComparison.Ordinal);
         Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
     }
 
-    /// <summary>Locks AB execution out of v0.9.12 and assigns typed re-admission to the separately gated v0.9.13 track.</summary>
+    /// <summary>Locks AB execution out of v0.9.13 and assigns typed re-admission to the separately gated v0.9.14 track.</summary>
     [Fact]
-    public void V0913OwnsAbCodeProductionReadmissionWithoutV0912Exposure()
+    public void V0914OwnsAbCodeProductionReadmissionWithoutV0913Exposure()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string decision = ReadText("docs/adr/0032-ab-code-production-readmission.md");
@@ -47,9 +47,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Version values are informational and never route gates", roadmap, StringComparison.Ordinal);
         Assert.Contains("Unreadable versions\nshow `Unknown` with a non-modal warning", roadmap, StringComparison.Ordinal);
         Assert.Contains("one DP_AB card with DP1/DP2\nsubrows plus separate TPA/TPB rows", roadmap, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.13` will move DP facts shown in the UI to the IC-owned three-byte CMI", specification, StringComparison.Ordinal);
-        Assert.Contains("No current Display or naming behavior changes in this release", specification, StringComparison.Ordinal);
-        Assert.Contains("Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.12`", specification, StringComparison.Ordinal);
+        Assert.Contains("The first `v0.9.14` AB pilot", specification, StringComparison.Ordinal);
+        Assert.Contains("output-naming migration remains a separate compatibility decision", specification, StringComparison.Ordinal);
+        Assert.Contains("Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.13`", specification, StringComparison.Ordinal);
+        Assert.Contains("aligns Merge/Replace Mode placement", roadmap, StringComparison.Ordinal);
+        Assert.Contains("non-color-dependent icon", roadmap, StringComparison.Ordinal);
     }
 
     /// <summary>Locks the owner-approved Public-through-v1.0.0 schedule and its disclosure boundary.</summary>

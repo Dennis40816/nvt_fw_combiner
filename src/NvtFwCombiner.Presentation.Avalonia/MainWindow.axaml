@@ -2,6 +2,7 @@
     x:Class="NvtFwCombiner.Presentation.Avalonia.MainWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:NvtFwCombiner.Presentation.Avalonia"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:Name="RootWindow"
@@ -142,7 +143,7 @@
         IsVisible="{Binding IsDeviceContextVisible}" />
 
     <ScrollViewer Grid.Row="3">
-      <Grid Margin="28,24,28,28" RowDefinitions="*" RowSpacing="0">
+      <Grid Margin="28,24,28,132" RowDefinitions="*" RowSpacing="0">
         <ContentControl
             x:Name="HomePageHost"
             Grid.Row="0"
@@ -185,7 +186,13 @@
                     <ComboBox
                         MinHeight="32"
                         ItemsSource="{Binding ReplaceModeChoices}"
-                        SelectedItem="{Binding SelectedReplaceMode, Mode=TwoWay}" />
+                        SelectedItem="{Binding SelectedReplaceMode, Mode=TwoWay}">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding Converter={x:Static converters:WorkbenchModeDisplayConverters.DisplayName}}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
                     <Label
                         Grid.Column="1"
                         Classes="compactBadge neutralBadge reportBadge success"
@@ -254,7 +261,13 @@
                   <ComboBox
                       MinHeight="32"
                       ItemsSource="{Binding MergeModeChoices}"
-                      SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}" />
+                      SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding Converter={x:Static converters:WorkbenchModeDisplayConverters.DisplayName}}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
                 </StackPanel>
               </Grid>
             </Grid>
@@ -277,8 +290,9 @@
 
     <Border
         x:Name="CompositionBuildActionRail"
-        Grid.Row="4"
+        Grid.Row="3"
         Margin="0,0,24,16"
+        ZIndex="1"
         HorizontalAlignment="Right"
         VerticalAlignment="Bottom"
         Classes="compositionActionRail"
@@ -289,20 +303,21 @@
             Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
             AutomationProperties.HelpText="{Binding Text.LatestOutputOpenFolderLabel}"
             AutomationProperties.Name="{Binding Text.LatestOutputOpenFolderLabel}"
-            Click="OpenLatestOutputFolderButton_OnClick"
+            Command="{Binding RevealFileCommand}"
+            CommandParameter="{Binding LatestCommittedOutputPath}"
             IsVisible="{Binding IsLatestOutputActionVisible}">
-          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
             <TextBlock Classes="railActionLabel" Text="{Binding Text.LatestOutputOpenFolderLabel}" />
             <Path
+                Grid.Column="1"
                 Width="18"
                 Height="18"
                 Classes="railActionIcon"
-                Data="M2.5 5.5H8L10 8H21.5V18.5H2.5Z M7 12H17 M14 9L17 12L14 15"
-                Fill="Transparent"
+                Data="M2 5H7L9 7H16V9H7.5L5.5 16H2Z M7.8 10H16L14.2 16H6Z"
                 StrokeLineCap="Round"
                 StrokeJoin="Round"
                 StrokeThickness="1.7" />
-          </StackPanel>
+          </Grid>
         </Button>
         <Button
             Classes="railAction primaryRailAction buildRailAction"
@@ -312,9 +327,10 @@
             Click="BuildMergeButton_OnClick"
             IsEnabled="{Binding CanBuildMerge}"
             IsVisible="{Binding IsMergeVisible}">
-          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
             <TextBlock Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
             <Path
+                Grid.Column="1"
                 Width="18"
                 Height="18"
                 Classes="railActionIcon"
@@ -323,7 +339,7 @@
                 StrokeLineCap="Round"
                 StrokeJoin="Round"
                 StrokeThickness="1.8" />
-          </StackPanel>
+          </Grid>
         </Button>
         <Button
             Classes="railAction primaryRailAction buildRailAction"
@@ -333,9 +349,10 @@
             Click="BuildReplaceButton_OnClick"
             IsEnabled="{Binding CanBuildReplace}"
             IsVisible="{Binding IsReplaceVisible}">
-          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
             <TextBlock Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
             <Path
+                Grid.Column="1"
                 Width="18"
                 Height="18"
                 Classes="railActionIcon"
@@ -344,7 +361,7 @@
                 StrokeLineCap="Round"
                 StrokeJoin="Round"
                 StrokeThickness="1.8" />
-          </StackPanel>
+          </Grid>
         </Button>
       </StackPanel>
     </Border>

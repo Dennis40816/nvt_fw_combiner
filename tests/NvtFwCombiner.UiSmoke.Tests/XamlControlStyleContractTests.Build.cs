@@ -1,9 +1,24 @@
 using System.Xml.Linq;
+using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
+    /// <summary>Mode selectors use new product wording while stable contract tokens remain unchanged.</summary>
+    [Fact]
+    public void CompositionModeSelectorsUseDisplayOnlyProductNames()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+
+        Assert.Equal("Normal", WorkbenchMergeModes.Standard);
+        Assert.Equal("General", WorkbenchMergeModes.General);
+        Assert.Equal("Standard", WorkbenchModeDisplayConverters.GetDisplayName(WorkbenchMergeModes.Standard));
+        Assert.Equal("Customized", WorkbenchModeDisplayConverters.GetDisplayName(WorkbenchMergeModes.General));
+        Assert.Equal(2, shell.Split("WorkbenchModeDisplayConverters.DisplayName", StringSplitOptions.None).Length - 1);
+    }
+
     /// <summary>FWConfig Number mismatch uses the shared modal surface with explicit accessible actions.</summary>
     [Fact]
     public void FirmwareNumberMismatchUsesAccessibleConfirmationSurface()
@@ -55,17 +70,29 @@ public sealed partial class XamlControlStyleContractTests
         string reducedMotionLabel = ExtractStyle(
             styles,
             "Button.railAction.reducedMotion TextBlock.railActionLabel");
+        string primaryHover = ExtractStyle(styles, "Button.primary:pointerover");
+        string primaryHoverPresenter = ExtractStyle(
+            styles,
+            "Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter");
+        string primaryPresenter = ExtractStyle(
+            styles,
+            "Button.primary /template/ ContentPresenter#PART_ContentPresenter");
+        string primaryText = ExtractStyle(styles, "Button.primary TextBlock");
+        string primaryRailText = ExtractStyle(styles, "Button.primaryRailAction TextBlock");
+        string railIcon = ExtractStyle(styles, "Path.railActionIcon");
+        string outputRailIcon = ExtractStyle(styles, "Button.outputRailAction Path.railActionIcon");
 
         Assert.Contains("Width\" Value=\"44\"", railAction, StringComparison.Ordinal);
         Assert.Contains("Height\" Value=\"44\"", railAction, StringComparison.Ordinal);
         Assert.Contains("ClipToBounds\" Value=\"True\"", railAction, StringComparison.Ordinal);
         Assert.Contains("HorizontalAlignment\" Value=\"Right\"", railAction, StringComparison.Ordinal);
-        Assert.Contains("HorizontalContentAlignment\" Value=\"Right\"", railAction, StringComparison.Ordinal);
+        Assert.Contains("HorizontalContentAlignment\" Value=\"Stretch\"", railAction, StringComparison.Ordinal);
         Assert.Contains("DoubleTransition Property=\"Width\" Duration=\"0:0:0.16\"", railAction, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBrush", primaryAction, StringComparison.Ordinal);
         Assert.Contains("BrushTransition Property=\"Background\" Duration=\"0:0:0.12\"", railPresenter, StringComparison.Ordinal);
         Assert.Contains("BrushTransition Property=\"BorderBrush\" Duration=\"0:0:0.12\"", railPresenter, StringComparison.Ordinal);
         Assert.Contains("Opacity\" Value=\"0\"", actionLabel, StringComparison.Ordinal);
+        Assert.Contains("HorizontalAlignment\" Value=\"Center\"", actionLabel, StringComparison.Ordinal);
         Assert.Contains("DoubleTransition Property=\"Opacity\" Duration=\"0:0:0.12\"", actionLabel, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Button.outputRailAction:pointerover\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Button.outputRailAction:focus-visible\"", styles, StringComparison.Ordinal);
@@ -77,6 +104,19 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionAction, StringComparison.Ordinal);
         Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionPresenter, StringComparison.Ordinal);
         Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionLabel, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceBrush", primaryHover, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", primaryHoverPresenter, StringComparison.Ordinal);
+        Assert.Contains("TextElement.Foreground\" Value=\"{DynamicResource NfcSurfaceBrush}", primaryPresenter, StringComparison.Ordinal);
+        Assert.Contains("TextElement.Foreground\" Value=\"{DynamicResource NfcSurfaceBrush}", primaryHoverPresenter, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceBrush", primaryText, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceBrush", primaryRailText, StringComparison.Ordinal);
+        Assert.Contains("HorizontalAlignment\" Value=\"Center\"", railIcon, StringComparison.Ordinal);
+        Assert.Contains("VerticalAlignment\" Value=\"Center\"", railIcon, StringComparison.Ordinal);
+        Assert.Contains("Margin\" Value=\"0,1,0,0\"", railIcon, StringComparison.Ordinal);
+        Assert.Contains("Stretch\" Value=\"Uniform\"", railIcon, StringComparison.Ordinal);
+        Assert.Contains("StrokeThickness\" Value=\"1.8\"", railIcon, StringComparison.Ordinal);
+        Assert.Contains("Fill\" Value=\"{DynamicResource NfcTextBrush}\"", outputRailIcon, StringComparison.Ordinal);
+        Assert.Contains("Stroke\" Value=\"Transparent\"", outputRailIcon, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Button.railAction:pointerover", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Button.railAction:pressed", styles, StringComparison.Ordinal);
         Assert.Equal(2, shell.Split("Classes=\"railAction primaryRailAction buildRailAction\"", StringSplitOptions.None).Length - 1);
@@ -87,7 +127,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("RenderTransform", railAction + railPresenter + primaryAction + actionLabel, StringComparison.Ordinal);
     }
 
-    /// <summary>Build stays in the fixed bottom-right rail established by the stable v0.9.10 shell.</summary>
+    /// <summary>Build floats inside the scroll-content row without reserving a full-width bottom band.</summary>
     [Fact]
     public void CompositionBuildActionsStayInTheBottomRightRail()
     {
@@ -105,8 +145,9 @@ public sealed partial class XamlControlStyleContractTests
                 .Cast<string>(),
         ];
 
-        Assert.Equal("4", (string?)rail.Attribute("Grid.Row"));
+        Assert.Equal("3", (string?)rail.Attribute("Grid.Row"));
         Assert.Null(rail.Attribute("Grid.RowSpan"));
+        Assert.Equal("1", (string?)rail.Attribute("ZIndex"));
         Assert.Equal("Right", (string?)rail.Attribute("HorizontalAlignment"));
         Assert.Equal("Bottom", (string?)rail.Attribute("VerticalAlignment"));
         Assert.Equal("0,0,24,16", (string?)rail.Attribute("Margin"));
@@ -124,11 +165,12 @@ public sealed partial class XamlControlStyleContractTests
 
         XElement folder = Assert.Single(
             rail.Descendants(),
-            element => (string?)element.Attribute("Click") == "OpenLatestOutputFolderButton_OnClick");
+            element => (string?)element.Attribute("Command") == "{Binding RevealFileCommand}");
         Assert.Equal("railAction outputRailAction", (string?)folder.Attribute("Classes"));
         Assert.NotNull(folder.Attribute("AutomationProperties.Name"));
         Assert.NotNull(folder.Attribute("AutomationProperties.HelpText"));
         Assert.Null(folder.Attribute("ToolTip.Tip"));
+        AssertRailContentKeepsIconInFixedRightColumn(folder);
 
         XElement[] buildButtons =
         [
@@ -140,6 +182,20 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal("railAction primaryRailAction buildRailAction", (string?)button.Attribute("Classes"));
             Assert.NotNull(button.Attribute("AutomationProperties.HelpText"));
             Assert.Null(button.Attribute("ToolTip.Tip"));
+            AssertRailContentKeepsIconInFixedRightColumn(button);
         });
+    }
+
+    private static void AssertRailContentKeepsIconInFixedRightColumn(XElement button)
+    {
+        XElement content = Assert.Single(button.Elements());
+        Assert.Equal("Grid", content.Name.LocalName);
+        Assert.Equal("*,Auto", (string?)content.Attribute("ColumnDefinitions"));
+        Assert.Equal("{DynamicResource NfcSpace8}", (string?)content.Attribute("ColumnSpacing"));
+        XElement icon = Assert.Single(content.Elements(), element => element.Name.LocalName == "Path");
+        Assert.Equal("1", (string?)icon.Attribute("Grid.Column"));
+        Assert.Equal("18", (string?)icon.Attribute("Width"));
+        Assert.Equal("18", (string?)icon.Attribute("Height"));
+        Assert.Equal("railActionIcon", (string?)icon.Attribute("Classes"));
     }
 }

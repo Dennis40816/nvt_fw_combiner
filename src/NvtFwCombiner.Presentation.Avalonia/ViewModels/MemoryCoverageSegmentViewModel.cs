@@ -12,7 +12,8 @@ public sealed class MemoryCoverageSegmentViewModel
         string detail,
         string fill,
         double barWidth,
-        bool isChanged = false)
+        bool isChanged = false,
+        bool usesBaseFirmwarePattern = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -29,6 +30,7 @@ public sealed class MemoryCoverageSegmentViewModel
         FillBrush = Brush.Parse(fill);
         BarWidth = barWidth;
         IsChanged = isChanged;
+        UsesBaseFirmwarePattern = usesBaseFirmwarePattern;
         ChangeLabel = isChanged ? "Changed" : "Kept";
     }
 
@@ -55,6 +57,9 @@ public sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>True when the segment is written by the active replace operation.</summary>
     public bool IsChanged { get; }
+
+    /// <summary>True when retained base-firmware bytes need a non-color visual pattern.</summary>
+    public bool UsesBaseFirmwarePattern { get; }
 
     /// <summary>Compact changed/kept label for the legend.</summary>
     public string ChangeLabel { get; }

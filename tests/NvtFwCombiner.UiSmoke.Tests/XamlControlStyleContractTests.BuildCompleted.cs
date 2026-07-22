@@ -8,17 +8,13 @@ public sealed partial class XamlControlStyleContractTests
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
         string modal = ReadPresentationFile("Views/BuildCompletedModal.axaml");
-        string modalCode = ReadPresentationFile("Views/BuildCompletedModal.axaml.cs");
-        string buildCode = ReadPresentationFile("MainWindow.Build.cs");
 
         Assert.Contains("<views:BuildCompletedModal", shell, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsBuildCompletedModalOpen}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding BuildCompletedOutputPath}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OpenOutputFolderButton_OnClick\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding BuildCompletedOutputDisplayName}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding RevealBuildCompletedOutputCommand}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding CloseBuildCompletedModalCommand}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("LaunchDirectoryInfoAsync", modalCode, StringComparison.Ordinal);
-        Assert.Contains("OutputFolderLauncher.TryOpenAsync", buildCode, StringComparison.Ordinal);
-        Assert.DoesNotContain("Process.Start", modalCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("Click=\"RevealOutputFileButton_OnClick\"", modal, StringComparison.Ordinal);
     }
 
     /// <summary>Composition Build remains fixed at the bottom of the right-side action rail.</summary>
@@ -29,12 +25,15 @@ public sealed partial class XamlControlStyleContractTests
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
         string shellStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
         string railStyle = ExtractStyle(shellStyles, "Border.compositionActionRail");
-        int latestOutputAction = shell.IndexOf("Click=\"OpenLatestOutputFolderButton_OnClick\"", StringComparison.Ordinal);
+        int latestOutputAction = shell.IndexOf("Command=\"{Binding RevealFileCommand}\"", StringComparison.Ordinal);
         int mergeBuildAction = shell.IndexOf("Click=\"BuildMergeButton_OnClick\"", StringComparison.Ordinal);
         int replaceBuildAction = shell.IndexOf("Click=\"BuildReplaceButton_OnClick\"", StringComparison.Ordinal);
 
         Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Grid.Row=\"4\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<ScrollViewer Grid.Row=\"3\">", shell, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CompositionBuildActionRail\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Grid.Row=\"3\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ZIndex=\"1\"", shell, StringComparison.Ordinal);
         Assert.Contains("HorizontalAlignment=\"Right\"", shell, StringComparison.Ordinal);
         Assert.Contains("VerticalAlignment=\"Bottom\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compositionActionRail\"", shell, StringComparison.Ordinal);

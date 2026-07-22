@@ -31,6 +31,9 @@ public abstract partial class GeneralMappingRowViewModel : ObservableObject
     /// <summary>True when a local input file is selected.</summary>
     public bool HasFile => !string.IsNullOrWhiteSpace(FilePath);
 
+    /// <summary>True while the row displays its empty-slot guidance.</summary>
+    public bool IsGuidanceVisible => !HasFile;
+
     /// <summary>Updates the one-based display index after rows are added or removed.</summary>
     public void SetIndex(int index)
     {
@@ -41,6 +44,7 @@ public abstract partial class GeneralMappingRowViewModel : ObservableObject
     /// <summary>Selected local input file path.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasFile))]
+    [NotifyPropertyChangedFor(nameof(IsGuidanceVisible))]
     [NotifyPropertyChangedFor(nameof(DisplayName))]
     [NotifyPropertyChangedFor(nameof(DisplayDetail))]
     public partial string? FilePath { get; set; }
