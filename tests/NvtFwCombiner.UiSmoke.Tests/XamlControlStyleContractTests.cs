@@ -175,15 +175,29 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("True", combo.Attributes().Single(attribute => attribute.Name.LocalName == "FocusToolTipBehavior.IsEnabled").Value);
         Assert.Equal("{Binding SelectedIcDetailAutomationText}", combo.Attributes().Single(attribute => attribute.Name.LocalName == "AutomationProperties.HelpText").Value);
         Assert.Equal("False", (string?)toolTip.Attribute("IsHitTestVisible"));
-        Assert.Contains(
+        XElement detailCard = Assert.Single(
             toolTip.Descendants(),
             element => (string?)element.Attribute("Classes") == "icDetailCard");
+        Assert.Equal(
+            4,
+            detailCard.Descendants().Count(element =>
+                element.Name.LocalName == "Path" &&
+                ((string?)element.Attribute("Classes"))?.StartsWith("icDetail", StringComparison.Ordinal) == true));
+        Assert.DoesNotContain(
+            detailCard.Descendants(),
+            element => (string?)element.Attribute("Text") is "{Binding SelectedIcDetailReuse}" or "{Binding SelectedIcDetailSupport}");
 
         var control = new ComboBox();
         ToolTip.SetTip(control, new ToolTip { IsHitTestVisible = false });
         FocusToolTipBehavior.SetIsEnabled(control, true);
         Assert.True(FocusToolTipBehavior.GetIsEnabled(control));
         Assert.False(Assert.IsType<ToolTip>(ToolTip.GetTip(control)).IsHitTestVisible);
+
+        control.ItemsSource = new[] { "NT51929", "NT51932" };
+        control.SelectedIndex = 0;
+        ToolTip.SetIsOpen(control, true);
+        control.SelectedIndex = 1;
+        Assert.False(ToolTip.GetIsOpen(control));
     }
 
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>

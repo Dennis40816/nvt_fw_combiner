@@ -40,11 +40,20 @@ public sealed class FocusToolTipBehavior : AvaloniaObject
         control.GotFocus -= Control_OnGotFocus;
         control.LostFocus -= Control_OnLostFocus;
         control.KeyDown -= Control_OnKeyDown;
+        if (control is ComboBox comboBox)
+        {
+            comboBox.SelectionChanged -= ComboBox_OnSelectionChanged;
+        }
+
         if (e.NewValue is true)
         {
             control.GotFocus += Control_OnGotFocus;
             control.LostFocus += Control_OnLostFocus;
             control.KeyDown += Control_OnKeyDown;
+            if (control is ComboBox enabledComboBox)
+            {
+                enabledComboBox.SelectionChanged += ComboBox_OnSelectionChanged;
+            }
         }
         else
         {
@@ -73,6 +82,14 @@ public sealed class FocusToolTipBehavior : AvaloniaObject
         if (sender is Control control && e.Key == Key.Escape)
         {
             ToolTip.SetIsOpen(control, false);
+        }
+    }
+
+    private static void ComboBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ComboBox comboBox)
+        {
+            ToolTip.SetIsOpen(comboBox, false);
         }
     }
 }

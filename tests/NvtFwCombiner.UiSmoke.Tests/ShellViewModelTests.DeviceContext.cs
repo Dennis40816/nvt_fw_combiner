@@ -62,14 +62,14 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51929";
 
         Assert.Contains("IC Family source", viewModel.SelectedIcDetailFamily, StringComparison.Ordinal);
-        Assert.Contains("AB Code", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
+        Assert.Contains("AB", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
         Assert.Contains("NT51929", viewModel.SelectedIcDetailAutomationText, StringComparison.Ordinal);
         Assert.Contains(viewModel.SelectedIcDetailEvidence, viewModel.SelectedIcDetailAutomationText, StringComparison.Ordinal);
         Assert.Contains(viewModel.SelectedIcDetailSupport, viewModel.SelectedIcDetailAutomationText, StringComparison.Ordinal);
 
         viewModel.SelectedIc = "NT51950";
 
-        Assert.DoesNotContain("AB Code", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
+        Assert.DoesNotContain("AB", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
         Assert.Contains("compiled profiles", viewModel.SelectedIcDetailSupport, StringComparison.Ordinal);
     }
 }

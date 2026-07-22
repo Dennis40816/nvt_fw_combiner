@@ -224,11 +224,11 @@ public sealed partial class ShellTextResources
         bool generalReplace)
     {
         List<string> workflows = [];
-        Add("Standard Merge", standardMerge);
-        Add("AB Code", abMerge);
-        Add("DP Replace", dpReplace);
-        Add("CtrlRAM Replace", ctrlRamReplace);
-        Add("Customized Replace", generalReplace);
+        Add("Standard", standardMerge);
+        Add("AB", abMerge);
+        Add("DP", dpReplace);
+        Add("CtrlRAM", ctrlRamReplace);
+        Add("Customized", generalReplace);
         return workflows.Count == 0
             ? SelectLanguage("No executable workflow", "目前沒有可執行流程")
             : string.Join(" · ", workflows);
@@ -256,8 +256,8 @@ public sealed partial class ShellTextResources
             ? SelectLanguage("AB pilot admitted", "AB pilot 已開放")
             : SelectLanguage("AB unavailable", "AB 尚未開放");
         return SelectLanguage(
-            $"{ab} · Replace golden {golden} · evidence open {open}",
-            $"{ab} · Replace golden {golden} · evidence 待補 {open}");
+            $"{ab} · {golden} golden · {open} open",
+            $"{ab} · {golden} golden · {open} 待補");
     }
 
     public string GetIcDetailSupportValue(bool abMerge)

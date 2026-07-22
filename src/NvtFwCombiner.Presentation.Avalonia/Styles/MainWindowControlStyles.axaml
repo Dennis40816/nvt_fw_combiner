@@ -112,11 +112,36 @@
     <Setter Property="BorderThickness" Value="0,0,0,1" />
   </Style>
   <Style Selector="Border.icDetailCard">
-    <Setter Property="Padding" Value="14" />
+    <Setter Property="Padding" Value="12" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Border.icDetailHeroIcon">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Path.icDetailHeroGlyph">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Fill" Value="Transparent" />
+    <Setter Property="Stroke" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeThickness" Value="1.4" />
+  </Style>
+  <Style Selector="Path.icDetailRowIcon">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="Fill" Value="Transparent" />
+    <Setter Property="Stroke" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeThickness" Value="1.45" />
   </Style>
   <Style Selector="Border.toastSurface">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
