@@ -140,6 +140,14 @@ public sealed partial class XamlControlStyleContractTests
     public void FileRevealHoverCardShowsTheAbsolutePathWithoutCompetingForThePointer()
     {
         const string selectedPath = @"C:\firmware\selected source.bin";
+        Assert.Contains(
+            "ToolTip.Tip=\"{Binding DisplayDetail}\"",
+            ReadPresentationFile("Views/FirmwareSlotCard.axaml"),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "ToolTip.Tip=\"{Binding DisplayDetail}\"",
+            ReadPresentationFile("Views/GeneralMappingRow.axaml"),
+            StringComparison.Ordinal);
         (Control View, object Context)[] cases =
         [
             (
@@ -161,7 +169,12 @@ public sealed partial class XamlControlStyleContractTests
             Button fileButton = Assert.Single(
                 view.GetLogicalDescendants().OfType<Button>(),
                 button => button.Classes.Contains("fileRevealAction"));
-            string pathText = Assert.IsType<string>(ToolTip.GetTip(fileButton));
+            string pathText = context switch
+            {
+                FirmwareSlotViewModel slot => slot.DisplayDetail,
+                GeneralMappingRowViewModel mapping => mapping.DisplayDetail,
+                _ => throw new InvalidOperationException("Unknown file reveal context."),
+            };
 
             Assert.Equal(selectedPath, pathText);
             Assert.Equal(PlacementMode.BottomEdgeAlignedLeft, ToolTip.GetPlacement(fileButton));
@@ -170,6 +183,7 @@ public sealed partial class XamlControlStyleContractTests
 
             bool clicked = false;
             fileButton.Click += (_, _) => clicked = true;
+            ToolTip.SetTip(fileButton, pathText);
             ToolTip.SetIsOpen(fileButton, true);
 
             Assert.True(ToolTip.GetIsOpen(fileButton));

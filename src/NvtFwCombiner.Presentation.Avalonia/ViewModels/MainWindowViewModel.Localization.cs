@@ -79,6 +79,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReportHistoryStorageSummary));
         OnPropertyChanged(nameof(ReportHistoryStorageWarning));
         OnPropertyChanged(nameof(NavigationPath));
+        OnPropertyChanged(nameof(NavigationClearRoute));
         RequestReportRelocalization();
         _deferredState.RefreshLoaded(
             RefreshSettingsState,

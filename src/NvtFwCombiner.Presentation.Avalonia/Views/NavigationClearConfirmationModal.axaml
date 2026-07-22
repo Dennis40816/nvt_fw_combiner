@@ -21,9 +21,9 @@
       <Border Grid.Row="1" Classes="insetSurface" Padding="10,8">
         <TextBlock
             Classes="detailText"
-            Text="{Binding NavigationPath}"
+            Text="{Binding NavigationClearRoute}"
             TextWrapping="Wrap"
-            AutomationProperties.Name="{Binding NavigationPath}" />
+            AutomationProperties.Name="{Binding NavigationClearRoute}" />
       </Border>
 
       <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">

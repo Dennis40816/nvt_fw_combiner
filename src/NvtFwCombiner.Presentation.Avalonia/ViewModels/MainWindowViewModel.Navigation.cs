@@ -22,6 +22,11 @@ public sealed partial class MainWindowViewModel
         " > ",
         NavigationTrail.Select(entry => entry.Label));
 
+    /// <summary>Gets the current and requested pages shown by the navigation clear confirmation.</summary>
+    public string NavigationClearRoute => _pendingNavigation is { } pending
+        ? $"{PageLabel(SelectedPage)} → {PageLabel(pending.Target)}"
+        : NavigationPath;
+
     /// <summary>True when the shell can return to the previous visited page.</summary>
     public bool CanGoBack => _pageHistory.Count > 1;
 
@@ -136,6 +141,7 @@ public sealed partial class MainWindowViewModel
 
         InvalidateFirmwareNumberMismatch();
         _pendingNavigation = new PendingNavigation(target, isBack);
+        OnPropertyChanged(nameof(NavigationClearRoute));
         IsNavigationClearConfirmationOpen = true;
         return true;
     }
@@ -150,6 +156,7 @@ public sealed partial class MainWindowViewModel
 
         ShellPage pageBeingLeft = SelectedPage;
         _pendingNavigation = null;
+        OnPropertyChanged(nameof(NavigationClearRoute));
         IsNavigationClearConfirmationOpen = false;
         ClearSelectedInputs(pageBeingLeft);
         CompleteNavigation(pending.Target, pending.IsBack);
@@ -158,6 +165,7 @@ public sealed partial class MainWindowViewModel
     private void CancelNavigationClear()
     {
         _pendingNavigation = null;
+        OnPropertyChanged(nameof(NavigationClearRoute));
         IsNavigationClearConfirmationOpen = false;
     }
 
@@ -277,6 +285,7 @@ public sealed partial class MainWindowViewModel
         }
 
         OnPropertyChanged(nameof(NavigationPath));
+        OnPropertyChanged(nameof(NavigationClearRoute));
         OnPropertyChanged(nameof(CanGoBack));
         GoBackCommand.NotifyCanExecuteChanged();
         RequestHexEditorSaveCommand.NotifyCanExecuteChanged();

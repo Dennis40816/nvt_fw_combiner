@@ -56,6 +56,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-ab");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51929";
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
         await viewModel.SetSlotFileAsync(
@@ -85,6 +86,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-hidden-ab");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51929";
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
         await viewModel.SetSlotFileAsync(
@@ -147,6 +149,64 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("NT51927", viewModel.SelectedIc);
         Assert.Equal("2", viewModel.SelectedNumber);
         Assert.Equal("General", viewModel.SelectedReplaceMode);
+    }
+
+    /// <summary>Merge mode binding writes stay on Replace and keep its selected Base firmware.</summary>
+    [Theory]
+    [InlineData(WorkbenchMergeModes.Standard)]
+    [InlineData(WorkbenchMergeModes.General)]
+    public void MergeModeBindingWritesDoNotNavigateAwayFromReplace(string mergeMode)
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-merge-mode-binding");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.SetSlotFile("replace-base", workspace.Write("base.bin", [0x10, 0x11]));
+
+        viewModel.SelectedMergeMode = mergeMode;
+
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.ReplaceBaseSlot.HasFile);
+        Assert.Equal(mergeMode, viewModel.SelectedMergeMode);
+    }
+
+    /// <summary>Refreshing Merge choices after an IC change cannot request navigation from Replace.</summary>
+    [Fact]
+    public void IcChangeDoesNotOpenNavigationClearConfirmationOnReplace()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-ic-change");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.SetSlotFile("replace-base", workspace.Write("base.bin", [0x10, 0x11]));
+
+        viewModel.SelectedIc = "NT51928";
+
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.ReplaceBaseSlot.HasFile);
+    }
+
+    /// <summary>An explicit workflow navigation still uses the guard and identifies its requested page.</summary>
+    [Fact]
+    public void ExplicitMergeNavigationShowsPendingRouteAndPreservesCancelBehavior()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-explicit-merge");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.SetSlotFile("replace-base", workspace.Write("base.bin", [0x10, 0x11]));
+
+        viewModel.ShowMergeCommand.Execute(null);
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.Equal("Replace → Merge", viewModel.NavigationClearRoute);
+
+        viewModel.CancelNavigationClearCommand.Execute(null);
+
+        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.True(viewModel.ReplaceBaseSlot.HasFile);
+        Assert.Equal("Home > Replace", viewModel.NavigationClearRoute);
     }
 
     /// <summary>Back navigation does not mutate history or inputs until its clear action is confirmed.</summary>

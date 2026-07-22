@@ -144,6 +144,12 @@ public sealed partial class MainWindowViewModel
 
     private void SelectMergeMode(string mode)
     {
+        ApplyMergeMode(mode);
+        NavigateToPage(ShellPage.Merge);
+    }
+
+    private void ApplyMergeMode(string mode)
+    {
         string nextMode = MergeModeChoices.Contains(mode, StringComparer.Ordinal)
             ? mode
             : NormalMergeMode;
@@ -170,8 +176,6 @@ public sealed partial class MainWindowViewModel
             RefreshMergeMemoryMapState();
             RefreshCommandState();
         }
-
-        NavigateToPage(ShellPage.Merge);
     }
 
     private void ApplySelectedPage(ShellPage page)

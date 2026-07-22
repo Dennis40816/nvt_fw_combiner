@@ -156,11 +156,11 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the selected shell page.</summary>
     public ShellPage SelectedPage { get; private set; } = ShellPage.Home;
 
-    /// <summary>Gets or sets the selected Merge quick-jump mode.</summary>
+    /// <summary>Gets or sets the selected Merge mode without changing the active page.</summary>
     public string SelectedMergeMode
     {
         get => _selectedMergeMode;
-        set => SelectMergeMode(value);
+        set => ApplyMergeMode(value);
     }
 
     /// <summary>True when the clean home view is visible.</summary>
