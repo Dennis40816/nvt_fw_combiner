@@ -180,6 +180,69 @@ public sealed class DeclaredPrefixInputInspectorTests
         Assert.Equal([typeof(DeclaredPrefixInputInspectionPolicy), typeof(ReadOnlyMemory<byte>)], parameters);
     }
 
+    /// <summary>The public use case obtains geometry and issue codes only from the compiled contract.</summary>
+    [Fact]
+    public void CompiledContractProjectionPreservesTypedHealthAndEvidence()
+    {
+        CompiledInputContract contract = Contract(requiredEndExclusive: 16, expectedOuterLengths: [16]);
+
+        CompiledInputArtifactInspectionResult result =
+            CompiledInputArtifactInspectionService.InspectDeclaredPrefix(
+                contract,
+                "source-input",
+                Sequence(17));
+
+        Assert.Equal("source-input", result.AddressSpaceId);
+        Assert.Equal("source-slot", result.SlotId);
+        Assert.Equal(17, result.ActualLength);
+        Assert.Equal(16, result.RequiredEndExclusive);
+        Assert.Equal([16L], result.ExpectedOuterLengths);
+        Assert.Equal(new ByteRange(0, 16), result.AcceptedSnapshotRange);
+        Assert.NotNull(result.AcceptedSnapshotSha256);
+        Assert.Equal(ByteRange.FromStartEndExclusive(16, 17), result.IgnoredTrailingRange);
+        Assert.Equal(1, result.IgnoredTrailingBytes);
+        Assert.Equal(CompiledInputArtifactInspectionSeverity.Warning, result.Severity);
+        Assert.Equal(OuterLengthCode, result.IssueCode);
+        Assert.False(result.BlocksBuild);
+        Assert.Equal(
+            CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes,
+            result.NextAction);
+    }
+
+    /// <summary>Unknown spaces and non-declared-prefix rules cannot be inspected through this use case.</summary>
+    [Fact]
+    public void CompiledContractProjectionRejectsUnownedPolicySelection()
+    {
+        CompiledInputContract declaredPrefix = Contract(16, [16]);
+        _ = Assert.Throws<ArgumentException>(() =>
+            CompiledInputArtifactInspectionService.InspectDeclaredPrefix(
+                declaredPrefix,
+                "other-input",
+                Sequence(16)));
+
+        var exactSlot = new CompiledInputSlotRequirement(
+            "source-slot",
+            "source",
+            CompiledInputArtifactClass.Auxiliary,
+            required: true,
+            CompiledInputSlotCardinality.ExactlyOne,
+            [".bin"],
+            new CompiledExactBytesInputLengthRequirement(16),
+            new CompiledNoInputNormalization());
+        var exactContract = new CompiledInputContract(
+            [exactSlot],
+            [new CompiledInputSpaceBinding(
+                "source-input",
+                exactSlot.SlotId,
+                CompiledInputInstancePolicy.Singleton)]);
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            CompiledInputArtifactInspectionService.InspectDeclaredPrefix(
+                exactContract,
+                "source-input",
+                Sequence(16)));
+    }
+
     private static DeclaredPrefixInputInspectionPolicy Policy(
         long requiredEndExclusive,
         IEnumerable<long> expectedOuterLengths)
@@ -189,6 +252,31 @@ public sealed class DeclaredPrefixInputInspectorTests
             expectedOuterLengths,
             ShortCode,
             OuterLengthCode);
+    }
+
+    private static CompiledInputContract Contract(
+        long requiredEndExclusive,
+        IReadOnlyList<long> expectedOuterLengths)
+    {
+        var slot = new CompiledInputSlotRequirement(
+            "source-slot",
+            "source",
+            CompiledInputArtifactClass.Auxiliary,
+            required: true,
+            CompiledInputSlotCardinality.ExactlyOne,
+            [".bin"],
+            new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+                requiredEndExclusive,
+                expectedOuterLengths,
+                ShortCode,
+                OuterLengthCode),
+            new CompiledNoInputNormalization());
+        return new CompiledInputContract(
+            [slot],
+            [new CompiledInputSpaceBinding(
+                "source-input",
+                slot.SlotId,
+                CompiledInputInstancePolicy.Singleton)]);
     }
 
     private static byte[] Sequence(int length)
