@@ -99,6 +99,7 @@ internal static class ProfileBundleInventoryVerifier
         ArgumentException.ThrowIfNullOrWhiteSpace(fullName);
         return new UnauthorizedAccessException(
             $"Bundle inventory contains reparse point '{fullName}'. " +
+            "OneDrive Files On-Demand and other synchronized folders can use Windows reparse points. " +
             "Re-extract the complete portable package to a local non-synchronized directory " +
             "(for example, C:\\Tools) and retry; do not copy only the executable.");
     }

@@ -160,6 +160,7 @@ public sealed class ProfileBundleInventoryVerifierTests
                 @"C:\Users\owner\OneDrive\NvtFwCombiner\profiles\built-in\bundle\families");
 
         Assert.Contains("reparse point", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("OneDrive Files On-Demand", exception.Message, StringComparison.Ordinal);
         Assert.Contains("local non-synchronized directory", exception.Message, StringComparison.Ordinal);
         Assert.Contains(@"C:\Tools", exception.Message, StringComparison.Ordinal);
         Assert.Contains("do not copy only the executable", exception.Message, StringComparison.Ordinal);
