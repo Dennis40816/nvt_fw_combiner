@@ -1,0 +1,382 @@
+"""Behavioral tests for stable release identity and immutable candidate policy."""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+SCRIPT = ROOT / "scripts" / "release_promotion_policy.py"
+SPEC = importlib.util.spec_from_file_location("release_promotion_policy", SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+SHA = "1" * 40
+TREE = "2" * 40
+TAG_OBJECT_SHA = "3" * 40
+TAG_MESSAGE = "NVT FW Combiner v0.9.14\ncandidate-run: 99"
+
+
+def valid_snapshot() -> dict[str, object]:
+    return {
+        "number": 214,
+        "state": "MERGED",
+        "mergedAt": "2026-07-22T01:00:00Z",
+        "baseRefName": "main",
+        "mergeCommitSha": SHA,
+        "headSha": "4" * 40,
+        "headTree": TREE,
+        "reviewDecision": "APPROVED",
+        "approvals": [
+            {
+                "reviewer": "independent-reviewer",
+                "commitSha": "4" * 40,
+                "submittedAt": "2026-07-22T00:55:00Z",
+            }
+        ],
+        "requiredChecks": [{"name": "dotnet / build-test", "bucket": "pass"}],
+    }
+
+
+class ReleasePromotionPolicyTests(unittest.TestCase):
+    def test_accepts_only_exact_reviewed_main_identity(self) -> None:
+        MODULE.validate_candidate_context(
+            valid_snapshot(),
+            requested_sha=SHA,
+            workflow_sha=SHA,
+            workflow_ref="refs/heads/main",
+            source_sha=SHA,
+            main_sha=SHA,
+            source_tree=TREE,
+        )
+
+    def test_rejects_tree_review_and_required_check_drift(self) -> None:
+        mutations = (
+            ("headTree", "3" * 40, "tree differs"),
+            ("reviewDecision", "CHANGES_REQUESTED", "not approved"),
+            ("approvals", [], "no current-head approval"),
+            (
+                "approvals",
+                [{"reviewer": "stale", "commitSha": "5" * 40}],
+                "stale or malformed",
+            ),
+            ("requiredChecks", [{"name": "dotnet", "bucket": "fail"}], "not passing"),
+        )
+        for key, value, message in mutations:
+            with self.subTest(key=key):
+                snapshot = valid_snapshot()
+                snapshot[key] = value
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_candidate_context(
+                        snapshot,
+                        requested_sha=SHA,
+                        workflow_sha=SHA,
+                        workflow_ref="refs/heads/main",
+                        source_sha=SHA,
+                        main_sha=SHA,
+                        source_tree=TREE,
+                    )
+
+    def test_rejects_non_main_workflow_or_stale_sha(self) -> None:
+        for workflow_ref, workflow_sha, message in (
+            ("refs/heads/feature", SHA, "dispatched from main"),
+            ("refs/heads/main", "3" * 40, "must be identical"),
+        ):
+            with self.subTest(workflow_ref=workflow_ref, workflow_sha=workflow_sha):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_candidate_context(
+                        valid_snapshot(),
+                        requested_sha=SHA,
+                        workflow_sha=workflow_sha,
+                        workflow_ref=workflow_ref,
+                        source_sha=SHA,
+                        main_sha=SHA,
+                        source_tree=TREE,
+                    )
+
+    def test_fresh_promotion_requires_current_main_but_recovery_allows_advance(
+        self,
+    ) -> None:
+        common = {
+            "source_sha": SHA,
+            "source_tree": TREE,
+            "checkout_sha": SHA,
+            "checkout_tree": TREE,
+        }
+        MODULE.validate_promotion_source_state(
+            **common,
+            tag_state="absent",
+            main_sha=SHA,
+            source_is_main_ancestor=True,
+        )
+        with self.assertRaisesRegex(ValueError, "current protected main"):
+            MODULE.validate_promotion_source_state(
+                **common,
+                tag_state="absent",
+                main_sha="4" * 40,
+                source_is_main_ancestor=True,
+            )
+        MODULE.validate_promotion_source_state(
+            **common,
+            tag_state="present",
+            main_sha="4" * 40,
+            source_is_main_ancestor=True,
+        )
+        with self.assertRaisesRegex(ValueError, "remain reachable"):
+            MODULE.validate_promotion_source_state(
+                **common,
+                tag_state="present",
+                main_sha="4" * 40,
+                source_is_main_ancestor=False,
+            )
+
+    def test_existing_tag_must_be_annotated_exact_and_candidate_bound(self) -> None:
+        tag_ref = {"object": {"type": "tag", "sha": TAG_OBJECT_SHA}}
+        tag_object = {
+            "sha": TAG_OBJECT_SHA,
+            "tag": "v0.9.14",
+            "object": {"type": "commit", "sha": SHA},
+            "message": TAG_MESSAGE,
+        }
+        MODULE.validate_existing_tag(
+            tag_ref,
+            tag_object,
+            expected_tag="v0.9.14",
+            source_sha=SHA,
+            expected_message=TAG_MESSAGE,
+        )
+        mutations = (
+            ({"object": {"type": "commit", "sha": SHA}}, tag_object, "not annotated"),
+            (tag_ref, {**tag_object, "sha": "4" * 40}, "different tag object"),
+            (
+                tag_ref,
+                {**tag_object, "object": {"type": "commit", "sha": "4" * 40}},
+                "target differs",
+            ),
+            (tag_ref, {**tag_object, "message": "conflict"}, "message differs"),
+        )
+        for ref, annotated, message in mutations:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_existing_tag(
+                        ref,
+                        annotated,
+                        expected_tag="v0.9.14",
+                        source_sha=SHA,
+                        expected_message=TAG_MESSAGE,
+                    )
+
+    def test_existing_release_metadata_returns_zero_one_or_all_names_as_arrays(
+        self,
+    ) -> None:
+        names = ["one.zip", "two.json", "three.json", "manifest.json", "assets.sha256"]
+        for count in (0, 1, len(names)):
+            with self.subTest(count=count):
+                release = json.loads(
+                    json.dumps(
+                        {
+                            "tagName": "v0.9.14",
+                            "isDraft": False,
+                            "isPrerelease": False,
+                            "body": "complete notes\n",
+                            "assets": [{"name": name} for name in names[:count]],
+                        }
+                    )
+                )
+                actual = MODULE.validate_existing_release(
+                    release,
+                    expected_tag="v0.9.14",
+                    expected_body="complete notes",
+                )
+                self.assertIsInstance(actual, list)
+                self.assertEqual(names[:count], actual)
+
+        for key, value, message in (
+            ("tagName", "v0.9.15", "tag differs"),
+            ("isDraft", True, "still a draft"),
+            ("isPrerelease", True, "is a prerelease"),
+            ("body", "conflicting notes", "body conflicts"),
+        ):
+            with self.subTest(key=key):
+                release = {
+                    "tagName": "v0.9.14",
+                    "isDraft": False,
+                    "isPrerelease": False,
+                    "body": "complete notes",
+                    "assets": [],
+                    key: value,
+                }
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_existing_release(
+                        release,
+                        expected_tag="v0.9.14",
+                        expected_body="complete notes",
+                    )
+
+        with self.assertRaisesRegex(ValueError, "JSON array"):
+            MODULE.plan_release_asset_recovery(
+                Path("unused-manifest"),
+                Path("unused-published"),
+                "one.zip",
+            )
+
+    def test_manifest_detects_digest_identity_and_extra_asset_drift(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="release-candidate-policy-"
+        ) as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "assets"
+            root.mkdir()
+            version = "0.9.14"
+            for name in MODULE._asset_names(version):
+                (root / name).write_bytes(name.encode("utf-8"))
+            notes = root / "RELEASE-NOTES.md"
+            notes.write_text("release notes\n", encoding="utf-8")
+            review = temporary_root / "review.json"
+            review.write_text(json.dumps(valid_snapshot()), encoding="utf-8")
+            manifest_path = MODULE.create_candidate_manifest(
+                root,
+                version=version,
+                source_sha=SHA,
+                source_tree=TREE,
+                run_id="99",
+                workflow_sha=SHA,
+                workflow_ref="refs/heads/main",
+                notes_path=notes,
+                review_snapshot_path=review,
+            )
+            MODULE.verify_candidate_manifest(
+                manifest_path,
+                source_sha=SHA,
+                source_tree=TREE,
+                run_id="99",
+                workflow_sha=SHA,
+                workflow_ref="refs/heads/main",
+            )
+
+            (root / MODULE._asset_names(version)[0]).write_bytes(b"tampered")
+            with self.assertRaisesRegex(ValueError, "size mismatch|digest mismatch"):
+                MODULE.verify_candidate_manifest(
+                    manifest_path,
+                    source_sha=SHA,
+                    source_tree=TREE,
+                    run_id="99",
+                    workflow_sha=SHA,
+                    workflow_ref="refs/heads/main",
+                )
+
+    def test_manifest_rejects_wrong_run_and_unexpected_file(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="release-candidate-policy-"
+        ) as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "assets"
+            root.mkdir()
+            version = "0.9.14"
+            for name in MODULE._asset_names(version):
+                (root / name).write_bytes(b"asset")
+            notes = root / "RELEASE-NOTES.md"
+            notes.write_bytes(b"notes")
+            review = temporary_root / "review.json"
+            review.write_text(json.dumps(valid_snapshot()), encoding="utf-8")
+            manifest_path = MODULE.create_candidate_manifest(
+                root,
+                version=version,
+                source_sha=SHA,
+                source_tree=TREE,
+                run_id="99",
+                workflow_sha=SHA,
+                workflow_ref="refs/heads/main",
+                notes_path=notes,
+                review_snapshot_path=review,
+            )
+            with self.assertRaisesRegex(ValueError, "candidateRunId mismatch"):
+                MODULE.verify_candidate_manifest(
+                    manifest_path,
+                    source_sha=SHA,
+                    source_tree=TREE,
+                    run_id="100",
+                    workflow_sha=SHA,
+                    workflow_ref="refs/heads/main",
+                )
+            (root / "unexpected.exe").write_bytes(b"extra")
+            with self.assertRaisesRegex(ValueError, "closed asset set"):
+                MODULE.verify_candidate_manifest(
+                    manifest_path,
+                    source_sha=SHA,
+                    source_tree=TREE,
+                    run_id="99",
+                    workflow_sha=SHA,
+                    workflow_ref="refs/heads/main",
+                )
+
+    def test_recovery_allows_only_missing_assets_and_rejects_conflicts(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="release-recovery-policy-"
+        ) as temporary:
+            temporary_root = Path(temporary)
+            candidate = temporary_root / "candidate"
+            published = temporary_root / "published"
+            candidate.mkdir()
+            published.mkdir()
+            version = "0.9.14"
+            for name in MODULE._asset_names(version):
+                (candidate / name).write_bytes(name.encode("utf-8"))
+            notes = candidate / "RELEASE-NOTES.md"
+            notes.write_bytes(b"notes")
+            review = temporary_root / "review.json"
+            review.write_text(json.dumps(valid_snapshot()), encoding="utf-8")
+            manifest = MODULE.create_candidate_manifest(
+                candidate,
+                version=version,
+                source_sha=SHA,
+                source_tree=TREE,
+                run_id="99",
+                workflow_sha=SHA,
+                workflow_ref="refs/heads/main",
+                notes_path=notes,
+                review_snapshot_path=review,
+            )
+            present_name = MODULE._asset_names(version)[0]
+            (published / present_name).write_bytes(
+                (candidate / present_name).read_bytes()
+            )
+
+            missing = MODULE.plan_release_asset_recovery(
+                manifest, published, [present_name]
+            )
+
+            self.assertNotIn(present_name, missing)
+            self.assertEqual(4, len(missing))
+            (published / present_name).write_bytes(b"conflict")
+            with self.assertRaisesRegex(ValueError, "digest conflicts"):
+                MODULE.plan_release_asset_recovery(manifest, published, [present_name])
+            with self.assertRaisesRegex(ValueError, "unexpected assets"):
+                MODULE.plan_release_asset_recovery(
+                    manifest, published, ["unexpected.zip"]
+                )
+
+    def test_github_probe_accepts_only_json_success_or_verified_404(self) -> None:
+        self.assertEqual(
+            "present", MODULE.classify_github_probe(0, '{"ref":"refs/tags/v0.9.14"}')
+        )
+        self.assertEqual(
+            "absent", MODULE.classify_github_probe(1, "gh: Not Found (HTTP 404)")
+        )
+        for exit_code, output, message in (
+            (0, "not-json", "malformed JSON"),
+            (1, "gh: Forbidden (HTTP 403)", "without a verified 404"),
+            (1, "network timeout", "without a verified 404"),
+            (1, "gh: server error (HTTP 500)", "without a verified 404"),
+        ):
+            with self.subTest(exit_code=exit_code, output=output):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.classify_github_probe(exit_code, output)
+
+
+if __name__ == "__main__":
+    unittest.main()

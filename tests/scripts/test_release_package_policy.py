@@ -40,6 +40,33 @@ def normalize_console_output(output: str) -> str:
     return " ".join(unstyled_output.replace("|", " ").split())
 
 
+def literal_run_blocks(workflow: str) -> tuple[str, ...]:
+    """Extract literal workflow run bodies for injection-policy assertions."""
+
+    lines = workflow.splitlines()
+    blocks: list[str] = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if line.lstrip() != "run: |":
+            index += 1
+            continue
+        parent_indent = len(line) - len(line.lstrip())
+        index += 1
+        body: list[str] = []
+        while index < len(lines):
+            candidate = lines[index]
+            if (
+                candidate.strip()
+                and len(candidate) - len(candidate.lstrip()) <= parent_indent
+            ):
+                break
+            body.append(candidate)
+            index += 1
+        blocks.append("\n".join(body))
+    return tuple(blocks)
+
+
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
 
@@ -238,7 +265,6 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         for workflow_path in (
             ROOT / ".github/workflows/release.yml",
             ROOT / ".github/workflows/main-package.yml",
-            ROOT / "docs/ci/workflow-templates/release.yml",
         ):
             workflow = workflow_path.read_text(encoding="utf-8")
             package_index = workflow.index("scripts/package.ps1")
@@ -253,6 +279,64 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             )
             self.assertLess(package_index, smoke_index, workflow_path)
             self.assertLess(smoke_index, distribution_index, workflow_path)
+
+    def test_stable_release_is_ci_owned_and_main_preview_is_manual(self) -> None:
+        release_workflow = (ROOT / ".github/workflows/release.yml").read_text(
+            encoding="utf-8"
+        )
+        main_package_workflow = (ROOT / ".github/workflows/main-package.yml").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("Exact reviewed main commit", release_workflow)
+        self.assertIn("permissions:\n  contents: read", release_workflow)
+        self.assertIn("environment: release", release_workflow)
+        self.assertIn("contents: write", release_workflow)
+        self.assertIn("scripts/render_release_notes.py", release_workflow)
+        self.assertIn("release_promotion_policy.py validate-context", release_workflow)
+        self.assertIn(
+            "release_promotion_policy.py validate-promotion-source", release_workflow
+        )
+        self.assertIn("release_promotion_policy.py validate-tag", release_workflow)
+        self.assertIn("release_promotion_policy.py validate-release", release_workflow)
+        self.assertIn("release_promotion_policy.py create-manifest", release_workflow)
+        self.assertIn("release_promotion_policy.py verify-manifest", release_workflow)
+        self.assertIn("release_promotion_policy.py plan-recovery", release_workflow)
+        self.assertIn("review-snapshot.json", release_workflow)
+        self.assertIn("artifact-digest", release_workflow)
+        self.assertIn("git/tags", release_workflow)
+        self.assertIn("git/refs", release_workflow)
+        self.assertIn("actions/download-artifact@", release_workflow)
+        self.assertIn("gh release download", release_workflow)
+        self.assertNotIn("--generate-notes", release_workflow)
+        self.assertNotIn("pull_request_target", release_workflow)
+        self.assertFalse(
+            any(
+                "${{ inputs." in block for block in literal_run_blocks(release_workflow)
+            ),
+            "dispatch inputs must enter PowerShell only through validated environment variables",
+        )
+        self.assertNotIn("branches: [main]", main_package_workflow)
+        self.assertNotIn("gh release", main_package_workflow)
+        first_policy_call = release_workflow.index("release_promotion_policy.py")
+        self.assertLess(
+            release_workflow.index("actions/setup-python@"),
+            first_policy_call,
+            "release-authoritative Python policy must use the pinned interpreter",
+        )
+
+    def test_review_ready_event_and_closed_release_candidate_are_explicit(self) -> None:
+        ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+
+        self.assertIn("ready_for_review", ci)
+        self.assertIn("Final reviewed pull request merged as this main commit", release)
+        self.assertIn("--required --json name,state,bucket", release)
+        self.assertIn("reviewDecision", release)
+        self.assertIn("headTree", release)
+        self.assertIn("contents: read", release)
+        self.assertEqual(1, release.count("contents: write"))
+        self.assertIn("environment: release", release)
 
     def test_release_processor_allowlist_matches_packaged_runtime_scope(self) -> None:
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")

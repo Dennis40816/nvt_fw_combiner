@@ -2,6 +2,7 @@ name: ci
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
@@ -31,6 +32,7 @@ jobs:
 
   python-worker:
     name: python-worker / verify
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -51,6 +53,7 @@ jobs:
 
   dotnet:
     name: dotnet / build-test
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
