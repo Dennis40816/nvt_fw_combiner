@@ -18,6 +18,7 @@ public sealed class AbMergeCliCommandTests
         string tpAPath = workspace.Write("tp-a.bin", new byte[0x40000]);
         string tpBPath = workspace.Write("tp-b.bin", new byte[0x40000]);
         string reportPath = workspace.PathFor("ab-report.json");
+        string logicalOutputPath = workspace.PathFor("logical-ab-output.bin");
 
         CliRunResult result = await CliTestHarness.RunAsync(
             [
@@ -31,6 +32,8 @@ public sealed class AbMergeCliCommandTests
                 tpAPath,
                 "--tp-b",
                 tpBPath,
+                "--output",
+                logicalOutputPath,
                 "--report",
                 reportPath,
             ],
@@ -46,6 +49,8 @@ public sealed class AbMergeCliCommandTests
         Assert.Equal("ab-merge", report.RootElement.GetProperty("ExperienceId").GetString());
         Assert.Equal(6, report.RootElement.GetProperty("Operations").GetArrayLength());
         Assert.Equal(3, report.RootElement.GetProperty("Inputs").GetArrayLength());
+        Assert.Equal("logical-ab-output.bin", report.RootElement.GetProperty("Output").GetProperty("FileName").GetString());
+        Assert.False(File.Exists(logicalOutputPath));
     }
 
     /// <summary>A missing named source is rejected by the CLI before composition starts.</summary>

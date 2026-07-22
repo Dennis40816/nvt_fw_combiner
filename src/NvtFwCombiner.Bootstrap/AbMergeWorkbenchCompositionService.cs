@@ -47,7 +47,37 @@ public static class AbMergeWorkbenchCompositionService
         CancellationToken cancellationToken,
         string? outputPath = null)
     {
-        return RunAbMergeCoreAsync(icId, slotPaths, build, outputPath, progress: null, cancellationToken);
+        return RunAbMergeCoreAsync(
+            icId,
+            slotPaths,
+            build,
+            outputPath,
+            previewOutputFileName: null,
+            overwrite: true,
+            progress: null,
+            cancellationToken);
+    }
+
+    /// <summary>Runs AB Merge for the focused CLI adapter while preserving explicit output policy.</summary>
+    internal static ValueTask<WorkbenchRunResult> RunAbMergeForCliAsync(
+        string icId,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        string? outputPath,
+        string previewOutputFileName,
+        bool overwrite,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(previewOutputFileName);
+        return RunAbMergeCoreAsync(
+            icId,
+            slotPaths,
+            build,
+            outputPath,
+            previewOutputFileName,
+            overwrite,
+            progress: null,
+            cancellationToken);
     }
 
     /// <summary>Runs AB Merge and publishes bounded Application-owned lifecycle phases.</summary>
@@ -60,7 +90,15 @@ public static class AbMergeWorkbenchCompositionService
         string? outputPath = null)
     {
         ArgumentNullException.ThrowIfNull(progress);
-        return RunAbMergeCoreAsync(icId, slotPaths, build, outputPath, progress, cancellationToken);
+        return RunAbMergeCoreAsync(
+            icId,
+            slotPaths,
+            build,
+            outputPath,
+            previewOutputFileName: null,
+            overwrite: true,
+            progress,
+            cancellationToken);
     }
 
     private static async ValueTask<WorkbenchRunResult> RunAbMergeCoreAsync(
@@ -68,6 +106,8 @@ public static class AbMergeWorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
         string? outputPath,
+        string? previewOutputFileName,
+        bool overwrite,
         CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken)
     {
@@ -109,8 +149,9 @@ public static class AbMergeWorkbenchCompositionService
             outputPath,
             externalProcessor: null,
             icNumberSelection: null,
-            overwrite: true,
+            overwrite,
             cancellationToken,
-            progress: progress).ConfigureAwait(false);
+            progress: progress,
+            previewOutputFileName: previewOutputFileName).ConfigureAwait(false);
     }
 }

@@ -35,10 +35,4 @@ public static partial class CliApplication
         await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <ic> --ic-num <value> --base <path> (--mapping <target-start+length=path> | --patch <target-start+length=hex> | --fill <target-start+length=byte>) [...] [--report <path>]").ConfigureAwait(false);
     }
 
-    private static async Task WriteAbMergeUsageAsync(TextWriter output)
-    {
-        await output.WriteLineAsync("Usage:").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner ab-merge preview --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--output <path>] [--report <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner ab-merge build --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
-    }
 }
