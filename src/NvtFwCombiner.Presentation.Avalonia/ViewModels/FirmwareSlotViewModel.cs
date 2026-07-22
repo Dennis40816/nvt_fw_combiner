@@ -17,7 +17,8 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         string title,
         string description,
         FirmwareSlotKind kind,
-        bool isOptional = false)
+        bool isOptional = false,
+        string? regionId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -28,6 +29,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         Description = description;
         SlotKind = kind;
         IsOptional = isOptional;
+        RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
     }
 
     /// <summary>Stable slot id used by drag/drop handlers.</summary>
@@ -41,6 +43,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>Display-only slot kind used by the slot card icon.</summary>
     public FirmwareSlotKind SlotKind { get; }
+
+    /// <summary>Profile-owned physical region identity used only for coverage selection projection.</summary>
+    public string? RegionId { get; }
 
     /// <summary>Requirement label for the active workflow.</summary>
     public string RequirementLabel => IsOptional ? OptionalText : RequiredText;

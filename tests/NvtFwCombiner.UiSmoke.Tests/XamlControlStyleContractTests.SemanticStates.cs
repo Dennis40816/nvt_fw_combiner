@@ -173,6 +173,8 @@ public sealed partial class XamlControlStyleContractTests
         string replaceList = ExtractDataTemplate(templates, "MemoryCoverageSegmentListTemplate");
         string mergeBar = ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentBarTemplate");
         string mergeList = ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentListTemplate");
+        string replacePanel = ExtractDataTemplate(templates, "ReplaceOutputLayoutPanelTemplate");
+        string mergePanel = ExtractDataTemplate(templates, "MergeOutputLayoutPanelTemplate");
         string viewModel = ReadPresentationFile("ViewModels/MemoryCoverageSegmentViewModel.cs");
         string keptBadge = ExtractStyle(styles, "Label.countBadge.coverageChangeBadge");
         string changedBadge = ExtractStyle(styles, "Label.countBadge.coverageChangeBadge.changed");
@@ -198,6 +200,14 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("memoryCoverageMarker", mergeList, StringComparison.Ordinal);
         Assert.Contains("Background=\"{Binding FillBrush}\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("Background=\"{Binding FillBrush}\"", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("Focusable=\"True\"", replaceBar, StringComparison.Ordinal);
+        Assert.Contains("FocusToolTipBehavior.IsEnabled=\"True\"", replaceBar, StringComparison.Ordinal);
+        Assert.Contains("Focusable=\"True\"", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("FocusToolTipBehavior.IsEnabled=\"True\"", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("<Viewbox Height=\"22\" HorizontalAlignment=\"Stretch\" Stretch=\"Fill\">", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("<ItemsControl Width=\"300\" Height=\"22\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("<Viewbox Height=\"22\" HorizontalAlignment=\"Stretch\" Stretch=\"Fill\">", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("<ItemsControl Width=\"300\" Height=\"22\"", mergePanel, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"BaseFirmwareDiagonalStripeBrush\"", templates, StringComparison.Ordinal);
         Assert.Contains("Brush=\"{DynamicResource NfcBaseFirmwareStripeBrush}\"", templates, StringComparison.Ordinal);
         Assert.Contains("TileMode=\"Tile\"", templates, StringComparison.Ordinal);

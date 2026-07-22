@@ -13,7 +13,8 @@ public sealed class MemoryCoverageSegmentViewModel
         string fill,
         double barWidth,
         bool isChanged = false,
-        bool usesBaseFirmwarePattern = false)
+        bool usesBaseFirmwarePattern = false,
+        string? regionId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -31,6 +32,7 @@ public sealed class MemoryCoverageSegmentViewModel
         BarWidth = barWidth;
         IsChanged = isChanged;
         UsesBaseFirmwarePattern = usesBaseFirmwarePattern;
+        RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
         ChangeLabel = isChanged ? "Changed" : "Kept";
     }
 
@@ -60,6 +62,9 @@ public sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>True when retained base-firmware bytes need a non-color visual pattern.</summary>
     public bool UsesBaseFirmwarePattern { get; }
+
+    /// <summary>Profile-owned selection identity for a replaceable physical region, when present.</summary>
+    public string? RegionId { get; }
 
     /// <summary>Compact changed/kept label for the legend.</summary>
     public string ChangeLabel { get; }

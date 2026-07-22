@@ -39,6 +39,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             RefreshReplaceMemoryMapState();
         }
+        else if (slot.RegionId is not null)
+        {
+            RefreshReplaceMemoryMapState();
+        }
 
         RefreshCommandState();
         return slot;

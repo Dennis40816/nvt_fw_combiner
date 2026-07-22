@@ -161,9 +161,10 @@ public static partial class WorkbenchCompositionService
                 segment.SourceLabel,
                 segment.Detail,
                 segment.Fill,
-                Math.Max(8, Math.Round(300d * segment.Range.Length / capacity, 1)),
+                300d * segment.Range.Length / capacity,
                 segment.IsChanged,
-                segment.Role)),
+                segment.Role,
+                segment.RegionId)),
         ];
     }
 
@@ -181,7 +182,7 @@ public static partial class WorkbenchCompositionService
                     item.Source,
                     item.Detail,
                     item.Fill,
-                    280,
+                    300,
                     false,
                     WorkbenchMemoryCoverageRole.Standard)]
                 : []);

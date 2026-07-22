@@ -322,7 +322,8 @@ public sealed record WorkbenchMemoryCoverageSegment(
     string Fill,
     double BarWidth,
     bool IsChanged,
-    WorkbenchMemoryCoverageRole Role);
+    WorkbenchMemoryCoverageRole Role,
+    string? RegionId = null);
 
 /// <summary>One coherent range, row, and coverage projection from a single compiled workflow state.</summary>
 public sealed record WorkbenchMemoryDisplay(
@@ -368,4 +369,5 @@ internal sealed record CoverageSegment(
     string Detail,
     string Fill,
     bool IsChanged,
-    WorkbenchMemoryCoverageRole Role);
+    WorkbenchMemoryCoverageRole Role,
+    string? RegionId = null);

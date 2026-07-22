@@ -39,7 +39,9 @@ public sealed partial class MainWindowViewModel
             string rangeLabel,
             IReadOnlyList<MemoryMapRowViewModel> rows,
             IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
-            UiCompositionRunner.GetReplaceMemoryDisplay(display.MemoryDisplay);
+            UiCompositionRunner.GetReplaceMemoryDisplay(
+                display.MemoryDisplay,
+                GetSelectedReplaceRegionIds());
         ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
     }
 
@@ -97,7 +99,8 @@ public sealed partial class MainWindowViewModel
             SelectedIc,
             SelectedNumber,
             SelectedReplaceMode,
-            GetSelectedReplaceBaseLength());
+            GetSelectedReplaceBaseLength(),
+            GetSelectedReplaceRegionIds());
         ApplyReplaceMemoryDisplay(replaceRangeLabel, replaceRows, replaceCoverageSegments);
 
         OnPropertyChanged(nameof(ReplaceOutputFileName));
@@ -133,6 +136,13 @@ public sealed partial class MainWindowViewModel
             TryGetInspectedFileLength(ReplaceBaseSlot, out long length)
                 ? length
                 : null;
+    }
+
+    private IEnumerable<string> GetSelectedReplaceRegionIds()
+    {
+        return ReplaceSlots
+            .Where(static slot => slot.HasFile && slot.RegionId is not null)
+            .Select(static slot => slot.RegionId!);
     }
 
     private void RefreshReplaceModeState(

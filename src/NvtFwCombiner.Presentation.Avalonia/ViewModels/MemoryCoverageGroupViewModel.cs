@@ -39,14 +39,16 @@ public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
     public int ChangedCount => Segments.Count(segment => segment.IsChanged);
 
     /// <summary>Compact changed/total count shown in collapsed headers.</summary>
-    public string CountLabel => $"{ChangedCount}/{SegmentCount}";
+    public string CountLabel => IsBaseFirmwareGroup ? $"{SegmentCount}" : $"{ChangedCount}/{SegmentCount}";
 
     /// <summary>Plain-language group summary that is quick to scan.</summary>
-    public string ChangeSummary => ChangedCount == 0
-        ? "No replaceable areas."
-        : $"{ChangedCount} replaceable / {SegmentCount} areas.";
+    public string ChangeSummary => IsBaseFirmwareGroup
+        ? "Kept from base firmware."
+        : $"{ChangedCount} selected / {SegmentCount} areas.";
 
     /// <summary>True when the group is expanded in the UI.</summary>
     [ObservableProperty]
     public partial bool IsExpanded { get; set; }
+
+    private bool IsBaseFirmwareGroup => Title.StartsWith("Base firmware", StringComparison.Ordinal);
 }

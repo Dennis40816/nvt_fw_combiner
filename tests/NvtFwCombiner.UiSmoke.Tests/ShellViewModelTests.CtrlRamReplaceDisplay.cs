@@ -190,13 +190,12 @@ public sealed partial class ShellViewModelTests
             segment.SourceLabel.Contains("Base flash", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(viewModel.ReplaceMemoryRows, row =>
             row.BeforeSource.Contains("Base flash", StringComparison.OrdinalIgnoreCase));
-        Assert.All(viewModel.ReplaceCoverageGroups, group =>
-        {
-            Assert.DoesNotContain("preserv", group.ChangeSummary, StringComparison.OrdinalIgnoreCase);
-        });
-        Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.ChangeSummary == "No replaceable areas.");
         Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
-            group.ChangeSummary.Contains("replaceable /", StringComparison.Ordinal));
+            group.Title == "Base firmware (FlashCode / TP FW)" &&
+            group.ChangeSummary == "Kept from base firmware.");
+        Assert.All(
+            viewModel.ReplaceCoverageGroups.Where(group => group.Title != "Base firmware (FlashCode / TP FW)"),
+            group => Assert.StartsWith("0 selected /", group.ChangeSummary, StringComparison.Ordinal));
     }
 
     /// <summary>Verifies the Replace selection overview keeps collapsed CtrlRAM choices discoverable.</summary>
@@ -210,6 +209,7 @@ public sealed partial class ShellViewModelTests
         OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Equal("0 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
+        Assert.DoesNotContain(viewModel.ReplaceCoverageSegments, static segment => segment.IsChanged);
         Assert.Contains("Build blocked", viewModel.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
@@ -220,8 +220,14 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("0/2", sharedGroup.CountLabel);
 
         FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
+        viewModel.SetSlotFile(vn.SlotId, workspace.Write("vn.bin", [0x00]));
+
+        Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+            segment.RegionId == vn.RegionId && segment.IsChanged);
+        Assert.DoesNotContain(viewModel.ReplaceCoverageSegments, segment =>
+            segment.RegionId != vn.RegionId && segment.IsChanged);
+
         viewModel.SetSlotFile("replace-base", workspace.PathFor("base.bin"));
-        viewModel.SetSlotFile(vn.SlotId, workspace.PathFor("vn.bin"));
 
         sharedGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Common");
         Assert.Equal("1 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);

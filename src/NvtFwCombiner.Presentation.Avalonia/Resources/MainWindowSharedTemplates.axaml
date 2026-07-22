@@ -1,6 +1,7 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
 
@@ -111,6 +112,9 @@
   <Border
       Classes="memoryCoverageMarker"
       Classes.changed="{Binding IsChanged}"
+      AutomationProperties.HelpText="{Binding Detail}"
+      behaviors:FocusToolTipBehavior.IsEnabled="True"
+      Focusable="True"
       Width="{Binding BarWidth}"
       Height="22"
       Background="{Binding FillBrush}">
@@ -125,6 +129,9 @@
 
 <DataTemplate x:Key="MemoryCoveragePlainSegmentBarTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
+      AutomationProperties.HelpText="{Binding Detail}"
+      behaviors:FocusToolTipBehavior.IsEnabled="True"
+      Focusable="True"
       Width="{Binding BarWidth}"
       Height="22"
       Background="{Binding FillBrush}">
@@ -244,13 +251,15 @@
       </StackPanel>
 
       <Border Padding="6" Background="{DynamicResource NfcInfoSurfaceBrush}" BorderBrush="Transparent" BorderThickness="0" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
-        <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentBarTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Orientation="Horizontal" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-        </ItemsControl>
+        <Viewbox Height="22" HorizontalAlignment="Stretch" Stretch="Fill">
+          <ItemsControl Width="300" Height="22" ItemTemplate="{StaticResource MemoryCoverageSegmentBarTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+        </Viewbox>
       </Border>
 
       <ItemsControl Classes="spaciousList" ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}"
@@ -288,13 +297,15 @@
       </StackPanel>
 
       <Border Classes="subtleSurface" Padding="10">
-        <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentBarTemplate}" ItemsSource="{Binding MergeCoverageSegments}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Orientation="Horizontal" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-        </ItemsControl>
+        <Viewbox Height="22" HorizontalAlignment="Stretch" Stretch="Fill">
+          <ItemsControl Width="300" Height="22" ItemTemplate="{StaticResource MemoryCoveragePlainSegmentBarTemplate}" ItemsSource="{Binding MergeCoverageSegments}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+        </Viewbox>
       </Border>
 
       <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding MergeCoverageSegments}" />
