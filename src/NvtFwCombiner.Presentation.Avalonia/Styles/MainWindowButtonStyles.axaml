@@ -291,6 +291,7 @@
     </Setter>
   </Style>
   <Style Selector="TextBlock.railActionLabel">
+    <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Opacity" Value="0" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
@@ -381,6 +382,9 @@
     <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="Path.railActionIcon">
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,1,0,0" />
     <Setter Property="Stretch" Value="Uniform" />
     <Setter Property="StrokeThickness" Value="1.8" />
     <Setter Property="StrokeLineCap" Value="Round" />

@@ -92,6 +92,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("BrushTransition Property=\"Background\" Duration=\"0:0:0.12\"", railPresenter, StringComparison.Ordinal);
         Assert.Contains("BrushTransition Property=\"BorderBrush\" Duration=\"0:0:0.12\"", railPresenter, StringComparison.Ordinal);
         Assert.Contains("Opacity\" Value=\"0\"", actionLabel, StringComparison.Ordinal);
+        Assert.Contains("HorizontalAlignment\" Value=\"Center\"", actionLabel, StringComparison.Ordinal);
         Assert.Contains("DoubleTransition Property=\"Opacity\" Duration=\"0:0:0.12\"", actionLabel, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Button.outputRailAction:pointerover\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Button.outputRailAction:focus-visible\"", styles, StringComparison.Ordinal);
@@ -109,6 +110,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("TextElement.Foreground\" Value=\"{DynamicResource NfcSurfaceBrush}", primaryHoverPresenter, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceBrush", primaryText, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceBrush", primaryRailText, StringComparison.Ordinal);
+        Assert.Contains("HorizontalAlignment\" Value=\"Center\"", railIcon, StringComparison.Ordinal);
+        Assert.Contains("VerticalAlignment\" Value=\"Center\"", railIcon, StringComparison.Ordinal);
+        Assert.Contains("Margin\" Value=\"0,1,0,0\"", railIcon, StringComparison.Ordinal);
         Assert.Contains("Stretch\" Value=\"Uniform\"", railIcon, StringComparison.Ordinal);
         Assert.Contains("StrokeThickness\" Value=\"1.8\"", railIcon, StringComparison.Ordinal);
         Assert.Contains("Fill\" Value=\"{DynamicResource NfcTextBrush}\"", outputRailIcon, StringComparison.Ordinal);
@@ -190,5 +194,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("{DynamicResource NfcSpace8}", (string?)content.Attribute("ColumnSpacing"));
         XElement icon = Assert.Single(content.Elements(), element => element.Name.LocalName == "Path");
         Assert.Equal("1", (string?)icon.Attribute("Grid.Column"));
+        Assert.Equal("18", (string?)icon.Attribute("Width"));
+        Assert.Equal("18", (string?)icon.Attribute("Height"));
+        Assert.Equal("railActionIcon", (string?)icon.Attribute("Classes"));
     }
 }
