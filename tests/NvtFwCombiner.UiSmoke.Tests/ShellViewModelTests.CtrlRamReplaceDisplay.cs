@@ -210,6 +210,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("0 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
         Assert.DoesNotContain(viewModel.ReplaceCoverageSegments, static segment => segment.IsChanged);
+        Assert.All(viewModel.ReplaceCoverageSegments, static segment => Assert.True(segment.UsesKeptPattern));
         Assert.Contains("Build blocked", viewModel.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
@@ -223,9 +224,12 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile(vn.SlotId, workspace.Write("vn.bin", [0x00]));
 
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
-            segment.RegionId == vn.RegionId && segment.IsChanged);
+            segment.RegionId == vn.RegionId && segment.IsChanged && !segment.UsesKeptPattern);
         Assert.DoesNotContain(viewModel.ReplaceCoverageSegments, segment =>
             segment.RegionId != vn.RegionId && segment.IsChanged);
+        Assert.All(
+            viewModel.ReplaceCoverageSegments.Where(segment => segment.RegionId != vn.RegionId),
+            static segment => Assert.True(segment.UsesKeptPattern));
 
         viewModel.SetSlotFile("replace-base", workspace.PathFor("base.bin"));
 

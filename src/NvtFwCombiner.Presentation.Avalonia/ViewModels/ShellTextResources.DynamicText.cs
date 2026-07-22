@@ -321,8 +321,8 @@ public sealed partial class ShellTextResources
                 "Blue shows new DP bytes; gray shows sections preserved or restored from the Reference FlashCode.",
                 "藍色代表新的 DP bytes；灰色代表從 Reference FlashCode 保留或還原的區段。"),
             WorkbenchReplaceModes.CtrlRam => SelectLanguage(
-                "Colored blocks show replaceable CtrlRAM positions; gray stays from the base firmware.",
-                "有色區塊代表可取代的 CtrlRAM 位置；灰色保留 base firmware。"),
+                "Solid blocks are changed; diagonal blocks keep bytes from the base firmware.",
+                "實色區塊表示已變更；斜線區塊保留 base firmware 的 bytes。"),
             WorkbenchReplaceModes.General => SelectLanguage(
                 "Base flash stays unchanged except approved explicit replacement ranges.",
                 "Base flash 只會在核准的明確取代範圍內改變。"),

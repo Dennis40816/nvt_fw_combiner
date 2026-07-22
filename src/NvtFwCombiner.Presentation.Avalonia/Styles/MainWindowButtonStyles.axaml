@@ -302,10 +302,10 @@
     </Setter>
   </Style>
   <Style Selector="Button.railAction:pointerover">
-    <Setter Property="Width" Value="120" />
+    <Setter Property="Width" Value="136" />
   </Style>
   <Style Selector="Button.railAction:focus-visible">
-    <Setter Property="Width" Value="120" />
+    <Setter Property="Width" Value="136" />
   </Style>
   <Style Selector="Button.railAction:pointerover TextBlock.railActionLabel">
     <Setter Property="Opacity" Value="1" />
@@ -378,7 +378,7 @@
   <Style Selector="Path.railActionIcon">
     <Setter Property="HorizontalAlignment" Value="Right" />
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Margin" Value="0,1,13,0" />
+    <Setter Property="Margin" Value="0,1,15,0" />
     <Setter Property="Stretch" Value="Uniform" />
     <Setter Property="StrokeThickness" Value="1.8" />
     <Setter Property="StrokeLineCap" Value="Round" />

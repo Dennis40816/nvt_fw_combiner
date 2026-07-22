@@ -96,8 +96,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Opacity\" Value=\"0\"", actionLabel, StringComparison.Ordinal);
         Assert.Contains("HorizontalAlignment\" Value=\"Center\"", actionLabel, StringComparison.Ordinal);
         Assert.Contains("DoubleTransition Property=\"Opacity\" Duration=\"0:0:0.12\"", actionLabel, StringComparison.Ordinal);
-        Assert.Contains("Width\" Value=\"120\"", expandedRailAction, StringComparison.Ordinal);
-        Assert.Contains("Width\" Value=\"120\"", focusedRailAction, StringComparison.Ordinal);
+        Assert.Contains("Width\" Value=\"136\"", expandedRailAction, StringComparison.Ordinal);
+        Assert.Contains("Width\" Value=\"136\"", focusedRailAction, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"Button.outputRailAction:pointerover\"", styles, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"Button.buildRailAction:pointerover\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Button.railAction:pointerover TextBlock.railActionLabel\"", styles, StringComparison.Ordinal);
@@ -114,7 +114,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcSurfaceBrush", primaryRailText, StringComparison.Ordinal);
         Assert.Contains("HorizontalAlignment\" Value=\"Right\"", railIcon, StringComparison.Ordinal);
         Assert.Contains("VerticalAlignment\" Value=\"Center\"", railIcon, StringComparison.Ordinal);
-        Assert.Contains("Margin\" Value=\"0,1,13,0\"", railIcon, StringComparison.Ordinal);
+        Assert.Contains("Margin\" Value=\"0,1,15,0\"", railIcon, StringComparison.Ordinal);
         Assert.Contains("Stretch\" Value=\"Uniform\"", railIcon, StringComparison.Ordinal);
         Assert.Contains("StrokeThickness\" Value=\"1.8\"", railIcon, StringComparison.Ordinal);
         Assert.Contains("Fill\" Value=\"{DynamicResource NfcTextBrush}\"", outputRailIcon, StringComparison.Ordinal);

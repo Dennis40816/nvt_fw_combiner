@@ -266,18 +266,24 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("<ItemsControl Width=\"300\" Height=\"22\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("<Viewbox Height=\"22\" HorizontalAlignment=\"Stretch\" Stretch=\"Fill\">", mergePanel, StringComparison.Ordinal);
         Assert.Contains("<ItemsControl Width=\"300\" Height=\"22\"", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("x:Key=\"BaseFirmwareDiagonalStripeBrush\"", templates, StringComparison.Ordinal);
-        Assert.Contains("Brush=\"{DynamicResource NfcBaseFirmwareStripeBrush}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"KeptDiagonalStripeBrush\"", templates, StringComparison.Ordinal);
+        Assert.Contains("DestinationRect=\"0,0,10,10\"", templates, StringComparison.Ordinal);
+        Assert.Contains("Geometry=\"M -2,10 L 10,-2\"", templates, StringComparison.Ordinal);
+        Assert.Contains("Brush=\"{DynamicResource NfcKeptStripeBrush}\"", templates, StringComparison.Ordinal);
         Assert.Contains("TileMode=\"Tile\"", templates, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding UsesBaseFirmwarePattern}\"", tooltip, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding UsesBaseFirmwarePattern}\"", replaceBar, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding UsesBaseFirmwarePattern}\"", replaceList, StringComparison.Ordinal);
-        Assert.DoesNotContain("UsesBaseFirmwarePattern", mergeBar, StringComparison.Ordinal);
-        Assert.DoesNotContain("UsesBaseFirmwarePattern", mergeList, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding UsesKeptPattern}\"", tooltip, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding UsesKeptPattern}\"", replaceBar, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding UsesKeptPattern}\"", replaceList, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsesKeptPattern", mergeBar, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsesKeptPattern", mergeList, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ReplaceCoverageStateLegend\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.OutputLayoutChangedStateLabel}\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.OutputLayoutKeptStateLabel}\"", replacePanel, StringComparison.Ordinal);
 
         Assert.Contains("public IBrush FillBrush", viewModel, StringComparison.Ordinal);
         Assert.Contains("public bool IsChanged", viewModel, StringComparison.Ordinal);
         Assert.Contains("public bool UsesBaseFirmwarePattern", viewModel, StringComparison.Ordinal);
+        Assert.Contains("public bool UsesKeptPattern", viewModel, StringComparison.Ordinal);
         Assert.Contains("public string ChangeLabel", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ChangeBadgeBackgroundBrush", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ChangeBadgeBorderBrush", viewModel, StringComparison.Ordinal);
@@ -295,11 +301,13 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.False(kept.IsChanged);
         Assert.True(kept.UsesBaseFirmwarePattern);
+        Assert.True(kept.UsesKeptPattern);
         Assert.Equal("Kept", kept.ChangeLabel);
         Assert.Equal("#334155", kept.Fill);
         Assert.NotNull(kept.FillBrush);
         Assert.True(changed.IsChanged);
         Assert.False(changed.UsesBaseFirmwarePattern);
+        Assert.False(changed.UsesKeptPattern);
         Assert.Equal("Changed", changed.ChangeLabel);
         Assert.Equal("#2563EB", changed.Fill);
         Assert.NotNull(changed.FillBrush);
@@ -323,6 +331,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains(replaceCoverage, segment => !segment.UsesBaseFirmwarePattern);
         Assert.All(standardMergeCoverage, segment => Assert.False(segment.UsesBaseFirmwarePattern));
         Assert.All(customizedMergeCoverage, segment => Assert.False(segment.UsesBaseFirmwarePattern));
+        Assert.All(standardMergeCoverage, segment => Assert.False(segment.UsesKeptPattern));
+        Assert.All(customizedMergeCoverage, segment => Assert.False(segment.UsesKeptPattern));
     }
 
     private static string ExtractDataTemplate(string xaml, string key)

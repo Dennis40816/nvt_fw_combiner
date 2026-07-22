@@ -13,6 +13,10 @@ public sealed partial class ShellTextResources
 
     public string OutputLayoutTitle { get; private init; } = string.Empty;
 
+    public string OutputLayoutChangedStateLabel { get; private init; } = string.Empty;
+
+    public string OutputLayoutKeptStateLabel { get; private init; } = string.Empty;
+
     public string PlanTitle { get; private init; } = string.Empty;
 
     public string ValidationTitle { get; private init; } = string.Empty;

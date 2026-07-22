@@ -63,6 +63,10 @@ public sealed class MemoryCoverageSegmentViewModel
     /// <summary>True when retained base-firmware bytes need a non-color visual pattern.</summary>
     public bool UsesBaseFirmwarePattern { get; }
 
+    /// <summary>True when Replace keeps the current bytes instead of writing this segment.</summary>
+    public bool UsesKeptPattern =>
+        UsesBaseFirmwarePattern || (RegionId is not null && !IsChanged);
+
     /// <summary>Profile-owned selection identity for a replaceable physical region, when present.</summary>
     public string? RegionId { get; }
 

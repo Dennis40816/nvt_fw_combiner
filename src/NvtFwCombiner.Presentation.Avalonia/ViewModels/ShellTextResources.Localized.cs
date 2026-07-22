@@ -106,6 +106,8 @@ public sealed partial class ShellTextResources
             ReviewReplacementInputsTooltip = Pick("Review selected replacement inputs", "查看已選擇的 replacement inputs"),
             InputFilesTitle = Pick("Input files", "輸入檔案"),
             OutputLayoutTitle = Pick("Output layout", "輸出配置"),
+            OutputLayoutChangedStateLabel = Pick("Changed", "已變更"),
+            OutputLayoutKeptStateLabel = Pick("Kept", "保留"),
             PlanTitle = Pick("Plan", "計畫"),
             ValidationTitle = Pick("Validation", "驗證"),
             GeneralReplaceMappingTitle = "Customized Replace mapping",

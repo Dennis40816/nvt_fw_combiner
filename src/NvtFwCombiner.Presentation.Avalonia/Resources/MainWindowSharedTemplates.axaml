@@ -11,15 +11,15 @@
 </ControlTheme>
 
 <DrawingBrush
-    x:Key="BaseFirmwareDiagonalStripeBrush"
-    DestinationRect="0,0,8,8"
-    SourceRect="0,0,8,8"
+    x:Key="KeptDiagonalStripeBrush"
+    DestinationRect="0,0,10,10"
+    SourceRect="0,0,10,10"
     Stretch="None"
     TileMode="Tile">
   <DrawingBrush.Drawing>
-    <GeometryDrawing Geometry="M -2,8 L 8,-2 M 2,10 L 10,2">
+    <GeometryDrawing Geometry="M -2,10 L 10,-2">
       <GeometryDrawing.Pen>
-        <Pen Brush="{DynamicResource NfcBaseFirmwareStripeBrush}" Thickness="1" />
+        <Pen Brush="{DynamicResource NfcKeptStripeBrush}" Thickness="1" />
       </GeometryDrawing.Pen>
     </GeometryDrawing>
   </DrawingBrush.Drawing>
@@ -62,9 +62,9 @@
             Background="{Binding FillBrush}"
             CornerRadius="2">
           <Border
-              Background="{StaticResource BaseFirmwareDiagonalStripeBrush}"
+              Background="{StaticResource KeptDiagonalStripeBrush}"
               CornerRadius="2"
-              IsVisible="{Binding UsesBaseFirmwarePattern}" />
+              IsVisible="{Binding UsesKeptPattern}" />
         </Border>
         <TextBlock
             Grid.Column="1"
@@ -119,8 +119,8 @@
       Height="22"
       Background="{Binding FillBrush}">
     <Border
-        Background="{StaticResource BaseFirmwareDiagonalStripeBrush}"
-        IsVisible="{Binding UsesBaseFirmwarePattern}" />
+        Background="{StaticResource KeptDiagonalStripeBrush}"
+        IsVisible="{Binding UsesKeptPattern}" />
     <ToolTip.Tip>
       <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
     </ToolTip.Tip>
@@ -157,9 +157,9 @@
           Background="{Binding FillBrush}"
           CornerRadius="2">
         <Border
-            Background="{StaticResource BaseFirmwareDiagonalStripeBrush}"
+            Background="{StaticResource KeptDiagonalStripeBrush}"
             CornerRadius="2"
-            IsVisible="{Binding UsesBaseFirmwarePattern}" />
+            IsVisible="{Binding UsesKeptPattern}" />
       </Border>
       <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
         <TextBlock Classes="bodyEmphasisText" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
@@ -248,6 +248,35 @@
         <Border Classes="compactSubtleSurface" Padding="8,4">
           <TextBlock Classes="monoText detailText" Text="{Binding ReplaceMemoryRangeLabel}" TextWrapping="Wrap" />
         </Border>
+      </StackPanel>
+
+      <StackPanel
+          x:Name="ReplaceCoverageStateLegend"
+          HorizontalAlignment="Right"
+          Orientation="Horizontal"
+          Spacing="14">
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <Border
+              Classes="memoryCoverageMarker changed"
+              Width="18"
+              Height="10"
+              VerticalAlignment="Center"
+              Background="{DynamicResource NfcAccentBrush}"
+              CornerRadius="2" />
+          <TextBlock Classes="microInfoText" Text="{Binding Text.OutputLayoutChangedStateLabel}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <Border
+              Classes="memoryCoverageMarker"
+              Width="18"
+              Height="10"
+              VerticalAlignment="Center"
+              Background="{DynamicResource NfcBorderMutedBrush}"
+              CornerRadius="2">
+            <Border Background="{StaticResource KeptDiagonalStripeBrush}" CornerRadius="2" />
+          </Border>
+          <TextBlock Classes="microInfoText" Text="{Binding Text.OutputLayoutKeptStateLabel}" />
+        </StackPanel>
       </StackPanel>
 
       <Border Padding="6" Background="{DynamicResource NfcInfoSurfaceBrush}" BorderBrush="Transparent" BorderThickness="0" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
