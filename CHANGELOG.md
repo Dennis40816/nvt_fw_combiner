@@ -4,19 +4,68 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-### Added
+No unreleased changes.
 
-- Added the owner-approved support-neutral AB Merge runtime pilot for NT51919, NT51929, and NT51932 through the shared V2 composition service and CLI. NT51950/NT51951 AB candidates remain closed.
-- AB input reports now retain the full selected-source size/SHA-256 and the accepted declared-prefix range/SHA-256 plus any ignored trailing range. DP_AB below 512 KiB or TPA/TPB below 256 KiB blocks without output; longer sources warn without changing the declared-prefix result.
+## [0.9.14] - 2026-07-22
 
-### Changed
+### Summary
 
-- Stable release promotion is CI-owned and bound to an exact protected-main SHA, reviewed PR/tree, protected release environment approval, immutable tag, closed asset manifest, package smoke, SBOM, provenance, hashes, and source-archive verification.
-- The canonical Windows toolchain entry can re-enter under PowerShell 7 and bootstrap the repository-pinned .NET SDK while retaining `scripts/verify.py` as the only repository verifier.
+This release makes the NT51919/NT51929/NT51932 AB Code pilot available through
+the shared composition workbench, reports file-size health as soon as inputs are
+loaded, fixes the requested targeted UI interactions, and replaces manual stable
+tagging with a protected CI-owned release promotion. It does not admit
+NT51950/NT51951 AB Code or perform the broader cross-workflow UI redesign planned
+for `v0.9.15`.
 
-### Fixed
+### Product changes
 
-- Filename hover content no longer intercepts reveal-and-focus clicks, byte-cell hover uses the full calculated cell rectangle, and composition action buttons disappear from hit testing while a modal/report/prompt is open.
+#### AB Code pilot and typed input health
+
+- Before → After: AB Code was hidden and rejected; the three approved 51929-family ICs now expose DP_AB, TPA, and TPB authoring, Preview, Build, report evidence, and independent DP1/DP2/TPA/TPB facts through the shared V2 composition path.
+- Affected: Merge → AB Code for NT51919, NT51929, and NT51932. DP_AB requires/uses 512 KiB; TPA and TPB each require/use 256 KiB.
+- Support status: Available as an owner-scoped pilot; exact six-operation/no-processor confirmation and firmware-owner support promotion remain human gates. NT51950 and NT51951 remain closed.
+- Compatibility: Standard Merge, Customized Merge, Replace, saved reports, CLI tokens, and existing profile schemas are unchanged. Inputs shorter than the required span block; longer inputs warn and ignore the declared trailing range without mutating the source.
+- Verification: Boundary tests cover one byte short, exact, oversized, large ignored tails, mixed/unknown TP versions, immutability, shared runtime execution, and the three-IC visibility fence.
+- Limitations: The AB page intentionally reuses the released Merge layout. Full header/status/coverage unification and additional AB families are deferred.
+
+#### Load-time diagnostics, IC details, and targeted UI correctness
+
+- Before → After: input problems appeared too late or as noisy page badges, empty Replace targets could look changed, coverage could leave unused width, filename tips could obstruct clicks, byte hover required touching glyphs, and the action rail could overlap modals; loaded slots now show one severity/action state, IC facts live in a pass-through hover/focus detail card, empty targets stay neutral, bars fill the available width, full byte cells hover, file reveal remains operable, and modal state removes background actions from hit testing.
+- Affected: Merge/Replace slot cards, IC selector, Output layout, Hex Editor byte cells, filename reveal, and the bottom-right `View file`/Build actions.
+- Support status: Support-neutral presentation and typed Bootstrap projection; no IC range, processor, operation order, or support stage changes.
+- Compatibility: Existing file selection, Explorer reveal-and-focus, Build/report commands, keyboard focus, English/Traditional Chinese resources, and base-firmware hatch semantics remain intact.
+- Verification: UI smoke tests cover 321 cases including AB readiness, neutral/selected coverage, exact 300-unit normalization, pointer pass-through, focus tooltips, modal hit testing, and action-rail contracts.
+- Limitations: A global Button interaction/state rollout, shared Hex/Changes viewport, and Report issue-triage redesign remain scheduled for `v0.9.15`.
+
+#### Canonical toolchain and CI-owned stable promotion
+
+- Before → After: callers could use the wrong PowerShell/.NET entry and stable publication still depended on a manually created tag; the canonical Windows entry re-enters under PowerShell 7, bootstraps the pinned SDK, avoids duplicate package workflows, and the protected release workflow creates the immutable tag and complete Release only after exact-main/review/check/environment validation.
+- Affected: repository bootstrap/test/package entry points, pull-request CI, `main` package preview, and stable GitHub Release promotion.
+- Support status: Release infrastructure only; firmware support and byte behavior are unchanged.
+- Compatibility: `python scripts/verify.py --all` remains the sole full verifier. The portable self-contained Windows x64 ZIP, SHA-256, SBOM, provenance, and GitHub source archives remain the distribution contract.
+- Verification: Release-policy tests cover exact SHA/tree/review binding, protected-main context, unused/recoverable tag and Release states, closed asset manifests, digest validation, release-note rendering, and downloaded-package smoke.
+- Limitations: The protected `release` environment, branch protection, clean-machine UI smoke, legal review, and human release/security approval must exist outside the repository before publication.
+
+### Security
+
+- AB inputs remain immutable; only the declared DP_AB/TPA/TPB prefixes enter the compiled operations, ignored tails remain report evidence, and short inputs produce no output.
+- This release changes no CRC/header algorithm, external-processor authority, arbitrary command policy, or OneDrive/reparse-point fail-closed boundary.
+- Stable promotion receives write permission only after the read-only candidate job and protected environment approval. It binds the reviewed PR tree, final `main` commit, annotated tag, release notes, asset names, sizes, hashes, SBOM, and provenance.
+
+### Known issues
+
+- NT51950/NT51951 AB Code is not available. Cross-workflow header/status/coverage unification, global white secondary-button feedback, shared Hex/Changes rendering, and one-glance Report issue summaries are deferred to `v0.9.15`.
+- Firmware-owner confirmation of the exact pilot route and clean Windows x64 validation without development runtimes remain release gates; this changelog does not claim those external checks have passed.
+
+### Upgrade and rollback
+
+- Upgrade by replacing the complete previous portable folder with `NvtFwCombiner-v0.9.14-win-x64`; do not copy only the EXE or merge package contents into a OneDrive-synchronized profile tree.
+- Saved preferences and report history require no migration. Rollback restores the untouched `v0.9.13` portable folder; outputs created by either version remain ordinary BIN files.
+
+### Downloads and integrity
+
+- The stable GitHub Release publishes `NvtFwCombiner-v0.9.14-win-x64.zip`, SPDX SBOM, provenance, candidate manifest, and outer SHA-256 list. GitHub also provides tag-derived source ZIP and TAR.GZ downloads.
+- Verify the outer checksum list and provenance source identity before distribution. The package is self-contained for Windows x64 and does not require a separate .NET or Python installation.
 
 ## [0.9.13] - 2026-07-22
 
