@@ -229,7 +229,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(42, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
         Assert.Equal(1, CountOccurrences(bundle, "nt51919-nt51929-nt51932-ab-merge"));
         Assert.Contains(
-            "80caf42295b8dcb2c7dfbfcfe8cc0d03cb94e3b9696cea60e82519453c8dafb1",
+            "2019958454425df63666cad975135fdfc46540e291680b8a551ed07f00aa167a",
             bundle,
             StringComparison.Ordinal);
         Assert.Equal(
