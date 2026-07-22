@@ -161,7 +161,7 @@ public sealed partial class XamlControlStyleContractTests
 
         XElement folder = Assert.Single(
             rail.Descendants(),
-            element => (string?)element.Attribute("Click") == "OpenLatestOutputFolderButton_OnClick");
+            element => (string?)element.Attribute("Command") == "{Binding RevealFileCommand}");
         Assert.Equal("railAction outputRailAction", (string?)folder.Attribute("Classes"));
         Assert.NotNull(folder.Attribute("AutomationProperties.Name"));
         Assert.NotNull(folder.Attribute("AutomationProperties.HelpText"));

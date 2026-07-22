@@ -80,6 +80,25 @@ public sealed partial class MainWindowViewModel
         SetShellToast(Text.FileRevealFailedTitle, Text.FileRevealFailedDetail);
     }
 
+    private void RevealFile(string? filePath)
+    {
+        if (!_fileRevealService.TryRevealFile(filePath))
+        {
+            NotifyFileRevealFailed();
+        }
+    }
+
+    private void RevealBuildCompletedOutput()
+    {
+        if (_fileRevealService.TryRevealFile(BuildCompletedOutputPath))
+        {
+            CloseBuildCompletedModal();
+            return;
+        }
+
+        NotifyBuildCompletedOpenFolderFailed();
+    }
+
     private void NotifyBuildCompletedChanged()
     {
         OnPropertyChanged(nameof(IsBuildCompletedModalOpen));

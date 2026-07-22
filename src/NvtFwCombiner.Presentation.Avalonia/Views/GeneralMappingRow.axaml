@@ -72,11 +72,11 @@
                 AutomationProperties.HelpText="{Binding DisplayDetail}"
                 AutomationProperties.Name="{Binding DisplayName}"
                 Classes="fileRevealAction"
-                Click="RevealFileButton_OnClick"
+                Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
+                CommandParameter="{Binding FilePath}"
                 Content="{Binding DisplayName}"
                 HorizontalAlignment="Left"
                 IsVisible="{Binding HasFile}"
-                Tag="{Binding FilePath}"
                 ToolTip.Tip="{Binding DisplayDetail}" />
           </StackPanel>
         </Grid>

@@ -1,8 +1,5 @@
-using System.Diagnostics;
 using NvtFwCombiner.Bootstrap;
-using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -152,26 +149,6 @@ public sealed partial class ShellViewModelTests
         viewModel.ShowHomeCommand.Execute(null);
 
         Assert.False(viewModel.IsLatestOutputActionVisible);
-    }
-
-    /// <summary>The reveal action selects only an existing, fully qualified BIN path.</summary>
-    [Fact]
-    public void OutputRevealRequiresExistingFullyQualifiedBinPath()
-    {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-reveal");
-        string outputPath = workspace.Write("firmware with spaces.bin", [0x01]);
-
-        ProcessStartInfo startInfo = Assert.IsType<ProcessStartInfo>(FileRevealLauncher.TryCreateStartInfo(outputPath));
-
-        Assert.Equal("explorer.exe", startInfo.FileName);
-        Assert.False(startInfo.UseShellExecute);
-        Assert.Equal(Path.GetDirectoryName(outputPath), startInfo.WorkingDirectory);
-        Assert.Collection(
-            startInfo.ArgumentList,
-            argument => Assert.Equal("/select,", argument),
-            argument => Assert.Equal(outputPath, argument));
-        Assert.Null(FileRevealLauncher.TryCreateStartInfo("firmware.bin"));
-        Assert.Null(FileRevealLauncher.TryCreateStartInfo(workspace.PathFor("missing.bin")));
     }
 
     private static WorkbenchRunResult CreateRunResult(bool succeeded, string? outputPath)

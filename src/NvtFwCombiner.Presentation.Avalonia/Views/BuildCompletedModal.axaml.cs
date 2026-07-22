@@ -1,6 +1,4 @@
 using Avalonia.Controls;
-using Avalonia.Interactivity;
-using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
@@ -11,21 +9,5 @@ public sealed partial class BuildCompletedModal : UserControl
     public BuildCompletedModal()
     {
         InitializeComponent();
-    }
-
-    private void RevealOutputFileButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel viewModel)
-        {
-            return;
-        }
-
-        if (FileRevealLauncher.TryReveal(viewModel.BuildCompletedOutputPath))
-        {
-            viewModel.CloseBuildCompletedModal();
-            return;
-        }
-
-        viewModel.NotifyBuildCompletedOpenFolderFailed();
     }
 }

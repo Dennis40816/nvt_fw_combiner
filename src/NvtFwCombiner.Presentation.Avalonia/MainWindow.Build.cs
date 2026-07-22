@@ -58,19 +58,4 @@ public sealed partial class MainWindow
 
         await viewModel.BuildReplaceAsync(outputPath);
     }
-
-    private void OpenLatestOutputFolderButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel viewModel || !viewModel.HasLatestCommittedOutput)
-        {
-            return;
-        }
-
-        if (FileRevealLauncher.TryReveal(viewModel.LatestCommittedOutputPath))
-        {
-            return;
-        }
-
-        viewModel.ShowLatestOutputFolderOpenFailed();
-    }
 }

@@ -303,7 +303,8 @@
             Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
             AutomationProperties.HelpText="{Binding Text.LatestOutputOpenFolderLabel}"
             AutomationProperties.Name="{Binding Text.LatestOutputOpenFolderLabel}"
-            Click="OpenLatestOutputFolderButton_OnClick"
+            Command="{Binding RevealFileCommand}"
+            CommandParameter="{Binding LatestCommittedOutputPath}"
             IsVisible="{Binding IsLatestOutputActionVisible}">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
             <TextBlock Classes="railActionLabel" Text="{Binding Text.LatestOutputOpenFolderLabel}" />

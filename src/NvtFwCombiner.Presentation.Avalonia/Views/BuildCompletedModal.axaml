@@ -25,7 +25,7 @@
               AutomationProperties.HelpText="{Binding BuildCompletedOutputPath}"
               AutomationProperties.Name="{Binding BuildCompletedOutputDisplayName}"
               Classes="fileRevealAction"
-              Click="RevealOutputFileButton_OnClick"
+              Command="{Binding RevealBuildCompletedOutputCommand}"
               Content="{Binding BuildCompletedOutputDisplayName}"
               HorizontalAlignment="Left"
               Tag="{Binding BuildCompletedOutputPath}"
@@ -45,7 +45,7 @@
         <Button
             Classes="secondary"
             AutomationProperties.Name="{Binding Text.BuildCompletedOpenFolderLabel}"
-            Click="RevealOutputFileButton_OnClick"
+            Command="{Binding RevealBuildCompletedOutputCommand}"
             Content="{Binding Text.BuildCompletedOpenFolderLabel}" />
         <Button
             Classes="primary"

@@ -8,16 +8,13 @@ public sealed partial class XamlControlStyleContractTests
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
         string modal = ReadPresentationFile("Views/BuildCompletedModal.axaml");
-        string modalCode = ReadPresentationFile("Views/BuildCompletedModal.axaml.cs");
-        string buildCode = ReadPresentationFile("MainWindow.Build.cs");
 
         Assert.Contains("<views:BuildCompletedModal", shell, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsBuildCompletedModalOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding BuildCompletedOutputDisplayName}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Click=\"RevealOutputFileButton_OnClick\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding RevealBuildCompletedOutputCommand}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding CloseBuildCompletedModalCommand}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("FileRevealLauncher.TryReveal", modalCode, StringComparison.Ordinal);
-        Assert.Contains("FileRevealLauncher.TryReveal", buildCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("Click=\"RevealOutputFileButton_OnClick\"", modal, StringComparison.Ordinal);
     }
 
     /// <summary>Composition Build remains fixed at the bottom of the right-side action rail.</summary>
@@ -28,7 +25,7 @@ public sealed partial class XamlControlStyleContractTests
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
         string shellStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
         string railStyle = ExtractStyle(shellStyles, "Border.compositionActionRail");
-        int latestOutputAction = shell.IndexOf("Click=\"OpenLatestOutputFolderButton_OnClick\"", StringComparison.Ordinal);
+        int latestOutputAction = shell.IndexOf("Command=\"{Binding RevealFileCommand}\"", StringComparison.Ordinal);
         int mergeBuildAction = shell.IndexOf("Click=\"BuildMergeButton_OnClick\"", StringComparison.Ordinal);
         int replaceBuildAction = shell.IndexOf("Click=\"BuildReplaceButton_OnClick\"", StringComparison.Ordinal);
 

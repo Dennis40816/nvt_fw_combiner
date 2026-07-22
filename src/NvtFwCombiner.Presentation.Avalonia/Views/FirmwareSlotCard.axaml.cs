@@ -78,14 +78,4 @@ public sealed partial class FirmwareSlotCard : UserControl
             await viewModel.SetSlotFileAsync(slotId, path);
         }
     }
-
-    private void RevealFileButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not Control { Tag: string filePath } || FileRevealLauncher.TryReveal(filePath))
-        {
-            return;
-        }
-
-        ShellViewModel?.NotifyFileRevealFailed();
-    }
 }
