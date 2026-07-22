@@ -201,12 +201,17 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsReplaceVisible);
         Assert.Equal("Replace → Merge", viewModel.NavigationClearRoute);
 
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.Equal("取代 → 合併", viewModel.NavigationClearRoute);
+
         viewModel.CancelNavigationClearCommand.Execute(null);
 
         Assert.False(viewModel.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.IsReplaceVisible);
         Assert.True(viewModel.ReplaceBaseSlot.HasFile);
-        Assert.Equal("Home > Replace", viewModel.NavigationClearRoute);
+        Assert.Equal("首頁 > 取代", viewModel.NavigationClearRoute);
     }
 
     /// <summary>Back navigation does not mutate history or inputs until its clear action is confirmed.</summary>

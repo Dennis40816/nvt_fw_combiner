@@ -133,6 +133,14 @@ public sealed partial class MainWindowViewModel
 
     private bool RequestNavigation(ShellPage target, bool isBack)
     {
+        // A clear-confirmation has already captured the page and destination that the user must
+        // explicitly accept or cancel. Ignore subsequent navigation requests until that decision
+        // is made so keyboard shortcuts or background controls cannot replace the pending route.
+        if (IsNavigationClearConfirmationOpen)
+        {
+            return true;
+        }
+
         if (!HasSelectedInputs(SelectedPage))
         {
             return false;

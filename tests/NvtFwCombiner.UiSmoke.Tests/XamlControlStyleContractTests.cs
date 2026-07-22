@@ -166,6 +166,8 @@ public sealed partial class XamlControlStyleContractTests
         foreach ((Control view, object context) in cases)
         {
             view.DataContext = context;
+            view.Measure(new Size(1600, 900));
+            view.Arrange(new Rect(view.DesiredSize));
             Button fileButton = Assert.Single(
                 view.GetLogicalDescendants().OfType<Button>(),
                 button => button.Classes.Contains("fileRevealAction"));
@@ -180,10 +182,10 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(PlacementMode.BottomEdgeAlignedLeft, ToolTip.GetPlacement(fileButton));
             Assert.Equal(8, ToolTip.GetVerticalOffset(fileButton));
             Assert.Equal(-1, ToolTip.GetBetweenShowDelay(fileButton));
+            ToolTip.SetTip(fileButton, pathText);
 
             bool clicked = false;
             fileButton.Click += (_, _) => clicked = true;
-            ToolTip.SetTip(fileButton, pathText);
             ToolTip.SetIsOpen(fileButton, true);
 
             Assert.True(ToolTip.GetIsOpen(fileButton));
