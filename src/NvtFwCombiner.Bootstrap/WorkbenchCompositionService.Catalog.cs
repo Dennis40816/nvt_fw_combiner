@@ -103,12 +103,6 @@ public static partial class WorkbenchCompositionService
         return BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(icId)?.CreateProfileSummary();
     }
 
-    private static WorkbenchProfileSummary? FindAbMergeProfileSummaryByIc(string icId)
-    {
-        ArgumentNullException.ThrowIfNull(icId);
-        return BuiltInV2RegistrationRegistry.AbMergeByIc.GetValueOrDefault(icId)?.CreateProfileSummary();
-    }
-
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>
     public static WorkbenchSettingsSnapshot GetSettingsSnapshot()
     {

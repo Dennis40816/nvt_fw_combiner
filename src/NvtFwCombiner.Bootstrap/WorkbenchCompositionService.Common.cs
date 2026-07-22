@@ -34,7 +34,7 @@ public static partial class WorkbenchCompositionService
         return WorkbenchIcNumberSelections.FromNumberToken(number);
     }
 
-    private static string FormatIssues(IEnumerable<CompositionIssue> issues)
+    internal static string FormatIssues(IEnumerable<CompositionIssue> issues)
     {
         return string.Join(Environment.NewLine, issues.Select(issue => $"{issue.Code}: {issue.Message}"));
     }

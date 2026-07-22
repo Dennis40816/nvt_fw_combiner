@@ -22,9 +22,9 @@ public sealed class AbMergeRuntimeAdmissionTests
         Assert.All(
             WorkbenchCompositionService.GetAbMergeProfileSummaries(),
             static profile => Assert.True(profile.CompileSucceeded, string.Join(',', profile.IssueCodes)));
-        Assert.True(WorkbenchCompositionService.IsAbMergeSupported("51929"));
-        Assert.False(WorkbenchCompositionService.IsAbMergeSupported("NT51950"));
-        Assert.False(WorkbenchCompositionService.IsAbMergeSupported("NT51951"));
+        Assert.True(AbMergeWorkbenchCompositionService.IsAbMergeSupported("51929"));
+        Assert.False(AbMergeWorkbenchCompositionService.IsAbMergeSupported("NT51950"));
+        Assert.False(AbMergeWorkbenchCompositionService.IsAbMergeSupported("NT51951"));
     }
 
     /// <summary>Each selected source that ends one byte early blocks before execution with its profile issue code.</summary>
@@ -43,7 +43,7 @@ public sealed class AbMergeRuntimeAdmissionTests
         paths[shortAddressSpaceId] = workspace.Write($"short/{shortAddressSpaceId}.bin", shortBytes);
         string outputPath = workspace.PathFor($"output/{shortAddressSpaceId}.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunAbMergeAsync(
+        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
             "NT51929",
             paths,
             build: true,
@@ -75,7 +75,7 @@ public sealed class AbMergeRuntimeAdmissionTests
     {
         using var workspace = TempWorkspace.Create("nfc-ab-oversize");
         Dictionary<string, string> paths = WriteInputs(workspace);
-        WorkbenchRunResult exact = await WorkbenchCompositionService.RunAbMergeAsync(
+        WorkbenchRunResult exact = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
             "NT51929",
             paths,
             build: false,
@@ -87,7 +87,7 @@ public sealed class AbMergeRuntimeAdmissionTests
             TestContext.Current.CancellationToken);
         byte[] oversized = [.. original, 0xD7];
         paths[oversizedAddressSpaceId] = workspace.Write($"oversized/{oversizedAddressSpaceId}.bin", oversized);
-        WorkbenchRunResult tailed = await WorkbenchCompositionService.RunAbMergeAsync(
+        WorkbenchRunResult tailed = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
             "NT51929",
             paths,
             build: false,
@@ -130,7 +130,7 @@ public sealed class AbMergeRuntimeAdmissionTests
             StringComparer.Ordinal);
         string outputPath = workspace.PathFor("output/nt51929-ab.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunAbMergeAsync(
+        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
             "NT51929",
             paths,
             build: true,

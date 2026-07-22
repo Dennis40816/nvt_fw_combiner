@@ -5,8 +5,11 @@ using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
-public static partial class WorkbenchCompositionService
+/// <summary>Focused workbench adapter for the owner-approved AB Merge pilot.</summary>
+public static class AbMergeWorkbenchCompositionService
 {
+    private const string RunIdPrefix = "ui-merge-ab";
+
     /// <summary>Returns whether the selected IC owns an executable AB Merge profile.</summary>
     public static bool IsAbMergeSupported(string icId)
     {
@@ -71,14 +74,15 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(slotPaths);
         string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
-        if (FindAbMergeProfileSummaryByIc(normalizedIcId) is null)
+        if (!WorkbenchCompositionService.GetAbMergeProfileSummaries().Any(
+                profile => StringComparer.Ordinal.Equals(profile.IcId, normalizedIcId)))
         {
             throw new InvalidOperationException($"AB Merge is not available for '{icId}'.");
         }
 
         if (!TryCompileAbMerge(normalizedIcId, out CompiledComposition? composition, out IReadOnlyList<CompositionIssue> issues))
         {
-            throw new InvalidOperationException(FormatIssues(issues));
+            throw new InvalidOperationException(WorkbenchCompositionService.FormatIssues(issues));
         }
 
         InputArtifactBinding[] bindings =
@@ -96,8 +100,8 @@ public static partial class WorkbenchCompositionService
         string firstInputPath = bindings.Single(static binding =>
             binding.AddressSpaceId == CompositionAddressSpaceIds.DpAbInput).ArtifactId;
 
-        return await RunCompiledCompositionAsync(
-            AbMergeRunIdPrefix,
+        return await WorkbenchCompositionService.RunCompiledCompositionAsync(
+            RunIdPrefix,
             composition,
             bindings,
             firstInputPath,

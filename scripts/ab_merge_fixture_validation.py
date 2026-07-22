@@ -10,14 +10,17 @@ EXPECTED_CASES: dict[str, dict[str, Any]] = {
         "ic": "NT51929",
         "variantOrVersion": "t05-d06",
         "profileId": "nt51929-ab-merge",
-        "profileVersion": "0.1.0",
+        "profileVersion": "0.2.0",
         "mapCapacity": 524288,
         "directMemberIds": ["NT51929"],
         "factScopedAliasMemberIds": ["NT51919", "NT51932"],
         "notEstablishedMemberIds": [],
         "referenceStatus": "full-byte-match",
         "referenceConfiguration": "51929",
-        "promotion": "executable-candidate only; firmware-owner review remains required",
+        "promotion": (
+            "supported runtime pilot for NT51919, NT51929, and NT51932 under "
+            "the owner-approved fixed AB plan; NT51950/NT51951 remain excluded"
+        ),
     },
     "nt51950-ab-boe-d82t80": {
         "ic": "NT51950",
@@ -158,7 +161,10 @@ NT51929_CTRLRAM_FIRST_HALF_EVIDENCE = {
     "standaloneSingleGolden": False,
     "fullByteParity": False,
     "runtimePromotion": (
-        "blocked pending independent expected output and firmware-owner review"
+        "Owner accepted the fixed no-processor NT51919/NT51929/NT51932 pilot on "
+        "2026-07-22; the recorded legacy comparison differs only in the classified "
+        "Header CRC and Header Copy CRC ranges and remains audit evidence rather "
+        "than runtime processor authority."
     ),
 }
 
@@ -258,7 +264,7 @@ def validate_ab_merge_golden_fixtures(
     validate_entry: Callable[..., PurePosixPath | None],
     errors: list[str],
 ) -> None:
-    """Validate the closed AB fixture set without granting runtime support."""
+    """Validate the closed AB fixture set and its per-family runtime support state."""
     manifest_path = repository_root / "testdata/golden/canonical/manifest.json"
     manifest = load_json(manifest_path, errors)
     if not isinstance(manifest, dict):

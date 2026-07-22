@@ -46,7 +46,7 @@ public static partial class CliApplication
             return UsageError;
         }
 
-        if (!WorkbenchCompositionService.TryCompileAbMerge(
+        if (!AbMergeWorkbenchCompositionService.TryCompileAbMerge(
                 selectedProfile.IcId,
                 out CompiledComposition? composition,
                 out IReadOnlyList<CompositionIssue> issues))
