@@ -290,6 +290,18 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
         self.assertIn("Exact reviewed main commit", release_workflow)
         self.assertIn("permissions:\n  contents: read", release_workflow)
+        self.assertIn(
+            "candidate:\n"
+            "    name: release / candidate\n"
+            "    runs-on: windows-latest\n"
+            "    timeout-minutes: 60\n"
+            "    permissions:\n"
+            "      contents: read\n"
+            "      pull-requests: read\n"
+            "      checks: read\n"
+            "      statuses: read",
+            release_workflow,
+        )
         self.assertIn("environment: release", release_workflow)
         self.assertIn("contents: write", release_workflow)
         self.assertIn("scripts/render_release_notes.py", release_workflow)
