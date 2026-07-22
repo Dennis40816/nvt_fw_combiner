@@ -61,7 +61,7 @@ The owner confirmed the following first-pilot facts on 2026-07-22:
 - NT51919, NT51929, and NT51932 form one perfect family for this AB layout. IC
   Number is not an AB route selector, and the layout applies across firmware
   versions rather than only the existing T05/D06 fixture.
-- `DP_AB` is one exact 512 KiB initial container. DP1 is
+- `DP_AB` has a required and expected 512 KiB execution span. DP1 is
   `[0x00000,0x40000)` and DP2 is `[0x40000,0x80000)`. Each bank is an immutable
   DP view and reuses the same IC-owned three-byte CMI Reg16h-18h layout. For
   this family the in-view triple is `[0x401A,0x401D)`, producing container
@@ -70,7 +70,8 @@ The owner confirmed the following first-pilot facts on 2026-07-22:
   Leading zeroes remain explicit, so major `0x00` and minor `0x0D` display as
   `D000D`. The legacy AB snapshot's `0x67/0x68` reader remains output-naming
   compatibility evidence and is not the cross-workflow Display contract.
-- TPA and TPB are separate exact 256 KiB inputs for this fixed plan. They may
+- TPA and TPB have separate required and expected 256 KiB execution spans for
+  this fixed plan. They may
   be the same file or different files and may carry equal or different TP
   versions. Each selected TP BIN is inspected independently using the
   owner/reference NVT terminal-relative (`T - 0xFFF`) TP version rule.
@@ -80,12 +81,20 @@ The owner confirmed the following first-pilot facts on 2026-07-22:
   support-neutrally; their absence of separate direct goldens is not a
   production route discriminator or automatic support promotion.
 
-Input selection reports a non-modal warning when a fixed-size artifact is too
-short or too long, but Build still rejects the size mismatch because this plan
-has no declared padding or truncation authority. A missing or unreadable
-version reports `Unknown` with a non-modal warning and does not select or
-reject the route. CMI metadata is used for human confirmation and report
-traceability; any output-naming migration is reviewed independently.
+Owner amendment, 2026-07-22: input selection reports a non-modal diagnostic as
+soon as inspection finishes. DP_AB shorter than `0x80000`, or TPA/TPB shorter
+than `0x40000`, remains Build-blocking because the compiled plan reads through
+those required ends and no padding authority exists. A longer input is accepted
+with a non-blocking warning: the immutable execution snapshot exposes only the
+declared prefix/view, metadata extraction uses that consumed snapshot, and the
+report preserves the actual source hash/length plus the ignored trailing byte
+count. The original source is never changed. This is a profile/compiler/
+Application policy, not a Presentation exception, and remains R3-gated until
+boundary and golden tests plus firmware-owner review pass.
+
+A missing or unreadable version reports `Unknown` with a non-modal warning and
+does not select or reject the route. CMI metadata is used for human confirmation
+and report traceability; any output-naming migration is reviewed independently.
 
 Family/profile data owns the CMI layout and typed topology selector. Application
 selects an immutable DP view for each bank and exposes typed metadata through
@@ -176,6 +185,13 @@ Each slice is an independent commit/test/review boundary.
   independent staged diffs, and rejection outside allowed ranges;
 - verify source immutability, zero output authority on failure, atomic commit,
   report traceability, and no reread or mutation of user paths;
+- verify one-byte-short, exact, one-byte-oversized, and large-ignored-tail cases
+  independently for DP_AB, TPA, and TPB; short inputs commit no output, while
+  oversized outputs equal the exact declared-prefix case and report the actual
+  source identity plus ignored trailing length;
+- for TPA/TPB, append a large tail containing different decoy terminal-relative
+  version bytes and prove decoding still uses the declared `0x40000` execution
+  snapshot end, while the full-file hash/length remain distinct report evidence;
 - keep NT51929 and NT51950 direct evidence distinct from NT51919/NT51932 and
   NT51951 fact-scoped applicability; do not convert aliases into direct goldens;
 - add architecture tests prohibiting AB byte semantics in UI/CLI and production

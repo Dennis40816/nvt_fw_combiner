@@ -1,6 +1,6 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.13 stabilization release candidate with 0.9.14/0.9.15 deferred scope`
+> 文件狀態：`0.9.14 planning baseline; AB and release implementation remain gated`
 > 文件版本：`0.9.13`
 > 基準日期：`2026-07-22`
 > 產品名稱：`NVT FW Combiner`
@@ -30,7 +30,7 @@
 
 ## 0.1 Current owner priority
 
-As of 2026-07-22, `0.9.13` is an urgent support-neutral stabilization release based on the exact latest `0.9.12` head. It fixes action-rail visibility/layout, primary-button hover contrast, exact-file Explorer reveal, TP-version presentation and output-name synchronization, Inputs scrolling, OneDrive/reparse diagnostics, NT51951 DP guidance, and Standard/Customized display labels. It changes no firmware range, operation order, CRC/header behavior, processor authority, profile admission, report schema, stable workflow token, or support stage. AB Code production re-admission and workflow-header/status clarity are deferred to `v0.9.14`; the shared Hex viewport/Changes redesign and global Button pressed feedback are deferred to `v0.9.15`.
+As of 2026-07-22, `0.9.14` starts from stable `v0.9.13`/`main` commit `f9f8dbcd979ecdef43f432016787e57763819492`. It owns the R3-gated NT51919/NT51929/NT51932 AB pilot, typed input diagnostics, the minimum AB authoring surface, IC detail disclosure, targeted UI correctness fixes, smarter canonical toolchain entry, GitHub Actions cost control, and CI-owned stable release promotion. Cross-workflow header/status and Memory coverage unification, the shared Hex viewport/Changes redesign, global Button pressed feedback, and NT51950/NT51951 AB admission remain deferred to `v0.9.15` or later.
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
 - NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.
@@ -46,7 +46,7 @@ As of 2026-07-22, `0.9.13` is an urgent support-neutral stabilization release ba
 
 - AB Code architecture re-admission is scheduled for `v0.9.14` under ADR 0032. Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.13`; no profile is admitted or promoted without typed production authority, exact ranges, relocation fields, integrity contract, golden output, and firmware-owner approval.
 - NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919 may inherit the NT51929/NT51932 canonical AB facts only through owner-approved fact-scoped bindings and parity tests. This direction does not infer ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
-- The first `v0.9.14` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect family whose AB layout is version-independent and whose route does not depend on IC Number. Its exact 512 KiB DP_AB container exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB are separate 256 KiB inputs, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning, while a fixed-plan size mismatch remains Build-blocking.
+- The first `v0.9.14` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect family whose AB layout is version-independent and whose route does not depend on IC Number. Its required/expected 512 KiB DP_AB execution span exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB have independent required/expected 256 KiB execution spans, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning. A shorter input remains Build-blocking because it does not cover the compiled required end. An oversized input is accepted only through the profile-declared declared-prefix policy, emits a warning, preserves its actual identity in the report, and ignores trailing bytes without mutating the source.
 - Firmware ranges, aliases, metadata locators, capability evidence, workflow profiles, and execution promotion must converge through the versioned family/profile bundle and one compiled composition boundary defined by ADR 0015. Migration preserves current promotion stages and blockers; map coverage never grants Build authority.
 - Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
@@ -611,7 +611,23 @@ Preview executes through plan/validation and processor dry-run capability where 
 
 ### 10.2.1 Input size mismatch, padding, and truncation
 
-Profile address spaces declare the expected input length used by range validation. A supplied BIN shorter than the declared address-space length is accepted only when the profile explicitly declares an input padding byte for that immutable source/replacement address space and the profile has no CRC/header/processor dependency. Runtime/request address spaces cannot declare padding or truncation policy. The engine pads only the transient execution buffer before copy/replace operations run; source BIN files are never modified. Unapproved oversized input still fails closed.
+Profile address spaces distinguish the minimum required readable end from an
+expected outer length. A supplied BIN shorter than the required end is accepted
+only when the profile explicitly declares an input padding byte for that
+immutable source/replacement address space and the profile has no CRC/header/
+processor dependency. Runtime/request address spaces cannot declare padding or
+normalization policy. The engine pads or normalizes only a transient execution
+snapshot; source BIN files are never modified. Unapproved oversized input still
+fails closed.
+
+An immutable Merge source may declare a reviewed declared-prefix oversize policy
+only when all source views, metadata extraction, and processor reads are bounded
+inside that prefix. The actual source hash and length remain report evidence;
+the execution snapshot exposes only the declared span and reports ignored
+trailing bytes. This policy never grants padding, never changes operation ranges,
+and never applies because a UI label or filename resembles an approved profile.
+The first `v0.9.14` AB pilot uses this policy for DP_AB beyond `0x80000` and
+TPA/TPB beyond `0x40000`, subject to its R3 boundary/golden gates.
 
 DP-only Replace flows that do not require CRC/header recalculation may use profile-declared padding.
 CtrlRAM Replace flows cannot declare input padding for shorter input. Because owner evidence shows
