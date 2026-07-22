@@ -74,7 +74,7 @@ public static class AbMergeWorkbenchCompositionService
             slotPaths,
             build,
             outputPath,
-            previewOutputFileName,
+            build ? null : previewOutputFileName,
             overwrite,
             progress: null,
             cancellationToken);
