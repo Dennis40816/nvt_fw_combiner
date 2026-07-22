@@ -27,6 +27,9 @@ public static class CompositionAddressSpaceIds
     /// <summary>Immutable Touch B source used by AB Merge.</summary>
     public const string TpBInput = "tp-b-input";
 
+    /// <summary>Host-owned mutable Touch B relocation buffer used by AB Merge.</summary>
+    public const string TpBWork = "tp-b-work";
+
     /// <summary>Immutable DP replacement address space used by DP Replace.</summary>
     public const string DpReplacement = "dp-replacement";
 

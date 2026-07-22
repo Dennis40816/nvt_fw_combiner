@@ -170,7 +170,7 @@ public static class GenFlashVersionCatalog
 
     private static Dictionary<string, CmiDpCodeRule> BuildCmiDpCodeRules()
     {
-        return new Dictionary<string, CmiDpCodeRule>(StringComparer.Ordinal)
+        var rules = new Dictionary<string, CmiDpCodeRule>(StringComparer.Ordinal)
         {
             ["51923"] = new CmiDpCodeRule("51923", Sizes(0x40000), 0x3E014, Nt51923CmiEvidence),
             ["51926"] = new CmiDpCodeRule("51926", Sizes(0x40000), 0x3E014, Nt51926CmiEvidence),
@@ -185,6 +185,12 @@ public static class GenFlashVersionCatalog
                 CascadeRegister16Offset: 0x05016),
             ["51951"] = new CmiDpCodeRule("51951", Sizes(0x80000), 0x05016, Nt51951CmiEvidence),
         };
+        rules["51919"] = rules["51929"] with
+        {
+            IcId = "51919",
+            EvidenceSource = "Owner-confirmed NT51919 perfect-family reuse of NT51929 CMI Reg16h-18h layout.",
+        };
+        return rules;
     }
 
     private static ReadOnlyCollection<int> Sizes(params int[] payloadLengths)

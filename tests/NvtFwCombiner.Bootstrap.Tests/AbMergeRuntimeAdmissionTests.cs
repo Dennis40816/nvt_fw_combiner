@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -25,6 +26,121 @@ public sealed class AbMergeRuntimeAdmissionTests
         Assert.True(AbMergeWorkbenchCompositionService.IsAbMergeSupported("51929"));
         Assert.False(AbMergeWorkbenchCompositionService.IsAbMergeSupported("NT51950"));
         Assert.False(AbMergeWorkbenchCompositionService.IsAbMergeSupported("NT51951"));
+    }
+
+    /// <summary>The desktop adapter exposes exactly the three compiler-owned pilot slots.</summary>
+    [Theory]
+    [InlineData("NT51919")]
+    [InlineData("NT51929")]
+    [InlineData("NT51932")]
+    public void WorkbenchInputLayoutComesFromTheCompiledProfile(string icId)
+    {
+        IReadOnlyList<WorkbenchAbMergeInputSlot> slots = WorkbenchCompositionService.GetAbMergeInputSlots(icId);
+
+        Assert.Collection(
+            slots,
+            slot => AssertAbSlot(
+                slot,
+                CompositionAddressSpaceIds.DpAbInput,
+                WorkbenchAbMergeInputRole.DpAb,
+                DpLength),
+            slot => AssertAbSlot(
+                slot,
+                CompositionAddressSpaceIds.TpAInput,
+                WorkbenchAbMergeInputRole.TpA,
+                TpLength),
+            slot => AssertAbSlot(
+                slot,
+                CompositionAddressSpaceIds.TpBInput,
+                WorkbenchAbMergeInputRole.TpB,
+                TpLength));
+        Assert.Empty(WorkbenchCompositionService.GetAbMergeInputSlots("NT51950"));
+    }
+
+    /// <summary>Load inspection projects independent DP1/DP2 and TPA/TPB values without routing on them.</summary>
+    [Theory]
+    [InlineData("NT51919")]
+    [InlineData("NT51929")]
+    [InlineData("NT51932")]
+    public void WorkbenchLoadInspectionProjectsHealthAndFourVersionValues(string icId)
+    {
+        using var workspace = TempWorkspace.Create("nfc-ab-load-inspection");
+        byte[] dpAb = new byte[DpLength];
+        WriteCmi(dpAb, bankStart: 0, major: 0x06, minor: 0x05, jira: 0x123);
+        WriteCmi(dpAb, bankStart: TpLength, major: 0x07, minor: 0x08, jira: 0x456);
+        byte[] tpA = CreateTpImage(version: 0x81, subVersion: 0x00);
+        byte[] tpB = CreateTpImage(version: 0x82, subVersion: 0x03);
+
+        WorkbenchAbMergeInputInspection dp = WorkbenchCompositionService.InspectAbMergeInput(
+            icId,
+            CompositionAddressSpaceIds.DpAbInput,
+            workspace.Write("dp-ab.bin", dpAb));
+        WorkbenchAbMergeInputInspection a = WorkbenchCompositionService.InspectAbMergeInput(
+            icId,
+            CompositionAddressSpaceIds.TpAInput,
+            workspace.Write("tp-a.bin", tpA));
+        WorkbenchAbMergeInputInspection b = WorkbenchCompositionService.InspectAbMergeInput(
+            icId,
+            CompositionAddressSpaceIds.TpBInput,
+            workspace.Write("tp-b.bin", tpB));
+
+        Assert.Equal(WorkbenchInputInspectionSeverity.Valid, dp.PrimaryIssue.Severity);
+        Assert.Equal(
+            [
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp1, "D0605", "AUTO_PRJ-291", false),
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp2, "D0708", "AUTO_PRJ-1110", false),
+            ],
+            dp.Versions);
+        Assert.Equal(
+            new WorkbenchAbVersionValue(WorkbenchAbVersionKind.TpA, "T81-00", null, false),
+            Assert.Single(a.Versions));
+        Assert.Equal(
+            new WorkbenchAbVersionValue(WorkbenchAbVersionKind.TpB, "T82-03", null, false),
+            Assert.Single(b.Versions));
+        Assert.False(dp.BlocksBuild);
+        Assert.False(a.BlocksBuild);
+        Assert.False(b.BlocksBuild);
+    }
+
+    /// <summary>Ignored tails warn immediately while metadata remains bounded to the accepted prefix.</summary>
+    [Fact]
+    public void WorkbenchLoadInspectionBoundsMetadataToAcceptedPrefix()
+    {
+        using var workspace = TempWorkspace.Create("nfc-ab-load-tail");
+        byte[] exact = CreateTpImage(version: 0x81, subVersion: 0x02);
+        byte[] oversized = [.. exact, .. CreateTpImage(version: 0x99, subVersion: 0x09)];
+
+        WorkbenchAbMergeInputInspection inspection = WorkbenchCompositionService.InspectAbMergeInput(
+            "NT51929",
+            CompositionAddressSpaceIds.TpAInput,
+            workspace.Write("tp-a-oversized.bin", oversized));
+
+        Assert.Equal(WorkbenchInputInspectionSeverity.Warning, inspection.PrimaryIssue.Severity);
+        Assert.Equal("AB_TPA_INPUT_OUTER_LENGTH_UNEXPECTED", inspection.PrimaryIssue.Code);
+        Assert.False(inspection.BlocksBuild);
+        Assert.Equal(TpLength, inspection.IgnoredTrailingBytes);
+        Assert.Equal(
+            new WorkbenchAbVersionValue(WorkbenchAbVersionKind.TpA, "T81-02", null, false),
+            Assert.Single(inspection.Versions));
+    }
+
+    /// <summary>A short selected source immediately blocks and keeps version metadata explicitly Unknown.</summary>
+    [Fact]
+    public void WorkbenchLoadInspectionBlocksShortSource()
+    {
+        using var workspace = TempWorkspace.Create("nfc-ab-load-short");
+        WorkbenchAbMergeInputInspection inspection = WorkbenchCompositionService.InspectAbMergeInput(
+            "NT51929",
+            CompositionAddressSpaceIds.DpAbInput,
+            workspace.Write("dp-ab-short.bin", new byte[DpLength - 1]));
+
+        Assert.True(inspection.BlocksBuild);
+        Assert.Equal(WorkbenchInputInspectionSeverity.Blocking, inspection.PrimaryIssue.Severity);
+        Assert.Equal("AB_DP_INPUT_TOO_SHORT", inspection.PrimaryIssue.Code);
+        Assert.All(inspection.Versions, static version => Assert.True(version.IsUnknown));
+        Assert.DoesNotContain(
+            inspection.Issues,
+            static issue => issue.Code == WorkbenchIssueCodes.AbInputVersionUnknown);
     }
 
     /// <summary>Each selected source that ends one byte early blocks before execution with its profile issue code.</summary>
@@ -124,7 +240,7 @@ public sealed class AbMergeRuntimeAdmissionTests
     {
         using var workspace = TempWorkspace.Create("nfc-ab-build");
         Dictionary<string, string> paths = WriteInputs(workspace);
-        Dictionary<string, byte[]> originals = paths.ToDictionary(
+        var originals = paths.ToDictionary(
             static pair => pair.Key,
             static pair => File.ReadAllBytes(pair.Value),
             StringComparer.Ordinal);
@@ -172,6 +288,48 @@ public sealed class AbMergeRuntimeAdmissionTests
         }
 
         return bytes;
+    }
+
+    private static void AssertAbSlot(
+        WorkbenchAbMergeInputSlot slot,
+        string addressSpaceId,
+        WorkbenchAbMergeInputRole role,
+        int requiredLength)
+    {
+        Assert.Equal(addressSpaceId, slot.SlotId);
+        Assert.Equal(addressSpaceId, slot.AddressSpaceId);
+        Assert.Equal(role, slot.Role);
+        Assert.Equal(requiredLength, slot.RequiredEndExclusive);
+        Assert.Equal([requiredLength], slot.ExpectedOuterLengths);
+    }
+
+    private static void WriteCmi(
+        byte[] image,
+        int bankStart,
+        byte major,
+        byte minor,
+        ushort jira)
+    {
+        const int register16Offset = 0x401A;
+        int start = checked(bankStart + register16Offset);
+        image[start] = checked((byte)(jira & 0xFF));
+        image[start + 1] = major;
+        image[start + 2] = checked((byte)((minor << 4) | ((jira >> 8) & 0x0F)));
+    }
+
+    private static byte[] CreateTpImage(byte version, byte subVersion)
+    {
+        const int backupStart = 0x1000;
+        const int markerStart = backupStart + 0xFFC;
+        byte[] image = new byte[TpLength];
+        image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
+        image[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
+        image[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = subVersion;
+        image[markerStart] = 0x00;
+        image[markerStart + 1] = (byte)'N';
+        image[markerStart + 2] = (byte)'V';
+        image[markerStart + 3] = (byte)'T';
+        return image;
     }
 
     private static string Sha256(ReadOnlySpan<byte> bytes)
