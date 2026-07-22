@@ -97,9 +97,9 @@ internal static partial class V2CompositionPlanCompiler
                 mapping.Reason,
                 mapping.Provenance)),
         ];
-        CompositionOperation[] firmwareVersionOperations = LowerRuntimeFirmwareVersionEdit(
-            profile, shape, request.FirmwareVersionEdit, regionAccess, issues);
-        ValidateOperationOverlaps([.. firmwareVersionOperations, .. mappingOperations], issues);
+        RuntimeFirmwareVersionEditLowering firmwareVersionEdit = LowerRuntimeFirmwareVersionEdit(
+            profile, shape, resolvedMap, request.FirmwareVersionEdit, regionAccess, issues);
+        ValidateOperationOverlaps([.. firmwareVersionEdit.Operations, .. mappingOperations], issues);
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
@@ -121,9 +121,10 @@ internal static partial class V2CompositionPlanCompiler
             ? NarrowRuntimeReferenceProcessorAuthority(
                 resolvedMap,
                 mappingOperations,
+                firmwareVersionEdit.PostbuildWriteRanges,
                 declaredProcessorOperations)
             : [];
-        CompositionOperation[] operations = [.. firmwareVersionOperations, .. mappingOperations, .. processorOperations];
+        CompositionOperation[] operations = [.. firmwareVersionEdit.Operations, .. mappingOperations, .. processorOperations];
 
         V2RuntimeReferenceReplaceInputBinding referenceBinding = bindings.Values.Single(binding =>
             StringComparer.Ordinal.Equals(binding.SlotId, shape.ReferenceSlot.SlotId));
@@ -158,30 +159,47 @@ internal static partial class V2CompositionPlanCompiler
             additionalValidationRequirements: versionValidations);
     }
 
-    private static CompositionOperation[] LowerRuntimeFirmwareVersionEdit(
-        CompositionProfileDefinition profile, RuntimeReferenceReplaceProfileShape shape, V2RuntimeReferenceReplaceFirmwareVersionEdit? edit,
+    private static RuntimeFirmwareVersionEditLowering LowerRuntimeFirmwareVersionEdit(
+        CompositionProfileDefinition profile,
+        RuntimeReferenceReplaceProfileShape shape,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        V2RuntimeReferenceReplaceFirmwareVersionEdit? edit,
         LoweredRegionAccess regionAccess, List<CompositionIssue> issues)
     {
         if (edit is null)
         {
-            return [];
+            return RuntimeFirmwareVersionEditLowering.Empty;
         }
 
+        bool hasVersionChain = TryResolveGoverningRegionChain(
+            edit.SourceFirmwareVersionAndBarRange,
+            regionAccess.RegionsById,
+            out FirmwareRegion[] versionChain);
+        bool hasSubVersionChain = TryResolveGoverningRegionChain(
+            edit.SourceFirmwareSubVersionRange,
+            regionAccess.RegionsById,
+            out FirmwareRegion[] subVersionChain);
+        FirmwareRegion? sourceRegion = hasVersionChain ? versionChain[^1] : null;
+        FirmwareRegion? subVersionRegion = hasSubVersionChain ? subVersionChain[^1] : null;
         bool fieldsShareFirmwareConfig =
-            TryResolveGoverningRegionChain(edit.SourceFirmwareVersionAndBarRange, regionAccess.RegionsById, out FirmwareRegion[] versionChain) &&
-            TryResolveGoverningRegionChain(edit.SourceFirmwareSubVersionRange, regionAccess.RegionsById, out FirmwareRegion[] subVersionChain) &&
-            versionChain[^1] is { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } sourceRegion &&
-            subVersionChain[^1] is { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } subVersionRegion &&
+            sourceRegion is { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } &&
+            subVersionRegion is { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } &&
             StringComparer.Ordinal.Equals(sourceRegion.RegionId, subVersionRegion.RegionId);
         if (!StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.CtrlRamReplace) ||
             shape.ProcessorOperation is null ||
             edit.SourceFirmwareVersionAndBarRange.Length != 2 ||
             edit.SourceFirmwareSubVersionRange.Length != 1 ||
-            !fieldsShareFirmwareConfig)
+            !fieldsShareFirmwareConfig ||
+            !TryResolveFirmwareVersionBackupWrites(
+                resolvedMap,
+                shape.ReferenceSlot.SlotId,
+                sourceRegion!,
+                edit,
+                out ByteRange[] postbuildWriteRanges))
         {
             issues.Add(new CompositionIssue(RuntimeReferenceFirmwareVersionEditInvalid,
                 "CtrlRAM TP-version edits must bind exact source fields in one canonical firmware-config region.", "firmware-version"));
-            return [];
+            return RuntimeFirmwareVersionEditLowering.Empty;
         }
 
         CompositionOperation Patch(string id, int sequence, ByteRange range, byte[] bytes)
@@ -190,10 +208,58 @@ internal static partial class V2CompositionPlanCompiler
                 "Apply the owner-confirmed TP FW version before postbuild.");
         }
 
-        return [
-            Patch("patch-fw-version-and-bar", 10, edit.SourceFirmwareVersionAndBarRange,
-                [edit.FirmwareVersion, unchecked((byte)~edit.FirmwareVersion)]),
-            Patch("patch-fw-sub-version", 20, edit.SourceFirmwareSubVersionRange, [edit.FirmwareSubVersion])];
+        return new RuntimeFirmwareVersionEditLowering(
+            [
+                Patch("patch-fw-version-and-bar", 10, edit.SourceFirmwareVersionAndBarRange,
+                    [edit.FirmwareVersion, unchecked((byte)~edit.FirmwareVersion)]),
+                Patch("patch-fw-sub-version", 20, edit.SourceFirmwareSubVersionRange, [edit.FirmwareSubVersion]),
+            ],
+            postbuildWriteRanges);
+    }
+
+    private static bool TryResolveFirmwareVersionBackupWrites(
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        string referenceSlotId,
+        FirmwareRegion sourceRegion,
+        V2RuntimeReferenceReplaceFirmwareVersionEdit edit,
+        out ByteRange[] postbuildWriteRanges)
+    {
+        postbuildWriteRanges = [];
+        if (!sourceRegion.Range.Contains(edit.SourceFirmwareVersionAndBarRange) ||
+            !sourceRegion.Range.Contains(edit.SourceFirmwareSubVersionRange))
+        {
+            return false;
+        }
+
+        long versionOffset = checked(edit.SourceFirmwareVersionAndBarRange.Start - sourceRegion.Range.Start);
+        long subVersionOffset = checked(edit.SourceFirmwareSubVersionRange.Start - sourceRegion.Range.Start);
+        var candidates = new List<ByteRange>();
+        foreach (FirmwareMetadataLocatorOutcome locator in resolvedMap.ResolvedMetadataStructures
+                     .Where(structure => StringComparer.Ordinal.Equals(
+                         structure.DecodedStructure.ArtifactBindingId,
+                         referenceSlotId))
+                     .Select(structure => structure.LocatorOutcome))
+        {
+            ByteRange backupEnvelope = locator.ResolvedRange.Range;
+            ByteRange versionRange = new(
+                checked(backupEnvelope.Start + versionOffset),
+                edit.SourceFirmwareVersionAndBarRange.Length);
+            ByteRange subVersionRange = new(
+                checked(backupEnvelope.Start + subVersionOffset),
+                edit.SourceFirmwareSubVersionRange.Length);
+            if (backupEnvelope.Contains(versionRange) && backupEnvelope.Contains(subVersionRange))
+            {
+                candidates.Add(versionRange);
+                candidates.Add(subVersionRange);
+            }
+        }
+        if (candidates.Count != 2)
+        {
+            return false;
+        }
+
+        postbuildWriteRanges = [.. candidates];
+        return true;
     }
 
 
@@ -472,6 +538,7 @@ internal static partial class V2CompositionPlanCompiler
     private static CompositionOperation[] NarrowRuntimeReferenceProcessorAuthority(
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         IReadOnlyList<CompositionOperation> mappingOperations,
+        IReadOnlyList<ByteRange> postbuildFirmwareVersionWrites,
         CompositionOperation[] processorOperations)
     {
         if (!StringComparer.Ordinal.Equals(resolvedMap.ModeId, ExperienceIds.CtrlRamReplace) ||
@@ -491,6 +558,7 @@ internal static partial class V2CompositionPlanCompiler
                         .Where(static overlap => overlap is not null)
                         .Select(static overlap => overlap!.Value)
                     : [range]),
+            .. postbuildFirmwareVersionWrites,
         ];
         var invocation = new ExternalProcessorInvocation(
             declared.ProcessorId,
@@ -534,4 +602,11 @@ internal static partial class V2CompositionPlanCompiler
         CompositionProfileInputSlot SourceSlot,
         MutableCompositionProfileSpace Output,
         RunProcessorProfileOperation? ProcessorOperation);
+
+    private sealed record RuntimeFirmwareVersionEditLowering(
+        CompositionOperation[] Operations,
+        ByteRange[] PostbuildWriteRanges)
+    {
+        internal static RuntimeFirmwareVersionEditLowering Empty { get; } = new([], []);
+    }
 }

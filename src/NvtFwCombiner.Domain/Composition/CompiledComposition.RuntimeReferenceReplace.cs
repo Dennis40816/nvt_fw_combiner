@@ -223,6 +223,7 @@ public sealed partial class CompiledComposition
             plan,
             runtimeContext,
             mappingOperations,
+            firmwareVersionOperations,
             processorOperations,
             details.RegionAccessContract.ResolvedViews);
     }
@@ -249,6 +250,7 @@ public sealed partial class CompiledComposition
         CompositionPlan plan,
         RuntimeReferenceReplaceV2CompilationContext runtimeContext,
         CompositionOperation[] mappingOperations,
+        CompositionOperation[] firmwareVersionOperations,
         CompositionOperation[] processorOperations,
         IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews)
     {
@@ -287,6 +289,16 @@ public sealed partial class CompiledComposition
                 nameof(processorOperations));
         }
 
+        if (!TryResolveFirmwareVersionBackupWrites(
+                runtimeContext.ResolvedMap,
+                firmwareVersionOperations,
+                out ByteRange[] firmwareVersionBackupWrites))
+        {
+            throw new ArgumentException(
+                "Runtime CtrlRAM TP-version edits must authorize only their resolved FWConfig Backup fields for postbuild propagation.",
+                nameof(firmwareVersionOperations));
+        }
+
         ByteRange[] processorRanges =
         [
             processor.TargetRange,
@@ -296,7 +308,7 @@ public sealed partial class CompiledComposition
         bool everyProcessorRangeHasProvenance = processorRanges.All(range =>
             resolvedViews.Any(view => isCtrlRamReplace
                 ? view.Range.Contains(range)
-                : view.Range == range));
+                : view.Range == range) || firmwareVersionBackupWrites.Contains(range));
         bool ctrlRamWritesMatchMappings = !isCtrlRamReplace ||
             (mappingOperations.All(mapping => invocation.AllowedWriteRanges.Any(range =>
                  range.Contains(mapping.TargetRange))) &&
@@ -325,5 +337,65 @@ public sealed partial class CompiledComposition
             Owner: FirmwareRegionOwner.Tp,
             Kind: FirmwareRegionKind.CtrlRam,
         };
+    }
+
+    private static bool TryResolveFirmwareVersionBackupWrites(
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        CompositionOperation[] firmwareVersionOperations,
+        out ByteRange[] backupWrites)
+    {
+        backupWrites = [];
+        if (firmwareVersionOperations.Length == 0)
+        {
+            return true;
+        }
+
+        CompositionOperation? versionOperation = firmwareVersionOperations.SingleOrDefault(
+            static operation => operation.TargetRange.Length == 2);
+        CompositionOperation? subVersionOperation = firmwareVersionOperations.SingleOrDefault(
+            static operation => operation.TargetRange.Length == 1);
+        if (firmwareVersionOperations.Length != 2 || versionOperation is null || subVersionOperation is null)
+        {
+            return false;
+        }
+
+        CompositionOperation confirmedVersionOperation = versionOperation;
+        CompositionOperation confirmedSubVersionOperation = subVersionOperation;
+
+        FirmwareRegion[] sourceRegions = [
+            .. resolvedMap.ImageMap.Regions.Where(region =>
+                region.Owner == FirmwareRegionOwner.Tp &&
+                region.Kind == FirmwareRegionKind.FirmwareConfig &&
+                region.Range.Contains(confirmedVersionOperation.TargetRange) &&
+                region.Range.Contains(confirmedSubVersionOperation.TargetRange)),
+        ];
+        if (sourceRegions.Length != 1)
+        {
+            return false;
+        }
+
+        FirmwareRegion sourceRegion = sourceRegions[0];
+        long versionOffset = checked(confirmedVersionOperation.TargetRange.Start - sourceRegion.Range.Start);
+        long subVersionOffset = checked(confirmedSubVersionOperation.TargetRange.Start - sourceRegion.Range.Start);
+        var candidates = new List<ByteRange>();
+        foreach (FirmwareMetadataLocatorOutcome locator in resolvedMap.ResolvedMetadataStructures
+                     .Select(structure => structure.LocatorOutcome))
+        {
+            ByteRange backupEnvelope = locator.ResolvedRange.Range;
+            ByteRange versionRange = new(checked(backupEnvelope.Start + versionOffset), confirmedVersionOperation.TargetRange.Length);
+            ByteRange subVersionRange = new(checked(backupEnvelope.Start + subVersionOffset), confirmedSubVersionOperation.TargetRange.Length);
+            if (backupEnvelope.Contains(versionRange) && backupEnvelope.Contains(subVersionRange))
+            {
+                candidates.Add(versionRange);
+                candidates.Add(subVersionRange);
+            }
+        }
+        if (candidates.Count != 2)
+        {
+            return false;
+        }
+
+        backupWrites = [.. candidates];
+        return true;
     }
 }

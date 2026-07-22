@@ -145,6 +145,11 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
             CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(composition.ValidationRequirements));
         Assert.Equal(0x27, validation.FirmwareVersion);
         Assert.Equal(0x04, validation.FirmwareSubVersion);
+        ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
+            composition.Plan.OrderedOperations.Single(static operation =>
+                operation.Kind == CompositionOperationKind.RunExternalProcessor).ExternalProcessorInvocation);
+        Assert.Contains(new ByteRange(0x3B000, 2), invocation.AllowedWriteRanges);
+        Assert.Contains(new ByteRange(0x3B011, 1), invocation.AllowedWriteRanges);
     }
 
     /// <summary>Rejects a typed TP-version request when its fields are not in the canonical FWConfig source.</summary>
