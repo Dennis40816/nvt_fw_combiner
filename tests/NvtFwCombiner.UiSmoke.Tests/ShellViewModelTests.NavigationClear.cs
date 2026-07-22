@@ -77,6 +77,44 @@ public sealed partial class ShellViewModelTests
         Assert.All(viewModel.MergeSlots, static slot => Assert.False(slot.HasFile));
     }
 
+    /// <summary>Cached AB inputs still participate in the navigation guard after another Merge mode hides them.</summary>
+    [Theory]
+    [InlineData(WorkbenchMergeModes.Standard)]
+    [InlineData(WorkbenchMergeModes.General)]
+    public async Task HiddenAbMergeSlotsWarnAndClearAcrossModesAndProfilesAsync(string nextMode)
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-hidden-ab");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51929";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.DpAbInput,
+            workspace.Write("dp-ab.bin", new byte[0x80000]),
+            TestContext.Current.CancellationToken);
+
+        viewModel.SelectedIc = "NT51919";
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpAInput,
+            workspace.Write("tpa.bin", new byte[0x40000]),
+            TestContext.Current.CancellationToken);
+        viewModel.SelectedMergeMode = nextMode;
+
+        Assert.DoesNotContain(viewModel.MergeSlots, static slot =>
+            slot.SlotId is CompositionAddressSpaceIds.DpAbInput or CompositionAddressSpaceIds.TpAInput);
+
+        viewModel.ShowHomeCommand.Execute(null);
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsMergeVisible);
+
+        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedIc = "NT51932";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+
+        Assert.All(viewModel.MergeSlots, static slot => Assert.False(slot.HasFile));
+    }
+
     /// <summary>Replace confirmation clears Base and mapping files while preserving device and mapping context.</summary>
     [Fact]
     public void ReplaceNavigationClearsFilesButKeepsAuthoringContext()
