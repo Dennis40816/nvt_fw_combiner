@@ -53,6 +53,7 @@ TestResults/
 
 # Local investigation scratch
 .tmp/
+.codegraph/
 testdata/golden/owner-handoff/**/intake/
 
 # Local desktop attachments and workflow output
