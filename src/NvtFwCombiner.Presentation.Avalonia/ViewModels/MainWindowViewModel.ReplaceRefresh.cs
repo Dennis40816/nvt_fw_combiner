@@ -55,13 +55,16 @@ public sealed partial class MainWindowViewModel
         (
             string rangeLabel,
             IReadOnlyList<MemoryMapRowViewModel> rows,
-            IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) = IsGeneralMergeModeSelected
-            ? UiCompositionRunner.GetGeneralMergeMemoryDisplay(
-                GeneralMergeOutputLength,
-                CreateGeneralMergeMappingInputs())
-            : UiCompositionRunner.GetStandardMergeMemoryDisplay(
-                SelectedIc,
-                selectedMergeDpInputLength);
+            IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) = SelectedMergeMode switch
+            {
+                GeneralMergeMode => UiCompositionRunner.GetGeneralMergeMemoryDisplay(
+                    GeneralMergeOutputLength,
+                    CreateGeneralMergeMappingInputs()),
+                AbCodeMergeMode => UiCompositionRunner.GetAbMergeMemoryDisplay(SelectedIc),
+                _ => UiCompositionRunner.GetStandardMergeMemoryDisplay(
+                    SelectedIc,
+                    selectedMergeDpInputLength),
+            };
         MergeMemoryRangeLabel = rangeLabel;
         ReplaceRows(MergeMemoryRows, rows);
         ReplaceRows(MergeCoverageSegments, coverageSegments);

@@ -52,4 +52,24 @@ public sealed partial class ShellViewModelTests
             viewModel.NumberSelectionChoices,
             static choice => choice.Token == WorkbenchIcNumberTokens.Cascade);
     }
+
+    /// <summary>The consolidated IC detail exposes family, runtime, evidence, and support without badge-only meaning.</summary>
+    [Fact]
+    public void IcDetailTracksSelectedIcAndProvidesScreenReaderEquivalent()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.SelectedIc = "NT51929";
+
+        Assert.Contains("IC Family source", viewModel.SelectedIcDetailFamily, StringComparison.Ordinal);
+        Assert.Contains("AB Code", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
+        Assert.Contains("NT51929", viewModel.SelectedIcDetailAutomationText, StringComparison.Ordinal);
+        Assert.Contains(viewModel.SelectedIcDetailEvidence, viewModel.SelectedIcDetailAutomationText, StringComparison.Ordinal);
+        Assert.Contains(viewModel.SelectedIcDetailSupport, viewModel.SelectedIcDetailAutomationText, StringComparison.Ordinal);
+
+        viewModel.SelectedIc = "NT51950";
+
+        Assert.DoesNotContain("AB Code", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
+        Assert.Contains("compiled profiles", viewModel.SelectedIcDetailSupport, StringComparison.Ordinal);
+    }
 }

@@ -9,6 +9,8 @@
   <Border
       Classes="fileDropZone firmwareSlot"
       Classes.hasFile="{Binding HasFile}"
+      Classes.blocking="{Binding IsInputInspectionBlocking}"
+      Classes.warning="{Binding IsInputInspectionWarning}"
       Classes.optional="{Binding IsOptional}"
       HorizontalAlignment="Stretch"
       Margin="0,0,0,10"
@@ -42,6 +44,17 @@
                 Classes.hasFile="{Binding HasFile}"
                 Classes.optional="{Binding IsOptional}"
                 Content="{Binding RequirementLabel}" />
+            <Path
+                Width="16"
+                Height="16"
+                VerticalAlignment="Center"
+                Classes="slotHealthIcon"
+                Classes.blocking="{Binding IsInputInspectionBlocking}"
+                Classes.warning="{Binding IsInputInspectionWarning}"
+                Classes.valid="{Binding IsInputInspectionValid}"
+                Classes.pending="{Binding IsInputInspectionPending}"
+                Data="{Binding InputInspectionIconPathData}"
+                IsVisible="{Binding HasInputInspectionStatus}" />
           </StackPanel>
           <TextBlock Classes="mutedText" IsVisible="{Binding IsGuidanceVisible}" Text="{Binding Description}" TextWrapping="Wrap" />
           <TextBlock
@@ -81,6 +94,16 @@
               <StaticResource ResourceKey="FirmwareSlotFactTemplate" />
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+          <TextBlock
+              AutomationProperties.LiveSetting="Polite"
+              Classes="slotHealthText"
+              Classes.blocking="{Binding IsInputInspectionBlocking}"
+              Classes.warning="{Binding IsInputInspectionWarning}"
+              Classes.valid="{Binding IsInputInspectionValid}"
+              Classes.pending="{Binding IsInputInspectionPending}"
+              IsVisible="{Binding HasInputInspectionStatus}"
+              Text="{Binding InputInspectionStatus}"
+              TextWrapping="Wrap" />
         </StackPanel>
         <Button
             Grid.Column="1"

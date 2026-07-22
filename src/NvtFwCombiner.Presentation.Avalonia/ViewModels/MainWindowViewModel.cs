@@ -24,6 +24,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         InvalidateFirmwareNumberMismatch();
         slot.FilePath = path;
         slot.SetFirmwareFacts([]);
+        slot.ClearInputInspection();
         NotifySlotFileOutputNames();
 
         if (slot.SlotId == ReplaceBaseSlotId && IsCtrlRamReplaceModeSelected)

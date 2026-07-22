@@ -96,8 +96,7 @@ public sealed partial class MainWindowViewModel
 
     private bool ShouldShowNumberSelectorForSelectedPage()
     {
-        return SelectedPage is ShellPage.Merge or ShellPage.Replace &&
-            !(IsMergeVisible && (IsNormalMergeModeSelected || IsGeneralMergeModeSelected));
+        return IsReplaceVisible;
     }
 
     private void NavigateToPage(ShellPage page)

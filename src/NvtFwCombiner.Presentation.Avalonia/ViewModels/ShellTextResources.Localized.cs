@@ -49,7 +49,7 @@ public sealed partial class ShellTextResources
             MergePreview = Pick(
                 new PlanningCardText(
                     "Merge",
-                    "Standard Merge workflow.",
+                    "Standard, AB Code, and Customized workflows.",
                     [
                         "Profile: built-in Standard Merge",
                         "Slots: DP, TP, optional LD",
@@ -58,7 +58,7 @@ public sealed partial class ShellTextResources
                     "Build wired"),
                 new PlanningCardText(
                     "合併",
-                    "Standard Merge 流程。",
+                    "Standard、AB Code 與 Customized 流程。",
                     [
                         "Profile：內建 Standard Merge",
                         "Slots：DP、TP、選用 LD",
@@ -162,7 +162,15 @@ public sealed partial class ShellTextResources
             CtrlRamFirmwareVersionChooseOutputLabel = Pick("Continue to output", "繼續選擇輸出"),
             AbCodeMergeTitle = "AB Code Merge",
             InitialCodeAndLdcSlotHint = Pick("(Initial Code + LDC)", "（Initial Code + LDC）"),
-            AbCodeMergeDetail = Pick("Reserved until the dedicated AB Code profile and TP CRC/start-address behavior are approved.", "保留到 dedicated AB Code profile 與 TP CRC/start-address 行為核准後再啟用。"),
+            AbCodeMergeDetail = Pick(
+                "Compose one compiled DP_AB container with independent TPA and TPB payloads. Input versions are informational and never choose the route.",
+                "以 compiled profile 合成一個 DP_AB container 與獨立 TPA、TPB payload；input 版本只供確認，絕不選擇執行路徑。"),
+            IcDetailTitle = Pick("IC details", "IC 詳細資訊"),
+            IcDetailFamilyLabel = Pick("Family", "Family"),
+            IcDetailReuseLabel = Pick("Reusable scope", "可沿用範圍"),
+            IcDetailRuntimeLabel = Pick("Runtime", "可執行流程"),
+            IcDetailEvidenceLabel = Pick("Evidence", "Evidence"),
+            IcDetailSupportLabel = Pick("Support", "支援說明"),
             SettingsOverviewTitle = Pick("Product information", "產品資訊"),
             SettingsOverviewSubtitle = Pick("Installed version and executable profile coverage.", "已安裝版本與可執行 profile coverage。"),
             SettingsCapabilitiesTitle = Pick("Implemented capabilities", "已實作功能"),
@@ -274,7 +282,7 @@ public sealed partial class ShellTextResources
             DeleteReportTooltip = Pick("Delete this report", "刪除此 report"),
             MergeModeTooltip = Pick("Select Standard, reserved AB Code, or Customized Merge.", "選擇 Standard、保留的 AB Code 或 Customized Merge。"),
             WorkflowContextReplaceDetail = Pick("Choose the IC and IC count before opening Replace. You can change them later from the shared context row.", "進入 Replace 前先選擇 IC 與 IC 數量；之後仍可從共用條件列調整。"),
-            WorkflowContextMergeDetail = Pick("Choose the IC before opening Merge. IC count is not part of the Standard or Customized Merge authoring context.", "進入 Merge 前先選擇 IC；Standard 與 Customized Merge 的 authoring context 不使用 IC 數量。"),
+            WorkflowContextMergeDetail = Pick("Choose the IC before opening Merge. IC count is not part of the Standard, AB Code, or Customized Merge authoring context.", "進入 Merge 前先選擇 IC；Standard、AB Code 與 Customized Merge 的 authoring context 不使用 IC 數量。"),
             WorkflowContextSafetyDetail = Pick("This only selects the catalog context. It does not inspect, modify, or write any firmware file.", "這只會選擇 catalog 條件，不會讀取、修改或寫入任何 firmware 檔案。"),
             FirmwareIcMismatchTitle = Pick("Selected BIN suggests another IC", "選擇的 BIN 顯示另一個 IC"),
             FirmwareIcMismatchDetail = Pick("A marker found in the file name or printable header text differs from the current catalog context. This is a prompt only; it does not validate the BIN or change it.", "檔名或可讀 header 文字中的 IC marker 與目前 catalog 條件不同。此提示不會驗證或修改 BIN，也不會自動變更 IC。"),

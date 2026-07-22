@@ -23,6 +23,17 @@ public sealed partial class MainWindowViewModel
         MergePreview = Text.MergePreview;
         ReplacePreview = Text.ReplacePreview;
         ApplyFirmwareSlotText();
+        foreach (FirmwareSlotViewModel slot in _abMergeSlotsByAddressSpace.Values)
+        {
+            if (slot.FilePath is { } path &&
+                _firmwareFileProjections.TryGetValue(slot.SlotId, out FirmwareFileProjection projection) &&
+                projection.Matches(path) &&
+                projection.Inspection.AbMergeInput is { } inspection)
+            {
+                ApplyAbInputInspection(slot, inspection);
+            }
+        }
+
         ApplyInitialRunResultText();
         LoadedHexEditorWorkspace?.ApplyTextResources(Text);
         CompositionProgress.ApplyLanguage(language);
@@ -49,6 +60,12 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
         OnPropertyChanged(nameof(SelectedIcFamilyLabel));
         OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
+        OnPropertyChanged(nameof(SelectedIcDetailFamily));
+        OnPropertyChanged(nameof(SelectedIcDetailReuse));
+        OnPropertyChanged(nameof(SelectedIcDetailRuntime));
+        OnPropertyChanged(nameof(SelectedIcDetailEvidence));
+        OnPropertyChanged(nameof(SelectedIcDetailSupport));
+        OnPropertyChanged(nameof(SelectedIcDetailAutomationText));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionCurrentValue));
@@ -119,6 +136,19 @@ public sealed partial class MainWindowViewModel
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
+        foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(SelectedIc))
+        {
+            if (_abMergeSlotsByAddressSpace.TryGetValue(input.AddressSpaceId, out FirmwareSlotViewModel? slot))
+            {
+                slot.ApplyDisplayText(
+                    ShellTextResources.GetAbSlotTitle(input.Role),
+                    Text.GetAbSlotDescription(input),
+                    Text.RequiredLabel,
+                    Text.OptionalLabel,
+                    Text.NoBinSelectedLabel);
+            }
+        }
+
         ReplaceBaseSlot.ApplyDisplayText(
             Text.GetReplaceBaseTitle(SelectedReplaceMode),
             Text.GetReplaceBaseDescription(

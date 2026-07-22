@@ -1,6 +1,7 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="NavigationTrailPanelTemplate" DataType="vm:MainWindowViewModel">
@@ -45,8 +46,7 @@
           RowDefinitions="Auto,Auto"
           ColumnSpacing="{DynamicResource NfcSpace12}"
           RowSpacing="3"
-          VerticalAlignment="Center"
-          ToolTip.Tip="{Binding Text.DeviceContextTitle}">
+          VerticalAlignment="Center">
 
         <TextBlock Grid.Row="0" Grid.Column="0" Classes="tableHeader" Text="{Binding Text.IcLabel}" />
         <ComboBox
@@ -54,9 +54,37 @@
             Grid.Column="0"
             Classes="technicalSelect"
             Width="154"
+            AutomationProperties.HelpText="{Binding SelectedIcDetailAutomationText}"
+            behaviors:FocusToolTipBehavior.IsEnabled="True"
             IsVisible="{Binding IsDeviceContextSelectionVisible}"
             ItemsSource="{Binding IcChoices}"
-            SelectedItem="{Binding SelectedIc, Mode=TwoWay}">
+            SelectedItem="{Binding SelectedIc, Mode=TwoWay}"
+            ToolTip.Placement="BottomEdgeAlignedLeft"
+            ToolTip.ShowDelay="250">
+          <ToolTip.Tip>
+            <ToolTip IsHitTestVisible="False">
+              <Border Classes="icDetailCard" MaxWidth="420">
+                <StackPanel Spacing="{DynamicResource NfcSpace8}">
+                  <StackPanel Spacing="{DynamicResource NfcSpace2}">
+                    <TextBlock Classes="bodyStrongText" Text="{Binding Text.IcDetailTitle}" />
+                    <TextBlock Classes="technicalValue" Text="{Binding SelectedIc}" />
+                  </StackPanel>
+                  <Grid ColumnDefinitions="104,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace8}" RowSpacing="{DynamicResource NfcSpace4}">
+                    <TextBlock Classes="tableHeader" Text="{Binding Text.IcDetailFamilyLabel}" />
+                    <TextBlock Grid.Column="1" Classes="bodyText" Text="{Binding SelectedIcDetailFamily}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Row="1" Classes="tableHeader" Text="{Binding Text.IcDetailReuseLabel}" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Classes="bodyText" Text="{Binding SelectedIcDetailReuse}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Row="2" Classes="tableHeader" Text="{Binding Text.IcDetailRuntimeLabel}" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Classes="bodyText" Text="{Binding SelectedIcDetailRuntime}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Row="3" Classes="tableHeader" Text="{Binding Text.IcDetailEvidenceLabel}" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" Classes="bodyText" Text="{Binding SelectedIcDetailEvidence}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Row="4" Classes="tableHeader" Text="{Binding Text.IcDetailSupportLabel}" />
+                    <TextBlock Grid.Row="4" Grid.Column="1" Classes="captionText" Text="{Binding SelectedIcDetailSupport}" TextWrapping="Wrap" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </ToolTip>
+          </ToolTip.Tip>
           <ComboBox.ItemTemplate>
             <DataTemplate>
               <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="{DynamicResource NfcFontSize13}" Text="{Binding}" />
@@ -130,11 +158,6 @@
               Text="{Binding DeviceContextStatus}"
               TextAlignment="Left"
               TextWrapping="Wrap" />
-          <Label
-              Classes="compactBadge neutralBadge reportBadge info"
-              Content="{Binding SelectedIcFamilyLabel}"
-              IsVisible="{Binding IsDeviceContextFamilyBadgeVisible}"
-              ToolTip.Tip="{Binding SelectedIcFamilyTooltip}" />
         </StackPanel>
       </Grid>
       <Border

@@ -129,6 +129,18 @@ public sealed partial class ShellTextResources
 
     public string AbCodeMergeDetail { get; private init; } = string.Empty;
 
+    public string IcDetailTitle { get; private init; } = string.Empty;
+
+    public string IcDetailFamilyLabel { get; private init; } = string.Empty;
+
+    public string IcDetailReuseLabel { get; private init; } = string.Empty;
+
+    public string IcDetailRuntimeLabel { get; private init; } = string.Empty;
+
+    public string IcDetailEvidenceLabel { get; private init; } = string.Empty;
+
+    public string IcDetailSupportLabel { get; private init; } = string.Empty;
+
     public string MergeModeTooltip { get; private init; } = string.Empty;
 
     public string WorkflowContextReplaceDetail { get; private init; } = string.Empty;

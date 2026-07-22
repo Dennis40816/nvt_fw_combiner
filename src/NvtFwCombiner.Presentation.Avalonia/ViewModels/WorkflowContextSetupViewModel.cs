@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class WorkflowContextSetupViewModel : ObservableObject
 {
     /// <summary>Gets available IC identifiers.</summary>
-    public IReadOnlyList<string> IcChoices { get; } = WorkbenchCompositionService.GetSupportedIcIds();
+    public IReadOnlyList<string> IcChoices { get; private set; } = WorkbenchCompositionService.GetSupportedIcIds();
 
     /// <summary>Gets whether this workflow requires an IC-count choice.</summary>
     [ObservableProperty]
@@ -40,10 +40,23 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
     }
 
     /// <summary>Resets the independent draft from the active shell context.</summary>
-    public void Configure(string icId, string number, bool showNumber)
+    public void Configure(
+        string icId,
+        string number,
+        bool showNumber,
+        IReadOnlyList<string>? icChoices = null)
     {
+        IcChoices = icChoices ?? WorkbenchCompositionService.GetSupportedIcIds();
+        if (IcChoices.Count == 0)
+        {
+            throw new ArgumentException("Workflow context requires at least one IC choice.", nameof(icChoices));
+        }
+
+        OnPropertyChanged(nameof(IcChoices));
         IsNumberVisible = showNumber;
-        SelectedIc = icId;
+        SelectedIc = IcChoices.Contains(icId, StringComparer.Ordinal)
+            ? icId
+            : IcChoices[0];
         RefreshNumberChoices(number);
     }
 

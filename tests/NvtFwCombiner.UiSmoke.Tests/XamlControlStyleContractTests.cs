@@ -155,6 +155,38 @@ public sealed partial class XamlControlStyleContractTests
         }
     }
 
+    /// <summary>The IC detail tooltip supports pointer and keyboard discovery without becoming interactive.</summary>
+    [Fact]
+    public void IcDetailTooltipUsesOneNonInteractiveFocusAwareCard()
+    {
+        string shellPanels = ReadPresentationFile("Resources/MainWindowShellPanels.axaml");
+        var document = XDocument.Parse(shellPanels);
+        XElement combo = Assert.Single(
+            document.Descendants(),
+            element =>
+                element.Name.LocalName == "ComboBox" &&
+                (string?)element.Attribute("ItemsSource") == "{Binding IcChoices}");
+        XElement tipProperty = Assert.Single(
+            combo.Elements(),
+            element => element.Name.LocalName == "ToolTip.Tip");
+        XElement toolTip = Assert.Single(
+            tipProperty.Elements(),
+            element => element.Name.LocalName == "ToolTip");
+
+        Assert.Equal("True", combo.Attributes().Single(attribute => attribute.Name.LocalName == "FocusToolTipBehavior.IsEnabled").Value);
+        Assert.Equal("{Binding SelectedIcDetailAutomationText}", combo.Attributes().Single(attribute => attribute.Name.LocalName == "AutomationProperties.HelpText").Value);
+        Assert.Equal("False", (string?)toolTip.Attribute("IsHitTestVisible"));
+        Assert.Contains(
+            toolTip.Descendants(),
+            element => (string?)element.Attribute("Classes") == "icDetailCard");
+
+        var control = new ComboBox();
+        ToolTip.SetTip(control, new ToolTip { IsHitTestVisible = false });
+        FocusToolTipBehavior.SetIsEnabled(control, true);
+        Assert.True(FocusToolTipBehavior.GetIsEnabled(control));
+        Assert.False(Assert.IsType<ToolTip>(ToolTip.GetTip(control)).IsHitTestVisible);
+    }
+
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
     [Fact]
     public void ThemeTokensResolveFromTheApplicationResourceTree()

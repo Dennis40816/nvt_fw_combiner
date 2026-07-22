@@ -99,6 +99,9 @@ public sealed partial class MainWindowViewModel
             IsCtrlRamReplaceModeSelected
                 ? new WorkbenchCtrlRamInspectionRequest(SelectedNumber)
                 : null;
+        string? abMergeAddressSpaceId = IsAbCodeMergeModeSelected
+            ? _abMergeAddressSpaceBySlotId.GetValueOrDefault(slot.SlotId)
+            : null;
         return new FirmwareInspectionItemRequest(
             slot.SlotId,
             slot.SlotKind,
@@ -107,7 +110,8 @@ public sealed partial class MainWindowViewModel
             ctrlRamRequest,
             publishFacts,
             promptForMismatch,
-            applyVerifiedContext);
+            applyVerifiedContext,
+            abMergeAddressSpaceId);
     }
 
     private async Task RunFirmwareInspectionAsync(
@@ -124,8 +128,15 @@ public sealed partial class MainWindowViewModel
             generation,
             SelectedIc,
             SelectedNumber,
+            SelectedMergeMode,
             SelectedReplaceMode,
             items);
+        foreach (FirmwareInspectionItemRequest item in items.Where(static item =>
+                     item.AbMergeAddressSpaceId is not null))
+        {
+            FindSlot(item.SlotId)?.SetInputInspectionPending(Text.FirmwareInspectionLoadingStatus);
+        }
+
         SetFirmwareInspectionLoading(true);
         try
         {
@@ -170,7 +181,8 @@ public sealed partial class MainWindowViewModel
                 item.SlotId,
                 item.Path,
                 item.TpPath,
-                item.CtrlRamRequest)),
+                item.CtrlRamRequest,
+                item.AbMergeAddressSpaceId)),
         ];
         IReadOnlyList<WorkbenchFirmwareInspectionResult> inspections =
             _firmwareInspectionReader(request.IcId, inputs);
@@ -200,6 +212,7 @@ public sealed partial class MainWindowViewModel
             result.IsFileIdentityStable &&
             string.Equals(request.IcId, SelectedIc, StringComparison.Ordinal) &&
             string.Equals(request.Number, SelectedNumber, StringComparison.Ordinal) &&
+            string.Equals(request.MergeMode, SelectedMergeMode, StringComparison.Ordinal) &&
             string.Equals(request.ReplaceMode, SelectedReplaceMode, StringComparison.Ordinal) &&
             request.Items.All(item =>
                 FindSlot(item.SlotId) is { } slot &&
@@ -232,7 +245,11 @@ public sealed partial class MainWindowViewModel
                 continue;
             }
 
-            if (item.PublishFacts)
+            if (inspection.AbMergeInput is { } abInput)
+            {
+                ApplyAbInputInspection(slot, abInput);
+            }
+            else if (item.PublishFacts)
             {
                 slot.SetFirmwareFacts(item.SlotKind == FirmwareSlotKind.Dp
                     ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection)
@@ -270,6 +287,28 @@ public sealed partial class MainWindowViewModel
         }
 
         RefreshCommandState();
+    }
+
+    private static IReadOnlyList<FirmwareSlotFactViewModel> CreateAbFirmwareFacts(
+        WorkbenchAbMergeInputInspection inspection)
+    {
+        return
+        [
+            .. inspection.Versions.Select(version => new FirmwareSlotFactViewModel(
+                ShellTextResources.GetAbVersionLabel(version.Kind),
+                version.JiraBadge is null ? version.Value : $"{version.Value} · {version.JiraBadge}",
+                version.IsUnknown)),
+        ];
+    }
+
+    private void ApplyAbInputInspection(
+        FirmwareSlotViewModel slot,
+        WorkbenchAbMergeInputInspection inspection)
+    {
+        slot.SetFirmwareFacts(CreateAbFirmwareFacts(inspection));
+        slot.SetInputInspection(
+            inspection.PrimaryIssue.Severity,
+            Text.GetAbInputInspectionStatus(inspection));
     }
 
     private void ApplyCtrlRamDisplayFromInspection(WorkbenchFirmwareInspection inspection)
@@ -410,6 +449,10 @@ public sealed partial class MainWindowViewModel
         if (clearFileProjections)
         {
             _firmwareFileProjections.Clear();
+            foreach (FirmwareSlotViewModel slot in _abMergeSlotsByAddressSpace.Values)
+            {
+                slot.ClearInputInspection();
+            }
         }
 
         SetFirmwareInspectionLoading(false);
@@ -433,6 +476,7 @@ public sealed partial class MainWindowViewModel
         long Generation,
         string IcId,
         string Number,
+        string MergeMode,
         string ReplaceMode,
         IReadOnlyList<FirmwareInspectionItemRequest> Items);
 
@@ -444,7 +488,8 @@ public sealed partial class MainWindowViewModel
         WorkbenchCtrlRamInspectionRequest? CtrlRamRequest,
         bool PublishFacts,
         bool PromptForMismatch,
-        bool ApplyVerifiedContext);
+        bool ApplyVerifiedContext,
+        string? AbMergeAddressSpaceId);
 
     private readonly record struct FirmwareInspectionBatchResult(
         IReadOnlyDictionary<string, WorkbenchFirmwareInspection> InspectionsById,

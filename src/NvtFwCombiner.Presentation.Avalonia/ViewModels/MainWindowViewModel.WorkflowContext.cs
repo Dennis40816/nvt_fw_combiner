@@ -23,10 +23,14 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that dismisses the pending Home workflow context selection without changes.</summary>
     public IRelayCommand CancelWorkflowContextCommand { get; }
 
-    private void BeginWorkflowContext(ShellPage page, string mode, bool showNumber)
+    private void BeginWorkflowContext(
+        ShellPage page,
+        string mode,
+        bool showNumber,
+        IReadOnlyList<string>? icChoices = null)
     {
         _workflowContextTarget = new WorkflowContextTarget(page, mode, showNumber);
-        WorkflowContextSetup.Configure(SelectedIc, SelectedNumber, showNumber);
+        WorkflowContextSetup.Configure(SelectedIc, SelectedNumber, showNumber, icChoices);
         WorkflowContextDetail = page == ShellPage.Replace
             ? Text.WorkflowContextReplaceDetail
             : Text.WorkflowContextMergeDetail;
