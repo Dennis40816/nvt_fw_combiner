@@ -54,7 +54,9 @@
                 Classes.valid="{Binding IsInputInspectionValid}"
                 Classes.pending="{Binding IsInputInspectionPending}"
                 Data="{Binding InputInspectionIconPathData}"
-                IsVisible="{Binding HasInputInspectionStatus}" />
+                IsVisible="{Binding HasInputInspectionStatus}"
+                Stretch="Uniform"
+                ToolTip.Tip="{Binding InputInspectionStatus}" />
           </StackPanel>
           <TextBlock Classes="mutedText" IsVisible="{Binding IsGuidanceVisible}" Text="{Binding Description}" TextWrapping="Wrap" />
           <TextBlock

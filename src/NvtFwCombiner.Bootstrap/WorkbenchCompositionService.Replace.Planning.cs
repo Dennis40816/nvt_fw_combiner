@@ -37,7 +37,11 @@ public static partial class WorkbenchCompositionService
             }
 
             FileInfo file = new(fullPath);
-            summaries.Add(new InputArtifactSummary(slotId, Path.GetFileName(fullPath), file.Length, Sha256File(fullPath)));
+            summaries.Add(new InputArtifactSummary(
+                slotId,
+                Path.GetFileName(fullPath),
+                file.Length,
+                WorkbenchArtifactIdentity.Sha256File(fullPath)));
         }
 
         return summaries;

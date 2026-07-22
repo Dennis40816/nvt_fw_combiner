@@ -106,6 +106,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes.hasFile=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.blocking=\"{Binding IsInputInspectionBlocking}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.warning=\"{Binding IsInputInspectionWarning}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Stretch=\"Uniform\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding InputInspectionStatus}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.optional=\"{Binding IsOptional}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding RequirementLabel}\"", slotCard, StringComparison.Ordinal);

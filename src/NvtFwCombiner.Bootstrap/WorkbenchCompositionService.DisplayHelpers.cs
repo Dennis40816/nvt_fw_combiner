@@ -3,9 +3,9 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
-public static partial class WorkbenchCompositionService
+internal static class WorkbenchMemoryDisplayProjection
 {
-    private static string ActionLabel(CompositionOperationKind kind)
+    internal static string ActionLabel(CompositionOperationKind kind)
     {
         return kind switch
         {
@@ -19,7 +19,7 @@ public static partial class WorkbenchCompositionService
         };
     }
 
-    private static string AddressSpaceLabel(string addressSpaceId)
+    internal static string AddressSpaceLabel(string addressSpaceId)
     {
         return addressSpaceId switch
         {
@@ -38,7 +38,7 @@ public static partial class WorkbenchCompositionService
         };
     }
 
-    private static CoverageSegment[] ApplyCoverageWrite(
+    internal static CoverageSegment[] ApplyCoverageWrite(
         IReadOnlyList<CoverageSegment> current,
         CoverageSegment write)
     {
@@ -111,7 +111,7 @@ public static partial class WorkbenchCompositionService
         }
     }
 
-    private static string CoverageFill(string sourceLabel)
+    internal static string CoverageFill(string sourceLabel)
     {
         return sourceLabel switch
         {
@@ -140,17 +140,17 @@ public static partial class WorkbenchCompositionService
         };
     }
 
-    private static string FormatFullRange(long capacity)
+    internal static string FormatFullRange(long capacity)
     {
         return capacity <= 0 ? "No range" : FormatDisplayRange(new ByteRange(0, capacity));
     }
 
-    private static string FormatDisplayRange(ByteRange range)
+    internal static string FormatDisplayRange(ByteRange range)
     {
         return FormattableString.Invariant($"0x{range.Start:X5}-0x{range.EndExclusive - 1:X5} (len 0x{range.Length:X})");
     }
 
-    private static IReadOnlyList<WorkbenchMemoryCoverageSegment> ToWorkbenchCoverageSegments(
+    internal static IReadOnlyList<WorkbenchMemoryCoverageSegment> ToWorkbenchCoverageSegments(
         IEnumerable<CoverageSegment> segments,
         long capacity)
     {
@@ -168,7 +168,7 @@ public static partial class WorkbenchCompositionService
         ];
     }
 
-    private static WorkbenchMemoryDisplay CreateMessageDisplay(
+    internal static WorkbenchMemoryDisplay CreateMessageDisplay(
         string rangeLabel,
         (string Range, string Before, string Action, string After, string Detail) row,
         (string Range, string Source, string Detail, string Fill)? coverage)
@@ -188,7 +188,11 @@ public static partial class WorkbenchCompositionService
                 : []);
     }
 
-    private static string Sha256File(string path)
+}
+
+internal static class WorkbenchArtifactIdentity
+{
+    internal static string Sha256File(string path)
     {
         using FileStream stream = File.OpenRead(path);
         return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();

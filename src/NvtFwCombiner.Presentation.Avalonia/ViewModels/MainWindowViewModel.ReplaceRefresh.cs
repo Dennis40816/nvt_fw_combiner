@@ -79,10 +79,12 @@ public sealed partial class MainWindowViewModel
     {
         if (IsCtrlRamReplaceModeSelected && ReplaceBaseSlot.HasFile)
         {
-            if (_baseFirmwareInspectionCache is { } cache &&
-                cache.MatchesContext(SelectedIc, ReplaceBaseSlot.FilePath))
+            if (_firmwareInspectionSession.TryGetBase(
+                    SelectedIc,
+                    ReplaceBaseSlot.FilePath,
+                    out WorkbenchFirmwareInspection inspection))
             {
-                ApplyCtrlRamDisplayFromInspection(cache.Inspection);
+                ApplyCtrlRamDisplayFromInspection(inspection);
             }
             else
             {
@@ -124,7 +126,7 @@ public sealed partial class MainWindowViewModel
     private long? GetSelectedMergeDpInputLength()
     {
         return WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
-            TryGetInspectedFileLength(_mergeDpSlot, out long length)
+            _firmwareInspectionSession.TryGetFileLength(_mergeDpSlot, out long length)
                 ? length
                 : null;
     }
@@ -133,7 +135,7 @@ public sealed partial class MainWindowViewModel
     {
         return SelectedReplaceMode == DpReplaceMode &&
             WorkbenchCompositionService.HasBuiltInV2DpReplace(SelectedIc) &&
-            TryGetInspectedFileLength(ReplaceBaseSlot, out long length)
+            _firmwareInspectionSession.TryGetFileLength(ReplaceBaseSlot, out long length)
                 ? length
                 : null;
     }

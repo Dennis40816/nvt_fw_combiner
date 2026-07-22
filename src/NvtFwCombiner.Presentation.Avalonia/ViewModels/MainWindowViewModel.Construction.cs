@@ -93,7 +93,7 @@ public sealed partial class MainWindowViewModel
         ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
         _fileRevealService = fileRevealService ?? WorkbenchHostServices.CreateFileRevealService();
         _ctrlRamFirmwareVersionMetadataReader = firmwareConfigMetadataReader;
-        _firmwareInspectionReader = firmwareInspectionReader;
+        _firmwareInspectionSession = new FirmwareInspectionSession(firmwareInspectionReader);
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         CompositionProgress = new CompositionRunProgressViewModel(language);

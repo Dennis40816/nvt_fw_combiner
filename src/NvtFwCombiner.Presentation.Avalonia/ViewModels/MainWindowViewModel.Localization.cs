@@ -25,12 +25,13 @@ public sealed partial class MainWindowViewModel
         ApplyFirmwareSlotText();
         foreach (FirmwareSlotViewModel slot in _abMergeSlotsByAddressSpace.Values)
         {
-            if (slot.FilePath is { } path &&
-                _firmwareFileProjections.TryGetValue(slot.SlotId, out FirmwareFileProjection projection) &&
-                projection.Matches(path) &&
-                projection.Inspection.AbMergeInput is { } inspection)
+            if (_firmwareInspectionSession.TryGetInspection(
+                    slot.SlotId,
+                    slot.FilePath,
+                    out WorkbenchFirmwareInspection projected) &&
+                projected.AbMergeInput is { } inspection)
             {
-                ApplyAbInputInspection(slot, inspection);
+                FirmwareInspectionProjection.ApplyAbInputInspection(slot, inspection, Text);
             }
         }
 
