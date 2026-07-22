@@ -1,4 +1,6 @@
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -46,6 +48,33 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("0x1", mapping.Length);
         Assert.Equal("NT51927", viewModel.SelectedIc);
         Assert.Equal("General", viewModel.SelectedMergeMode);
+    }
+
+    /// <summary>AB inputs participate in the same navigation warning and are cleared before re-entry.</summary>
+    [Fact]
+    public async Task AbMergeNavigationWarnsAndClearsActiveProfileSlotsAsync()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-ab");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51929";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.DpAbInput,
+            workspace.Write("dp-ab.bin", new byte[0x80000]),
+            TestContext.Current.CancellationToken);
+
+        viewModel.ShowHomeCommand.Execute(null);
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.True(viewModel.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionAddressSpaceIds.DpAbInput).HasFile);
+
+        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        viewModel.ShowMergeCommand.Execute(null);
+
+        Assert.True(viewModel.IsAbCodeMergeModeSelected);
+        Assert.All(viewModel.MergeSlots, static slot => Assert.False(slot.HasFile));
     }
 
     /// <summary>Replace confirmation clears Base and mapping files while preserving device and mapping context.</summary>

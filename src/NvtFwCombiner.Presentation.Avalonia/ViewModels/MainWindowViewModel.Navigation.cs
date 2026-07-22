@@ -186,6 +186,7 @@ public sealed partial class MainWindowViewModel
                 _mergeDpSlot.HasFile ||
                 _mergeTpSlot.HasFile ||
                 _mergeLdSlot.HasFile ||
+                MergeSlots.Any(static slot => slot.HasFile) ||
                 GeneralMergeMappings.Any(static mapping => mapping.HasFile),
             ShellPage.Replace =>
                 ReplaceBaseSlot.HasFile ||
@@ -205,9 +206,13 @@ public sealed partial class MainWindowViewModel
 
         if (page == ShellPage.Merge)
         {
-            ClearFirmwareSlot(_mergeDpSlot);
-            ClearFirmwareSlot(_mergeTpSlot);
-            ClearFirmwareSlot(_mergeLdSlot);
+            foreach (FirmwareSlotViewModel slot in MergeSlots
+                         .Concat([_mergeDpSlot, _mergeTpSlot, _mergeLdSlot])
+                         .Distinct())
+            {
+                ClearFirmwareSlot(slot);
+            }
+
             foreach (GeneralMergeMappingViewModel mapping in GeneralMergeMappings)
             {
                 mapping.FilePath = null;
