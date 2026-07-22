@@ -265,4 +265,22 @@ public sealed class WorkbenchOutputNamingTests
         Assert.Equal("xxxx", suggestion.TpVersionToken);
         Assert.False(suggestion.HasTpVersion);
     }
+
+    /// <summary>The confirmed CtrlRAM edit owns the suggested TP token before output selection.</summary>
+    [Fact]
+    public void CtrlRamVersionEditOverridesInspectedTpToken()
+    {
+        WorkbenchOutputFileNameSuggestion suggestion =
+            WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(
+                "NT51926",
+                [new WorkbenchOutputNameInspectionCandidate(
+                    WorkbenchOutputNameCandidateKind.Base,
+                    null)],
+                new WorkbenchCtrlRamFirmwareVersionEdit(0x2A, 0x0C),
+                new DateOnly(2026, 7, 22));
+
+        Assert.Equal("NT51926_FlashCode_DxxxxT2A0C_20260722.bin", suggestion.FileName);
+        Assert.Equal("2A0C", suggestion.TpVersionToken);
+        Assert.True(suggestion.HasTpVersion);
+    }
 }

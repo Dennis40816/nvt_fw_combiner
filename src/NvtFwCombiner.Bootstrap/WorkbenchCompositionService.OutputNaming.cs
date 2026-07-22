@@ -37,6 +37,24 @@ public static partial class WorkbenchCompositionService
         return CreateOutputFileNameSuggestion(normalizedIc, dpVersion, tpVersion, date);
     }
 
+    /// <summary>Creates a CtrlRAM Replace suggestion using the user-confirmed TP version.</summary>
+    public static WorkbenchOutputFileNameSuggestion CreateFlashCodeOutputFileNameFromInspections(
+        string icId,
+        IReadOnlyList<WorkbenchOutputNameInspectionCandidate> candidates,
+        WorkbenchCtrlRamFirmwareVersionEdit firmwareVersionEdit,
+        DateOnly? date = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(candidates);
+        ArgumentNullException.ThrowIfNull(firmwareVersionEdit);
+
+        string normalizedIc = IcSupportCatalog.NormalizeIcId(icId);
+        string dpVersion = FindInspectedDpVersionToken(candidates) ?? UnknownVersionToken;
+        string tpVersion = FormattableString.Invariant(
+            $"{firmwareVersionEdit.FirmwareVersion:X2}{firmwareVersionEdit.FirmwareSubVersion:X2}");
+        return CreateOutputFileNameSuggestion(normalizedIc, dpVersion, tpVersion, date);
+    }
+
     private static WorkbenchOutputFileNameSuggestion CreateOutputFileNameSuggestion(
         string normalizedIc,
         string dpVersion,

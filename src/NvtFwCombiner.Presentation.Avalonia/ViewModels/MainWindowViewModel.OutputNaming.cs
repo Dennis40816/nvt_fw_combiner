@@ -12,6 +12,21 @@ public sealed partial class MainWindowViewModel
             [.. candidateSlots.Select(ToOutputNameInspectionCandidate)]).FileName;
     }
 
+    /// <summary>Creates the CtrlRAM Replace output name from the confirmed version choice.</summary>
+    public string CreateCtrlRamReplaceOutputFileName(WorkbenchCtrlRamFirmwareVersionEdit? edit)
+    {
+        WorkbenchOutputNameInspectionCandidate[] candidates =
+            [.. ReplaceSlots.Concat([ReplaceBaseSlot]).Select(ToOutputNameInspectionCandidate)];
+        return edit is null
+            ? WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(
+                SelectedIc,
+                candidates).FileName
+            : WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(
+                SelectedIc,
+                candidates,
+                edit).FileName;
+    }
+
     private WorkbenchOutputNameInspectionCandidate ToOutputNameInspectionCandidate(FirmwareSlotViewModel slot)
     {
         WorkbenchFirmwareInspection? inspection =

@@ -39,7 +39,7 @@ public sealed partial class CtrlRamFirmwareVersionModal : UserControl
 
         string? outputPath = await FirmwareFilePickerDialogs.PickReplacedFirmwareOutputPathAsync(
             storageProvider,
-            viewModel.ReplaceOutputFileName);
+            viewModel.CreateCtrlRamReplaceOutputFileName(edit));
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             return;

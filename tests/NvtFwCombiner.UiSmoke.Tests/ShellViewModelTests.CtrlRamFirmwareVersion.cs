@@ -46,6 +46,7 @@ public sealed partial class ShellViewModelTests
         Assert.NotNull(edit);
         Assert.Equal((byte)0x2A, edit.FirmwareVersion);
         Assert.Equal((byte)0x0C, edit.FirmwareSubVersion);
+        Assert.Contains("T2A0C_", viewModel.CreateCtrlRamReplaceOutputFileName(edit), StringComparison.Ordinal);
 
         viewModel.CloseCtrlRamFirmwareVersionModal();
         Assert.False(viewModel.IsCtrlRamFirmwareVersionModalOpen);
