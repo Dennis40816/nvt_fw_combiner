@@ -26,6 +26,34 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
     private const int HeaderCopyStart = 0x2D30C;
     private const int HeaderCopyLength = 0x200;
 
+    /// <summary>The full-flash owner golden supplies its own ChipNumber for NT51950 CMI naming.</summary>
+    [Fact]
+    public void FullFlashInspectionUsesEmbeddedChipNumberForOutputNaming()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+
+        Assert.Equal(Capacity, evidence.Expected.Bytes.Length);
+        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51950",
+            evidence.Expected.Path,
+            tpPath: null,
+            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.SingleChip));
+
+        WorkbenchFirmwareConfigMetadata firmwareConfig = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
+            inspection.FirmwareConfig);
+        Assert.Equal(1, firmwareConfig.ChipNumber);
+        WorkbenchCmiDpCodeMetadata cmi = Assert.IsType<WorkbenchCmiDpCodeMetadata>(inspection.CmiDpCode);
+        Assert.Equal("8600", cmi.VersionToken);
+
+        WorkbenchOutputFileNameSuggestion suggestion =
+            WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(
+                "NT51950",
+                [new WorkbenchOutputNameInspectionCandidate(WorkbenchOutputNameCandidateKind.Base, inspection)],
+                new WorkbenchCtrlRamFirmwareVersionEdit(0x80, 0x00),
+                new DateOnly(2026, 7, 22));
+        Assert.Equal("NT51950_FlashCode_D8600T8000_20260722.bin", suggestion.FileName);
+    }
+
     /// <summary>Locks the exact Standard Merge reconstruction and metadata admission facts.</summary>
     [Fact]
     public async Task StandardMergeReconstructsOwnerExpectedAndExactFirmwareContextAsync()

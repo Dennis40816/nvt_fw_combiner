@@ -115,6 +115,8 @@ public static partial class WorkbenchCompositionService
         FirmwareConfigMetadata? tpFirmwareConfig = string.Equals(path, tpPath, StringComparison.Ordinal)
             ? firmwareConfig
             : ReadFirmwareConfigMetadataValue(icId, tpImage);
+        FirmwareConfigMetadata? cmiFirmwareConfig = tpFirmwareConfig ??
+            (string.IsNullOrWhiteSpace(tpPath) ? firmwareConfig : null);
         LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
             icId,
             firmwareConfig,
@@ -128,7 +130,7 @@ public static partial class WorkbenchCompositionService
             detectedIcId ?? DetectFirmwareIcHintFromHeader(image),
             ReadFirmwareConfigMetadata(firmwareConfig, postbuildProfile),
             ReadDpVersionMetadata(icId, image),
-            ReadCmiDpCodeMetadata(icId, image, tpFirmwareConfig?.ChipNumber),
+            ReadCmiDpCodeMetadata(icId, image, cmiFirmwareConfig?.ChipNumber),
             ReadFirmwareContextSuggestion(icId, firmwareConfig),
             ctrlRamDisplay);
     }
