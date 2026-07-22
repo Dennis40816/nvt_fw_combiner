@@ -39,7 +39,7 @@ public sealed class AbMergeCliCommandTests
         Assert.Equal(0, result.ExitCode);
         Assert.Empty(result.Error);
         Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        using JsonDocument report = JsonDocument.Parse(await File.ReadAllTextAsync(
+        using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
             reportPath,
             TestContext.Current.CancellationToken));
         Assert.Equal(expectedIcId, report.RootElement.GetProperty("IcId").GetString());
