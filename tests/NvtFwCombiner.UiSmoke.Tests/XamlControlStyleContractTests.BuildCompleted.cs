@@ -24,7 +24,6 @@ public sealed partial class XamlControlStyleContractTests
         string shell = ReadPresentationFile("MainWindow.axaml");
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
         string shellStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
-        string railStyle = ExtractStyle(shellStyles, "Border.compositionActionRail");
         int latestOutputAction = shell.IndexOf("Command=\"{Binding RevealFileCommand}\"", StringComparison.Ordinal);
         int mergeBuildAction = shell.IndexOf("Click=\"BuildMergeButton_OnClick\"", StringComparison.Ordinal);
         int replaceBuildAction = shell.IndexOf("Click=\"BuildReplaceButton_OnClick\"", StringComparison.Ordinal);
@@ -33,11 +32,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("<ScrollViewer Grid.Row=\"3\">", shell, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"CompositionBuildActionRail\"", shell, StringComparison.Ordinal);
         Assert.Contains("Grid.Row=\"3\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ZIndex=\"1\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("ZIndex=\"1\"", shell, StringComparison.Ordinal);
         Assert.Contains("HorizontalAlignment=\"Right\"", shell, StringComparison.Ordinal);
         Assert.Contains("VerticalAlignment=\"Bottom\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"compositionActionRail\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsCompositionActionRailVisible}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsHitTestVisible=\"{Binding IsCompositionActionRailVisible}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsLatestOutputActionVisible}\"", shell, StringComparison.Ordinal);
         Assert.True(latestOutputAction >= 0);
         Assert.True(mergeBuildAction > latestOutputAction);
@@ -45,9 +44,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Orientation=\"Vertical\"", shell, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Button.railAction\"", buttonStyles, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"Button.floatingAction.build\"", buttonStyles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Border.compositionActionRail\"", shellStyles, StringComparison.Ordinal);
-        Assert.Contains("NfcSurfaceCornerRadius", railStyle, StringComparison.Ordinal);
-        Assert.DoesNotContain("NfcPillCornerRadius", railStyle, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selector=\"Border.compositionActionRail\"", shellStyles, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"toolbarAction\"", shell, StringComparison.Ordinal);
     }
 

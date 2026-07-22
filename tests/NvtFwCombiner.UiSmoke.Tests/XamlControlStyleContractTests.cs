@@ -3,10 +3,13 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Styling;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.Behaviors;
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 
@@ -96,6 +99,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"subtleSurface\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileDropZone\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileRevealAction\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Placement=\"Top\"", mappingRow, StringComparison.Ordinal);
+        AssertFileRevealToolTipRootDoesNotHitTest(mappingRow);
         Assert.Contains("Command=\"{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("CommandParameter=\"{Binding FilePath}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding SelectBinTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
@@ -116,12 +121,38 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsGuidanceVisible}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Placement=\"Top\"", slotCard, StringComparison.Ordinal);
+        AssertFileRevealToolTipRootDoesNotHitTest(slotCard);
         Assert.Contains("Classes=\"fileRevealAction\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Command=\"{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding DisplayName}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("CommandParameter=\"{Binding FilePath}\"", slotCard, StringComparison.Ordinal);
+    }
+
+    /// <summary>An already-open explicit tooltip is non-interactive and leaves the filename button's routed click intact.</summary>
+    [Fact]
+    public void OpenFileRevealToolTipDoesNotConsumeTheFilenameClick()
+    {
+        Control[] views = [new FirmwareSlotCard(), new GeneralMappingRow()];
+        foreach (Control view in views)
+        {
+            Button fileButton = Assert.Single(
+                view.GetLogicalDescendants().OfType<Button>(),
+                button => button.Classes.Contains("fileRevealAction"));
+            ToolTip tip = Assert.IsType<ToolTip>(ToolTip.GetTip(fileButton));
+            Assert.False(tip.IsHitTestVisible);
+
+            bool clicked = false;
+            fileButton.Click += (_, _) => clicked = true;
+            ToolTip.SetIsOpen(fileButton, true);
+
+            Assert.True(ToolTip.GetIsOpen(fileButton));
+            fileButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.True(clicked);
+
+            ToolTip.SetIsOpen(fileButton, false);
+        }
     }
 
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
@@ -240,6 +271,71 @@ public sealed partial class XamlControlStyleContractTests
             Assert.False(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: false, isHovered: false, state));
             Assert.False(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: true, isHovered: true, state));
         }
+    }
+
+    /// <summary>Every pixel inside a byte cell, including glyph-free corners, resolves to that byte.</summary>
+    [Theory]
+    [InlineData(100.01, 20.01, 0)]
+    [InlineData(129.99, 44.99, 0)]
+    [InlineData(130.00, 44.99, 1)]
+    [InlineData(159.99, 20.01, 1)]
+    [InlineData(160.00, 30.00, -1)]
+    [InlineData(120.00, 45.00, -1)]
+    public void HexEditorHoverUsesTheCompleteHalfOpenByteCell(
+        double x,
+        double y,
+        int expectedIndex)
+    {
+        int index = HexEditorViewportControl.ResolveCellIndex(
+            new Point(x, y),
+            cellStart: 100,
+            cellWidth: 30,
+            cellCount: 2,
+            rowTop: 20,
+            rowHeight: 25);
+
+        Assert.Equal(expectedIndex, index);
+    }
+
+    /// <summary>The arranged viewport uses full cell rectangles for hover and keeps click selection unchanged.</summary>
+    [Fact]
+    public async Task HexEditorArrangedViewportTracksHoverAtCellCornersAndExit()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-hex-hover-cell");
+        string sourcePath = workspace.Write("hover.bin", [.. Enumerable.Range(0, 32).Select(index => (byte)index)]);
+        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        await shell.HexEditorWorkspace.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
+        var viewport = new HexEditorViewportControl
+        {
+            DataContext = shell.HexEditorWorkspace,
+        };
+        viewport.Measure(new Size(1080, 50));
+        viewport.Arrange(new Rect(0, 0, 1080, 50));
+
+        Assert.True(viewport.TryGetCellAt(new Point(117, 1), out HexEditorByteCellViewModel? cell, out Rect bounds));
+        HexEditorByteCellViewModel resolvedCell = Assert.IsType<HexEditorByteCellViewModel>(cell);
+        Point[] glyphFreeCorners =
+        [
+            new(bounds.Left + 0.01, bounds.Top + 0.01),
+            new(bounds.Right - 0.01, bounds.Bottom - 0.01),
+        ];
+
+        foreach (Point point in glyphFreeCorners)
+        {
+            viewport.UpdateHoveredCell(point);
+            Assert.Equal(resolvedCell.Address, viewport.HoveredAddress);
+            Assert.True(HexEditorViewportControl.ShouldDrawHoverOutline(
+                isReference: false,
+                isHovered: true,
+                HexEditorCellVisualState.Normal));
+        }
+
+        viewport.ClearHoveredCell();
+        Assert.Null(viewport.HoveredAddress);
+
+        shell.HexEditorWorkspace.SelectByteCommand.Execute(resolvedCell);
+        Assert.Equal(resolvedCell.Address, shell.HexEditorWorkspace.SelectedByteAddress);
+        Assert.True(resolvedCell.IsSelected);
     }
 
     /// <summary>Ensures the Hex Editor inspector remains compact and the source and data surfaces share one workbench grid.</summary>
@@ -430,7 +526,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("ContentTemplate=\"{StaticResource HexEditorChangedBlockPagerTemplate}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("public override void Render(DrawingContext context)", viewport, StringComparison.Ordinal);
         Assert.Contains("DrawByte(context", viewport, StringComparison.Ordinal);
-        Assert.True(viewport.Split("_hoveredAddress,", StringSplitOptions.None).Length >= 3);
+        Assert.Contains("internal string? HoveredAddress { get; private set; }", viewport, StringComparison.Ordinal);
+        Assert.Contains("internal void UpdateHoveredCell(Point point)", viewportInteraction, StringComparison.Ordinal);
         Assert.Contains("CreateHexTextCache", renderingSupport, StringComparison.Ordinal);
         Assert.Contains("PointerPressed += OnPointerPressed", viewport, StringComparison.Ordinal);
         Assert.Contains("TryHitTestAscii", viewportInteraction, StringComparison.Ordinal);
@@ -488,6 +585,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("x:Name=\"HexDocumentSurface\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("HexViewport_OnScrollRequested", codeBehind, StringComparison.Ordinal);
         Assert.Contains("HexDocumentSurface_OnPointerWheelChanged", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("PointerMoved=\"HexDocumentSurface_OnPointerMoved\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("PointerExited=\"HexDocumentSurface_OnPointerExited\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("HexViewport.UpdateHoveredCell(e.GetPosition(HexViewport))", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("HexViewport.ClearHoveredCell()", codeBehind, StringComparison.Ordinal);
         Assert.Contains("HexDocumentSurface_OnDoubleTapped", codeBehind, StringComparison.Ordinal);
         Assert.Contains("QueueDocumentScroll", codeBehind, StringComparison.Ordinal);
         Assert.Contains("QueueViewportLayout", codeBehind, StringComparison.Ordinal);
@@ -617,6 +718,27 @@ public sealed partial class XamlControlStyleContractTests
     {
         return File.ReadAllText(
             RepositoryPaths.FromRepositoryRoot("src", "NvtFwCombiner.Presentation.Avalonia", relativePath));
+    }
+
+    private static void AssertFileRevealToolTipRootDoesNotHitTest(string xaml)
+    {
+        var document = XDocument.Parse(xaml);
+        XElement fileButton = Assert.Single(
+            document.Descendants(),
+            element =>
+                element.Name.LocalName == "Button" &&
+                ((string?)element.Attribute("Classes"))?
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Contains("fileRevealAction", StringComparer.Ordinal) == true);
+        XElement tipProperty = Assert.Single(
+            fileButton.Elements(),
+            element => element.Name.LocalName == "ToolTip.Tip");
+        XElement toolTip = Assert.Single(
+            tipProperty.Elements(),
+            element => element.Name.LocalName == "ToolTip");
+
+        Assert.Equal("False", (string?)toolTip.Attribute("IsHitTestVisible"));
+        Assert.Null(fileButton.Attribute("IsHitTestVisible"));
     }
 
     private static IEnumerable<string> ReadPresentationXamlFiles()

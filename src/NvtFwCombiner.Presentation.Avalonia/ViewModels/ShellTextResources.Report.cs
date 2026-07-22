@@ -29,6 +29,8 @@ public sealed partial class ShellTextResources
 
     public string LatestOutputOpenFolderLabel { get; private init; } = string.Empty;
 
+    public string LatestOutputActionLabel { get; private init; } = string.Empty;
+
     public string BuildCompletedOkLabel { get; private init; } = string.Empty;
 
     public string BuildCompletedOpenFolderError { get; private init; } = string.Empty;

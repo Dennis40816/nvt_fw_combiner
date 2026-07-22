@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -28,10 +29,44 @@ public sealed partial class MainWindowViewModel
     public bool IsDeviceContextVisible => IsRunInProgress || SelectedPage is ShellPage.Merge or ShellPage.Replace;
 
     /// <summary>True when the fixed composition action rail belongs to the active page.</summary>
-    public bool IsCompositionActionRailVisible => SelectedPage is ShellPage.Merge or ShellPage.Replace;
+    public bool IsCompositionActionRailVisible =>
+        (SelectedPage is ShellPage.Merge or ShellPage.Replace) && !IsBlockingSurfaceOpen;
 
     /// <summary>True when the current composition page can reopen the latest committed output.</summary>
     public bool IsLatestOutputActionVisible => IsCompositionActionRailVisible && HasLatestCommittedOutput;
+
+    private bool IsBlockingSurfaceOpen =>
+        IsReplaceSelectionModalOpen ||
+        IsCtrlRamFirmwareVersionModalOpen ||
+        IsWorkflowContextModalOpen ||
+        IsFirmwareIcMismatchModalOpen ||
+        IsFirmwareNumberMismatchModalOpen ||
+        IsNavigationClearConfirmationOpen ||
+        IsReportModalOpen ||
+        IsBuildCompletedModalOpen ||
+        LoadedHexEditorWorkspace?.IsInsertBytesPromptOpen == true ||
+        LoadedHexEditorWorkspace?.IsSaveConfirmationOpen == true;
+
+    private void MainWindowViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(IsReplaceSelectionModalOpen) or
+            nameof(IsCtrlRamFirmwareVersionModalOpen) or
+            nameof(IsWorkflowContextModalOpen) or
+            nameof(IsFirmwareIcMismatchModalOpen) or
+            nameof(IsFirmwareNumberMismatchModalOpen) or
+            nameof(IsNavigationClearConfirmationOpen) or
+            nameof(IsReportModalOpen) or
+            nameof(IsBuildCompletedModalOpen))
+        {
+            NotifyCompositionActionRailVisibilityChanged();
+        }
+    }
+
+    private void NotifyCompositionActionRailVisibilityChanged()
+    {
+        OnPropertyChanged(nameof(IsCompositionActionRailVisible));
+        OnPropertyChanged(nameof(IsLatestOutputActionVisible));
+    }
 
     /// <summary>True when the shared context row should expose the IC Number selector.</summary>
     public bool IsNumberSelectorVisible => IsRunInProgress

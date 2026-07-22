@@ -288,28 +288,27 @@
       </Grid>
     </ScrollViewer>
 
-    <Border
+    <StackPanel
         x:Name="CompositionBuildActionRail"
         Grid.Row="3"
         Margin="0,0,24,16"
-        ZIndex="1"
         HorizontalAlignment="Right"
         VerticalAlignment="Bottom"
-        Classes="compositionActionRail"
-        IsVisible="{Binding IsCompositionActionRailVisible}">
-      <StackPanel HorizontalAlignment="Right" Orientation="Vertical" Spacing="{DynamicResource NfcSpace8}">
+        IsHitTestVisible="{Binding IsCompositionActionRailVisible}"
+        IsVisible="{Binding IsCompositionActionRailVisible}"
+        Orientation="Vertical"
+        Spacing="{DynamicResource NfcSpace8}">
         <Button
             Classes="railAction outputRailAction"
             Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
             AutomationProperties.HelpText="{Binding Text.LatestOutputOpenFolderLabel}"
-            AutomationProperties.Name="{Binding Text.LatestOutputOpenFolderLabel}"
+            AutomationProperties.Name="{Binding Text.LatestOutputActionLabel}"
             Command="{Binding RevealFileCommand}"
             CommandParameter="{Binding LatestCommittedOutputPath}"
             IsVisible="{Binding IsLatestOutputActionVisible}">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
-            <TextBlock Classes="railActionLabel" Text="{Binding Text.LatestOutputOpenFolderLabel}" />
+          <Grid>
+            <TextBlock Classes="railActionLabel" Text="{Binding Text.LatestOutputActionLabel}" />
             <Path
-                Grid.Column="1"
                 Width="18"
                 Height="18"
                 Classes="railActionIcon"
@@ -327,10 +326,9 @@
             Click="BuildMergeButton_OnClick"
             IsEnabled="{Binding CanBuildMerge}"
             IsVisible="{Binding IsMergeVisible}">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+          <Grid>
             <TextBlock Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
             <Path
-                Grid.Column="1"
                 Width="18"
                 Height="18"
                 Classes="railActionIcon"
@@ -349,10 +347,9 @@
             Click="BuildReplaceButton_OnClick"
             IsEnabled="{Binding CanBuildReplace}"
             IsVisible="{Binding IsReplaceVisible}">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+          <Grid>
             <TextBlock Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
             <Path
-                Grid.Column="1"
                 Width="18"
                 Height="18"
                 Classes="railActionIcon"
@@ -363,8 +360,7 @@
                 StrokeThickness="1.8" />
           </Grid>
         </Button>
-      </StackPanel>
-    </Border>
+    </StackPanel>
 
     <ContentControl
         x:Name="ReportToastHost"

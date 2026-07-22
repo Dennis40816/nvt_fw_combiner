@@ -188,7 +188,10 @@ public sealed partial class ShellTextResources
                 "輸出 BIN 已經完成。你可以關閉此訊息，或在檔案總管中顯示檔案。"),
             BuildCompletedOutputLabel = Pick("Output BIN", "輸出 BIN"),
             BuildCompletedOpenFolderLabel = Pick("Show output BIN", "顯示輸出 BIN"),
-            LatestOutputOpenFolderLabel = Pick("Show latest output BIN", "顯示最新輸出 BIN"),
+            LatestOutputOpenFolderLabel = Pick(
+                "Reveal and focus the latest output in File Explorer",
+                "在檔案總管中顯示並選取最新輸出檔案"),
+            LatestOutputActionLabel = Pick("View file", "檢視檔案"),
             BuildCompletedOkLabel = Pick("OK", "確定"),
             BuildCompletedOpenFolderError = Pick(
                 "Explorer could not select the output BIN. It may have moved or been deleted.",

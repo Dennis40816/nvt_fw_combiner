@@ -235,6 +235,12 @@ public sealed partial class MainWindowViewModel
 
     private void HexEditorWorkspace_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(HexEditorWorkspaceViewModel.IsInsertBytesPromptOpen) or
+            nameof(HexEditorWorkspaceViewModel.IsSaveConfirmationOpen))
+        {
+            NotifyCompositionActionRailVisibilityChanged();
+        }
+
         if (e.PropertyName is not (nameof(HexEditorWorkspaceViewModel.CanSave) or
             nameof(HexEditorWorkspaceViewModel.ChangeCount) or
             nameof(HexEditorWorkspaceViewModel.IsInlineEditActive) or

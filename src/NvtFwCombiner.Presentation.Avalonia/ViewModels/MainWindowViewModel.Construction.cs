@@ -152,6 +152,7 @@ public sealed partial class MainWindowViewModel
         RevealFileCommand = new RelayCommand<string>(RevealFile);
         RevealBuildCompletedOutputCommand = new RelayCommand(RevealBuildCompletedOutput);
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
+        PropertyChanged += MainWindowViewModel_OnPropertyChanged;
         _isInitializing = false;
     }
 }

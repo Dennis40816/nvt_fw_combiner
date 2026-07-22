@@ -477,6 +477,16 @@ public sealed partial class HexEditorPanel : UserControl
         e.Handled = true;
     }
 
+    private void HexDocumentSurface_OnPointerMoved(object? sender, PointerEventArgs e)
+    {
+        HexViewport.UpdateHoveredCell(e.GetPosition(HexViewport));
+    }
+
+    private void HexDocumentSurface_OnPointerExited(object? sender, PointerEventArgs e)
+    {
+        HexViewport.ClearHoveredCell();
+    }
+
     private void HexDocumentSurface_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (DataContext is not HexEditorWorkspaceViewModel viewModel)

@@ -60,7 +60,17 @@
               Content="{Binding DisplayName}"
               HorizontalAlignment="Left"
               IsVisible="{Binding HasFile}"
-              ToolTip.Tip="{Binding DisplayDetail}" />
+              ToolTip.Placement="Top">
+            <ToolTip.Tip>
+              <ToolTip IsHitTestVisible="False">
+                <TextBlock
+                    MaxWidth="480"
+                    Classes="monoText"
+                    Text="{Binding DisplayDetail}"
+                    TextWrapping="Wrap" />
+              </ToolTip>
+            </ToolTip.Tip>
+          </Button>
           <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
