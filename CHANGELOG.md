@@ -14,6 +14,7 @@ Changes after `0.9.13` will be documented here.
 - The bottom-right action rail now overlays only its own compact footprint instead of reserving a full-width bottom band, so Build remains reachable without covering or shortening the lower workflow content. The report Inputs workspace owns its vertical scrolling, including when an expanded summary makes the page taller than the modal.
 - User-facing workflow labels are now `Standard Merge`, `Customized Merge`, and `Customized Replace`. Existing `Normal` and `General` contract tokens, CLI behavior, saved data, profiles, and automation remain unchanged.
 - NT51951 DP slot descriptions now state `(Initial Code + LDC)` for both Merge and DP Replace. This is guidance for the existing packaged payload shape and does not add a new input, range, or support claim.
+- Base-firmware memory coverage keeps its gray fill and adds black diagonal hatching, preserving the existing byte meaning while making retained base regions visibly distinct from the panel background.
 
 ### Fixed
 
@@ -30,7 +31,7 @@ Changes after `0.9.13` will be documented here.
 ### Notes
 
 - Upgrade by replacing the complete previous portable folder with `NvtFwCombiner-v0.9.13-win-x64`; do not copy only the EXE into an older or OneDrive-synchronized profile tree. Rollback restores the untouched `v0.9.12` folder and requires no saved-data or report migration.
-- The shared Raw Hex Editor/Change Report viewport, redesigned Changes workspace, AB Code production re-admission, and the full global Button pressed rollout are rescheduled intact to `v0.9.15`. Existing workflow-specific pressed cues remain; the global rollout still requires routed pointer/keyboard, disabled-state, reduced-motion, and effective high-contrast evidence.
+- AB Code production re-admission plus aligned Merge/Replace Mode placement and compact evidence-status icons are scheduled for `v0.9.14`. The shared Raw Hex Editor/Change Report viewport, redesigned Changes workspace, and full global Button pressed rollout remain scheduled for `v0.9.15`; the latter still requires routed pointer/keyboard, disabled-state, reduced-motion, and effective high-contrast evidence.
 - The release package is a self-contained Windows x64 ZIP with SHA-256, SBOM, and provenance sidecars. Verify those files before distribution. Clean-machine validation, accessibility assistive-technology review, legal review, and firmware-owner support promotion remain organizational gates and are not claimed by the local candidate.
 
 ## [0.9.12] - 2026-07-22

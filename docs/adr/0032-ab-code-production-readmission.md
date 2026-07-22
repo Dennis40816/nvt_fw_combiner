@@ -1,6 +1,6 @@
 # ADR 0032: Re-admit AB Code through typed production authority
 
-- Status: Accepted for `v0.9.15` planning; implementation remains R3-gated
+- Status: Accepted for `v0.9.14` planning; implementation remains R3-gated
 - Date: 2026-07-22
 - Owners: Product owner, architecture owner, firmware owner
 
@@ -27,7 +27,7 @@ from AB evidence instead of copying CtrlRAM Common-FW or Number semantics.
 
 ### Release boundary
 
-Owner reschedule, 2026-07-22: AB architecture re-admission moves to `v0.9.15`.
+Owner reschedule, 2026-07-22: AB architecture re-admission moves to `v0.9.14`.
 `v0.9.12` and the `v0.9.13` stabilization release change no AB
 profile, runtime route, processor authority, visibility, or support status.
 Existing AB candidates remain hidden and fail closed at the Application run
@@ -197,7 +197,7 @@ Each slice is an independent commit/test/review boundary.
 ## Consequences
 
 - `v0.9.12` remains behaviorally unchanged for every AB workflow.
-- `v0.9.15` gains a larger R3 planning and evidence phase before any user-facing
+- `v0.9.14` gains a larger R3 planning and evidence phase before any user-facing
   AB exposure.
 - Existing profiles and tests are preserved as migration evidence and rollback
   until replacement parity is reviewed.
