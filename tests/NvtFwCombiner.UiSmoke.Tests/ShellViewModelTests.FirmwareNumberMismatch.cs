@@ -123,6 +123,7 @@ public sealed partial class ShellViewModelTests
             tpPath,
             TestContext.Current.CancellationToken);
 
+        Assert.False(viewModel.IsNumberSelectorVisible);
         Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
     }
