@@ -29,7 +29,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.9.12` — CtrlRAM production-routing and interaction-stabilization milestone: start only from exact stable `v0.9.11`; replace golden-identity admission with IC/profile/typed-plan authority; improve failure feedback and navigation safety; add complete release notes and deterministic branch/review governance; and retain support-neutral firmware gates.
 - `v0.9.13` — urgent UI and release-stabilization milestone: correct action feedback/layout, exact-file reveal, TP-version UX/naming, Inputs scrolling, OneDrive diagnostics, NT51951 DP guidance, and Standard/Customized display labels without changing firmware behavior or support truth.
 - `v0.9.14` — AB architecture re-admission, targeted UI correctness, and release-automation milestone: re-audit the first owner-approved AB family under ADR 0032, add typed load diagnostics and the minimum AB authoring UI, add IC detail disclosure, fix file-hover hit testing, modal/action-rail layering, action-rail consistency, and empty Replace coverage semantics, reduce duplicate Actions work, and move stable tag/release creation behind one protected CI promotion.
-- `v0.9.15` — cross-workflow UI unification, shared Hex viewport, and interaction-feedback milestone: align Merge/Replace headers, Evidence presentation, and Memory coverage components, implement the owner-reviewed Changes redesign, and make every Button expose a distinct accessible pressed/click acknowledgement without moving host or firmware semantics into Presentation.
+- `v0.9.15` — AB Code delivery-readiness and review-automation milestone: start only from the official `v0.9.14` release commit, complete owner-authorized AB input/output usability and reviewer-facing delivery automation without promoting candidate ICs, and retain code size as a non-blocking review metric. The shared Hex viewport, Changes redesign, and global Button-feedback backlog are deferred to a later owner-selected milestone.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.10` are maintained in
@@ -59,7 +59,7 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.12` starts from stable `v0.9.11` at peeled commit `14470f95eafe810de08db03d3e0370e81d086338`. Its integration and feature branches follow [Branch, Version, and Release Governance](branch-version-and-release-governance.md); no stale `0.9.11` feature branch is a valid substitute baseline. CtrlRAM runtime/profile work remains support-neutral until its normal R3 evidence and firmware-owner gates close.
 - `0.9.13` starts from the exact latest reviewed `0.9.12` head and is limited to the support-neutral UI/release stabilization scope recorded in its changelog. It does not admit AB or alter firmware composition authority.
 - `0.9.14` starts from stable `v0.9.13`/`main` commit `f9f8dbcd979ecdef43f432016787e57763819492`. It owns AB re-admission as an R3 track under ADR 0032, typed input diagnostics, the minimum AB authoring surface, IC detail disclosure, targeted hover/modal/action-rail/coverage UI fixes, canonical toolchain/CI efficiency, and protected CI-owned stable release promotion. Existing AB candidates remain hidden until their exact route, evidence, review, and firmware-owner gates close.
-- `0.9.15` owns cross-workflow header/Evidence/Memory coverage unification, the deferred shared viewport, and global Button feedback Presentation work.
+- `0.9.15` starts from official `v0.9.14` tag `58f5bbf4cdbfb4e02036c8c1b40c48aa88fa21f7`, peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`. It owns owner-authorized AB Code delivery readiness, output-name/input-inspection correctness, and delivery-to-review automation. NT51950/NT51951 remain candidates and no candidate is promoted by this milestone. Cross-workflow header/Evidence/Memory coverage unification, the shared viewport, Changes redesign, and global Button feedback must be reassigned to a later owner-selected milestone before implementation.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
@@ -107,7 +107,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.12` | CtrlRAM routing and interaction stabilization | Use IC/effective profile/typed plan production authority, surface actionable failures, require complete release notes and deterministic branch/review governance, and preserve support-neutral R3 gates. |
 | `v0.9.13` | Urgent UI and release stabilization | Deliver support-neutral action feedback/layout, file reveal, TP-version UX/naming, Inputs scrolling, OneDrive diagnostics, NT51951 guidance, and terminology corrections. |
 | `v0.9.14` | AB re-admission and targeted UI correctness | Deliver separately gated typed AB production authority, the minimum AB authoring UI, IC details, and owner-approved hover, modal/action-rail, and empty Replace coverage fixes. |
-| `v0.9.15` | UI unification, shared Hex viewport, and Button feedback | Align workflow headers/Evidence/Memory coverage, deliver the reviewed read-only Changes redesign, and provide consistent accessible pressed/click acknowledgement. |
+| `v0.9.15` | AB delivery readiness and review automation | Start from official `v0.9.14`; complete owner-authorized AB input/output usability and delivery-to-review automation while keeping NT51950/NT51951 as candidates. Shared viewport/Changes/Button Presentation work is deferred pending a new owner-selected milestone. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -158,7 +158,7 @@ v0.9.11         reconstructed stabilization and release hygiene
 v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance
 v0.9.13         urgent UI and release stabilization
 v0.9.14         separately gated AB re-admission and targeted UI correctness fixes
-v0.9.15         cross-workflow UI unification, shared Hex/Changes, and global Button feedback
+v0.9.15         AB delivery readiness, input/output usability, and review automation
 v1.0.0          stable
 ```
 

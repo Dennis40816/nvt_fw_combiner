@@ -2,26 +2,30 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Locks the shared viewport and global Button acknowledgement backlog to v0.9.15.</summary>
+    /// <summary>Locks v0.9.15 to AB delivery readiness and keeps the Presentation backlog deferred.</summary>
     [Fact]
-    public void V0915OwnsSharedViewportAndGlobalButtonFeedback()
+    public void V0915OwnsAbDeliveryReadinessAndDefersPresentationBacklog()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string tags = ReadText("docs/governance/development-tags.md");
 
-        Assert.Contains("## v0.9.15: shared Hex viewport, Changes redesign, and interaction feedback", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Every interactive\nAvalonia `Button`", roadmap, StringComparison.Ordinal);
+        Assert.Contains("## v0.9.15: AB delivery readiness and review automation", roadmap, StringComparison.Ordinal);
+        Assert.Contains("peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`", roadmap, StringComparison.Ordinal);
+        Assert.Contains("No U0-U5 implementation is\nauthorized under `0.9.15`", roadmap, StringComparison.Ordinal);
+        Assert.Contains("later\nowner-selected milestone", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Every interactive Avalonia `Button`", roadmap, StringComparison.Ordinal);
         Assert.Contains("Pointer, touch, Space, and Enter", roadmap, StringComparison.Ordinal);
         Assert.Contains("Reduced-motion mode", roadmap, StringComparison.Ordinal);
         Assert.Contains("`v0.9.12` | CtrlRAM routing and interaction stabilization", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.15` | UI unification, shared Hex viewport, and Button feedback", tags, StringComparison.Ordinal);
-        Assert.DoesNotContain("Shared Hex viewport and Changes redesign work remain deferred to `0.9.12`", tags, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.15` | AB delivery readiness and review automation", tags, StringComparison.Ordinal);
+        Assert.Contains("peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`", tags, StringComparison.Ordinal);
+        Assert.DoesNotContain("`v0.9.15` | UI unification, shared Hex viewport, and Button feedback", tags, StringComparison.Ordinal);
 
         int progressionStart = tags.IndexOf("## Progression", StringComparison.Ordinal);
         int progressionEnd = tags.IndexOf("## Rules", StringComparison.Ordinal);
         string progression = tags[progressionStart..progressionEnd];
         Assert.Contains("v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance", progression, StringComparison.Ordinal);
-        Assert.Contains("v0.9.15         cross-workflow UI unification, shared Hex/Changes, and global Button feedback", progression, StringComparison.Ordinal);
+        Assert.Contains("v0.9.15         AB delivery readiness, input/output usability, and review automation", progression, StringComparison.Ordinal);
         Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
     }
 
