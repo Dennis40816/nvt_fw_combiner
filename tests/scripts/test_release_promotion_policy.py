@@ -287,6 +287,34 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         expected_message=TAG_MESSAGE,
                     )
 
+    def test_existing_tag_accepts_only_equivalent_crlf_line_endings(self) -> None:
+        tag_ref = {"object": {"type": "tag", "sha": TAG_OBJECT_SHA}}
+        tag_object = {
+            "sha": TAG_OBJECT_SHA,
+            "tag": "v0.9.14",
+            "object": {"type": "commit", "sha": SHA},
+            "message": TAG_MESSAGE,
+        }
+
+        MODULE.validate_existing_tag(
+            tag_ref,
+            tag_object,
+            expected_tag="v0.9.14",
+            source_sha=SHA,
+            expected_message=TAG_MESSAGE.replace("\n", "\r\n"),
+        )
+
+        for mutation in (" ", "\t", "\r", "\n"):
+            with self.subTest(mutation=repr(mutation)):
+                with self.assertRaisesRegex(ValueError, "message differs"):
+                    MODULE.validate_existing_tag(
+                        tag_ref,
+                        {**tag_object, "message": TAG_MESSAGE + mutation},
+                        expected_tag="v0.9.14",
+                        source_sha=SHA,
+                        expected_message=TAG_MESSAGE,
+                    )
+
     def test_existing_release_metadata_returns_zero_one_or_all_names_as_arrays(
         self,
     ) -> None:

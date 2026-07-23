@@ -411,7 +411,7 @@ def validate_existing_tag(
     message = tag_object.get("message")
     _require(isinstance(message, str), "annotated tag message is missing")
     _require(
-        message.strip() == expected_message.strip(),
+        message.replace("\r\n", "\n") == expected_message.replace("\r\n", "\n"),
         "annotated tag message differs from the candidate",
     )
 
