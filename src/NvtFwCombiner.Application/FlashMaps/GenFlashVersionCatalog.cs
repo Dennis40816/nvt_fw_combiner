@@ -25,7 +25,7 @@ public static class GenFlashVersionCatalog
         "private 51929 replacement DP golden (SHA-256 91ce8204d7dc6103a015eba59f9ddb41ef5d1a64c101aa62a4fe7c4517f5cebf) " +
         "cross-checked against the legacy DP major version rule. See owner-handoff/combiner-and-51929/CASE.md.";
     private const string Nt51930CmiEvidence =
-        "Owner-confirmed NT51930 FlashCode CMI Reg16h-18h location [0x18, 0x1B), 2026-07-23; " +
+        "Owner-confirmed NT51930 FlashCode CMI Reg16h-18h location [0x18, 0x1B), 2026-07-22; " +
         "ctrlram-replace direct owner golden expected FlashCode cross-checks AUTO_PRJ-302 / D05.";
     private const string Nt51923CmiEvidence =
         "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +

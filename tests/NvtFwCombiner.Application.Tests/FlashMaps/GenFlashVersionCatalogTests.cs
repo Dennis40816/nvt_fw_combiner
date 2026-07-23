@@ -267,6 +267,7 @@ public sealed class GenFlashVersionCatalogTests
         Assert.Equal(0x0, metadata.MinorVersionNibble);
         Assert.Equal(302, metadata.JiraNumber);
         Assert.True(metadata.IsExpectedPayloadLength);
+        Assert.Contains("[0x18, 0x1B), 2026-07-22", metadata.EvidenceSource, StringComparison.Ordinal);
     }
 
     /// <summary>Unobserved DP sizes remain readable for metadata and are surfaced as warnings rather than build blockers.</summary>
