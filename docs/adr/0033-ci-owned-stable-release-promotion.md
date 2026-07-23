@@ -82,6 +82,13 @@ even though CI rather than a local operator creates that tag.
   job receives `contents: write`.
 - Pull-request code never receives release secrets, a write token, or access to
   the protected release environment.
+- The normal path requires an exact-head GitHub approval. When GitHub forbids
+  the repository owner's sole identity from approving its own PR, an explicit,
+  default-off dispatch exception may be used only when that same repository
+  owner authored the merged PR and dispatched the workflow. The evidence
+  snapshot records the exception; it cannot bypass a `CHANGES_REQUESTED`
+  decision, CI checks, immutable-source checks, or the protected `release`
+  environment's final human approval.
 - `pull_request_target` is forbidden.
 - Release notes are passed as a validated file, not interpolated as executable
   PowerShell or shell source.

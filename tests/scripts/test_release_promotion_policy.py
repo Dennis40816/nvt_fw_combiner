@@ -43,15 +43,24 @@ def valid_snapshot() -> dict[str, object]:
 
 
 class ReleasePromotionPolicyTests(unittest.TestCase):
+    @staticmethod
+    def candidate_arguments() -> dict[str, object]:
+        return {
+            "requested_sha": SHA,
+            "workflow_sha": SHA,
+            "workflow_ref": "refs/heads/main",
+            "source_sha": SHA,
+            "main_sha": SHA,
+            "source_tree": TREE,
+            "repository_owner": "release-owner",
+            "workflow_actor": "release-owner",
+            "owner_self_approval_exception": False,
+        }
+
     def test_accepts_only_exact_reviewed_main_identity(self) -> None:
         MODULE.validate_candidate_context(
             valid_snapshot(),
-            requested_sha=SHA,
-            workflow_sha=SHA,
-            workflow_ref="refs/heads/main",
-            source_sha=SHA,
-            main_sha=SHA,
-            source_tree=TREE,
+            **self.candidate_arguments(),
         )
 
     def test_rejects_tree_review_and_required_check_drift(self) -> None:
@@ -73,12 +82,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     MODULE.validate_candidate_context(
                         snapshot,
-                        requested_sha=SHA,
-                        workflow_sha=SHA,
-                        workflow_ref="refs/heads/main",
-                        source_sha=SHA,
-                        main_sha=SHA,
-                        source_tree=TREE,
+                        **self.candidate_arguments(),
                     )
 
     def test_rejects_non_main_workflow_or_stale_sha(self) -> None:
@@ -90,13 +94,48 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     MODULE.validate_candidate_context(
                         valid_snapshot(),
-                        requested_sha=SHA,
-                        workflow_sha=workflow_sha,
-                        workflow_ref=workflow_ref,
-                        source_sha=SHA,
-                        main_sha=SHA,
-                        source_tree=TREE,
+                        **{
+                            **self.candidate_arguments(),
+                            "workflow_sha": workflow_sha,
+                            "workflow_ref": workflow_ref,
+                        },
                     )
+
+    def test_owner_self_approval_exception_is_explicit_and_owner_bound(self) -> None:
+        snapshot = valid_snapshot()
+        snapshot["reviewDecision"] = ""
+        snapshot["approvals"] = []
+        snapshot["authorLogin"] = "release-owner"
+        snapshot["repositoryOwner"] = "release-owner"
+        snapshot["workflowActor"] = "release-owner"
+        snapshot["ownerSelfApprovalException"] = True
+        arguments = {
+            **self.candidate_arguments(),
+            "owner_self_approval_exception": True,
+        }
+
+        MODULE.validate_candidate_context(snapshot, **arguments)
+
+        for key, value, message in (
+            ("owner_self_approval_exception", False, "no current-head approval"),
+            ("workflow_actor", "other-user", "must be dispatched"),
+        ):
+            with self.subTest(key=key):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_candidate_context(
+                        snapshot, **{**arguments, key: value}
+                    )
+
+        for key, value, message in (
+            ("authorLogin", "other-user", "author the PR"),
+            ("workflowActor", "other-user", "identity differs"),
+            ("ownerSelfApprovalException", False, "not recorded"),
+            ("reviewDecision", "CHANGES_REQUESTED", "not approved"),
+        ):
+            with self.subTest(key=key):
+                mutated = {**snapshot, key: value}
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_candidate_context(mutated, **arguments)
 
     def test_fresh_promotion_requires_current_main_but_recovery_allows_advance(
         self,

@@ -36,6 +36,9 @@ def validate_candidate_context(
     source_sha: str,
     main_sha: str,
     source_tree: str,
+    repository_owner: str,
+    workflow_actor: str,
+    owner_self_approval_exception: bool,
 ) -> None:
     """Fail unless the candidate is the reviewed final PR merged at current main."""
 
@@ -70,24 +73,49 @@ def validate_candidate_context(
         snapshot.get("headTree") == source_tree,
         "reviewed PR tree differs from the candidate tree",
     )
-    _require(
-        snapshot.get("reviewDecision") == "APPROVED", "reviewed PR is not approved"
-    )
     head_sha = snapshot.get("headSha")
     _require(isinstance(head_sha, str), "reviewed PR head SHA is missing")
     _require_sha(head_sha, "reviewed PR head SHA")
     approvals = snapshot.get("approvals")
-    _require(
-        isinstance(approvals, list) and bool(approvals),
-        "reviewed PR has no current-head approval",
-    )
-    _require(
-        all(
-            isinstance(item, dict) and item.get("commitSha") == head_sha
-            for item in approvals
-        ),
-        "reviewed PR approval is stale or malformed",
-    )
+    review_decision = snapshot.get("reviewDecision")
+    if review_decision == "APPROVED":
+        _require(
+            isinstance(approvals, list) and bool(approvals),
+            "reviewed PR has no current-head approval",
+        )
+        _require(
+            all(
+                isinstance(item, dict) and item.get("commitSha") == head_sha
+                for item in approvals
+            ),
+            "reviewed PR approval is stale or malformed",
+        )
+    else:
+        _require(
+            review_decision in {None, ""}, "reviewed PR is not approved"
+        )
+        _require(
+            owner_self_approval_exception,
+            "reviewed PR has no current-head approval",
+        )
+        _require(
+            isinstance(repository_owner, str) and repository_owner != "" and
+            workflow_actor == repository_owner,
+            "owner self-approval exception must be dispatched by the repository owner",
+        )
+        _require(
+            snapshot.get("repositoryOwner") == repository_owner and
+            snapshot.get("workflowActor") == workflow_actor,
+            "owner self-approval exception identity differs from release evidence",
+        )
+        _require(
+            snapshot.get("authorLogin") == repository_owner,
+            "owner self-approval exception requires the repository owner to author the PR",
+        )
+        _require(
+            snapshot.get("ownerSelfApprovalException") is True,
+            "owner self-approval exception was not recorded in review evidence",
+        )
     checks = snapshot.get("requiredChecks")
     _require(
         isinstance(checks, list) and bool(checks), "reviewed PR has no required checks"
@@ -522,6 +550,11 @@ def parse_args() -> argparse.Namespace:
         "source-tree",
     ):
         context.add_argument(f"--{name}", required=True)
+    context.add_argument("--repository-owner", required=True)
+    context.add_argument("--workflow-actor", required=True)
+    context.add_argument(
+        "--owner-self-approval-exception", choices=("true", "false"), required=True
+    )
 
     for command in ("create-manifest", "verify-manifest"):
         manifest = subparsers.add_parser(command)
@@ -579,6 +612,9 @@ def main() -> int:
             source_sha=args.source_sha,
             main_sha=args.main_sha,
             source_tree=args.source_tree,
+            repository_owner=args.repository_owner,
+            workflow_actor=args.workflow_actor,
+            owner_self_approval_exception=args.owner_self_approval_exception == "true",
         )
     elif args.command == "create-manifest":
         manifest_path = create_candidate_manifest(

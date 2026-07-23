@@ -11,6 +11,11 @@ on:
         description: Final reviewed pull request merged as this main commit
         required: true
         type: string
+      owner_self_approval_exception:
+        description: Sole repository-owner exception when GitHub forbids author approval; protected release approval still applies
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -46,6 +51,7 @@ jobs:
         env:
           NFC_RELEASE_COMMIT: ${{ inputs.commit }}
           NFC_RELEASE_PR: ${{ inputs.pull_request }}
+          NFC_OWNER_SELF_APPROVAL_EXCEPTION: ${{ inputs.owner_self_approval_exception }}
           NFC_WORKFLOW_REF: ${{ github.ref }}
           NFC_WORKFLOW_SHA: ${{ github.workflow_sha }}
         run: |
@@ -54,6 +60,9 @@ jobs:
           }
           if ($env:NFC_RELEASE_PR -notmatch '^[1-9][0-9]*$') {
             throw 'Release requires one positive final pull-request number.'
+          }
+          if ($env:NFC_OWNER_SELF_APPROVAL_EXCEPTION -notin @('true', 'false')) {
+            throw 'The owner self-approval exception input is invalid.'
           }
           if ($env:NFC_WORKFLOW_REF -ne 'refs/heads/main') {
             throw 'The release workflow must be dispatched from protected main.'
@@ -112,11 +121,14 @@ jobs:
           NFC_WORKFLOW_REF: ${{ github.ref }}
           NFC_SOURCE_SHA: ${{ steps.identity.outputs.source-sha }}
           NFC_SOURCE_TREE: ${{ steps.identity.outputs.source-tree }}
+          NFC_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          NFC_WORKFLOW_ACTOR: ${{ github.actor }}
+          NFC_OWNER_SELF_APPROVAL_EXCEPTION: ${{ inputs.owner_self_approval_exception }}
         run: |
           $evidenceRoot = Join-Path '${{ github.workspace }}' 'artifacts/release-evidence'
           New-Item -ItemType Directory -Force -Path $evidenceRoot | Out-Null
           $prText = gh pr view $env:NFC_PULL_REQUEST --repo $env:NFC_REPOSITORY `
-            --json number,state,mergedAt,baseRefName,mergeCommit,headRefOid,reviewDecision
+            --json number,state,mergedAt,baseRefName,mergeCommit,headRefOid,reviewDecision,author
           if ($LASTEXITCODE -ne 0) { throw 'Final PR evidence could not be read.' }
           $pr = $prText | ConvertFrom-Json
           $headCommitText = gh api "repos/$env:NFC_REPOSITORY/git/commits/$($pr.headRefOid)"
@@ -148,6 +160,10 @@ jobs:
             headSha = [string]$pr.headRefOid
             headTree = [string]$headCommit.tree.sha
             reviewDecision = [string]$pr.reviewDecision
+            authorLogin = [string]$pr.author.login
+            repositoryOwner = $env:NFC_REPOSITORY_OWNER
+            workflowActor = $env:NFC_WORKFLOW_ACTOR
+            ownerSelfApprovalException = $env:NFC_OWNER_SELF_APPROVAL_EXCEPTION -eq 'true'
             approvals = $approvals
             requiredChecks = @($checks)
           }
@@ -160,7 +176,10 @@ jobs:
             --workflow-ref $env:NFC_WORKFLOW_REF `
             --source-sha $env:NFC_SOURCE_SHA `
             --main-sha $env:NFC_SOURCE_SHA `
-            --source-tree $env:NFC_SOURCE_TREE
+            --source-tree $env:NFC_SOURCE_TREE `
+            --repository-owner $env:NFC_REPOSITORY_OWNER `
+            --workflow-actor $env:NFC_WORKFLOW_ACTOR `
+            --owner-self-approval-exception $env:NFC_OWNER_SELF_APPROVAL_EXCEPTION
           if ($LASTEXITCODE -ne 0) { throw 'Final PR review/tree/check policy failed.' }
       - name: Require readable stable tag and Release state
         shell: pwsh

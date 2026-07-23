@@ -306,6 +306,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("contents: write", release_workflow)
         self.assertIn("scripts/render_release_notes.py", release_workflow)
         self.assertIn("release_promotion_policy.py validate-context", release_workflow)
+        self.assertIn("owner_self_approval_exception:", release_workflow)
+        self.assertIn("NFC_REPOSITORY_OWNER: ${{ github.repository_owner }}", release_workflow)
+        self.assertIn("NFC_WORKFLOW_ACTOR: ${{ github.actor }}", release_workflow)
+        self.assertIn("--owner-self-approval-exception", release_workflow)
         self.assertIn(
             "release_promotion_policy.py validate-promotion-source", release_workflow
         )
