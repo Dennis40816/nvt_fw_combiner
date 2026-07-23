@@ -178,6 +178,9 @@ public sealed record WorkbenchProfileSummary(
     bool CompileSucceeded,
     IReadOnlyList<string> IssueCodes);
 
+/// <summary>One profile-owned AB Merge topology choice exposed only when map selection requires it.</summary>
+public sealed record WorkbenchAbMergeTopologyChoice(string Token, string DisplayLabel);
+
 /// <summary>Firmware facts read from the canonical NVT-located FWConfig Backup block.</summary>
 public sealed record WorkbenchFirmwareConfigMetadata(
     long FirmwareConfigBackupStart,
@@ -192,7 +195,20 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     FirmwareConfigHardwareMetadata Hardware);
 
 /// <summary>DP version token projected without exposing the application flash-map catalog type.</summary>
-public readonly record struct WorkbenchDpVersionMetadata(string VersionToken);
+public readonly record struct WorkbenchDpVersionMetadata(string VersionToken)
+{
+    /// <summary>Human-readable DP version shared by every workbench input surface.</summary>
+    public string DisplayValue => FormatDisplayValue(VersionToken);
+
+    /// <summary>Formats the canonical four-hex-digit DP token for workbench display.</summary>
+    public static string FormatDisplayValue(string versionToken)
+    {
+        ArgumentNullException.ThrowIfNull(versionToken);
+        return versionToken.Length == 4
+            ? $"D{versionToken[..2]}-{versionToken[2..]}"
+            : $"D{versionToken}";
+    }
+}
 
 /// <summary>CMI DP facts projected for output naming and shell display.</summary>
 public readonly record struct WorkbenchCmiDpCodeMetadata(
@@ -251,7 +267,8 @@ public sealed record WorkbenchFirmwareInspectionInput(
     string Path,
     string? TpPath = null,
     WorkbenchCtrlRamInspectionRequest? CtrlRamRequest = null,
-    string? AbMergeAddressSpaceId = null);
+    string? AbMergeAddressSpaceId = null,
+    string? AbMergeTopologyToken = null);
 
 /// <summary>One named materialized result from a shared distinct-path read batch.</summary>
 public sealed record WorkbenchFirmwareInspectionResult(
@@ -361,7 +378,61 @@ public sealed record WorkbenchRunResult(
     /// <summary>Non-serialized in-memory bytes available to the current desktop inspection session.</summary>
     [JsonIgnore]
     public CompositionRunInspectionSnapshot? InspectionSnapshot { get; internal init; }
+
+    /// <summary>Non-serialized immutable output bytes retained only for a declared follow-up delivery artifact.</summary>
+    [JsonIgnore]
+    internal ReadOnlyMemory<byte> OutputBytes { get; init; }
+
+    /// <summary>Non-serialized automatic naming provenance from the authoritative AB execution.</summary>
+    [JsonIgnore]
+    internal OutputNamingSummary? OutputNaming { get; init; }
+
+    /// <summary>Additional artifacts delivered from the completed primary output.</summary>
+    [JsonIgnore]
+    public IReadOnlyList<WorkbenchDeliveryArtifact> DeliveryArtifacts { get; init; } = [];
+
+    /// <summary>True when every selected delivery artifact was committed.</summary>
+    [JsonIgnore]
+    public bool IsDeliveryComplete { get; init; } = true;
+
+    /// <summary>Operator-safe detail when the primary output committed but a requested additional delivery did not.</summary>
+    [JsonIgnore]
+    public string? DeliveryFailureMessage { get; init; }
 }
+
+/// <summary>One profile-declared optional A-bank delivery proposed before a Build commits output.</summary>
+public sealed class WorkbenchAbAFlashCodeDeliveryPlan
+{
+    internal WorkbenchAbAFlashCodeDeliveryPlan(
+        string profileId,
+        IReadOnlyList<string> inputPaths,
+        ByteRange sourceRange,
+        string suggestedFileName)
+    {
+        ProfileId = profileId;
+        InputPaths = inputPaths;
+        SourceRange = sourceRange;
+        SuggestedFileName = suggestedFileName;
+    }
+
+    /// <summary>Standard FlashCode filename rendered from the same accepted AB naming tokens as the primary output.</summary>
+    public string SuggestedFileName { get; }
+
+    internal string ProfileId { get; }
+
+    internal IReadOnlyList<string> InputPaths { get; }
+
+    internal ByteRange SourceRange { get; }
+}
+
+/// <summary>One additional artifact committed from a primary composition output.</summary>
+public sealed record WorkbenchDeliveryArtifact(
+    string DeliveryKind,
+    string OutputPath,
+    string OutputFileName,
+    long OutputSize,
+    ByteRange SourceRange,
+    string Sha256);
 
 internal sealed record CoverageSegment(
     ByteRange Range,

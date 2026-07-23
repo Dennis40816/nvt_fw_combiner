@@ -261,6 +261,7 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(ReportToastHost, viewModel.HasReportToast, viewModel);
         LoadContent(ReplaceSelectionModalHost, viewModel.IsReplaceSelectionModalOpen, viewModel);
         LoadContent(CtrlRamFirmwareVersionModalHost, viewModel.IsCtrlRamFirmwareVersionModalOpen, viewModel);
+        LoadContent(AbAFlashCodeDeliveryPromptModalHost, viewModel.IsAbAFlashCodeDeliveryPromptOpen, viewModel);
         LoadContent(WorkflowContextSetupModalHost, viewModel.IsWorkflowContextModalOpen, viewModel);
         LoadContent(FirmwareIcMismatchModalHost, viewModel.IsFirmwareIcMismatchModalOpen, viewModel);
         LoadContent(FirmwareNumberMismatchModalHost, viewModel.IsFirmwareNumberMismatchModalOpen, viewModel);

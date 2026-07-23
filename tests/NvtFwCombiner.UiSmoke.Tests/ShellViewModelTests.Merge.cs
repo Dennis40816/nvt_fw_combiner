@@ -10,6 +10,20 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    /// <summary>The unavailable AB readiness hint directs the user to declared routes without duplicating catalog facts.</summary>
+    [Fact]
+    public void AbMergeUnavailableReadinessDirectsToDeclaredRoutes()
+    {
+        MainWindowViewModel english = ShellViewModelFactory.Create();
+        MainWindowViewModel traditionalChinese = ShellViewModelFactory.Create(ShellLanguage.ChineseTraditional);
+
+        string englishHint = english.Text.GetAbMergeReadinessStatus("NT51917", false, 0, 0, 0, 0);
+        string traditionalChineseHint = traditionalChinese.Text.GetAbMergeReadinessStatus("NT51917", false, 0, 0, 0, 0);
+
+        Assert.Contains("declared AB Code route", englishHint, StringComparison.Ordinal);
+        Assert.Contains("已宣告的 AB Code 路徑", traditionalChineseHint, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies Normal Merge hides IC Number while preserving row layout space.</summary>
     [Fact]
     public void NormalMergeHidesNumberSelectorButKeepsPlaceholder()
@@ -21,7 +35,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.IsDeviceContextVisible);
         Assert.True(viewModel.IsNormalMergeModeSelected);
-        Assert.Equal(["Normal", "General"], viewModel.MergeModeChoices);
+        Assert.Equal(["Normal", "AB Code", "General"], viewModel.MergeModeChoices);
         Assert.False(viewModel.IsNumberSelectorVisible);
         Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.DeviceContextStatus);
@@ -34,25 +48,46 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("NT51950 / single: refresh profile, slots, validation", viewModel.DeviceContextStatus);
     }
 
-    /// <summary>AB Code is exposed only for the approved pilot and its Home entry cannot select another IC.</summary>
+    /// <summary>Every admitted Standard Merge profile keeps IC Number out of its authoring context.</summary>
     [Fact]
-    public void AbMergeExposureAndHomeContextAreLimitedToApprovedPilot()
+    public void EverySupportedStandardMergeHidesNumberSelector()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Assert.DoesNotContain(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
+        viewModel.ShowMergeCommand.Execute(null);
+
+        foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetStandardMergeProfileSummaries())
+        {
+            viewModel.SelectedIc = profile.IcId;
+
+            Assert.True(viewModel.IsNormalMergeModeSelected, profile.IcId);
+            Assert.True(viewModel.IsStandardMergeSupported, profile.IcId);
+            Assert.False(viewModel.IsNumberSelectorVisible, profile.IcId);
+            Assert.True(viewModel.IsNumberSelectorPlaceholderVisible, profile.IcId);
+        }
+    }
+
+    /// <summary>AB Code is available for all function-open profiles and Home exposes only those ICs.</summary>
+    [Fact]
+    public void AbMergeExposureAndHomeContextContainAllFunctionOpenProfiles()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
         viewModel.SelectedIc = "NT51929";
         Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
         viewModel.SelectedIc = "NT51950";
-        Assert.DoesNotContain(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
+        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
+        viewModel.SelectedIc = "NT51951";
+        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
 
         viewModel.BeginAbMergeFromHomeCommand.Execute(null);
 
         Assert.True(viewModel.IsWorkflowContextModalOpen);
         Assert.Equal(
-            ["NT51919", "NT51929", "NT51932"],
+            ["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"],
             viewModel.WorkflowContextSetup.IcChoices);
-        Assert.Equal("NT51919", viewModel.WorkflowContextSetup.SelectedIc);
+        Assert.Equal("NT51951", viewModel.WorkflowContextSetup.SelectedIc);
 
         viewModel.WorkflowContextSetup.SelectedIc = "NT51929";
         viewModel.ConfirmWorkflowContextCommand.Execute(null);
@@ -63,12 +98,53 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
         Assert.Equal("NT51929", viewModel.SelectedIc);
         Assert.Equal(
+            ["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"],
+            viewModel.IcChoices);
+        Assert.Equal(
             [
                 CompositionAddressSpaceIds.DpAbInput,
                 CompositionAddressSpaceIds.TpAInput,
                 CompositionAddressSpaceIds.TpBInput,
             ],
             viewModel.MergeSlots.Select(static slot => slot.SlotId));
+    }
+
+    /// <summary>NT51950 selects its profile-owned physical layout through the shared IC Number context.</summary>
+    [Fact]
+    public void Nt51950AbMergeSelectsSingleOrCascadeTopology()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedIc = "NT51950";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+
+        Assert.True(viewModel.HasAbMergeTopologyChoices);
+        Assert.True(viewModel.IsNumberSelectorVisible);
+        Assert.False(viewModel.IsNumberSelectorPlaceholderVisible);
+        Assert.Equal(
+            ["single", "cascade"],
+            viewModel.AbMergeTopologyChoices.Select(static choice => choice.Token));
+        Assert.Equal(
+            ["single", "cascade"],
+            viewModel.NumberSelectionChoices.Select(static choice => choice.Token));
+        Assert.Equal("single", viewModel.SelectedNumber);
+        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.MergeMemoryRangeLabel);
+
+        viewModel.SelectedNumber = "cascade";
+
+        Assert.Equal("cascade", viewModel.SelectedNumber);
+        Assert.Equal("0x00000-0xFFFFF (len 0x100000)", viewModel.MergeMemoryRangeLabel);
+
+        viewModel.SelectedIc = "NT51951";
+        Assert.True(viewModel.IsAbMergeSupported);
+        Assert.False(viewModel.HasAbMergeTopologyChoices);
+        Assert.False(viewModel.IsNumberSelectorVisible);
+        Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
+        Assert.Empty(viewModel.NumberSelectionChoices);
+
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.Standard;
+
+        Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.IcChoices);
     }
 
     /// <summary>AB inputs publish independent versions and typed health before Preview becomes available.</summary>
@@ -82,8 +158,10 @@ public sealed partial class ShellViewModelTests
         WriteUiAbCmi(dp, 0, major: 0x06, minor: 0x05, jira: 0x123);
         WriteUiAbCmi(dp, tpLength, major: 0x07, minor: 0x08, jira: 0x456);
         string dpPath = workspace.Write("dp-ab.bin", dp);
-        string tpAPath = workspace.Write("tp-a.bin", CreateUiAbTpImage(0x81, 0x00));
-        string tpBPath = workspace.Write("tp-b.bin", CreateUiAbTpImage(0x82, 0x03));
+        string tpAPath = workspace.Write("tp-a.bin", CreateUiAbTpImage(
+            0x81, 0x00, commonFwMajor: 1, commonFwMinor: 4, commonFwAdditional: 1, projectId: 0x5102));
+        string tpBPath = workspace.Write("tp-b.bin", CreateUiAbTpImage(
+            0x82, 0x03, commonFwMajor: 2, commonFwMinor: 0, commonFwAdditional: 0, projectId: 0x6A5C));
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51929";
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
@@ -110,21 +188,123 @@ public sealed partial class ShellViewModelTests
         });
         FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
-        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP1" && fact.Value.StartsWith("D0605", StringComparison.Ordinal));
-        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP2" && fact.Value.StartsWith("D0708", StringComparison.Ordinal));
+        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP1" && fact.Value.StartsWith("D06-05", StringComparison.Ordinal));
+        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP2" && fact.Value.StartsWith("D07-08", StringComparison.Ordinal));
+        FirmwareSlotViewModel tpASlot = viewModel.MergeSlots.Single(
+            static slot => slot.SlotId == CompositionAddressSpaceIds.TpAInput);
         Assert.Contains(
-            viewModel.MergeSlots.Single(static slot => slot.SlotId == CompositionAddressSpaceIds.TpAInput).FirmwareFacts,
+            tpASlot.FirmwareFacts,
             static fact => fact.Label == "TPA" && fact.Value == "T81-00");
+        Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "Common FW" && fact.Value == "1.4.1");
+        Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x5102");
+        Assert.DoesNotContain(tpASlot.FirmwareFacts, static fact => fact.Label == "TP");
+        FirmwareSlotViewModel tpBSlot = viewModel.MergeSlots.Single(
+            static slot => slot.SlotId == CompositionAddressSpaceIds.TpBInput);
         Assert.Contains(
-            viewModel.MergeSlots.Single(static slot => slot.SlotId == CompositionAddressSpaceIds.TpBInput).FirmwareFacts,
+            tpBSlot.FirmwareFacts,
             static fact => fact.Label == "TPB" && fact.Value == "T82-03");
+        Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "Common FW" && fact.Value == "2.0.0");
+        Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x6A5C");
+        Assert.DoesNotContain(tpBSlot.FirmwareFacts, static fact => fact.Label == "TP");
         Assert.True(viewModel.CanBuildMerge);
         Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
+
+        string suggestedOutputName = await viewModel.ResolveMergeOutputFileNameForSaveAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Matches(
+            "^NT51929_FlashCode_A_D0605T8100_B_D0708T8203_[0-9]{8}\\.bin$",
+            suggestedOutputName);
+        Assert.DoesNotContain("D06-05", suggestedOutputName, StringComparison.Ordinal);
+        MergeBuildSavePreparation initialPreparation = Assert.IsType<MergeBuildSavePreparation>(
+            await viewModel.TryPrepareMergeBuildSaveAsync(TestContext.Current.CancellationToken));
+        WorkbenchAbAFlashCodeDeliveryPlan initialAFlashCodePlan = Assert.IsType<WorkbenchAbAFlashCodeDeliveryPlan>(
+            initialPreparation.AFlashCodePlan);
+
+        WriteUiAbCmi(dp, 0, major: 0x09, minor: 0x00, jira: 0x123);
+        await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
+        string? refreshedAutomaticOutputPath = await viewModel.TryResolveAbMergeBuildOutputPathAsync(
+            workspace.PathFor(suggestedOutputName),
+            suggestedOutputName,
+            TestContext.Current.CancellationToken);
+
+        Assert.NotNull(refreshedAutomaticOutputPath);
+        Assert.Equal(workspace.Root, Path.GetDirectoryName(refreshedAutomaticOutputPath));
+        Assert.Matches(
+            "^NT51929_FlashCode_A_D0900T8100_B_D0708T8203_[0-9]{8}\\.bin$",
+            Path.GetFileName(refreshedAutomaticOutputPath));
+
+        string? refreshedAFlashCodeOutputPath = await viewModel.TryResolveAbAFlashCodeBuildOutputPathAsync(
+            workspace.PathFor(initialAFlashCodePlan.SuggestedFileName),
+            initialAFlashCodePlan.SuggestedFileName,
+            TestContext.Current.CancellationToken);
+
+        Assert.NotNull(refreshedAFlashCodeOutputPath);
+        Assert.Equal(workspace.Root, Path.GetDirectoryName(refreshedAFlashCodeOutputPath));
+        Assert.Matches(
+            "^NT51929_FlashCode_D0900T8100_[0-9]{8}\\.bin$",
+            Path.GetFileName(refreshedAFlashCodeOutputPath));
+
+        string customOutputPath = workspace.PathFor("operator-name.bin");
+        Assert.Equal(
+            customOutputPath,
+            await viewModel.TryResolveAbMergeBuildOutputPathAsync(
+                customOutputPath,
+                suggestedOutputName,
+                TestContext.Current.CancellationToken));
+        Assert.Equal(
+            customOutputPath,
+            await viewModel.TryResolveAbAFlashCodeBuildOutputPathAsync(
+                customOutputPath,
+                initialAFlashCodePlan.SuggestedFileName,
+                TestContext.Current.CancellationToken));
 
         await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.HasLoadedReport);
+    }
+
+    /// <summary>A source that disappears after inspection becomes a Build report before the native save dialog opens.</summary>
+    [Fact]
+    public async Task AbMergeBuildSavePreparationReportsStaleInput()
+    {
+        const int dpLength = 0x80000;
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-stale-input");
+        byte[] dp = new byte[dpLength];
+        WriteUiAbCmi(dp, 0, major: 0x06, minor: 0x05, jira: 0x123);
+        WriteUiAbCmi(dp, dpLength / 2, major: 0x07, minor: 0x08, jira: 0x456);
+        string dpPath = workspace.Write("dp-ab.bin", dp);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51929";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.DpAbInput,
+            dpPath,
+            TestContext.Current.CancellationToken);
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpAInput,
+            workspace.Write("tp-a.bin", CreateUiAbTpImage(0x81, 0x00, 1, 4, 1, 0x5102)),
+            TestContext.Current.CancellationToken);
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpBInput,
+            workspace.Write("tp-b.bin", CreateUiAbTpImage(0x82, 0x03, 2, 0, 0, 0x6A5C)),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(viewModel.CanBuildMerge);
+        File.Delete(dpPath);
+
+        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+        Assert.False(viewModel.CanBuildMerge);
+
+        MergeBuildSavePreparation? preparation = await viewModel.TryPrepareMergeBuildSaveAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(preparation);
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Equal("Build failed", viewModel.LastRunResult.Title);
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.True(viewModel.IsReportModalOpen);
+        Assert.Equal("ui.run.failed", viewModel.LoadedReport.PrimaryIssue.Title);
     }
 
     /// <summary>A short AB source blocks immediately while an ignored tail remains a non-blocking warning.</summary>
@@ -435,7 +615,13 @@ public sealed partial class ShellViewModelTests
         image[start + 2] = checked((byte)((minor << 4) | ((jira >> 8) & 0x0F)));
     }
 
-    private static byte[] CreateUiAbTpImage(byte version, byte subVersion)
+    private static byte[] CreateUiAbTpImage(
+        byte version,
+        byte subVersion,
+        byte commonFwMajor,
+        byte commonFwMinor,
+        byte commonFwAdditional,
+        ushort projectId)
     {
         const int tpLength = 0x40000;
         const int backupStart = 0x1000;
@@ -444,6 +630,11 @@ public sealed partial class ShellViewModelTests
         image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
         image[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
         image[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = subVersion;
+        image[backupStart + FirmwareConfigLayout.CommonFwMajorVersionOffset] = commonFwMajor;
+        image[backupStart + FirmwareConfigLayout.CommonFwMinorVersionOffset] = commonFwMinor;
+        image[backupStart + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = commonFwAdditional;
+        image[backupStart + FirmwareConfigLayout.ProjectIdOffset] = (byte)(projectId & 0xFF);
+        image[backupStart + FirmwareConfigLayout.ProjectIdOffset + 1] = checked((byte)(projectId >> 8));
         image[markerStart] = 0x00;
         image[markerStart + 1] = (byte)'N';
         image[markerStart + 2] = (byte)'V';

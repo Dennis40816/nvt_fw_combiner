@@ -15,9 +15,18 @@ public static partial class WorkbenchCompositionService
         Converters = { new JsonStringEnumConverter() },
     };
 
-    private static WorkbenchRunResult ToWorkbenchRunResult(CompositionRunResult result)
+    internal static WorkbenchRunResult ToWorkbenchRunResult(
+        CompositionRunResult result,
+        IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null,
+        IReadOnlyList<CompositionIssue>? additionalIssues = null,
+        IReadOnlyList<WorkbenchDeliveryArtifact>? deliveredArtifacts = null,
+        bool isDeliveryComplete = true,
+        string? deliveryFailureMessage = null)
     {
-        CompositionRunReport report = result.Report;
+        ArgumentNullException.ThrowIfNull(result);
+        CompositionRunReport report = deliveryArtifacts is null && additionalIssues is null
+            ? result.Report
+            : result.Report.WithDeliveryArtifacts(deliveryArtifacts ?? [], additionalIssues);
         string reportJson = JsonSerializer.Serialize(report, ReportJsonOptions);
         return new WorkbenchRunResult(
             result.Status == CompositionExecutionStatus.Succeeded,
@@ -30,6 +39,13 @@ public static partial class WorkbenchCompositionService
             reportJson)
         {
             InspectionSnapshot = result.InspectionSnapshot,
+            OutputBytes = result.Status == CompositionExecutionStatus.Succeeded
+                ? result.OutputBytes.ToArray()
+                : ReadOnlyMemory<byte>.Empty,
+            OutputNaming = report.OutputNaming,
+            DeliveryArtifacts = deliveredArtifacts is null ? [] : [.. deliveredArtifacts],
+            IsDeliveryComplete = isDeliveryComplete,
+            DeliveryFailureMessage = deliveryFailureMessage,
         };
     }
 

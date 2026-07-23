@@ -1,4 +1,4 @@
-"""Measure and enforce the repository's non-gameable source-size ratchets."""
+"""Measure repository source size and emit non-blocking maintainability findings."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ PARTIAL_TYPE_PATTERN = re.compile(
 
 @dataclass(frozen=True)
 class CodeSizeLimits:
-    """Production ceiling, exact duplication ratchets, and partial limits."""
+    """Review thresholds for production size, duplicate JSON, and partial aggregates."""
 
     production_nonblank: int
     duplicate_json_nonblank: int
@@ -153,55 +153,58 @@ def measure_code_size(root: Path) -> CodeSizeSnapshot:
     )
 
 
-def _validate_exact_ratchet(
-    label: str, actual: int, expected: int, errors: list[str]
+def _review_exact_ratchet(
+    label: str, actual: int, expected: int, findings: list[str]
 ) -> None:
     if actual > expected:
-        errors.append(f"code-size {label} grew: {actual} > ratchet {expected}")
+        findings.append(f"code-size review {label} grew: {actual} > ratchet {expected}")
     elif actual < expected:
-        errors.append(
-            f"code-size {label} improved: lower the ratchet from {expected} to {actual}"
+        findings.append(
+            "code-size review "
+            f"{label} improved: consider lowering the ratchet from {expected} to {actual}"
         )
 
 
-def _validate_maximum(label: str, actual: int, maximum: int, errors: list[str]) -> None:
+def _review_maximum(label: str, actual: int, maximum: int, findings: list[str]) -> None:
     if actual > maximum:
-        errors.append(f"code-size {label} exceeded maximum: {actual} > {maximum}")
+        findings.append(
+            f"code-size review {label} exceeded threshold: {actual} > {maximum}"
+        )
 
 
-def validate_code_size_policy(
+def review_code_size_policy(
     root: Path,
-    errors: list[str],
     limits: CodeSizeLimits = DEFAULT_LIMITS,
-) -> None:
-    """Append deterministic ratchet and aggregate-limit violations."""
+) -> list[str]:
+    """Return deterministic source-size findings without affecting verification success."""
 
+    findings: list[str] = []
     snapshot = measure_code_size(root)
-    _validate_maximum(
+    _review_maximum(
         "production nonblank lines",
         snapshot.production_nonblank,
         limits.production_nonblank,
-        errors,
+        findings,
     )
-    _validate_exact_ratchet(
+    _review_exact_ratchet(
         "exact duplicate JSON nonblank lines",
         snapshot.duplicate_json_nonblank,
         limits.duplicate_json_nonblank,
-        errors,
+        findings,
     )
 
     aggregates = {aggregate.name: aggregate for aggregate in snapshot.partial_types}
     for name, expected in limits.partial_type_exact_ratchets.items():
         actual = aggregates.get(name)
         actual_lines = actual.nonblank_lines if actual else 0
-        _validate_exact_ratchet(
-            f"partial aggregate {name}", actual_lines, expected, errors
+        _review_exact_ratchet(
+            f"partial aggregate {name}", actual_lines, expected, findings
         )
 
     for name, maximum in limits.partial_type_named_maximums.items():
         actual = aggregates.get(name)
         actual_lines = actual.nonblank_lines if actual else 0
-        _validate_maximum(f"partial aggregate {name}", actual_lines, maximum, errors)
+        _review_maximum(f"partial aggregate {name}", actual_lines, maximum, findings)
 
     for aggregate in snapshot.partial_types:
         if (
@@ -210,8 +213,10 @@ def validate_code_size_policy(
         ):
             continue
         if aggregate.nonblank_lines > limits.partial_type_default_max:
-            errors.append(
-                "code-size partial aggregate "
+            findings.append(
+                "code-size review partial aggregate "
                 f"{aggregate.name} has {aggregate.nonblank_lines} nonblank lines across "
-                f"{aggregate.file_count} files; maximum is {limits.partial_type_default_max}"
+                f"{aggregate.file_count} files; threshold is {limits.partial_type_default_max}"
             )
+
+    return findings

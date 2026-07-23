@@ -60,13 +60,6 @@ internal static partial class ReplaceCliCommandHandler
         if (build)
         {
             CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
-            if (!options.Flags.Contains("--overwrite") && File.Exists(outputTarget.FullPath))
-            {
-                await error.WriteLineAsync(
-                        $"error: output file already exists: {outputTarget.FullPath}; pass --overwrite to replace it.")
-                    .ConfigureAwait(false);
-                return SoftwareError;
-            }
         }
 
         CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(

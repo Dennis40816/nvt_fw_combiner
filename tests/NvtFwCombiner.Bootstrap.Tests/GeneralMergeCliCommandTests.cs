@@ -162,26 +162,24 @@ public sealed class GeneralMergeCliCommandTests
         Assert.Equal(GeneralMergeCapacityInvalid, issue.GetProperty("Code").GetString());
     }
 
-    /// <summary>Preserves no-overwrite behavior at the final commit boundary.</summary>
+    /// <summary>Atomically replaces an unrelated existing composition output.</summary>
     [Fact]
-    public async Task GeneralMergeBuildDoesNotOverwriteExistingOutputWhenOverwriteIsFalse()
+    public async Task GeneralMergeBuildReplacesExistingOutputWithoutOverwriteFlag()
     {
         using var workspace = TempWorkspace.Create();
         string source = workspace.Write("source.bin", [0x10, 0x11, 0x12]);
         string output = workspace.Write("out.bin", [0xFE, 0xED]);
 
-        _ = await Assert.ThrowsAsync<IOException>(() =>
-            WorkbenchCompositionService.RunGeneralMergeAsync(
-                    "NT51950",
-                    "0x4",
-                    [new WorkbenchGeneralMergeMappingInput("general-merge-map-1", source, "0x0", "0x0", "0x2")],
-                    build: true,
-                    TestContext.Current.CancellationToken,
-                    output,
-                    overwrite: false)
-                .AsTask());
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeAsync(
+            "NT51950",
+            "0x4",
+            [new WorkbenchGeneralMergeMappingInput("general-merge-map-1", source, "0x0", "0x0", "0x2")],
+            build: true,
+            TestContext.Current.CancellationToken,
+            output);
 
-        Assert.Equal([0xFE, 0xED], await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
+        Assert.True(result.Succeeded);
+        Assert.Equal([0x10, 0x11, 0x00, 0x00], await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
     }
 
     /// <summary>Keeps adjacent General Merge mappings visually distinct even when they use the same color.</summary>

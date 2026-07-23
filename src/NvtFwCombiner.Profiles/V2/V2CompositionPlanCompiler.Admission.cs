@@ -24,10 +24,9 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         if (profile.Promotion.Stage == CompositionProfilePromotionStage.Supported &&
-            (profile.Output.RequiredTokenIds.Count != 0 ||
-             profile.Output.InvalidCharacterPolicy != CompositionProfileInvalidCharacterPolicy.Reject))
+            !HasRuntimeExecutableOutputContract(profile))
         {
-            AddUnsupported(issues, "supported profiles require a token-free reject output template until token rendering is lowered");
+            AddUnsupported(issues, "supported profiles require a typed reject output renderer admitted for the declared experience");
         }
 
         if (profile.MetadataBindings.Count != 0 || profile.Validations.Count != 0)
@@ -106,5 +105,17 @@ internal static partial class V2CompositionPlanCompiler
                     operation.OperationId);
             }
         }
+    }
+
+    private static bool HasRuntimeExecutableOutputContract(CompositionProfileDefinition profile)
+    {
+        return profile.Output.InvalidCharacterPolicy == CompositionProfileInvalidCharacterPolicy.Reject &&
+            (profile.Output.RequiredTokenIds.Count == 0 ||
+             (profile.CompositionKind == CompositionKind.Merge &&
+              StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.AbMerge) &&
+              StringComparer.Ordinal.Equals(profile.Output.FileNameTemplate, CompiledOutputNamingRequirement.AbCodeV1Template) &&
+              profile.Output.RequiredTokenIds.SequenceEqual(
+                  ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"],
+                  StringComparer.Ordinal)));
     }
 }

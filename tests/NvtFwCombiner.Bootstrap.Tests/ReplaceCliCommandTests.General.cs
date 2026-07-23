@@ -191,7 +191,6 @@ public sealed partial class ReplaceCliCommandTests
             "0x100+0x1=A5",
             "--output",
             reference,
-            "--overwrite",
         ]);
 
         Assert.Equal(70, result.ExitCode);

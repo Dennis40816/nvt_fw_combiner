@@ -5,6 +5,7 @@ using System.Text.Json;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
@@ -15,9 +16,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class AbMergeGoldenRegressionTests
 {
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string Nt51929BundleContentHash = "2019958454425df63666cad975135fdfc46540e291680b8a551ed07f00aa167a";
+    private const string Nt51929BundleContentHash = "93902043b6e4ea4c8a2023a7f02c798e4497de3523b21115797e9b302ce22292";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
-    private const string Nt51950BundleContentHash = "06a671a3a6a6cb16e5cef7ed356a61626fdbd4395cd47299b95f60bb645885af";
+    private const string Nt51950BundleContentHash = "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206";
 
     /// <summary>Verifies the supported NT51929 profile reproduces the supplied AB output byte-for-byte.</summary>
     [Fact]
@@ -164,8 +165,10 @@ public sealed class AbMergeGoldenRegressionTests
                 workspace,
                 Nt51950BundleDirectory,
                 Nt51950BundleContentHash),
-            goldenCase,
-            "NT51950");
+            "nt51950-ab-merge",
+            "0.2.0",
+            "NT51950",
+            goldenCase.GetProperty("mapCapacity").GetInt64());
         Dictionary<string, byte[]> inputs = ReadInputs(goldenCase);
         byte[] expected = ReadExpected(goldenCase);
         byte[] originalTpB = [.. inputs["tp-b-input"]];
@@ -230,6 +233,7 @@ public sealed class AbMergeGoldenRegressionTests
             Assert.Equal(pythonReferenceOutput, result.OutputBytes.ToArray());
             Assert.Equal(ExpectedArtifact(goldenCase).GetProperty("sha256").GetString(), Hash(result.OutputBytes.Span));
             Assert.Equal(originalTpB, inputs["tp-b-input"]);
+            AssertPostbuildMpeg2Crc(result.OutputBytes.Span, bTpCodeStart: 0x4A000);
 
             ExternalProcessorResult toolResult = Assert.IsType<ExternalProcessorResult>(externalResult);
             Assert.Equal(
@@ -278,7 +282,7 @@ public sealed class AbMergeGoldenRegressionTests
                 Nt51950BundleDirectory,
                 Nt51950BundleContentHash),
             "nt51951-ab-merge",
-            "0.1.0",
+            "0.2.0",
             "NT51951",
             outputLength);
         byte[] dp = CreatePattern(outputLength, 37, 11);
@@ -344,6 +348,7 @@ public sealed class AbMergeGoldenRegressionTests
             Assert.Equal(expectedSha256, Hash(result.OutputBytes.Span));
             Assert.Equal(pythonReferenceOutput, result.OutputBytes.ToArray());
             Assert.Equal(originalTpB, tpB);
+            AssertPostbuildMpeg2Crc(result.OutputBytes.Span, bTpCodeStart: 0x8A000);
             ExternalProcessorResult toolResult = Assert.IsType<ExternalProcessorResult>(externalResult);
             Assert.Equal(
                 [new ByteRange(0x8A102, 1), new ByteRange(0x8A112, 1), new ByteRange(0x8A130, 4)],
@@ -390,13 +395,23 @@ public sealed class AbMergeGoldenRegressionTests
         string icId,
         long mapCapacity)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            catalog,
-            profileId,
-            profileVersion,
-            icId,
-            ExperienceIds.AbMerge,
-            mapCapacity);
+        V2CompositionPlanCompileResult compilation = StringComparer.Ordinal.Equals(icId, "NT51950")
+            ? TrustedV2CompositionCompiler.Compile(
+                catalog,
+                profileId,
+                profileVersion,
+                icId,
+                ExperienceIds.AbMerge,
+                mapCapacity,
+                new TopologySelection(1, "1 IC", TopologySelectionSource.Requested, "test"),
+                [])
+            : TrustedV2CompositionCompiler.Compile(
+                catalog,
+                profileId,
+                profileVersion,
+                icId,
+                ExperienceIds.AbMerge,
+                mapCapacity);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
     }
@@ -573,6 +588,36 @@ public sealed class AbMergeGoldenRegressionTests
         BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(0xA100, sizeof(uint)), 0x0000C000);
         BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(0xA110, sizeof(uint)), 0x00011000);
         BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(0xA120, sizeof(uint)), 0x0001A000);
+    }
+
+    private static void AssertPostbuildMpeg2Crc(ReadOnlySpan<byte> output, int bTpCodeStart)
+    {
+        const int CrcInputOffset = 0x100;
+        const int CrcInputLength = 0x30;
+        const int CrcOutputOffset = 0x130;
+        uint externalCrc = BinaryPrimitives.ReadUInt32LittleEndian(
+            output.Slice(bTpCodeStart + CrcOutputOffset, sizeof(uint)));
+        Assert.Equal(
+            externalCrc,
+            CalculateCrc32Mpeg2(output.Slice(bTpCodeStart + CrcInputOffset, CrcInputLength)));
+    }
+
+    private static uint CalculateCrc32Mpeg2(ReadOnlySpan<byte> bytes)
+    {
+        const uint Polynomial = 0x04C11DB7;
+        uint remainder = uint.MaxValue;
+        foreach (byte value in bytes)
+        {
+            remainder ^= (uint)value << 24;
+            for (int bit = 0; bit < 8; bit++)
+            {
+                remainder = (remainder & 0x80000000U) != 0
+                    ? (remainder << 1) ^ Polynomial
+                    : remainder << 1;
+            }
+        }
+
+        return remainder;
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

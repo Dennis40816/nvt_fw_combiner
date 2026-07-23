@@ -69,7 +69,7 @@ public sealed partial class CompositionRunRequestV2Tests
     public void RuntimeReferenceCandidateHasStableCompilationFingerprint()
     {
         Assert.Equal(
-            "a5c13ad6486c7d50b67b20984d334b2334f1bb8cfb4328f566d2ee0b3349b86e",
+            "4abd207b9d82473e7b9224387bf8ed32e84fbaccd89acd7a97ad94640f298625",
             CreateRuntimeReferenceCandidate().CompilationFingerprint);
     }
 

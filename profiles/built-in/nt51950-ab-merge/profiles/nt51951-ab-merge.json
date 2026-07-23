@@ -1,14 +1,14 @@
 {
-  "schemaVersion": "2.2",
+  "schemaVersion": "2.10",
   "profileId": "nt51951-ab-merge",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": {
-    "stage": "compilable",
+    "stage": "executable-candidate",
     "blockers": [
       {
         "blockerId": "direct-golden-evidence",
         "kind": "golden",
-        "reason": "A direct NT51951 AB input/output golden is required before executable promotion.",
+        "reason": "A direct NT51951 AB input/output golden is required before supported certification.",
         "evidenceRefs": [
           "nt51951-ab-combiner-topology-regression-2026-07-15"
         ]
@@ -16,7 +16,7 @@
       {
         "blockerId": "firmware-owner-review",
         "kind": "human-review",
-        "reason": "Firmware owner must approve the exact NT51951 AB Combiner staging sequence before runtime exposure.",
+        "reason": "Firmware owner must approve the exact NT51951 AB Combiner staging sequence before certified release.",
         "evidenceRefs": [
           "nt51951-ab-combiner-topology-regression-2026-07-15"
         ]
@@ -24,25 +24,30 @@
     ]
   },
   "compositionKind": "merge",
+  "compilationContext": {
+    "kind": "resolved-map"
+  },
   "experience": {
     "experienceId": "ab-merge",
     "audience": "system",
     "layoutPolicy": "fixed",
     "inputPolicy": "fixed",
     "topologyAuthoring": "hidden",
-    "displayNameKey": "profile.nt51950.ab-merge"
+    "displayNameKey": "profile.nt51951.ab-merge"
   },
   "mapBinding": {
     "familyId": "nt51950-ab-merge",
-    "familyVersion": "0.1.1",
-    "familyContentHash": "d5f8a6f865c743679b701036fdadfeb4a5e001d0f718c378063cccda7ee7fdc4",
+    "familyVersion": "0.2.0",
+    "familyContentHash": "bd3509a6a2406366f5d6c21ad53eba1f165df74afd1e20663492200fb5479b85",
     "mapIds": [
       "nt51951-ab-merge-1024k"
     ],
     "requiredRegionIds": [
       "ab-image",
       "a-bank",
+      "a-cmi-dp-version",
       "b-bank",
+      "b-cmi-dp-version",
       "b-tp-code"
     ],
     "requiredMetadataStructureIds": [],
@@ -78,8 +83,14 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "exact-bytes",
-          "bytes": 225280
+          "kind": "declared-prefix-with-warning",
+          "requiredEndExclusive": 225280,
+          "expectedOuterLengths": [
+            225280,
+            262144
+          ],
+          "shortInputIssueCode": "AB_TPA_INPUT_TOO_SHORT",
+          "unexpectedOuterLengthIssueCode": "AB_TPA_INPUT_OUTER_LENGTH_UNEXPECTED"
         },
         "normalization": {
           "kind": "none"
@@ -97,8 +108,14 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "exact-bytes",
-          "bytes": 225280
+          "kind": "declared-prefix-with-warning",
+          "requiredEndExclusive": 225280,
+          "expectedOuterLengths": [
+            225280,
+            262144
+          ],
+          "shortInputIssueCode": "AB_TPB_INPUT_TOO_SHORT",
+          "unexpectedOuterLengthIssueCode": "AB_TPB_INPUT_OUTER_LENGTH_UNEXPECTED"
         },
         "normalization": {
           "kind": "none"
@@ -143,6 +160,18 @@
       "capacity": {
         "kind": "fixed",
         "bytes": 524288
+      },
+      "initializer": {
+        "kind": "blank",
+        "fillByte": 0
+      }
+    },
+    {
+      "spaceId": "ab-combiner-work",
+      "kind": "work-buffer",
+      "capacity": {
+        "kind": "fixed",
+        "bytes": 1048576
       },
       "initializer": {
         "kind": "blank",
@@ -229,6 +258,39 @@
       }
     },
     {
+      "viewId": "ab-combiner-work-image",
+      "spaceId": "ab-combiner-work",
+      "selector": {
+        "kind": "space-range",
+        "range": {
+          "start": 0,
+          "length": 1048576
+        }
+      }
+    },
+    {
+      "viewId": "a-bank-combiner-image",
+      "spaceId": "ab-combiner-work",
+      "selector": {
+        "kind": "space-range",
+        "range": {
+          "start": 0,
+          "length": 524288
+        }
+      }
+    },
+    {
+      "viewId": "b-bank-combiner-image",
+      "spaceId": "ab-combiner-work",
+      "selector": {
+        "kind": "space-range",
+        "range": {
+          "start": 524288,
+          "length": 524288
+        }
+      }
+    },
+    {
       "viewId": "tp-a-code-source",
       "spaceId": "tp-a-input",
       "selector": {
@@ -290,22 +352,24 @@
     },
     {
       "viewId": "b-header-ilm",
-      "spaceId": "output-image",
+      "spaceId": "ab-combiner-work",
       "selector": {
-        "kind": "map-region-slice",
-        "regionId": "b-tp-code",
-        "offset": 256,
-        "length": 4
+        "kind": "space-range",
+        "range": {
+          "start": 565504,
+          "length": 4
+        }
       }
     },
     {
       "viewId": "b-header-dlm",
-      "spaceId": "output-image",
+      "spaceId": "ab-combiner-work",
       "selector": {
-        "kind": "map-region-slice",
-        "regionId": "b-tp-code",
-        "offset": 272,
-        "length": 4
+        "kind": "space-range",
+        "range": {
+          "start": 565520,
+          "length": 4
+        }
       }
     },
     {
@@ -321,12 +385,13 @@
     },
     {
       "viewId": "b-header-crc",
-      "spaceId": "output-image",
+      "spaceId": "ab-combiner-work",
       "selector": {
-        "kind": "map-region-slice",
-        "regionId": "b-tp-code",
-        "offset": 304,
-        "length": 4
+        "kind": "space-range",
+        "range": {
+          "start": 565552,
+          "length": 4
+        }
       }
     }
   ],
@@ -414,30 +479,48 @@
       "targetViewId": "b-tp-code-work"
     },
     {
-      "operationId": "copy-a-bank-to-output",
+      "operationId": "copy-a-bank-to-combiner-work",
       "sequence": 600,
+      "overlapPolicy": "reject",
+      "reason": "Seed the host-owned Combiner work image with the exact staged A-bank artifact.",
+      "kind": "copy-range",
+      "sourceViewId": "a-bank-work-image",
+      "targetViewId": "a-bank-combiner-image"
+    },
+    {
+      "operationId": "copy-b-bank-to-combiner-work",
+      "sequence": 650,
+      "overlapPolicy": "reject",
+      "reason": "Seed the host-owned Combiner work image with the exact staged B-bank artifact.",
+      "kind": "copy-range",
+      "sourceViewId": "b-bank-work-image",
+      "targetViewId": "b-bank-combiner-image"
+    },
+    {
+      "operationId": "run-nt51951-ab-combiner",
+      "sequence": 700,
       "overlapPolicy": "replace-existing",
-      "reason": "Replace output bank A with the exact staged A-bank artifact.",
+      "reason": "Use legacy Combiner 1.13.0 on the host-owned A/B work image for synthetic-topology-verified TPB header and CRC recalculation before B-slot backfill.",
+      "kind": "run-processor",
+      "processorStageId": "nt51951-ab-combiner"
+    },
+    {
+      "operationId": "copy-a-bank-to-output",
+      "sequence": 800,
+      "overlapPolicy": "replace-existing",
+      "reason": "Replace output bank A with the exact staged A-bank artifact without postbuild mutation.",
       "kind": "copy-range",
       "sourceViewId": "a-bank-work-image",
       "targetViewId": "a-bank-output"
     },
     {
-      "operationId": "copy-b-bank-to-output",
-      "sequence": 700,
+      "operationId": "copy-postbuild-b-bank-to-output",
+      "sequence": 900,
       "overlapPolicy": "replace-existing",
-      "reason": "Replace output bank B with the exact staged B-bank artifact before Combiner processing.",
+      "reason": "Backfill output bank B from the externally postbuilt Combiner work image.",
       "kind": "copy-range",
-      "sourceViewId": "b-bank-work-image",
+      "sourceViewId": "b-bank-combiner-image",
       "targetViewId": "b-bank-output"
-    },
-    {
-      "operationId": "run-nt51951-ab-combiner",
-      "sequence": 800,
-      "overlapPolicy": "replace-existing",
-      "reason": "Use legacy Combiner 1.13.0 on a host-created output staging copy for synthetic-topology-verified TPB header and CRC recalculation.",
-      "kind": "run-processor",
-      "processorStageId": "nt51951-ab-combiner"
     }
   ],
   "validations": [],
@@ -447,12 +530,13 @@
       "kind": "legacy-combiner-v1",
       "toolBindingId": "legacy-combiner-1.13.0",
       "invocationProfileId": "nfc-nt51951-ab-merge-combiner-v1",
-      "targetSpaceId": "output-image",
+      "targetSpaceId": "ab-combiner-work",
+      "targetViewId": "ab-combiner-work-image",
       "authority": "transform",
       "purpose": "header-and-integrity",
       "integrityDisposition": "recalculate-and-write",
       "allowedReadViewIds": [
-        "dp-ab-output"
+        "ab-combiner-work-image"
       ],
       "allowedWriteViewIds": [
         "b-header-ilm",
@@ -475,10 +559,17 @@
     }
   ],
   "output": {
-    "fileNameTemplate": "nt51951-ab-merge.bin",
+    "fileNameTemplate": "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
-    "requiredTokenIds": []
+    "requiredTokenIds": [
+      "date",
+      "dp-a",
+      "dp-b",
+      "ic",
+      "tp-a",
+      "tp-b"
+    ]
   },
   "evidenceRefs": [
     "nt51951-ab-combiner-topology-regression-2026-07-15"

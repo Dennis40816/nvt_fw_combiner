@@ -29,9 +29,9 @@ public sealed partial class MainWindowViewModel
                     slot.SlotId,
                     slot.FilePath,
                     out WorkbenchFirmwareInspection projected) &&
-                projected.AbMergeInput is { } inspection)
+                projected.AbMergeInput is not null)
             {
-                FirmwareInspectionProjection.ApplyAbInputInspection(slot, inspection, Text);
+                FirmwareInspectionProjection.ApplyAbInputInspection(slot, projected, Text);
             }
         }
 
@@ -138,7 +138,9 @@ public sealed partial class MainWindowViewModel
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
-        foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(SelectedIc))
+        foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(
+                     SelectedIc,
+                     GetSelectedAbMergeTopologyToken()))
         {
             if (_abMergeSlotsByAddressSpace.TryGetValue(input.AddressSpaceId, out FirmwareSlotViewModel? slot))
             {

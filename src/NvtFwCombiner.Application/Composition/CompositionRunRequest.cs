@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -14,25 +15,36 @@ public sealed class CompositionRunRequest
         IEnumerable<InputArtifactBinding> artifactBindings,
         string outputFileName,
         string? approvedPreviewToken = null,
-        IcNumberSelection? icNumberSelection = null)
+        IcNumberSelection? icNumberSelection = null,
+        bool outputFileNameIsOverride = false,
+        TopologySelection? abMergeTopologySelection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(compiledComposition);
         ArgumentNullException.ThrowIfNull(artifactBindings);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputFileName);
         Dictionary<string, InputArtifactBinding> copiedBindings = CopyBindings(artifactBindings);
+        bool effectiveOutputFileNameIsOverride = outputFileNameIsOverride ||
+            IsImplicitStaticOutputOverride(compiledComposition, outputFileName);
         ValidateOutputFileName(outputFileName);
         ValidateExecutableComposition(compiledComposition);
         ValidateRuntimeValidationRequirements(compiledComposition);
         ValidateIcNumberSelection(compiledComposition, icNumberSelection);
-        ValidateV2RuntimeRequest(compiledComposition, copiedBindings, outputFileName);
+        ValidateAbMergeTopologySelection(compiledComposition, abMergeTopologySelection);
+        ValidateV2RuntimeRequest(
+            compiledComposition,
+            copiedBindings,
+            outputFileName,
+            effectiveOutputFileNameIsOverride);
 
         RunId = runId;
         CompiledComposition = compiledComposition;
         ArtifactBindings = new ReadOnlyDictionary<string, InputArtifactBinding>(copiedBindings);
         OutputFileName = outputFileName;
+        IsOutputFileNameOverride = effectiveOutputFileNameIsOverride;
         ApprovedPreviewToken = string.IsNullOrWhiteSpace(approvedPreviewToken) ? null : approvedPreviewToken;
         IcNumberSelection = icNumberSelection;
+        AbMergeTopologySelection = abMergeTopologySelection;
     }
 
     /// <summary>Stable run id for reports and diagnostics.</summary>
@@ -47,11 +59,17 @@ public sealed class CompositionRunRequest
     /// <summary>Output file name proposed by profile naming policy or caller override.</summary>
     public string OutputFileName { get; }
 
+    /// <summary>Whether the caller supplied an explicit UI/CLI filename override.</summary>
+    public bool IsOutputFileNameOverride { get; }
+
     /// <summary>Preview token that authorizes a matching build request.</summary>
     public string? ApprovedPreviewToken { get; }
 
     /// <summary>IC number selected for Replace profile binding.</summary>
     public IcNumberSelection? IcNumberSelection { get; }
+
+    /// <summary>Explicit topology chosen only for an AB Merge profile whose resolved map requires it.</summary>
+    public TopologySelection? AbMergeTopologySelection { get; }
 
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
@@ -63,7 +81,9 @@ public sealed class CompositionRunRequest
             ArtifactBindings.Values,
             OutputFileName,
             previewToken,
-            IcNumberSelection);
+            IcNumberSelection,
+            IsOutputFileNameOverride,
+            AbMergeTopologySelection);
     }
 
     private static Dictionary<string, InputArtifactBinding> CopyBindings(IEnumerable<InputArtifactBinding> bindings)
@@ -92,6 +112,15 @@ public sealed class CompositionRunRequest
         }
     }
 
+    private static bool IsImplicitStaticOutputOverride(
+        CompiledComposition compiledComposition,
+        string outputFileName)
+    {
+        CompiledOutputNamingRequirement? output = compiledComposition.V2Details?.OutputNamingRequirement;
+        return output is { AllowOverride: true, RendererKind: CompiledOutputNameRendererKind.Static } &&
+            !string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal);
+    }
+
     private static void ValidateExecutableComposition(CompiledComposition compiledComposition)
     {
         if (compiledComposition.Eligibility == CompiledCompositionEligibility.LegacyRuntimeExecutable &&
@@ -110,7 +139,8 @@ public sealed class CompositionRunRequest
         if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
             compiledComposition.Authority is ProfileBundleV2CompilationAuthority &&
             compiledComposition.V2Details is { Provenance.Promotion.Stage: CompiledProfilePromotionStage.ExecutableCandidate } details &&
-            details.Provenance.Context is LogicalOutputV2CompilationContext or RuntimeReferenceReplaceV2CompilationContext)
+            (details.Provenance.Context is LogicalOutputV2CompilationContext or RuntimeReferenceReplaceV2CompilationContext ||
+             compiledComposition.IsV2AbFunctionOpenCandidate))
         {
             return;
         }
@@ -123,7 +153,8 @@ public sealed class CompositionRunRequest
     private static void ValidateV2RuntimeRequest(
         CompiledComposition compiledComposition,
         Dictionary<string, InputArtifactBinding> bindings,
-        string outputFileName)
+        string outputFileName,
+        bool outputFileNameIsOverride)
     {
         if (compiledComposition.Authority is not ProfileBundleV2CompilationAuthority)
         {
@@ -134,21 +165,42 @@ public sealed class CompositionRunRequest
             "V2 runtime artifacts require compiled V2 details.",
             nameof(compiledComposition));
         CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
-        if (output.RequiredTokenIds.Count != 0 ||
-            output.InvalidCharacterPolicy != CompiledOutputInvalidCharacterPolicy.Reject)
+        if (output.InvalidCharacterPolicy != CompiledOutputInvalidCharacterPolicy.Reject ||
+            output.RendererKind == CompiledOutputNameRendererKind.DeferredTokenTemplate)
         {
             throw new ArgumentException(
-                "V2 runtime artifacts require a token-free reject output template until token rendering is available.",
+                "V2 runtime artifacts require an executable reject output renderer.",
                 nameof(compiledComposition));
         }
 
-        CompiledOutputNamingRequirement.ValidateRuntimeLiteralFileName(outputFileName, nameof(outputFileName));
+        bool isAbCodeAutomatic = output.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
+            !outputFileNameIsOverride;
+        if (isAbCodeAutomatic)
+        {
+            if (!string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    "Automatic AB Code output naming must retain the compiled template until execution snapshots are read.",
+                    nameof(outputFileName));
+            }
+        }
+        else
+        {
+            CompiledOutputNamingRequirement.ValidateRuntimeLiteralFileName(outputFileName, nameof(outputFileName));
+        }
 
-        if (!output.AllowOverride &&
+        if (outputFileNameIsOverride && !output.AllowOverride)
+        {
+            throw new ArgumentException(
+                "The compiled V2 output policy forbids explicit filename overrides.",
+                nameof(outputFileName));
+        }
+
+        if (!outputFileNameIsOverride && output.RendererKind == CompiledOutputNameRendererKind.Static &&
             !string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal))
         {
             throw new ArgumentException(
-                "Output file name must match the compiled V2 template when overrides are forbidden.",
+                "Automatic static output naming must match the compiled V2 template.",
                 nameof(outputFileName));
         }
 
@@ -265,6 +317,52 @@ public sealed class CompositionRunRequest
             !IsPositiveInteger(selection.Parts[^1]))
         {
             throw new ArgumentException("Numeric IC number selection must be a positive integer.", nameof(selection));
+        }
+    }
+
+    private static void ValidateAbMergeTopologySelection(
+        CompiledComposition compiledComposition,
+        TopologySelection? selection)
+    {
+        if (!compiledComposition.IsV2AbMergeRuntimeRoute)
+        {
+            if (selection is not null)
+            {
+                throw new ArgumentException(
+                    "AB topology selection is allowed only for an admitted AB Merge route.",
+                    nameof(selection));
+            }
+
+            return;
+        }
+
+        TopologyRequirement requirement = compiledComposition.V2Details!
+            .Provenance.ResolvedMap.ImageMap.Applicability.TopologyRequirement;
+        if (requirement.Kind == TopologyRequirementKind.None)
+        {
+            if (selection is not null)
+            {
+                throw new ArgumentException(
+                    "The resolved AB Merge map does not expose a topology selection.",
+                    nameof(selection));
+            }
+
+            return;
+        }
+
+        if (selection is null)
+        {
+            throw new ArgumentException(
+                "The resolved AB Merge map requires an explicit topology selection.",
+                nameof(selection));
+        }
+
+        if (selection.Source != TopologySelectionSource.Requested ||
+            !requirement.Matches(selection))
+        {
+            throw new ArgumentException(
+                "The requested AB Merge topology does not match the resolved profile map.",
+                nameof(selection));
         }
     }
 

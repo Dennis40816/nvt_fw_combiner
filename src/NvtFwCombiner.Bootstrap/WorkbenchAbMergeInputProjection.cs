@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -11,11 +12,14 @@ internal static class WorkbenchAbMergeInputProjection
     private const string AbTpBRole = "tp-b";
     private const string UnknownAbVersion = "Unknown";
 
-    internal static IReadOnlyList<WorkbenchAbMergeInputSlot> GetInputSlots(string icId)
+    internal static IReadOnlyList<WorkbenchAbMergeInputSlot> GetInputSlots(
+        string icId,
+        TopologySelection? requestedTopology = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         return !AbMergeWorkbenchCompositionService.TryCompileAbMerge(
                 icId,
+                requestedTopology,
                 out CompiledComposition? composition,
                 out _) || composition.V2Details is null
             ? []
@@ -25,12 +29,14 @@ internal static class WorkbenchAbMergeInputProjection
     internal static WorkbenchAbMergeInputInspection Inspect(
         string icId,
         string addressSpaceId,
-        byte[]? image)
+        byte[]? image,
+        TopologySelection? requestedTopology = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         if (!AbMergeWorkbenchCompositionService.TryCompileAbMerge(
                 icId,
+                requestedTopology,
                 out CompiledComposition? composition,
                 out IReadOnlyList<CompositionIssue> compileIssues) ||
             composition.V2Details is not { } details)
@@ -57,11 +63,11 @@ internal static class WorkbenchAbMergeInputProjection
         }
 
         CompiledInputArtifactInspectionResult inspected =
-            CompiledInputArtifactInspectionService.InspectDeclaredPrefix(
+            CompiledInputArtifactInspectionService.Inspect(
                 details.InputContract,
                 addressSpaceId,
                 image);
-        List<WorkbenchAbVersionValue> versions = ReadVersions(icId, composition, slot.Role, image, inspected);
+        List<WorkbenchAbVersionValue> versions = ReadVersions(composition, slot.Role, image, inspected);
         List<WorkbenchInputInspectionIssue> issues =
         [
             new(
@@ -102,22 +108,19 @@ internal static class WorkbenchAbMergeInputProjection
                     StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId));
                 CompiledInputSlotRequirement slot = details.InputContract.Slots.Single(candidate =>
                     StringComparer.Ordinal.Equals(candidate.SlotId, binding.SlotId));
-                CompiledDeclaredPrefixWithWarningInputLengthRequirement length =
-                    slot.LengthRequirement as CompiledDeclaredPrefixWithWarningInputLengthRequirement ??
-                    throw new InvalidOperationException(
-                        $"Supported AB input '{addressSpaceId}' must use declared-prefix authority.");
+                (long requiredEndExclusive, IReadOnlyList<long> expectedOuterLengths) =
+                    ProjectLengthRequirement(slot.LengthRequirement, addressSpaceId);
                 return new WorkbenchAbMergeInputSlot(
                     slot.SlotId,
                     binding.AddressSpaceId,
                     MapRole(slot.Role),
-                    length.RequiredEndExclusive,
-                    length.ExpectedOuterLengths);
+                    requiredEndExclusive,
+                    expectedOuterLengths);
             }),
         ];
     }
 
     private static List<WorkbenchAbVersionValue> ReadVersions(
-        string icId,
         CompiledComposition composition,
         WorkbenchAbMergeInputRole role,
         byte[] image,
@@ -131,7 +134,7 @@ internal static class WorkbenchAbMergeInputProjection
         ReadOnlySpan<byte> snapshot = image.AsSpan(checked((int)accepted.Start), checked((int)accepted.Length));
         return role switch
         {
-            WorkbenchAbMergeInputRole.DpAb => ReadDpVersions(icId, composition, snapshot),
+            WorkbenchAbMergeInputRole.DpAb => ReadDpVersions(composition, snapshot),
             WorkbenchAbMergeInputRole.TpA => [ReadTpVersion(WorkbenchAbVersionKind.TpA, snapshot)],
             WorkbenchAbMergeInputRole.TpB => [ReadTpVersion(WorkbenchAbVersionKind.TpB, snapshot)],
             _ => throw new ArgumentOutOfRangeException(nameof(role), role, null),
@@ -139,48 +142,73 @@ internal static class WorkbenchAbMergeInputProjection
     }
 
     private static List<WorkbenchAbVersionValue> ReadDpVersions(
-        string icId,
         CompiledComposition composition,
         ReadOnlySpan<byte> snapshot)
     {
-        CompositionOperation tpA = FindOutputCopy(composition, CompositionAddressSpaceIds.TpAInput);
-        CompositionOperation tpB = FindOutputCopy(composition, CompositionAddressSpaceIds.TpBWork);
-        long bankLength = checked(tpB.TargetRange.Start - tpA.TargetRange.Start);
-        if (bankLength <= 0 || bankLength > int.MaxValue || checked(bankLength * 2) != snapshot.Length)
+        return TryReadDeclaredCmiVersions(
+                composition,
+                snapshot,
+                out List<WorkbenchAbVersionValue>? declaredVersions)
+            ? declaredVersions!
+            :
+            [
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp1, UnknownAbVersion, null, true),
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp2, UnknownAbVersion, null, true),
+            ];
+    }
+
+    private static bool TryReadDeclaredCmiVersions(
+        CompiledComposition composition,
+        ReadOnlySpan<byte> snapshot,
+        out List<WorkbenchAbVersionValue>? versions)
+    {
+        versions = null;
+        IReadOnlyList<FirmwareRegion>? regions = composition.V2Details?.Provenance.ResolvedMap.ImageMap.Regions;
+        if (regions is null)
         {
-            throw new InvalidOperationException("Compiled AB bank geometry is not a symmetric two-bank layout.");
+            return false;
         }
 
-        int length = checked((int)bankLength);
-        return
+        FirmwareRegion? a = regions.SingleOrDefault(region =>
+            StringComparer.Ordinal.Equals(region.RegionId, "a-cmi-dp-version"));
+        FirmwareRegion? b = regions.SingleOrDefault(region =>
+            StringComparer.Ordinal.Equals(region.RegionId, "b-cmi-dp-version"));
+        if (a is null && b is null)
+        {
+            return false;
+        }
+
+        versions =
         [
-            ReadDpVersion(icId, WorkbenchAbVersionKind.Dp1, snapshot[..length]),
-            ReadDpVersion(icId, WorkbenchAbVersionKind.Dp2, snapshot.Slice(length, length)),
+            ReadDeclaredCmiVersion(WorkbenchAbVersionKind.Dp1, snapshot, a),
+            ReadDeclaredCmiVersion(WorkbenchAbVersionKind.Dp2, snapshot, b),
         ];
+        return true;
     }
 
-    private static CompositionOperation FindOutputCopy(
-        CompiledComposition composition,
-        string sourceSpaceId)
-    {
-        return composition.Plan.OrderedOperations.Single(operation =>
-            operation.Kind == CompositionOperationKind.CopyRange &&
-            StringComparer.Ordinal.Equals(operation.SourceSpaceId, sourceSpaceId) &&
-            StringComparer.Ordinal.Equals(operation.TargetSpaceId, CompositionAddressSpaceIds.OutputImage));
-    }
-
-    private static WorkbenchAbVersionValue ReadDpVersion(
-        string icId,
+    private static WorkbenchAbVersionValue ReadDeclaredCmiVersion(
         WorkbenchAbVersionKind kind,
-        ReadOnlySpan<byte> bank)
+        ReadOnlySpan<byte> snapshot,
+        FirmwareRegion? region)
     {
-        return GenFlashVersionCatalog.TryReadCmiDpCode(icId, bank, out CmiDpCodeMetadata metadata)
-            ? new WorkbenchAbVersionValue(
-                kind,
-                FormattableString.Invariant($"D{metadata.MajorVersionByte:X2}{metadata.MinorVersionNibble:X2}"),
-                metadata.JiraBadge,
-                IsUnknown: false)
-            : new WorkbenchAbVersionValue(kind, UnknownAbVersion, JiraBadge: null, IsUnknown: true);
+        if (region is null || region.Range.Length != 3 || region.Range.Start < 0 ||
+            region.Range.EndExclusive > snapshot.Length || region.Range.Start > int.MaxValue)
+        {
+            return new WorkbenchAbVersionValue(kind, UnknownAbVersion, JiraBadge: null, IsUnknown: true);
+        }
+
+        ReadOnlySpan<byte> registers = snapshot.Slice(checked((int)region.Range.Start), 3);
+        byte register16 = registers[0];
+        byte major = registers[1];
+        byte register18 = registers[2];
+        byte minor = (byte)(register18 >> 4);
+        ushort jira = (ushort)(register16 | ((register18 & 0x0F) << 8));
+        return new WorkbenchAbVersionValue(
+            kind,
+            WorkbenchDpVersionMetadata.FormatDisplayValue(
+                FormattableString.Invariant($"{major:X2}{minor:X2}")),
+            jira == 0 ? null : $"AUTO_PRJ-{jira}",
+            IsUnknown: false);
     }
 
     private static WorkbenchAbVersionValue ReadTpVersion(
@@ -222,6 +250,23 @@ internal static class WorkbenchAbMergeInputProjection
             AbTpARole => WorkbenchAbMergeInputRole.TpA,
             AbTpBRole => WorkbenchAbMergeInputRole.TpB,
             _ => throw new InvalidOperationException($"Supported AB profile declares unknown input role '{role}'."),
+        };
+    }
+
+    private static (long RequiredEndExclusive, IReadOnlyList<long> ExpectedOuterLengths) ProjectLengthRequirement(
+        CompiledInputLengthRequirement requirement,
+        string addressSpaceId)
+    {
+        return requirement switch
+        {
+            CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix =>
+                (declaredPrefix.RequiredEndExclusive, declaredPrefix.ExpectedOuterLengths),
+            CompiledExactBytesInputLengthRequirement exact =>
+                (exact.Bytes, [exact.Bytes]),
+            CompiledExactResolvedMapCapacityInputLengthRequirement exact =>
+                (exact.Bytes, [exact.Bytes]),
+            _ => throw new InvalidOperationException(
+                $"Supported AB input '{addressSpaceId}' has no displayable length contract."),
         };
     }
 

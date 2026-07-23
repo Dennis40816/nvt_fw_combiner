@@ -118,6 +118,70 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.HasLatestCommittedOutput);
     }
 
+    /// <summary>The A FlashCode choice resolves before output selection and cannot leave the prompt open after either answer.</summary>
+    [Fact]
+    public async Task AbAFlashCodeDeliveryPromptResolvesBeforeBuild()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        Task<bool> yes = viewModel.PromptForAbAFlashCodeDeliveryAsync();
+        Assert.True(viewModel.IsAbAFlashCodeDeliveryPromptOpen);
+        viewModel.AcceptAbAFlashCodeDeliveryPromptCommand.Execute(null);
+
+        Assert.True(await yes);
+        Assert.False(viewModel.IsAbAFlashCodeDeliveryPromptOpen);
+
+        Task<bool> no = viewModel.PromptForAbAFlashCodeDeliveryAsync();
+        viewModel.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
+
+        Assert.False(await no);
+        Assert.False(viewModel.IsAbAFlashCodeDeliveryPromptOpen);
+    }
+
+    /// <summary>Completion shows the already-delivered A FlashCode rather than offering a second post-Build export action.</summary>
+    [Fact]
+    public void CompletedBuildShowsAlreadyDeliveredAFlashCode()
+    {
+        string primaryPath = Path.Combine(Path.GetTempPath(), "output", "ab.bin");
+        string aFlashCodePath = Path.Combine(Path.GetTempPath(), "output", "a.bin");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        WorkbenchRunResult result = CreateRunResult(succeeded: true, primaryPath) with
+        {
+            DeliveryArtifacts =
+            [
+                new WorkbenchDeliveryArtifact(
+                    "ab-a-flashcode",
+                    aFlashCodePath,
+                    "a.bin",
+                    0x40000,
+                    new Domain.Composition.ByteRange(0, 0x40000),
+                    "a-hash"),
+            ],
+        };
+
+        Assert.True(viewModel.TryShowBuildCompleted(result, build: true));
+        Assert.True(viewModel.HasBuildCompletedAdditionalOutput);
+        Assert.Equal(aFlashCodePath, viewModel.BuildCompletedAdditionalOutputPath);
+        Assert.Equal("a.bin", viewModel.BuildCompletedAdditionalOutputDisplayName);
+    }
+
+    /// <summary>A failed second delivery keeps the primary artifact discoverable but never opens the all-success completion modal.</summary>
+    [Fact]
+    public void PartialDeliveryDoesNotClaimBuildCompletion()
+    {
+        string primaryPath = Path.Combine(Path.GetTempPath(), "output", "ab.bin");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        WorkbenchRunResult result = CreateRunResult(succeeded: true, primaryPath) with
+        {
+            IsDeliveryComplete = false,
+            DeliveryFailureMessage = "A FlashCode delivery failed.",
+        };
+
+        Assert.False(viewModel.TryShowBuildCompleted(result, build: true));
+        Assert.False(viewModel.IsBuildCompletedModalOpen);
+        Assert.Equal(primaryPath, viewModel.LatestCommittedOutputPath);
+    }
+
     /// <summary>Preview, blocked Build, and uncommitted success cannot claim that a BIN is ready.</summary>
     [Fact]
     public void OutputConfirmationRequiresSuccessfulCommittedBuild()
@@ -165,6 +229,7 @@ public sealed partial class ShellViewModelTests
     [InlineData("firmware-number-mismatch")]
     [InlineData("navigation-clear")]
     [InlineData("report")]
+    [InlineData("ab-a-flashcode-delivery")]
     [InlineData("build-completed")]
     [InlineData("hex-insert")]
     [InlineData("hex-save")]
@@ -251,6 +316,9 @@ public sealed partial class ShellViewModelTests
                     CreateRunResult(succeeded: true, outputPath: "output.bin"),
                     build: true));
                 break;
+            case "ab-a-flashcode-delivery":
+                _ = viewModel.PromptForAbAFlashCodeDeliveryAsync();
+                break;
             case "hex-insert":
                 viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen = true;
                 break;
@@ -290,6 +358,9 @@ public sealed partial class ShellViewModelTests
             case "build-completed":
                 viewModel.CloseBuildCompletedModal();
                 break;
+            case "ab-a-flashcode-delivery":
+                viewModel.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
+                break;
             case "hex-insert":
                 viewModel.HexEditorWorkspace.CancelInsertBytesCommand.Execute(null);
                 break;
@@ -312,6 +383,7 @@ public sealed partial class ShellViewModelTests
             "firmware-number-mismatch" => viewModel.IsFirmwareNumberMismatchModalOpen,
             "navigation-clear" => viewModel.IsNavigationClearConfirmationOpen,
             "report" => viewModel.IsReportModalOpen,
+            "ab-a-flashcode-delivery" => viewModel.IsAbAFlashCodeDeliveryPromptOpen,
             "build-completed" => viewModel.IsBuildCompletedModalOpen,
             "hex-insert" => viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen,
             "hex-save" => viewModel.HexEditorWorkspace.IsSaveConfirmationOpen,

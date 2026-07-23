@@ -9,11 +9,15 @@ public static partial class WorkbenchCompositionService
         string firstInputPath,
         bool build,
         string? outputPath,
-        string defaultOutputFileName)
+        string defaultOutputFileName,
+        string? automaticOutputDirectory = null)
     {
         if (string.IsNullOrWhiteSpace(outputPath))
         {
-            return (Path.GetDirectoryName(firstInputPath)!, defaultOutputFileName);
+            string automaticDirectory = string.IsNullOrWhiteSpace(automaticOutputDirectory)
+                ? Path.GetDirectoryName(firstInputPath)!
+                : Path.GetFullPath(automaticOutputDirectory);
+            return (automaticDirectory, defaultOutputFileName);
         }
 
         if (!build)

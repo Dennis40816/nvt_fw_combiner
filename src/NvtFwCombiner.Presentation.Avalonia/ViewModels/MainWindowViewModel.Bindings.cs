@@ -7,6 +7,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private static readonly IReadOnlyList<string> s_abMergeIcChoices =
+        Array.AsReadOnly([.. WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId)]);
+
     private static string DefaultIcId => WorkbenchCompositionService.GetDefaultIcId();
 
     /// <summary>Gets the shell milestone label.</summary>
@@ -35,8 +38,10 @@ public sealed partial class MainWindowViewModel
         ? $"{DisplayedDeviceIc} / {DisplayedDeviceNumber}: {DisplayedDeviceContextRefreshSummary}"
         : $"{DisplayedDeviceIc}: {DisplayedDeviceContextRefreshSummary}";
 
-    /// <summary>Gets selectable IC choices from the current catalog.</summary>
-    public IReadOnlyList<string> IcChoices { get; } = WorkbenchCompositionService.GetSupportedIcIds();
+    /// <summary>Gets IC choices admitted by the active authoring mode.</summary>
+    public IReadOnlyList<string> IcChoices => IsAbCodeMergeModeSelected
+        ? s_abMergeIcChoices
+        : WorkbenchCompositionService.GetSupportedIcIds();
 
     /// <summary>Gets replace mode choices.</summary>
     public IReadOnlyList<string> ReplaceModeChoices { get; } =
@@ -62,6 +67,9 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Gets merge input slots.</summary>
     public ObservableCollection<FirmwareSlotViewModel> MergeSlots { get; } = [];
+
+    /// <summary>Gets profile-owned symbolic AB topologies when the selected AB IC requires an operator choice.</summary>
+    public ObservableCollection<WorkbenchAbMergeTopologyChoice> AbMergeTopologyChoices { get; } = [];
 
     /// <summary>Gets the independent General Replace base firmware slot.</summary>
     public FirmwareSlotViewModel ReplaceBaseSlot { get; } = new(
@@ -204,6 +212,9 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>True when the reserved AB Code Merge option is selected.</summary>
     public bool IsAbCodeMergeModeSelected => string.Equals(SelectedMergeMode, AbCodeMergeMode, StringComparison.Ordinal);
+
+    /// <summary>True when the selected AB profile exposes an operator topology selector.</summary>
+    public bool HasAbMergeTopologyChoices => AbMergeTopologyChoices.Count > 0;
 
     /// <summary>True when the selected IC has an admitted AB profile.</summary>
     public bool IsAbMergeSupported => AbMergeWorkbenchCompositionService.IsAbMergeSupported(SelectedIc);

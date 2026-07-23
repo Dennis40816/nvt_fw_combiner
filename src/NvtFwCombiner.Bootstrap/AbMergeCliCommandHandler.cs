@@ -41,9 +41,8 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
-        string[] valueOptions = ["--profile", "--dp-ab", "--tp-a", "--tp-b", "--output", "--report"];
-        string[] flagOptions = action == "build" ? ["--overwrite"] : [];
-        if (!CliOptionParser.TryParse(args[1..], valueOptions, [], flagOptions, error, out ParsedCliOptions options))
+        string[] valueOptions = ["--profile", "--dp-ab", "--tp-a", "--tp-b", "--ab-topology", "--output", "--report"];
+        if (!CliOptionParser.TryParse(args[1..], valueOptions, [], [], error, out ParsedCliOptions options))
         {
             return UsageError;
         }
@@ -75,21 +74,54 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
+        IReadOnlyList<WorkbenchAbMergeTopologyChoice> topologyChoices =
+            AbMergeWorkbenchCompositionService.GetTopologyChoices(profile.IcId);
+        if (!TryCreateTopologySelection(
+                topologyChoices,
+                options,
+                error,
+                out Domain.Firmware.TopologySelection? abMergeTopologySelection))
+        {
+            return UsageError;
+        }
+
         InputArtifactBinding[] bindings =
         [
             .. slotPaths.Select(pair => new InputArtifactBinding(pair.Key, pair.Key, pair.Value)),
         ];
         bool build = action == "build";
+        bool hasExplicitOutput = options.Values.ContainsKey("--output");
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             profile.DefaultOutputFileName);
+        string? reportPath = options.Values.GetValueOrDefault("--report");
+        if (build && !hasExplicitOutput)
+        {
+            try
+            {
+                string automaticOutputFileName = await AbMergeWorkbenchCompositionService
+                    .ResolveAutomaticOutputFileNameAsync(
+                        profile.IcId,
+                        slotPaths,
+                        cancellationToken,
+                        options.Values.GetValueOrDefault("--ab-topology"))
+                    .ConfigureAwait(false);
+                outputTarget = new CliOutputTarget(outputTarget.OutputDirectory, automaticOutputFileName);
+            }
+            catch (InvalidOperationException)
+            {
+                // Preserve the normal failed Workbench result and its requested report. The
+                // runner repeats the same admission before it can commit any output.
+            }
+        }
+
         if (build)
         {
             CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
         }
 
         CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            options.Values.GetValueOrDefault("--report"),
+            reportPath,
             bindings,
             outputTarget,
             build);
@@ -98,16 +130,22 @@ internal static class AbMergeCliCommandHandler
                 profile.IcId,
                 slotPaths,
                 build,
-                build ? outputTarget.FullPath : null,
-                outputTarget.FileName,
-                options.Flags.Contains("--overwrite"),
+                build && hasExplicitOutput ? outputTarget.FullPath : null,
+                !build && hasExplicitOutput ? outputTarget.FileName : null,
+                abMergeTopologySelection,
+                build && !hasExplicitOutput ? outputTarget.OutputDirectory : null,
+                build ? reportPath : null,
                 cancellationToken)
             .ConfigureAwait(false);
-        bool reportWritten = options.Values.TryGetValue("--report", out string? reportPath);
-        if (reportWritten)
+        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
+            reportPath,
+            bindings,
+            new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
+            build);
+        if (!string.IsNullOrWhiteSpace(reportPath))
         {
             await CliCompositionRunSupport.WriteReportJsonAsync(
-                    reportPath!,
+                    reportPath,
                     result.ReportJson,
                     output,
                     cancellationToken)
@@ -156,6 +194,40 @@ internal static class AbMergeCliCommandHandler
         }
 
         slotPaths = paths;
+        return true;
+    }
+
+    private static bool TryCreateTopologySelection(
+        IReadOnlyList<WorkbenchAbMergeTopologyChoice> choices,
+        ParsedCliOptions options,
+        TextWriter error,
+        out Domain.Firmware.TopologySelection? selection)
+    {
+        selection = null;
+        bool hasOption = options.Values.TryGetValue("--ab-topology", out string? token);
+        if (choices.Count == 0)
+        {
+            if (!hasOption)
+            {
+                return true;
+            }
+
+            error.WriteLine("error: --ab-topology is not used by this AB Merge profile");
+            return false;
+        }
+
+        if (!hasOption)
+        {
+            error.WriteLine("error: --ab-topology is required; use single or cascade");
+            return false;
+        }
+
+        if (!AbMergeWorkbenchCompositionService.TryCreateTopologySelection(token!, out selection))
+        {
+            error.WriteLine("error: --ab-topology must be single or cascade");
+            return false;
+        }
+
         return true;
     }
 
@@ -222,7 +294,7 @@ internal static class AbMergeCliCommandHandler
     private static async Task WriteUsageAsync(TextWriter output)
     {
         await output.WriteLineAsync("Usage:").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner ab-merge preview --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--output <path>] [--report <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner ab-merge build --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner ab-merge preview --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner ab-merge build --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path>] [--report <path>]").ConfigureAwait(false);
     }
 }

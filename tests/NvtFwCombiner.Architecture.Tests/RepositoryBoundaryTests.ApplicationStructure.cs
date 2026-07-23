@@ -237,7 +237,7 @@ public sealed partial class RepositoryBoundaryTests
         int differences = root.IndexOf("OutputDifferenceSummary[] outputDifferences", StringComparison.Ordinal);
         int verdict = root.IndexOf("bool outputDifferencesAccepted", StringComparison.Ordinal);
         int runStatus = root.IndexOf("CompositionExecutionStatus runStatus", StringComparison.Ordinal);
-        int commit = root.IndexOf(".CommitAsync(request.OutputFileName", StringComparison.Ordinal);
+        int commit = root.IndexOf(".CommitAsync(outputName.FileName", StringComparison.Ordinal);
 
         Assert.True(differences >= 0 && differences < verdict && verdict < runStatus && runStatus < commit);
         Assert.Contains("CreateOutputDifferenceIssues(outputDifferences)", root, StringComparison.Ordinal);

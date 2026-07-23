@@ -15,6 +15,8 @@ public sealed partial class CompositionRunService
         DateTimeOffset startedAtUtc,
         DateTimeOffset completedAtUtc,
         bool committed,
+        string? outputFileName = null,
+        OutputNamingSummary? outputNaming = null,
         IReadOnlyList<CompositionIssue>? additionalIssues = null,
         IReadOnlyList<ValidationRunSummary>? validations = null,
         Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null)
@@ -39,7 +41,7 @@ public sealed partial class CompositionRunService
 
         ReadOnlyMemory<byte> outputBytes = execution.OutputBytes;
         var output = new OutputArtifactSummary(
-            request.OutputFileName,
+            outputFileName ?? request.OutputFileName,
             outputBytes.Length,
             outputBytes.Length == 0 ? EmptySha256 : ToSha256Hex(outputBytes.Span),
             committed);
@@ -69,7 +71,8 @@ public sealed partial class CompositionRunService
             output,
             outputDifferences,
             request.CompiledComposition.CompilationFingerprint,
-            validations);
+            validations,
+            outputNaming);
     }
 
     private static MutationRunSummary ToMutationSummary(MutationRecord mutation)
