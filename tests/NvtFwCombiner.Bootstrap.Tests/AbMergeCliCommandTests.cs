@@ -90,7 +90,7 @@ public sealed class AbMergeCliCommandTests
             reportPath,
             TestContext.Current.CancellationToken));
         string outputName = report.RootElement.GetProperty("Output").GetProperty("FileName").GetString()!;
-        Assert.Matches("^NT51929_A_D8200T8004_B_D8301T8102_[0-9]{8}\\.bin$", outputName);
+        Assert.Matches("^NT51929_FlashCode_A_D8200T8004_B_D8301T8102_[0-9]{8}\\.bin$", outputName);
         JsonElement naming = report.RootElement.GetProperty("OutputNaming");
         Assert.Equal("ab-code-v1", naming.GetProperty("RendererKind").GetString());
         Assert.Equal(outputName, naming.GetProperty("AutomaticFileName").GetString());

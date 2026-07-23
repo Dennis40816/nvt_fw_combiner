@@ -37,13 +37,13 @@ internal static class AbCodeOutputNameResolver
             tpB.Summary,
             new OutputNamingTokenSummary("date", date, IsKnown: true, null, null, "utc-clock"),
         ];
-        string automaticFileName = $"NT{canonicalIcNumber}_A_{dpA.Summary.Value}{tpA.Summary.Value}_B_{dpB.Summary.Value}{tpB.Summary.Value}_{date}.bin";
+        string automaticFileName = $"NT{canonicalIcNumber}_FlashCode_A_{dpA.Summary.Value}{tpA.Summary.Value}_B_{dpB.Summary.Value}{tpB.Summary.Value}_{date}.bin";
         CompiledOutputNamingRequirement.ValidateRuntimeLiteralFileName(automaticFileName, nameof(automaticFileName));
         string actualFileName = request.IsOutputFileNameOverride ? request.OutputFileName : automaticFileName;
         var summary = new OutputNamingSummary(
             "ab-code-v1",
             output.FileNameTemplate,
-            automaticFileName,
+            actualFileName,
             actualFileName,
             request.IsOutputFileNameOverride,
             "utc",

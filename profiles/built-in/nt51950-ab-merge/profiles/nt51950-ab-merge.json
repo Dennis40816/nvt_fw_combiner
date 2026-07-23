@@ -467,10 +467,17 @@
     }
   ],
   "output": {
-    "fileNameTemplate": "nt51950-ab-merge.bin",
+    "fileNameTemplate": "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
-    "requiredTokenIds": []
+    "requiredTokenIds": [
+      "date",
+      "dp-a",
+      "dp-b",
+      "ic",
+      "tp-a",
+      "tp-b"
+    ]
   },
   "evidenceRefs": [
     "nt51950-ab-combiner-audit-2026-07-14"

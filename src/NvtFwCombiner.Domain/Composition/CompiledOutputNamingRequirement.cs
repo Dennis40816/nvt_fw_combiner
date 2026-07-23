@@ -24,7 +24,7 @@ public enum CompiledOutputNameRendererKind
 public sealed class CompiledOutputNamingRequirement
 {
     /// <summary>Canonical template for the AB Code v1 execution-path renderer.</summary>
-    public const string AbCodeV1Template = "NT{ic}_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin";
+    public const string AbCodeV1Template = "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin";
 
     private static readonly string[] s_abCodeV1TokenIds = ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"];
     private static readonly System.Buffers.SearchValues<char> s_windowsInvalidFileNameCharacters = System.Buffers.SearchValues.Create("<>\"|?*");
