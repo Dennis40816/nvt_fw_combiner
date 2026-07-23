@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.14 release candidate; final review and stable release remain gated`
-> 文件版本：`0.9.14`
-> 基準日期：`2026-07-22`
+> 文件狀態：`0.9.15 review candidate; not published; final review and stable release remain gated`
+> 文件版本：`0.9.15`
+> 基準日期：`2026-07-23`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,7 +30,7 @@
 
 ## 0.1 Current owner priority
 
-As of 2026-07-22, `0.9.14` starts from stable `v0.9.13`/`main` commit `f9f8dbcd979ecdef43f432016787e57763819492`. It owns the R3-gated NT51919/NT51929/NT51932 AB pilot, typed input diagnostics, the minimum AB authoring surface, IC detail disclosure, targeted UI correctness fixes, smarter canonical toolchain entry, GitHub Actions cost control, and CI-owned stable release promotion. The 2026-07-23 owner rescope assigns `0.9.15`, from official `v0.9.14`, to AB delivery/review automation and function availability for the declared NT51919/NT51929/NT51932, NT51950 `single`/`cascade`, and selector-free NT51951 plans. Direct golden debt remains visible and blocks certification rather than execution; `0.9.16` closes NT51950 golden certification and `0.9.17` closes NT51951 independently. Cross-workflow header/status and Memory coverage unification, the shared Hex viewport/Changes redesign, and global Button pressed feedback remain deferred to a later owner-selected milestone.
+As of 2026-07-23, `0.9.15` is an unpublished review candidate derived from official `v0.9.14` peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`. It owns AB delivery/review automation and function availability for the declared NT51919/NT51929/NT51932, NT51950 `single`/`cascade`, and selector-free NT51951 plans. Direct golden debt remains visible and blocks certification rather than execution; `0.9.16` closes NT51950 golden certification and `0.9.17` closes NT51951 independently. Cross-workflow header/status and Memory coverage unification, the shared Hex viewport/Changes redesign, and global Button pressed feedback remain deferred to a later owner-selected milestone. This candidate has no stable tag or GitHub Release: independent review, firmware-owner approval, direct-golden closure, protected CI, clean-Windows package smoke, and release-owner approval remain mandatory.
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
 - NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.

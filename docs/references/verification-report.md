@@ -1,8 +1,24 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.14 AB pilot and release-automation candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.15 AB delivery and review candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.14`
+Specification package version: `0.9.15`
+
+## 0.9.15 AB delivery and review candidate — not published
+
+The `0.9.15` candidate is derived from the official `v0.9.14` release tag,
+peeled to `9b15d8757ccb44167c471ca4e602036066bcdea9`. It opens the declared
+AB Code routes through the shared executor: NT51919/NT51929/NT51932,
+NT51950 `1 IC`/`Cascade`, and selector-free NT51951. Its output identity,
+topology confirmation, TPB-only staged postbuild, direct-golden debt ledger,
+and read-only delivery-to-review collector are part of the candidate scope.
+
+This is not a stable release or support-certification claim. The exact reviewed
+head, tree, and verification state are supplied by the handoff collector after
+the candidate is frozen. Independent Codex review, firmware-owner map/processor
+review, direct AB golden closure, protected CI, clean Windows package smoke,
+and release-owner approval remain required before a protected-main tag or
+GitHub Release may exist.
 
 ## 0.9.14 AB pilot and CI-owned release candidate
 

@@ -4,11 +4,15 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-### 0.9.15 review candidate — not a published release
+No unreleased changes.
+
+## [0.9.15] - 2026-07-23
+
+### Review candidate — not a published release
 
 #### AB Code function opening and output identity
 
-- Before → After: AB Code exposed only the fixed NT51919/NT51929/NT51932 route; it now also exposes profile-owned NT51950 `1 IC`/`Cascade` choices and selector-free NT51951 in Merge UI and CLI. The selected canonical IC, compiled map, and—only for NT51950—the explicit topology token select execution; TP version, PID, Common FW, project ID, filename, and hash never select a route.
+- Before → After: AB Code exposed only the fixed NT51919/NT51929/NT51932 route; it now also exposes profile-owned NT51950 `1 IC`/`Cascade` choices and selector-free NT51951 in Merge UI and CLI. Every route declares its A/B CMI readers in its compiled map, so output naming and input inspection have no IC-specific GenFlash catalog fallback. The selected canonical IC, compiled map, and—only for NT51950—the explicit topology token select execution; TP version, PID, Common FW, project ID, filename, and hash never select a route.
 - Affected: Merge → AB Code. NT51950 `1 IC` outputs 512 KiB; NT51950 `Cascade` and NT51951 output 1 MiB. Every TPA/TPB input must cover `[0x00000,0x37000)` and contributes only `[0x0A000,0x37000)`.
 - Support status: Function open, not certified. NT51950 `1 IC` has owner-supplied evidence pending formal closure; NT51950 `Cascade` and NT51951 direct AB golden vectors remain missing. No NT51950 evidence promotes NT51951, and no normal Merge/Replace/CtrlRAM golden substitutes for AB Code evidence.
 - Compatibility: Existing explicit output paths continue to win; their selected path is the report identity. Automatic names now use `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` with a UTC date. Output/input aliases fail closed; a different pre-existing output is atomically replaced.
