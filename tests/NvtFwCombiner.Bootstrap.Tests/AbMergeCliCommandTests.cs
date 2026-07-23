@@ -8,6 +8,21 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>CLI admission tests for the owner-approved AB Merge pilot.</summary>
 public sealed class AbMergeCliCommandTests
 {
+    /// <summary>Global help advertises the optional topology token required by profiles such as NT51950.</summary>
+    [Fact]
+    public async Task GlobalUsageAdvertisesOptionalAbTopologyAsync()
+    {
+        CliRunResult result = await CliTestHarness.RunAsync(
+            ["--help"],
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains(
+            "ab-merge preview --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>]",
+            result.Output,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>AB preview routes all three named sources through the supported V2 profile and exports evidence.</summary>
     [Theory]
     [InlineData("51919", "NT51919")]
