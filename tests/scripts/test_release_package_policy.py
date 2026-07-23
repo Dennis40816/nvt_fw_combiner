@@ -318,6 +318,8 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("pulls/$env:NFC_PULL_REQUEST/comments", release_workflow)
         self.assertIn("issues/$env:NFC_PULL_REQUEST/comments", release_workflow)
         self.assertIn("reviewedCommitPrefix", release_workflow)
+        self.assertEqual(2, release_workflow.count("git rev-parse 'HEAD^{tree}'"))
+        self.assertNotIn("git rev-parse HEAD^{tree}", release_workflow)
         self.assertIn("codexReview = if ($codexReview.Count -eq 1)", release_workflow)
         self.assertIn(
             "release_promotion_policy.py validate-promotion-source", release_workflow

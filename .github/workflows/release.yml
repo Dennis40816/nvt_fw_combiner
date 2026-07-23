@@ -104,7 +104,7 @@ jobs:
             throw "VERSION must be stable SemVer; found '$version'."
           }
           $tag = "v$version"
-          $sourceTree = git rev-parse HEAD^{tree}
+          $sourceTree = git rev-parse 'HEAD^{tree}'
           $artifactName = "stable-candidate-${{ github.run_id }}-$sourceSha"
           "source-sha=$sourceSha" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "source-tree=$sourceTree" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -371,7 +371,7 @@ jobs:
           NFC_SOURCE_TREE: ${{ needs.candidate.outputs.source-tree }}
         run: |
           $sourceSha = git rev-parse HEAD
-          $sourceTree = git rev-parse HEAD^{tree}
+          $sourceTree = git rev-parse 'HEAD^{tree}'
           $mainSha = git rev-parse --verify refs/remotes/origin/main
           $endpoint = "repos/$env:NFC_REPOSITORY/git/ref/tags/$env:NFC_TAG"
           $tagState = python ./scripts/release_promotion_policy.py probe-resource --endpoint $endpoint
