@@ -162,7 +162,7 @@ jobs:
             --main-sha $env:NFC_SOURCE_SHA `
             --source-tree $env:NFC_SOURCE_TREE
           if ($LASTEXITCODE -ne 0) { throw 'Final PR review/tree/check policy failed.' }
-      - name: Require unused stable tag and Release
+      - name: Require readable stable tag and Release state
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -171,13 +171,13 @@ jobs:
         run: |
           $tagState = python ./scripts/release_promotion_policy.py probe-resource `
             --endpoint "repos/$env:NFC_REPOSITORY/git/ref/tags/$env:NFC_TAG"
-          if ($LASTEXITCODE -ne 0 -or $tagState.Trim() -ne 'absent') {
-            throw "Stable tag '$env:NFC_TAG' already exists or its absence could not be proved."
+          if ($LASTEXITCODE -ne 0 -or $tagState.Trim() -notin @('absent', 'present')) {
+            throw "Stable tag '$env:NFC_TAG' state could not be proved."
           }
           $releaseState = python ./scripts/release_promotion_policy.py probe-resource `
             --endpoint "repos/$env:NFC_REPOSITORY/releases/tags/$env:NFC_TAG"
-          if ($LASTEXITCODE -ne 0 -or $releaseState.Trim() -ne 'absent') {
-            throw "Release '$env:NFC_TAG' already exists or its absence could not be proved."
+          if ($LASTEXITCODE -ne 0 -or $releaseState.Trim() -notin @('absent', 'present')) {
+            throw "Release '$env:NFC_TAG' state could not be proved."
           }
       - name: Install pinned repository .NET SDK
         shell: pwsh

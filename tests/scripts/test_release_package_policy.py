@@ -337,6 +337,24 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "release-authoritative Python policy must use the pinned interpreter",
         )
 
+    def test_stable_candidate_permits_only_recoverable_tag_and_release_states(self) -> None:
+        release_workflow = (ROOT / ".github/workflows/release.yml").read_text(
+            encoding="utf-8"
+        )
+
+        candidate_start = release_workflow.index(
+            "- name: Require readable stable tag and Release state"
+        )
+        candidate_end = release_workflow.index(
+            "- name: Install pinned repository .NET SDK", candidate_start
+        )
+        candidate = release_workflow[candidate_start:candidate_end]
+
+        self.assertIn("@('absent', 'present')", candidate)
+        self.assertNotIn("-ne 'absent'", candidate)
+        self.assertIn("validate-tag", release_workflow)
+        self.assertIn("validate-release", release_workflow)
+
     def test_review_ready_event_and_closed_release_candidate_are_explicit(self) -> None:
         ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
