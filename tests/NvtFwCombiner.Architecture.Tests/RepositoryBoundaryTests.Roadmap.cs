@@ -19,8 +19,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Reduced-motion mode", roadmap, StringComparison.Ordinal);
         Assert.Contains("`v0.9.12` | CtrlRAM routing and interaction stabilization", tags, StringComparison.Ordinal);
         Assert.Contains("`v0.9.15` | AB function open, delivery readiness, and review automation", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.16` | NT51950 AB candidate closure", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.17` | NT51951 AB candidate closure", tags, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.16` | NT51950 AB golden-certification closure", tags, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.17` | NT51951 AB golden-certification closure", tags, StringComparison.Ordinal);
         Assert.Contains("`v0.9.18` | Family/evidence model unification", tags, StringComparison.Ordinal);
         Assert.Contains("peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`", tags, StringComparison.Ordinal);
         Assert.DoesNotContain("`v0.9.15` | UI unification, shared Hex viewport, and Button feedback", tags, StringComparison.Ordinal);
@@ -30,8 +30,8 @@ public sealed partial class RepositoryBoundaryTests
         string progression = tags[progressionStart..progressionEnd];
         Assert.Contains("v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance", progression, StringComparison.Ordinal);
         Assert.Contains("v0.9.15         AB function open, input/output usability, and review automation", progression, StringComparison.Ordinal);
-        Assert.Contains("v0.9.16         NT51950 AB candidate closure", progression, StringComparison.Ordinal);
-        Assert.Contains("v0.9.17         NT51951 AB candidate closure", progression, StringComparison.Ordinal);
+        Assert.Contains("v0.9.16         NT51950 AB golden-certification closure", progression, StringComparison.Ordinal);
+        Assert.Contains("v0.9.17         NT51951 AB golden-certification closure", progression, StringComparison.Ordinal);
         Assert.Contains("v0.9.18         family/evidence model unification", progression, StringComparison.Ordinal);
         Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
 
