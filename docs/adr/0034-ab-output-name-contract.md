@@ -1,6 +1,6 @@
 # ADR 0034: Render AB output names from execution snapshots
 
-- Status: Proposed for `v0.9.15`; architecture and firmware-owner approval required before runtime/profile activation
+- Status: Accepted for `v0.9.15` by the product/firmware owner on 2026-07-23; implementation remains subject to the stated verification and review gates
 - Date: 2026-07-23
 - Owners: Product owner, architecture owner, firmware owner
 - Supersedes: The token-free AB output defaults in the `v0.9.14` pilot profiles
@@ -198,11 +198,12 @@ non-executable.
 - **Use the host-local date:** makes the same UTC run produce different output
   names on differently configured workstations.
 
-## Required approval before activation
+## Approval and activation gates
 
-Architecture review must confirm the compiler/Application/port boundary and
-report/Preview-token binding.  Firmware-owner review must confirm the CMI bank
-and terminal-relative TP extraction sources for the supported perfect family,
-the explicit unknown-placeholder policy, and the UTC calendar decision.  Only
-after both approvals may a later implementation phase change schema, profiles,
-or executable runtime behavior.
+The product/firmware owner accepted the compiler/Application/port boundary,
+CMI-bank and terminal-relative TP sources, unknown-placeholder behavior, and
+UTC calendar decision on 2026-07-23.  Architecture review remains required for
+the implemented schema/compiler/report/Preview-token change, and the normal
+profile, narrow behavior, regression, Polytail, CI, and Codex-review gates
+remain required before integration.  No approval here promotes NT51950 or
+NT51951, changes AB bytes, or waives any later release gate.
