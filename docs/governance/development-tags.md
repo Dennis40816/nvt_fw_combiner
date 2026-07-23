@@ -1,6 +1,10 @@
 # Development Tags and Milestone Nodes
 
-Tags are immutable annotated SemVer tags describing code that exists. Future milestones are reserved here and are not pre-created against the wrong commit.
+Tags are immutable annotated SemVer tags describing code that exists. Future
+milestone scope, sequencing, and dates are maintained only in
+[NFC Roadmap](../architecture/nfc_roadmap.md); historical milestone descriptions
+here are not active planning authority and are not pre-created against the wrong
+commit.
 
 ## Initial node
 

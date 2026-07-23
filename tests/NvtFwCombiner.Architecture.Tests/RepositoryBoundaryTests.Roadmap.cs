@@ -2,70 +2,41 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Locks the delivery/family milestone split and keeps the Presentation backlog deferred.</summary>
+    /// <summary>Keeps future scope in the single NFC roadmap while preserving the 0.9.x record.</summary>
     [Fact]
-    public void V0915ThroughV0918OwnDeliveryFamilyCandidatesAndDeferPresentationBacklog()
+    public void NfcRoadmapMakesV0915TerminalAndSequencesV010AndV011()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string tags = ReadText("docs/governance/development-tags.md");
         string deliveryRoadmap = ReadText("docs/architecture/v0.9.15-0.9.17-roadmap.md");
-        string viewportDecision = ReadText("docs/adr/0028-capability-driven-shared-hex-viewport.md");
+        string nfcRoadmap = ReadText("docs/architecture/nfc_roadmap.md");
 
-        Assert.Contains("## v0.9.15: AB delivery readiness and review automation", roadmap, StringComparison.Ordinal);
-        Assert.Contains("No U0-U5 implementation is\nauthorized under `0.9.15`", roadmap, StringComparison.Ordinal);
-        Assert.Contains("later\nowner-selected milestone", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Every interactive Avalonia `Button`", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Pointer, touch, Space, and Enter", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Reduced-motion mode", roadmap, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.12` | CtrlRAM routing and interaction stabilization", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.15` | AB function open, delivery readiness, and review automation", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.16` | NT51950 AB golden-certification closure", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.17` | NT51951 AB golden-certification closure", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.18` | Family/evidence model unification", tags, StringComparison.Ordinal);
-        Assert.Contains("peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`", tags, StringComparison.Ordinal);
-        Assert.DoesNotContain("`v0.9.15` | UI unification, shared Hex viewport, and Button feedback", tags, StringComparison.Ordinal);
+        Assert.Contains("Status: historical execution and release evidence", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Status: historical release-planning evidence", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Future\nmilestone scope, sequencing, and dates are maintained only", tags, StringComparison.Ordinal);
 
-        int progressionStart = tags.IndexOf("## Progression", StringComparison.Ordinal);
-        int progressionEnd = tags.IndexOf("## Rules", StringComparison.Ordinal);
-        string progression = tags[progressionStart..progressionEnd];
-        Assert.Contains("v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance", progression, StringComparison.Ordinal);
-        Assert.Contains("v0.9.15         AB function open, input/output usability, and review automation", progression, StringComparison.Ordinal);
-        Assert.Contains("v0.9.16         NT51950 AB golden-certification closure", progression, StringComparison.Ordinal);
-        Assert.Contains("v0.9.17         NT51951 AB golden-certification closure", progression, StringComparison.Ordinal);
-        Assert.Contains("v0.9.18         family/evidence model unification", progression, StringComparison.Ordinal);
-        Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
-
-        Assert.Contains("| `0.9.15` | Open NT51919/NT51929/NT51932 perfect-family AB plus NT51950", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `0.9.16` | NT51950 AB golden-certification closure", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `0.9.17` | NT51951 AB golden-certification closure", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("peeled commit\n  `9b15d8757ccb44167c471ca4e602036066bcdea9`", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("owner-supplied single golden covers only `single`", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("selector-free plan remains one declared byte plan", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("## Family evidence-reuse policy", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("**Perfect family:** treat members as the same for a *like-for-like workflow*", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("**LDC family:** for LDC-related families such as NT51927/NT51928", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("NT51950/NT51951, the presence or absence of local dimming divides DP behavior", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("no LDC-family golden may be shared for DP Replace, AB Code", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Standard Merge, or any other DP-writing/DP-layout workflow", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("TP/CtrlRAM sharing is not evidence for a DP range, header", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("This is the single canonical roadmap for the next four milestones.", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.DoesNotContain("v0.9.18-family-evidence-roadmap.md", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("later owner-selected Presentation milestone", viewportDecision, StringComparison.Ordinal);
-        Assert.Contains("## Post-v0.9.18 owner decision queue", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| Evidence-backed code-size reduction and related-function reuse |", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("code size is a review metric, never a hard ratchet or release gate", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| Settings support-matrix entry and evidence dashboard |", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("function availability, certification/support status, direct versus reusable golden evidence", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("must never select a profile, waive a gate, infer byte behavior", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| Error experience unification |", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| IC family and rule authoring UI |", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| Customized plan reuse and import |", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| Report detail, layout, and functional review |", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("# v0.9.15–v0.9.18 Delivery and Family Roadmap", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `perfect-family` | NT51919/NT51929/NT51932", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `ldc-tp-only` | NT51927/NT51928", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `ldc-tp-only` | NT51950/NT51951", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("It is not an authorization to change a profile, map, processor, support stage,", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("# NFC Roadmap", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("This is the single canonical roadmap for future NFC work.", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`0.9.15` | Final 0.9.x release", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## `0.10.x`: support visibility, issue/report experience, and maintainability", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `0.10.0` | M0/M1 inventory", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `0.10.1` | M2 test-harness convergence", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `0.10.2` | M3/M4 production refactoring", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Settings Support Matrix", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Error experience unification", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Report detail, layout, and functional review", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("### Matt Pocock skills transition contract", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`mattpocock/skills`", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`setup-matt-pocock-skills`", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## `0.11.0`: AB certification and family evidence model", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Close NT51950 AB `1 IC` and `Cascade`", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Close selector-free NT51951 AB", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Perfect-family and `ldc-tp-only` evidence model", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| M0 |", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| M4 |", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## Later `0.11.x` owner queue", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Selection-change validation lifecycle", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Unified selection/admission/input-check projection", nfcRoadmap, StringComparison.Ordinal);
     }
 
     /// <summary>Separates reviewed AB function availability from direct-golden and support-certification debt.</summary>

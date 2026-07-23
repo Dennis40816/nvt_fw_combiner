@@ -23,7 +23,7 @@ No unreleased changes.
 
 - Before → After: reviewers had to reconstruct baseline, changed-file, and residual-gate evidence manually; the read-only `collect_review_handoff.py` collector now fails closed for dirty/ambiguous lineage and records the exact annotated baseline, peeled SHA, branch/tree, committed diff, supplied CI state, verification state, impact, unchanged boundaries, and all required human gates.
 - Affected: version-branch review handoff only. The collector is evidence-only and cannot build, merge, tag, push, publish, or promote support.
-- Remaining gates: independent reviewer/Codex review, firmware-owner map/processor approval, direct-golden closure, protected CI, clean Windows package smoke, and release-owner approval remain open. This candidate must not be represented as a stable release or support certification.
+- Remaining gates: independent reviewer/Codex review, firmware-owner map/processor approval, protected CI, clean Windows package smoke, and release-owner approval remain open. Direct-golden closure is explicit `0.11.0` certification work, not a claim of current support certification. This candidate must not be represented as a stable release or support certification.
 
 #### Deferred work
 
