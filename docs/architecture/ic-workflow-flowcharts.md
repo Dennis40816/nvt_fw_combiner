@@ -15,6 +15,7 @@ Update this document in the same change when any of these sources change:
 - [`../adr/0031-ctrlram-profile-intervals-and-build-plan-authority.md`](../adr/0031-ctrlram-profile-intervals-and-build-plan-authority.md)
 - `docs/architecture/nt51950-nt51951-dp-length-policy.md`
 - `docs/architecture/ctrlram-postbuild-command-matrix.md`
+- `docs/architecture/nt51950-nt51951-ab-code-contract.md`
 - `docs/architecture/supported-ic-matrix.md`
 - `docs/architecture/adding-ic-merge-replace-workflow.md`
 
@@ -27,6 +28,42 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 - `Golden pending` means the repo has an executable profile or command catalog entry, but owner-approved golden output and firmware sign-off are still pending.
 
 CtrlRAM production admission follows three independent decisions: requested IC selects the owner-declared family, Common FW selects an effective runtime-profile interval only when the IC has more than one runtime profile, and the requested Number selects a typed build plan. PID, filename, exact golden Common/TP FW version, whole-file SHA, and a golden fixture's observed chip count are report/evidence fields, never family or route gates. FWConfig chip count is cross-checked after plan selection and a contradiction requires an explicit user decision; it does not silently select another plan.
+
+## All-IC / all-mode release index
+
+The table below and the detailed sections that follow are the versioned index
+for every selectable IC/workflow. It pairs the high-level mode diagram with
+the per-IC table so a diagram never becomes a second execution specification.
+Availability and certification remain the Support Matrix's facts; this index
+does not turn a candidate or golden-pending route into a support claim.
+
+Editable Mermaid Live permalink (generated from the source below on
+2026-07-23):
+
+https://mermaid.live/edit#pako:eNptkk1PAjEQhv_KpGeIovEgJhrYVfRgYsSb66G0s9Ck29ZpVyGE_-6w68IG7aHJfDzvfGS2QnmNYixK67_VSlKCt7xwwG_yXohs5X1EIPysMSbU8JSBdBoqhgrxAcPhLUy3hXhGWiJ4glcMViq8K8SuVZk2ORlrzROTkjQ0yWMI5EtjcRjRovrVJl8njKzch3OGJ9MOuxpdj67P-L9o_ssLKM0a9c0-cHUO0bilxTMlo5IaW-8I2hqehiUhnsjfs_wMHZK0XQ1cB2uUSVDJEFgwgnd2c8I9MJe_dBP_Mw8Hm3lOuNl-r4ns6-T5CKdNYMLV1QIJ2OeaNXN18l8cCD6mRW2sPtF67PV-0Prb_bdJK-MgyhLTBtB9ofXh2FfWaD3t-_JV4Bl0NwywP_JVsAfXqGpe4d5FGDylA5-3fGvc942HvjHrG4-dIQaiQqqk0XyFfEpphRW3Ni6ExlLWlsvsOEdy7fnGKTFOVONA1EHLhLmRS5JV69z9AJ8o4Cc
+
+```mermaid
+flowchart TD
+    A["Choose requested IC and mode"] --> B{"Merge or Replace?"}
+    B --> C["Standard Merge: profile-selected IC routes"]
+    B --> D["AB Merge: 51919/51929/51932 fixed; 51950 single/cascade; 51951 selector-free"]
+    B --> E["General Merge: explicit mappings only"]
+    B --> F["DP Replace: profile-selected DP route"]
+    B --> G["CtrlRAM Replace: typed number plan and approved postbuild"]
+    B --> H["General Replace: explicit mappings within safety envelope"]
+    C --> I["Compiled profile -> shared executor -> report"]
+    D --> I
+    E --> I
+    F --> I
+    G --> I
+    H --> I
+```
+
+The release handoff records this file revision and permalink, plus the
+NT51950/NT51951 AB permalink in
+[`nt51950-nt51951-ab-code-contract.md`](nt51950-nt51951-ab-code-contract.md).
+This is documentation only and does not authorize all-mode implementation
+convergence.
 
 ## Per-IC flow index
 
@@ -48,7 +85,28 @@ CtrlRAM production admission follows three independent decisions: requested IC s
 
 ## AB Initializer Policy
 
-All five AB V2 profiles copy the complete submitted DP container before their declared TPA/TPB overlays. The `v0.9.14` runtime/CLI pilot admits only NT51919, NT51929, and NT51932: they use the fixed `0x80000` AB map, consume declared prefixes from 512 KiB DP_AB and 256 KiB TPA/TPB inputs, and apply checked cloned-TPB relocations at `0x7164/0x7168/0x716C`. The owner approved NT51929 direct golden applicability for NT51919 and NT51932 through the exact family fact scope; UI and final release gates remain open. NT51950 and NT51951 remain non-routed candidates. They stage immutable A/B banks, apply only the declared TPB DIFF relocation in C#, then invoke Legacy Combiner 1.13.0 with the verified `NT51950BASED_MERGE_AB_MODE` command. That command does not consume `map.txt`; C# never writes the AB header CRC, and Combiner owns the declared B-header ILM/DLM/CRC mutations. NT51950 has two direct owner fixtures with full-byte parity; the owner approved their workflow-logic applicability to NT51951, whose distinct `0x80000` synthetic topology remains locked. Their distinct firmware-owner review remains required before runtime promotion.
+All AB V2 profiles copy the complete submitted DP container before their
+declared TPA/TPB overlays. The `v0.9.14` runtime/CLI pilot admits only
+NT51919, NT51929, and NT51932: they use the fixed `0x80000` AB map, consume
+declared prefixes from 512 KiB DP_AB and 256 KiB TPA/TPB inputs, and apply
+checked cloned-TPB relocations at `0x7164/0x7168/0x716C`. The owner approved
+NT51929 direct golden applicability for NT51919 and NT51932 through the exact
+family fact scope; UI and final release gates remain open.
+
+`0.9.15` adds the separately declared NT51950 and NT51951 AB plans described
+by [the AB contract](nt51950-nt51951-ab-code-contract.md). They copy complete
+DP input first, copy only TP `[0xA000,0x37000)`, never alter TPA, relocate TPB
+ILM/DLM/DIFF in a clone, then import the profile-bound staged TPB postbuild
+result only after a TPB-only diff check. NT51950 has the visible closed
+`single`/`cascade` selection; NT51951 has no selector. Their function opening
+does not certify missing direct golden evidence.
+
+### AB-950-951-v0.9.15
+
+The full editable source and Mermaid Live permalink are maintained in
+[`nt51950-nt51951-ab-code-contract.md`](nt51950-nt51951-ab-code-contract.md).
+The release handoff records this document revision and that permalink; neither
+the rendering nor the link has runtime authority.
 
 ## Standard Merge flowcharts
 
