@@ -75,7 +75,6 @@ public static partial class WorkbenchCompositionService
             .. bindings
                 .Where(binding => !VirtualArtifactLocator.IsVirtual(binding.ArtifactId))
                 .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
-                .Distinct(StringComparer.OrdinalIgnoreCase),
         ];
         (string outputDirectory, string outputFileName) = ResolveOutputTarget(
             firstInputPath,
@@ -155,7 +154,6 @@ public static partial class WorkbenchCompositionService
             .. bindings
                 .Where(binding => !VirtualArtifactLocator.IsVirtual(binding.ArtifactId))
                 .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
-                .Distinct(StringComparer.OrdinalIgnoreCase),
         ];
         IArtifactReader reader = inputRoots.Length > 0
             ? new FileArtifactReader(inputRoots)

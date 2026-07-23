@@ -124,6 +124,7 @@ public sealed partial class ShellViewModelTests
             observedTopologies.AddRange(inputs.Select(static input => input.AbMergeTopologyToken));
             return WorkbenchCompositionService.InspectFirmwareBatch(icId, inputs);
         });
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51950";
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
@@ -136,6 +137,46 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = "cascade";
         await viewModel.FirmwareInspectionRefreshTask;
 
+        Assert.Equal(["single", "cascade"], observedTopologies);
+    }
+
+    /// <summary>Accepting a visible NT51950 topology prompt refreshes the retained AB input under the accepted selection.</summary>
+    [Fact]
+    public async Task AcceptingAbTopologyPromptReinspectsSelectedInputs()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-topology-prompt-refresh");
+        var observedTopologies = new List<string?>();
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        {
+            observedTopologies.AddRange(inputs.Select(static input => input.AbMergeTopologyToken));
+            return
+            [
+                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                    input.InspectionId,
+                    new WorkbenchFirmwareInspection(
+                        null,
+                        null,
+                        null,
+                        null,
+                        new WorkbenchFirmwareContextSuggestion("NT51950", "cascade", 2, "1.0.0", 0x5195),
+                        null))),
+            ];
+        });
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedIc = "NT51950";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpAInput,
+            workspace.Write("tp-a.bin", new byte[0x37000]),
+            TestContext.Current.CancellationToken);
+        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal(["single"], observedTopologies);
+
+        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
+        await viewModel.FirmwareInspectionRefreshTask;
+
+        Assert.Equal("cascade", viewModel.SelectedNumber);
         Assert.Equal(["single", "cascade"], observedTopologies);
     }
 
