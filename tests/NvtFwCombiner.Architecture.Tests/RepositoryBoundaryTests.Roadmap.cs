@@ -38,6 +38,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("peeled commit\n  `9b15d8757ccb44167c471ca4e602036066bcdea9`", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("single-topology golden is evidence for that topology only", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("No NT51951 range, split point", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## Family evidence-reuse policy", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("**Perfect family:** treat members as the same for a *like-for-like workflow*", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("**LDC family:** for LDC-related families such as NT51927/NT51928", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("NT51950/NT51951, the presence or absence of local dimming divides DP behavior", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("no LDC-family golden may be shared for DP Replace, AB Code", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Standard Merge, or any other DP-writing/DP-layout workflow", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("TP/CtrlRAM sharing is not evidence for a DP range, header", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("later owner-selected Presentation milestone", viewportDecision, StringComparison.Ordinal);
         Assert.Contains("## Post-v0.9.17 owner decision queue", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| Error experience unification |", deliveryRoadmap, StringComparison.Ordinal);
