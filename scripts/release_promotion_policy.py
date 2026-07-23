@@ -13,7 +13,8 @@ from typing import Any
 
 HEX_SHA = re.compile(r"^[0-9a-f]{40}$")
 STABLE_VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
-CODEX_REVIEWER = "chatgpt-codex-connector[bot]"
+CODEX_REVIEWER = "chatgpt-codex-connector"
+CODEX_REVIEW_SOURCES = frozenset({"pull-review", "inline-comment", "issue-comment"})
 
 
 def _require(condition: bool, message: str) -> None:
@@ -26,6 +27,15 @@ def _require_sha(value: object, label: str) -> None:
         isinstance(value, str) and HEX_SHA.fullmatch(value) is not None,
         f"{label} must be a lowercase 40-character Git SHA",
     )
+
+
+def _normalize_reviewer(value: object) -> str:
+    """Normalize GitHub bot and non-bot logins before policy comparisons."""
+
+    if not isinstance(value, str):
+        return ""
+    normalized = value.strip().lower()
+    return normalized.removesuffix("[bot]").rstrip()
 
 
 def validate_candidate_context(
@@ -91,10 +101,14 @@ def validate_candidate_context(
         )
         _require(
             all(
-                isinstance(item, dict) and item.get("commitSha") == head_sha
+                isinstance(item, dict)
+                and item.get("commitSha") == head_sha
+                and _normalize_reviewer(item.get("reviewer")) != CODEX_REVIEWER
+                and isinstance(item.get("submittedAt"), str)
+                and bool(item["submittedAt"])
                 for item in approvals
             ),
-            "reviewed PR approval is stale or malformed",
+            "reviewed PR approval is stale, malformed, or authored by Codex",
         )
     else:
         _require(
@@ -148,8 +162,13 @@ def _require_exact_head_codex_review(snapshot: dict[str, Any], head_sha: str) ->
         "owner self-approval exception has no Codex review evidence",
     )
     _require(
-        review.get("reviewer") == CODEX_REVIEWER,
+        _normalize_reviewer(review.get("reviewer")) == CODEX_REVIEWER,
         "owner self-approval exception Codex reviewer is invalid",
+    )
+    source = review.get("source")
+    _require(
+        source in CODEX_REVIEW_SOURCES,
+        "owner self-approval exception Codex review source is invalid",
     )
     _require(
         review.get("commitSha") == head_sha,
@@ -163,6 +182,11 @@ def _require_exact_head_codex_review(snapshot: dict[str, Any], head_sha: str) ->
         isinstance(review.get("submittedAt"), str) and bool(review["submittedAt"]),
         "owner self-approval exception Codex review has no submission time",
     )
+    if source == "issue-comment":
+        _require(
+            review.get("reviewedCommitPrefix") == head_sha[:10],
+            "owner self-approval exception Codex issue comment is stale",
+        )
 
 
 def _sha256(path: Path) -> str:

@@ -32,6 +32,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      issues: read
       checks: read
       statuses: read
     outputs:
@@ -138,8 +139,21 @@ jobs:
             "repos/$env:NFC_REPOSITORY/pulls/$env:NFC_PULL_REQUEST/reviews" --jq 'add'
           if ($LASTEXITCODE -ne 0) { throw 'Final PR approval evidence could not be read.' }
           $reviews = @($reviewsText | ConvertFrom-Json)
+          $codexReviewer = 'chatgpt-codex-connector'
+          function Get-NormalizedReviewer([object]$login) {
+            $normalized = ([string]$login).Trim().ToLowerInvariant()
+            if ($normalized.EndsWith('[bot]', [System.StringComparison]::Ordinal)) {
+              return $normalized.Substring(0, $normalized.Length - '[bot]'.Length).TrimEnd()
+            }
+
+            return $normalized
+          }
           $approvals = @($reviews |
-            Where-Object { $_.state -eq 'APPROVED' -and $_.commit_id -eq $pr.headRefOid } |
+            Where-Object {
+              $_.state -eq 'APPROVED' -and
+              $_.commit_id -eq $pr.headRefOid -and
+              (Get-NormalizedReviewer $_.user.login) -ne $codexReviewer
+            } |
             ForEach-Object {
               [ordered]@{
                 reviewer = [string]$_.user.login
@@ -147,9 +161,9 @@ jobs:
                 submittedAt = [string]$_.submitted_at
               }
             })
-          $codexReview = @($reviews |
+          $codexPullReviewCandidates = @($reviews |
             Where-Object {
-              $_.user.login -eq 'chatgpt-codex-connector[bot]' -and
+              (Get-NormalizedReviewer $_.user.login) -eq $codexReviewer -and
               $_.commit_id -eq $pr.headRefOid -and
               $_.state -in @('COMMENTED', 'APPROVED') -and
               -not [string]::IsNullOrWhiteSpace([string]$_.submitted_at)
@@ -158,12 +172,62 @@ jobs:
             Select-Object -First 1 |
             ForEach-Object {
               [ordered]@{
+                source = 'pull-review'
                 reviewer = [string]$_.user.login
                 commitSha = [string]$_.commit_id
                 state = [string]$_.state
                 submittedAt = [string]$_.submitted_at
               }
             })
+          $inlineCommentsText = gh api --paginate --slurp `
+            "repos/$env:NFC_REPOSITORY/pulls/$env:NFC_PULL_REQUEST/comments" --jq 'add'
+          if ($LASTEXITCODE -ne 0) { throw 'Final PR inline-comment evidence could not be read.' }
+          $inlineComments = @($inlineCommentsText | ConvertFrom-Json)
+          $codexInlineCommentCandidates = @($inlineComments |
+            Where-Object {
+              (Get-NormalizedReviewer $_.user.login) -eq $codexReviewer -and
+              $_.commit_id -eq $pr.headRefOid -and
+              -not [string]::IsNullOrWhiteSpace([string]$_.created_at)
+            } |
+            ForEach-Object {
+              [ordered]@{
+                source = 'inline-comment'
+                reviewer = [string]$_.user.login
+                commitSha = [string]$_.commit_id
+                state = 'COMMENTED'
+                submittedAt = [string]$_.created_at
+              }
+            })
+          $issueCommentsText = gh api --paginate --slurp `
+            "repos/$env:NFC_REPOSITORY/issues/$env:NFC_PULL_REQUEST/comments" --jq 'add'
+          if ($LASTEXITCODE -ne 0) { throw 'Final PR issue-comment evidence could not be read.' }
+          $issueComments = @($issueCommentsText | ConvertFrom-Json)
+          $reviewedCommitPrefix = $pr.headRefOid.Substring(0, 10)
+          $reviewedCommitMarker = 'Reviewed commit: `{0}`' -f $reviewedCommitPrefix
+          $codexIssueCommentCandidates = @($issueComments |
+            Where-Object {
+              (Get-NormalizedReviewer $_.user.login) -eq $codexReviewer -and
+              ([string]$_.body).Contains($reviewedCommitMarker, [System.StringComparison]::Ordinal) -and
+              -not [string]::IsNullOrWhiteSpace([string]$_.created_at)
+            } |
+            ForEach-Object {
+              [ordered]@{
+                source = 'issue-comment'
+                reviewer = [string]$_.user.login
+                commitSha = [string]$pr.headRefOid
+                reviewedCommitPrefix = $reviewedCommitPrefix
+                state = 'COMMENTED'
+                submittedAt = [string]$_.created_at
+              }
+            })
+          $codexEvidence = @(
+            $codexPullReviewCandidates
+            $codexInlineCommentCandidates
+            $codexIssueCommentCandidates
+          )
+          $codexReview = @($codexEvidence |
+            Sort-Object submittedAt -Descending |
+            Select-Object -First 1)
           $checksText = gh pr checks $env:NFC_PULL_REQUEST --repo $env:NFC_REPOSITORY `
             --required --json name,state,bucket 2>&1
           try { $checks = $checksText | ConvertFrom-Json -ErrorAction Stop }

@@ -298,6 +298,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "    permissions:\n"
             "      contents: read\n"
             "      pull-requests: read\n"
+            "      issues: read\n"
             "      checks: read\n"
             "      statuses: read",
             release_workflow,
@@ -312,7 +313,11 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         )
         self.assertIn("NFC_WORKFLOW_ACTOR: ${{ github.actor }}", release_workflow)
         self.assertIn("--owner-self-approval-exception", release_workflow)
-        self.assertIn("chatgpt-codex-connector[bot]", release_workflow)
+        self.assertIn("$codexReviewer = 'chatgpt-codex-connector'", release_workflow)
+        self.assertIn("Get-NormalizedReviewer", release_workflow)
+        self.assertIn("pulls/$env:NFC_PULL_REQUEST/comments", release_workflow)
+        self.assertIn("issues/$env:NFC_PULL_REQUEST/comments", release_workflow)
+        self.assertIn("reviewedCommitPrefix", release_workflow)
         self.assertIn("codexReview = if ($codexReview.Count -eq 1)", release_workflow)
         self.assertIn(
             "release_promotion_policy.py validate-promotion-source", release_workflow

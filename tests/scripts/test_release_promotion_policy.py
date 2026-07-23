@@ -72,7 +72,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             (
                 "approvals",
                 [{"reviewer": "stale", "commitSha": "5" * 40}],
-                "stale or malformed",
+                "stale, malformed, or authored by Codex",
             ),
             ("requiredChecks", [{"name": "dotnet", "bucket": "fail"}], "not passing"),
         )
@@ -111,7 +111,8 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         snapshot["workflowActor"] = "release-owner"
         snapshot["ownerSelfApprovalException"] = True
         snapshot["codexReview"] = {
-            "reviewer": MODULE.CODEX_REVIEWER,
+            "source": "pull-review",
+            "reviewer": f"{MODULE.CODEX_REVIEWER}[bot]",
             "commitSha": "4" * 40,
             "state": "COMMENTED",
             "submittedAt": "2026-07-22T00:59:00Z",
@@ -160,11 +161,49 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 {**snapshot["codexReview"], "state": "PENDING"},
                 "Codex review is incomplete",
             ),
+            (
+                "codexReview",
+                {**snapshot["codexReview"], "source": "unknown"},
+                "Codex review source is invalid",
+            ),
         ):
             with self.subTest(key=key):
                 mutated = {**snapshot, key: value}
                 with self.assertRaisesRegex(ValueError, message):
                     MODULE.validate_candidate_context(mutated, **arguments)
+
+        issue_comment = {
+            **snapshot["codexReview"],
+            "source": "issue-comment",
+            "reviewedCommitPrefix": ("4" * 40)[:10],
+        }
+        MODULE.validate_candidate_context(
+            {**snapshot, "codexReview": issue_comment}, **arguments
+        )
+        with self.assertRaisesRegex(ValueError, "issue comment is stale"):
+            MODULE.validate_candidate_context(
+                {
+                    **snapshot,
+                    "codexReview": {
+                        **issue_comment,
+                        "reviewedCommitPrefix": "5" * 10,
+                    },
+                },
+                **arguments,
+            )
+
+    def test_rejects_codex_as_an_ordinary_pr_approval(self) -> None:
+        snapshot = valid_snapshot()
+        snapshot["approvals"] = [
+            {
+                "reviewer": f"{MODULE.CODEX_REVIEWER}[bot]",
+                "commitSha": "4" * 40,
+                "submittedAt": "2026-07-22T00:55:00Z",
+            }
+        ]
+
+        with self.assertRaisesRegex(ValueError, "authored by Codex"):
+            MODULE.validate_candidate_context(snapshot, **self.candidate_arguments())
 
     def test_rejects_owner_exception_on_an_approved_pr(self) -> None:
         with self.assertRaisesRegex(ValueError, "must be disabled"):
