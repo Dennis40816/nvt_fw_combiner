@@ -323,6 +323,18 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("foreach ($item in $page)", release_workflow)
         self.assertEqual(1, release_workflow.count("gh api --paginate --slurp $endpoint"))
         self.assertNotIn("--jq 'add'", release_workflow)
+        self.assertIn("$requiredCheckNames = @(", release_workflow)
+        for required_check in (
+            "policy / polytail",
+            "python-worker / verify",
+            "dotnet / build-test",
+        ):
+            self.assertIn(required_check, release_workflow)
+        self.assertIn(
+            "commits/$($pr.headRefOid)/check-runs?per_page=100", release_workflow
+        )
+        self.assertIn("$_.app.slug -eq 'github-actions'", release_workflow)
+        self.assertNotIn("gh pr checks", release_workflow)
         self.assertIn("pulls/$env:NFC_PULL_REQUEST/comments", release_workflow)
         self.assertIn("issues/$env:NFC_PULL_REQUEST/comments", release_workflow)
         self.assertIn("reviewedCommitPrefix", release_workflow)
@@ -386,7 +398,12 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
         self.assertIn("ready_for_review", ci)
         self.assertIn("Final reviewed pull request merged as this main commit", release)
-        self.assertIn("--required --json name,state,bucket", release)
+        self.assertIn(
+            "GitHub CLI cannot query `--required` after the final PR's head branch is closed.",
+            release,
+        )
+        self.assertIn("check-runs?per_page=100", release)
+        self.assertNotIn("gh pr checks", release)
         self.assertIn("reviewDecision", release)
         self.assertIn("headTree", release)
         self.assertIn("contents: read", release)

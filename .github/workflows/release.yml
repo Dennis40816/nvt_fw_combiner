@@ -235,10 +235,30 @@ jobs:
           $codexReview = @($codexEvidence |
             Sort-Object submittedAt -Descending |
             Select-Object -First 1)
-          $checksText = gh pr checks $env:NFC_PULL_REQUEST --repo $env:NFC_REPOSITORY `
-            --required --json name,state,bucket 2>&1
-          try { $checks = $checksText | ConvertFrom-Json -ErrorAction Stop }
-          catch { throw "Required check evidence is unavailable or malformed: $checksText" }
+          # GitHub CLI cannot query `--required` after the final PR's head branch is closed.
+          # Instead, prove the release-required CI check runs directly against that exact head.
+          $requiredCheckNames = @(
+            'policy / polytail'
+            'python-worker / verify'
+            'dotnet / build-test'
+          )
+          $checkRunsText = gh api `
+            "repos/$env:NFC_REPOSITORY/commits/$($pr.headRefOid)/check-runs?per_page=100"
+          if ($LASTEXITCODE -ne 0) { throw 'Required check-run evidence could not be read.' }
+          try { $checkRuns = @((($checkRunsText | ConvertFrom-Json -ErrorAction Stop).check_runs)) }
+          catch { throw "Required check-run evidence is malformed: $checkRunsText" }
+          $checks = @($requiredCheckNames | ForEach-Object {
+            $requiredName = $_
+            $matches = @($checkRuns | Where-Object {
+              $_.name -eq $requiredName -and $_.app.slug -eq 'github-actions'
+            })
+            [ordered]@{
+              name = $requiredName
+              bucket = if ($matches.Count -eq 1 -and
+                $matches[0].status -eq 'completed' -and
+                $matches[0].conclusion -eq 'success') { 'pass' } else { 'fail' }
+            }
+          })
           $snapshot = [ordered]@{
             number = [int]$pr.number
             state = [string]$pr.state
