@@ -315,6 +315,14 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("--owner-self-approval-exception", release_workflow)
         self.assertIn("$codexReviewer = 'chatgpt-codex-connector'", release_workflow)
         self.assertIn("Get-NormalizedReviewer", release_workflow)
+        self.assertIn("function Get-PaginatedGitHubArray", release_workflow)
+        self.assertIn(
+            "$pages = $pagesText | ConvertFrom-Json -NoEnumerate", release_workflow
+        )
+        self.assertIn("foreach ($page in $pages)", release_workflow)
+        self.assertIn("foreach ($item in $page)", release_workflow)
+        self.assertEqual(1, release_workflow.count("gh api --paginate --slurp $endpoint"))
+        self.assertNotIn("--jq 'add'", release_workflow)
         self.assertIn("pulls/$env:NFC_PULL_REQUEST/comments", release_workflow)
         self.assertIn("issues/$env:NFC_PULL_REQUEST/comments", release_workflow)
         self.assertIn("reviewedCommitPrefix", release_workflow)
