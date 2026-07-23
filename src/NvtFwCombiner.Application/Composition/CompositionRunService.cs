@@ -43,6 +43,31 @@ public sealed partial class CompositionRunService
         _externalProcessor = externalProcessor;
     }
 
+    /// <summary>
+    /// Resolves an automatic output filename from the same immutable accepted input snapshots as execution,
+    /// without executing composition, processors, staging, or output publication.
+    /// </summary>
+    public async ValueTask<CompositionOutputNamePreview> ResolveOutputNameAsync(
+        CompositionRunRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        DateTimeOffset startedAtUtc = _clock.UtcNow;
+        BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
+        OutputNameResolution outputName = boundInputs.Issues.Count == 0
+            ? AbCodeOutputNameResolver.Resolve(
+                request,
+                boundInputs.InputBytes,
+                boundInputs.InputSummaries,
+                startedAtUtc)
+            : OutputNameResolution.Static(request.OutputFileName);
+        return new CompositionOutputNamePreview(
+            outputName.FileName,
+            outputName.Summary,
+            [.. boundInputs.Issues, .. outputName.Issues]);
+    }
+
     /// <summary>Executes the request without committing output.</summary>
     public ValueTask<CompositionRunResult> PreviewAsync(
         CompositionRunRequest request,

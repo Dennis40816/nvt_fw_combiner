@@ -205,7 +205,8 @@ internal static class WorkbenchAbMergeInputProjection
         ushort jira = (ushort)(register16 | ((register18 & 0x0F) << 8));
         return new WorkbenchAbVersionValue(
             kind,
-            FormattableString.Invariant($"D{major:X2}{minor:X2}"),
+            WorkbenchDpVersionMetadata.FormatDisplayValue(
+                FormattableString.Invariant($"{major:X2}{minor:X2}")),
             jira == 0 ? null : $"AUTO_PRJ-{jira}",
             IsUnknown: false);
     }

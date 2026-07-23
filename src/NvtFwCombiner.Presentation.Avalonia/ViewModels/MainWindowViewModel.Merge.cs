@@ -184,6 +184,28 @@ public sealed partial class MainWindowViewModel
         };
     }
 
+    /// <summary>Resolves the active Merge filename for the native Save dialog without duplicating firmware naming rules in UI.</summary>
+    internal async ValueTask<string> ResolveMergeOutputFileNameForSaveAsync(CancellationToken cancellationToken)
+    {
+        if (!IsAbCodeMergeModeSelected)
+        {
+            return MergeOutputFileName;
+        }
+
+        IReadOnlyDictionary<string, string> slotPaths = MergeSlots
+            .Where(static slot => slot.HasFile)
+            .ToDictionary(
+                slot => _abMergeAddressSpaceBySlotId[slot.SlotId],
+                slot => slot.FilePath!,
+                StringComparer.Ordinal);
+        return await AbMergeWorkbenchCompositionService.ResolveAutomaticOutputFileNameAsync(
+                SelectedIc,
+                slotPaths,
+                cancellationToken,
+                GetSelectedAbMergeTopologyToken())
+            .ConfigureAwait(false);
+    }
+
     private Task RunStandardMergeAsync(bool build, string? outputPath)
     {
         string icId = SelectedIc;

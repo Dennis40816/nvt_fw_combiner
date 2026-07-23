@@ -160,8 +160,8 @@ public sealed partial class ShellViewModelTests
         });
         FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
-        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP1" && fact.Value.StartsWith("D0605", StringComparison.Ordinal));
-        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP2" && fact.Value.StartsWith("D0708", StringComparison.Ordinal));
+        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP1" && fact.Value.StartsWith("D06-05", StringComparison.Ordinal));
+        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP2" && fact.Value.StartsWith("D07-08", StringComparison.Ordinal));
         FirmwareSlotViewModel tpASlot = viewModel.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpAInput);
         Assert.Contains(
@@ -180,6 +180,13 @@ public sealed partial class ShellViewModelTests
         Assert.DoesNotContain(tpBSlot.FirmwareFacts, static fact => fact.Label == "TP");
         Assert.True(viewModel.CanBuildMerge);
         Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
+
+        string suggestedOutputName = await viewModel.ResolveMergeOutputFileNameForSaveAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Matches(
+            "^NT51929_FlashCode_A_D0605T8100_B_D0708T8203_[0-9]{8}\\.bin$",
+            suggestedOutputName);
+        Assert.DoesNotContain("D06-05", suggestedOutputName, StringComparison.Ordinal);
 
         await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 

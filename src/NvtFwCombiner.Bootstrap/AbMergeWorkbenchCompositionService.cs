@@ -176,6 +176,33 @@ public static class AbMergeWorkbenchCompositionService
             ResolveTopologySelection(abMergeTopologyToken));
     }
 
+    /// <summary>Resolves the compiled AB automatic filename without executing or publishing firmware output.</summary>
+    public static async ValueTask<string> ResolveAutomaticOutputFileNameAsync(
+        string icId,
+        IReadOnlyDictionary<string, string> slotPaths,
+        CancellationToken cancellationToken,
+        string? abMergeTopologyToken = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(slotPaths);
+        string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
+        TopologySelection? topology = ResolveTopologySelection(abMergeTopologyToken);
+        CompiledComposition composition = CompileExecutableAbMerge(normalizedIcId, topology);
+
+        InputArtifactBinding[] bindings = CreateInputBindings(composition, slotPaths);
+        CompositionOutputNamePreview preview = await WorkbenchCompositionService
+            .ResolveAutomaticOutputNameAsync(
+                RunIdPrefix,
+                composition,
+                bindings,
+                topology,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return !preview.CanUseAutomaticName
+            ? throw new InvalidOperationException(WorkbenchCompositionService.FormatIssues(preview.Issues))
+            : preview.FileName;
+    }
+
     private static async ValueTask<WorkbenchRunResult> RunAbMergeCoreAsync(
         string icId,
         IReadOnlyDictionary<string, string> slotPaths,
@@ -189,44 +216,9 @@ public static class AbMergeWorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(slotPaths);
         string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
-        if (!WorkbenchCompositionService.GetAbMergeProfileSummaries().Any(
-                profile => StringComparer.Ordinal.Equals(profile.IcId, normalizedIcId)))
-        {
-            throw new InvalidOperationException($"AB Merge is not available for '{icId}'.");
-        }
+        CompiledComposition composition = CompileExecutableAbMerge(normalizedIcId, abMergeTopologySelection);
 
-        IReadOnlyList<WorkbenchAbMergeTopologyChoice> topologyChoices = GetTopologyChoices(normalizedIcId);
-        if (topologyChoices.Count > 0 && abMergeTopologySelection is null)
-        {
-            throw new InvalidOperationException("AB Merge requires one explicit topology choice: 1 IC or Cascade.");
-        }
-
-        if (topologyChoices.Count == 0 && abMergeTopologySelection is not null)
-        {
-            throw new InvalidOperationException("The selected AB Merge profile does not expose an IC topology choice.");
-        }
-
-        if (!TryCompileAbMerge(
-                normalizedIcId,
-                abMergeTopologySelection,
-                out CompiledComposition? composition,
-                out IReadOnlyList<CompositionIssue> issues))
-        {
-            throw new InvalidOperationException(WorkbenchCompositionService.FormatIssues(issues));
-        }
-
-        InputArtifactBinding[] bindings =
-        [
-            .. composition.Plan.RequiredInputAddressSpaceIds
-                .Order(StringComparer.Ordinal)
-                .Select(addressSpaceId => slotPaths.TryGetValue(addressSpaceId, out string? path) &&
-                    !string.IsNullOrWhiteSpace(path)
-                        ? CompiledCompositionInputBindingFactory.Create(
-                            composition,
-                            addressSpaceId,
-                            Path.GetFullPath(path))
-                        : throw new InvalidOperationException($"Input slot '{addressSpaceId}' is required.")),
-        ];
+        InputArtifactBinding[] bindings = CreateInputBindings(composition, slotPaths);
         string firstInputPath = bindings.Single(static binding =>
             binding.AddressSpaceId == CompositionAddressSpaceIds.DpAbInput).ArtifactId;
 
@@ -243,5 +235,54 @@ public static class AbMergeWorkbenchCompositionService
             progress: progress,
             previewOutputFileName: previewOutputFileName,
             abMergeTopologySelection: abMergeTopologySelection).ConfigureAwait(false);
+    }
+
+    private static InputArtifactBinding[] CreateInputBindings(
+        CompiledComposition composition,
+        IReadOnlyDictionary<string, string> slotPaths)
+    {
+        return
+        [
+            .. composition.Plan.RequiredInputAddressSpaceIds
+                .Order(StringComparer.Ordinal)
+                .Select(addressSpaceId => slotPaths.TryGetValue(addressSpaceId, out string? path) &&
+                    !string.IsNullOrWhiteSpace(path)
+                        ? CompiledCompositionInputBindingFactory.Create(
+                            composition,
+                            addressSpaceId,
+                            Path.GetFullPath(path))
+                        : throw new InvalidOperationException($"Input slot '{addressSpaceId}' is required.")),
+        ];
+    }
+
+    private static CompiledComposition CompileExecutableAbMerge(
+        string normalizedIcId,
+        TopologySelection? topology)
+    {
+        if (!WorkbenchCompositionService.GetAbMergeProfileSummaries().Any(
+                profile => StringComparer.Ordinal.Equals(profile.IcId, normalizedIcId)))
+        {
+            throw new InvalidOperationException($"AB Merge is not available for '{normalizedIcId}'.");
+        }
+
+        ValidateTopologySelection(GetTopologyChoices(normalizedIcId), topology);
+        return !TryCompileAbMerge(normalizedIcId, topology, out CompiledComposition? composition, out IReadOnlyList<CompositionIssue> issues)
+            ? throw new InvalidOperationException(WorkbenchCompositionService.FormatIssues(issues))
+            : composition;
+    }
+
+    private static void ValidateTopologySelection(
+        IReadOnlyList<WorkbenchAbMergeTopologyChoice> topologyChoices,
+        TopologySelection? topology)
+    {
+        if (topologyChoices.Count > 0 && topology is null)
+        {
+            throw new InvalidOperationException("AB Merge requires one explicit topology choice: 1 IC or Cascade.");
+        }
+
+        if (topologyChoices.Count == 0 && topology is not null)
+        {
+            throw new InvalidOperationException("The selected AB Merge profile does not expose an IC topology choice.");
+        }
     }
 }

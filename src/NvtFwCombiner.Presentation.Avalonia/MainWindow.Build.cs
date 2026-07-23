@@ -18,9 +18,11 @@ public sealed partial class MainWindow
             return;
         }
 
+        string suggestedFileName = await viewModel.ResolveMergeOutputFileNameForSaveAsync(
+            CancellationToken.None);
         string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
             StorageProvider,
-            viewModel.MergeOutputFileName);
+            suggestedFileName);
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             return;

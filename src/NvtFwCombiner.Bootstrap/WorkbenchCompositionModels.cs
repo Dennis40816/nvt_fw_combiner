@@ -195,7 +195,20 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     FirmwareConfigHardwareMetadata Hardware);
 
 /// <summary>DP version token projected without exposing the application flash-map catalog type.</summary>
-public readonly record struct WorkbenchDpVersionMetadata(string VersionToken);
+public readonly record struct WorkbenchDpVersionMetadata(string VersionToken)
+{
+    /// <summary>Human-readable DP version shared by every workbench input surface.</summary>
+    public string DisplayValue => FormatDisplayValue(VersionToken);
+
+    /// <summary>Formats the canonical four-hex-digit DP token for workbench display.</summary>
+    public static string FormatDisplayValue(string versionToken)
+    {
+        ArgumentNullException.ThrowIfNull(versionToken);
+        return versionToken.Length == 4
+            ? $"D{versionToken[..2]}-{versionToken[2..]}"
+            : $"D{versionToken}";
+    }
+}
 
 /// <summary>CMI DP facts projected for output naming and shell display.</summary>
 public readonly record struct WorkbenchCmiDpCodeMetadata(

@@ -164,8 +164,8 @@ public sealed class AbMergeRuntimeAdmissionTests
         Assert.Equal(WorkbenchInputInspectionSeverity.Valid, dp.PrimaryIssue.Severity);
         Assert.Equal(
             [
-                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp1, "D0605", "AUTO_PRJ-291", false),
-                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp2, "D0708", "AUTO_PRJ-1110", false),
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp1, "D06-05", "AUTO_PRJ-291", false),
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp2, "D07-08", "AUTO_PRJ-1110", false),
             ],
             dp.Versions);
         Assert.Equal(
@@ -197,8 +197,8 @@ public sealed class AbMergeRuntimeAdmissionTests
         Assert.Equal(WorkbenchInputInspectionSeverity.Valid, inspection.PrimaryIssue.Severity);
         Assert.Equal(
             [
-                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp1, "D8203", "AUTO_PRJ-291", false),
-                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp2, "D8304", "AUTO_PRJ-1110", false),
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp1, "D82-03", "AUTO_PRJ-291", false),
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp2, "D83-04", "AUTO_PRJ-1110", false),
             ],
             inspection.Versions);
     }

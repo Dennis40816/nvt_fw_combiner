@@ -1,3 +1,5 @@
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Application.Composition;
 
 /// <summary>Report-safe provenance for an output name rendered from compiled execution facts.</summary>
@@ -64,3 +66,34 @@ public sealed record OutputNamingTokenSummary(
     string? SourceAddressSpaceId,
     string? AcceptedSnapshotSha256,
     string ParserId);
+
+/// <summary>Read-only automatic output-name result resolved from the same accepted inputs as execution.</summary>
+public sealed class CompositionOutputNamePreview
+{
+    /// <summary>Creates one immutable name preview and its input-admission diagnostics.</summary>
+    public CompositionOutputNamePreview(
+        string fileName,
+        OutputNamingSummary? outputNaming,
+        IReadOnlyList<CompositionIssue> issues)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        ArgumentNullException.ThrowIfNull(issues);
+
+        FileName = fileName;
+        OutputNaming = outputNaming;
+        Issues = Array.AsReadOnly([.. issues]);
+    }
+
+    /// <summary>Automatic filename when the accepted input snapshots were readable; otherwise the request fallback.</summary>
+    public string FileName { get; }
+
+    /// <summary>Report-safe token provenance when the compiled renderer resolved a name.</summary>
+    public OutputNamingSummary? OutputNaming { get; }
+
+    /// <summary>Input admission or unknown-metadata diagnostics produced without executing composition.</summary>
+    public IReadOnlyList<CompositionIssue> Issues { get; }
+
+    /// <summary>Whether no blocking input-admission diagnostic prevented an automatic name.</summary>
+    public bool CanUseAutomaticName => !Issues.Any(static issue =>
+        string.Equals(issue.Severity, CompositionIssueSeverity.Error, StringComparison.Ordinal));
+}

@@ -92,6 +92,35 @@ public static partial class WorkbenchCompositionService
         return ToWorkbenchRunResult(result);
     }
 
+    /// <summary>Resolves an automatic filename through Application input admission without executing a composition.</summary>
+    internal static async ValueTask<CompositionOutputNamePreview> ResolveAutomaticOutputNameAsync(
+        string runIdPrefix,
+        CompiledComposition compiledComposition,
+        IReadOnlyList<InputArtifactBinding> bindings,
+        TopologySelection? abMergeTopologySelection,
+        CancellationToken cancellationToken)
+    {
+        string[] inputRoots =
+        [
+            .. bindings
+                .Where(binding => !VirtualArtifactLocator.IsVirtual(binding.ArtifactId))
+                .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
+                .Distinct(StringComparer.OrdinalIgnoreCase),
+        ];
+        IArtifactReader reader = inputRoots.Length > 0
+            ? new FileArtifactReader(inputRoots)
+            : throw new InvalidOperationException(
+                "Automatic output naming requires at least one physical input artifact.");
+        var service = new CompositionRunService(reader, new SystemClock());
+        var request = new CompositionRunRequest(
+            CreateWorkbenchRunId(runIdPrefix, build: false),
+            compiledComposition,
+            bindings,
+            compiledComposition.DefaultOutputFileName,
+            abMergeTopologySelection: abMergeTopologySelection);
+        return await service.ResolveOutputNameAsync(request, cancellationToken).ConfigureAwait(false);
+    }
+
     private static string CreateWorkbenchRunId(string prefix, bool build)
     {
         return CreateWorkbenchRunId(prefix, build, DateTimeOffset.UtcNow);
