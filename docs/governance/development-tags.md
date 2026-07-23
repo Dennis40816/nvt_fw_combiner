@@ -67,11 +67,11 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.17` starts only from the official reviewed `v0.9.16` release tag. It owns independent NT51951 AB candidate closure; it cannot derive any byte rule or topology from NT51950.
 - `0.9.18` starts only from the official reviewed `v0.9.17` release tag. It owns family/evidence-model unification: Perfect-family sharing remains like-for-like only, while LDC-family sharing is TP/CtrlRAM-only and never covers a DP workflow. It is the prerequisite for, not the implementation of, a future IC family/rule authoring UI.
 
-The authoritative `0.9.15`–`0.9.17` split, delivery-to-review contract, and candidate admission ledger live in [v0.9.15–v0.9.17 AB Delivery Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md). The next unified family/evidence foundation is [v0.9.18 Family and Evidence Model Unification](../architecture/v0.9.18-family-evidence-roadmap.md).
+The authoritative `0.9.15`–`0.9.18` scope, delivery-to-review contract, candidate admission ledger, and family/evidence foundation live in the single [v0.9.15–v0.9.18 Delivery and Family Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md).
 
 ### Post-`0.9.17` owner-decision backlog
 
-Error experience unification, IC family/rule authoring UI, Customized-plan reuse/import, and Report detail/layout/function review are planned discussion tracks. Family/rule authoring cannot be assigned until `0.9.18` has completed its model/ADR gate; the other tracks remain unassigned. Their required workshops, safety boundaries, and implementation risk are recorded in the [v0.9.15–v0.9.17 AB Delivery Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md#post-v0917-owner-decision-queue). A future milestone must not absorb any of them until the owner selects its order and the required contract/ADR is approved.
+Error experience unification, IC family/rule authoring UI, Customized-plan reuse/import, and Report detail/layout/function review are planned discussion tracks. Family/rule authoring cannot be assigned until `0.9.18` has completed its model/ADR gate; the other tracks remain unassigned. Their required workshops, safety boundaries, and implementation risk are recorded in the [v0.9.15–v0.9.18 Delivery and Family Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md#post-v0918-owner-decision-queue). A future milestone must not absorb any of them until the owner selects its order and the required contract/ADR is approved.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).

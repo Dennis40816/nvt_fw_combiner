@@ -2,14 +2,13 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Locks the AB milestone split and keeps the Presentation backlog deferred.</summary>
+    /// <summary>Locks the delivery/family milestone split and keeps the Presentation backlog deferred.</summary>
     [Fact]
-    public void V0915ThroughV0917OwnAbDeliveryCandidatesAndDeferPresentationBacklog()
+    public void V0915ThroughV0918OwnDeliveryFamilyCandidatesAndDeferPresentationBacklog()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string tags = ReadText("docs/governance/development-tags.md");
         string deliveryRoadmap = ReadText("docs/architecture/v0.9.15-0.9.17-roadmap.md");
-        string familyRoadmap = ReadText("docs/architecture/v0.9.18-family-evidence-roadmap.md");
         string viewportDecision = ReadText("docs/adr/0028-capability-driven-shared-hex-viewport.md");
 
         Assert.Contains("## v0.9.15: AB delivery readiness and review automation", roadmap, StringComparison.Ordinal);
@@ -48,18 +47,21 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("no LDC-family golden may be shared for DP Replace, AB Code", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("Standard Merge, or any other DP-writing/DP-layout workflow", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("TP/CtrlRAM sharing is not evidence for a DP range, header", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("[Family and Evidence Model Unification Roadmap](v0.9.18-family-evidence-roadmap.md)", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("This is the single canonical roadmap for the next four milestones.", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("v0.9.18-family-evidence-roadmap.md", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("later owner-selected Presentation milestone", viewportDecision, StringComparison.Ordinal);
-        Assert.Contains("## Post-v0.9.17 owner decision queue", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## Post-v0.9.18 owner decision queue", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| Evidence-backed code-size reduction and related-function reuse |", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("code size is a review metric, never a hard ratchet or release gate", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| Error experience unification |", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| IC family and rule authoring UI |", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| Customized plan reuse and import |", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| Report detail, layout, and functional review |", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("# v0.9.18 Family and Evidence Model Unification Roadmap", familyRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `perfect-family` | NT51919/NT51929/NT51932", familyRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `ldc-tp-only` | NT51927/NT51928", familyRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `ldc-tp-only` | NT51950/NT51951", familyRoadmap, StringComparison.Ordinal);
-        Assert.Contains("It is not an authorization to change a profile, map, processor, support stage,", familyRoadmap, StringComparison.Ordinal);
+        Assert.Contains("# v0.9.15–v0.9.18 Delivery and Family Roadmap", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `perfect-family` | NT51919/NT51929/NT51932", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `ldc-tp-only` | NT51927/NT51928", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `ldc-tp-only` | NT51950/NT51951", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("It is not an authorization to change a profile, map, processor, support stage,", deliveryRoadmap, StringComparison.Ordinal);
     }
 
     /// <summary>Separates reviewed AB function availability from direct-golden and support-certification debt.</summary>
