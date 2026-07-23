@@ -116,10 +116,17 @@
   "validations": [],
   "processorStages": [],
   "output": {
-    "fileNameTemplate": "nt51932-ab-merge.bin",
+    "fileNameTemplate": "NT{ic}_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
-    "requiredTokenIds": []
+    "requiredTokenIds": [
+      "date",
+      "dp-a",
+      "dp-b",
+      "ic",
+      "tp-a",
+      "tp-b"
+    ]
   },
   "evidenceRefs": ["uploaded-ab-combiner-51932"]
 }

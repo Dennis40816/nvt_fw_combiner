@@ -23,7 +23,8 @@ public sealed class CompositionRunReport
         OutputArtifactSummary output,
         IReadOnlyList<OutputDifferenceSummary>? outputDifferences = null,
         string? compilationFingerprint = null,
-        IReadOnlyList<ValidationRunSummary>? validations = null)
+        IReadOnlyList<ValidationRunSummary>? validations = null,
+        OutputNamingSummary? outputNaming = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
@@ -60,6 +61,7 @@ public sealed class CompositionRunReport
         OutputDifferences = outputDifferences is null ? [] : [.. outputDifferences];
         CompilationFingerprint = compilationFingerprint;
         Validations = Array.AsReadOnly(validations is null ? Array.Empty<ValidationRunSummary>() : [.. validations]);
+        OutputNaming = outputNaming;
     }
 
     /// <summary>Stable run id.</summary>
@@ -112,4 +114,7 @@ public sealed class CompositionRunReport
 
     /// <summary>Compiled validation outcomes retained independently from operation execution.</summary>
     public IReadOnlyList<ValidationRunSummary> Validations { get; }
+
+    /// <summary>Output-name rendering provenance when a typed renderer resolved the automatic name.</summary>
+    public OutputNamingSummary? OutputNaming { get; }
 }

@@ -209,6 +209,13 @@ public sealed partial class CompositionRunService
 
         progressPublisher.Report(CompositionRunPhase.ReadingInputs);
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
+        OutputNameResolution outputName = boundInputs.Issues.Count == 0
+            ? AbCodeOutputNameResolver.Resolve(
+                request,
+                boundInputs.InputBytes,
+                boundInputs.InputSummaries,
+                startedAtUtc)
+            : OutputNameResolution.Static(request.OutputFileName);
         var executedCommandsByOperationId = new Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>(StringComparer.Ordinal);
         CompositionExecutionResult execution;
         if (boundInputs.Issues.Count == 0)
@@ -241,6 +248,7 @@ public sealed partial class CompositionRunService
             .. CreateOutputDifferences(request, execution, boundInputs.InputBytes, execution.OutputBytes),
         ];
         List<CompositionIssue> runIssues = [
+            .. outputName.Issues,
             .. finalOutputValidations
                 .Where(static evaluation => evaluation.Issue is not null)
                 .Select(static evaluation => evaluation.Issue!),
@@ -253,7 +261,12 @@ public sealed partial class CompositionRunService
             ? CompositionExecutionStatus.Succeeded
             : CompositionExecutionStatus.Failed;
         string? previewToken = runStatus == CompositionExecutionStatus.Succeeded
-            ? CalculatePreviewToken(request, execution, boundInputs.InputSummaries)
+            ? CalculatePreviewToken(
+                request,
+                execution,
+                boundInputs.InputSummaries,
+                outputName.FileName,
+                outputName.Summary)
             : null;
 
         string? committedOutputId = null;
@@ -271,7 +284,7 @@ public sealed partial class CompositionRunService
             {
                 progressPublisher.Report(CompositionRunPhase.CommittingOutput);
                 committedOutputId = await _outputWriter!
-                    .CommitAsync(request.OutputFileName, execution.OutputBytes, cancellationToken)
+                    .CommitAsync(outputName.FileName, execution.OutputBytes, cancellationToken)
                     .ConfigureAwait(false);
             }
         }
@@ -286,6 +299,8 @@ public sealed partial class CompositionRunService
             startedAtUtc,
             completedAtUtc,
             committedOutputId is not null,
+            outputFileName: outputName.FileName,
+            outputNaming: outputName.Summary,
             additionalIssues: runIssues,
             validations: [.. finalOutputValidations.Select(static evaluation => evaluation.Summary)],
             executedCommandsByOperationId: executedCommandsByOperationId);

@@ -78,7 +78,8 @@ public static partial class WorkbenchCompositionService
             compiledComposition,
             bindings,
             outputFileName,
-            icNumberSelection: icNumberSelection);
+            icNumberSelection: icNumberSelection,
+            outputFileNameIsOverride: outputPath is not null || previewOutputFileName is not null);
 
         CompositionRunResult result = progress is null
             ? await service.PreviewOrBuildAsync(request, build, cancellationToken).ConfigureAwait(false)

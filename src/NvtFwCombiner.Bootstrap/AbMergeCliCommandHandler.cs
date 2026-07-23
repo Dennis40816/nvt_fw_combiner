@@ -80,6 +80,7 @@ internal static class AbMergeCliCommandHandler
             .. slotPaths.Select(pair => new InputArtifactBinding(pair.Key, pair.Key, pair.Value)),
         ];
         bool build = action == "build";
+        bool hasExplicitOutput = options.Values.ContainsKey("--output");
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             profile.DefaultOutputFileName);
@@ -98,11 +99,16 @@ internal static class AbMergeCliCommandHandler
                 profile.IcId,
                 slotPaths,
                 build,
-                build ? outputTarget.FullPath : null,
-                outputTarget.FileName,
+                build && hasExplicitOutput ? outputTarget.FullPath : null,
+                !build && hasExplicitOutput ? outputTarget.FileName : null,
                 options.Flags.Contains("--overwrite"),
                 cancellationToken)
             .ConfigureAwait(false);
+        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
+            options.Values.GetValueOrDefault("--report"),
+            bindings,
+            new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
+            build);
         bool reportWritten = options.Values.TryGetValue("--report", out string? reportPath);
         if (reportWritten)
         {

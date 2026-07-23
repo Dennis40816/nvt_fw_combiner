@@ -14,23 +14,31 @@ public sealed class CompositionRunRequest
         IEnumerable<InputArtifactBinding> artifactBindings,
         string outputFileName,
         string? approvedPreviewToken = null,
-        IcNumberSelection? icNumberSelection = null)
+        IcNumberSelection? icNumberSelection = null,
+        bool outputFileNameIsOverride = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(compiledComposition);
         ArgumentNullException.ThrowIfNull(artifactBindings);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputFileName);
         Dictionary<string, InputArtifactBinding> copiedBindings = CopyBindings(artifactBindings);
+        bool effectiveOutputFileNameIsOverride = outputFileNameIsOverride ||
+            IsImplicitStaticOutputOverride(compiledComposition, outputFileName);
         ValidateOutputFileName(outputFileName);
         ValidateExecutableComposition(compiledComposition);
         ValidateRuntimeValidationRequirements(compiledComposition);
         ValidateIcNumberSelection(compiledComposition, icNumberSelection);
-        ValidateV2RuntimeRequest(compiledComposition, copiedBindings, outputFileName);
+        ValidateV2RuntimeRequest(
+            compiledComposition,
+            copiedBindings,
+            outputFileName,
+            effectiveOutputFileNameIsOverride);
 
         RunId = runId;
         CompiledComposition = compiledComposition;
         ArtifactBindings = new ReadOnlyDictionary<string, InputArtifactBinding>(copiedBindings);
         OutputFileName = outputFileName;
+        IsOutputFileNameOverride = effectiveOutputFileNameIsOverride;
         ApprovedPreviewToken = string.IsNullOrWhiteSpace(approvedPreviewToken) ? null : approvedPreviewToken;
         IcNumberSelection = icNumberSelection;
     }
@@ -46,6 +54,9 @@ public sealed class CompositionRunRequest
 
     /// <summary>Output file name proposed by profile naming policy or caller override.</summary>
     public string OutputFileName { get; }
+
+    /// <summary>Whether the caller supplied an explicit UI/CLI filename override.</summary>
+    public bool IsOutputFileNameOverride { get; }
 
     /// <summary>Preview token that authorizes a matching build request.</summary>
     public string? ApprovedPreviewToken { get; }
@@ -63,7 +74,8 @@ public sealed class CompositionRunRequest
             ArtifactBindings.Values,
             OutputFileName,
             previewToken,
-            IcNumberSelection);
+            IcNumberSelection,
+            IsOutputFileNameOverride);
     }
 
     private static Dictionary<string, InputArtifactBinding> CopyBindings(IEnumerable<InputArtifactBinding> bindings)
@@ -90,6 +102,15 @@ public sealed class CompositionRunRequest
         {
             throw new ArgumentException("Output file name must be a plain filename without path syntax.", nameof(outputFileName));
         }
+    }
+
+    private static bool IsImplicitStaticOutputOverride(
+        CompiledComposition compiledComposition,
+        string outputFileName)
+    {
+        CompiledOutputNamingRequirement? output = compiledComposition.V2Details?.OutputNamingRequirement;
+        return output is { AllowOverride: true, RendererKind: CompiledOutputNameRendererKind.Static } &&
+            !string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal);
     }
 
     private static void ValidateExecutableComposition(CompiledComposition compiledComposition)
@@ -123,7 +144,8 @@ public sealed class CompositionRunRequest
     private static void ValidateV2RuntimeRequest(
         CompiledComposition compiledComposition,
         Dictionary<string, InputArtifactBinding> bindings,
-        string outputFileName)
+        string outputFileName,
+        bool outputFileNameIsOverride)
     {
         if (compiledComposition.Authority is not ProfileBundleV2CompilationAuthority)
         {
@@ -134,21 +156,42 @@ public sealed class CompositionRunRequest
             "V2 runtime artifacts require compiled V2 details.",
             nameof(compiledComposition));
         CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
-        if (output.RequiredTokenIds.Count != 0 ||
-            output.InvalidCharacterPolicy != CompiledOutputInvalidCharacterPolicy.Reject)
+        if (output.InvalidCharacterPolicy != CompiledOutputInvalidCharacterPolicy.Reject ||
+            output.RendererKind == CompiledOutputNameRendererKind.DeferredTokenTemplate)
         {
             throw new ArgumentException(
-                "V2 runtime artifacts require a token-free reject output template until token rendering is available.",
+                "V2 runtime artifacts require an executable reject output renderer.",
                 nameof(compiledComposition));
         }
 
-        CompiledOutputNamingRequirement.ValidateRuntimeLiteralFileName(outputFileName, nameof(outputFileName));
+        bool isAbCodeAutomatic = output.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
+            !outputFileNameIsOverride;
+        if (isAbCodeAutomatic)
+        {
+            if (!string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    "Automatic AB Code output naming must retain the compiled template until execution snapshots are read.",
+                    nameof(outputFileName));
+            }
+        }
+        else
+        {
+            CompiledOutputNamingRequirement.ValidateRuntimeLiteralFileName(outputFileName, nameof(outputFileName));
+        }
 
-        if (!output.AllowOverride &&
+        if (outputFileNameIsOverride && !output.AllowOverride)
+        {
+            throw new ArgumentException(
+                "The compiled V2 output policy forbids explicit filename overrides.",
+                nameof(outputFileName));
+        }
+
+        if (!outputFileNameIsOverride && output.RendererKind == CompiledOutputNameRendererKind.Static &&
             !string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal))
         {
             throw new ArgumentException(
-                "Output file name must match the compiled V2 template when overrides are forbidden.",
+                "Automatic static output naming must match the compiled V2 template.",
                 nameof(outputFileName));
         }
 

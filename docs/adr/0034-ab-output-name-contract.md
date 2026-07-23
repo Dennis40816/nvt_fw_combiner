@@ -151,10 +151,11 @@ selects the directory and passes an explicit override intent; it does not
 pre-read firmware or render version text.  Domain remains free of file I/O,
 wall-clock access, and presentation dependencies.
 
-This extends the current `composition-profile-v2` output contract in a new
-schema revision.  Existing token-free `reject` templates remain valid and
-retain their current static behavior.  `replace-underscore` remains
-non-executable.
+This uses the existing `composition-profile-v2` output-template and
+required-token fields.  The compiler recognizes only this exact AB Code v1
+template/token set as an executable typed renderer; all other token templates
+remain deferred.  Existing token-free `reject` templates retain their current
+static behavior, and `replace-underscore` remains non-executable.
 
 ## Compatibility and migration
 
@@ -203,7 +204,7 @@ non-executable.
 The product/firmware owner accepted the compiler/Application/port boundary,
 CMI-bank and terminal-relative TP sources, unknown-placeholder behavior, and
 UTC calendar decision on 2026-07-23.  Architecture review remains required for
-the implemented schema/compiler/report/Preview-token change, and the normal
+the implemented compiler/Application/report/Preview-token change, and the normal
 profile, narrow behavior, regression, Polytail, CI, and Codex-review gates
 remain required before integration.  No approval here promotes NT51950 or
 NT51951, changes AB bytes, or waives any later release gate.

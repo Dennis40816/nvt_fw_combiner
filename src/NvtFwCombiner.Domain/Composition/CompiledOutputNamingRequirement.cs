@@ -9,9 +9,24 @@ public enum CompiledOutputInvalidCharacterPolicy
     ReplaceUnderscore,
 }
 
+/// <summary>Closed renderer selected from the profile-owned output-name contract.</summary>
+public enum CompiledOutputNameRendererKind
+{
+    /// <summary>A literal, token-free profile filename.</summary>
+    Static,
+    /// <summary>A token template retained for a future renderer and not runtime executable.</summary>
+    DeferredTokenTemplate,
+    /// <summary>The fixed, evidence-backed AB Code filename contract.</summary>
+    AbCodeV1,
+}
+
 /// <summary>Profile-owned output naming requirements retained before runtime token rendering exists.</summary>
 public sealed class CompiledOutputNamingRequirement
 {
+    /// <summary>Canonical template for the AB Code v1 execution-path renderer.</summary>
+    public const string AbCodeV1Template = "NT{ic}_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin";
+
+    private static readonly string[] s_abCodeV1TokenIds = ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"];
     private static readonly System.Buffers.SearchValues<char> s_windowsInvalidFileNameCharacters = System.Buffers.SearchValues.Create("<>\"|?*");
     private static readonly char[] WindowsInvalidFileNameCharacters = ['<', '>', '"', '|', '?', '*'];
 
@@ -64,6 +79,14 @@ public sealed class CompiledOutputNamingRequirement
         AllowOverride = allowOverride;
         InvalidCharacterPolicy = invalidCharacterPolicy;
         RequiredTokenIds = Array.AsReadOnly(_requiredTokenIds);
+        RendererKind = IsAbCodeV1Contract(
+            fileNameTemplate,
+            invalidCharacterPolicy,
+            _requiredTokenIds)
+            ? CompiledOutputNameRendererKind.AbCodeV1
+            : _requiredTokenIds.Length == 0
+                ? CompiledOutputNameRendererKind.Static
+                : CompiledOutputNameRendererKind.DeferredTokenTemplate;
     }
 
     /// <summary>Unrendered profile filename template.</summary>
@@ -77,6 +100,9 @@ public sealed class CompiledOutputNamingRequirement
 
     /// <summary>Profile tokens required before a future runtime may render this template.</summary>
     public IReadOnlyList<string> RequiredTokenIds { get; }
+
+    /// <summary>Typed rendering behavior admitted by the compiled output contract.</summary>
+    public CompiledOutputNameRendererKind RendererKind { get; }
 
     /// <summary>Validates a literal runtime output filename under the closed Windows-safe V2 policy.</summary>
     public static void ValidateRuntimeLiteralFileName(string fileName, string parameterName)
@@ -95,6 +121,16 @@ public sealed class CompiledOutputNamingRequirement
             fileName,
             CompiledOutputInvalidCharacterPolicy.Reject,
             parameterName);
+    }
+
+    private static bool IsAbCodeV1Contract(
+        string fileNameTemplate,
+        CompiledOutputInvalidCharacterPolicy invalidCharacterPolicy,
+        IReadOnlyList<string> requiredTokenIds)
+    {
+        return invalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.Reject &&
+            string.Equals(fileNameTemplate, AbCodeV1Template, StringComparison.Ordinal) &&
+            requiredTokenIds.SequenceEqual(s_abCodeV1TokenIds, StringComparer.Ordinal);
     }
 
     private static string[] ExtractTokenIds(string template)

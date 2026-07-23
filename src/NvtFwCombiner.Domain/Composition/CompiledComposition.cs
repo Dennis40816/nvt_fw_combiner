@@ -49,7 +49,11 @@ public sealed partial class CompiledComposition
         ValidateIcNumberPolicy(identity.CompositionKind, icNumberPolicy);
         ValidateDefaultOutputFileName(identity.Details.OutputNamingRequirement.FileNameTemplate);
         ValidateV2InputRequirements(plan, identity.CompositionKind, identity.ExperienceId, identity.Details);
-        ValidateV2Eligibility(identity.Details, eligibility);
+        ValidateV2Eligibility(
+            identity.Details,
+            identity.ExperienceId,
+            identity.CompositionKind,
+            eligibility);
 
         Plan = plan;
         ProfileId = identity.ProfileId;
@@ -468,6 +472,8 @@ public sealed partial class CompiledComposition
 
     private static void ValidateV2Eligibility(
         V2CompiledCompositionDetails details,
+        string experienceId,
+        CompositionKind compositionKind,
         CompiledCompositionEligibility eligibility)
     {
         if (eligibility == CompiledCompositionEligibility.V2PlanCompiled)
@@ -483,13 +489,18 @@ public sealed partial class CompiledComposition
                 "Unknown profile-bundle-v2 composition eligibility.");
         }
 
+        CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
+        bool hasExecutableOutputContract = output.InvalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.Reject &&
+            (output.RendererKind == CompiledOutputNameRendererKind.Static ||
+             (output.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
+              compositionKind == CompositionKind.Merge &&
+              StringComparer.Ordinal.Equals(experienceId, ExperienceIds.AbMerge)));
         if (details.Provenance.Promotion.Stage != CompiledProfilePromotionStage.Supported ||
             details.Provenance.Promotion.Blockers.Count != 0 ||
-            details.OutputNamingRequirement.RequiredTokenIds.Count != 0 ||
-            details.OutputNamingRequirement.InvalidCharacterPolicy != CompiledOutputInvalidCharacterPolicy.Reject)
+            !hasExecutableOutputContract)
         {
             throw new ArgumentException(
-                "V2 runtime execution requires a supported, unblocked profile with a token-free reject output template.",
+                "V2 runtime execution requires a supported, unblocked profile with a typed reject output renderer admitted for its experience.",
                 nameof(details));
         }
     }

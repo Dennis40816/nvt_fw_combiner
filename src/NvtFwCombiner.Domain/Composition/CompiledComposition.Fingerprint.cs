@@ -142,6 +142,7 @@ public sealed partial class CompiledComposition
         AppendField(builder, "output.template", output.FileNameTemplate);
         AppendInteger(builder, "output.allow-override", output.AllowOverride ? 1 : 0);
         AppendEnum(builder, "output.invalid-character-policy", output.InvalidCharacterPolicy);
+        AppendEnum(builder, "output.renderer", output.RendererKind);
         AppendStringList(builder, "output.required-token", output.RequiredTokenIds);
         AppendPlan(builder, composition.Plan);
 

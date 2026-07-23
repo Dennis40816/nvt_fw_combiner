@@ -53,7 +53,7 @@ public static class AbMergeWorkbenchCompositionService
             build,
             outputPath,
             previewOutputFileName: null,
-            overwrite: true,
+            overwrite: false,
             progress: null,
             cancellationToken);
     }
@@ -64,11 +64,10 @@ public static class AbMergeWorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
         string? outputPath,
-        string previewOutputFileName,
+        string? previewOutputFileName,
         bool overwrite,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(previewOutputFileName);
         return RunAbMergeCoreAsync(
             icId,
             slotPaths,
@@ -96,7 +95,7 @@ public static class AbMergeWorkbenchCompositionService
             build,
             outputPath,
             previewOutputFileName: null,
-            overwrite: true,
+            overwrite: false,
             progress,
             cancellationToken);
     }
