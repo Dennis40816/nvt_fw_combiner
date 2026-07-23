@@ -53,6 +53,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("## Post-v0.9.18 owner decision queue", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| Evidence-backed code-size reduction and related-function reuse |", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("code size is a review metric, never a hard ratchet or release gate", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| Settings support-matrix entry and evidence dashboard |", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("function availability, certification/support status, direct versus reusable golden evidence", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("must never select a profile, waive a gate, infer byte behavior", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| Error experience unification |", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| IC family and rule authoring UI |", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| Customized plan reuse and import |", deliveryRoadmap, StringComparison.Ordinal);
