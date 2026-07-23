@@ -1,8 +1,8 @@
 # ADR 0028: Capability-Driven Shared Hex Viewport
 
-- Status: Proposed for `v0.9.15`; implementation is not authorized by this ADR
+- Status: Proposed for a later owner-selected Presentation milestone; implementation is not authorized by this ADR
 - Date: 2026-07-19
-- Last amended: 2026-07-22
+- Last amended: 2026-07-23
 - Owners: Architecture owner, UI owner
 - Risk class when implemented: R2
 
@@ -36,7 +36,7 @@ Presentation maintenance and code-size cost.
 
 ## Decision
 
-`v0.9.15` may introduce one Presentation-owned inner Hex viewport foundation.
+The later owner-selected Presentation milestone may introduce one Presentation-owned inner Hex viewport foundation. `v0.9.15` through `v0.9.17` do not authorize this work.
 It owns only:
 
 - address, hexadecimal, and ASCII geometry with 16 bytes per row;
@@ -57,7 +57,7 @@ Construction requires one immutable, validated
 `HexViewportCapabilityProfile`. The profile uses typed dimensions rather than
 independent XAML Boolean switches:
 
-| Dimension | Closed values for `v0.9.15` |
+| Dimension | Closed values for the initial Presentation rollout |
 | --- | --- |
 | Columns | `address`, `hexadecimal`, `ascii` |
 | Interaction | `inspect`, `select`, `overwrite`, `structural-edit` |

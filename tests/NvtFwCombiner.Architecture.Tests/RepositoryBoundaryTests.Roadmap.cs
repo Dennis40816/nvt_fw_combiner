@@ -2,15 +2,16 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Locks v0.9.15 to AB delivery readiness and keeps the Presentation backlog deferred.</summary>
+    /// <summary>Locks the AB milestone split and keeps the Presentation backlog deferred.</summary>
     [Fact]
-    public void V0915OwnsAbDeliveryReadinessAndDefersPresentationBacklog()
+    public void V0915ThroughV0917OwnAbDeliveryCandidatesAndDeferPresentationBacklog()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string tags = ReadText("docs/governance/development-tags.md");
+        string deliveryRoadmap = ReadText("docs/architecture/v0.9.15-0.9.17-roadmap.md");
+        string viewportDecision = ReadText("docs/adr/0028-capability-driven-shared-hex-viewport.md");
 
         Assert.Contains("## v0.9.15: AB delivery readiness and review automation", roadmap, StringComparison.Ordinal);
-        Assert.Contains("peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`", roadmap, StringComparison.Ordinal);
         Assert.Contains("No U0-U5 implementation is\nauthorized under `0.9.15`", roadmap, StringComparison.Ordinal);
         Assert.Contains("later\nowner-selected milestone", roadmap, StringComparison.Ordinal);
         Assert.Contains("Every interactive Avalonia `Button`", roadmap, StringComparison.Ordinal);
@@ -18,6 +19,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Reduced-motion mode", roadmap, StringComparison.Ordinal);
         Assert.Contains("`v0.9.12` | CtrlRAM routing and interaction stabilization", tags, StringComparison.Ordinal);
         Assert.Contains("`v0.9.15` | AB delivery readiness and review automation", tags, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.16` | NT51950 AB candidate closure", tags, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.17` | NT51951 AB candidate closure", tags, StringComparison.Ordinal);
         Assert.Contains("peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`", tags, StringComparison.Ordinal);
         Assert.DoesNotContain("`v0.9.15` | UI unification, shared Hex viewport, and Button feedback", tags, StringComparison.Ordinal);
 
@@ -26,7 +29,16 @@ public sealed partial class RepositoryBoundaryTests
         string progression = tags[progressionStart..progressionEnd];
         Assert.Contains("v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance", progression, StringComparison.Ordinal);
         Assert.Contains("v0.9.15         AB delivery readiness, input/output usability, and review automation", progression, StringComparison.Ordinal);
+        Assert.Contains("v0.9.16         NT51950 AB candidate closure", progression, StringComparison.Ordinal);
+        Assert.Contains("v0.9.17         NT51951 AB candidate closure", progression, StringComparison.Ordinal);
         Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
+
+        Assert.Contains("| `0.9.16` | NT51950 AB Code candidate closure", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `0.9.17` | NT51951 AB Code candidate closure", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("peeled commit\n  `9b15d8757ccb44167c471ca4e602036066bcdea9`", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("single-topology golden is evidence for that topology only", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("No NT51951 range, split point", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("later owner-selected Presentation milestone", viewportDecision, StringComparison.Ordinal);
     }
 
     /// <summary>Locks AB execution out of v0.9.13 and assigns typed re-admission to the separately gated v0.9.14 track.</summary>
