@@ -114,7 +114,7 @@ map/processor/topology authority review.
 | AB function availability by target IC | 5 open ICs (NT51919/NT51929/NT51932/NT51950/NT51951) / 5 planned AB ICs | **100.0%** |
 | Direct AB-golden coverage | 2 present cells (NT51929 fixed, NT51950 `1 IC`) / 6 planned IC/topology cells | **33.3%**; **4 missing** |
 | Direct AB-golden debt | 4 missing cells / 6 planned IC/topology cells | **66.7%** |
-| `0.9.15` delivery checklist | 4 implemented slices (function opening, output naming, TPA/TPB identity inspection, silent perfect-family reconciliation) / 5 slices including final delivery-to-review evidence | **80.0%**; final handoff is pending verification/review. |
+| `0.9.15` delivery checklist | 5 completed local slices (function opening, output naming, TPA/TPB identity inspection, silent perfect-family reconciliation, and delivery-to-review evidence) / 5 local slices | **100.0%**; external golden, firmware-owner, independent-review, packaging, and release-owner gates remain open. |
 | AB support certification | 0 fully certified cells / 6 planned IC/topology cells | **0.0%**; function availability must not be presented as certification. |
 
 The four missing direct AB golden cells are NT51919 fixed, NT51932 fixed,

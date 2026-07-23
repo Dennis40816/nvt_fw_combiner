@@ -79,7 +79,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("**33.3%**; **4 missing**", matrix, StringComparison.Ordinal);
         Assert.Contains("NT51950 `Cascade`, and selector-free NT51951", matrix, StringComparison.Ordinal);
         Assert.Contains("**66.7%**", matrix, StringComparison.Ordinal);
-        Assert.Contains("**80.0%**", matrix, StringComparison.Ordinal);
+        Assert.Contains("**100.0%**; external golden, firmware-owner, independent-review, packaging, and release-owner gates remain open.", matrix, StringComparison.Ordinal);
         Assert.Contains("**0.0%**; function availability must not be presented as certification.", matrix, StringComparison.Ordinal);
     }
 
