@@ -85,10 +85,13 @@ even though CI rather than a local operator creates that tag.
 - The normal path requires an exact-head GitHub approval. When GitHub forbids
   the repository owner's sole identity from approving its own PR, an explicit,
   default-off dispatch exception may be used only when that same repository
-  owner authored the merged PR and dispatched the workflow. The evidence
-  snapshot records the exception; it cannot bypass a `CHANGES_REQUESTED`
-  decision, CI checks, immutable-source checks, or the protected `release`
-  environment's final human approval.
+  owner authored the merged PR and dispatched the workflow. The exception also
+  requires a completed exact-head Codex review response and permits only the
+  absent-review or GitHub `REVIEW_REQUIRED` self-approval state; it is rejected
+  on an ordinarily approved PR. The evidence snapshot records those facts; the
+  exception cannot bypass a `CHANGES_REQUESTED` decision, CI checks,
+  immutable-source checks, or the protected `release` environment's final
+  human approval.
 - `pull_request_target` is forbidden.
 - Release notes are passed as a validated file, not interpolated as executable
   PowerShell or shell source.

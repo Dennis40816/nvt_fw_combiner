@@ -307,9 +307,13 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("scripts/render_release_notes.py", release_workflow)
         self.assertIn("release_promotion_policy.py validate-context", release_workflow)
         self.assertIn("owner_self_approval_exception:", release_workflow)
-        self.assertIn("NFC_REPOSITORY_OWNER: ${{ github.repository_owner }}", release_workflow)
+        self.assertIn(
+            "NFC_REPOSITORY_OWNER: ${{ github.repository_owner }}", release_workflow
+        )
         self.assertIn("NFC_WORKFLOW_ACTOR: ${{ github.actor }}", release_workflow)
         self.assertIn("--owner-self-approval-exception", release_workflow)
+        self.assertIn("chatgpt-codex-connector[bot]", release_workflow)
+        self.assertIn("codexReview = if ($codexReview.Count -eq 1)", release_workflow)
         self.assertIn(
             "release_promotion_policy.py validate-promotion-source", release_workflow
         )
@@ -341,7 +345,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "release-authoritative Python policy must use the pinned interpreter",
         )
 
-    def test_stable_candidate_permits_only_recoverable_tag_and_release_states(self) -> None:
+    def test_stable_candidate_permits_only_recoverable_tag_and_release_states(
+        self,
+    ) -> None:
         release_workflow = (ROOT / ".github/workflows/release.yml").read_text(
             encoding="utf-8"
         )

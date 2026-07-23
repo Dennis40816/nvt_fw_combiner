@@ -13,6 +13,7 @@ from typing import Any
 
 HEX_SHA = re.compile(r"^[0-9a-f]{40}$")
 STABLE_VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
+CODEX_REVIEWER = "chatgpt-codex-connector[bot]"
 
 
 def _require(condition: bool, message: str) -> None:
@@ -80,6 +81,11 @@ def validate_candidate_context(
     review_decision = snapshot.get("reviewDecision")
     if review_decision == "APPROVED":
         _require(
+            not owner_self_approval_exception
+            and snapshot.get("ownerSelfApprovalException") is False,
+            "owner self-approval exception must be disabled for an approved PR",
+        )
+        _require(
             isinstance(approvals, list) and bool(approvals),
             "reviewed PR has no current-head approval",
         )
@@ -92,20 +98,22 @@ def validate_candidate_context(
         )
     else:
         _require(
-            review_decision in {None, ""}, "reviewed PR is not approved"
+            review_decision in {None, "", "REVIEW_REQUIRED"},
+            "reviewed PR is not approved",
         )
         _require(
             owner_self_approval_exception,
             "reviewed PR has no current-head approval",
         )
         _require(
-            isinstance(repository_owner, str) and repository_owner != "" and
-            workflow_actor == repository_owner,
+            isinstance(repository_owner, str)
+            and repository_owner != ""
+            and workflow_actor == repository_owner,
             "owner self-approval exception must be dispatched by the repository owner",
         )
         _require(
-            snapshot.get("repositoryOwner") == repository_owner and
-            snapshot.get("workflowActor") == workflow_actor,
+            snapshot.get("repositoryOwner") == repository_owner
+            and snapshot.get("workflowActor") == workflow_actor,
             "owner self-approval exception identity differs from release evidence",
         )
         _require(
@@ -116,6 +124,7 @@ def validate_candidate_context(
             snapshot.get("ownerSelfApprovalException") is True,
             "owner self-approval exception was not recorded in review evidence",
         )
+        _require_exact_head_codex_review(snapshot, head_sha)
     checks = snapshot.get("requiredChecks")
     _require(
         isinstance(checks, list) and bool(checks), "reviewed PR has no required checks"
@@ -127,6 +136,32 @@ def validate_candidate_context(
     ]
     _require(
         not failed, f"reviewed PR required checks are not passing: {', '.join(failed)}"
+    )
+
+
+def _require_exact_head_codex_review(snapshot: dict[str, Any], head_sha: str) -> None:
+    """Require a completed Codex response for the exact self-approved PR head."""
+
+    review = snapshot.get("codexReview")
+    _require(
+        isinstance(review, dict),
+        "owner self-approval exception has no Codex review evidence",
+    )
+    _require(
+        review.get("reviewer") == CODEX_REVIEWER,
+        "owner self-approval exception Codex reviewer is invalid",
+    )
+    _require(
+        review.get("commitSha") == head_sha,
+        "owner self-approval exception Codex review is stale",
+    )
+    _require(
+        review.get("state") in {"COMMENTED", "APPROVED"},
+        "owner self-approval exception Codex review is incomplete",
+    )
+    _require(
+        isinstance(review.get("submittedAt"), str) and bool(review["submittedAt"]),
+        "owner self-approval exception Codex review has no submission time",
     )
 
 

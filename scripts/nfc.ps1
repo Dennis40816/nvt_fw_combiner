@@ -84,10 +84,7 @@ try {
             Initialize-Toolchain
             & $PythonCommand.Source -c 'import coverage, pylint, pyright, pytest, ruff' 2>$null
             if ($LASTEXITCODE -ne 0) {
-                Invoke-Checked -Executable $PythonCommand.Source `
-                    -Arguments @('-m', 'pip', 'install', '--disable-pip-version-check', '-e', './tools/crc-worker[dev]') `
-                    -Step 'verify-dependencies' `
-                    -FailureClass 'dependency'
+                throw '[toolchain:dependency] Python verification dependencies are missing. Run scripts/nfc.ps1 -Task bootstrap, then retry verify.'
             }
             Invoke-Checked -Executable $PythonCommand.Source `
                 -Arguments @('scripts/verify.py', '--all') `

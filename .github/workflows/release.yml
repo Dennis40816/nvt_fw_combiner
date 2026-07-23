@@ -147,6 +147,23 @@ jobs:
                 submittedAt = [string]$_.submitted_at
               }
             })
+          $codexReview = @($reviews |
+            Where-Object {
+              $_.user.login -eq 'chatgpt-codex-connector[bot]' -and
+              $_.commit_id -eq $pr.headRefOid -and
+              $_.state -in @('COMMENTED', 'APPROVED') -and
+              -not [string]::IsNullOrWhiteSpace([string]$_.submitted_at)
+            } |
+            Sort-Object submitted_at -Descending |
+            Select-Object -First 1 |
+            ForEach-Object {
+              [ordered]@{
+                reviewer = [string]$_.user.login
+                commitSha = [string]$_.commit_id
+                state = [string]$_.state
+                submittedAt = [string]$_.submitted_at
+              }
+            })
           $checksText = gh pr checks $env:NFC_PULL_REQUEST --repo $env:NFC_REPOSITORY `
             --required --json name,state,bucket 2>&1
           try { $checks = $checksText | ConvertFrom-Json -ErrorAction Stop }
@@ -165,6 +182,7 @@ jobs:
             workflowActor = $env:NFC_WORKFLOW_ACTOR
             ownerSelfApprovalException = $env:NFC_OWNER_SELF_APPROVAL_EXCEPTION -eq 'true'
             approvals = $approvals
+            codexReview = if ($codexReview.Count -eq 1) { $codexReview[0] } else { $null }
             requiredChecks = @($checks)
           }
           $snapshotPath = Join-Path $evidenceRoot 'review-snapshot.json'

@@ -39,6 +39,12 @@ class ToolchainEntrypointTests(unittest.TestCase):
         self.assertIn("-FailureClass 'evidence'", script)
         self.assertIn("toolchain:$FailureClass", script)
 
+    def test_verify_fails_closed_when_explicit_bootstrap_is_missing(self) -> None:
+        script = ENTRYPOINT.read_text(encoding="utf-8")
+
+        self.assertIn("Run scripts/nfc.ps1 -Task bootstrap, then retry verify.", script)
+        self.assertNotIn("-Step 'verify-dependencies'", script)
+
     @unittest.skipUnless(POWERSHELL_7, "PowerShell 7 is required")
     def test_invalid_task_is_classified_without_running_the_toolchain(self) -> None:
         result = subprocess.run(

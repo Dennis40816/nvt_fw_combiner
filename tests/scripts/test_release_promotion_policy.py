@@ -38,6 +38,7 @@ def valid_snapshot() -> dict[str, object]:
                 "submittedAt": "2026-07-22T00:55:00Z",
             }
         ],
+        "ownerSelfApprovalException": False,
         "requiredChecks": [{"name": "dotnet / build-test", "bucket": "pass"}],
     }
 
@@ -109,12 +110,22 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         snapshot["repositoryOwner"] = "release-owner"
         snapshot["workflowActor"] = "release-owner"
         snapshot["ownerSelfApprovalException"] = True
+        snapshot["codexReview"] = {
+            "reviewer": MODULE.CODEX_REVIEWER,
+            "commitSha": "4" * 40,
+            "state": "COMMENTED",
+            "submittedAt": "2026-07-22T00:59:00Z",
+        }
         arguments = {
             **self.candidate_arguments(),
             "owner_self_approval_exception": True,
         }
 
         MODULE.validate_candidate_context(snapshot, **arguments)
+
+        snapshot["reviewDecision"] = "REVIEW_REQUIRED"
+        MODULE.validate_candidate_context(snapshot, **arguments)
+        snapshot["reviewDecision"] = ""
 
         for key, value, message in (
             ("owner_self_approval_exception", False, "no current-head approval"),
@@ -136,6 +147,34 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 mutated = {**snapshot, key: value}
                 with self.assertRaisesRegex(ValueError, message):
                     MODULE.validate_candidate_context(mutated, **arguments)
+
+        for key, value, message in (
+            ("codexReview", None, "no Codex review evidence"),
+            (
+                "codexReview",
+                {**snapshot["codexReview"], "commitSha": "5" * 40},
+                "Codex review is stale",
+            ),
+            (
+                "codexReview",
+                {**snapshot["codexReview"], "state": "PENDING"},
+                "Codex review is incomplete",
+            ),
+        ):
+            with self.subTest(key=key):
+                mutated = {**snapshot, key: value}
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_candidate_context(mutated, **arguments)
+
+    def test_rejects_owner_exception_on_an_approved_pr(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must be disabled"):
+            MODULE.validate_candidate_context(
+                {**valid_snapshot(), "ownerSelfApprovalException": True},
+                **{
+                    **self.candidate_arguments(),
+                    "owner_self_approval_exception": True,
+                },
+            )
 
     def test_fresh_promotion_requires_current_main_but_recovery_allows_advance(
         self,
