@@ -32,6 +32,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.9.15` — AB Code function-open, delivery-readiness, and review-automation milestone: start only from the official `v0.9.14` release commit, open the reviewed NT51919/NT51929/NT51932 AB route in UI/CLI, complete owner-authorized AB input/output usability and reviewer-facing delivery automation, and retain code size as a non-blocking review metric. Direct-golden debt remains visible for support certification; it does not block this reviewed function. The shared Hex viewport, Changes redesign, and global Button-feedback backlog are deferred to a later owner-selected milestone.
 - `v0.9.16` — NT51950 AB Code candidate-closure milestone: establish independently reviewed one-IC and two-IC topology, memory, size, and regression evidence without inferring support from the supplied single-topology golden.
 - `v0.9.17` — NT51951 AB Code candidate-closure milestone: establish its independent one-IC and two-IC topology, memory, size, and regression evidence without borrowing NT51950 rules or promoting support automatically.
+- `v0.9.18` — family/evidence-model unification milestone: normalize Perfect-family and LDC-TP-only evidence vocabulary, covered workflow/topology scope, excluded DP facts, support-matrix/report/review-handoff language, and the prerequisite design record for a later IC family/rule authoring UI. It does not change runtime admission, profiles, maps, processors, or golden evidence.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.10` are maintained in
@@ -64,12 +65,13 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.15` starts from official `v0.9.14` tag `58f5bbf4cdbfb4e02036c8c1b40c48aa88fa21f7`, peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`. It opens the reviewed NT51919/NT51929/NT51932 AB function in UI/CLI and owns output-name/input-inspection correctness plus delivery-to-review automation. NT51950/NT51951 remain candidates and no candidate is promoted by this milestone. Direct-golden debt is explicit support-certification evidence, not a function gate for the reviewed route. Cross-workflow header/Evidence/Memory coverage unification, the shared viewport, Changes redesign, and global Button feedback must be reassigned to a later owner-selected milestone before implementation.
 - `0.9.16` starts only from the official reviewed `v0.9.15` release tag. It owns NT51950 AB candidate closure; a supplied one-IC golden cannot infer a two-IC route, range, command, size policy, profile, or support status.
 - `0.9.17` starts only from the official reviewed `v0.9.16` release tag. It owns independent NT51951 AB candidate closure; it cannot derive any byte rule or topology from NT51950.
+- `0.9.18` starts only from the official reviewed `v0.9.17` release tag. It owns family/evidence-model unification: Perfect-family sharing remains like-for-like only, while LDC-family sharing is TP/CtrlRAM-only and never covers a DP workflow. It is the prerequisite for, not the implementation of, a future IC family/rule authoring UI.
 
-The authoritative `0.9.15`–`0.9.17` split, delivery-to-review contract, and candidate admission ledger live in [v0.9.15–v0.9.17 AB Delivery Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md).
+The authoritative `0.9.15`–`0.9.17` split, delivery-to-review contract, and candidate admission ledger live in [v0.9.15–v0.9.17 AB Delivery Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md). The next unified family/evidence foundation is [v0.9.18 Family and Evidence Model Unification](../architecture/v0.9.18-family-evidence-roadmap.md).
 
 ### Post-`0.9.17` owner-decision backlog
 
-Error experience unification, IC family/rule authoring UI, Customized-plan reuse/import, and Report detail/layout/function review are planned discussion tracks, not assigned releases. Their required workshops, safety boundaries, and implementation risk are recorded in the [v0.9.15–v0.9.17 AB Delivery Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md#post-v0917-owner-decision-queue). A future milestone must not absorb any of them until the owner selects its order and the required contract/ADR is approved.
+Error experience unification, IC family/rule authoring UI, Customized-plan reuse/import, and Report detail/layout/function review are planned discussion tracks. Family/rule authoring cannot be assigned until `0.9.18` has completed its model/ADR gate; the other tracks remain unassigned. Their required workshops, safety boundaries, and implementation risk are recorded in the [v0.9.15–v0.9.17 AB Delivery Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md#post-v0917-owner-decision-queue). A future milestone must not absorb any of them until the owner selects its order and the required contract/ADR is approved.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
@@ -120,6 +122,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.15` | AB function open, delivery readiness, and review automation | Open the reviewed NT51919/NT51929/NT51932 AB route while keeping NT51950/NT51951 as candidates. Direct-golden debt blocks support certification, not this function. Shared viewport/Changes/Button Presentation work is deferred pending a new owner-selected milestone. |
 | `v0.9.16` | NT51950 AB candidate closure | Establish separately reviewed one-IC and two-IC evidence; the supplied single-topology golden proves neither cascade behavior nor support. |
 | `v0.9.17` | NT51951 AB candidate closure | Establish independent one-IC and two-IC evidence; do not copy NT51950 memory or command rules. |
+| `v0.9.18` | Family/evidence model unification | Normalize Perfect-family and LDC-TP-only scope before any family/rule authoring UI; no runtime or firmware evidence promotion. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -173,6 +176,7 @@ v0.9.14         separately gated AB re-admission and targeted UI correctness fix
 v0.9.15         AB function open, input/output usability, and review automation
 v0.9.16         NT51950 AB candidate closure
 v0.9.17         NT51951 AB candidate closure
+v0.9.18         family/evidence model unification
 v1.0.0          stable
 ```
 

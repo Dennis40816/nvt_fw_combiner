@@ -9,6 +9,7 @@ public sealed partial class RepositoryBoundaryTests
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string tags = ReadText("docs/governance/development-tags.md");
         string deliveryRoadmap = ReadText("docs/architecture/v0.9.15-0.9.17-roadmap.md");
+        string familyRoadmap = ReadText("docs/architecture/v0.9.18-family-evidence-roadmap.md");
         string viewportDecision = ReadText("docs/adr/0028-capability-driven-shared-hex-viewport.md");
 
         Assert.Contains("## v0.9.15: AB delivery readiness and review automation", roadmap, StringComparison.Ordinal);
@@ -21,6 +22,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("`v0.9.15` | AB function open, delivery readiness, and review automation", tags, StringComparison.Ordinal);
         Assert.Contains("`v0.9.16` | NT51950 AB candidate closure", tags, StringComparison.Ordinal);
         Assert.Contains("`v0.9.17` | NT51951 AB candidate closure", tags, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.18` | Family/evidence model unification", tags, StringComparison.Ordinal);
         Assert.Contains("peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`", tags, StringComparison.Ordinal);
         Assert.DoesNotContain("`v0.9.15` | UI unification, shared Hex viewport, and Button feedback", tags, StringComparison.Ordinal);
 
@@ -31,6 +33,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("v0.9.15         AB function open, input/output usability, and review automation", progression, StringComparison.Ordinal);
         Assert.Contains("v0.9.16         NT51950 AB candidate closure", progression, StringComparison.Ordinal);
         Assert.Contains("v0.9.17         NT51951 AB candidate closure", progression, StringComparison.Ordinal);
+        Assert.Contains("v0.9.18         family/evidence model unification", progression, StringComparison.Ordinal);
         Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
 
         Assert.Contains("| `0.9.16` | NT51950 AB Code candidate closure", deliveryRoadmap, StringComparison.Ordinal);
@@ -45,12 +48,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("no LDC-family golden may be shared for DP Replace, AB Code", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("Standard Merge, or any other DP-writing/DP-layout workflow", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("TP/CtrlRAM sharing is not evidence for a DP range, header", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("[Family and Evidence Model Unification Roadmap](v0.9.18-family-evidence-roadmap.md)", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("later owner-selected Presentation milestone", viewportDecision, StringComparison.Ordinal);
         Assert.Contains("## Post-v0.9.17 owner decision queue", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| Error experience unification |", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| IC family and rule authoring UI |", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| Customized plan reuse and import |", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("| Report detail, layout, and functional review |", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("# v0.9.18 Family and Evidence Model Unification Roadmap", familyRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `perfect-family` | NT51919/NT51929/NT51932", familyRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `ldc-tp-only` | NT51927/NT51928", familyRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `ldc-tp-only` | NT51950/NT51951", familyRoadmap, StringComparison.Ordinal);
+        Assert.Contains("It is not an authorization to change a profile, map, processor, support stage,", familyRoadmap, StringComparison.Ordinal);
     }
 
     /// <summary>Separates reviewed AB function availability from direct-golden and support-certification debt.</summary>
