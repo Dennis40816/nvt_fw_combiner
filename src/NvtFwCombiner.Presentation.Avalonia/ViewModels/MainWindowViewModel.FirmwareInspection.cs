@@ -108,6 +108,11 @@ public sealed partial class MainWindowViewModel
             {
                 ApplyFirmwareInspectionBatch(request, result);
             }
+            else if (generation == _firmwareInspectionSession.CurrentGeneration &&
+                !result.IsFileIdentityStable)
+            {
+                ApplyStaleAbFirmwareInspectionState(request, result);
+            }
         }
         finally
         {
@@ -200,6 +205,29 @@ public sealed partial class MainWindowViewModel
                 string.Equals(SelectedReplaceMode, DpReplaceMode, StringComparison.Ordinal)))
         {
             RefreshReplaceMemoryMapState();
+        }
+
+        RefreshCommandState();
+    }
+
+    private void ApplyStaleAbFirmwareInspectionState(
+        FirmwareInspectionBatchRequest request,
+        FirmwareInspectionBatchResult result)
+    {
+        foreach (FirmwareInspectionItemRequest item in request.Items.Where(static item =>
+                     item.AbMergeAddressSpaceId is not null))
+        {
+            if (!result.UnstableFilePaths.Contains(item.Path) ||
+                FindSlot(item.SlotId) is not { } slot ||
+                !string.Equals(slot.FilePath, item.Path, StringComparison.Ordinal) ||
+                !slot.IsInputInspectionPending)
+            {
+                continue;
+            }
+
+            slot.SetInputInspection(
+                WorkbenchInputInspectionSeverity.Blocking,
+                Text.FirmwareInspectionStaleFileStatus);
         }
 
         RefreshCommandState();

@@ -304,6 +304,9 @@ public sealed partial class ShellTextResources
             FirmwareInspectionLoadingStatus = Pick(
                 "Inspecting the selected BIN… Build will be ready when the latest file snapshot is verified.",
                 "正在檢查所選 BIN… 最新檔案快照確認完成後即可 Build。"),
+            FirmwareInspectionStaleFileStatus = Pick(
+                "Error: the file changed during inspection. Select it again before Build.",
+                "錯誤：檢查期間檔案已變更。請重新選取檔案後再 Build。"),
             UtilToolsLabel = Pick("UTIL", "工具"),
             UtilToolsHomeTitle = Pick("Tool", "工具"),
             UtilToolsHomeDetail = Pick("Inspect and edit raw BIN files.", "檢視與編輯原始 BIN。"),

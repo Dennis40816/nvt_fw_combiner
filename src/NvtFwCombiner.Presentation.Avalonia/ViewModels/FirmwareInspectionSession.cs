@@ -67,8 +67,10 @@ internal sealed class FirmwareInspectionSession
             static path => path,
             FirmwareFileIdentity.Capture,
             StringComparer.Ordinal);
-        bool isFileIdentityStable = distinctPaths.All(path => before[path].Equals(after[path]));
-        return new FirmwareInspectionBatchResult(inspectionsById, after, isFileIdentityStable);
+        var unstableFilePaths = new HashSet<string>(
+            distinctPaths.Where(path => !before[path].Equals(after[path])),
+            StringComparer.Ordinal);
+        return new FirmwareInspectionBatchResult(inspectionsById, after, unstableFilePaths);
     }
 
     internal void StoreProjection(
@@ -370,4 +372,7 @@ internal readonly record struct FirmwareInspectionItemRequest(
 internal readonly record struct FirmwareInspectionBatchResult(
     IReadOnlyDictionary<string, WorkbenchFirmwareInspection> InspectionsById,
     IReadOnlyDictionary<string, FirmwareFileIdentity> FileIdentities,
-    bool IsFileIdentityStable);
+    IReadOnlySet<string> UnstableFilePaths)
+{
+    internal bool IsFileIdentityStable => UnstableFilePaths.Count == 0;
+}
