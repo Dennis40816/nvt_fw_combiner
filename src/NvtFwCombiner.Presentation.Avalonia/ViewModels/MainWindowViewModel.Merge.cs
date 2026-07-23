@@ -271,6 +271,43 @@ public sealed partial class MainWindowViewModel
         return Path.Combine(outputDirectory, refreshedPreparation.SuggestedFileName);
     }
 
+    /// <summary>
+    /// Refreshes the optional A FlashCode automatic name after the native dialog closes without replacing a user-entered name.
+    /// </summary>
+    internal async ValueTask<string?> TryResolveAbAFlashCodeBuildOutputPathAsync(
+        string selectedOutputPath,
+        string initialAutomaticFileName,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(selectedOutputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(initialAutomaticFileName);
+
+        if (!IsAbCodeMergeModeSelected ||
+            !string.Equals(
+                Path.GetFileName(selectedOutputPath),
+                initialAutomaticFileName,
+                StringComparison.Ordinal))
+        {
+            return selectedOutputPath;
+        }
+
+        MergeBuildSavePreparation? refreshedPreparation = await TryPrepareMergeBuildSaveAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (refreshedPreparation?.AFlashCodePlan is not { } refreshedPlan)
+        {
+            if (refreshedPreparation is not null)
+            {
+                PublishAbMergeBuildSavePreparationFailure(
+                    "The selected AB profile no longer declares the requested A FlashCode delivery.");
+            }
+
+            return null;
+        }
+
+        string outputDirectory = Path.GetDirectoryName(Path.GetFullPath(selectedOutputPath))!;
+        return Path.Combine(outputDirectory, refreshedPlan.SuggestedFileName);
+    }
+
     private Task RunStandardMergeAsync(bool build, string? outputPath)
     {
         string icId = SelectedIc;

@@ -215,6 +215,10 @@ public sealed partial class ShellViewModelTests
             "^NT51929_FlashCode_A_D0605T8100_B_D0708T8203_[0-9]{8}\\.bin$",
             suggestedOutputName);
         Assert.DoesNotContain("D06-05", suggestedOutputName, StringComparison.Ordinal);
+        MergeBuildSavePreparation initialPreparation = Assert.IsType<MergeBuildSavePreparation>(
+            await viewModel.TryPrepareMergeBuildSaveAsync(TestContext.Current.CancellationToken));
+        WorkbenchAbAFlashCodeDeliveryPlan initialAFlashCodePlan = Assert.IsType<WorkbenchAbAFlashCodeDeliveryPlan>(
+            initialPreparation.AFlashCodePlan);
 
         WriteUiAbCmi(dp, 0, major: 0x09, minor: 0x00, jira: 0x123);
         await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
@@ -229,12 +233,29 @@ public sealed partial class ShellViewModelTests
             "^NT51929_FlashCode_A_D0900T8100_B_D0708T8203_[0-9]{8}\\.bin$",
             Path.GetFileName(refreshedAutomaticOutputPath));
 
+        string? refreshedAFlashCodeOutputPath = await viewModel.TryResolveAbAFlashCodeBuildOutputPathAsync(
+            workspace.PathFor(initialAFlashCodePlan.SuggestedFileName),
+            initialAFlashCodePlan.SuggestedFileName,
+            TestContext.Current.CancellationToken);
+
+        Assert.NotNull(refreshedAFlashCodeOutputPath);
+        Assert.Equal(workspace.Root, Path.GetDirectoryName(refreshedAFlashCodeOutputPath));
+        Assert.Matches(
+            "^NT51929_FlashCode_D0900T8100_[0-9]{8}\\.bin$",
+            Path.GetFileName(refreshedAFlashCodeOutputPath));
+
         string customOutputPath = workspace.PathFor("operator-name.bin");
         Assert.Equal(
             customOutputPath,
             await viewModel.TryResolveAbMergeBuildOutputPathAsync(
                 customOutputPath,
                 suggestedOutputName,
+                TestContext.Current.CancellationToken));
+        Assert.Equal(
+            customOutputPath,
+            await viewModel.TryResolveAbAFlashCodeBuildOutputPathAsync(
+                customOutputPath,
+                initialAFlashCodePlan.SuggestedFileName,
                 TestContext.Current.CancellationToken));
 
         await viewModel.PreviewMergeCommand.ExecuteAsync(null);

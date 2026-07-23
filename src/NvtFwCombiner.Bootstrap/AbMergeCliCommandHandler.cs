@@ -108,10 +108,10 @@ internal static class AbMergeCliCommandHandler
                     .ConfigureAwait(false);
                 outputTarget = new CliOutputTarget(outputTarget.OutputDirectory, automaticOutputFileName);
             }
-            catch (InvalidOperationException exception)
+            catch (InvalidOperationException)
             {
-                await error.WriteLineAsync($"error: {exception.Message}").ConfigureAwait(false);
-                return CompositionFailed;
+                // Preserve the normal failed Workbench result and its requested report. The
+                // runner repeats the same admission before it can commit any output.
             }
         }
 

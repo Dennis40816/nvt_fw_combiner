@@ -9,7 +9,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Application/Bootstrap runtime evidence for the function-open AB profiles.</summary>
-public sealed class AbMergeRuntimeAdmissionTests
+public sealed partial class AbMergeRuntimeAdmissionTests
 {
     private const int DpLength = 0x80000;
     private const int TpLength = 0x40000;

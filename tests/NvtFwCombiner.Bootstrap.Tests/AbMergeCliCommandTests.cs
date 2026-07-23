@@ -297,6 +297,38 @@ public sealed class AbMergeCliCommandTests
         Assert.False(File.Exists(reportPath));
     }
 
+    /// <summary>Automatic Build retains the normal failed JSON report when filename admission cannot resolve.</summary>
+    [Fact]
+    public async Task CliAutomaticBuildWritesFailureReportWhenInputAdmissionFailsAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-ab-cli-automatic-failure-report");
+        string reportPath = workspace.PathFor("failed-build.json");
+
+        CliRunResult result = await CliTestHarness.RunAsync(
+            [
+                "ab-merge",
+                "build",
+                "--profile",
+                "NT51929",
+                "--dp-ab",
+                workspace.Write("dp-short.bin", new byte[0x7FFFF]),
+                "--tp-a",
+                workspace.Write("tp-a.bin", CreateTp(0x80, 0x04)),
+                "--tp-b",
+                workspace.Write("tp-b.bin", CreateTp(0x81, 0x02)),
+                "--report",
+                reportPath,
+            ],
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, result.ExitCode);
+        using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
+            reportPath,
+            TestContext.Current.CancellationToken));
+        Assert.NotEmpty(report.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Contains("Status: Failed", result.Output, StringComparison.Ordinal);
+    }
+
     private static void SetCmiDpVersion(byte[] image, int bankStart, byte major, byte minor)
     {
         image[bankStart + 0x401B] = major;

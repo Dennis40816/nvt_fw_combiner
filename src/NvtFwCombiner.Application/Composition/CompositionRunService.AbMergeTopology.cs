@@ -21,24 +21,38 @@ public sealed partial class CompositionRunService
             return;
         }
 
-        if (!TryReadTopology(tpA, out FirmwareConfigMetadata tpAMetadata))
+        if (!TryReadFirmwareConfig(tpA, out FirmwareConfigMetadata tpAMetadata))
         {
             issues.Add(new CompositionIssue(
                 TpFirmwareConfigInvalid,
-                "TPA has no valid canonical NVT FWConfig Backup with a positive chip count.",
+                "TPA has no valid canonical NVT FWConfig Backup.",
                 CompositionAddressSpaceIds.TpAInput));
         }
 
-        if (!TryReadTopology(tpB, out FirmwareConfigMetadata tpBMetadata))
+        if (!TryReadFirmwareConfig(tpB, out FirmwareConfigMetadata tpBMetadata))
         {
             issues.Add(new CompositionIssue(
                 TpFirmwareConfigInvalid,
-                "TPB has no valid canonical NVT FWConfig Backup with a positive chip count.",
+                "TPB has no valid canonical NVT FWConfig Backup.",
                 CompositionAddressSpaceIds.TpBInput));
         }
 
         if (issues.Any(static issue => StringComparer.Ordinal.Equals(issue.Code, TpFirmwareConfigInvalid)))
         {
+            return;
+        }
+
+        if (request.AbMergeTopologySelection is not { } selected)
+        {
+            return;
+        }
+
+        if (tpAMetadata.ChipNumber == 0 || tpBMetadata.ChipNumber == 0)
+        {
+            issues.Add(new CompositionIssue(
+                TpFirmwareConfigInvalid,
+                "NT51950 AB topology selection requires positive TPA and TPB FWConfig chip counts.",
+                "ab-topology"));
             return;
         }
 
@@ -53,8 +67,7 @@ public sealed partial class CompositionRunService
             return;
         }
 
-        if (request.AbMergeTopologySelection is { } selected &&
-            selected.ChipCount == 1 != tpASingle)
+        if (selected.ChipCount == 1 != tpASingle)
         {
             issues.Add(new CompositionIssue(
                 TpTopologySelectionMismatch,
@@ -93,13 +106,12 @@ public sealed partial class CompositionRunService
         return true;
     }
 
-    private static bool TryReadTopology(
+    private static bool TryReadFirmwareConfig(
         ReadOnlySpan<byte> prefix,
         out FirmwareConfigMetadata metadata)
     {
         return FirmwareConfigMetadataReader.TryReadBackup(prefix, out metadata) &&
-            metadata.IsFirmwareVersionBarValid &&
-            metadata.ChipNumber > 0;
+            metadata.IsFirmwareVersionBarValid;
     }
 
     private static string FormatTopology(byte chipCount)

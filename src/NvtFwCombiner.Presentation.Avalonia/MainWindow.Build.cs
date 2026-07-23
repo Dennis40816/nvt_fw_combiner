@@ -63,6 +63,18 @@ public sealed partial class MainWindow
             return;
         }
 
+        if (!string.IsNullOrWhiteSpace(aFlashCodeOutputPath))
+        {
+            aFlashCodeOutputPath = await viewModel.TryResolveAbAFlashCodeBuildOutputPathAsync(
+                aFlashCodeOutputPath,
+                aFlashCodePlan!.SuggestedFileName,
+                CancellationToken.None);
+            if (string.IsNullOrWhiteSpace(aFlashCodeOutputPath))
+            {
+                return;
+            }
+        }
+
         await viewModel.BuildMergeAsync(resolvedOutputPath, aFlashCodeOutputPath);
     }
 
