@@ -71,6 +71,52 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("BuiltInV2Registration", registration, StringComparison.Ordinal);
     }
 
+    /// <summary>Guards AB display and naming against reintroducing IC- or metadata-specific C# layout routing.</summary>
+    [Fact]
+    public void AbExecutionReadsDeclaredCmiRegionsWithoutInformationalMetadataRouting()
+    {
+        string outputNaming = ReadText("src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs");
+        string inputProjection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchAbMergeInputProjection.cs");
+        string topologyValidation = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.AbMergeTopology.cs");
+        string workbenchService = ReadText("src/NvtFwCombiner.Bootstrap/AbMergeWorkbenchCompositionService.cs");
+
+        Assert.Contains("TryGetProfileCmiOffset", outputNaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("GenFlashVersionCatalog", outputNaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryReadCmiDpCode", outputNaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("GenFlashVersionCatalog", inputProjection, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryReadCmiDpCode", inputProjection, StringComparison.Ordinal);
+        Assert.DoesNotContain("ProductId", outputNaming + inputProjection + topologyValidation, StringComparison.Ordinal);
+        Assert.DoesNotContain(".Pid", outputNaming + inputProjection + topologyValidation, StringComparison.Ordinal);
+        Assert.DoesNotContain("CommonFw", outputNaming + inputProjection + topologyValidation, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledComposition.IcId", topologyValidation, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51950", workbenchService, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51951", workbenchService, StringComparison.Ordinal);
+        Assert.Contains("not an IC, PID, or", outputNaming, StringComparison.Ordinal);
+        Assert.Contains("ChipNumber", topologyValidation, StringComparison.Ordinal);
+
+        foreach (string profilePath in new[]
+                 {
+                     "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51919-ab-merge.json",
+                     "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51929-ab-merge.json",
+                     "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51932-ab-merge.json",
+                     "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge.json",
+                     "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge.json",
+                 })
+        {
+            using JsonDocument profile = JsonDocument.Parse(ReadText(profilePath));
+            string[] requiredRegions =
+            [
+                .. profile.RootElement.GetProperty("mapBinding").GetProperty("requiredRegionIds")
+                    .EnumerateArray()
+                    .Select(static item => item.GetString() ?? throw new InvalidOperationException(
+                        "AB profile mapBinding.requiredRegionIds cannot contain null.")),
+            ];
+
+            Assert.Contains("a-cmi-dp-version", requiredRegions, StringComparer.Ordinal);
+            Assert.Contains("b-cmi-dp-version", requiredRegions, StringComparer.Ordinal);
+        }
+    }
+
     /// <summary>Verifies built-in bundle materialization remains an explicit identity allowlist, never source discovery.</summary>
     [Fact]
     public void BuiltInBundleMaterializationUsesExplicitIdentityAllowlist()

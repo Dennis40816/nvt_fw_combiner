@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -9,7 +10,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
 {
     private const string BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string BundleContentHash = "390743408fbaa172a6e4dc073c0c9f515de94faf502b996bd0380af0fb388680";
+    private const string BundleContentHash = "93902043b6e4ea4c8a2023a7f02c798e4497de3523b21115797e9b302ce22292";
     private const int Capacity = 0x80000;
     private const int TpCodeStart = 0x7000;
     private const int TpCodeLength = 0x39000;
@@ -35,6 +36,8 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
         Assert.Empty(details.Provenance.Promotion.Blockers);
         Assert.Equal(expectedMapId, details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(Capacity, composition.Plan.OutputInitialization.Capacity);
+        AssertRegionRange(details, "a-cmi-dp-version", 0x401A, 3);
+        AssertRegionRange(details, "b-cmi-dp-version", 0x4401A, 3);
         Assert.Equal(
             ["copy-dp-ab-image", "copy-tpa", "relocate-tpb-ilm", "relocate-tpb-dlm", "relocate-tpb-diff", "copy-tpb"],
             composition.Plan.OrderedOperations.Select(static operation => operation.OperationId));
@@ -141,6 +144,18 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
             Capacity);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+    }
+
+    private static void AssertRegionRange(
+        V2CompiledCompositionDetails details,
+        string regionId,
+        long start,
+        long length)
+    {
+        FirmwareRegion region = Assert.Single(
+            details.Provenance.ResolvedMap.ImageMap.Regions,
+            candidate => StringComparer.Ordinal.Equals(candidate.RegionId, regionId));
+        Assert.Equal(new ByteRange(start, length), region.Range);
     }
 
     private static byte[] CreatePattern(int length, byte salt)

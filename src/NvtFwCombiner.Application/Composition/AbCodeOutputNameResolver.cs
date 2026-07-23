@@ -8,9 +8,6 @@ namespace NvtFwCombiner.Application.Composition;
 /// <summary>Renders the closed AB Code v1 filename from accepted immutable execution snapshots.</summary>
 internal static class AbCodeOutputNameResolver
 {
-    private const int DpBankLength = 0x40000;
-    private const int DpAbLength = DpBankLength * 2;
-
     internal static OutputNameResolution Resolve(
         CompositionRunRequest request,
         IReadOnlyDictionary<string, byte[]> inputBytes,
@@ -23,8 +20,8 @@ internal static class AbCodeOutputNameResolver
             return OutputNameResolution.Static(request.OutputFileName);
         }
 
-        TokenResolution dpA = ReadDpToken(request, inputBytes, inputSummaries, "a-cmi-dp-version", 0, "dp-a");
-        TokenResolution dpB = ReadDpToken(request, inputBytes, inputSummaries, "b-cmi-dp-version", DpBankLength, "dp-b");
+        TokenResolution dpA = ReadDpToken(request, inputBytes, inputSummaries, "a-cmi-dp-version", "dp-a");
+        TokenResolution dpB = ReadDpToken(request, inputBytes, inputSummaries, "b-cmi-dp-version", "dp-b");
         TokenResolution tpA = ReadTpToken(request, inputBytes, inputSummaries, CompositionAddressSpaceIds.TpAInput, "tp-a");
         TokenResolution tpB = ReadTpToken(request, inputBytes, inputSummaries, CompositionAddressSpaceIds.TpBInput, "tp-b");
         string date = startedAtUtc.UtcDateTime.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
@@ -88,7 +85,6 @@ internal static class AbCodeOutputNameResolver
         IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         string cmiRegionId,
-        int legacyBankStart,
         string tokenId)
     {
         return !TryGetAcceptedSnapshot(
@@ -101,20 +97,6 @@ internal static class AbCodeOutputNameResolver
             ? UnknownDpToken(tokenId, hash)
             : TryGetProfileCmiOffset(request.CompiledComposition, cmiRegionId, snapshot.Length, out int cmiOffset)
                 ? KnownDpToken(tokenId, snapshot.Span.Slice(cmiOffset, 3), hash, "profile-cmi-reg16-18")
-                : snapshot.Length == DpAbLength &&
-                  GenFlashVersionCatalog.TryReadCmiDpCode(
-                      request.CompiledComposition.IcId,
-                      snapshot.Span.Slice(legacyBankStart, DpBankLength),
-                      out CmiDpCodeMetadata metadata)
-            ? KnownDpToken(
-                tokenId,
-                [
-                    metadata.SystemCodeLowByte,
-                    metadata.MajorVersionByte,
-                    (byte)((metadata.MinorVersionNibble << 4) | ((metadata.JiraNumber >> 8) & 0x0F)),
-                ],
-                hash,
-                "legacy-cmi-reg16-18")
             : UnknownDpToken(tokenId, hash);
     }
 

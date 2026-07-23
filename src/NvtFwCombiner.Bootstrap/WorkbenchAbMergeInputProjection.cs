@@ -67,7 +67,7 @@ internal static class WorkbenchAbMergeInputProjection
                 details.InputContract,
                 addressSpaceId,
                 image);
-        List<WorkbenchAbVersionValue> versions = ReadVersions(icId, composition, slot.Role, image, inspected);
+        List<WorkbenchAbVersionValue> versions = ReadVersions(composition, slot.Role, image, inspected);
         List<WorkbenchInputInspectionIssue> issues =
         [
             new(
@@ -121,7 +121,6 @@ internal static class WorkbenchAbMergeInputProjection
     }
 
     private static List<WorkbenchAbVersionValue> ReadVersions(
-        string icId,
         CompiledComposition composition,
         WorkbenchAbMergeInputRole role,
         byte[] image,
@@ -135,7 +134,7 @@ internal static class WorkbenchAbMergeInputProjection
         ReadOnlySpan<byte> snapshot = image.AsSpan(checked((int)accepted.Start), checked((int)accepted.Length));
         return role switch
         {
-            WorkbenchAbMergeInputRole.DpAb => ReadDpVersions(icId, composition, snapshot),
+            WorkbenchAbMergeInputRole.DpAb => ReadDpVersions(composition, snapshot),
             WorkbenchAbMergeInputRole.TpA => [ReadTpVersion(WorkbenchAbVersionKind.TpA, snapshot)],
             WorkbenchAbMergeInputRole.TpB => [ReadTpVersion(WorkbenchAbVersionKind.TpB, snapshot)],
             _ => throw new ArgumentOutOfRangeException(nameof(role), role, null),
@@ -143,29 +142,19 @@ internal static class WorkbenchAbMergeInputProjection
     }
 
     private static List<WorkbenchAbVersionValue> ReadDpVersions(
-        string icId,
         CompiledComposition composition,
         ReadOnlySpan<byte> snapshot)
     {
-        if (TryReadDeclaredCmiVersions(composition, snapshot, out List<WorkbenchAbVersionValue>? declaredVersions))
-        {
-            return declaredVersions!;
-        }
-
-        CompositionOperation tpA = FindOutputCopy(composition, CompositionAddressSpaceIds.TpAInput);
-        CompositionOperation tpB = FindOutputCopy(composition, CompositionAddressSpaceIds.TpBWork);
-        long bankLength = checked(tpB.TargetRange.Start - tpA.TargetRange.Start);
-        if (bankLength <= 0 || bankLength > int.MaxValue || checked(bankLength * 2) > snapshot.Length)
-        {
-            throw new InvalidOperationException("Compiled AB input does not contain both declared DP banks.");
-        }
-
-        int length = checked((int)bankLength);
-        return
-        [
-            ReadDpVersion(icId, WorkbenchAbVersionKind.Dp1, snapshot[..length]),
-            ReadDpVersion(icId, WorkbenchAbVersionKind.Dp2, snapshot.Slice(length, length)),
-        ];
+        return TryReadDeclaredCmiVersions(
+                composition,
+                snapshot,
+                out List<WorkbenchAbVersionValue>? declaredVersions)
+            ? declaredVersions!
+            :
+            [
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp1, UnknownAbVersion, null, true),
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp2, UnknownAbVersion, null, true),
+            ];
     }
 
     private static bool TryReadDeclaredCmiVersions(
@@ -219,30 +208,6 @@ internal static class WorkbenchAbMergeInputProjection
             FormattableString.Invariant($"D{major:X2}{minor:X2}"),
             jira == 0 ? null : $"AUTO_PRJ-{jira}",
             IsUnknown: false);
-    }
-
-    private static CompositionOperation FindOutputCopy(
-        CompiledComposition composition,
-        string sourceSpaceId)
-    {
-        return composition.Plan.OrderedOperations.Single(operation =>
-            operation.Kind == CompositionOperationKind.CopyRange &&
-            StringComparer.Ordinal.Equals(operation.SourceSpaceId, sourceSpaceId) &&
-            StringComparer.Ordinal.Equals(operation.TargetSpaceId, CompositionAddressSpaceIds.OutputImage));
-    }
-
-    private static WorkbenchAbVersionValue ReadDpVersion(
-        string icId,
-        WorkbenchAbVersionKind kind,
-        ReadOnlySpan<byte> bank)
-    {
-        return GenFlashVersionCatalog.TryReadCmiDpCode(icId, bank, out CmiDpCodeMetadata metadata)
-            ? new WorkbenchAbVersionValue(
-                kind,
-                FormattableString.Invariant($"D{metadata.MajorVersionByte:X2}{metadata.MinorVersionNibble:X2}"),
-                metadata.JiraBadge,
-                IsUnknown: false)
-            : new WorkbenchAbVersionValue(kind, UnknownAbVersion, JiraBadge: null, IsUnknown: true);
     }
 
     private static WorkbenchAbVersionValue ReadTpVersion(
