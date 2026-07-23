@@ -744,7 +744,7 @@ def validate() -> list[str]:
     validate_markdown_links(files, errors)
     validate_ab_merge_golden_fixtures(ROOT, load_json, validate_golden_manifest_entry, errors)
     validate_canonical_golden(ROOT, errors)
-    validate_diagnostic_golden_separation(ROOT, errors)
+    validate_diagnostic_golden_separation(ROOT, errors, files)
     validate_standard_merge_release_allowlist(ROOT, errors)
     validate_ctrlram_replace_golden_fixtures(errors)
     validate_skills(errors)
