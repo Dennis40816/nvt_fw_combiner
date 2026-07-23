@@ -1,4 +1,5 @@
 using Avalonia.Interactivity;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -18,6 +19,10 @@ public sealed partial class MainWindow
             return;
         }
 
+        WorkbenchAbAFlashCodeDeliveryPlan? aFlashCodePlan = await viewModel
+            .TryCreateAbAFlashCodeDeliveryPlanAsync(CancellationToken.None);
+        bool exportAFlashCode = aFlashCodePlan is not null &&
+            await viewModel.PromptForAbAFlashCodeDeliveryAsync();
         string suggestedFileName = await viewModel.ResolveMergeOutputFileNameForSaveAsync(
             CancellationToken.None);
         string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
@@ -28,7 +33,19 @@ public sealed partial class MainWindow
             return;
         }
 
-        await viewModel.BuildMergeAsync(outputPath);
+        string? aFlashCodeOutputPath = null;
+        if (exportAFlashCode)
+        {
+            aFlashCodeOutputPath = await FirmwareFilePickerDialogs.PickAbAFlashCodeOutputPathAsync(
+                StorageProvider,
+                aFlashCodePlan!.SuggestedFileName);
+            if (string.IsNullOrWhiteSpace(aFlashCodeOutputPath))
+            {
+                return;
+            }
+        }
+
+        await viewModel.BuildMergeAsync(outputPath, aFlashCodeOutputPath);
     }
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)

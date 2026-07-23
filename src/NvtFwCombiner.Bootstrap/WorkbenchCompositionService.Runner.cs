@@ -31,6 +31,39 @@ public static partial class WorkbenchCompositionService
         string? previewOutputFileName = null,
         TopologySelection? abMergeTopologySelection = null)
     {
+        CompositionRunResult result = await RunCompiledCompositionResultAsync(
+            runIdPrefix,
+            compiledComposition,
+            bindings,
+            firstInputPath,
+            build,
+            outputPath,
+            externalProcessor,
+            icNumberSelection,
+            cancellationToken,
+            virtualArtifacts,
+            progress,
+            previewOutputFileName,
+            abMergeTopologySelection).ConfigureAwait(false);
+        return ToWorkbenchRunResult(result);
+    }
+
+    /// <summary>Runs one composition and retains the typed Application result for a bounded adapter delivery phase.</summary>
+    internal static async ValueTask<CompositionRunResult> RunCompiledCompositionResultAsync(
+        string runIdPrefix,
+        CompiledComposition compiledComposition,
+        IReadOnlyList<InputArtifactBinding> bindings,
+        string firstInputPath,
+        bool build,
+        string? outputPath,
+        IExternalProcessor? externalProcessor,
+        IcNumberSelection? icNumberSelection,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
+        CompositionRunProgressFeed? progress = null,
+        string? previewOutputFileName = null,
+        TopologySelection? abMergeTopologySelection = null)
+    {
         string[] inputRoots =
         [
             .. bindings
@@ -89,7 +122,7 @@ public static partial class WorkbenchCompositionService
         CompositionRunResult result = progress is null
             ? await service.PreviewOrBuildAsync(request, build, cancellationToken).ConfigureAwait(false)
             : await service.PreviewOrBuildAsync(request, build, progress, cancellationToken).ConfigureAwait(false);
-        return ToWorkbenchRunResult(result);
+        return result;
     }
 
     /// <summary>Resolves an automatic filename through Application input admission without executing a composition.</summary>

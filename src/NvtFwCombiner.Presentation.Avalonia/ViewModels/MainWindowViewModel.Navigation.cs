@@ -47,6 +47,7 @@ public sealed partial class MainWindowViewModel
         IsFirmwareNumberMismatchModalOpen ||
         IsNavigationClearConfirmationOpen ||
         IsReportModalOpen ||
+        IsAbAFlashCodeDeliveryPromptOpen ||
         IsBuildCompletedModalOpen ||
         LoadedHexEditorWorkspace?.IsInsertBytesPromptOpen == true ||
         LoadedHexEditorWorkspace?.IsSaveConfirmationOpen == true;
@@ -60,6 +61,7 @@ public sealed partial class MainWindowViewModel
             nameof(IsFirmwareNumberMismatchModalOpen) or
             nameof(IsNavigationClearConfirmationOpen) or
             nameof(IsReportModalOpen) or
+            nameof(IsAbAFlashCodeDeliveryPromptOpen) or
             nameof(IsBuildCompletedModalOpen))
         {
             NotifyCompositionActionRailVisibilityChanged();

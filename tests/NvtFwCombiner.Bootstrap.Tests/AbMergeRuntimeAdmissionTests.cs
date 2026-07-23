@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -346,18 +347,45 @@ public sealed class AbMergeRuntimeAdmissionTests
             static pair => File.ReadAllBytes(pair.Value),
             StringComparer.Ordinal);
         string outputPath = workspace.PathFor("output/nt51929-ab.bin");
+        string aFlashCodePath = workspace.PathFor("output/nt51929-a-flashcode.bin");
 
         WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
             "NT51929",
             paths,
             build: true,
-            TestContext.Current.CancellationToken,
-            outputPath);
+            cancellationToken: TestContext.Current.CancellationToken,
+            outputPath: outputPath,
+            aFlashCodeOutputPath: aFlashCodePath);
 
         Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.IsDeliveryComplete, result.ReportJson);
         Assert.Equal(DpLength, result.OutputSize);
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(result.OutputSha256, Sha256(output));
+
+        WorkbenchDeliveryArtifact aFlashCodeDelivery = Assert.Single(result.DeliveryArtifacts);
+        Assert.Equal(AbMergeAFlashCodeExportService.AFlashCodeDeliveryKind, aFlashCodeDelivery.DeliveryKind);
+        Assert.Equal(aFlashCodePath, aFlashCodeDelivery.OutputPath);
+        Assert.Equal(0, aFlashCodeDelivery.SourceRange.Start);
+        Assert.Equal(DpLength / 2, aFlashCodeDelivery.SourceRange.EndExclusive);
+        OutputNamingSummary outputNaming = Assert.IsType<OutputNamingSummary>(result.OutputNaming);
+        Assert.True(outputNaming.IsExplicitOverride);
+        var namingTokens = outputNaming.Tokens.ToDictionary(
+            static token => token.TokenId,
+            static token => token.Value,
+            StringComparer.Ordinal);
+        Assert.Equal("T8100", namingTokens["tp-a"]);
+        Assert.Equal(Path.GetFileName(outputPath), outputNaming.ActualFileName);
+
+        byte[] aFlashCode = await File.ReadAllBytesAsync(aFlashCodePath, TestContext.Current.CancellationToken);
+        Assert.Equal(DpLength / 2, aFlashCodeDelivery.OutputSize);
+        Assert.Equal(output[..(DpLength / 2)], aFlashCode);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Equal(Path.GetFileName(outputPath), report.RootElement.GetProperty("Output").GetProperty("FileName").GetString());
+        JsonElement reportDelivery = Assert.Single(report.RootElement.GetProperty("DeliveryArtifacts").EnumerateArray());
+        Assert.Equal(Path.GetFileName(aFlashCodePath), reportDelivery.GetProperty("FileName").GetString());
+        Assert.True(reportDelivery.GetProperty("Committed").GetBoolean());
+
         foreach ((string addressSpaceId, string path) in paths)
         {
             Assert.Equal(originals[addressSpaceId], await File.ReadAllBytesAsync(
@@ -366,16 +394,157 @@ public sealed class AbMergeRuntimeAdmissionTests
         }
     }
 
+    /// <summary>A requested A FlashCode target is rejected before the primary AB Build can overwrite any selected input or its own output.</summary>
+    [Fact]
+    public async Task AFlashCodeAliasBlocksBeforePrimaryBuildAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-ab-a-alias");
+        Dictionary<string, string> paths = WriteInputs(workspace);
+        string outputPath = workspace.PathFor("output/nt51929-ab.bin");
+
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+                "NT51929",
+                paths,
+                build: true,
+                cancellationToken: TestContext.Current.CancellationToken,
+                outputPath: outputPath,
+                aFlashCodeOutputPath: paths[CompositionAddressSpaceIds.DpAbInput]).AsTask());
+
+        Assert.Contains("AB input artifact", exception.Message, StringComparison.Ordinal);
+        Assert.False(File.Exists(outputPath));
+    }
+
+    /// <summary>A post-primary I/O failure is reported as partial delivery and never pretends that both requested outputs were delivered.</summary>
+    [Fact]
+    public async Task AFlashCodeDeliveryFailureRetainsPrimaryAndReportsIncompleteArtifactAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-ab-a-partial");
+        Dictionary<string, string> paths = WriteInputs(workspace);
+        string outputPath = workspace.PathFor("output/nt51929-ab.bin");
+        string directoryPath = workspace.PathFor("output");
+
+        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+            "NT51929",
+            paths,
+            build: true,
+            cancellationToken: TestContext.Current.CancellationToken,
+            outputPath: outputPath,
+            aFlashCodeOutputPath: directoryPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.False(result.IsDeliveryComplete);
+        Assert.True(File.Exists(outputPath));
+        Assert.False(string.IsNullOrWhiteSpace(result.DeliveryFailureMessage));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        JsonElement delivery = Assert.Single(report.RootElement.GetProperty("DeliveryArtifacts").EnumerateArray());
+        Assert.False(delivery.GetProperty("Committed").GetBoolean());
+        Assert.Contains(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() == "delivery.ab-a-flashcode.failed");
+    }
+
+    /// <summary>Only the contiguous perfect-family A-bank declarations opt into the optional pre-Build A FlashCode delivery.</summary>
+    [Theory]
+    [InlineData("NT51919")]
+    [InlineData("NT51929")]
+    [InlineData("NT51932")]
+    public async Task PerfectFamilyAbMapsDeclareTheAFlashCodeDeliveryPlanAsync(string icId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        Assert.True(AbMergeWorkbenchCompositionService.TryCompileAbMerge(
+            icId,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues),
+            string.Join(',', issues.Select(static issue => issue.Code)));
+        CompiledComposition compiledComposition = Assert.IsType<CompiledComposition>(composition);
+        OutputNamingSummary outputNaming = CreateCompletedAbResult(icId, DpLength).OutputNaming!;
+        WorkbenchAbAFlashCodeDeliveryPlan? export = await AbMergeAFlashCodeExportService.TryCreatePlanAsync(
+            compiledComposition,
+            new Dictionary<string, string>(StringComparer.Ordinal),
+            new CompositionOutputNamePreview(outputNaming.ActualFileName, outputNaming, []),
+            TestContext.Current.CancellationToken);
+
+        WorkbenchAbAFlashCodeDeliveryPlan plan = Assert.IsType<WorkbenchAbAFlashCodeDeliveryPlan>(export);
+        Assert.Equal(0, plan.SourceRange.Start);
+        Assert.Equal(DpLength / 2, plan.SourceRange.EndExclusive);
+        Assert.Equal($"NT{icId[2..]}_FlashCode_D0605T8100_20260724.bin", plan.SuggestedFileName);
+    }
+
+    /// <summary>NT51950's distinct A-bank and DP layout cannot accidentally inherit the 929-family A FlashCode export.</summary>
+    [Fact]
+    public void Nt51950AbMapDoesNotDeclareTheAFlashCodeDelivery()
+    {
+        Assert.True(AbMergeWorkbenchCompositionService.TryCompileAbMerge(
+            "NT51950",
+            RequestedTopology("single"),
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues),
+            string.Join(',', issues.Select(static issue => issue.Code)));
+        CompiledComposition compiledComposition = Assert.IsType<CompiledComposition>(composition);
+
+        Assert.False(AbMergeAFlashCodeExportService.TryResolveAFlashCodeRange(compiledComposition, out _));
+    }
+
+    /// <summary>NT51951's distinct selector-free AB layout likewise remains outside the perfect-family A-only delivery rule.</summary>
+    [Fact]
+    public void Nt51951AbMapDoesNotDeclareTheAFlashCodeDelivery()
+    {
+        Assert.True(AbMergeWorkbenchCompositionService.TryCompileAbMerge(
+            "NT51951",
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues),
+            string.Join(',', issues.Select(static issue => issue.Code)));
+        CompiledComposition compiledComposition = Assert.IsType<CompiledComposition>(composition);
+
+        Assert.False(AbMergeAFlashCodeExportService.TryResolveAFlashCodeRange(compiledComposition, out _));
+    }
+
+    private static WorkbenchRunResult CreateCompletedAbResult(string icId, int outputLength)
+    {
+        string icNumber = icId[2..];
+        string fileName = $"NT{icNumber}_FlashCode_A_D0605T8100_B_D0708T8203_20260724.bin";
+        return new WorkbenchRunResult(
+            true,
+            "Succeeded",
+            $"{icId.ToLowerInvariant()}-ab-merge",
+            outputLength,
+            "source-output-sha256",
+            fileName,
+            Path.Combine(Path.GetTempPath(), fileName),
+            "{}")
+        {
+            OutputBytes = new byte[outputLength],
+            OutputNaming = new OutputNamingSummary(
+                "ab-code-v1",
+                "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
+                fileName,
+                fileName,
+                isExplicitOverride: false,
+                "utc",
+                new DateTimeOffset(2026, 7, 24, 0, 0, 0, TimeSpan.Zero),
+                [
+                    new OutputNamingTokenSummary("ic", icNumber, true, null, null, "compiled-profile"),
+                    new OutputNamingTokenSummary("dp-a", "D0605", true, "dp-ab-input", null, "profile-cmi-reg16-18"),
+                    new OutputNamingTokenSummary("tp-a", "T8100", true, "tp-a-input", null, "fwconfig-backup"),
+                    new OutputNamingTokenSummary("dp-b", "D0708", true, "dp-ab-input", null, "profile-cmi-reg16-18"),
+                    new OutputNamingTokenSummary("tp-b", "T8203", true, "tp-b-input", null, "fwconfig-backup"),
+                    new OutputNamingTokenSummary("date", "20260724", true, null, null, "utc-clock"),
+                ]),
+        };
+    }
+
     private static Dictionary<string, string> WriteInputs(TempWorkspace workspace)
     {
-        byte[] tpB = CreatePattern(TpLength, 0x83);
+        byte[] tpA = CreateTpImage(version: 0x81, subVersion: 0x00);
+        byte[] tpB = CreateTpImage(version: 0x82, subVersion: 0x03);
         BinaryPrimitives.WriteUInt32LittleEndian(tpB.AsSpan(0x7164, sizeof(uint)), 0x00123456);
         BinaryPrimitives.WriteUInt32LittleEndian(tpB.AsSpan(0x7168, sizeof(uint)), 0x00ABCDEF);
         BinaryPrimitives.WriteUInt32LittleEndian(tpB.AsSpan(0x716C, sizeof(uint)), 0x0000C0DE);
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [CompositionAddressSpaceIds.DpAbInput] = workspace.Write("inputs/dp-ab.bin", CreatePattern(DpLength, 0x31)),
-            [CompositionAddressSpaceIds.TpAInput] = workspace.Write("inputs/tp-a.bin", CreatePattern(TpLength, 0x57)),
+            [CompositionAddressSpaceIds.TpAInput] = workspace.Write("inputs/tp-a.bin", tpA),
             [CompositionAddressSpaceIds.TpBInput] = workspace.Write("inputs/tp-b.bin", tpB),
         };
     }

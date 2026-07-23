@@ -35,6 +35,16 @@ public sealed partial class ShellTextResources
 
     public string BuildCompletedOpenFolderError { get; private init; } = string.Empty;
 
+    public string AbAFlashCodePromptTitle { get; private init; } = string.Empty;
+
+    public string AbAFlashCodePromptDetail { get; private init; } = string.Empty;
+
+    public string AbAFlashCodePromptYesLabel { get; private init; } = string.Empty;
+
+    public string AbAFlashCodePromptNoLabel { get; private init; } = string.Empty;
+
+    public string BuildCompletedAdditionalOutputLabel { get; private init; } = string.Empty;
+
     public string FileRevealFailedTitle { get; private init; } = string.Empty;
 
     public string FileRevealFailedDetail { get; private init; } = string.Empty;

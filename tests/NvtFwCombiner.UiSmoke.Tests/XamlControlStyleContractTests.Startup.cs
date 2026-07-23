@@ -22,6 +22,7 @@ public sealed partial class XamlControlStyleContractTests
             "ReportToastHost",
             "ReplaceSelectionModalHost",
             "CtrlRamFirmwareVersionModalHost",
+            "AbAFlashCodeDeliveryPromptModalHost",
             "WorkflowContextSetupModalHost",
             "FirmwareIcMismatchModalHost",
             "NavigationClearConfirmationModalHost",

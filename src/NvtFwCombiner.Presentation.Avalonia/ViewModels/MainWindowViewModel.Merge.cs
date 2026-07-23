@@ -5,10 +5,10 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     /// <summary>Builds the active Merge output to a user-selected path.</summary>
-    public Task BuildMergeAsync(string outputPath)
+    public Task BuildMergeAsync(string outputPath, string? aFlashCodeOutputPath = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
-        return RunMergeAsync(build: true, outputPath);
+        return RunMergeAsync(build: true, outputPath, aFlashCodeOutputPath);
     }
 
     private void RefreshMergeSlotRequirements()
@@ -154,12 +154,12 @@ public sealed partial class MainWindowViewModel
         });
     }
 
-    private Task RunMergeAsync(bool build, string? outputPath)
+    private Task RunMergeAsync(bool build, string? outputPath, string? aFlashCodeOutputPath = null)
     {
         return SelectedMergeMode switch
         {
             NormalMergeMode => RunStandardMergeAsync(build, outputPath),
-            AbCodeMergeMode => RunAbMergeAsync(build, outputPath),
+            AbCodeMergeMode => RunAbMergeAsync(build, outputPath, aFlashCodeOutputPath),
             GeneralMergeMode => RunGeneralMergeAsync(build, outputPath),
             _ => Task.CompletedTask,
         };
@@ -180,6 +180,29 @@ public sealed partial class MainWindowViewModel
                 slot => slot.FilePath!,
                 StringComparer.Ordinal);
         return await AbMergeWorkbenchCompositionService.ResolveAutomaticOutputFileNameAsync(
+                SelectedIc,
+                slotPaths,
+                cancellationToken,
+                GetSelectedAbMergeTopologyToken())
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>Returns the optional A FlashCode plan only for the currently compiled AB profile.</summary>
+    internal async ValueTask<WorkbenchAbAFlashCodeDeliveryPlan?> TryCreateAbAFlashCodeDeliveryPlanAsync(
+        CancellationToken cancellationToken)
+    {
+        if (!IsAbCodeMergeModeSelected)
+        {
+            return null;
+        }
+
+        IReadOnlyDictionary<string, string> slotPaths = MergeSlots
+            .Where(static slot => slot.HasFile)
+            .ToDictionary(
+                slot => _abMergeAddressSpaceBySlotId[slot.SlotId],
+                slot => slot.FilePath!,
+                StringComparer.Ordinal);
+        return await AbMergeWorkbenchCompositionService.TryCreateAFlashCodeDeliveryPlanAsync(
                 SelectedIc,
                 slotPaths,
                 cancellationToken,
@@ -242,7 +265,7 @@ public sealed partial class MainWindowViewModel
                 experienceId: WorkbenchWorkflowIds.GeneralMerge));
     }
 
-    private Task RunAbMergeAsync(bool build, string? outputPath)
+    private Task RunAbMergeAsync(bool build, string? outputPath, string? aFlashCodeOutputPath)
     {
         string icId = SelectedIc;
         IReadOnlyDictionary<string, string> slotPaths = MergeSlots
@@ -263,7 +286,8 @@ public sealed partial class MainWindowViewModel
                 progress,
                 cancellationToken,
                 outputPath,
-                GetSelectedAbMergeTopologyToken()),
+                GetSelectedAbMergeTopologyToken(),
+                aFlashCodeOutputPath),
             (action, errorMessage) => LoadRunErrorReport(
                 action,
                 profileId,
@@ -317,14 +341,19 @@ public sealed partial class MainWindowViewModel
         bool publishReport)
     {
         string action = build ? "Build" : "Preview";
-        string detail = result.Succeeded
+        bool deliveryComplete = result.Succeeded && result.IsDeliveryComplete;
+        string detail = !result.IsDeliveryComplete && !string.IsNullOrWhiteSpace(result.DeliveryFailureMessage)
+            ? result.DeliveryFailureMessage
+            : result.Succeeded
             ? $"{result.ProfileId} / {result.OutputSize} bytes / {Text.RunResultReportReadyLabel}"
             : report.Issues.Count == 0 ? result.Status : report.Issues[0].Detail;
         LastRunResult = new UiRunResultViewModel(
-            result.Succeeded ? $"{action} succeeded" : $"{action} blocked",
+            result.Succeeded
+                ? deliveryComplete ? $"{action} succeeded" : $"{action} partially delivered"
+                : $"{action} blocked",
             detail,
             result.Succeeded ? result.CommittedOutputId ?? result.OutputFileName : "No output",
-            result.Succeeded);
+            deliveryComplete);
         OnPropertyChanged(nameof(LastRunResult));
         _ = TryShowBuildCompleted(result, build);
 
@@ -338,7 +367,7 @@ public sealed partial class MainWindowViewModel
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportGeneratedToast(action));
         NotifyReportChanged();
-        if (build && (!result.Succeeded || string.IsNullOrWhiteSpace(result.CommittedOutputId)))
+        if (build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)))
         {
             ShowReport();
         }

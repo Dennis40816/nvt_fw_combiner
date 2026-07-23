@@ -17,6 +17,30 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Click=\"RevealOutputFileButton_OnClick\"", modal, StringComparison.Ordinal);
     }
 
+    /// <summary>An eligible AB Build asks for the optional A delivery before either output is selected or committed.</summary>
+    [Fact]
+    public void AbBuildPromptsForAFlashCodeBeforeOutputSelection()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+        string buildCodeBehind = ReadPresentationFile("MainWindow.Build.cs");
+        string prompt = ReadPresentationFile("Views/AbAFlashCodeDeliveryPromptModal.axaml");
+        string modal = ReadPresentationFile("Views/BuildCompletedModal.axaml");
+
+        Assert.Contains("<views:AbAFlashCodeDeliveryPromptModal", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsAbAFlashCodeDeliveryPromptOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding AcceptAbAFlashCodeDeliveryPromptCommand}\"", prompt, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding DeclineAbAFlashCodeDeliveryPromptCommand}\"", prompt, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"danger\"", prompt, StringComparison.Ordinal);
+        Assert.Contains("PromptForAbAFlashCodeDeliveryAsync", buildCodeBehind, StringComparison.Ordinal);
+        Assert.Contains("PickMergedFirmwareOutputPathAsync", buildCodeBehind, StringComparison.Ordinal);
+        Assert.Contains("PickAbAFlashCodeOutputPathAsync", buildCodeBehind, StringComparison.Ordinal);
+        Assert.True(
+            buildCodeBehind.IndexOf("PromptForAbAFlashCodeDeliveryAsync", StringComparison.Ordinal) <
+            buildCodeBehind.IndexOf("PickMergedFirmwareOutputPathAsync", StringComparison.Ordinal));
+        Assert.Contains("IsVisible=\"{Binding HasBuildCompletedAdditionalOutput}\"", modal, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExportAbAFlashCode", modal, StringComparison.Ordinal);
+    }
+
     /// <summary>Composition Build remains fixed at the bottom of the right-side action rail.</summary>
     [Fact]
     public void CompositionBuildUsesFixedBottomActionRail()

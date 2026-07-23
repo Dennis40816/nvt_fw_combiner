@@ -206,6 +206,13 @@ public sealed partial class ShellTextResources
             BuildCompletedOpenFolderError = Pick(
                 "Explorer could not select the output BIN. It may have moved or been deleted.",
                 "檔案總管無法選取輸出 BIN；檔案可能已被移動或刪除。"),
+            AbAFlashCodePromptTitle = Pick("Also export A FlashCode?", "是否也輸出 A FlashCode？"),
+            AbAFlashCodePromptDetail = Pick(
+                "Choose both output names before Build. The A FlashCode is copied from the declared A range of the same completed AB image.",
+                "Build 前會先選擇兩個輸出名稱；A FlashCode 會從同一次完成的 AB image 之已宣告 A 範圍複製。"),
+            AbAFlashCodePromptYesLabel = Pick("Yes, export A Code", "是，也輸出 A Code"),
+            AbAFlashCodePromptNoLabel = Pick("No, AB only", "否，只輸出 AB"),
+            BuildCompletedAdditionalOutputLabel = Pick("A FlashCode", "A FlashCode"),
             FileRevealFailedTitle = Pick("File unavailable", "檔案無法開啟"),
             FileRevealFailedDetail = Pick(
                 "Explorer could not select this BIN. It may have moved or been deleted.",

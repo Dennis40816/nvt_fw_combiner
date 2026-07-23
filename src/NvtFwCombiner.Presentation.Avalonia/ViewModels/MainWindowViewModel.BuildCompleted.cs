@@ -4,6 +4,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private WorkbenchDeliveryArtifact? _buildCompletedAdditionalOutput;
+
     /// <summary>True while the successful Build confirmation is visible.</summary>
     public bool IsBuildCompletedModalOpen { get; private set; }
 
@@ -26,6 +28,16 @@ public sealed partial class MainWindowViewModel
     public bool HasBuildCompletedOpenFolderError =>
         !string.IsNullOrWhiteSpace(BuildCompletedOpenFolderError);
 
+    /// <summary>True when the completed Build delivered the optional A FlashCode alongside the primary AB BIN.</summary>
+    public bool HasBuildCompletedAdditionalOutput => _buildCompletedAdditionalOutput is not null;
+
+    /// <summary>Gets the additional committed output path shown beside the primary AB BIN.</summary>
+    public string BuildCompletedAdditionalOutputPath => _buildCompletedAdditionalOutput?.OutputPath ?? string.Empty;
+
+    /// <summary>Gets the additional committed output file name shown beside the primary AB BIN.</summary>
+    public string BuildCompletedAdditionalOutputDisplayName =>
+        _buildCompletedAdditionalOutput?.OutputFileName ?? string.Empty;
+
     internal bool TryShowBuildCompleted(WorkbenchRunResult result, bool build)
     {
         if (!build || !result.Succeeded || string.IsNullOrWhiteSpace(result.CommittedOutputId))
@@ -34,8 +46,15 @@ public sealed partial class MainWindowViewModel
         }
 
         LatestCommittedOutputPath = result.CommittedOutputId;
+        if (!result.IsDeliveryComplete)
+        {
+            NotifyBuildCompletedChanged();
+            return false;
+        }
+
         BuildCompletedOutputPath = LatestCommittedOutputPath;
         BuildCompletedOpenFolderError = string.Empty;
+        _buildCompletedAdditionalOutput = result.DeliveryArtifacts.SingleOrDefault();
         IsBuildCompletedModalOpen = true;
         NotifyBuildCompletedChanged();
         return true;
@@ -52,6 +71,7 @@ public sealed partial class MainWindowViewModel
         IsBuildCompletedModalOpen = false;
         BuildCompletedOutputPath = string.Empty;
         BuildCompletedOpenFolderError = string.Empty;
+        _buildCompletedAdditionalOutput = null;
         NotifyBuildCompletedChanged();
     }
 
@@ -109,5 +129,8 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsLatestOutputActionVisible));
         OnPropertyChanged(nameof(BuildCompletedOpenFolderError));
         OnPropertyChanged(nameof(HasBuildCompletedOpenFolderError));
+        OnPropertyChanged(nameof(HasBuildCompletedAdditionalOutput));
+        OnPropertyChanged(nameof(BuildCompletedAdditionalOutputPath));
+        OnPropertyChanged(nameof(BuildCompletedAdditionalOutputDisplayName));
     }
 }
