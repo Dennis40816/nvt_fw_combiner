@@ -4,13 +4,15 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
-    /// <summary>Preserves an existing Replace output unless overwrite is explicit.</summary>
+    /// <summary>Atomically replaces an unrelated existing Replace output.</summary>
     [Fact]
-    public async Task DpReplaceBuildRejectsExistingOutputWithoutOverwrite()
+    public async Task DpReplaceBuildReplacesExistingOutputWithoutOverwrite()
     {
         using var workspace = TempWorkspace.Create();
         string reference = workspace.Write("reference.bin", new byte[0x40000]);
-        string dp = workspace.Write("dp.bin", new byte[0x40000]);
+        byte[] dpBytes = new byte[0x40000];
+        dpBytes[0] = 0x3C;
+        string dp = workspace.Write("dp.bin", dpBytes);
         byte[] existingOutput = [0xA5, 0x5A];
         string output = workspace.Write("out.bin", existingOutput);
 
@@ -29,9 +31,11 @@ public sealed partial class ReplaceCliCommandTests
             output,
         ]);
 
-        Assert.Equal(70, result.ExitCode);
-        Assert.Contains("output file already exists", result.Error, StringComparison.Ordinal);
-        Assert.Equal(existingOutput, await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(result.Error);
+        byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        Assert.Equal(0x40000, outputBytes.Length);
+        Assert.Equal(0x3C, outputBytes[0]);
     }
 
     /// <summary>Rejects Replace build outputs that would overwrite an input BIN.</summary>

@@ -7,7 +7,6 @@ internal static partial class ReplaceCliCommandHandler
     private const int Success = 0;
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
-    private const int SoftwareError = 70;
 
     internal static async Task<int> RunAsync(
         string command,

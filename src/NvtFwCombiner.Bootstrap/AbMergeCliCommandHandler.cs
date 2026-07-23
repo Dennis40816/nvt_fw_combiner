@@ -101,7 +101,6 @@ internal static class AbMergeCliCommandHandler
                 build,
                 build && hasExplicitOutput ? outputTarget.FullPath : null,
                 !build && hasExplicitOutput ? outputTarget.FileName : null,
-                options.Flags.Contains("--overwrite"),
                 cancellationToken)
             .ConfigureAwait(false);
         CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(

@@ -24,7 +24,6 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         IExternalProcessor? externalProcessor,
         IcNumberSelection? icNumberSelection,
-        bool overwrite,
         CancellationToken cancellationToken,
         IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
         CompositionRunProgressFeed? progress = null,
@@ -69,8 +68,11 @@ public static partial class WorkbenchCompositionService
         IArtifactReader reader = virtualArtifacts is { Count: > 0 }
             ? new OverlayArtifactReader(fileReader, virtualArtifacts)
             : fileReader ?? throw new InvalidOperationException("A composition requires at least one physical or virtual input artifact.");
+        // Composition outputs replace an unrelated existing target atomically.  The
+        // protected-path guard above remains the hard boundary: an input alias is
+        // never an eligible output target.
         AtomicFileCompositionOutputWriter? writer = build
-            ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite)
+            ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
             : null;
         CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
         CompositionRunRequest request = new(

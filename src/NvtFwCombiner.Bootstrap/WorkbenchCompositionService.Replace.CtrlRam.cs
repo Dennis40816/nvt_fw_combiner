@@ -127,7 +127,6 @@ public static partial class WorkbenchCompositionService
                     outputPath,
                     externalProcessor,
                     icNumberSelection: ToIcNumberSelection(context.CommandPlan.Selector.Token),
-                    overwrite: true,
                     cancellationToken,
                     virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)
                     {

@@ -53,7 +53,6 @@ public static class AbMergeWorkbenchCompositionService
             build,
             outputPath,
             previewOutputFileName: null,
-            overwrite: false,
             progress: null,
             cancellationToken);
     }
@@ -65,7 +64,6 @@ public static class AbMergeWorkbenchCompositionService
         bool build,
         string? outputPath,
         string? previewOutputFileName,
-        bool overwrite,
         CancellationToken cancellationToken)
     {
         return RunAbMergeCoreAsync(
@@ -74,7 +72,6 @@ public static class AbMergeWorkbenchCompositionService
             build,
             outputPath,
             build ? null : previewOutputFileName,
-            overwrite,
             progress: null,
             cancellationToken);
     }
@@ -95,7 +92,6 @@ public static class AbMergeWorkbenchCompositionService
             build,
             outputPath,
             previewOutputFileName: null,
-            overwrite: false,
             progress,
             cancellationToken);
     }
@@ -106,7 +102,6 @@ public static class AbMergeWorkbenchCompositionService
         bool build,
         string? outputPath,
         string? previewOutputFileName,
-        bool overwrite,
         CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken)
     {
@@ -148,7 +143,6 @@ public static class AbMergeWorkbenchCompositionService
             outputPath,
             externalProcessor: null,
             icNumberSelection: null,
-            overwrite,
             cancellationToken,
             progress: progress,
             previewOutputFileName: previewOutputFileName).ConfigureAwait(false);
