@@ -18,7 +18,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Pointer, touch, Space, and Enter", roadmap, StringComparison.Ordinal);
         Assert.Contains("Reduced-motion mode", roadmap, StringComparison.Ordinal);
         Assert.Contains("`v0.9.12` | CtrlRAM routing and interaction stabilization", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.15` | AB delivery readiness and review automation", tags, StringComparison.Ordinal);
+        Assert.Contains("`v0.9.15` | AB function open, delivery readiness, and review automation", tags, StringComparison.Ordinal);
         Assert.Contains("`v0.9.16` | NT51950 AB candidate closure", tags, StringComparison.Ordinal);
         Assert.Contains("`v0.9.17` | NT51951 AB candidate closure", tags, StringComparison.Ordinal);
         Assert.Contains("peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`", tags, StringComparison.Ordinal);
@@ -28,7 +28,7 @@ public sealed partial class RepositoryBoundaryTests
         int progressionEnd = tags.IndexOf("## Rules", StringComparison.Ordinal);
         string progression = tags[progressionStart..progressionEnd];
         Assert.Contains("v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance", progression, StringComparison.Ordinal);
-        Assert.Contains("v0.9.15         AB delivery readiness, input/output usability, and review automation", progression, StringComparison.Ordinal);
+        Assert.Contains("v0.9.15         AB function open, input/output usability, and review automation", progression, StringComparison.Ordinal);
         Assert.Contains("v0.9.16         NT51950 AB candidate closure", progression, StringComparison.Ordinal);
         Assert.Contains("v0.9.17         NT51951 AB candidate closure", progression, StringComparison.Ordinal);
         Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
@@ -39,6 +39,26 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("single-topology golden is evidence for that topology only", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("No NT51951 range, split point", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("later owner-selected Presentation milestone", viewportDecision, StringComparison.Ordinal);
+        Assert.Contains("## Post-v0.9.17 owner decision queue", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| Error experience unification |", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| IC family and rule authoring UI |", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| Customized plan reuse and import |", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| Report detail, layout, and functional review |", deliveryRoadmap, StringComparison.Ordinal);
+    }
+
+    /// <summary>Separates reviewed AB function availability from direct-golden and support-certification debt.</summary>
+    [Fact]
+    public void AbFunctionAvailabilityDoesNotHideGoldenDebt()
+    {
+        string matrix = ReadText("docs/architecture/supported-ic-matrix.md");
+
+        Assert.Contains("## AB function availability, direct-golden debt, and progress", matrix, StringComparison.Ordinal);
+        Assert.Contains("A missing direct golden is an evidence debt, not a", matrix, StringComparison.Ordinal);
+        Assert.Contains("**28.6%**; **5 missing**", matrix, StringComparison.Ordinal);
+        Assert.Contains("NT51950 two-IC, NT51951 one-IC, and NT51951 two-IC", matrix, StringComparison.Ordinal);
+        Assert.Contains("**60.0%**", matrix, StringComparison.Ordinal);
+        Assert.Contains("**80.0%**", matrix, StringComparison.Ordinal);
+        Assert.Contains("**0.0%**; function availability must not be presented as certification.", matrix, StringComparison.Ordinal);
     }
 
     /// <summary>Locks AB execution out of v0.9.13 and assigns typed re-admission to the separately gated v0.9.14 track.</summary>
