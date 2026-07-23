@@ -260,7 +260,7 @@ profile flag; a V2 runtime binding supplies its original plain filename and call
 assertion, which Application matches to the compiled slot and accepted extension before reading bytes.
 The original filename remains in reports and preview-token identity. Runtime templates are normally
 token-free. The sole exception is the exact AB Code v1 template
-`NT{ic}_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin`, which Application renders from accepted execution
+`NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin`, which Application renders from accepted execution
 snapshots under ADR 0034; no other token template is executable. A static template supplies the
 default output filename; the AB renderer supplies its automatic candidate. `allowOverride: false`
 requires that automatic result, while `allowOverride: true` accepts another Windows-safe caller

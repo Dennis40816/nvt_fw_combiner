@@ -35,11 +35,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("v0.9.18         family/evidence model unification", progression, StringComparison.Ordinal);
         Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
 
-        Assert.Contains("| `0.9.16` | NT51950 AB Code candidate closure", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `0.9.17` | NT51951 AB Code candidate closure", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `0.9.15` | Open NT51919/NT51929/NT51932 perfect-family AB plus NT51950", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `0.9.16` | NT51950 AB golden-certification closure", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `0.9.17` | NT51951 AB golden-certification closure", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("peeled commit\n  `9b15d8757ccb44167c471ca4e602036066bcdea9`", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("single-topology golden is evidence for that topology only", deliveryRoadmap, StringComparison.Ordinal);
-        Assert.Contains("No NT51951 range, split point", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("owner-supplied single golden covers only `single`", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("selector-free plan remains one declared byte plan", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("## Family evidence-reuse policy", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("**Perfect family:** treat members as the same for a *like-for-like workflow*", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("**LDC family:** for LDC-related families such as NT51927/NT51928", deliveryRoadmap, StringComparison.Ordinal);
@@ -107,7 +108,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("equal or `Unknown` values never collapse", releaseRoadmap, StringComparison.Ordinal);
         Assert.Contains("AB uses one DP_AB card with distinct DP1/DP2 subrows", releaseRoadmap, StringComparison.Ordinal);
         Assert.Contains("The first `v0.9.14` AB pilot", specification, StringComparison.Ordinal);
-        Assert.Contains("output-naming migration remains a separate compatibility decision", specification, StringComparison.Ordinal);
+        Assert.Contains("AB follows ADR 0036's `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` form", specification, StringComparison.Ordinal);
         Assert.Contains("Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.13`", specification, StringComparison.Ordinal);
         Assert.Contains("Cross-workflow Merge/Replace header, Evidence, and Memory coverage unification", releaseRoadmap, StringComparison.Ordinal);
         Assert.Contains("slot cards show one highest-severity icon", releaseRoadmap, StringComparison.Ordinal);

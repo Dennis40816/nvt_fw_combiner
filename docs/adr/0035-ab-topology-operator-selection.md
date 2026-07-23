@@ -1,93 +1,101 @@
-# ADR 0035: Scope AB topology selection to the NT51950 candidate
+# ADR 0035: Scope AB slot-layout selection to NT51950
 
-- Status: Accepted product policy for `v0.9.15` on 2026-07-23; runtime admission remains R3-gated
-- Date: 2026-07-23
+- Status: Accepted product and firmware-owner policy for `v0.9.15` on 2026-07-23
 - Owners: Product owner, architecture owner, firmware owner
 - Extends: ADR 0032
+- Amended by: ADR 0036
 
 ## Context
 
-An IC-number selector is currently a Replace-only, profile-owned context.  It
-may select an approved postbuild branch and is reconciled with verified base
-firmware context.  Merge workflows have no such selector.  Nonetheless, a
-Merge TP inspection can observe a FWConfig cascade count, so a shared
-inspection path must not show a mismatch modal for a control the operator
-cannot see or use.
+Merge normally has no IC-number authoring control.  NT51950 AB is the one
+owner-confirmed exception: `single` and `cascade` select two declared DP
+container/CMD layouts.  They do not make TP firmware metadata an authority and
+they do not imply that TP payload bytes need per-chip splitting.  NT51951 has
+one byte plan for its observed single/cascade contexts and therefore has no
+selector.
 
-The owner has separately identified NT51950 AB Code as the only candidate
-whose physical one-IC versus two-IC topology changes its executable AB plan.
-This is not an implication that the current NT51950 candidate is executable:
-its dual-IC byte evidence and admission remain incomplete.  NT51951's stated
-one- and two-IC AB geometries share its same 1 MiB output/container decision,
-so IC number is not currently an execution selector for that candidate.
+`IC Num` is retained as the operator-facing label because it is familiar in
+the product.  Its two values are closed symbolic values, not a numeric range:
+the UI displays `1 IC` and `Cascade`, while the typed request and CLI use
+`single` and `cascade`.
 
 ## Decision
 
-### Existing workflow behaviour
+### Selector and observation policy
 
-All currently registered Standard Merge profiles expose no IC-number control.
-General Merge and the already admitted NT51919/NT51929/NT51932 AB pilot also
-expose no IC-number control.  Firmware inspection may display observed version
-or FWConfig facts, but a page without a visible IC-number control may not open
-a number-mismatch modal, change a selected number, or select a build plan from
-TP metadata.
+Only NT51950 AB Merge declares the selector.  Standard Merge, General Merge,
+NT51919/NT51929/NT51932 AB, and NT51951 AB expose none.  A hidden selector
+never produces an IC-number mismatch prompt and TP metadata never chooses a
+plan.
 
-Replace retains its existing explicit IC-number behaviour.  This preserves the
-only currently admitted flow where that operator choice is part of the profile
-and request contract.
+When the visible NT51950 selector and observed TP FWConfig classification
+differ, Presentation opens a confirmation dialog offering to change the
+selection to the observed `1 IC` or `Cascade` value.  The user must confirm
+before the typed selection changes; cancellation retains the chosen value. The
+dialog neither invents a numeric count nor silently rewrites a request.
 
-### NT51950 AB candidate
+The selected value is bound into the profile compile request, Preview token,
+Build request, report provenance, and CLI.  It selects one already-declared
+layout; it is never inferred from a filename, DP/TP payload length, CMI/DP
+version, PID, hash, or metadata value.
 
-Only a later admitted NT51950 AB Merge profile may request a topology choice.
-It will offer exactly `single` and `two` as an explicit operator selection and
-will present an inline warning equivalent to:
+### Common TP contract
 
-> Select the physical IC topology. TP FWConfig metadata is reported for review
-> only; it never changes this selection or chooses an AB build plan.
+For NT51950 and NT51951 AB, TPA and TPB may be any length that covers the
+half-open source prefix `[0x00000,0x37000)`.  Metadata/NVT discovery uses that
+prefix even when the file has a longer tail.  The only copied code range is
+`[0xA000,0x37000)`.  A source ending before `0x37000` fails before output;
+longer tail bytes are report evidence but cannot affect metadata, copied bytes,
+or output naming.
 
-If a later visible selector is paired with an observed mismatch, the UI may
-ask the operator to confirm a change.  It must never apply that change
-automatically; a hidden selector may never produce that modal.
+TPB's declared little-endian four-byte DIFF field is input-relative
+`[0xA120,0xA124)`.  The shared engine mutates only its cloned TPB work buffer.
+The postbuild stage then recalculates TPB TP-header/CRC fields using the
+approved TP Flash Header definition and a host-created output staging copy.
+No external processor may modify DP bytes.
 
-The selected topology must be bound into the typed Composition request,
-Preview token, and report provenance.  It selects an already profile-declared
-NT51950 AB plan; it must never be inferred from a TP/DP filename, presentation
-string, source length, FWConfig count, or an observed DP version.
+### NT51950 layouts
 
-This is deliberately a new **AB topology-selection** capability, not a broad
-exception to the current `IcNumberInputMode` rule that prohibits Merge profiles
-from declaring the Replace IC-number selector.  Its schema/compiler/UI/CLI
-projection must be profile-driven and must reject a selection for every other
-Merge profile by default.
+| Selection | DP input/output | DP CMD/CMI base within each A/B slot | TPA target | TPB target | TPB DIFF addend |
+| --- | --- | --- | --- | --- | --- |
+| `single` | `[0x00000,0x80000)` | `0x3B000`; CMI `+0x16..+0x18` | `[0x0A000,0x37000)` | `[0x4A000,0x77000)` | `0x40000` |
+| `cascade` | `[0x00000,0x100000)` | `0x05000`; CMI `+0x16..+0x18` | `[0x0A000,0x37000)` | `[0x4A000,0x77000)` | `0x40000` |
 
-### Admission and evidence gates
+The cascade plan copies the complete 1 MiB DP input first.  Its tail
+`[0x80000,0x100000)` remains DP bytes; it receives no invented second TP
+overlay.  The same TP slots already contain the cascade-required TP content.
+The profile owns the exact TPB header/CRC write ranges, derived from the TP
+Flash Header catalog, and they must remain inside the TPB destination range.
 
-No visible NT51950 selector, CLI option, executable profile registration, or
-support-stage change occurs under this decision alone.  Before that slice may
-be implemented, the following are required:
+### NT51951 selector-free layout
 
-1. architecture review of the separate Merge topology-selection contract;
-2. firmware-owner approval of the two explicit NT51950 AB plans, including
-   512 KiB single-IC and 1 MiB two-IC output capacities expressed as half-open
-   `[0, 0x80000)` and `[0, 0x100000)` ranges;
-3. direct one- and two-IC byte-level golden evidence, including the distinct
-   DP command origins and all TP/DP-header/DP-command write ranges; and
-4. profile/compiler/request/Preview/report/UI/CLI tests proving that metadata
-   cannot auto-select or mutate topology, plus the normal R3 human-review and
-   release gates.
+NT51951's single/cascade contexts use one selector-free plan:
 
-The existing 256 KiB TP maximum is not silently converted into a new exact
-input-length contract by this ADR.  The currently observed `0x37000` candidate
-input and the requested `0x40000` input expectation must be reconciled against
-direct fixtures before profile admission.
+| DP input/output | A slot | B slot | TPA target | TPB target | DP CMD/CMI base | TPB DIFF addend |
+| --- | --- | --- | --- | --- | --- | --- |
+| `[0x00000,0x100000)` | `[0x00000,0x80000)` | `[0x80000,0x100000)` | `[0x0A000,0x37000)` | `[0x8A000,0xB7000)` | bank-relative `0x05000`; CMI `+0x16..+0x18` | `0x80000` |
 
-## Consequences
+The TPB postbuild stage may write only the TPB header/CRC ranges declared by
+the profile and TP Flash Header catalog.  Observed TP FWConfig count remains
+informational and cannot prompt, select, or mutate a plan.
 
-- Standard Merge remains simpler and cannot receive topology branches through
-  an incidental firmware inspection result.
-- A visible selector always corresponds to a real, accepted request authority;
-  there is no no-op or speculative NT51950 UI control.
-- NT51950's future topology decision is reviewable in reports and Preview
-  tokens without conflating it with Replace's existing IC-number policy.
-- NT51951 stays selector-free unless later evidence proves an IC-number choice
-  changes its emitted bytes or processor plan.
+### Availability and certification
+
+NT51950 `single`/`cascade` and selector-free NT51951 are function-open in
+`0.9.15` once their declared profile/runtime/UI/CLI paths pass review.  Their
+status is `Available — Golden certification pending`; it is neither
+`Supported` nor `Certified`.  A missing direct golden does not stop Preview or
+Build, but it remains visible in the report and Support Matrix and blocks
+certification.
+
+## Verification
+
+- Profile/compiler tests reject a selector for all other Merge routes.
+- UI/CLI tests accept only `single`/`cascade`, show `1 IC`/`Cascade`, and prove
+  that metadata cannot silently change a selection.
+- Tests cover short TP rejection, arbitrary longer TP inputs, fixed-prefix NVT
+  parsing, ignored-tail independence, the complete DP copy, each slot target,
+  TPB relocation, TP-only postbuild write ranges, source immutability, and
+  atomic failure.
+- Reports/Support Matrix distinguish function availability, direct golden,
+  certification debt, and firmware-owner review without exposing private BINs.
