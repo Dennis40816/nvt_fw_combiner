@@ -173,7 +173,7 @@ public sealed class AbMergeCliCommandTests
 
     private static byte[] CreateTp(byte firmwareVersion, byte firmwareSubVersion)
     {
-        var image = new byte[0x40000];
+        byte[] image = new byte[0x40000];
         image[FirmwareConfigLayout.FirmwareVersionOffset] = firmwareVersion;
         image[FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~firmwareVersion);
         image[FirmwareConfigLayout.FirmwareSubVersionOffset] = firmwareSubVersion;
