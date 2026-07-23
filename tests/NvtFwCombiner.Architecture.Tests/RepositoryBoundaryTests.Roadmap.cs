@@ -83,7 +83,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("**0.0%**; function availability must not be presented as certification.", matrix, StringComparison.Ordinal);
     }
 
-    /// <summary>Locks AB execution out of v0.9.13 and assigns typed re-admission to the separately gated v0.9.14 track.</summary>
+    /// <summary>Locks the historical v0.9.13 AB gate and the current function-open but certification-neutral re-admission state.</summary>
     [Fact]
     public void V0914OwnsAbCodeProductionReadmissionWithoutV0913Exposure()
     {
@@ -109,7 +109,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("AB uses one DP_AB card with distinct DP1/DP2 subrows", releaseRoadmap, StringComparison.Ordinal);
         Assert.Contains("The first `v0.9.14` AB pilot", specification, StringComparison.Ordinal);
         Assert.Contains("AB follows ADR 0036's `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` form", specification, StringComparison.Ordinal);
-        Assert.Contains("Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.13`", specification, StringComparison.Ordinal);
+        Assert.Contains("AB Code architecture was re-admitted under ADR 0032 in `v0.9.14`", specification, StringComparison.Ordinal);
+        Assert.Contains("The `0.9.15` candidate exposes only the declared NT51919/NT51929/NT51932", specification, StringComparison.Ordinal);
+        Assert.Contains("still gate support certification and release", specification, StringComparison.Ordinal);
         Assert.Contains("Cross-workflow Merge/Replace header, Evidence, and Memory coverage unification", releaseRoadmap, StringComparison.Ordinal);
         Assert.Contains("slot cards show one highest-severity icon", releaseRoadmap, StringComparison.Ordinal);
     }
