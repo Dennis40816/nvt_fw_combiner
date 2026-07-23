@@ -260,6 +260,29 @@ internal static class FirmwareInspectionRequestFactory
 
 internal static class FirmwareInspectionProjection
 {
+    internal static bool IsCurrent(
+        FirmwareInspectionBatchRequest request,
+        FirmwareInspectionBatchResult result,
+        long currentGeneration,
+        string selectedIc,
+        string selectedNumber,
+        string selectedMergeMode,
+        string selectedReplaceMode,
+        Func<string, FirmwareSlotViewModel?> findSlot,
+        string? currentTpPath)
+    {
+        return request.Generation == currentGeneration &&
+            result.IsFileIdentityStable &&
+            string.Equals(request.IcId, selectedIc, StringComparison.Ordinal) &&
+            string.Equals(request.Number, selectedNumber, StringComparison.Ordinal) &&
+            string.Equals(request.MergeMode, selectedMergeMode, StringComparison.Ordinal) &&
+            string.Equals(request.ReplaceMode, selectedReplaceMode, StringComparison.Ordinal) &&
+            request.Items.All(item =>
+                findSlot(item.SlotId) is { } slot &&
+                string.Equals(slot.FilePath, item.Path, StringComparison.Ordinal) &&
+                (item.TpPath is null || string.Equals(currentTpPath, item.TpPath, StringComparison.Ordinal)));
+    }
+
     internal static WorkbenchCtrlRamInspectionDisplay ResolveCtrlRamDisplay(
         WorkbenchFirmwareInspection inspection,
         string icId,
@@ -283,6 +306,35 @@ internal static class FirmwareInspectionProjection
         slot.SetInputInspection(
             inspection.PrimaryIssue.Severity,
             text.GetAbInputInspectionStatus(inspection));
+    }
+
+    internal static bool ApplyStaleAbInputInspection(
+        IEnumerable<FirmwareSlotViewModel> slots,
+        FirmwareInspectionBatchRequest request,
+        FirmwareInspectionBatchResult result,
+        ShellTextResources text)
+    {
+        bool applied = false;
+        foreach (FirmwareInspectionItemRequest item in request.Items.Where(static item =>
+                     item.AbMergeAddressSpaceId is not null))
+        {
+            FirmwareSlotViewModel? slot = slots.FirstOrDefault(candidate =>
+                string.Equals(candidate.SlotId, item.SlotId, StringComparison.Ordinal));
+            if (!result.UnstableFilePaths.Contains(item.Path) ||
+                slot is null ||
+                !string.Equals(slot.FilePath, item.Path, StringComparison.Ordinal) ||
+                !slot.IsInputInspectionPending)
+            {
+                continue;
+            }
+
+            slot.SetInputInspection(
+                WorkbenchInputInspectionSeverity.Blocking,
+                text.FirmwareInspectionStaleFileStatus);
+            applied = true;
+        }
+
+        return applied;
     }
 
     internal static IReadOnlyList<FirmwareSlotFactViewModel> CreateAbFirmwareFacts(

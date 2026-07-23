@@ -104,14 +104,22 @@ public sealed partial class MainWindowViewModel
                 () => _firmwareInspectionSession.ReadBatch(request),
                 cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            if (IsCurrentFirmwareInspection(request, result))
+            if (FirmwareInspectionProjection.IsCurrent(
+                    request, result, _firmwareInspectionSession.CurrentGeneration,
+                    SelectedIc, SelectedNumber, SelectedMergeMode, SelectedReplaceMode,
+                    FindSlot, _mergeTpSlot.FilePath))
             {
                 ApplyFirmwareInspectionBatch(request, result);
             }
             else if (generation == _firmwareInspectionSession.CurrentGeneration &&
-                !result.IsFileIdentityStable)
+                !result.IsFileIdentityStable &&
+                FirmwareInspectionProjection.ApplyStaleAbInputInspection(
+                    MergeSlots,
+                    request,
+                    result,
+                    Text))
             {
-                ApplyStaleAbFirmwareInspectionState(request, result);
+                RefreshCommandState();
             }
         }
         finally
@@ -122,22 +130,6 @@ public sealed partial class MainWindowViewModel
                 SetFirmwareInspectionLoading(false);
             }
         }
-    }
-
-    private bool IsCurrentFirmwareInspection(
-        FirmwareInspectionBatchRequest request,
-        FirmwareInspectionBatchResult result)
-    {
-        return request.Generation == _firmwareInspectionSession.CurrentGeneration &&
-            result.IsFileIdentityStable &&
-            string.Equals(request.IcId, SelectedIc, StringComparison.Ordinal) &&
-            string.Equals(request.Number, SelectedNumber, StringComparison.Ordinal) &&
-            string.Equals(request.MergeMode, SelectedMergeMode, StringComparison.Ordinal) &&
-            string.Equals(request.ReplaceMode, SelectedReplaceMode, StringComparison.Ordinal) &&
-            request.Items.All(item =>
-                FindSlot(item.SlotId) is { } slot &&
-                string.Equals(slot.FilePath, item.Path, StringComparison.Ordinal) &&
-                (item.TpPath is null || string.Equals(_mergeTpSlot.FilePath, item.TpPath, StringComparison.Ordinal)));
     }
 
     private void ApplyFirmwareInspectionBatch(
@@ -205,29 +197,6 @@ public sealed partial class MainWindowViewModel
                 string.Equals(SelectedReplaceMode, DpReplaceMode, StringComparison.Ordinal)))
         {
             RefreshReplaceMemoryMapState();
-        }
-
-        RefreshCommandState();
-    }
-
-    private void ApplyStaleAbFirmwareInspectionState(
-        FirmwareInspectionBatchRequest request,
-        FirmwareInspectionBatchResult result)
-    {
-        foreach (FirmwareInspectionItemRequest item in request.Items.Where(static item =>
-                     item.AbMergeAddressSpaceId is not null))
-        {
-            if (!result.UnstableFilePaths.Contains(item.Path) ||
-                FindSlot(item.SlotId) is not { } slot ||
-                !string.Equals(slot.FilePath, item.Path, StringComparison.Ordinal) ||
-                !slot.IsInputInspectionPending)
-            {
-                continue;
-            }
-
-            slot.SetInputInspection(
-                WorkbenchInputInspectionSeverity.Blocking,
-                Text.FirmwareInspectionStaleFileStatus);
         }
 
         RefreshCommandState();
