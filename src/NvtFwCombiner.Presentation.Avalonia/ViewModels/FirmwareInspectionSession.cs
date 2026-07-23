@@ -242,6 +242,7 @@ internal static class FirmwareInspectionRequestFactory
         string? abMergeAddressSpaceId = context.IsAbMerge
             ? context.AbAddressSpaceBySlotId.GetValueOrDefault(slot.SlotId)
             : null;
+        bool applyWorkflowContext = applyVerifiedContext && !context.IsAbMerge;
         return new FirmwareInspectionItemRequest(
             slot.SlotId,
             slot.SlotKind,
@@ -250,7 +251,7 @@ internal static class FirmwareInspectionRequestFactory
             ctrlRamRequest,
             publishFacts,
             promptForMismatch,
-            applyVerifiedContext,
+            applyWorkflowContext,
             abMergeAddressSpaceId);
     }
 }

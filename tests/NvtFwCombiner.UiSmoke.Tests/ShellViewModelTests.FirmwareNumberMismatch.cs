@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -93,6 +94,37 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
         Assert.Equal(basePath, viewModel.ReplaceBaseSlot.FilePath);
+    }
+
+    /// <summary>AB input metadata may describe its own FWConfig count but cannot alter hidden Number context.</summary>
+    [Fact]
+    public async Task AbMergeTpInspectionDoesNotPromptForFirmwareNumberContext()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-number-context");
+        string tpPath = workspace.Write("tp-a.bin", [0x01]);
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        [
+            .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                input.InspectionId,
+                new WorkbenchFirmwareInspection(
+                    null,
+                    null,
+                    null,
+                    null,
+                    new WorkbenchFirmwareContextSuggestion("NT51929", "cascade", 2, "1.4.1", 0x5192),
+                    null))),
+        ]);
+        viewModel.SelectedIc = "NT51929";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpAInput,
+            tpPath,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
     }
 
     /// <summary>A newly selected firmware replaces every visible field and action target of an open Number prompt.</summary>
