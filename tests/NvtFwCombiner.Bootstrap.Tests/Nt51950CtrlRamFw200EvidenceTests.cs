@@ -26,6 +26,34 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
     private const int HeaderCopyStart = 0x2D30C;
     private const int HeaderCopyLength = 0x200;
 
+    /// <summary>The full-flash owner golden supplies its own ChipNumber for NT51950 CMI naming.</summary>
+    [Fact]
+    public void FullFlashInspectionUsesEmbeddedChipNumberForOutputNaming()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+
+        Assert.Equal(Capacity, evidence.Expected.Bytes.Length);
+        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51950",
+            evidence.Expected.Path,
+            tpPath: null,
+            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.SingleChip));
+
+        WorkbenchFirmwareConfigMetadata firmwareConfig = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
+            inspection.FirmwareConfig);
+        Assert.Equal(1, firmwareConfig.ChipNumber);
+        WorkbenchCmiDpCodeMetadata cmi = Assert.IsType<WorkbenchCmiDpCodeMetadata>(inspection.CmiDpCode);
+        Assert.Equal("8600", cmi.VersionToken);
+
+        WorkbenchOutputFileNameSuggestion suggestion =
+            WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(
+                "NT51950",
+                [new WorkbenchOutputNameInspectionCandidate(WorkbenchOutputNameCandidateKind.Base, inspection)],
+                new WorkbenchCtrlRamFirmwareVersionEdit(0x80, 0x00),
+                new DateOnly(2026, 7, 22));
+        Assert.Equal("NT51950_FlashCode_D8600T8000_20260722.bin", suggestion.FileName);
+    }
+
     /// <summary>Locks the exact Standard Merge reconstruction and metadata admission facts.</summary>
     [Fact]
     public async Task StandardMergeReconstructsOwnerExpectedAndExactFirmwareContextAsync()
@@ -95,6 +123,58 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
         Assert.All(
             evidence.Artifacts,
             artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
+    }
+
+    /// <summary>NT51950 edits the primary FWConfig first, then permits only the propagated Backup fields from postbuild.</summary>
+    [Fact]
+    public async Task FirmwareVersionEditBuildPropagatesPrimaryToBackupAsync()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        const byte firmwareVersion = 0x27;
+        const byte firmwareSubVersion = 0x04;
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-fw200-version-edit-real");
+        string basePath = workspace.Write("base.bin", evidence.Expected.Bytes);
+        string outputPath = workspace.PathFor("version-edited.bin");
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51950",
+            "single",
+            WorkbenchReplaceModes.CtrlRam,
+            CreateSlotPaths(evidence, basePath),
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath,
+            ctrlRamFirmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(
+                firmwareVersion,
+                firmwareSubVersion));
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.True(BuiltInTpFlashMapCatalog.TryFind("NT51950", out TpFlashMapProfile? flashMap));
+        Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(
+            output,
+            flashMap!.FirmwareConfigPrimaryStart,
+            out FirmwareConfigMetadata primary));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(output, out FirmwareConfigMetadata backup));
+        Assert.Equal(firmwareVersion, primary.FirmwareVersion);
+        Assert.Equal(unchecked((byte)~firmwareVersion), primary.FirmwareVersionBar);
+        Assert.Equal(firmwareSubVersion, primary.FirmwareSubVersion);
+        Assert.Equal(firmwareVersion, backup.FirmwareVersion);
+        Assert.Equal(unchecked((byte)~firmwareVersion), backup.FirmwareVersionBar);
+        Assert.Equal(firmwareSubVersion, backup.FirmwareSubVersion);
+
+        using var report = JsonDocument.Parse(result.ReportJson);
+        JsonElement session = Assert.Single(ReadProcessorSessions(report.RootElement));
+        Assert.Contains(new ByteRange(backup.StructureStart, 2), ReadRanges(session, "ProcessorAllowedWriteRanges"));
+        Assert.Contains(
+            new ByteRange(backup.StructureStart + FirmwareConfigLayout.FirmwareSubVersionOffset, 1),
+            ReadRanges(session, "ProcessorAllowedWriteRanges"));
     }
 
     /// <summary>Requested single routing accepts display-only metadata variations.</summary>

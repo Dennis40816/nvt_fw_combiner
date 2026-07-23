@@ -1,6 +1,7 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
 
@@ -10,15 +11,15 @@
 </ControlTheme>
 
 <DrawingBrush
-    x:Key="BaseFirmwareDiagonalStripeBrush"
-    DestinationRect="0,0,8,8"
-    SourceRect="0,0,8,8"
+    x:Key="KeptDiagonalStripeBrush"
+    DestinationRect="0,0,10,10"
+    SourceRect="0,0,10,10"
     Stretch="None"
     TileMode="Tile">
   <DrawingBrush.Drawing>
-    <GeometryDrawing Geometry="M -2,8 L 8,-2 M 2,10 L 10,2">
+    <GeometryDrawing Geometry="M -2,10 L 10,-2">
       <GeometryDrawing.Pen>
-        <Pen Brush="{DynamicResource NfcBaseFirmwareStripeBrush}" Thickness="1" />
+        <Pen Brush="{DynamicResource NfcKeptStripeBrush}" Thickness="1" />
       </GeometryDrawing.Pen>
     </GeometryDrawing>
   </DrawingBrush.Drawing>
@@ -61,9 +62,9 @@
             Background="{Binding FillBrush}"
             CornerRadius="2">
           <Border
-              Background="{StaticResource BaseFirmwareDiagonalStripeBrush}"
+              Background="{StaticResource KeptDiagonalStripeBrush}"
               CornerRadius="2"
-              IsVisible="{Binding UsesBaseFirmwarePattern}" />
+              IsVisible="{Binding UsesKeptPattern}" />
         </Border>
         <TextBlock
             Grid.Column="1"
@@ -111,12 +112,15 @@
   <Border
       Classes="memoryCoverageMarker"
       Classes.changed="{Binding IsChanged}"
+      AutomationProperties.HelpText="{Binding Detail}"
+      behaviors:FocusToolTipBehavior.IsEnabled="True"
+      Focusable="True"
       Width="{Binding BarWidth}"
       Height="22"
       Background="{Binding FillBrush}">
     <Border
-        Background="{StaticResource BaseFirmwareDiagonalStripeBrush}"
-        IsVisible="{Binding UsesBaseFirmwarePattern}" />
+        Background="{StaticResource KeptDiagonalStripeBrush}"
+        IsVisible="{Binding UsesKeptPattern}" />
     <ToolTip.Tip>
       <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
     </ToolTip.Tip>
@@ -125,6 +129,9 @@
 
 <DataTemplate x:Key="MemoryCoveragePlainSegmentBarTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
+      AutomationProperties.HelpText="{Binding Detail}"
+      behaviors:FocusToolTipBehavior.IsEnabled="True"
+      Focusable="True"
       Width="{Binding BarWidth}"
       Height="22"
       Background="{Binding FillBrush}">
@@ -150,9 +157,9 @@
           Background="{Binding FillBrush}"
           CornerRadius="2">
         <Border
-            Background="{StaticResource BaseFirmwareDiagonalStripeBrush}"
+            Background="{StaticResource KeptDiagonalStripeBrush}"
             CornerRadius="2"
-            IsVisible="{Binding UsesBaseFirmwarePattern}" />
+            IsVisible="{Binding UsesKeptPattern}" />
       </Border>
       <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
         <TextBlock Classes="bodyEmphasisText" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
@@ -243,14 +250,45 @@
         </Border>
       </StackPanel>
 
+      <StackPanel
+          x:Name="ReplaceCoverageStateLegend"
+          HorizontalAlignment="Right"
+          Orientation="Horizontal"
+          Spacing="14">
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <Border
+              Classes="memoryCoverageMarker changed"
+              Width="18"
+              Height="10"
+              VerticalAlignment="Center"
+              Background="{DynamicResource NfcAccentBrush}"
+              CornerRadius="2" />
+          <TextBlock Classes="microInfoText" Text="{Binding Text.OutputLayoutChangedStateLabel}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <Border
+              Classes="memoryCoverageMarker"
+              Width="18"
+              Height="10"
+              VerticalAlignment="Center"
+              Background="{DynamicResource NfcBorderMutedBrush}"
+              CornerRadius="2">
+            <Border Background="{StaticResource KeptDiagonalStripeBrush}" CornerRadius="2" />
+          </Border>
+          <TextBlock Classes="microInfoText" Text="{Binding Text.OutputLayoutKeptStateLabel}" />
+        </StackPanel>
+      </StackPanel>
+
       <Border Padding="6" Background="{DynamicResource NfcInfoSurfaceBrush}" BorderBrush="Transparent" BorderThickness="0" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
-        <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentBarTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Orientation="Horizontal" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-        </ItemsControl>
+        <Viewbox Height="22" HorizontalAlignment="Stretch" Stretch="Fill">
+          <ItemsControl Width="300" Height="22" ItemTemplate="{StaticResource MemoryCoverageSegmentBarTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+        </Viewbox>
       </Border>
 
       <ItemsControl Classes="spaciousList" ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}"
@@ -288,13 +326,15 @@
       </StackPanel>
 
       <Border Classes="subtleSurface" Padding="10">
-        <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentBarTemplate}" ItemsSource="{Binding MergeCoverageSegments}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Orientation="Horizontal" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-        </ItemsControl>
+        <Viewbox Height="22" HorizontalAlignment="Stretch" Stretch="Fill">
+          <ItemsControl Width="300" Height="22" ItemTemplate="{StaticResource MemoryCoveragePlainSegmentBarTemplate}" ItemsSource="{Binding MergeCoverageSegments}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+        </Viewbox>
       </Border>
 
       <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding MergeCoverageSegments}" />

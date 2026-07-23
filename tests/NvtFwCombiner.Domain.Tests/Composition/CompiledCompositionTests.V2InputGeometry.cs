@@ -121,6 +121,66 @@ public sealed partial class CompiledCompositionTests
             addressSpaceExpectedInputLengths: [32]));
     }
 
+    /// <summary>Verifies declared-prefix authority binds its exact half-open snapshot, issue codes, and fingerprint.</summary>
+    [Fact]
+    public void V2PlanArtifactBindsDeclaredPrefixGeometryAndDiagnostics()
+    {
+        CompiledComposition baseline = CreateDeclaredPrefixComposition();
+        CompiledComposition changedRequiredEnd = CreateDeclaredPrefixComposition(requiredEndExclusive: 9);
+        CompiledComposition changedExpectedOuterLength = CreateDeclaredPrefixComposition(expectedOuterLengths: [8, 16]);
+        CompiledComposition changedShortCode = CreateDeclaredPrefixComposition(shortInputIssueCode: "INPUT_TOO_SHORT");
+        CompiledComposition changedOuterCode = CreateDeclaredPrefixComposition(
+            unexpectedOuterLengthIssueCode: "INPUT_OUTER_SIZE");
+
+        AddressSpace input = Assert.Single(baseline.Plan.AddressSpaces, space => space.AddressSpaceId == "input");
+        CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement = Assert.IsType<
+            CompiledDeclaredPrefixWithWarningInputLengthRequirement>(
+                Assert.Single(baseline.V2Details!.InputContract.Slots).LengthRequirement);
+        Assert.Equal(new ByteRange(0, 8), new ByteRange(0, input.Length));
+        Assert.Null(input.InputPaddingByte);
+        Assert.Empty(input.AllowedInputLengths);
+        Assert.Equal([8L], input.ExpectedInputLengths);
+        Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, input.InputOversizePolicy);
+        Assert.Equal("INPUT_OUTER_LENGTH", input.UnexpectedInputLengthIssueCode);
+        Assert.Equal(8, requirement.RequiredEndExclusive);
+        Assert.Equal([8L], requirement.ExpectedOuterLengths);
+        Assert.Equal("INPUT_SHORT", requirement.ShortInputIssueCode);
+        Assert.Equal("INPUT_OUTER_LENGTH", requirement.UnexpectedOuterLengthIssueCode);
+        Assert.All(
+            [changedRequiredEnd, changedExpectedOuterLength, changedShortCode, changedOuterCode],
+            variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
+    }
+
+    /// <summary>Verifies declared-prefix authority fails closed on a one-byte-short policy or mismatched plan projection.</summary>
+    [Fact]
+    public void V2PlanArtifactRejectsInvalidDeclaredPrefixBoundaries()
+    {
+        _ = Assert.Throws<ArgumentException>(() => new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+            8,
+            [7],
+            "INPUT_SHORT",
+            "INPUT_OUTER_LENGTH"));
+        _ = Assert.Throws<ArgumentException>(() => new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+            8,
+            [16, 8],
+            "INPUT_SHORT",
+            "INPUT_OUTER_LENGTH"));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+            (long)int.MaxValue + 1,
+            [(long)int.MaxValue + 1],
+            "INPUT_SHORT",
+            "INPUT_OUTER_LENGTH"));
+        _ = Assert.ThrowsAny<ArgumentException>(() => CreateDeclaredPrefixComposition(
+            addressSpaceLength: 9));
+        _ = Assert.Throws<ArgumentException>(() => CreateDeclaredPrefixComposition(
+            addressSpaceExpectedOuterLengths: [16]));
+        _ = Assert.Throws<ArgumentException>(() => CreateDeclaredPrefixComposition(
+            inputOversizePolicy: InputOversizePolicy.Reject,
+            includeWarningCodeInAddressSpace: false));
+        _ = Assert.Throws<ArgumentException>(() => CreateDeclaredPrefixComposition(
+            compositionKind: CompositionKind.Replace));
+    }
+
     /// <summary>Verifies a V2 Replace artifact can use an exact reference clone and one declared padded DP source.</summary>
     [Fact]
     public void V2ReplaceArtifactBindsReferenceCloneAndExactDpPadding()
@@ -226,6 +286,68 @@ public sealed partial class CompiledCompositionTests
                     new ByteRange(0, 1),
                     OverlapPolicy.Reject,
                     "copy one synthetic DP byte")]));
+    }
+
+    private static CompiledComposition CreateDeclaredPrefixComposition(
+        long requiredEndExclusive = 8,
+        IReadOnlyList<long>? expectedOuterLengths = null,
+        string shortInputIssueCode = "INPUT_SHORT",
+        string unexpectedOuterLengthIssueCode = "INPUT_OUTER_LENGTH",
+        long? addressSpaceLength = null,
+        IReadOnlyList<long>? addressSpaceExpectedOuterLengths = null,
+        InputOversizePolicy inputOversizePolicy = InputOversizePolicy.ExtractDeclaredRange,
+        bool includeWarningCodeInAddressSpace = true,
+        CompositionKind compositionKind = CompositionKind.Merge)
+    {
+        expectedOuterLengths ??= [requiredEndExclusive];
+        addressSpaceExpectedOuterLengths ??= expectedOuterLengths;
+        long outputCapacity = Math.Max(requiredEndExclusive, 16);
+        return CreateV2(
+            inputContract: new CompiledInputContract(
+                [new CompiledInputSlotRequirement(
+                    "source-slot",
+                    "source",
+                    CompiledInputArtifactClass.Auxiliary,
+                    required: true,
+                    CompiledInputSlotCardinality.ExactlyOne,
+                    [".bin"],
+                    new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+                        requiredEndExclusive,
+                        expectedOuterLengths,
+                        shortInputIssueCode,
+                        unexpectedOuterLengthIssueCode),
+                    new CompiledNoInputNormalization())],
+                [new CompiledInputSpaceBinding("input", "source-slot", CompiledInputInstancePolicy.Singleton)]),
+            regionAccessContract: CreateTpRegionAccessContract(
+                [new ByteRange(0, 1)],
+                new ByteRange(0, outputCapacity)),
+            resolvedMap: CreateResolvedMap(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                outputCapacity),
+            plan: new CompositionPlan(
+                ImageInitialization.Blank("output-image", outputCapacity, 0),
+                [
+                    new AddressSpace(
+                        "input",
+                        addressSpaceLength ?? requiredEndExclusive,
+                        AddressSpaceMutability.Immutable,
+                        inputOversizePolicy: inputOversizePolicy,
+                        expectedInputLengths: addressSpaceExpectedOuterLengths,
+                        unexpectedInputLengthIssueCode: includeWarningCodeInAddressSpace
+                            ? unexpectedOuterLengthIssueCode
+                            : null),
+                    new AddressSpace("output-image", outputCapacity, AddressSpaceMutability.Mutable),
+                ],
+                [CompositionOperation.CopyRange(
+                    "copy-input",
+                    10,
+                    "input",
+                    new ByteRange(0, 1),
+                    "output-image",
+                    new ByteRange(0, 1),
+                    OverlapPolicy.Reject,
+                    "copy one synthetic declared-prefix byte")]),
+            compositionKind: compositionKind);
     }
 
     private static CompiledComposition CreateDpReplaceComposition(bool referenceClone = true)

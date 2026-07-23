@@ -47,11 +47,12 @@ internal static partial class V2CompositionPlanCompiler
                 !slot.Required ||
                 slot.Cardinality != CompositionProfileSlotCardinality.ExactlyOne ||
                 slot.Normalization is not (NoInputNormalization or PadShorterInputNormalization or TruncateCtrlRamInputNormalization) ||
+                (slot.LengthRule is DeclaredPrefixWithWarningLengthRule && profile.CompositionKind != CompositionKind.Merge) ||
                 !IsCurrentInputLengthRuleSupported(slot))
             {
                 AddUnsupported(
                     issues,
-                    $"input space '{inputSpace.SpaceId}' must bind one required singleton exact-map-capacity, normal-DP, tp-maximum-256k, exact TP, or truncatable CtrlRAM slot with approved normalization");
+                    $"input space '{inputSpace.SpaceId}' must bind one required singleton exact-map-capacity, declared-prefix Merge, normal-DP, tp-maximum-256k, exact TP, or truncatable CtrlRAM slot with approved normalization");
             }
         }
 

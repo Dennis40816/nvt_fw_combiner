@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using static NvtFwCombiner.Bootstrap.WorkbenchMemoryDisplayProjection;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -26,11 +27,14 @@ public static partial class WorkbenchCompositionService
                 WorkbenchMemoryCoverageRole.BaseFirmware),
         ];
 
-        IEnumerable<TpFlashMapRegion> replacementRegions = replaceMode == WorkbenchReplaceModes.CtrlRam
-            ? BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)
+        IEnumerable<(TpFlashMapRegion Region, string SelectionId)> replacementRegions =
+            replaceMode == WorkbenchReplaceModes.CtrlRam
+            ? BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, selection, postbuildProfile)
+                .SelectMany(source => source.Regions.Select(region => (region, source.SourceId)))
+                .DistinctBy(static item => item.region.RegionId, StringComparer.Ordinal)
             : [];
 
-        foreach (TpFlashMapRegion region in replacementRegions.OrderBy(region => region.Range.Start))
+        foreach ((TpFlashMapRegion region, string selectionId) in replacementRegions.OrderBy(item => item.Region.Range.Start))
         {
             string label = region.DisplayName;
             string detail = $"{region.DisplayName} can be replaced here. Empty input keeps the original firmware; Preview lists the CRC/header refresh command.";
@@ -41,10 +45,33 @@ public static partial class WorkbenchCompositionService
                     label,
                     detail,
                     CoverageFill(label),
-                    true,
-                    WorkbenchMemoryCoverageRole.Standard));
+                    false,
+                    WorkbenchMemoryCoverageRole.Standard,
+                    selectionId));
         }
 
         return ToWorkbenchCoverageSegments(segments, capacity);
+    }
+
+    /// <summary>Projects selected CtrlRAM regions without changing the compiled coverage geometry.</summary>
+    public static WorkbenchMemoryDisplay ApplyReplaceCoverageSelection(
+        WorkbenchMemoryDisplay display,
+        IEnumerable<string> selectedRegionIds)
+    {
+        ArgumentNullException.ThrowIfNull(display);
+        ArgumentNullException.ThrowIfNull(selectedRegionIds);
+        var selected = selectedRegionIds.ToHashSet(StringComparer.Ordinal);
+        return display with
+        {
+            CoverageSegments =
+            [
+                .. display.CoverageSegments.Select(segment => segment with
+                {
+                    IsChanged = segment.RegionId is null
+                        ? segment.IsChanged
+                        : selected.Contains(segment.RegionId),
+                }),
+            ],
+        };
     }
 }

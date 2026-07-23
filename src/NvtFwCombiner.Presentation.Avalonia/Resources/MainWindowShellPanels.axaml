@@ -1,6 +1,7 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="NavigationTrailPanelTemplate" DataType="vm:MainWindowViewModel">
@@ -45,8 +46,7 @@
           RowDefinitions="Auto,Auto"
           ColumnSpacing="{DynamicResource NfcSpace12}"
           RowSpacing="3"
-          VerticalAlignment="Center"
-          ToolTip.Tip="{Binding Text.DeviceContextTitle}">
+          VerticalAlignment="Center">
 
         <TextBlock Grid.Row="0" Grid.Column="0" Classes="tableHeader" Text="{Binding Text.IcLabel}" />
         <ComboBox
@@ -54,9 +54,49 @@
             Grid.Column="0"
             Classes="technicalSelect"
             Width="154"
+            AutomationProperties.HelpText="{Binding SelectedIcDetailAutomationText}"
+            behaviors:FocusToolTipBehavior.IsEnabled="True"
             IsVisible="{Binding IsDeviceContextSelectionVisible}"
             ItemsSource="{Binding IcChoices}"
-            SelectedItem="{Binding SelectedIc, Mode=TwoWay}">
+            SelectedItem="{Binding SelectedIc, Mode=TwoWay}"
+            ToolTip.Placement="BottomEdgeAlignedLeft"
+            ToolTip.ShowDelay="250">
+          <ToolTip.Tip>
+            <ToolTip IsHitTestVisible="False">
+              <Border Classes="icDetailCard" MaxWidth="360">
+                <StackPanel Spacing="{DynamicResource NfcSpace8}">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+                    <Border Classes="icDetailHeroIcon">
+                      <Path
+                          Classes="icDetailHeroGlyph"
+                          Data="M4 4H12V12H4Z M6 1V4 M10 1V4 M6 12V15 M10 12V15 M1 6H4 M1 10H4 M12 6H15 M12 10H15" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="{DynamicResource NfcSpace2}">
+                      <TextBlock Classes="captionText" Text="{Binding Text.IcDetailTitle}" />
+                      <TextBlock Classes="technicalValue" Text="{Binding SelectedIc}" />
+                    </StackPanel>
+                  </Grid>
+                  <Border Height="1" Background="{DynamicResource NfcBorderMutedBrush}" />
+                  <Grid ColumnDefinitions="18,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace8}" RowSpacing="{DynamicResource NfcSpace8}">
+                    <Path
+                        Classes="icDetailRowIcon"
+                        Data="M3 3V13 M3 5H8 M8 5V3 M8 5H13 M13 5V8 M3 11H8 M8 11V9 M8 11H13 M13 11V14" />
+                    <TextBlock Grid.Column="1" Classes="bodyText" Text="{Binding SelectedIcDetailFamily}" TextWrapping="Wrap" />
+                    <Path
+                        Grid.Row="1"
+                        Classes="icDetailRowIcon"
+                        Data="M3 3V13L13 8Z" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Classes="bodyText" Text="{Binding SelectedIcDetailRuntime}" TextWrapping="Wrap" />
+                    <Path
+                        Grid.Row="2"
+                        Classes="icDetailRowIcon"
+                        Data="M8 2L13 4V8C13 11 11 13 8 14C5 13 3 11 3 8V4Z M5.5 8L7 9.5L10.5 6" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Classes="bodyText" Text="{Binding SelectedIcDetailEvidence}" TextWrapping="Wrap" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </ToolTip>
+          </ToolTip.Tip>
           <ComboBox.ItemTemplate>
             <DataTemplate>
               <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="{DynamicResource NfcFontSize13}" Text="{Binding}" />
@@ -130,11 +170,6 @@
               Text="{Binding DeviceContextStatus}"
               TextAlignment="Left"
               TextWrapping="Wrap" />
-          <Label
-              Classes="compactBadge neutralBadge reportBadge info"
-              Content="{Binding SelectedIcFamilyLabel}"
-              IsVisible="{Binding IsDeviceContextFamilyBadgeVisible}"
-              ToolTip.Tip="{Binding SelectedIcFamilyTooltip}" />
         </StackPanel>
       </Grid>
       <Border

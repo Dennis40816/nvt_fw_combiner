@@ -5,11 +5,11 @@ using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Executable-candidate evidence for the fixed-capacity NT51919/NT51929/NT51932 AB Merge profiles.</summary>
-public sealed class Nt51919Nt51929Nt51932AbMergeCandidateProfileTests
+/// <summary>Runtime-admission evidence for the fixed NT51919/NT51929/NT51932 AB Merge profiles.</summary>
+public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
 {
     private const string BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string BundleContentHash = "b5035b9c4afa8691adb98632b4ce9a1088d74d04948ea1f20690aade889445fb";
+    private const string BundleContentHash = "2019958454425df63666cad975135fdfc46540e291680b8a551ed07f00aa167a";
     private const int Capacity = 0x80000;
     private const int TpCodeStart = 0x7000;
     private const int TpCodeLength = 0x39000;
@@ -17,24 +17,22 @@ public sealed class Nt51919Nt51929Nt51932AbMergeCandidateProfileTests
     private const int TpbScalarOffset = 0x7164;
     private const uint Relocation = 0x40000;
 
-    /// <summary>Verifies every known member resolves one fixed 512 KiB AB map without granting runtime support.</summary>
+    /// <summary>Verifies every approved member resolves one supported fixed 512 KiB AB map.</summary>
     [Theory]
     [InlineData("NT51919", "nt51919-ab-merge-alias", "nt51919-ab-merge-512k")]
     [InlineData("NT51929", "nt51929-ab-merge", "nt51929-ab-merge-512k")]
     [InlineData("NT51932", "nt51932-ab-merge", "nt51932-ab-merge-512k")]
-    public void CandidateProfilesCompileOnlyForTheFixedAbMap(
+    public void SupportedProfilesCompileOnlyForTheFixedAbMap(
         string icId,
         string profileId,
         string expectedMapId)
     {
-        CompiledComposition composition = CompileCandidate(icId, profileId);
+        CompiledComposition composition = CompileProfile(icId, profileId);
 
-        Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
-        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
-        Assert.Equal(
-            ["firmware-owner-review", "production-golden-evidence"],
-            details.Provenance.Promotion.Blockers.Select(static blocker => blocker.BlockerId));
+        Assert.Equal(CompiledProfilePromotionStage.Supported, details.Provenance.Promotion.Stage);
+        Assert.Empty(details.Provenance.Promotion.Blockers);
         Assert.Equal(expectedMapId, details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(Capacity, composition.Plan.OutputInitialization.Capacity);
         Assert.Equal(
@@ -54,7 +52,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeCandidateProfileTests
         V2CompositionPlanCompileResult wrongCapacity = TrustedV2CompositionCompiler.Compile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.1.0",
+            "0.2.0",
             icId,
             ExperienceIds.AbMerge,
             requestedMapCapacity: 0x40000);
@@ -64,20 +62,31 @@ public sealed class Nt51919Nt51929Nt51932AbMergeCandidateProfileTests
             static issue => StringComparer.Ordinal.Equals(issue.Code, "profile.v2.compile.map-capacity-unavailable"));
     }
 
-    /// <summary>Verifies evidence-blocked AB candidates cannot cross the application execution boundary.</summary>
+    /// <summary>Verifies approved AB profiles cross the Application boundary with typed bindings.</summary>
     [Theory]
     [InlineData("NT51919", "nt51919-ab-merge-alias")]
     [InlineData("NT51929", "nt51929-ab-merge")]
     [InlineData("NT51932", "nt51932-ab-merge")]
-    public void CandidateProfilesCannotCreateApplicationRunRequest(string icId, string profileId)
+    public void SupportedProfilesCreateApplicationRunRequest(string icId, string profileId)
     {
-        CompiledComposition composition = CompileCandidate(icId, profileId);
+        CompiledComposition composition = CompileProfile(icId, profileId);
+        InputArtifactBinding[] bindings =
+        [
+            .. composition.Plan.RequiredInputAddressSpaceIds.Select(addressSpaceId =>
+                CompiledCompositionInputBindingFactory.Create(
+                    composition,
+                    addressSpaceId,
+                    Path.Combine(Path.GetTempPath(), $"{addressSpaceId}.bin"))),
+        ];
 
-        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-            new CompositionRunRequest("ab-candidate", composition, [], composition.DefaultOutputFileName));
+        var request = new CompositionRunRequest(
+            "ab-runtime",
+            composition,
+            bindings,
+            composition.DefaultOutputFileName);
 
-        Assert.Equal("compiledComposition", exception.ParamName);
-        Assert.Contains("not executable", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(composition, request.CompiledComposition);
+        Assert.Equal(3, request.ArtifactBindings.Count);
     }
 
     /// <summary>Verifies full DP placement, TP overlays, TPB relocation, and immutable TPB source behavior.</summary>
@@ -85,9 +94,9 @@ public sealed class Nt51919Nt51929Nt51932AbMergeCandidateProfileTests
     [InlineData("NT51919", "nt51919-ab-merge-alias")]
     [InlineData("NT51929", "nt51929-ab-merge")]
     [InlineData("NT51932", "nt51932-ab-merge")]
-    public void CandidatePlansProduceTheDeclaredAbLayoutWithoutMutatingInputs(string icId, string profileId)
+    public void SupportedPlansProduceTheDeclaredAbLayoutWithoutMutatingInputs(string icId, string profileId)
     {
-        CompiledComposition composition = CompileCandidate(icId, profileId);
+        CompiledComposition composition = CompileProfile(icId, profileId);
         byte[] dp = CreatePattern(Capacity, 0x31);
         byte[] tpA = CreatePattern(0x40000, 0x57);
         byte[] tpB = CreatePattern(0x40000, 0x83);
@@ -121,12 +130,12 @@ public sealed class Nt51919Nt51929Nt51932AbMergeCandidateProfileTests
     }
 
     /// <inheritdoc/>
-    private static CompiledComposition CompileCandidate(string icId, string profileId)
+    private static CompiledComposition CompileProfile(string icId, string profileId)
     {
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.1.0",
+            "0.2.0",
             icId,
             ExperienceIds.AbMerge,
             Capacity);

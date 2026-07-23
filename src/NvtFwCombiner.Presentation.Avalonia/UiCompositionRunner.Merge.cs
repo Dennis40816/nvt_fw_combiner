@@ -20,6 +20,19 @@ public static partial class UiCompositionRunner
             [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
     }
 
+    /// <summary>Projects one compiled AB Merge memory display snapshot.</summary>
+    public static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetAbMergeMemoryDisplay(string icId)
+    {
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId);
+        return (
+            display.RangeLabel,
+            [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
+            [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
+    }
+
     /// <summary>Projects one General Merge memory display snapshot.</summary>
     public static (
         string RangeLabel,

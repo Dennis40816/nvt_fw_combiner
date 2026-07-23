@@ -213,6 +213,8 @@
                 ColumnDefinitions="*,20"
                 ColumnSpacing="0"
                 DoubleTapped="HexDocumentSurface_OnDoubleTapped"
+                PointerExited="HexDocumentSurface_OnPointerExited"
+                PointerMoved="HexDocumentSurface_OnPointerMoved"
                 PointerPressed="HexDocumentSurface_OnPointerPressed"
                 PointerWheelChanged="HexDocumentSurface_OnPointerWheelChanged">
               <Grid Grid.Column="0">

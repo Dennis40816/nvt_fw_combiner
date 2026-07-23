@@ -90,10 +90,13 @@ public sealed partial class MainWindowViewModel
     private void NotifyContextTextChanged()
     {
         OnPropertyChanged(nameof(IsStandardMergeSupported));
+        OnPropertyChanged(nameof(IsAbMergeSupported));
+        OnPropertyChanged(nameof(MergeModeChoices));
         OnPropertyChanged(nameof(StandardMergeSupportSummary));
         OnPropertyChanged(nameof(StandardMergeOutputFileName));
         OnPropertyChanged(nameof(GeneralMergeOutputFileName));
         OnPropertyChanged(nameof(MergeOutputFileName));
+        OnPropertyChanged(nameof(AbMergeOutputFileName));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
@@ -107,6 +110,12 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(SelectedIcFamilyLabel));
         OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
         OnPropertyChanged(nameof(HasSelectedIcFamily));
+        OnPropertyChanged(nameof(SelectedIcDetailFamily));
+        OnPropertyChanged(nameof(SelectedIcDetailReuse));
+        OnPropertyChanged(nameof(SelectedIcDetailRuntime));
+        OnPropertyChanged(nameof(SelectedIcDetailEvidence));
+        OnPropertyChanged(nameof(SelectedIcDetailSupport));
+        OnPropertyChanged(nameof(SelectedIcDetailAutomationText));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
@@ -152,11 +161,15 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(MergeReadinessStatus));
             OnPropertyChanged(nameof(MergeMemorySummary));
             ResetRunResultForContextChange();
+            RefreshMergeSlotRequirements();
+            if (IsAbCodeMergeModeSelected && MergeSlots.Any(slot => slot.HasFile))
+            {
+                _ = RefreshSelectedMergeFirmwareInspectionsAsync();
+            }
+
             RefreshMergeMemoryMapState();
             RefreshCommandState();
         }
-
-        NavigateToPage(ShellPage.Merge);
     }
 
     private void ApplySelectedPage(ShellPage page)
@@ -235,6 +248,12 @@ public sealed partial class MainWindowViewModel
 
     private void HexEditorWorkspace_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(HexEditorWorkspaceViewModel.IsInsertBytesPromptOpen) or
+            nameof(HexEditorWorkspaceViewModel.IsSaveConfirmationOpen))
+        {
+            NotifyCompositionActionRailVisibilityChanged();
+        }
+
         if (e.PropertyName is not (nameof(HexEditorWorkspaceViewModel.CanSave) or
             nameof(HexEditorWorkspaceViewModel.ChangeCount) or
             nameof(HexEditorWorkspaceViewModel.IsInlineEditActive) or
@@ -287,6 +306,14 @@ public sealed partial class MainWindowViewModel
             ConsumeAcceptedFirmwareMismatchSelection();
         InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
         InvalidateCtrlRamFirmwareVersionContext();
+        if (IsAbCodeMergeModeSelected && !AbMergeWorkbenchCompositionService.IsAbMergeSupported(value))
+        {
+            _selectedMergeMode = NormalMergeMode;
+            OnPropertyChanged(nameof(SelectedMergeMode));
+            OnPropertyChanged(nameof(IsNormalMergeModeSelected));
+            OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
+        }
+
         _isRefreshingFirmwareInspectionContext = true;
         try
         {

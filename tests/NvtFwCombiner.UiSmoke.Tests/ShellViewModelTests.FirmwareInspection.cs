@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -81,6 +82,35 @@ public sealed partial class ShellViewModelTests
         FirmwareSlotViewModel slot = viewModel.MergeSlots.Single(candidate => candidate.SlotId == "merge-dp");
         Assert.Empty(slot.FirmwareFacts);
         Assert.False(viewModel.IsFirmwareInspectionLoading);
+    }
+
+    /// <summary>An AB input that changes while inspected leaves no invisible pending state.</summary>
+    [Fact]
+    public async Task AbInputInspectionMarksChangedFileAsBlocking()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-inspection-identity");
+        string path = workspace.Write("changing-ab.bin", [0x01]);
+        MainWindowViewModel viewModel = CreateInspectionViewModel((_, inspectedPath, _, _) =>
+        {
+            using var stream = new FileStream(inspectedPath, FileMode.Append, FileAccess.Write, FileShare.Read);
+            stream.WriteByte(0x02);
+            return DpInspection("0303");
+        });
+        viewModel.SelectedIc = "NT51929";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.DpAbInput,
+            path,
+            TestContext.Current.CancellationToken);
+
+        FirmwareSlotViewModel slot = viewModel.MergeSlots.Single(candidate =>
+            candidate.SlotId == CompositionAddressSpaceIds.DpAbInput);
+        Assert.False(slot.IsInputInspectionPending);
+        Assert.Equal(WorkbenchInputInspectionSeverity.Blocking, slot.InputInspectionSeverity);
+        Assert.Contains("file changed", slot.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.True(slot.BlocksBuild);
+        Assert.False(viewModel.CanBuildMerge);
     }
 
     /// <summary>UI projections keep one selected snapshot until explicit reselection; Build remains authoritative.</summary>

@@ -46,13 +46,10 @@ public sealed partial class MainWindowViewModel
         GeneralReplaceMode,
     ];
 
-    /// <summary>Gets merge mode choices reserved in the product taxonomy.</summary>
-    public IReadOnlyList<string> MergeModeChoices { get; } =
-    [
-        NormalMergeMode,
-        AbCodeMergeMode,
-        GeneralMergeMode,
-    ];
+    /// <summary>Gets executable Merge modes for the selected IC.</summary>
+    public IReadOnlyList<string> MergeModeChoices => IsAbMergeSupported
+        ? s_abMergeModeChoices
+        : s_standardMergeModeChoices;
 
     /// <summary>Gets settings card content.</summary>
     public PlanningCardText SettingsPreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).SettingsPreview;
@@ -112,10 +109,18 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the default General Merge output file name.</summary>
     public string GeneralMergeOutputFileName => CreateFlashCodeOutputFileName(MergeSlots);
 
+    /// <summary>Gets the compiled AB profile output file name.</summary>
+    public string AbMergeOutputFileName => WorkbenchCompositionService.GetAbMergeProfileSummaries()
+        .FirstOrDefault(profile => StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
+        .DefaultOutputFileName ?? "nvt-fw-combiner-ab-output.bin";
+
     /// <summary>Gets the active Merge output file name.</summary>
-    public string MergeOutputFileName => IsGeneralMergeModeSelected
-        ? GeneralMergeOutputFileName
-        : StandardMergeOutputFileName;
+    public string MergeOutputFileName => SelectedMergeMode switch
+    {
+        GeneralMergeMode => GeneralMergeOutputFileName,
+        AbCodeMergeMode => AbMergeOutputFileName,
+        _ => StandardMergeOutputFileName,
+    };
 
     /// <summary>Gets Replace memory coverage text for the selected IC and Number.</summary>
     public string ReplaceMemoryRangeLabel { get; private set; } = string.Empty;
@@ -151,7 +156,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the selected shell page.</summary>
     public ShellPage SelectedPage { get; private set; } = ShellPage.Home;
 
-    /// <summary>Gets or sets the selected Merge quick-jump mode.</summary>
+    /// <summary>Gets or sets the selected Merge mode without changing the active page.</summary>
     public string SelectedMergeMode
     {
         get => _selectedMergeMode;
@@ -200,6 +205,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>True when the reserved AB Code Merge option is selected.</summary>
     public bool IsAbCodeMergeModeSelected => string.Equals(SelectedMergeMode, AbCodeMergeMode, StringComparison.Ordinal);
 
+    /// <summary>True when the selected IC has an admitted AB profile.</summary>
+    public bool IsAbMergeSupported => AbMergeWorkbenchCompositionService.IsAbMergeSupported(SelectedIc);
+
     /// <summary>True when selected IC has a built-in standard merge profile.</summary>
     public bool IsStandardMergeSupported => WorkbenchCompositionService.IsStandardMergeSupported(SelectedIc);
 
@@ -243,15 +251,56 @@ public sealed partial class MainWindowViewModel
     /// <summary>True when the selected IC has an owner-defined family relation.</summary>
     public bool HasSelectedIcFamily => SelectedIcFamilySummary.FamilyId is not null;
 
+    /// <summary>Concise family value shown inside the IC selector detail card.</summary>
+    public string SelectedIcDetailFamily => Text.GetIcDetailFamilyValue(SelectedIcFamilySummary);
+
+    /// <summary>Owner-declared fact reuse scope shown inside the IC selector detail card.</summary>
+    public string SelectedIcDetailReuse => Text.GetIcDetailReuseValue(SelectedIcFamilySummary);
+
+    /// <summary>Typed executable workflow inventory shown inside the IC selector detail card.</summary>
+    public string SelectedIcDetailRuntime => Text.GetIcDetailRuntimeValue(
+        IsStandardMergeSupported,
+        IsAbMergeSupported,
+        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, DpReplaceMode).IsAvailable,
+        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, CtrlRamReplaceMode).IsAvailable,
+        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, GeneralReplaceMode).IsAvailable);
+
+    /// <summary>Evidence summary shown without badge clusters.</summary>
+    public string SelectedIcDetailEvidence => Text.GetIcDetailEvidenceValue(
+        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, DpReplaceMode),
+        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, CtrlRamReplaceMode),
+        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, GeneralReplaceMode));
+
+    /// <summary>Support boundary shown inside the IC selector detail card.</summary>
+    public string SelectedIcDetailSupport => Text.GetIcDetailSupportValue(IsAbMergeSupported);
+
+    /// <summary>Screen-reader equivalent of the visible IC detail card.</summary>
+    public string SelectedIcDetailAutomationText => string.Join(
+        Environment.NewLine,
+        SelectedIc,
+        $"{Text.IcDetailFamilyLabel}: {SelectedIcDetailFamily}",
+        $"{Text.IcDetailReuseLabel}: {SelectedIcDetailReuse}",
+        $"{Text.IcDetailRuntimeLabel}: {SelectedIcDetailRuntime}",
+        $"{Text.IcDetailEvidenceLabel}: {SelectedIcDetailEvidence}",
+        $"{Text.IcDetailSupportLabel}: {SelectedIcDetailSupport}");
+
     /// <summary>Status shown in the merge inspector.</summary>
     public string MergeReadinessStatus => IsFirmwareInspectionLoading
         ? Text.FirmwareInspectionLoadingStatus
-        : Text.GetMergeReadinessStatus(
-            SelectedMergeMode,
-            SelectedIc,
-            GetRequiredStandardMergeSlotLabels(),
-            IsStandardMergeSupported,
-            GeneralMergeMappings.Count(mapping => mapping.HasFile));
+        : IsAbCodeMergeModeSelected
+            ? Text.GetAbMergeReadinessStatus(
+                SelectedIc,
+                IsAbMergeSupported,
+                MergeSlots.Count(static slot => slot.HasFile),
+                MergeSlots.Count,
+                MergeSlots.Count(static slot => slot.IsInputInspectionBlocking),
+                MergeSlots.Count(static slot => slot.IsInputInspectionWarning))
+            : Text.GetMergeReadinessStatus(
+                SelectedMergeMode,
+                SelectedIc,
+                GetRequiredStandardMergeSlotLabels(),
+                IsStandardMergeSupported,
+                GeneralMergeMappings.Count(mapping => mapping.HasFile));
 
     /// <summary>True when active Merge build can run.</summary>
     public bool CanBuildMerge => CanRunMerge();
@@ -294,6 +343,9 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Home entry command that collects Merge context before opening Standard Merge.</summary>
     public IRelayCommand BeginNormalMergeFromHomeCommand { get; }
+
+    /// <summary>Home entry command that limits IC selection to the admitted AB pilot.</summary>
+    public IRelayCommand BeginAbMergeFromHomeCommand { get; }
 
     /// <summary>Home entry command that collects Merge context before opening General Merge.</summary>
     public IRelayCommand BeginGeneralMergeFromHomeCommand { get; }

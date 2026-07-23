@@ -261,7 +261,7 @@
     <Setter Property="Height" Value="44" />
     <Setter Property="MinWidth" Value="44" />
     <Setter Property="MinHeight" Value="44" />
-    <Setter Property="Padding" Value="0,0,13,0" />
+    <Setter Property="Padding" Value="0" />
     <Setter Property="HorizontalAlignment" Value="Right" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -293,6 +293,7 @@
   <Style Selector="TextBlock.railActionLabel">
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="16,0,10,0" />
     <Setter Property="Opacity" Value="0" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     <Setter Property="Transitions">
@@ -301,17 +302,11 @@
       </Transitions>
     </Setter>
   </Style>
-  <Style Selector="Button.outputRailAction:pointerover">
-    <Setter Property="Width" Value="184" />
+  <Style Selector="Button.railAction:pointerover">
+    <Setter Property="Width" Value="136" />
   </Style>
-  <Style Selector="Button.outputRailAction:focus-visible">
-    <Setter Property="Width" Value="184" />
-  </Style>
-  <Style Selector="Button.buildRailAction:pointerover">
-    <Setter Property="Width" Value="112" />
-  </Style>
-  <Style Selector="Button.buildRailAction:focus-visible">
-    <Setter Property="Width" Value="112" />
+  <Style Selector="Button.railAction:focus-visible">
+    <Setter Property="Width" Value="136" />
   </Style>
   <Style Selector="Button.railAction:pointerover TextBlock.railActionLabel">
     <Setter Property="Opacity" Value="1" />
@@ -381,10 +376,15 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderThickness" Value="1" />
   </Style>
+  <Style Selector="Border.railActionIconSlot">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="44" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
   <Style Selector="Path.railActionIcon">
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Margin" Value="0,1,0,0" />
     <Setter Property="Stretch" Value="Uniform" />
     <Setter Property="StrokeThickness" Value="1.8" />
     <Setter Property="StrokeLineCap" Value="Round" />
@@ -398,7 +398,8 @@
     <Setter Property="Fill" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="Button.primaryRailAction Path.railActionIcon">
-    <Setter Property="Stroke" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="Fill" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="Stroke" Value="Transparent" />
   </Style>
   <Style Selector="Button.railAction:disabled Path.railActionIcon">
     <Setter Property="Fill" Value="{DynamicResource NfcTextDisabledBrush}" />

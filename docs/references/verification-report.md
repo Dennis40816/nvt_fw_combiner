@@ -1,8 +1,19 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.13 support-neutral stabilization release candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.14 AB pilot and release-automation candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.13`
+Specification package version: `0.9.14`
+
+## 0.9.14 AB pilot and CI-owned release candidate
+
+The `0.9.14` branch starts from stable `v0.9.13`/`main` commit
+`f9f8dbcd979ecdef43f432016787e57763819492`. It adds the separately gated
+NT51919/NT51929/NT51932 AB pilot through the shared composition engine, typed
+load diagnostics, the minimum AB authoring UI, IC details, targeted interaction
+fixes, and protected CI-owned release promotion. Exact-head canonical
+verification, packaged Release EXE visual/startup checks, independent local and
+GitHub Codex review, firmware-owner confirmation, and release-owner approval
+remain required before stable publication.
 
 ## 0.9.13 support-neutral stabilization release candidate
 

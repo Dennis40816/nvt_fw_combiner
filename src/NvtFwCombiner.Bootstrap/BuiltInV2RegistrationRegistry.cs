@@ -29,6 +29,17 @@ internal static class BuiltInV2RegistrationRegistry
     internal static ReadOnlyDictionary<string, BuiltInV2Registration> StandardMergeByIc { get; } =
         new(StandardMerge.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
 
+    internal static ReadOnlyCollection<BuiltInV2Registration> AbMerge { get; } =
+        Array.AsReadOnly(
+        [
+            new BuiltInV2Registration("NT51919", "nt51919-ab-merge-alias", "0.2.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+            new BuiltInV2Registration("NT51929", "nt51929-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+            new BuiltInV2Registration("NT51932", "nt51932-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+        ]);
+
+    internal static ReadOnlyDictionary<string, BuiltInV2Registration> AbMergeByIc { get; } =
+        new(AbMerge.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
+
     internal static Lazy<ReadOnlyDictionary<string, BuiltInV2Registration>> DpReplaceByIc { get; } =
         new(CreateDpReplaceRegistrations);
 
@@ -83,7 +94,8 @@ internal sealed class BuiltInV2Registration
         string profileId,
         string profileVersion,
         BuiltInV2Bundle bundle,
-        CompositionKind compositionKind)
+        CompositionKind compositionKind,
+        string? workflowId = null)
     {
         if (compositionKind is not (CompositionKind.Merge or CompositionKind.Replace))
         {
@@ -95,6 +107,18 @@ internal sealed class BuiltInV2Registration
         _profileVersion = profileVersion;
         _bundle = bundle;
         CompositionKind = compositionKind;
+        WorkflowId = workflowId ?? (compositionKind == CompositionKind.Merge
+            ? IcWorkflowIds.StandardMerge
+            : IcWorkflowIds.DpReplace);
+        bool isKnownWorkflow = WorkflowId is IcWorkflowIds.StandardMerge or IcWorkflowIds.AbMerge or IcWorkflowIds.DpReplace;
+        bool kindMatchesWorkflow = WorkflowId == IcWorkflowIds.DpReplace
+            ? compositionKind == CompositionKind.Replace
+            : compositionKind == CompositionKind.Merge;
+        if (!isKnownWorkflow || !kindMatchesWorkflow)
+        {
+            throw new ArgumentException("Built-in registration workflow and composition kind are inconsistent.", nameof(workflowId));
+        }
+
         _summaryCompilation = new(CompileSummary);
     }
 
@@ -104,11 +128,19 @@ internal sealed class BuiltInV2Registration
 
     private CompositionKind CompositionKind { get; }
 
-    private bool IsStandardMerge => CompositionKind == CompositionKind.Merge;
+    private string WorkflowId { get; }
 
-    private string WorkflowId => IsStandardMerge ? IcWorkflowIds.StandardMerge : IcWorkflowIds.DpReplace;
+    private bool IsStandardMerge => WorkflowId == IcWorkflowIds.StandardMerge;
 
-    private string ProfileLabel => IsStandardMerge ? "profile" : "DP Replace profile";
+    private bool IsDpReplace => WorkflowId == IcWorkflowIds.DpReplace;
+
+    private string ProfileLabel => WorkflowId switch
+    {
+        IcWorkflowIds.StandardMerge => "Standard Merge profile",
+        IcWorkflowIds.AbMerge => "AB Merge profile",
+        IcWorkflowIds.DpReplace => "DP Replace profile",
+        _ => throw new InvalidOperationException("Unknown built-in workflow."),
+    };
 
     internal bool HasMultipleMapCapacities
     {
@@ -185,7 +217,7 @@ internal sealed class BuiltInV2Registration
 
             requestedCapacity = inputLength;
         }
-        else if (!IsStandardMerge)
+        else if (IsDpReplace)
         {
             if (inputLength is null || !capacities.Contains(inputLength.Value))
             {
@@ -234,8 +266,10 @@ internal sealed class BuiltInV2Registration
                 [],
                 IsStandardMerge
                     ? WorkbenchCompositionService.StandardMergeFallbackOutputFileName
-                    : $"nt{IcId[2..].ToLowerInvariant()}-dp-replace.bin",
-                IsStandardMerge ? null : CompiledIcNumberPolicy.SingleSelector,
+                    : IsDpReplace
+                        ? $"nt{IcId[2..].ToLowerInvariant()}-dp-replace.bin"
+                        : $"nt{IcId[2..].ToLowerInvariant()}-ab-merge.bin",
+                IsDpReplace ? CompiledIcNumberPolicy.SingleSelector : null,
                 CompileSucceeded: false,
                 Array.AsReadOnly(compilation.Issues.Select(static issue => issue.Code).ToArray()));
     }
@@ -249,8 +283,8 @@ internal sealed class BuiltInV2Registration
             (_, 0) => V2CompositionPlanCompileResult.Failed(
                 [new CompositionIssue(
                     BuiltInV2Bundle.CompilationFailed,
-                    $"The built-in V2 {ProfileLabel} for {IcId} has no declared {(IsStandardMerge ? "map" : "base")} capacities.")]),
-            _ => CompileExecutable(!IsStandardMerge || capacities.Count > 1 ? capacities[0] : null),
+                    $"The built-in V2 {ProfileLabel} for {IcId} has no declared {(IsDpReplace ? "base" : "map")} capacities.")]),
+            _ => CompileExecutable(IsDpReplace || (IsStandardMerge && capacities.Count > 1) ? capacities[0] : null),
         };
     }
 

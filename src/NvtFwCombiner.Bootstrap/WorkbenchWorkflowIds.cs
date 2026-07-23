@@ -8,6 +8,9 @@ public static class WorkbenchWorkflowIds
     /// <summary>Standard Merge workflow id.</summary>
     public const string StandardMerge = IcWorkflowIds.StandardMerge;
 
+    /// <summary>AB Code Merge workflow id.</summary>
+    public const string AbMerge = IcWorkflowIds.AbMerge;
+
     /// <summary>General Merge workflow id.</summary>
     public const string GeneralMerge = IcWorkflowIds.GeneralMerge;
 

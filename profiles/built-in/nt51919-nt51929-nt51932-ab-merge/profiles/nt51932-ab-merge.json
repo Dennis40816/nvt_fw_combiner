@@ -1,25 +1,13 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.10",
   "profileId": "nt51932-ab-merge",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "firmware-owner-review",
-        "kind": "human-review",
-        "reason": "Firmware owner must approve the NT51932 AB profile before runtime exposure.",
-        "evidenceRefs": ["uploaded-ab-combiner-51932"]
-      },
-      {
-        "blockerId": "production-golden-evidence",
-        "kind": "golden",
-        "reason": "No independent NT51932 AB output golden is available for runtime promotion.",
-        "evidenceRefs": ["uploaded-ab-combiner-51932"]
-      }
-    ]
+    "stage": "supported",
+    "blockers": []
   },
   "compositionKind": "merge",
+  "compilationContext": { "kind": "resolved-map" },
   "experience": {
     "experienceId": "ab-merge",
     "audience": "system",
@@ -45,7 +33,16 @@
       "required": true,
       "cardinality": "exactly-one",
       "acceptedExtensions": [".bin"],
-      "acceptance": { "lengthRule": { "kind": "exact-resolved-map-capacity" }, "normalization": { "kind": "none" } }
+      "acceptance": {
+        "lengthRule": {
+          "kind": "declared-prefix-with-warning",
+          "requiredEndExclusive": 524288,
+          "expectedOuterLengths": [524288],
+          "shortInputIssueCode": "AB_DP_INPUT_TOO_SHORT",
+          "unexpectedOuterLengthIssueCode": "AB_DP_INPUT_OUTER_LENGTH_UNEXPECTED"
+        },
+        "normalization": { "kind": "none" }
+      }
     },
     {
       "slotId": "tp-a-input",
@@ -54,7 +51,16 @@
       "required": true,
       "cardinality": "exactly-one",
       "acceptedExtensions": [".bin"],
-      "acceptance": { "lengthRule": { "kind": "exact-bytes", "bytes": 262144 }, "normalization": { "kind": "none" } }
+      "acceptance": {
+        "lengthRule": {
+          "kind": "declared-prefix-with-warning",
+          "requiredEndExclusive": 262144,
+          "expectedOuterLengths": [262144],
+          "shortInputIssueCode": "AB_TPA_INPUT_TOO_SHORT",
+          "unexpectedOuterLengthIssueCode": "AB_TPA_INPUT_OUTER_LENGTH_UNEXPECTED"
+        },
+        "normalization": { "kind": "none" }
+      }
     },
     {
       "slotId": "tp-b-input",
@@ -63,7 +69,16 @@
       "required": true,
       "cardinality": "exactly-one",
       "acceptedExtensions": [".bin"],
-      "acceptance": { "lengthRule": { "kind": "exact-bytes", "bytes": 262144 }, "normalization": { "kind": "none" } }
+      "acceptance": {
+        "lengthRule": {
+          "kind": "declared-prefix-with-warning",
+          "requiredEndExclusive": 262144,
+          "expectedOuterLengths": [262144],
+          "shortInputIssueCode": "AB_TPB_INPUT_TOO_SHORT",
+          "unexpectedOuterLengthIssueCode": "AB_TPB_INPUT_OUTER_LENGTH_UNEXPECTED"
+        },
+        "normalization": { "kind": "none" }
+      }
     }
   ],
   "spaces": [

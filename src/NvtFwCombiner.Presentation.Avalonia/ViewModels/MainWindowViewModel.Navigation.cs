@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -21,6 +22,10 @@ public sealed partial class MainWindowViewModel
         " > ",
         NavigationTrail.Select(entry => entry.Label));
 
+    /// <summary>Gets the current and requested pages shown by the navigation clear confirmation.</summary>
+    public string NavigationClearRoute => _pendingNavigation is { } pending
+        ? $"{PageLabel(SelectedPage)} → {PageLabel(pending.Target)}" : NavigationPath;
+
     /// <summary>True when the shell can return to the previous visited page.</summary>
     public bool CanGoBack => _pageHistory.Count > 1;
 
@@ -28,10 +33,44 @@ public sealed partial class MainWindowViewModel
     public bool IsDeviceContextVisible => IsRunInProgress || SelectedPage is ShellPage.Merge or ShellPage.Replace;
 
     /// <summary>True when the fixed composition action rail belongs to the active page.</summary>
-    public bool IsCompositionActionRailVisible => SelectedPage is ShellPage.Merge or ShellPage.Replace;
+    public bool IsCompositionActionRailVisible =>
+        (SelectedPage is ShellPage.Merge or ShellPage.Replace) && !IsBlockingSurfaceOpen;
 
     /// <summary>True when the current composition page can reopen the latest committed output.</summary>
     public bool IsLatestOutputActionVisible => IsCompositionActionRailVisible && HasLatestCommittedOutput;
+
+    private bool IsBlockingSurfaceOpen =>
+        IsReplaceSelectionModalOpen ||
+        IsCtrlRamFirmwareVersionModalOpen ||
+        IsWorkflowContextModalOpen ||
+        IsFirmwareIcMismatchModalOpen ||
+        IsFirmwareNumberMismatchModalOpen ||
+        IsNavigationClearConfirmationOpen ||
+        IsReportModalOpen ||
+        IsBuildCompletedModalOpen ||
+        LoadedHexEditorWorkspace?.IsInsertBytesPromptOpen == true ||
+        LoadedHexEditorWorkspace?.IsSaveConfirmationOpen == true;
+
+    private void MainWindowViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(IsReplaceSelectionModalOpen) or
+            nameof(IsCtrlRamFirmwareVersionModalOpen) or
+            nameof(IsWorkflowContextModalOpen) or
+            nameof(IsFirmwareIcMismatchModalOpen) or
+            nameof(IsFirmwareNumberMismatchModalOpen) or
+            nameof(IsNavigationClearConfirmationOpen) or
+            nameof(IsReportModalOpen) or
+            nameof(IsBuildCompletedModalOpen))
+        {
+            NotifyCompositionActionRailVisibilityChanged();
+        }
+    }
+
+    private void NotifyCompositionActionRailVisibilityChanged()
+    {
+        OnPropertyChanged(nameof(IsCompositionActionRailVisible));
+        OnPropertyChanged(nameof(IsLatestOutputActionVisible));
+    }
 
     /// <summary>True when the shared context row should expose the IC Number selector.</summary>
     public bool IsNumberSelectorVisible => IsRunInProgress
@@ -61,8 +100,7 @@ public sealed partial class MainWindowViewModel
 
     private bool ShouldShowNumberSelectorForSelectedPage()
     {
-        return SelectedPage is ShellPage.Merge or ShellPage.Replace &&
-            !(IsMergeVisible && (IsNormalMergeModeSelected || IsGeneralMergeModeSelected));
+        return IsReplaceVisible;
     }
 
     private void NavigateToPage(ShellPage page)
@@ -95,13 +133,14 @@ public sealed partial class MainWindowViewModel
 
     private bool RequestNavigation(ShellPage target, bool isBack)
     {
-        if (!HasSelectedInputs(SelectedPage))
+        if (IsNavigationClearConfirmationOpen || !HasSelectedInputs(SelectedPage))
         {
-            return false;
+            return IsNavigationClearConfirmationOpen;
         }
 
         InvalidateFirmwareNumberMismatch();
         _pendingNavigation = new PendingNavigation(target, isBack);
+        OnPropertyChanged(nameof(NavigationClearRoute));
         IsNavigationClearConfirmationOpen = true;
         return true;
     }
@@ -152,6 +191,8 @@ public sealed partial class MainWindowViewModel
                 _mergeDpSlot.HasFile ||
                 _mergeTpSlot.HasFile ||
                 _mergeLdSlot.HasFile ||
+                _abMergeSlotsByAddressSpace.Values.Any(static slot => slot.HasFile) ||
+                MergeSlots.Any(static slot => slot.HasFile) ||
                 GeneralMergeMappings.Any(static mapping => mapping.HasFile),
             ShellPage.Replace =>
                 ReplaceBaseSlot.HasFile ||
@@ -171,9 +212,14 @@ public sealed partial class MainWindowViewModel
 
         if (page == ShellPage.Merge)
         {
-            ClearFirmwareSlot(_mergeDpSlot);
-            ClearFirmwareSlot(_mergeTpSlot);
-            ClearFirmwareSlot(_mergeLdSlot);
+            foreach (FirmwareSlotViewModel slot in MergeSlots
+                         .Concat(_abMergeSlotsByAddressSpace.Values)
+                         .Concat([_mergeDpSlot, _mergeTpSlot, _mergeLdSlot])
+                         .Distinct())
+            {
+                ClearFirmwareSlot(slot);
+            }
+
             foreach (GeneralMergeMappingViewModel mapping in GeneralMergeMappings)
             {
                 mapping.FilePath = null;

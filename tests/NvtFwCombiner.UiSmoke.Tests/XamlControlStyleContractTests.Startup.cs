@@ -78,4 +78,18 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("File.", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("Process.", warmup, StringComparison.Ordinal);
     }
+
+    /// <summary>The clear confirmation identifies the pending route visually and to assistive technology.</summary>
+    [Fact]
+    public void NavigationClearConfirmationBindsPendingRoute()
+    {
+        string modal = ReadPresentationFile("Views/NavigationClearConfirmationModal.axaml");
+
+        Assert.Contains("Text=\"{Binding NavigationClearRoute}\"", modal, StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.Name=\"{Binding NavigationClearRoute}\"",
+            modal,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"{Binding NavigationPath}\"", modal, StringComparison.Ordinal);
+    }
 }

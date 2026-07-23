@@ -29,6 +29,7 @@ internal enum CompositionProfileLengthRuleKind
     Bounded,
     NormalDpExtractWithWarning,
     TpMaximum256K,
+    DeclaredPrefixWithWarning,
 }
 
 /// <summary>Base value for one normalized input length rule.</summary>
@@ -45,6 +46,69 @@ internal abstract record CompositionProfileLengthRule
     }
 
     internal CompositionProfileLengthRuleKind Kind { get; }
+}
+
+/// <summary>Accepts one immutable declared prefix and retains full-source diagnostic authority.</summary>
+internal sealed record DeclaredPrefixWithWarningLengthRule : CompositionProfileLengthRule
+{
+    private readonly long[] _expectedOuterLengths;
+
+    internal DeclaredPrefixWithWarningLengthRule(
+        long requiredEndExclusive,
+        IReadOnlyList<long> expectedOuterLengths,
+        string shortInputIssueCode,
+        string unexpectedOuterLengthIssueCode)
+        : base(CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning)
+    {
+        if (requiredEndExclusive is <= 0 or > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(requiredEndExclusive),
+                requiredEndExclusive,
+                "Required end must fit the in-memory execution snapshot limit.");
+        }
+
+        ArgumentNullException.ThrowIfNull(expectedOuterLengths);
+        if (expectedOuterLengths.Count is 0 or > InputLengthPolicyLimits.MaximumExpectedInputLengths)
+        {
+            throw new ArgumentException(
+                $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
+                nameof(expectedOuterLengths));
+        }
+
+        _expectedOuterLengths = new long[expectedOuterLengths.Count];
+        long previous = 0;
+        for (int index = 0; index < expectedOuterLengths.Count; index++)
+        {
+            long value = expectedOuterLengths[index];
+            if (value < requiredEndExclusive || value > int.MaxValue || (index > 0 && value <= previous))
+            {
+                throw new ArgumentException(
+                    "Expected outer lengths must fit the in-memory limit, cover the required end, and be strictly ascending.",
+                    nameof(expectedOuterLengths));
+            }
+
+            _expectedOuterLengths[index] = value;
+            previous = value;
+        }
+
+        RequiredEndExclusive = requiredEndExclusive;
+        ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
+        ShortInputIssueCode = CompositionProfileValueRules.RequireIssueCode(
+            shortInputIssueCode,
+            nameof(shortInputIssueCode));
+        UnexpectedOuterLengthIssueCode = CompositionProfileValueRules.RequireIssueCode(
+            unexpectedOuterLengthIssueCode,
+            nameof(unexpectedOuterLengthIssueCode));
+    }
+
+    internal long RequiredEndExclusive { get; }
+
+    internal IReadOnlyList<long> ExpectedOuterLengths { get; }
+
+    internal string ShortInputIssueCode { get; }
+
+    internal string UnexpectedOuterLengthIssueCode { get; }
 }
 
 /// <summary>Requires one exact positive input length.</summary>
@@ -288,7 +352,8 @@ internal sealed partial class CompositionProfileInputSlot
 
         if (artifactClass == CompositionProfileArtifactClass.DpFirmware &&
             lengthRule.Kind is not CompositionProfileLengthRuleKind.ExactResolvedMapCapacity and
-                not CompositionProfileLengthRuleKind.NormalDpExtractWithWarning)
+                not CompositionProfileLengthRuleKind.NormalDpExtractWithWarning and
+                not CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning)
         {
             throw new ArgumentException("DP firmware requires an approved DP length rule.");
         }
@@ -318,11 +383,24 @@ internal sealed partial class CompositionProfileInputSlot
         {
             throw new ArgumentException("Normal DP extraction warnings cannot normalize input bytes.");
         }
+
+        if (lengthRule.Kind == CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning &&
+            (artifactClass is CompositionProfileArtifactClass.ReferenceImage or
+                CompositionProfileArtifactClass.CtrlRamReplacement ||
+             normalization.Kind != CompositionProfileInputNormalizationKind.None))
+        {
+            throw new ArgumentException(
+                "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
+        }
     }
 
     private static bool IsApprovedTpLengthRule(CompositionProfileLengthRule lengthRule)
     {
         return lengthRule is TpMaximum256KLengthRule or
+            DeclaredPrefixWithWarningLengthRule
+        {
+            RequiredEndExclusive: <= TpMaximum256KLengthRule.MaximumBytes,
+        } or
             ExactBytesLengthRule { Bytes: <= TpMaximum256KLengthRule.MaximumBytes };
     }
 

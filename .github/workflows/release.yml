@@ -3,59 +3,283 @@ name: release
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: Existing approved stable SemVer tag (vX.Y.Z)
+      commit:
+        description: Exact reviewed main commit (40-character lowercase SHA)
         required: true
         type: string
+      pull_request:
+        description: Final reviewed pull request merged as this main commit
+        required: true
+        type: string
+      owner_self_approval_exception:
+        description: Sole repository-owner exception when GitHub forbids author approval; protected release approval still applies
+        required: true
+        default: false
+        type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: release-${{ inputs.tag }}
+  group: stable-release
   cancel-in-progress: false
 
 jobs:
-  package:
-    name: release / package
+  candidate:
+    name: release / candidate
     runs-on: windows-latest
-    timeout-minutes: 45
-    environment: release
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      checks: read
+      statuses: read
+    outputs:
+      source-sha: ${{ steps.identity.outputs.source-sha }}
+      source-tree: ${{ steps.identity.outputs.source-tree }}
+      version: ${{ steps.identity.outputs.version }}
+      tag: ${{ steps.identity.outputs.tag }}
+      pull-request: ${{ steps.request.outputs.pull-request }}
+      artifact-name: ${{ steps.identity.outputs.artifact-name }}
+      artifact-digest: ${{ steps.candidate-upload.outputs.artifact-digest }}
+      manifest-name: ${{ steps.manifest.outputs.manifest-name }}
+      manifest-sha256: ${{ steps.manifest.outputs.manifest-sha256 }}
     steps:
-      - name: Validate stable tag input
+      - name: Validate dispatch request without shell interpolation
+        id: request
         shell: pwsh
+        env:
+          NFC_RELEASE_COMMIT: ${{ inputs.commit }}
+          NFC_RELEASE_PR: ${{ inputs.pull_request }}
+          NFC_OWNER_SELF_APPROVAL_EXCEPTION: ${{ inputs.owner_self_approval_exception }}
+          NFC_WORKFLOW_REF: ${{ github.ref }}
+          NFC_WORKFLOW_SHA: ${{ github.workflow_sha }}
         run: |
-          if ('${{ inputs.tag }}' -notmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
-            throw 'Release requires a stable SemVer tag in vX.Y.Z form.'
+          if ($env:NFC_RELEASE_COMMIT -notmatch '^[0-9a-f]{40}$') {
+            throw 'Release requires an exact lowercase 40-character main commit SHA.'
           }
-      - name: Checkout approved tag
+          if ($env:NFC_RELEASE_PR -notmatch '^[1-9][0-9]*$') {
+            throw 'Release requires one positive final pull-request number.'
+          }
+          if ($env:NFC_OWNER_SELF_APPROVAL_EXCEPTION -notin @('true', 'false')) {
+            throw 'The owner self-approval exception input is invalid.'
+          }
+          if ($env:NFC_WORKFLOW_REF -ne 'refs/heads/main') {
+            throw 'The release workflow must be dispatched from protected main.'
+          }
+          if ($env:NFC_WORKFLOW_SHA -notmatch '^[0-9a-f]{40}$') {
+            throw 'The workflow definition SHA is invalid.'
+          }
+          "requested-sha=$env:NFC_RELEASE_COMMIT" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "pull-request=$env:NFC_RELEASE_PR" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Checkout protected main
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: ${{ inputs.tag }}
+          ref: main
           fetch-depth: 0
           persist-credentials: false
-      - name: Confirm checked-out commit is exactly tagged
-        shell: pwsh
-        run: |
-          git rev-parse --verify 'refs/tags/${{ inputs.tag }}'
-          if ((git rev-list -n 1 '${{ inputs.tag }}') -ne (git rev-parse HEAD)) {
-            throw 'Checked-out commit does not match the requested tag.'
-          }
-      - name: Confirm stable tag is reachable from main
-        shell: pwsh
-        run: |
-          $tagCommit = git rev-list -n 1 '${{ inputs.tag }}'
-          $mainCommit = git rev-parse --verify 'refs/remotes/origin/main'
-          git merge-base --is-ancestor $tagCommit $mainCommit
-          if ($LASTEXITCODE -ne 0) {
-            throw "Release tag '${{ inputs.tag }}' is not reachable from main. Merge the reviewed commit to main before dispatching a stable release."
-          }
-      - name: Setup Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0 immutable reviewed commit
+      - name: Setup pinned Python for release policy
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.13'
           cache: pip
           cache-dependency-path: tools/crc-worker/pyproject.toml
+      - name: Lock candidate identity
+        id: identity
+        shell: pwsh
+        env:
+          NFC_REQUESTED_SHA: ${{ steps.request.outputs.requested-sha }}
+          NFC_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          $sourceSha = git rev-parse HEAD
+          $mainSha = git rev-parse --verify refs/remotes/origin/main
+          if ($sourceSha -ne $env:NFC_REQUESTED_SHA -or
+              $sourceSha -ne $env:NFC_WORKFLOW_SHA -or
+              $sourceSha -ne $mainSha) {
+            throw 'Requested, workflow, checkout, and current main SHAs must be identical.'
+          }
+          $version = (Get-Content -LiteralPath ./VERSION -Raw).Trim()
+          if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
+            throw "VERSION must be stable SemVer; found '$version'."
+          }
+          $tag = "v$version"
+          $sourceTree = git rev-parse HEAD^{tree}
+          $artifactName = "stable-candidate-${{ github.run_id }}-$sourceSha"
+          "source-sha=$sourceSha" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "source-tree=$sourceTree" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "artifact-name=$artifactName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Collect and validate final PR review/check evidence
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NFC_REPOSITORY: ${{ github.repository }}
+          NFC_PULL_REQUEST: ${{ steps.request.outputs.pull-request }}
+          NFC_REQUESTED_SHA: ${{ steps.request.outputs.requested-sha }}
+          NFC_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          NFC_WORKFLOW_REF: ${{ github.ref }}
+          NFC_SOURCE_SHA: ${{ steps.identity.outputs.source-sha }}
+          NFC_SOURCE_TREE: ${{ steps.identity.outputs.source-tree }}
+          NFC_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          NFC_WORKFLOW_ACTOR: ${{ github.actor }}
+          NFC_OWNER_SELF_APPROVAL_EXCEPTION: ${{ inputs.owner_self_approval_exception }}
+        run: |
+          $evidenceRoot = Join-Path '${{ github.workspace }}' 'artifacts/release-evidence'
+          New-Item -ItemType Directory -Force -Path $evidenceRoot | Out-Null
+          $prText = gh pr view $env:NFC_PULL_REQUEST --repo $env:NFC_REPOSITORY `
+            --json number,state,mergedAt,baseRefName,mergeCommit,headRefOid,reviewDecision,author
+          if ($LASTEXITCODE -ne 0) { throw 'Final PR evidence could not be read.' }
+          $pr = $prText | ConvertFrom-Json
+          $headCommitText = gh api "repos/$env:NFC_REPOSITORY/git/commits/$($pr.headRefOid)"
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed PR head tree could not be read.' }
+          $headCommit = $headCommitText | ConvertFrom-Json
+          $reviewsText = gh api --paginate --slurp `
+            "repos/$env:NFC_REPOSITORY/pulls/$env:NFC_PULL_REQUEST/reviews" --jq 'add'
+          if ($LASTEXITCODE -ne 0) { throw 'Final PR approval evidence could not be read.' }
+          $reviews = @($reviewsText | ConvertFrom-Json)
+          $codexReviewer = 'chatgpt-codex-connector'
+          function Get-NormalizedReviewer([object]$login) {
+            $normalized = ([string]$login).Trim().ToLowerInvariant()
+            if ($normalized.EndsWith('[bot]', [System.StringComparison]::Ordinal)) {
+              return $normalized.Substring(0, $normalized.Length - '[bot]'.Length).TrimEnd()
+            }
+
+            return $normalized
+          }
+          $approvals = @($reviews |
+            Where-Object {
+              $_.state -eq 'APPROVED' -and
+              $_.commit_id -eq $pr.headRefOid -and
+              (Get-NormalizedReviewer $_.user.login) -ne $codexReviewer
+            } |
+            ForEach-Object {
+              [ordered]@{
+                reviewer = [string]$_.user.login
+                commitSha = [string]$_.commit_id
+                submittedAt = [string]$_.submitted_at
+              }
+            })
+          $codexPullReviewCandidates = @($reviews |
+            Where-Object {
+              (Get-NormalizedReviewer $_.user.login) -eq $codexReviewer -and
+              $_.commit_id -eq $pr.headRefOid -and
+              $_.state -in @('COMMENTED', 'APPROVED') -and
+              -not [string]::IsNullOrWhiteSpace([string]$_.submitted_at)
+            } |
+            Sort-Object submitted_at -Descending |
+            Select-Object -First 1 |
+            ForEach-Object {
+              [ordered]@{
+                source = 'pull-review'
+                reviewer = [string]$_.user.login
+                commitSha = [string]$_.commit_id
+                state = [string]$_.state
+                submittedAt = [string]$_.submitted_at
+              }
+            })
+          $inlineCommentsText = gh api --paginate --slurp `
+            "repos/$env:NFC_REPOSITORY/pulls/$env:NFC_PULL_REQUEST/comments" --jq 'add'
+          if ($LASTEXITCODE -ne 0) { throw 'Final PR inline-comment evidence could not be read.' }
+          $inlineComments = @($inlineCommentsText | ConvertFrom-Json)
+          $codexInlineCommentCandidates = @($inlineComments |
+            Where-Object {
+              (Get-NormalizedReviewer $_.user.login) -eq $codexReviewer -and
+              $_.commit_id -eq $pr.headRefOid -and
+              -not [string]::IsNullOrWhiteSpace([string]$_.created_at)
+            } |
+            ForEach-Object {
+              [ordered]@{
+                source = 'inline-comment'
+                reviewer = [string]$_.user.login
+                commitSha = [string]$_.commit_id
+                state = 'COMMENTED'
+                submittedAt = [string]$_.created_at
+              }
+            })
+          $issueCommentsText = gh api --paginate --slurp `
+            "repos/$env:NFC_REPOSITORY/issues/$env:NFC_PULL_REQUEST/comments" --jq 'add'
+          if ($LASTEXITCODE -ne 0) { throw 'Final PR issue-comment evidence could not be read.' }
+          $issueComments = @($issueCommentsText | ConvertFrom-Json)
+          $reviewedCommitPrefix = $pr.headRefOid.Substring(0, 10)
+          $reviewedCommitMarker = 'Reviewed commit: `{0}`' -f $reviewedCommitPrefix
+          $codexIssueCommentCandidates = @($issueComments |
+            Where-Object {
+              (Get-NormalizedReviewer $_.user.login) -eq $codexReviewer -and
+              ([string]$_.body).Contains($reviewedCommitMarker, [System.StringComparison]::Ordinal) -and
+              -not [string]::IsNullOrWhiteSpace([string]$_.created_at)
+            } |
+            ForEach-Object {
+              [ordered]@{
+                source = 'issue-comment'
+                reviewer = [string]$_.user.login
+                commitSha = [string]$pr.headRefOid
+                reviewedCommitPrefix = $reviewedCommitPrefix
+                state = 'COMMENTED'
+                submittedAt = [string]$_.created_at
+              }
+            })
+          $codexEvidence = @(
+            $codexPullReviewCandidates
+            $codexInlineCommentCandidates
+            $codexIssueCommentCandidates
+          )
+          $codexReview = @($codexEvidence |
+            Sort-Object submittedAt -Descending |
+            Select-Object -First 1)
+          $checksText = gh pr checks $env:NFC_PULL_REQUEST --repo $env:NFC_REPOSITORY `
+            --required --json name,state,bucket 2>&1
+          try { $checks = $checksText | ConvertFrom-Json -ErrorAction Stop }
+          catch { throw "Required check evidence is unavailable or malformed: $checksText" }
+          $snapshot = [ordered]@{
+            number = [int]$pr.number
+            state = [string]$pr.state
+            mergedAt = [string]$pr.mergedAt
+            baseRefName = [string]$pr.baseRefName
+            mergeCommitSha = [string]$pr.mergeCommit.oid
+            headSha = [string]$pr.headRefOid
+            headTree = [string]$headCommit.tree.sha
+            reviewDecision = [string]$pr.reviewDecision
+            authorLogin = [string]$pr.author.login
+            repositoryOwner = $env:NFC_REPOSITORY_OWNER
+            workflowActor = $env:NFC_WORKFLOW_ACTOR
+            ownerSelfApprovalException = $env:NFC_OWNER_SELF_APPROVAL_EXCEPTION -eq 'true'
+            approvals = $approvals
+            codexReview = if ($codexReview.Count -eq 1) { $codexReview[0] } else { $null }
+            requiredChecks = @($checks)
+          }
+          $snapshotPath = Join-Path $evidenceRoot 'review-snapshot.json'
+          $snapshot | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $snapshotPath -Encoding utf8NoBOM
+          python ./scripts/release_promotion_policy.py validate-context `
+            --snapshot $snapshotPath `
+            --requested-sha $env:NFC_REQUESTED_SHA `
+            --workflow-sha $env:NFC_WORKFLOW_SHA `
+            --workflow-ref $env:NFC_WORKFLOW_REF `
+            --source-sha $env:NFC_SOURCE_SHA `
+            --main-sha $env:NFC_SOURCE_SHA `
+            --source-tree $env:NFC_SOURCE_TREE `
+            --repository-owner $env:NFC_REPOSITORY_OWNER `
+            --workflow-actor $env:NFC_WORKFLOW_ACTOR `
+            --owner-self-approval-exception $env:NFC_OWNER_SELF_APPROVAL_EXCEPTION
+          if ($LASTEXITCODE -ne 0) { throw 'Final PR review/tree/check policy failed.' }
+      - name: Require readable stable tag and Release state
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NFC_REPOSITORY: ${{ github.repository }}
+          NFC_TAG: ${{ steps.identity.outputs.tag }}
+        run: |
+          $tagState = python ./scripts/release_promotion_policy.py probe-resource `
+            --endpoint "repos/$env:NFC_REPOSITORY/git/ref/tags/$env:NFC_TAG"
+          if ($LASTEXITCODE -ne 0 -or $tagState.Trim() -notin @('absent', 'present')) {
+            throw "Stable tag '$env:NFC_TAG' state could not be proved."
+          }
+          $releaseState = python ./scripts/release_promotion_policy.py probe-resource `
+            --endpoint "repos/$env:NFC_REPOSITORY/releases/tags/$env:NFC_TAG"
+          if ($LASTEXITCODE -ne 0 -or $releaseState.Trim() -notin @('absent', 'present')) {
+            throw "Release '$env:NFC_TAG' state could not be proved."
+          }
       - name: Install pinned repository .NET SDK
         shell: pwsh
         run: ./scripts/install-dotnet.ps1 -Scope Repository
@@ -64,18 +288,302 @@ jobs:
         run: |
           "${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "DOTNET_ROOT=${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Install worker verification and packaging dependencies
+      - name: Install verification and packaging dependencies
         run: python -m pip install --disable-pip-version-check -e './tools/crc-worker[dev,package]'
       - name: Verify release source
         run: python ./scripts/verify.py --all
       - name: Build closed-allowlist release package
         shell: pwsh
-        run: ./scripts/package.ps1 -Version '${{ inputs.tag }}' -Commit '${{ github.sha }}'
-      - name: Smoke packaged allowlist and worker
+        env:
+          NFC_VERSION: ${{ steps.identity.outputs.version }}
+          NFC_SOURCE_SHA: ${{ steps.identity.outputs.source-sha }}
+        run: ./scripts/package.ps1 -Version $env:NFC_VERSION -Commit $env:NFC_SOURCE_SHA
+      - name: Smoke candidate package
         shell: pwsh
-        run: ./scripts/smoke-release.ps1 -PackagePath './artifacts/release/NvtFwCombiner-${{ inputs.tag }}-win-x64.zip' -SkipUiLaunch
-      - name: Publish immutable GitHub release
+        env:
+          NFC_TAG: ${{ steps.identity.outputs.tag }}
+        run: ./scripts/smoke-release.ps1 -PackagePath "./artifacts/release/NvtFwCombiner-$env:NFC_TAG-win-x64.zip" -SkipUiLaunch
+      - name: Render complete release notes from CHANGELOG
+        shell: pwsh
+        env:
+          NFC_VERSION: ${{ steps.identity.outputs.version }}
+        run: python ./scripts/render_release_notes.py --version $env:NFC_VERSION --output ./artifacts/release/RELEASE-NOTES.md
+      - name: Create closed candidate manifest and outer checksums
+        id: manifest
+        shell: pwsh
+        env:
+          NFC_VERSION: ${{ steps.identity.outputs.version }}
+          NFC_SOURCE_SHA: ${{ steps.identity.outputs.source-sha }}
+          NFC_SOURCE_TREE: ${{ steps.identity.outputs.source-tree }}
+          NFC_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          NFC_WORKFLOW_REF: ${{ github.ref }}
+          NFC_RUN_ID: ${{ github.run_id }}
+        run: |
+          $manifestPath = python ./scripts/release_promotion_policy.py create-manifest `
+            --asset-dir ./artifacts/release `
+            --version $env:NFC_VERSION `
+            --source-sha $env:NFC_SOURCE_SHA `
+            --source-tree $env:NFC_SOURCE_TREE `
+            --run-id $env:NFC_RUN_ID `
+            --workflow-sha $env:NFC_WORKFLOW_SHA `
+            --workflow-ref $env:NFC_WORKFLOW_REF `
+            --notes ./artifacts/release/RELEASE-NOTES.md `
+            --review-snapshot ./artifacts/release-evidence/review-snapshot.json
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate manifest generation failed.' }
+          $manifestPath = $manifestPath.Trim()
+          "manifest-name=$([IO.Path]::GetFileName($manifestPath))" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "manifest-sha256=$((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Upload immutable candidate assets
+        id: candidate-upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.identity.outputs.artifact-name }}
+          path: artifacts/release/*
+          if-no-files-found: error
+          retention-days: 3
+
+  promote:
+    name: release / promote
+    needs: candidate
+    runs-on: windows-latest
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout prepared source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.candidate.outputs.source-sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Setup pinned Python for release policy
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Reconfirm protected main identity
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create '${{ inputs.tag }}' ./artifacts/release/* --verify-tag --generate-notes
+          NFC_REPOSITORY: ${{ github.repository }}
+          NFC_TAG: ${{ needs.candidate.outputs.tag }}
+          NFC_SOURCE_SHA: ${{ needs.candidate.outputs.source-sha }}
+          NFC_SOURCE_TREE: ${{ needs.candidate.outputs.source-tree }}
+        run: |
+          $sourceSha = git rev-parse HEAD
+          $sourceTree = git rev-parse HEAD^{tree}
+          $mainSha = git rev-parse --verify refs/remotes/origin/main
+          $endpoint = "repos/$env:NFC_REPOSITORY/git/ref/tags/$env:NFC_TAG"
+          $tagState = python ./scripts/release_promotion_policy.py probe-resource --endpoint $endpoint
+          if ($LASTEXITCODE -ne 0) { throw 'Stable tag state could not be proved before promotion.' }
+          git merge-base --is-ancestor $sourceSha $mainSha
+          $sourceIsMainAncestor = if ($LASTEXITCODE -eq 0) { 'true' } else { 'false' }
+          python ./scripts/release_promotion_policy.py validate-promotion-source `
+            --tag-state $tagState.Trim() `
+            --source-sha $env:NFC_SOURCE_SHA `
+            --source-tree $env:NFC_SOURCE_TREE `
+            --checkout-sha $sourceSha `
+            --checkout-tree $sourceTree `
+            --main-sha $mainSha `
+            --source-is-main-ancestor $sourceIsMainAncestor
+          if ($LASTEXITCODE -ne 0) { throw 'Promotion source/main policy failed.' }
+      - name: Download prepared candidate assets
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ${{ needs.candidate.outputs.artifact-name }}
+          path: artifacts/release
+      - name: Verify closed candidate identity and digests
+        shell: pwsh
+        env:
+          NFC_SOURCE_SHA: ${{ needs.candidate.outputs.source-sha }}
+          NFC_SOURCE_TREE: ${{ needs.candidate.outputs.source-tree }}
+          NFC_RUN_ID: ${{ github.run_id }}
+          NFC_WORKFLOW_SHA: ${{ needs.candidate.outputs.source-sha }}
+          NFC_WORKFLOW_REF: refs/heads/main
+          NFC_MANIFEST_NAME: ${{ needs.candidate.outputs.manifest-name }}
+          NFC_MANIFEST_SHA256: ${{ needs.candidate.outputs.manifest-sha256 }}
+        run: |
+          $manifest = Join-Path ./artifacts/release $env:NFC_MANIFEST_NAME
+          if ((Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:NFC_MANIFEST_SHA256) {
+            throw 'Downloaded candidate manifest digest differs from the prepared output.'
+          }
+          python ./scripts/release_promotion_policy.py verify-manifest `
+            --asset-dir ./artifacts/release `
+            --manifest $manifest `
+            --source-sha $env:NFC_SOURCE_SHA `
+            --source-tree $env:NFC_SOURCE_TREE `
+            --run-id $env:NFC_RUN_ID `
+            --workflow-sha $env:NFC_WORKFLOW_SHA `
+            --workflow-ref $env:NFC_WORKFLOW_REF
+          if ($LASTEXITCODE -ne 0) { throw 'Downloaded candidate policy verification failed.' }
+      - name: Create or verify immutable annotated tag
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NFC_REPOSITORY: ${{ github.repository }}
+          NFC_TAG: ${{ needs.candidate.outputs.tag }}
+          NFC_SOURCE_SHA: ${{ needs.candidate.outputs.source-sha }}
+          NFC_SOURCE_TREE: ${{ needs.candidate.outputs.source-tree }}
+          NFC_RUN_ID: ${{ github.run_id }}
+          NFC_MANIFEST_SHA256: ${{ needs.candidate.outputs.manifest-sha256 }}
+          NFC_ARTIFACT_DIGEST: ${{ needs.candidate.outputs.artifact-digest }}
+        run: |
+          $tagMessage = @"
+          NVT FW Combiner $env:NFC_TAG
+          candidate-run: $env:NFC_RUN_ID
+          source-sha: $env:NFC_SOURCE_SHA
+          source-tree: $env:NFC_SOURCE_TREE
+          manifest-sha256: $env:NFC_MANIFEST_SHA256
+          artifact-digest: $env:NFC_ARTIFACT_DIGEST
+          "@.Trim()
+          $tagMessagePath = Join-Path $env:RUNNER_TEMP 'candidate-tag-message.txt'
+          Set-Content -LiteralPath $tagMessagePath -Value $tagMessage -Encoding utf8NoBOM -NoNewline
+          $endpoint = "repos/$env:NFC_REPOSITORY/git/ref/tags/$env:NFC_TAG"
+          $state = python ./scripts/release_promotion_policy.py probe-resource --endpoint $endpoint
+          if ($LASTEXITCODE -ne 0) { throw 'Stable tag state could not be proved.' }
+          if ($state.Trim() -eq 'absent') {
+            $tagObject = gh api --method POST "repos/$env:NFC_REPOSITORY/git/tags" `
+              -f "tag=$env:NFC_TAG" -f "message=$tagMessage" `
+              -f "object=$env:NFC_SOURCE_SHA" -f 'type=commit' --jq .sha
+            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagObject)) {
+              throw 'GitHub did not create the annotated tag object.'
+            }
+            gh api --method POST "repos/$env:NFC_REPOSITORY/git/refs" `
+              -f "ref=refs/tags/$env:NFC_TAG" -f "sha=$tagObject" *> $null
+            if ($LASTEXITCODE -ne 0) { throw 'GitHub did not create the stable tag ref.' }
+          }
+          elseif ($state.Trim() -eq 'present') {
+            $tagRefText = gh api $endpoint
+            if ($LASTEXITCODE -ne 0) { throw 'Existing stable tag ref could not be read.' }
+            $tagRefPath = Join-Path $env:RUNNER_TEMP 'existing-tag-ref.json'
+            Set-Content -LiteralPath $tagRefPath -Value $tagRefText -Encoding utf8NoBOM
+            $tagRef = $tagRefText | ConvertFrom-Json
+            $tagObjectText = gh api "repos/$env:NFC_REPOSITORY/git/tags/$($tagRef.object.sha)"
+            if ($LASTEXITCODE -ne 0) { throw 'Existing annotated tag object could not be read.' }
+            $tagObjectPath = Join-Path $env:RUNNER_TEMP 'existing-tag-object.json'
+            Set-Content -LiteralPath $tagObjectPath -Value $tagObjectText -Encoding utf8NoBOM
+            python ./scripts/release_promotion_policy.py validate-tag `
+              --tag-ref $tagRefPath `
+              --tag-object $tagObjectPath `
+              --expected-tag $env:NFC_TAG `
+              --source-sha $env:NFC_SOURCE_SHA `
+              --expected-message $tagMessagePath
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Existing stable tag does not match this exact prepared candidate.'
+            }
+          }
+          else { throw 'Stable tag probe returned an unknown state.' }
+      - name: Publish or recover immutable GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NFC_REPOSITORY: ${{ github.repository }}
+          NFC_TAG: ${{ needs.candidate.outputs.tag }}
+          NFC_MANIFEST_NAME: ${{ needs.candidate.outputs.manifest-name }}
+        run: |
+          $releaseRoot = Resolve-Path -LiteralPath ./artifacts/release
+          $notesPath = Join-Path $releaseRoot 'RELEASE-NOTES.md'
+          $manifestPath = Join-Path $releaseRoot $env:NFC_MANIFEST_NAME
+          $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+          $checksumName = "NvtFwCombiner-v$($manifest.version)-assets.sha256"
+          $expectedNames = @($manifest.assets.name) + @($env:NFC_MANIFEST_NAME, $checksumName)
+          $endpoint = "repos/$env:NFC_REPOSITORY/releases/tags/$env:NFC_TAG"
+          $state = python ./scripts/release_promotion_policy.py probe-resource --endpoint $endpoint
+          if ($LASTEXITCODE -ne 0) { throw 'Release state could not be proved.' }
+          if ($state.Trim() -eq 'absent') {
+            $assets = @($expectedNames | ForEach-Object { Join-Path $releaseRoot $_ })
+            gh release create $env:NFC_TAG @assets --repo $env:NFC_REPOSITORY `
+              --verify-tag --title "NVT FW Combiner $env:NFC_TAG" --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw 'GitHub Release publication failed.' }
+          }
+          elseif ($state.Trim() -eq 'present') {
+            $releaseText = gh release view $env:NFC_TAG --repo $env:NFC_REPOSITORY `
+              --json tagName,isDraft,isPrerelease,body,assets
+            if ($LASTEXITCODE -ne 0) { throw 'Existing Release metadata could not be read.' }
+            $releasePath = Join-Path $env:RUNNER_TEMP 'existing-release.json'
+            Set-Content -LiteralPath $releasePath -Value $releaseText -Encoding utf8NoBOM
+            $publishedNamesPath = Join-Path $env:RUNNER_TEMP 'published-names.json'
+            $publishedNamesText = python ./scripts/release_promotion_policy.py validate-release `
+              --release $releasePath --expected-tag $env:NFC_TAG --expected-body $notesPath
+            if ($LASTEXITCODE -ne 0) { throw 'Existing Release metadata conflicts with the prepared candidate.' }
+            Set-Content -LiteralPath $publishedNamesPath -Value $publishedNamesText -Encoding utf8NoBOM
+            $published = Join-Path $env:RUNNER_TEMP 'existing-release-assets'
+            New-Item -ItemType Directory -Force -Path $published | Out-Null
+            if (@($publishedNamesText | ConvertFrom-Json).Count -gt 0) {
+              gh release download $env:NFC_TAG --repo $env:NFC_REPOSITORY --dir $published
+              if ($LASTEXITCODE -ne 0) { throw 'Existing Release assets could not be downloaded.' }
+            }
+            $missingJson = python ./scripts/release_promotion_policy.py plan-recovery `
+              --manifest $manifestPath --published-dir $published --published-names $publishedNamesPath
+            if ($LASTEXITCODE -ne 0) { throw 'Existing Release asset recovery policy failed.' }
+            foreach ($missingName in @($missingJson | ConvertFrom-Json)) {
+              gh release upload $env:NFC_TAG (Join-Path $releaseRoot $missingName) --repo $env:NFC_REPOSITORY
+              if ($LASTEXITCODE -ne 0) { throw "Missing Release asset upload failed: $missingName" }
+            }
+          }
+          else { throw 'Release probe returned an unknown state.' }
+      - name: Verify published assets, source downloads, and package
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NFC_REPOSITORY: ${{ github.repository }}
+          NFC_TAG: ${{ needs.candidate.outputs.tag }}
+          NFC_MANIFEST_NAME: ${{ needs.candidate.outputs.manifest-name }}
+          NFC_SOURCE_SHA: ${{ needs.candidate.outputs.source-sha }}
+          NFC_SOURCE_TREE: ${{ needs.candidate.outputs.source-tree }}
+          NFC_RUN_ID: ${{ github.run_id }}
+          NFC_MANIFEST_SHA256: ${{ needs.candidate.outputs.manifest-sha256 }}
+          NFC_ARTIFACT_DIGEST: ${{ needs.candidate.outputs.artifact-digest }}
+        run: |
+          $releaseRoot = Resolve-Path -LiteralPath ./artifacts/release
+          $manifestPath = Join-Path $releaseRoot $env:NFC_MANIFEST_NAME
+          $notesPath = Join-Path $releaseRoot 'RELEASE-NOTES.md'
+          $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+          $fresh = Join-Path $env:RUNNER_TEMP 'published-release'
+          New-Item -ItemType Directory -Force -Path $fresh | Out-Null
+          gh release download $env:NFC_TAG --repo $env:NFC_REPOSITORY --dir $fresh
+          if ($LASTEXITCODE -ne 0) { throw 'Published assets could not be downloaded.' }
+          $tagMessage = @"
+          NVT FW Combiner $env:NFC_TAG
+          candidate-run: $env:NFC_RUN_ID
+          source-sha: $env:NFC_SOURCE_SHA
+          source-tree: $env:NFC_SOURCE_TREE
+          manifest-sha256: $env:NFC_MANIFEST_SHA256
+          artifact-digest: $env:NFC_ARTIFACT_DIGEST
+          "@.Trim()
+          $tagMessagePath = Join-Path $env:RUNNER_TEMP 'final-tag-message.txt'
+          Set-Content -LiteralPath $tagMessagePath -Value $tagMessage -Encoding utf8NoBOM -NoNewline
+          $tagRefText = gh api "repos/$env:NFC_REPOSITORY/git/ref/tags/$env:NFC_TAG"
+          if ($LASTEXITCODE -ne 0) { throw 'Published stable tag ref could not be read.' }
+          $tagRefPath = Join-Path $env:RUNNER_TEMP 'final-tag-ref.json'
+          Set-Content -LiteralPath $tagRefPath -Value $tagRefText -Encoding utf8NoBOM
+          $tagRef = $tagRefText | ConvertFrom-Json
+          $tagObjectText = gh api "repos/$env:NFC_REPOSITORY/git/tags/$($tagRef.object.sha)"
+          if ($LASTEXITCODE -ne 0) { throw 'Published annotated tag object could not be read.' }
+          $tagObjectPath = Join-Path $env:RUNNER_TEMP 'final-tag-object.json'
+          Set-Content -LiteralPath $tagObjectPath -Value $tagObjectText -Encoding utf8NoBOM
+          python ./scripts/release_promotion_policy.py validate-tag `
+            --tag-ref $tagRefPath --tag-object $tagObjectPath `
+            --expected-tag $env:NFC_TAG --source-sha $env:NFC_SOURCE_SHA `
+            --expected-message $tagMessagePath
+          if ($LASTEXITCODE -ne 0) { throw 'Published stable tag identity is invalid.' }
+          $releaseText = gh release view $env:NFC_TAG --repo $env:NFC_REPOSITORY `
+            --json tagName,isDraft,isPrerelease,body,assets
+          if ($LASTEXITCODE -ne 0) { throw 'Published Release metadata could not be read.' }
+          $releasePath = Join-Path $env:RUNNER_TEMP 'final-release.json'
+          Set-Content -LiteralPath $releasePath -Value $releaseText -Encoding utf8NoBOM
+          $publishedNamesPath = Join-Path $env:RUNNER_TEMP 'final-published-names.json'
+          $publishedNamesText = python ./scripts/release_promotion_policy.py validate-release `
+            --release $releasePath --expected-tag $env:NFC_TAG --expected-body $notesPath
+          if ($LASTEXITCODE -ne 0) { throw 'Published Release metadata conflicts with the candidate.' }
+          Set-Content -LiteralPath $publishedNamesPath -Value $publishedNamesText -Encoding utf8NoBOM
+          $missingJson = python ./scripts/release_promotion_policy.py plan-recovery `
+            --manifest $manifestPath --published-dir $fresh `
+            --published-names $publishedNamesPath
+          if ($LASTEXITCODE -ne 0 -or @($missingJson | ConvertFrom-Json).Count -ne 0) {
+            throw 'Published Release asset set is incomplete or conflicting.'
+          }
+          Invoke-WebRequest -Uri "https://github.com/$env:NFC_REPOSITORY/archive/refs/tags/$env:NFC_TAG.zip" -Method Head | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/$env:NFC_REPOSITORY/archive/refs/tags/$env:NFC_TAG.tar.gz" -Method Head | Out-Null
+          ./scripts/smoke-release.ps1 `
+            -PackagePath (Join-Path $fresh "NvtFwCombiner-$env:NFC_TAG-win-x64.zip") -SkipUiLaunch

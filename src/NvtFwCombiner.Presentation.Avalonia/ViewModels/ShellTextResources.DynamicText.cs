@@ -101,6 +101,218 @@ public sealed partial class ShellTextResources
                 $"Family：{family.FamilyId}\n基準 IC：{family.CanonicalIcId}\n可沿用範圍：{family.Scope}\nFamily 關係本身不會擴張可執行的 firmware range。");
     }
 
+    public static string GetAbSlotTitle(WorkbenchAbMergeInputRole role)
+    {
+        return role switch
+        {
+            WorkbenchAbMergeInputRole.DpAb => "DP_AB BIN",
+            WorkbenchAbMergeInputRole.TpA => "TPA BIN",
+            WorkbenchAbMergeInputRole.TpB => "TPB BIN",
+            _ => throw new ArgumentOutOfRangeException(nameof(role), role, null),
+        };
+    }
+
+    public string GetAbSlotDescription(WorkbenchAbMergeInputSlot slot)
+    {
+        ArgumentNullException.ThrowIfNull(slot);
+        string size = FormatInputLength(slot.RequiredEndExclusive);
+        return slot.Role switch
+        {
+            WorkbenchAbMergeInputRole.DpAb => SelectLanguage(
+                $"Complete two-bank DP container. Required prefix: {size}.",
+                $"完整雙 bank DP container；必要 prefix：{size}。"),
+            WorkbenchAbMergeInputRole.TpA => SelectLanguage(
+                $"Touch payload for bank A. Required prefix: {size}.",
+                $"Bank A 的 Touch payload；必要 prefix：{size}。"),
+            WorkbenchAbMergeInputRole.TpB => SelectLanguage(
+                $"Touch payload for bank B; relocation uses the compiled plan. Required prefix: {size}.",
+                $"Bank B 的 Touch payload；relocation 由 compiled plan 定義。必要 prefix：{size}。"),
+            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot.Role, null),
+        };
+    }
+
+    public static string GetAbVersionLabel(WorkbenchAbVersionKind kind)
+    {
+        return kind switch
+        {
+            WorkbenchAbVersionKind.Dp1 => "DP1",
+            WorkbenchAbVersionKind.Dp2 => "DP2",
+            WorkbenchAbVersionKind.TpA => "TPA",
+            WorkbenchAbVersionKind.TpB => "TPB",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
+
+    public string GetAbInputInspectionStatus(WorkbenchAbMergeInputInspection inspection)
+    {
+        ArgumentNullException.ThrowIfNull(inspection);
+        WorkbenchInputInspectionIssue issue = inspection.PrimaryIssue;
+        return issue.NextAction switch
+        {
+            WorkbenchInputInspectionNextAction.SelectReadableInput => SelectLanguage(
+                "Error: this BIN could not be read. Select a readable local file.",
+                "錯誤：無法讀取此 BIN，請選擇可讀取的本機檔案。"),
+            WorkbenchInputInspectionNextAction.SelectCompatibleInput => SelectLanguage(
+                $"Error: {FormatInputLength(inspection.ActualLength ?? 0)} selected; at least {FormatInputLength(inspection.RequiredEndExclusive)} is required.",
+                $"錯誤：已選 {FormatInputLength(inspection.ActualLength ?? 0)}；至少需要 {FormatInputLength(inspection.RequiredEndExclusive)}。"),
+            WorkbenchInputInspectionNextAction.ReviewIgnoredTrailingBytes => SelectLanguage(
+                $"Warning: {FormatInputLength(inspection.IgnoredTrailingBytes)} trailing data is ignored; review before Build.",
+                $"警告：尾端 {FormatInputLength(inspection.IgnoredTrailingBytes)} 不會參與執行；Build 前請確認。"),
+            WorkbenchInputInspectionNextAction.ReviewUnexpectedOuterLength => SelectLanguage(
+                "Warning: the BIN has an unexpected accepted outer length; review before Build.",
+                "警告：BIN 的外部長度非預期但可接受；Build 前請確認。"),
+            WorkbenchInputInspectionNextAction.ReviewUnknownVersion => SelectLanguage(
+                "Warning: version metadata is Unknown; Build remains available.",
+                "警告：版本資訊為 Unknown；仍可執行 Build。"),
+            WorkbenchInputInspectionNextAction.None => SelectLanguage(
+                $"Ready: compiled {FormatInputLength(inspection.RequiredEndExclusive)} input prefix verified.",
+                $"Ready：已驗證 compiled {FormatInputLength(inspection.RequiredEndExclusive)} input prefix。"),
+            _ => throw new InvalidOperationException($"Unsupported AB input next action '{issue.NextAction}'."),
+        };
+    }
+
+    public string GetAbMergeReadinessStatus(
+        string ic,
+        bool supported,
+        int selectedCount,
+        int requiredCount,
+        int blockingCount,
+        int warningCount)
+    {
+        return !supported
+            ? SelectLanguage(
+                $"{ic}: AB Code is not available. Select NT51919, NT51929, or NT51932.",
+                $"{ic}：尚未開放 AB Code；請選擇 NT51919、NT51929 或 NT51932。")
+            : blockingCount > 0
+            ? SelectLanguage(
+                $"Build blocked: {blockingCount} input error(s) · {selectedCount}/{requiredCount} selected.",
+                $"Build blocked：{blockingCount} 個 input 錯誤 · 已選 {selectedCount}/{requiredCount}。")
+            : selectedCount < requiredCount
+            ? SelectLanguage(
+                $"Select DP_AB, TPA, and TPB · {selectedCount}/{requiredCount} selected.",
+                $"請選擇 DP_AB、TPA 與 TPB · 已選 {selectedCount}/{requiredCount}。")
+            : warningCount > 0
+            ? SelectLanguage(
+                $"Ready with {warningCount} warning(s): review highlighted inputs before Build.",
+                $"可執行，但有 {warningCount} 個 warning；Build 前請確認標示的 inputs。")
+            : SelectLanguage(
+                "Ready: Build will validate the current AB inputs and produce one report.",
+                "Ready：Build 會驗證目前 AB inputs 並產生一份 report。");
+    }
+
+    public string GetIcDetailFamilyValue(WorkbenchIcFamilySummary family)
+    {
+        ArgumentNullException.ThrowIfNull(family);
+        return family.FamilyId is null
+            ? SelectLanguage("Standalone IC", "獨立 IC")
+            : $"{family.FamilyId} · {GetIcFamilyLabel(family.Relationship)}";
+    }
+
+    public string GetIcDetailReuseValue(WorkbenchIcFamilySummary family)
+    {
+        ArgumentNullException.ThrowIfNull(family);
+        return string.IsNullOrWhiteSpace(family.Scope)
+            ? SelectLanguage("No cross-IC reuse declared", "未宣告跨 IC 沿用範圍")
+            : family.Scope;
+    }
+
+    public string GetIcDetailRuntimeValue(
+        bool standardMerge,
+        bool abMerge,
+        bool dpReplace,
+        bool ctrlRamReplace,
+        bool generalReplace)
+    {
+        List<string> workflows = [];
+        Add("Standard", standardMerge);
+        Add("AB", abMerge);
+        Add("DP", dpReplace);
+        Add("CtrlRAM", ctrlRamReplace);
+        Add("Customized", generalReplace);
+        return workflows.Count == 0
+            ? SelectLanguage("No executable workflow", "目前沒有可執行流程")
+            : string.Join(" · ", workflows);
+
+        void Add(string label, bool available)
+        {
+            if (available)
+            {
+                workflows.Add(label);
+            }
+        }
+    }
+
+    public string GetIcDetailEvidenceValue(
+        WorkbenchWorkflowReadiness dp,
+        WorkbenchWorkflowReadiness ctrlRam,
+        WorkbenchWorkflowReadiness general)
+    {
+        ArgumentNullException.ThrowIfNull(dp);
+        ArgumentNullException.ThrowIfNull(ctrlRam);
+        ArgumentNullException.ThrowIfNull(general);
+
+        List<string> verified = [];
+        List<string> open = [];
+        List<string> unavailable = [];
+        Add("DP", dp);
+        Add("CtrlRAM", ctrlRam);
+        Add("Customized", general);
+
+        List<string> summaries = [];
+        if (verified.Count > 0)
+        {
+            summaries.Add(SelectLanguage(
+                $"✓ Verified: {string.Join(", ", verified)}",
+                $"✓ 已驗證：{string.Join("、", verified)}"));
+        }
+
+        if (open.Count > 0)
+        {
+            summaries.Add(SelectLanguage(
+                $"! Open: {string.Join(", ", open)}",
+                $"! 待補：{string.Join("、", open)}"));
+        }
+
+        if (unavailable.Count > 0)
+        {
+            summaries.Add(SelectLanguage(
+                $"— Unavailable: {string.Join(", ", unavailable)}",
+                $"— 未開放：{string.Join("、", unavailable)}"));
+        }
+
+        return string.Join(" · ", summaries);
+
+        void Add(string label, WorkbenchWorkflowReadiness readiness)
+        {
+            List<string> destination = readiness.EvidenceStatus switch
+            {
+                WorkbenchWorkflowEvidenceStatus.GoldenVerified => verified,
+                WorkbenchWorkflowEvidenceStatus.EvidenceGated => open,
+                WorkbenchWorkflowEvidenceStatus.NotAvailable => unavailable,
+                _ => unavailable,
+            };
+            destination.Add(label);
+        }
+    }
+
+    public string GetIcDetailSupportValue(bool abMerge)
+    {
+        return abMerge
+            ? SelectLanguage(
+                "AB runtime is limited to the owner-approved 51919/51929/51932 pilot; metadata never selects support.",
+                "AB runtime 僅限 owner 核准的 51919/51929/51932 pilot；metadata 絕不選擇支援範圍。")
+            : SelectLanguage(
+                "Availability follows compiled profiles and safety contracts; family labels do not expand support.",
+                "可用性以 compiled profile 與 safety contract 為準；family 標示不會擴張支援範圍。");
+    }
+
+    private static string FormatInputLength(long bytes)
+    {
+        return bytes > 0 && bytes % 1024 == 0
+            ? FormattableString.Invariant($"{bytes / 1024} KiB")
+            : FormattableString.Invariant($"{bytes} bytes");
+    }
+
     public string GetReplaceMemorySummary(string mode)
     {
         return mode switch
@@ -109,8 +321,8 @@ public sealed partial class ShellTextResources
                 "Blue shows new DP bytes; gray shows sections preserved or restored from the Reference FlashCode.",
                 "藍色代表新的 DP bytes；灰色代表從 Reference FlashCode 保留或還原的區段。"),
             WorkbenchReplaceModes.CtrlRam => SelectLanguage(
-                "Colored blocks show replaceable CtrlRAM positions; gray stays from the base firmware.",
-                "有色區塊代表可取代的 CtrlRAM 位置；灰色保留 base firmware。"),
+                "Solid blocks are changed; diagonal blocks keep bytes from the base firmware.",
+                "實色區塊表示已變更；斜線區塊保留 base firmware 的 bytes。"),
             WorkbenchReplaceModes.General => SelectLanguage(
                 "Base flash stays unchanged except approved explicit replacement ranges.",
                 "Base flash 只會在核准的明確取代範圍內改變。"),
@@ -162,6 +374,9 @@ public sealed partial class ShellTextResources
             WorkbenchMergeModes.General => SelectLanguage(
                 "The bar starts reserved and marks each explicit source mapping written into the output.",
                 "輸出先以 reserved byte 初始化；新增 mapping 後會標出寫入位置。"),
+            WorkbenchMergeModes.AbCode => SelectLanguage(
+                "The bar shows final DP_AB ownership after the compiled TPA and relocated TPB overlays.",
+                "此圖顯示 compiled TPA 與 relocated TPB overlay 後的最終 DP_AB ownership。"),
             _ => SelectLanguage("This merge mode is reserved.", "此 Merge 模式保留中。"),
         };
     }

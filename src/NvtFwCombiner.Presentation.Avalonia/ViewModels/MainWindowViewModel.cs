@@ -19,11 +19,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         InvalidateCtrlRamFirmwareVersionContext();
         InvalidateFirmwareInspection(clearBaseCache: slot.SlotId == ReplaceBaseSlotId);
-        _ = _firmwareFileProjections.Remove(slot.SlotId);
+        _firmwareInspectionSession.RemoveProjection(slot.SlotId);
         InvalidateFirmwareIcMismatch();
         InvalidateFirmwareNumberMismatch();
         slot.FilePath = path;
         slot.SetFirmwareFacts([]);
+        slot.ClearInputInspection();
         NotifySlotFileOutputNames();
 
         if (slot.SlotId == ReplaceBaseSlotId && IsCtrlRamReplaceModeSelected)
@@ -35,6 +36,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
             RefreshMergeMemoryMapState();
         }
         else if (slot.SlotId == ReplaceBaseSlotId)
+        {
+            RefreshReplaceMemoryMapState();
+        }
+        else if (slot.RegionId is not null)
         {
             RefreshReplaceMemoryMapState();
         }

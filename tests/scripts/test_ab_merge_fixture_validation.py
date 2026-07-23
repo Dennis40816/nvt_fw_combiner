@@ -80,6 +80,15 @@ class AbMergeFixtureValidationTests(unittest.TestCase):
             errors,
         )
 
+    def test_rejects_nt51929_runtime_promotion_rollback(self) -> None:
+        self.case("nt51929-ab-t05-d06")["promotion"] = (
+            "executable-candidate only; firmware-owner review remains required"
+        )
+
+        errors = self.validate()
+
+        self.assertTrue(any("promotion gate drift" in error for error in errors), errors)
+
     def test_rejects_nt51951_fact_scoped_alias_removal(self) -> None:
         direct_case = self.case("nt51950-ab-boe-d82t80")
         direct_case["evidenceApplicability"]["factScopedAliasMemberIds"].clear()

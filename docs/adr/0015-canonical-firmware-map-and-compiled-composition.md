@@ -5,6 +5,7 @@
 - Owners: Product owner + architecture owner + firmware reviewers
 - Supersedes: ADR 0008 catalog-join ownership after compatibility migration
 - Amends: ADR 0003, ADR 0004, ADR 0005, ADR 0006, and ADR 0007
+- Amended by: ADR 0032 for the reviewed AB declared-prefix oversize policy
 
 ## Context
 
@@ -191,7 +192,13 @@ expression DSL and cannot call IC-specific code.
 
 Input acceptance and normalization become typed plan requirements rather than address-space
 geometry. Exact, bounded/view-covering, owner-approved padding, CtrlRAM truncation-with-warning,
-and fixed Normal DP extraction-with-warning retain their existing fail-closed constraints.
+fixed Normal DP extraction-with-warning, and reviewed immutable-source declared-prefix
+normalization retain their profile-specific fail-closed constraints. Declared-prefix
+normalization requires every source view, metadata read, and processor read to remain inside the
+declared execution snapshot. It preserves the actual immutable source hash/length as evidence,
+reports the ignored trailing range, and never grants padding or changes an operation range. ADR
+0032 applies this authority to the first `v0.9.14` AB pilot only after its R3 boundary, golden, and
+firmware-owner gates pass.
 
 ### Capability, promotion, and future workflows
 

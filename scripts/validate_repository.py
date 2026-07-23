@@ -658,8 +658,17 @@ def validate_workflows(errors: list[str]) -> None:
     if "verify_ctrlram_replace_fixture.py" not in verifier:
         errors.append("canonical verifier must include the CtrlRAM Replace fixture gate")
     release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
-    if "workflow_dispatch" not in release or "stable SemVer tag" not in release:
-        errors.append("release workflow must be manually gated by an existing stable SemVer tag")
+    required_release_markers = (
+        "workflow_dispatch",
+        "Exact reviewed main commit",
+        "Final reviewed pull request",
+        "environment: release",
+        "Create or verify immutable annotated tag",
+    )
+    if any(marker not in release for marker in required_release_markers):
+        errors.append(
+            "release workflow must use exact-main CI promotion with a protected human environment gate"
+        )
     if "push:" in release and "tags:" in release:
         errors.append("development tags must not automatically trigger the stable release workflow")
     if "scripts/package.ps1" not in release:
@@ -735,7 +744,7 @@ def validate() -> list[str]:
     validate_markdown_links(files, errors)
     validate_ab_merge_golden_fixtures(ROOT, load_json, validate_golden_manifest_entry, errors)
     validate_canonical_golden(ROOT, errors)
-    validate_diagnostic_golden_separation(ROOT, errors)
+    validate_diagnostic_golden_separation(ROOT, errors, files)
     validate_standard_merge_release_allowlist(ROOT, errors)
     validate_ctrlram_replace_golden_fixtures(errors)
     validate_skills(errors)

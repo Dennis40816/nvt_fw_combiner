@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 import hashlib
 from pathlib import Path, PurePosixPath
 
@@ -30,7 +31,9 @@ except ModuleNotFoundError:
 
 
 def validate_diagnostic_golden_separation(
-    repository_root: Path, errors: list[str]
+    repository_root: Path,
+    errors: list[str],
+    tracked_files: Iterable[Path] = (),
 ) -> None:
     """Validate the closed repository-only diagnostic quarantine inventory."""
     diagnostics_root = repository_root / Path(DIAGNOSTICS_ROOT)
@@ -268,8 +271,24 @@ def validate_diagnostic_golden_separation(
     for path in owner_entries:
         if path.is_symlink():
             errors.append(f"diagnostic ownerHandoff cannot contain symlinks: {path}")
+    tracked_intake_files = [
+        path
+        for path in tracked_files
+        if path.is_relative_to(owner_root)
+        and "intake" in path.relative_to(owner_root).parts
+    ]
+    if tracked_intake_files:
+        errors.append(
+            "diagnostic ownerHandoff intake must not contain tracked private payloads"
+        )
+    # CASE.md records owner-provided investigation payloads under ignored intake directories.
+    # They are private workspace evidence, never repository inventory or release material.
     owner_files = [
-        path for path in owner_entries if path.is_file() and not path.is_symlink()
+        path
+        for path in owner_entries
+        if path.is_file()
+        and not path.is_symlink()
+        and "intake" not in path.relative_to(owner_root).parts
     ]
     if owner_handoff.get("fileCount") != len(owner_files):
         errors.append("diagnostic ownerHandoff fileCount does not match its inventory")

@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Media;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -65,17 +64,15 @@ public sealed partial class HexEditorViewportControl : Control
     private readonly FormattedText[] _structuralAscii = CreateAsciiTextCache(StructuralTextBrush, NormalTypeface);
     private readonly FormattedText[] _searchMatchAscii = CreateAsciiTextCache(SearchMatchTextBrush, StrongTypeface);
     private HexEditorWorkspaceViewModel? _workspace;
-    private string? _hoveredAddress;
+
+    internal string? HoveredAddress { get; private set; }
 
     /// <summary>Creates the low-cost viewport and hooks its single interaction surface.</summary>
     public HexEditorViewportControl()
     {
         Focusable = true;
         ClipToBounds = true;
-        Cursor = new Cursor(StandardCursorType.Arrow);
         DataContextChanged += (_, _) => AttachWorkspace(DataContext as HexEditorWorkspaceViewModel);
-        PointerMoved += OnPointerMoved;
-        PointerExited += OnPointerExited;
         PointerPressed += OnPointerPressed;
         DoubleTapped += OnDoubleTapped;
         KeyDown += OnKeyDown;
@@ -201,7 +198,7 @@ public sealed partial class HexEditorViewportControl : Control
             _workspace.ViewportRows.CollectionChanged += OnViewportRowsChanged;
         }
 
-        _hoveredAddress = null;
+        HoveredAddress = null;
         InvalidateMeasure();
         InvalidateVisual();
     }
@@ -227,7 +224,7 @@ public sealed partial class HexEditorViewportControl : Control
 
     private void OnViewportRowsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        _hoveredAddress = null;
+        HoveredAddress = null;
         InvalidateMeasure();
         InvalidateVisual();
     }
@@ -290,7 +287,7 @@ public sealed partial class HexEditorViewportControl : Control
         bool isReference)
     {
         Rect rect = GetCellRect(index, y).Deflate(1);
-        bool isHovered = !isReference && string.Equals(_hoveredAddress, cell.Address, StringComparison.Ordinal);
+        bool isHovered = !isReference && string.Equals(HoveredAddress, cell.Address, StringComparison.Ordinal);
         IBrush? background = ResolveCellBackground(cell, isReference);
         IPen? pen = ResolveCellPen(cell, isReference);
         if (background is not null || pen is not null)
@@ -432,7 +429,7 @@ public sealed partial class HexEditorViewportControl : Control
             Rect rect = GetAsciiCellRect(index, y).Deflate(1);
             bool isSearchMatch = cell.IsAsciiSearchMatch && !isReference;
             bool isHovered = !isReference && string.Equals(
-                _hoveredAddress,
+                HoveredAddress,
                 cell.Address,
                 StringComparison.Ordinal);
             if (isReference && cell.IsDataChanged)

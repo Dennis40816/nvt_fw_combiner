@@ -262,6 +262,13 @@ internal static partial class V2CompositionPlanCompiler
                 inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
                 expectedInputLengths: ResolveNormalDpExpectedInputLengths(normalDp, resolvedMapCapacity),
                 unexpectedInputLengthIssueCode: normalDp.IssueCode),
+            DeclaredPrefixWithWarningLengthRule declaredPrefix => new AddressSpace(
+                addressSpaceId,
+                declaredPrefix.RequiredEndExclusive,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: declaredPrefix.ExpectedOuterLengths,
+                unexpectedInputLengthIssueCode: declaredPrefix.UnexpectedOuterLengthIssueCode),
             TpMaximum256KLengthRule => new AddressSpace(
                 addressSpaceId,
                 length,

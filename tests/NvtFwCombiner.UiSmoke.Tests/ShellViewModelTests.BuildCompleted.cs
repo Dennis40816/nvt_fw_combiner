@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -141,8 +142,11 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(viewModel.IsLatestOutputActionVisible);
         Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
+        Assert.False(viewModel.IsCompositionActionRailVisible);
+        Assert.False(viewModel.IsLatestOutputActionVisible);
         viewModel.CloseBuildCompletedModal();
 
+        Assert.True(viewModel.IsCompositionActionRailVisible);
         Assert.True(viewModel.IsLatestOutputActionVisible);
         Assert.False(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: false, outputPath: "another.bin"), build: true));
         Assert.Equal(outputPath, viewModel.LatestCommittedOutputPath);
@@ -150,6 +154,56 @@ public sealed partial class ShellViewModelTests
         viewModel.ShowHomeCommand.Execute(null);
 
         Assert.False(viewModel.IsLatestOutputActionVisible);
+    }
+
+    /// <summary>Every blocking shell surface suppresses and restores the action rail with bindable notifications.</summary>
+    [Theory]
+    [InlineData("replace-selection")]
+    [InlineData("ctrlram-version")]
+    [InlineData("workflow-context")]
+    [InlineData("firmware-ic-mismatch")]
+    [InlineData("firmware-number-mismatch")]
+    [InlineData("navigation-clear")]
+    [InlineData("report")]
+    [InlineData("build-completed")]
+    [InlineData("hex-insert")]
+    [InlineData("hex-save")]
+    public async Task EveryBlockingSurfaceSuppressesAndRestoresTheCompositionActionRail(string surface)
+    {
+        using StandardMergeGoldenManifest? golden = surface == "ctrlram-version"
+            ? StandardMergeGoldenManifest.Load()
+            : null;
+        using TempWorkspace? workspace = surface == "ctrlram-version"
+            ? TempWorkspace.Create("nvt-fw-combiner-ui-rail-blocking-surface")
+            : null;
+        MainWindowViewModel viewModel = surface == "ctrlram-version"
+            ? CreateCtrlRamVersionReadyViewModel(
+                golden!.ReadExpectedOutput(golden.CaseByIc("51926")),
+                workspace!)
+            : ShellViewModelFactory.Create();
+        if (surface != "ctrlram-version")
+        {
+            OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
+        }
+
+        Assert.True(viewModel.IsCompositionActionRailVisible);
+        var notifications = new List<string?>();
+        viewModel.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+
+        await SetBlockingSurfaceOpenAsync(viewModel, surface);
+
+        Assert.True(IsBlockingSurfaceOpen(viewModel, surface));
+        Assert.False(viewModel.IsCompositionActionRailVisible);
+        Assert.Contains(nameof(MainWindowViewModel.IsCompositionActionRailVisible), notifications);
+        Assert.Contains(nameof(MainWindowViewModel.IsLatestOutputActionVisible), notifications);
+
+        notifications.Clear();
+        SetBlockingSurfaceClosed(viewModel, surface);
+
+        Assert.False(IsBlockingSurfaceOpen(viewModel, surface));
+        Assert.True(viewModel.IsCompositionActionRailVisible);
+        Assert.Contains(nameof(MainWindowViewModel.IsCompositionActionRailVisible), notifications);
+        Assert.Contains(nameof(MainWindowViewModel.IsLatestOutputActionVisible), notifications);
     }
 
     /// <summary>The general reveal command forwards source and generated paths without rewriting them.</summary>
@@ -164,6 +218,105 @@ public sealed partial class ShellViewModelTests
         viewModel.RevealFileCommand.Execute(filePath);
 
         Assert.Equal([filePath], reveal.Paths);
+    }
+
+    private static async Task SetBlockingSurfaceOpenAsync(MainWindowViewModel viewModel, string surface)
+    {
+        switch (surface)
+        {
+            case "replace-selection":
+                viewModel.ShowReplaceSelectionCommand.Execute(null);
+                break;
+            case "ctrlram-version":
+                Assert.True(await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(TestContext.Current.CancellationToken));
+                break;
+            case "workflow-context":
+                viewModel.IsWorkflowContextModalOpen = true;
+                break;
+            case "firmware-ic-mismatch":
+                viewModel.IsFirmwareIcMismatchModalOpen = true;
+                break;
+            case "firmware-number-mismatch":
+                viewModel.IsFirmwareNumberMismatchModalOpen = true;
+                break;
+            case "navigation-clear":
+                viewModel.IsNavigationClearConfirmationOpen = true;
+                break;
+            case "report":
+                viewModel.LoadReportJson(ReportJsonSamples.Succeeded(runId: "rail-blocking-surface"), "report.json");
+                viewModel.ShowReportCommand.Execute(null);
+                break;
+            case "build-completed":
+                Assert.True(viewModel.TryShowBuildCompleted(
+                    CreateRunResult(succeeded: true, outputPath: "output.bin"),
+                    build: true));
+                break;
+            case "hex-insert":
+                viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen = true;
+                break;
+            case "hex-save":
+                viewModel.HexEditorWorkspace.IsSaveConfirmationOpen = true;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(surface), surface, "Unknown blocking surface.");
+        }
+    }
+
+    private static void SetBlockingSurfaceClosed(MainWindowViewModel viewModel, string surface)
+    {
+        switch (surface)
+        {
+            case "replace-selection":
+                viewModel.CloseReplaceSelectionCommand.Execute(null);
+                break;
+            case "ctrlram-version":
+                viewModel.CloseCtrlRamFirmwareVersionModal();
+                break;
+            case "workflow-context":
+                viewModel.CancelWorkflowContextCommand.Execute(null);
+                break;
+            case "firmware-ic-mismatch":
+                viewModel.DismissFirmwareIcMismatchCommand.Execute(null);
+                break;
+            case "firmware-number-mismatch":
+                viewModel.DismissFirmwareNumberMismatchCommand.Execute(null);
+                break;
+            case "navigation-clear":
+                viewModel.CancelNavigationClearCommand.Execute(null);
+                break;
+            case "report":
+                viewModel.CloseReportCommand.Execute(null);
+                break;
+            case "build-completed":
+                viewModel.CloseBuildCompletedModal();
+                break;
+            case "hex-insert":
+                viewModel.HexEditorWorkspace.CancelInsertBytesCommand.Execute(null);
+                break;
+            case "hex-save":
+                viewModel.HexEditorWorkspace.CancelSaveCommand.Execute(null);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(surface), surface, "Unknown blocking surface.");
+        }
+    }
+
+    private static bool IsBlockingSurfaceOpen(MainWindowViewModel viewModel, string surface)
+    {
+        return surface switch
+        {
+            "replace-selection" => viewModel.IsReplaceSelectionModalOpen,
+            "ctrlram-version" => viewModel.IsCtrlRamFirmwareVersionModalOpen,
+            "workflow-context" => viewModel.IsWorkflowContextModalOpen,
+            "firmware-ic-mismatch" => viewModel.IsFirmwareIcMismatchModalOpen,
+            "firmware-number-mismatch" => viewModel.IsFirmwareNumberMismatchModalOpen,
+            "navigation-clear" => viewModel.IsNavigationClearConfirmationOpen,
+            "report" => viewModel.IsReportModalOpen,
+            "build-completed" => viewModel.IsBuildCompletedModalOpen,
+            "hex-insert" => viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen,
+            "hex-save" => viewModel.HexEditorWorkspace.IsSaveConfirmationOpen,
+            _ => throw new ArgumentOutOfRangeException(nameof(surface), surface, "Unknown blocking surface."),
+        };
     }
 
     /// <summary>A failed source-file reveal reports the localized visible toast.</summary>

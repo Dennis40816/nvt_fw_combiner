@@ -218,6 +218,7 @@ public sealed partial class CompiledComposition
         var declaredAddressSpaceIds = new HashSet<string>(StringComparer.Ordinal);
         var tpInputSpaces = new List<AddressSpace>();
         var normalDpInputRequirements = new List<(AddressSpace AddressSpace, CompiledNormalDpExtractWithWarningInputLengthRequirement Requirement)>();
+        var declaredPrefixInputRequirements = new List<(AddressSpace AddressSpace, CompiledDeclaredPrefixWithWarningInputLengthRequirement Requirement)>();
         var slots = details.InputContract.Slots.ToDictionary(
             static requirement => requirement.SlotId,
             StringComparer.Ordinal);
@@ -281,9 +282,20 @@ public sealed partial class CompiledComposition
                 case CompiledNormalDpExtractWithWarningInputLengthRequirement normalDp:
                     normalDpInputRequirements.Add((addressSpace, normalDp));
                     break;
+                case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix:
+                    if (compositionKind != CompositionKind.Merge ||
+                        requirement.Normalization is not CompiledNoInputNormalization)
+                    {
+                        throw new ArgumentException(
+                            "Declared-prefix input requirements are restricted to unnormalized immutable Merge sources.",
+                            nameof(details));
+                    }
+
+                    declaredPrefixInputRequirements.Add((addressSpace, declaredPrefix));
+                    break;
                 default:
                     throw new ArgumentException(
-                        "Current V2 plan artifacts support only exact-map-capacity, normal-DP extraction, TP-maximum, or exact TP input requirements.",
+                        "Current V2 plan artifacts support only exact-map-capacity, declared-prefix, normal-DP extraction, TP-maximum, or exact TP input requirements.",
                         nameof(details));
             }
         }
@@ -317,6 +329,11 @@ public sealed partial class CompiledComposition
                 addressSpace,
                 requirement,
                 details.RegionAccessContract.ResolvedViews);
+        }
+
+        foreach ((AddressSpace addressSpace, CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement) in declaredPrefixInputRequirements)
+        {
+            ValidateDeclaredPrefixInputGeometry(addressSpace, requirement);
         }
     }
 
@@ -528,6 +545,25 @@ public sealed partial class CompiledComposition
         {
             throw new ArgumentException(
                 "Normal DP extraction requirements must bind the declared source span, expected container lengths, extraction policy, and warning code.",
+                nameof(addressSpace));
+        }
+    }
+
+    private static void ValidateDeclaredPrefixInputGeometry(
+        AddressSpace addressSpace,
+        CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement)
+    {
+        if (addressSpace.Length != requirement.RequiredEndExclusive ||
+            addressSpace.InputPaddingByte is not null ||
+            addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
+            addressSpace.AllowedInputLengths.Count != 0 ||
+            !addressSpace.ExpectedInputLengths.SequenceEqual(requirement.ExpectedOuterLengths) ||
+            !StringComparer.Ordinal.Equals(
+                addressSpace.UnexpectedInputLengthIssueCode,
+                requirement.UnexpectedOuterLengthIssueCode))
+        {
+            throw new ArgumentException(
+                "Declared-prefix input requirements must bind the exact execution prefix, outer-length expectations, extraction policy, and warning code.",
                 nameof(addressSpace));
         }
     }

@@ -110,9 +110,9 @@ class DiagnosticGoldenSeparationTests(unittest.TestCase):
     def write_manifest(self) -> None:
         self.write_json(self.diagnostics / "manifest.json", self.manifest)
 
-    def validate(self) -> list[str]:
+    def validate(self, tracked_files: tuple[Path, ...] = ()) -> list[str]:
         errors: list[str] = []
-        validate_diagnostic_golden_separation(self.root, errors)
+        validate_diagnostic_golden_separation(self.root, errors, tracked_files)
         return errors
 
     def test_accepts_closed_repository_only_quarantine(self) -> None:
@@ -192,6 +192,22 @@ class DiagnosticGoldenSeparationTests(unittest.TestCase):
         self.write_manifest()
         self.assertTrue(
             any("ownerHandoff contains a binary" in error for error in self.validate())
+        )
+
+    def test_ignores_private_owner_handoff_intake_payload(self) -> None:
+        self.write_bytes(
+            self.handoff / "nt51929/intake/source-code.7z", b"private archive"
+        )
+
+        self.assertEqual([], self.validate())
+
+    def test_rejects_tracked_private_owner_handoff_intake_payload(self) -> None:
+        intake_path = self.handoff / "nt51929/intake/source-code.7z"
+        self.write_bytes(intake_path, b"private archive")
+
+        self.assertIn(
+            "diagnostic ownerHandoff intake must not contain tracked private payloads",
+            self.validate((intake_path,)),
         )
 
     def test_rejects_owner_handoff_content_drift(self) -> None:

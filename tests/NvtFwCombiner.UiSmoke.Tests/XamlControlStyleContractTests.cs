@@ -1,12 +1,15 @@
-using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Styling;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.Behaviors;
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 
@@ -96,6 +99,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"subtleSurface\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileDropZone\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileRevealAction\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Placement=\"BottomEdgeAlignedLeft\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.VerticalOffset=\"8\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.BetweenShowDelay=\"-1\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding DisplayDetail}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Command=\"{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("CommandParameter=\"{Binding FilePath}\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding SelectBinTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
@@ -116,12 +123,133 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsGuidanceVisible}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Placement=\"BottomEdgeAlignedLeft\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.VerticalOffset=\"8\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.BetweenShowDelay=\"-1\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileRevealAction\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Command=\"{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding DisplayName}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("CommandParameter=\"{Binding FilePath}\"", slotCard, StringComparison.Ordinal);
+    }
+
+    /// <summary>The full-path hover card stays offset from the filename and leaves its routed click intact.</summary>
+    [Fact]
+    public void FileRevealHoverCardShowsTheAbsolutePathWithoutCompetingForThePointer()
+    {
+        const string selectedPath = @"C:\firmware\selected source.bin";
+        Assert.Contains(
+            "ToolTip.Tip=\"{Binding DisplayDetail}\"",
+            ReadPresentationFile("Views/FirmwareSlotCard.axaml"),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "ToolTip.Tip=\"{Binding DisplayDetail}\"",
+            ReadPresentationFile("Views/GeneralMappingRow.axaml"),
+            StringComparison.Ordinal);
+        (Control View, object Context)[] cases =
+        [
+            (
+                new FirmwareSlotCard(),
+                new FirmwareSlotViewModel("base", "Base firmware", "Complete firmware", FirmwareSlotKind.Base)
+                {
+                    FilePath = selectedPath,
+                }),
+            (
+                new GeneralMappingRow(),
+                new GeneralMergeMappingViewModel("source-1", 1)
+                {
+                    FilePath = selectedPath,
+                }),
+        ];
+        foreach ((Control view, object context) in cases)
+        {
+            view.DataContext = context;
+            view.Measure(new Size(1600, 900));
+            view.Arrange(new Rect(view.DesiredSize));
+            Button fileButton = Assert.Single(
+                view.GetLogicalDescendants().OfType<Button>(),
+                button => button.Classes.Contains("fileRevealAction"));
+            string pathText = context switch
+            {
+                FirmwareSlotViewModel slot => slot.DisplayDetail,
+                GeneralMappingRowViewModel mapping => mapping.DisplayDetail,
+                _ => throw new InvalidOperationException("Unknown file reveal context."),
+            };
+
+            Assert.Equal(selectedPath, pathText);
+            Assert.Equal(PlacementMode.BottomEdgeAlignedLeft, ToolTip.GetPlacement(fileButton));
+            Assert.Equal(8, ToolTip.GetVerticalOffset(fileButton));
+            Assert.Equal(-1, ToolTip.GetBetweenShowDelay(fileButton));
+            ToolTip.SetTip(fileButton, pathText);
+
+            bool clicked = false;
+            fileButton.Click += (_, _) => clicked = true;
+            ToolTip.SetIsOpen(fileButton, true);
+
+            Assert.True(ToolTip.GetIsOpen(fileButton));
+            fileButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.True(clicked);
+
+            ToolTip.SetIsOpen(fileButton, false);
+        }
+    }
+
+    /// <summary>The IC detail tooltip supports pointer and keyboard discovery without becoming interactive.</summary>
+    [Fact]
+    public void IcDetailTooltipUsesOneNonInteractiveFocusAwareCard()
+    {
+        string shellPanels = ReadPresentationFile("Resources/MainWindowShellPanels.axaml");
+        var document = XDocument.Parse(shellPanels);
+        XElement combo = Assert.Single(
+            document.Descendants(),
+            element =>
+                element.Name.LocalName == "ComboBox" &&
+                (string?)element.Attribute("ItemsSource") == "{Binding IcChoices}");
+        XElement tipProperty = Assert.Single(
+            combo.Elements(),
+            element => element.Name.LocalName == "ToolTip.Tip");
+        XElement toolTip = Assert.Single(
+            tipProperty.Elements(),
+            element => element.Name.LocalName == "ToolTip");
+
+        Assert.Equal("True", combo.Attributes().Single(attribute => attribute.Name.LocalName == "FocusToolTipBehavior.IsEnabled").Value);
+        Assert.Equal("{Binding SelectedIcDetailAutomationText}", combo.Attributes().Single(attribute => attribute.Name.LocalName == "AutomationProperties.HelpText").Value);
+        Assert.Equal("False", (string?)toolTip.Attribute("IsHitTestVisible"));
+        XElement detailCard = Assert.Single(
+            toolTip.Descendants(),
+            element => (string?)element.Attribute("Classes") == "icDetailCard");
+        Assert.Equal(
+            4,
+            detailCard.Descendants().Count(element =>
+                element.Name.LocalName == "Path" &&
+                ((string?)element.Attribute("Classes"))?.StartsWith("icDetail", StringComparison.Ordinal) == true));
+        Assert.DoesNotContain(
+            detailCard.Descendants(),
+            element => (string?)element.Attribute("Text") is "{Binding SelectedIcDetailReuse}" or "{Binding SelectedIcDetailSupport}");
+
+        var control = new ComboBox
+        {
+            ItemsSource = new[] { "NT51929", "NT51932" },
+            SelectedIndex = 0,
+        };
+        ToolTip.SetTip(control, new ToolTip { IsHitTestVisible = false });
+        FocusToolTipBehavior.SetIsEnabled(control, true);
+        Assert.True(FocusToolTipBehavior.GetIsEnabled(control));
+        Assert.False(Assert.IsType<ToolTip>(ToolTip.GetTip(control)).IsHitTestVisible);
+
+        ToolTip.SetIsOpen(control, true);
+        control.SelectedIndex = 1;
+        Assert.False(ToolTip.GetIsOpen(control));
+        Assert.False(ToolTip.GetServiceEnabled(control));
+
+        control.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent));
+        Assert.False(ToolTip.GetIsOpen(control));
+
+        control.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
+        Assert.True(ToolTip.GetServiceEnabled(control));
+        control.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent));
+        Assert.True(ToolTip.GetIsOpen(control));
     }
 
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
@@ -184,118 +312,6 @@ public sealed partial class XamlControlStyleContractTests
                 $"Theme token '{key}' was not available from Application.Resources.");
             _ = Assert.IsType<FontFamily>(resource);
         }
-    }
-
-    /// <summary>Ensures Hex Editor uses the shared safe-save and immutable-reference interaction contracts.</summary>
-    [Fact]
-    public void HexEditorUsesConfirmedSaveAndReadOnlyReferenceRows()
-    {
-        string shell = ReadPresentationFile("MainWindow.axaml");
-        string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
-        string viewport = ReadPresentationFile("Views/HexEditorViewportControl.cs");
-        string historyFeedback = ReadPresentationFile("Views/HexEditorViewportControl.HistoryFeedback.cs");
-        string renderingSupport = ReadPresentationFile("Views/HexEditorViewportControl.RenderingSupport.cs");
-        string sharedStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
-
-        Assert.Contains("Gesture=\"Ctrl+S\"", shell, StringComparison.Ordinal);
-        Assert.Contains("RequestHexEditorSaveCommand", shell, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"HexInlineEditor\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("<views:HexEditorViewportControl", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("row.IsOriginalRowVisible", viewport, StringComparison.Ordinal);
-        Assert.Contains("DrawReferenceRow", viewport, StringComparison.Ordinal);
-        Assert.Contains("ReferenceChangedBrush", viewport, StringComparison.Ordinal);
-        Assert.Contains("DrawAsciiStructuralBlocks", viewport, StringComparison.Ordinal);
-        Assert.DoesNotContain("IBrush StructuralBrush =", viewport, StringComparison.Ordinal);
-        Assert.Contains("$\"{displayAddress}  orig\"", renderingSupport, StringComparison.Ordinal);
-        Assert.Contains("HistoryFeedbackVersion", viewport, StringComparison.Ordinal);
-        Assert.Contains("DispatcherTimer", historyFeedback, StringComparison.Ordinal);
-        Assert.Contains("DrawHistoryFeedback", historyFeedback, StringComparison.Ordinal);
-        Assert.Contains("DrawAsciiSearchRanges", viewport, StringComparison.Ordinal);
-        Assert.Equal(2, viewport.Split("DrawHoverOutline(context, rect", StringSplitOptions.None).Length - 1);
-        Assert.Contains("TextChanged=\"HexByteEditBox_OnTextChanged\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("behaviors:HexTextInputBehavior.Mode=\"Byte\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("behaviors:HexTextInputBehavior.Mode=\"ByteSequence\"", hexEditor, StringComparison.Ordinal);
-        Assert.Equal(3, hexEditor.Split("behaviors:HexTextInputBehavior.Mode=\"Address\"", StringSplitOptions.None).Length - 1);
-        Assert.Contains("behaviors:HexTextInputBehavior.Mode", sharedStyles, StringComparison.Ordinal);
-        Assert.Contains("input:InputMethod.IsInputMethodEnabled=\"False\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("HexEditorSourceDrop_OnDrop", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Height=\"{Binding HexViewportHeight}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding EditorStatus}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"hexInspectorHint\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Classes.error=\"{Binding HasEditFeedback}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding EditNotice}\"", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("Classes=\"hexInspectorFeedback\"", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"{Binding EditFeedback}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Border.hexInspectorHint\"", ReadPresentationFile("Styles/MainWindowControlStyles.axaml"), StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Border.hexInspectorHint.error\"", ReadPresentationFile("Styles/MainWindowControlStyles.axaml"), StringComparison.Ordinal);
-    }
-
-    /// <summary>Uses one hover overlay policy for both Hex and ASCII across every visible byte state.</summary>
-    [Fact]
-    public void HexEditorHoverOutlineDoesNotDisappearBehindByteState()
-    {
-        foreach (HexEditorCellVisualState state in Enum.GetValues<HexEditorCellVisualState>())
-        {
-            Assert.True(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: false, isHovered: true, state));
-            Assert.False(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: false, isHovered: false, state));
-            Assert.False(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: true, isHovered: true, state));
-        }
-    }
-
-    /// <summary>Ensures the Hex Editor inspector remains compact and the source and data surfaces share one workbench grid.</summary>
-    [Fact]
-    public void HexEditorInspectorUsesCompactTopAlignedLayout()
-    {
-        string shell = ReadPresentationFile("MainWindow.axaml");
-        string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
-        string codeBehind = ReadPresentationFile("Views/HexEditorPanel.axaml.cs");
-
-        Assert.Contains("<ScrollViewer Grid.Row=\"3\">", shell, StringComparison.Ordinal);
-        Assert.True(
-            shell.IndexOf("ContentTemplate=\"{StaticResource HexEditorPageTemplate}\"", StringComparison.Ordinal) <
-            shell.IndexOf("</ScrollViewer>", StringComparison.Ordinal));
-        Assert.Contains("MaxWidth=\"1720\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"*,336\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Grid.Column=\"1\" Classes=\"compactSurface\" VerticalAlignment=\"Stretch\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"*,*\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("<ScrollBar", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"*,20\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Maximum=\"{Binding DocumentScrollMaximum}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ViewportSize=\"{Binding VisibleRowCount}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ValueChanged=\"HexDocumentScrollBar_OnValueChanged\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.HexEditorDocumentScrollBarAutomationName}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"iconButton hexGoToAddress\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding Text.HexEditorGoToAddressLabel}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding FindAsciiCommand}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.HelpText=\"{Binding SelectedByteAccessibleLabel}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"GoToAddressTextBox\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("KeyDown=\"GoToAddressTextBox_OnKeyDown\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"AsciiSearchTextBox\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("KeyDown=\"AsciiSearchTextBox_OnKeyDown\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("AddHandler(KeyDownEvent, HexEditorPanel_OnKeyDown, RoutingStrategies.Tunnel)", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"Auto,*,196\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ToggleSwitch", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"hexOriginalRowsToggle\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("SelectNextChangedBlockCommand", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ChangedBlockCount", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding ChangedBlockNavigationAccessibleLabel}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.HelpText=\"{Binding ChangedBlockPage.PageStatus}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding ApplyRangeEditCommand}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"hexWriteModeToggle\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding CurrentWriteModeLabel}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"iconButton hexInspectorAction\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"primary hexApplyChange\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Content=\"{Binding ChangedBlockPage}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ContentTemplate=\"{StaticResource HexEditorChangedBlockPagerTemplate}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding ChangedBlockPage.HasMultiplePages}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ChangedBlockPage.Items}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"Auto,*,Auto\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("MinWidth=\"48\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding ReasonTooltip}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.HelpText=\"{Binding ReasonTooltip}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("TextAlignment=\"Left\"", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("Classes=\"hexEditMode\"", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("Approved region", hexEditor, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Maintains the compact Utility card hierarchy while keeping the full raw-editor warning on hover.</summary>
@@ -397,132 +413,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcTextStrongBrush", markerStyle, StringComparison.Ordinal);
         Assert.DoesNotContain("AutomationProperties.Name=\"{Binding DeviceContextStatus}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Value=\"{Binding RunProgress", contextPanel, StringComparison.Ordinal);
-    }
-
-    /// <summary>Keeps each byte value centered on the calculated 16-column viewport geometry.</summary>
-    [Fact]
-    public void HexEditorByteCellsCenterTheirContentUnderTheHeader()
-    {
-        string viewport = ReadPresentationFile("Views/HexEditorViewportControl.cs");
-
-        Assert.Contains("private const int BytesPerRow = 16", viewport, StringComparison.Ordinal);
-        Assert.Contains("rect.X + ((rect.Width - text.Width) / 2)", viewport, StringComparison.Ordinal);
-        Assert.Contains("rect.Y + ((rect.Height - text.Height) / 2)", viewport, StringComparison.Ordinal);
-        Assert.Contains("GetCellWidth()", viewport, StringComparison.Ordinal);
-    }
-
-    /// <summary>Prevents document scrolling from recreating a control, binding, and template for every visible byte.</summary>
-    [Fact]
-    public void HexEditorUsesReadMostlyCellsAndOneSharedContextMenu()
-    {
-        string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
-        string codeBehind = ReadPresentationFile("Views/HexEditorPanel.axaml.cs");
-        string viewport = ReadPresentationFile("Views/HexEditorViewportControl.cs");
-        string viewportInteraction = ReadPresentationFile("Views/HexEditorViewportControl.Interaction.cs");
-        string viewportStructuralBlocks = ReadPresentationFile("Views/HexEditorViewportControl.StructuralBlocks.cs");
-        string renderingSupport = ReadPresentationFile("Views/HexEditorViewportControl.RenderingSupport.cs");
-        string hexInputBehavior = ReadPresentationFile("Behaviors/HexTextInputBehavior.cs");
-
-        Assert.Contains("<views:HexEditorViewportControl", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("ItemsSource=\"{Binding ViewportRows}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Equal(2, hexEditor.Split("<ContentControl", StringSplitOptions.None).Length);
-        Assert.Contains("Content=\"{Binding ChangedBlockPage}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ContentTemplate=\"{StaticResource HexEditorChangedBlockPagerTemplate}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("public override void Render(DrawingContext context)", viewport, StringComparison.Ordinal);
-        Assert.Contains("DrawByte(context", viewport, StringComparison.Ordinal);
-        Assert.True(viewport.Split("_hoveredAddress,", StringSplitOptions.None).Length >= 3);
-        Assert.Contains("CreateHexTextCache", renderingSupport, StringComparison.Ordinal);
-        Assert.Contains("PointerPressed += OnPointerPressed", viewport, StringComparison.Ordinal);
-        Assert.Contains("TryHitTestAscii", viewportInteraction, StringComparison.Ordinal);
-        Assert.True(
-            viewportInteraction.IndexOf("TryHitTestAscii(point", StringComparison.Ordinal) <
-            viewportInteraction.IndexOf("TryHitTestStructuralAscii(point", StringComparison.Ordinal));
-        Assert.Contains("!TryHitTestAscii(point, out cell, out bounds)", viewportInteraction, StringComparison.Ordinal);
-        Assert.Contains("HexViewport.TryGetAsciiCellAt(point", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("protected override void OnPointerWheelChanged", viewportInteraction, StringComparison.Ordinal);
-        Assert.Contains("ScrollRequested?.Invoke", viewportInteraction, StringComparison.Ordinal);
-        Assert.Contains("Background=\"Transparent\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("KeyDown += OnKeyDown", viewport, StringComparison.Ordinal);
-        Assert.Contains("GotFocus=\"HexTextInput_OnGotFocus\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("LostFocus=\"HexTextInput_OnLostFocus\"", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("<Button.ContextMenu>", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("IsAuthoringDisplayVisible", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("IsEditorVisible", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("VirtualizingStackPanel", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("new ContextMenu()", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("_hexByteContextMenu.Open(HexViewport)", codeBehind, StringComparison.Ordinal);
-        string[] byteContextBindings =
-        [
-            "BindContextCommand(_contextInsertBefore, viewModel.Text.HexEditorContextInsertZeroBeforeLabel, viewModel.InsertZeroBeforeCommand, e.Cell);",
-            "BindContextCommand(_contextInsertAfter, viewModel.Text.HexEditorContextInsertZeroAfterLabel, viewModel.InsertZeroAfterCommand, e.Cell);",
-            "BindContextCommand(_contextInsertManyBefore, viewModel.Text.HexEditorContextInsertBytesBeforeLabel, viewModel.RequestInsertBytesBeforeCommand, e.Cell);",
-            "BindContextCommand(_contextInsertManyAfter, viewModel.Text.HexEditorContextInsertBytesAfterLabel, viewModel.RequestInsertBytesAfterCommand, e.Cell);",
-            "BindContextCommand(_contextDeleteByte, viewModel.Text.HexEditorContextDeleteByteLabel, viewModel.DeleteByteCommand, e.Cell);",
-            "BindContextCommand(_contextSetToZero, viewModel.Text.HexEditorContextSetToZeroLabel, viewModel.SetByteToZeroCommand, e.Cell);",
-            "BindContextCommand(_contextSetToFf, viewModel.Text.HexEditorContextSetToFfLabel, viewModel.SetByteToFfCommand, e.Cell);",
-        ];
-        Assert.All(byteContextBindings, binding => Assert.Contains(binding, codeBehind, StringComparison.Ordinal));
-        Assert.Contains("menuItem.Header = header", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("menuItem.Command = command", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("menuItem.CommandParameter = parameter", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("StructuralBlockContextMenuRequested", viewport, StringComparison.Ordinal);
-        Assert.Contains("TryHitTestStructuralAscii", viewportStructuralBlocks, StringComparison.Ordinal);
-        Assert.Contains("ContainsStructuralPoint", viewportStructuralBlocks, StringComparison.Ordinal);
-        Assert.Contains("row.IsOriginalRowVisible ? RowHeight * 2 : RowHeight", viewportStructuralBlocks, StringComparison.Ordinal);
-        Assert.Contains("HexViewport.TryGetStructuralBlockAt", codeBehind, StringComparison.Ordinal);
-        Assert.True(
-            codeBehind.IndexOf("HexViewport.TryGetStructuralBlockAt", StringComparison.Ordinal) <
-            codeBehind.IndexOf("HexViewport.TryGetCellAt(point", StringComparison.Ordinal));
-        Assert.Contains(
-            "BindContextCommand(_structuralGoToStart, viewModel.Text.HexEditorContextGoToBlockStartLabel, viewModel.GoToChangedBlockStartCommand, block);",
-            codeBehind,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "BindContextCommand(_structuralGoToEnd, viewModel.Text.HexEditorContextGoToBlockEndLabel, viewModel.GoToChangedBlockEndCommand, block);",
-            codeBehind,
-            StringComparison.Ordinal);
-        Assert.Contains("NormalizeAddress", hexInputBehavior, StringComparison.Ordinal);
-        Assert.Contains("NormalizeByteSequence", hexInputBehavior, StringComparison.Ordinal);
-        Assert.DoesNotContain("KeepAsciiHexOnly", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("HexDocumentScrollBar_OnValueChanged", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"HexDocumentSurface\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("HexViewport_OnScrollRequested", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("HexDocumentSurface_OnPointerWheelChanged", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("HexDocumentSurface_OnDoubleTapped", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("QueueDocumentScroll", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("QueueViewportLayout", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("HexEditorSourceDrop_OnDrop", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("HexTextInput_OnGotFocus", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("CompleteInlineEdit", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("SetViewportStartRowCommand.Execute", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("_isDocumentScrollQueued", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("DispatcherPriority.Render", codeBehind, StringComparison.Ordinal);
-    }
-
-    /// <summary>Right-click hit testing includes blank pixels inside one wrapped structural outline.</summary>
-    [Fact]
-    public void HexEditorStructuralOutlineIncludesBlankAndCrossRowAreas()
-    {
-        MethodInfo hitTest = typeof(HexEditorViewportControl).GetMethod(
-            "ContainsStructuralPoint",
-            BindingFlags.NonPublic | BindingFlags.Static) ??
-            throw new InvalidOperationException("Structural outline hit test was not found.");
-        Rect[] segments =
-        [
-            new Rect(140, 10, 30, 48),
-            new Rect(80, 60, 40, 48),
-        ];
-
-        bool Contains(Point point)
-        {
-            return (bool)hitTest.Invoke(null, [segments, point, 80d, 220d])!;
-        }
-
-        Assert.True(Contains(new Point(200, 30))); // Blank tail of the first wrapped row.
-        Assert.True(Contains(new Point(100, 59))); // Blank gap between wrapped rows.
-        Assert.True(Contains(new Point(90, 90))); // Blank head of the final wrapped row.
-        Assert.False(Contains(new Point(70, 59)));
-        Assert.False(Contains(new Point(221, 30)));
     }
 
     /// <summary>Ensures the desktop shell and distributed executable use the dedicated compact app icon.</summary>

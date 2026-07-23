@@ -8,6 +8,9 @@ public static class IcWorkflowIds
     /// <summary>Profile-backed normal Standard Merge.</summary>
     public const string StandardMerge = ExperienceIds.StandardMerge;
 
+    /// <summary>Owner-approved fixed-layout A/B Merge workflow.</summary>
+    public const string AbMerge = ExperienceIds.AbMerge;
+
     /// <summary>DP Replace workflow.</summary>
     public const string DpReplace = ExperienceIds.DpReplace;
 
@@ -24,6 +27,7 @@ public static class IcWorkflowIds
     public static IReadOnlyList<string> All { get; } =
     [
         StandardMerge,
+        AbMerge,
         DpReplace,
         CtrlRamReplace,
         GeneralMerge,
@@ -209,6 +213,12 @@ public static class IcSupportCatalog
         IcWorkflowIds.GeneralReplace,
     ];
 
+    private static readonly string[] AbPilotWorkflowIds =
+    [
+        .. DefaultWorkflowIds,
+        IcWorkflowIds.AbMerge,
+    ];
+
     private static readonly IcSupportEntry[] Entries =
     [
         Entry(
@@ -221,8 +231,10 @@ public static class IcSupportCatalog
             familyScope: "Perfect alias of NT51927 across the owner-declared IC family facts."),
         Entry(
             "NT51919",
+            workflowIds: AbPilotWorkflowIds,
             standardMergeSourceIcId: "NT51929",
             ctrlRamPostbuildSourceIcId: "NT51929",
+            goldenVerifiedWorkflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.AbMerge],
             familyId: "nt51929-nt51932-family",
             familySourceIcId: "NT51929",
             familyRelationship: IcFamilyRelationship.PerfectAlias,
@@ -246,7 +258,9 @@ public static class IcSupportCatalog
             notes: "Single/2-chip/3-chip CtrlRAM and DP+LDC Replace are routed support-neutrally; NT51928 NB is not covered."),
         Entry(
             "NT51929",
+            workflowIds: AbPilotWorkflowIds,
             ctrlRamPostbuildSourceIcId: "NT51932",
+            goldenVerifiedWorkflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.AbMerge],
             familyId: "nt51929-nt51932-family",
             familySourceIcId: "NT51929",
             familyRelationship: IcFamilyRelationship.Canonical,
@@ -260,6 +274,8 @@ public static class IcSupportCatalog
             notes: "DP Replace is backed by the canonical 256 KiB Standard Merge map. CtrlRAM single and generic cascade plans are executable candidates and remain support-neutral; AUTO_PRJ-158 cascade-6 is regression evidence, not an admission gate."),
         Entry(
             "NT51932",
+            workflowIds: AbPilotWorkflowIds,
+            goldenVerifiedWorkflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.AbMerge],
             familyId: "nt51929-nt51932-family",
             familySourceIcId: "NT51929",
             familyRelationship: IcFamilyRelationship.PerfectAlias,

@@ -1,4 +1,6 @@
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -48,6 +50,73 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("General", viewModel.SelectedMergeMode);
     }
 
+    /// <summary>AB inputs participate in the same navigation warning and are cleared before re-entry.</summary>
+    [Fact]
+    public async Task AbMergeNavigationWarnsAndClearsActiveProfileSlotsAsync()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-ab");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedIc = "NT51929";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.DpAbInput,
+            workspace.Write("dp-ab.bin", new byte[0x80000]),
+            TestContext.Current.CancellationToken);
+
+        viewModel.ShowHomeCommand.Execute(null);
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.True(viewModel.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionAddressSpaceIds.DpAbInput).HasFile);
+
+        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        viewModel.ShowMergeCommand.Execute(null);
+
+        Assert.True(viewModel.IsAbCodeMergeModeSelected);
+        Assert.All(viewModel.MergeSlots, static slot => Assert.False(slot.HasFile));
+    }
+
+    /// <summary>Cached AB inputs still participate in the navigation guard after another Merge mode hides them.</summary>
+    [Theory]
+    [InlineData(WorkbenchMergeModes.Standard)]
+    [InlineData(WorkbenchMergeModes.General)]
+    public async Task HiddenAbMergeSlotsWarnAndClearAcrossModesAndProfilesAsync(string nextMode)
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-hidden-ab");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedIc = "NT51929";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.DpAbInput,
+            workspace.Write("dp-ab.bin", new byte[0x80000]),
+            TestContext.Current.CancellationToken);
+
+        viewModel.SelectedIc = "NT51919";
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpAInput,
+            workspace.Write("tpa.bin", new byte[0x40000]),
+            TestContext.Current.CancellationToken);
+        viewModel.SelectedMergeMode = nextMode;
+
+        Assert.DoesNotContain(viewModel.MergeSlots, static slot =>
+            slot.SlotId is CompositionAddressSpaceIds.DpAbInput or CompositionAddressSpaceIds.TpAInput);
+
+        viewModel.ShowHomeCommand.Execute(null);
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsMergeVisible);
+
+        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedIc = "NT51932";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+
+        Assert.All(viewModel.MergeSlots, static slot => Assert.False(slot.HasFile));
+    }
+
     /// <summary>Replace confirmation clears Base and mapping files while preserving device and mapping context.</summary>
     [Fact]
     public void ReplaceNavigationClearsFilesButKeepsAuthoringContext()
@@ -80,6 +149,69 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("NT51927", viewModel.SelectedIc);
         Assert.Equal("2", viewModel.SelectedNumber);
         Assert.Equal("General", viewModel.SelectedReplaceMode);
+    }
+
+    /// <summary>Merge mode binding writes stay on Replace and keep its selected Base firmware.</summary>
+    [Theory]
+    [InlineData(WorkbenchMergeModes.Standard)]
+    [InlineData(WorkbenchMergeModes.General)]
+    public void MergeModeBindingWritesDoNotNavigateAwayFromReplace(string mergeMode)
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-merge-mode-binding");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.SetSlotFile("replace-base", workspace.Write("base.bin", [0x10, 0x11]));
+
+        viewModel.SelectedMergeMode = mergeMode;
+
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.ReplaceBaseSlot.HasFile);
+        Assert.Equal(mergeMode, viewModel.SelectedMergeMode);
+    }
+
+    /// <summary>Refreshing Merge choices after an IC change cannot request navigation from Replace.</summary>
+    [Fact]
+    public void IcChangeDoesNotOpenNavigationClearConfirmationOnReplace()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-ic-change");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.SetSlotFile("replace-base", workspace.Write("base.bin", [0x10, 0x11]));
+
+        viewModel.SelectedIc = "NT51928";
+
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.ReplaceBaseSlot.HasFile);
+    }
+
+    /// <summary>An explicit workflow navigation still uses the guard and identifies its requested page.</summary>
+    [Fact]
+    public void ExplicitMergeNavigationShowsPendingRouteAndPreservesCancelBehavior()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-explicit-merge");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.SetSlotFile("replace-base", workspace.Write("base.bin", [0x10, 0x11]));
+
+        viewModel.ShowMergeCommand.Execute(null);
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.Equal("Replace → Merge", viewModel.NavigationClearRoute);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.Equal("取代 → 合併", viewModel.NavigationClearRoute);
+
+        viewModel.CancelNavigationClearCommand.Execute(null);
+
+        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.True(viewModel.ReplaceBaseSlot.HasFile);
+        Assert.Equal("首頁 > 取代", viewModel.NavigationClearRoute);
     }
 
     /// <summary>Back navigation does not mutate history or inputs until its clear action is confirmed.</summary>

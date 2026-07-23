@@ -76,12 +76,25 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         AddressSpace sourceAddressSpace = spaces[source.SpaceId];
-        if (sourceAddressSpace.InputPaddingByte is not null ||
-            sourceAddressSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
-            sourceAddressSpace.AllowedInputLengths.Count != 0 ||
-            sourceAddressSpace.ExpectedInputLengths.Count != 0)
+        bool usesExactGeometry = sourceAddressSpace.InputPaddingByte is null &&
+            sourceAddressSpace.InputOversizePolicy == InputOversizePolicy.Reject &&
+            sourceAddressSpace.AllowedInputLengths.Count == 0 &&
+            sourceAddressSpace.ExpectedInputLengths.Count == 0;
+        CompositionProfileInputSlot sourceSlot = profile.InputSlots.Single(slot =>
+            StringComparer.Ordinal.Equals(slot.SlotId, source.SlotId));
+        bool usesDeclaredPrefixSnapshot = mutableSpace.Kind == CompositionProfileSpaceKind.WorkBuffer &&
+            sourceSlot.LengthRule is DeclaredPrefixWithWarningLengthRule declaredPrefix &&
+            declaredPrefix.RequiredEndExclusive == spaces[mutableSpace.SpaceId].Length &&
+            sourceAddressSpace.InputPaddingByte is null &&
+            sourceAddressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange &&
+            sourceAddressSpace.AllowedInputLengths.Count == 0 &&
+            sourceAddressSpace.ExpectedInputLengths.SequenceEqual(declaredPrefix.ExpectedOuterLengths) &&
+            StringComparer.Ordinal.Equals(
+                sourceAddressSpace.UnexpectedInputLengthIssueCode,
+                declaredPrefix.UnexpectedOuterLengthIssueCode);
+        if (!usesExactGeometry && !usesDeclaredPrefixSnapshot)
         {
-            error = $"mutable space '{mutableSpace.SpaceId}' clone source '{source.SpaceId}' must use exact immutable input geometry";
+            error = $"mutable space '{mutableSpace.SpaceId}' clone source '{source.SpaceId}' must use exact immutable or equal-length declared-prefix input geometry";
             return false;
         }
 

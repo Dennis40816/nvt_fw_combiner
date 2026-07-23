@@ -24,6 +24,9 @@ public static class GenFlashVersionCatalog
         "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
         "private 51929 replacement DP golden (SHA-256 91ce8204d7dc6103a015eba59f9ddb41ef5d1a64c101aa62a4fe7c4517f5cebf) " +
         "cross-checked against the legacy DP major version rule. See owner-handoff/combiner-and-51929/CASE.md.";
+    private const string Nt51930CmiEvidence =
+        "Owner-confirmed NT51930 FlashCode CMI Reg16h-18h location [0x18, 0x1B), 2026-07-22; " +
+        "ctrlram-replace direct owner golden expected FlashCode cross-checks AUTO_PRJ-302 / D05.";
     private const string Nt51923CmiEvidence =
         "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
         "standard-merge-gen-flash expected output cross-checks the retained DP CMI bytes with legacy DP major.";
@@ -170,12 +173,13 @@ public static class GenFlashVersionCatalog
 
     private static Dictionary<string, CmiDpCodeRule> BuildCmiDpCodeRules()
     {
-        return new Dictionary<string, CmiDpCodeRule>(StringComparer.Ordinal)
+        var rules = new Dictionary<string, CmiDpCodeRule>(StringComparer.Ordinal)
         {
             ["51923"] = new CmiDpCodeRule("51923", Sizes(0x40000), 0x3E014, Nt51923CmiEvidence),
             ["51926"] = new CmiDpCodeRule("51926", Sizes(0x40000), 0x3E014, Nt51926CmiEvidence),
             ["51927"] = new CmiDpCodeRule("51927", Sizes(0x40000, 0x200000), 0x3C01C, Nt51927CmiEvidence),
             ["51929"] = new CmiDpCodeRule("51929", Sizes(0x40000), 0x401A, Nt51929CmiEvidence),
+            ["51930"] = new CmiDpCodeRule("51930", Sizes(0x40000), 0x18, Nt51930CmiEvidence),
             ["51932"] = new CmiDpCodeRule("51932", Sizes(0x40000), 0x401A, Nt51932CmiEvidence),
             ["51950"] = new CmiDpCodeRule(
                 "51950",
@@ -185,6 +189,12 @@ public static class GenFlashVersionCatalog
                 CascadeRegister16Offset: 0x05016),
             ["51951"] = new CmiDpCodeRule("51951", Sizes(0x80000), 0x05016, Nt51951CmiEvidence),
         };
+        rules["51919"] = rules["51929"] with
+        {
+            IcId = "51919",
+            EvidenceSource = "Owner-confirmed NT51919 perfect-family reuse of NT51929 CMI Reg16h-18h layout.",
+        };
+        return rules;
     }
 
     private static ReadOnlyCollection<int> Sizes(params int[] payloadLengths)

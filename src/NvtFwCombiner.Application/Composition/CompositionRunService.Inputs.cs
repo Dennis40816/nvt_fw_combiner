@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -72,17 +73,30 @@ public sealed partial class CompositionRunService
             StringComparer.Ordinal);
         foreach (CompiledInputSpaceBinding binding in details.InputContract.SpaceBindings)
         {
-            if (slots[binding.SlotId].LengthRequirement is not CompiledTpMaximum256KInputLengthRequirement ||
-                !inputBytes.TryGetValue(binding.AddressSpaceId, out byte[]? bytes) ||
-                bytes.LongLength <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes)
+            if (!inputBytes.TryGetValue(binding.AddressSpaceId, out byte[]? bytes))
             {
                 continue;
             }
 
-            issues.Add(new CompositionIssue(
-                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                $"Input bytes for address space '{binding.AddressSpaceId}' exceed the 256 KiB maximum (actual {bytes.LongLength} bytes, maximum {CompiledTpMaximum256KInputLengthRequirement.MaximumBytes} bytes).",
-                binding.AddressSpaceId));
+            switch (slots[binding.SlotId].LengthRequirement)
+            {
+                case CompiledTpMaximum256KInputLengthRequirement
+                    when bytes.LongLength > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes:
+                    issues.Add(new CompositionIssue(
+                        CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                        $"Input bytes for address space '{binding.AddressSpaceId}' exceed the 256 KiB maximum (actual {bytes.LongLength} bytes, maximum {CompiledTpMaximum256KInputLengthRequirement.MaximumBytes} bytes).",
+                        binding.AddressSpaceId));
+                    break;
+                case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix
+                    when bytes.LongLength < declaredPrefix.RequiredEndExclusive:
+                    issues.Add(new CompositionIssue(
+                        declaredPrefix.ShortInputIssueCode,
+                        $"Input bytes for address space '{binding.AddressSpaceId}' end at 0x{bytes.LongLength:X}, before required end 0x{declaredPrefix.RequiredEndExclusive:X}; no padding is authorized.",
+                        binding.AddressSpaceId));
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
@@ -135,6 +149,7 @@ public sealed partial class CompositionRunService
 
         await TryReadBindingAsync(
                 binding,
+                TryCreateDeclaredPrefixInspectionPolicy(request, addressSpaceId),
                 inputBytes,
                 inputSummaries,
                 artifactSnapshots,
@@ -145,6 +160,7 @@ public sealed partial class CompositionRunService
 
     private async ValueTask TryReadBindingAsync(
         InputArtifactBinding binding,
+        DeclaredPrefixInputInspectionPolicy? inspectionPolicy,
         Dictionary<string, byte[]> inputBytes,
         List<InputArtifactSummary> inputSummaries,
         Dictionary<string, ArtifactReadSnapshot> artifactSnapshots,
@@ -171,12 +187,29 @@ public sealed partial class CompositionRunService
             }
 
             inputBytes.Add(binding.AddressSpaceId, buffer);
+            InputArtifactExecutionSnapshotSummary? executionSnapshot = null;
+            if (inspectionPolicy is not null)
+            {
+                InputArtifactInspection inspection = DeclaredPrefixInputInspector.Inspect(
+                    inspectionPolicy,
+                    buffer);
+                if (inspection.AcceptedSnapshot is { } accepted &&
+                    inspection.AcceptedSnapshotRange is { } acceptedRange)
+                {
+                    executionSnapshot = new InputArtifactExecutionSnapshotSummary(
+                        acceptedRange,
+                        accepted.Sha256,
+                        inspection.IgnoredTrailingRange);
+                }
+            }
+
             inputSummaries.Add(new InputArtifactSummary(
                 binding.AddressSpaceId,
                 binding.BindingId,
                 buffer.LongLength,
                 sha256,
-                binding.OriginalFileName));
+                binding.OriginalFileName,
+                executionSnapshot));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -189,6 +222,34 @@ public sealed partial class CompositionRunService
                 $"Unable to read artifact binding '{binding.BindingId}' ({exception.GetType().Name}).",
                 binding.AddressSpaceId));
         }
+    }
+
+    private static DeclaredPrefixInputInspectionPolicy? TryCreateDeclaredPrefixInspectionPolicy(
+        CompositionRunRequest request,
+        string addressSpaceId)
+    {
+        if (request.CompiledComposition.V2Details is not { } details ||
+            details.Provenance.Context is LogicalOutputV2CompilationContext)
+        {
+            return null;
+        }
+
+        CompiledInputSpaceBinding? spaceBinding = details.InputContract.SpaceBindings.SingleOrDefault(
+            binding => StringComparer.Ordinal.Equals(binding.AddressSpaceId, addressSpaceId));
+        if (spaceBinding is null)
+        {
+            return null;
+        }
+
+        CompiledInputSlotRequirement? slot = details.InputContract.Slots.SingleOrDefault(
+            candidate => StringComparer.Ordinal.Equals(candidate.SlotId, spaceBinding.SlotId));
+        return slot?.LengthRequirement is CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix
+            ? new DeclaredPrefixInputInspectionPolicy(
+                declaredPrefix.RequiredEndExclusive,
+                declaredPrefix.ExpectedOuterLengths,
+                declaredPrefix.ShortInputIssueCode,
+                declaredPrefix.UnexpectedOuterLengthIssueCode)
+            : null;
     }
 
     private sealed record BoundInputs(

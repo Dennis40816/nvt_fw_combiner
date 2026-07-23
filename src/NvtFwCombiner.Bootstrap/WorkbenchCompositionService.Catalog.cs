@@ -18,6 +18,12 @@ public static partial class WorkbenchCompositionService
             .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
             .ToArray()));
 
+    private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_abMergeProfileSummaries = new(() =>
+        Array.AsReadOnly(BuiltInV2RegistrationRegistry.AbMerge
+            .Select(static registration => registration.CreateProfileSummary())
+            .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
+            .ToArray()));
+
     private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_replaceProfileSummaries = new(() =>
         Array.AsReadOnly(BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values
             .Select(static registration => registration.CreateProfileSummary())
@@ -77,6 +83,12 @@ public static partial class WorkbenchCompositionService
     public static IReadOnlyList<WorkbenchProfileSummary> GetStandardMergeProfileSummaries()
     {
         return s_standardMergeProfileSummaries.Value;
+    }
+
+    /// <summary>Gets compiled AB Merge profile summaries in stable CLI/display order.</summary>
+    public static IReadOnlyList<WorkbenchProfileSummary> GetAbMergeProfileSummaries()
+    {
+        return s_abMergeProfileSummaries.Value;
     }
 
     /// <summary>Gets compiled Replace profile summaries in stable CLI/display order.</summary>

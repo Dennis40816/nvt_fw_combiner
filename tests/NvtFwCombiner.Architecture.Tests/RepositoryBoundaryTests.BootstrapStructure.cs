@@ -8,6 +8,8 @@ public sealed partial class RepositoryBoundaryTests
     {
         string bootstrapSource = ReadBootstrapSources();
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
+        string abCliRouter = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.AbMerge.cs");
+        string abCliHandler = ReadText("src/NvtFwCombiner.Bootstrap/AbMergeCliCommandHandler.cs");
         string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
         int cliCalls = CountOccurrences(cli, ".PreviewOrBuildAsync(");
         int runnerCalls = CountOccurrences(runner, ".PreviewOrBuildAsync(");
@@ -16,6 +18,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("BuildWithInternalPreviewAsync", bootstrapSource, StringComparison.Ordinal);
         Assert.Equal(1, cliCalls);
         Assert.Equal(2, runnerCalls);
+        Assert.Contains("AbMergeCliCommandHandler.RunAsync", abCliRouter, StringComparison.Ordinal);
+        Assert.DoesNotContain(".PreviewOrBuildAsync(", abCliRouter, StringComparison.Ordinal);
+        Assert.Contains("AbMergeWorkbenchCompositionService.RunAbMergeForCliAsync", abCliHandler, StringComparison.Ordinal);
+        Assert.DoesNotContain(".PreviewOrBuildAsync(", abCliHandler, StringComparison.Ordinal);
         Assert.Contains("progress is null", runner, StringComparison.Ordinal);
         Assert.Equal(cliCalls + runnerCalls, CountOccurrences(bootstrapSource, ".PreviewOrBuildAsync("));
         Assert.DoesNotContain("WithApprovedPreviewToken", bootstrapSource, StringComparison.Ordinal);

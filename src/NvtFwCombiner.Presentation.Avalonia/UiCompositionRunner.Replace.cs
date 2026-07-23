@@ -56,7 +56,8 @@ public static partial class UiCompositionRunner
                     slot.Title,
                     slot.Description,
                     kind,
-                    slot.IsOptional)),
+                    slot.IsOptional,
+                    slot.RegionId)),
         ];
     }
 
@@ -72,7 +73,8 @@ public static partial class UiCompositionRunner
                 slot.Title,
                 slot.Description,
                 FirmwareSlotKind.CtrlRam,
-                slot.IsOptional)),
+                slot.IsOptional,
+                slot.RegionId)),
         ];
     }
 
@@ -84,7 +86,8 @@ public static partial class UiCompositionRunner
         string icId,
         string number,
         string replaceMode,
-        long? dpBaseLength = null)
+        long? dpBaseLength = null,
+        IEnumerable<string>? selectedRegionIds = null)
     {
         WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
             icId,
@@ -92,6 +95,12 @@ public static partial class UiCompositionRunner
             replaceMode,
             dpBaseLength,
             ctrlRamBasePath: null);
+        if (selectedRegionIds is not null &&
+            string.Equals(replaceMode, WorkbenchReplaceModes.CtrlRam, StringComparison.Ordinal))
+        {
+            display = WorkbenchCompositionService.ApplyReplaceCoverageSelection(display, selectedRegionIds);
+        }
+
         return (
             display.RangeLabel,
             [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
@@ -103,9 +112,15 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetReplaceMemoryDisplay(
-        WorkbenchMemoryDisplay display)
+        WorkbenchMemoryDisplay display,
+        IEnumerable<string>? selectedRegionIds = null)
     {
         ArgumentNullException.ThrowIfNull(display);
+        if (selectedRegionIds is not null)
+        {
+            display = WorkbenchCompositionService.ApplyReplaceCoverageSelection(display, selectedRegionIds);
+        }
+
         return (
             display.RangeLabel,
             [.. display.MemoryMapRows.Select(ToMemoryMapRow)],

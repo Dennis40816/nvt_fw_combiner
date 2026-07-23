@@ -7,6 +7,7 @@ internal static partial class CompositionProfileNormalizer
 {
     internal static CompositionProfileInputSlot NormalizeInputSlot(
         CompositionProfileInputSlotDocument document,
+        string schemaVersion = "2.10",
         string path = "inputSlots[0]")
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -27,7 +28,7 @@ internal static partial class CompositionProfileNormalizer
             document.Required,
             NormalizeCardinality(document.Cardinality, $"{path}.cardinality"),
             RequireList(document.AcceptedExtensions, $"{path}.acceptedExtensions"),
-            NormalizeLengthRule(lengthRule, $"{path}.acceptance.lengthRule"),
+            NormalizeLengthRule(lengthRule, schemaVersion, $"{path}.acceptance.lengthRule"),
             NormalizeInputNormalization(normalization, $"{path}.acceptance.normalization")));
     }
 
@@ -58,6 +59,7 @@ internal static partial class CompositionProfileNormalizer
 
     private static CompositionProfileLengthRule NormalizeLengthRule(
         CompositionProfileLengthRuleDocument document,
+        string schemaVersion,
         string path)
     {
         return document.Kind switch
@@ -85,6 +87,27 @@ internal static partial class CompositionProfileNormalizer
                     "Warning issue code is missing."),
                     NormalizeExpectedInputLengths(document.ExpectedInputLengths, $"{path}.expectedInputLengths"))),
             "tp-maximum-256k" => NormalizeTpMaximum(document, path),
+            "declared-prefix-with-warning" when schemaVersion == "2.10" => Wrap(path, () =>
+                new DeclaredPrefixWithWarningLengthRule(
+                    ReadInt64(
+                        Require(document.RequiredEndExclusive, $"{path}.requiredEndExclusive"),
+                        1,
+                        int.MaxValue,
+                        $"{path}.requiredEndExclusive"),
+                    NormalizeExpectedInputLengths(
+                        document.ExpectedOuterLengths,
+                        $"{path}.expectedOuterLengths") ?? throw Error(
+                            $"{path}.expectedOuterLengths",
+                            "Expected outer lengths are missing."),
+                    document.ShortInputIssueCode ?? throw Error(
+                        $"{path}.shortInputIssueCode",
+                        "Short-input issue code is missing."),
+                    document.UnexpectedOuterLengthIssueCode ?? throw Error(
+                        $"{path}.unexpectedOuterLengthIssueCode",
+                        "Unexpected outer-length issue code is missing."))),
+            "declared-prefix-with-warning" => throw Error(
+                $"{path}.kind",
+                "Declared-prefix input authority requires composition-profile schema version '2.10'."),
             _ => throw Error($"{path}.kind", "Unknown input length rule."),
         };
     }

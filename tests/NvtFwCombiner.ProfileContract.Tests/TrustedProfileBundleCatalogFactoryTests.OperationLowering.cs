@@ -300,6 +300,34 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("tp-source", clonedScratch.ReferenceSpaceId);
     }
 
+    /// <summary>Verifies a work buffer clones only the accepted declared prefix when its capacity matches that prefix.</summary>
+    [Fact]
+    public void BlankOutputLoweringClonesEqualLengthDeclaredPrefixIntoWorkBuffer()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithWorkBuffer(
+                ProfileWithDeclaredPrefix(
+                    SupportedProfileJson(familyHash),
+                    "tp-b",
+                    "tp-firmware",
+                    requiredEndExclusive: 16),
+                cloneSourceSlotId: "tp-input",
+                fixedCapacityBytes: 16)));
+
+        Assert.True(
+            result.IsCompiled,
+            string.Join(Environment.NewLine, result.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        ImageInitialization clone = Assert.Single(
+            result.CompiledComposition!.Plan.Initializations,
+            static initialization => initialization.TargetSpaceId == "scratch");
+        Assert.Equal(ImageInitializationKind.Reference, clone.Kind);
+        Assert.Equal("tp-source", clone.ReferenceSpaceId);
+        AddressSpace source = Assert.Single(
+            result.CompiledComposition.Plan.AddressSpaces,
+            static space => space.AddressSpaceId == "tp-source");
+        Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, source.InputOversizePolicy);
+    }
+
     /// <summary>Verifies clone work buffers reject extracted input geometry before plan construction.</summary>
     [Fact]
     public void BlankOutputLoweringRejectsWorkBufferCloneFromExtractedInput()

@@ -3,9 +3,9 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
-public static partial class WorkbenchCompositionService
+internal static class WorkbenchMemoryDisplayProjection
 {
-    private static string ActionLabel(CompositionOperationKind kind)
+    internal static string ActionLabel(CompositionOperationKind kind)
     {
         return kind switch
         {
@@ -19,7 +19,7 @@ public static partial class WorkbenchCompositionService
         };
     }
 
-    private static string AddressSpaceLabel(string addressSpaceId)
+    internal static string AddressSpaceLabel(string addressSpaceId)
     {
         return addressSpaceId switch
         {
@@ -29,12 +29,16 @@ public static partial class WorkbenchCompositionService
             CompositionAddressSpaceIds.ReferenceBase => "Base flash",
             CompositionAddressSpaceIds.DpReplacement => "DP replacement",
             CompositionAddressSpaceIds.LdReplacement => "LDC replacement",
+            CompositionAddressSpaceIds.DpAbInput => "DP_AB BIN",
+            CompositionAddressSpaceIds.TpAInput => "TPA BIN",
+            CompositionAddressSpaceIds.TpBInput => "TPB BIN",
+            CompositionAddressSpaceIds.TpBWork => "TPB work buffer",
             CompositionAddressSpaceIds.OutputImage => "Output",
             _ => addressSpaceId,
         };
     }
 
-    private static CoverageSegment[] ApplyCoverageWrite(
+    internal static CoverageSegment[] ApplyCoverageWrite(
         IReadOnlyList<CoverageSegment> current,
         CoverageSegment write)
     {
@@ -107,13 +111,16 @@ public static partial class WorkbenchCompositionService
         }
     }
 
-    private static string CoverageFill(string sourceLabel)
+    internal static string CoverageFill(string sourceLabel)
     {
         return sourceLabel switch
         {
             "DP BIN" => "#2563EB",
             "Changed DP BIN" => "#2563EB",
             "TP BIN" => "#16A34A",
+            "DP_AB BIN" => "#2563EB",
+            "TPA BIN" => "#16A34A",
+            "TPB work buffer" => "#7C3AED",
             "LD BIN" => "#F97316",
             "Changed LDC BIN" => "#F97316",
             "CtrlRAM BIN" => "#16A34A",
@@ -133,17 +140,17 @@ public static partial class WorkbenchCompositionService
         };
     }
 
-    private static string FormatFullRange(long capacity)
+    internal static string FormatFullRange(long capacity)
     {
         return capacity <= 0 ? "No range" : FormatDisplayRange(new ByteRange(0, capacity));
     }
 
-    private static string FormatDisplayRange(ByteRange range)
+    internal static string FormatDisplayRange(ByteRange range)
     {
         return FormattableString.Invariant($"0x{range.Start:X5}-0x{range.EndExclusive - 1:X5} (len 0x{range.Length:X})");
     }
 
-    private static IReadOnlyList<WorkbenchMemoryCoverageSegment> ToWorkbenchCoverageSegments(
+    internal static IReadOnlyList<WorkbenchMemoryCoverageSegment> ToWorkbenchCoverageSegments(
         IEnumerable<CoverageSegment> segments,
         long capacity)
     {
@@ -154,13 +161,14 @@ public static partial class WorkbenchCompositionService
                 segment.SourceLabel,
                 segment.Detail,
                 segment.Fill,
-                Math.Max(8, Math.Round(300d * segment.Range.Length / capacity, 1)),
+                300d * segment.Range.Length / capacity,
                 segment.IsChanged,
-                segment.Role)),
+                segment.Role,
+                segment.RegionId)),
         ];
     }
 
-    private static WorkbenchMemoryDisplay CreateMessageDisplay(
+    internal static WorkbenchMemoryDisplay CreateMessageDisplay(
         string rangeLabel,
         (string Range, string Before, string Action, string After, string Detail) row,
         (string Range, string Source, string Detail, string Fill)? coverage)
@@ -174,13 +182,17 @@ public static partial class WorkbenchCompositionService
                     item.Source,
                     item.Detail,
                     item.Fill,
-                    280,
+                    300,
                     false,
                     WorkbenchMemoryCoverageRole.Standard)]
                 : []);
     }
 
-    private static string Sha256File(string path)
+}
+
+internal static class WorkbenchArtifactIdentity
+{
+    internal static string Sha256File(string path)
     {
         using FileStream stream = File.OpenRead(path);
         return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();

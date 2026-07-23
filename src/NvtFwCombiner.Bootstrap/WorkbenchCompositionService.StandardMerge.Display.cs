@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using static NvtFwCombiner.Bootstrap.WorkbenchMemoryDisplayProjection;
 
 namespace NvtFwCombiner.Bootstrap;
 

@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using static NvtFwCombiner.Bootstrap.WorkbenchMemoryDisplayProjection;
 using NvtFwCombiner.Application.FlashMaps;
 
 namespace NvtFwCombiner.Bootstrap;

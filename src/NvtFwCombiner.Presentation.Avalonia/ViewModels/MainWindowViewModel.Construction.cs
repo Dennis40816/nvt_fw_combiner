@@ -16,6 +16,12 @@ public sealed partial class MainWindowViewModel
     private const string MergeTpSlotId = WorkbenchSlotIds.MergeTp;
     private const string MergeLdSlotId = WorkbenchSlotIds.MergeLd;
     private const string ReplaceBaseSlotId = WorkbenchSlotIds.ReplaceBase;
+    private static readonly IReadOnlyList<string> s_standardMergeModeChoices =
+        Array.AsReadOnly([NormalMergeMode, GeneralMergeMode]);
+    private static readonly IReadOnlyList<string> s_abMergeModeChoices =
+        Array.AsReadOnly([NormalMergeMode, AbCodeMergeMode, GeneralMergeMode]);
+    private readonly Dictionary<string, string> _abMergeAddressSpaceBySlotId = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, FirmwareSlotViewModel> _abMergeSlotsByAddressSpace = new(StringComparer.Ordinal);
 
     private readonly FirmwareSlotViewModel _mergeDpSlot = new(
         MergeDpSlotId,
@@ -87,7 +93,7 @@ public sealed partial class MainWindowViewModel
         ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
         _fileRevealService = fileRevealService ?? WorkbenchHostServices.CreateFileRevealService();
         _ctrlRamFirmwareVersionMetadataReader = firmwareConfigMetadataReader;
-        _firmwareInspectionReader = firmwareInspectionReader;
+        _firmwareInspectionSession = new FirmwareInspectionSession(firmwareInspectionReader);
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         CompositionProgress = new CompositionRunProgressViewModel(language);
@@ -110,6 +116,11 @@ public sealed partial class MainWindowViewModel
         RequestHexEditorUndoCommand = new RelayCommand(RequestHexEditorUndo, CanRequestHexEditorUndo);
         RequestHexEditorRedoCommand = new RelayCommand(RequestHexEditorRedo, CanRequestHexEditorRedo);
         BeginNormalMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
+        BeginAbMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(
+            ShellPage.Merge,
+            AbCodeMergeMode,
+            showNumber: false,
+            [.. WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId)]));
         BeginGeneralMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
         CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);
@@ -152,6 +163,7 @@ public sealed partial class MainWindowViewModel
         RevealFileCommand = new RelayCommand<string>(RevealFile);
         RevealBuildCompletedOutputCommand = new RelayCommand(RevealBuildCompletedOutput);
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
+        PropertyChanged += MainWindowViewModel_OnPropertyChanged;
         _isInitializing = false;
     }
 }

@@ -36,6 +36,20 @@ public static partial class CliApplication
                 .ConfigureAwait(false);
         }
 
+        await output.WriteLineAsync("Built-in AB Merge profiles:").ConfigureAwait(false);
+        foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetAbMergeProfileSummaries())
+        {
+            string inputs = profile.CompileSucceeded
+                ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
+                : "compile-error";
+            string issues = FormatProfileIssues(profile);
+            await output.WriteLineAsync(
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  default-output={profile.DefaultOutputFileName}{issues}"))
+                .ConfigureAwait(false);
+        }
+
         await output.WriteLineAsync("Built-in replace profiles:").ConfigureAwait(false);
         foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetReplaceProfileSummaries())
         {

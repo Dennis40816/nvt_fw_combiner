@@ -1,12 +1,10 @@
 name: main-package
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: main-package-${{ github.ref }}
@@ -52,31 +50,9 @@ jobs:
         shell: pwsh
         run: ./scripts/smoke-release.ps1 -PackagePath "./artifacts/release/NvtFwCombiner-v$env:NFC_PACKAGE_VERSION-win-x64.zip" -SkipUiLaunch
       - name: Upload self-contained package
-        id: upload-package-artifact
-        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nvt-fw-combiner-${{ github.sha }}-win-x64
           path: artifacts/release/*
           if-no-files-found: error
           retention-days: 3
-      - name: Publish package fallback prerelease
-        if: steps.upload-package-artifact.outcome == 'failure'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $sha = '${{ github.sha }}'
-          $shortSha = $sha.Substring(0, 12)
-          $tag = "main-package-$shortSha"
-          $repo = '${{ github.repository }}'
-          $title = "Main package $shortSha"
-          $notes = "Automated main package for commit $sha. Created because GitHub Actions artifact upload was unavailable."
-          gh release view $tag --repo $repo *> $null
-          if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag ./artifacts/release/* --repo $repo --clobber
-            gh release edit $tag --repo $repo --prerelease --title $title --notes $notes
-          }
-          else {
-            gh release create $tag ./artifacts/release/* --repo $repo --target $sha --prerelease --title $title --notes $notes
-          }

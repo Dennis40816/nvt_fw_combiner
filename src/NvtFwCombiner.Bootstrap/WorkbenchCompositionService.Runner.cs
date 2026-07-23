@@ -15,7 +15,7 @@ public static partial class WorkbenchCompositionService
     private const string CtrlRamReplaceRunIdPrefix = "ui-replace-ctrlram";
     private const string GeneralReplaceRunIdPrefix = "ui-replace-general";
 
-    private static async ValueTask<WorkbenchRunResult> RunCompiledCompositionAsync(
+    internal static async ValueTask<WorkbenchRunResult> RunCompiledCompositionAsync(
         string runIdPrefix,
         CompiledComposition compiledComposition,
         IReadOnlyList<InputArtifactBinding> bindings,
@@ -27,7 +27,8 @@ public static partial class WorkbenchCompositionService
         bool overwrite,
         CancellationToken cancellationToken,
         IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
-        CompositionRunProgressFeed? progress = null)
+        CompositionRunProgressFeed? progress = null,
+        string? previewOutputFileName = null)
     {
         string[] inputRoots =
         [
@@ -41,6 +42,20 @@ public static partial class WorkbenchCompositionService
             build,
             outputPath,
             compiledComposition.DefaultOutputFileName);
+        if (previewOutputFileName is not null)
+        {
+            if (build ||
+                string.IsNullOrWhiteSpace(previewOutputFileName) ||
+                Path.GetFileName(previewOutputFileName) != previewOutputFileName ||
+                previewOutputFileName.IndexOfAny(['/', '\\', ':']) >= 0)
+            {
+                throw new ArgumentException(
+                    "A preview output name must be one plain filename and is not valid for Build.",
+                    nameof(previewOutputFileName));
+            }
+
+            outputFileName = previewOutputFileName;
+        }
         if (build)
         {
             ProtectedPathGuard.EnsureDoesNotAlias(

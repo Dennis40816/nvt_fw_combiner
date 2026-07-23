@@ -13,6 +13,12 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshMergeSlotRequirements()
     {
+        if (IsAbCodeMergeModeSelected)
+        {
+            RefreshAbMergeSlots();
+            return;
+        }
+
         IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
         _mergeDpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal);
         _mergeTpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal);
@@ -31,6 +37,33 @@ public sealed partial class MainWindowViewModel
         if (required.Contains(WorkbenchAddressSpaceIds.LdInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(_mergeLdSlot);
+        }
+    }
+
+    private void RefreshAbMergeSlots()
+    {
+        MergeSlots.Clear();
+        _abMergeAddressSpaceBySlotId.Clear();
+        foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(SelectedIc))
+        {
+            if (!_abMergeSlotsByAddressSpace.TryGetValue(input.AddressSpaceId, out FirmwareSlotViewModel? slot))
+            {
+                slot = new FirmwareSlotViewModel(
+                    input.SlotId,
+                    ShellTextResources.GetAbSlotTitle(input.Role),
+                    Text.GetAbSlotDescription(input),
+                    input.Role == WorkbenchAbMergeInputRole.DpAb ? FirmwareSlotKind.Dp : FirmwareSlotKind.Tp);
+                _abMergeSlotsByAddressSpace.Add(input.AddressSpaceId, slot);
+            }
+
+            slot.ApplyDisplayText(
+                ShellTextResources.GetAbSlotTitle(input.Role),
+                Text.GetAbSlotDescription(input),
+                Text.RequiredLabel,
+                Text.OptionalLabel,
+                Text.NoBinSelectedLabel);
+            _abMergeAddressSpaceBySlotId[input.SlotId] = input.AddressSpaceId;
+            MergeSlots.Add(slot);
         }
     }
 
@@ -68,11 +101,24 @@ public sealed partial class MainWindowViewModel
             GeneralMergeMappings.Any(mapping => mapping.HasFile);
     }
 
+    private bool CanRunAbMerge()
+    {
+        return IsAbCodeMergeModeSelected &&
+            IsAbMergeSupported &&
+            MergeSlots.Count > 0 &&
+            MergeSlots.All(static slot =>
+                slot.HasFile &&
+                slot.InputInspectionSeverity is not null &&
+                !slot.BlocksBuild &&
+                !slot.IsInputInspectionPending);
+    }
+
     private bool CanRunMerge()
     {
         return !IsRunInProgress && !IsFirmwareInspectionLoading && (SelectedMergeMode switch
         {
             NormalMergeMode => CanRunStandardMerge(),
+            AbCodeMergeMode => CanRunAbMerge(),
             GeneralMergeMode => CanRunGeneralMerge(),
             _ => false,
         });
@@ -83,6 +129,7 @@ public sealed partial class MainWindowViewModel
         return SelectedMergeMode switch
         {
             NormalMergeMode => RunStandardMergeAsync(build, outputPath),
+            AbCodeMergeMode => RunAbMergeAsync(build, outputPath),
             GeneralMergeMode => RunGeneralMergeAsync(build, outputPath),
             _ => Task.CompletedTask,
         };
@@ -141,6 +188,39 @@ public sealed partial class MainWindowViewModel
                 compositionKind: "Merge",
                 modeId: WorkbenchWorkflowIds.GeneralMerge,
                 experienceId: WorkbenchWorkflowIds.GeneralMerge));
+    }
+
+    private Task RunAbMergeAsync(bool build, string? outputPath)
+    {
+        string icId = SelectedIc;
+        IReadOnlyDictionary<string, string> slotPaths = MergeSlots
+            .Where(static slot => slot.HasFile)
+            .ToDictionary(
+                slot => _abMergeAddressSpaceBySlotId[slot.SlotId],
+                slot => slot.FilePath!,
+                StringComparer.Ordinal);
+        string profileId = WorkbenchCompositionService.GetAbMergeProfileSummaries()
+            .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))
+            .ProfileId;
+        return RunCompositionAsync(
+            build,
+            (progress, cancellationToken) => AbMergeWorkbenchCompositionService.RunAbMergeWithProgressAsync(
+                icId,
+                slotPaths,
+                build,
+                progress,
+                cancellationToken,
+                outputPath),
+            (action, errorMessage) => LoadRunErrorReport(
+                action,
+                profileId,
+                icId,
+                SelectedNumber,
+                errorMessage,
+                slotPaths,
+                compositionKind: "Merge",
+                modeId: WorkbenchWorkflowIds.AbMerge,
+                experienceId: WorkbenchWorkflowIds.AbMerge));
     }
 
     private Dictionary<string, string> CreateStandardMergeSlotPaths()

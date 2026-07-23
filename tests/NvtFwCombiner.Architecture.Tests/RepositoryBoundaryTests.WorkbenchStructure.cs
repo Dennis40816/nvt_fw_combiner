@@ -15,6 +15,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplaceRefresh.cs");
         string outputNamingViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.OutputNaming.cs");
+        string firmwareInspectionSession = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs");
 
         Assert.Contains("SetSlotFileAsync", viewModels, StringComparison.Ordinal);
         Assert.Contains("Task.Run", viewModels, StringComparison.Ordinal);
@@ -37,8 +39,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ValidateCachedCtrlRamDisplayAsync", viewModels, StringComparison.Ordinal);
         Assert.Contains(
             "CreateFlashCodeOutputFileNameFromInspections",
-            outputNamingViewModel,
+            firmwareInspectionSession,
             StringComparison.Ordinal);
+        Assert.Contains("FirmwareOutputNamingProjection.CreateFlashCodeOutputFileName", outputNamingViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("FileInfo", outputNamingViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("File.Exists", outputNamingViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -116,6 +119,7 @@ public sealed partial class RepositoryBoundaryTests
         string mergeUi = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Merge.cs");
         string firmwareMetadata = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs");
         string firmwareInspection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareInspection.cs");
+        string abInputProjection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchAbMergeInputProjection.cs");
         string workbenchModels = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionModels.cs");
         string outputNaming = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.OutputNaming.cs");
         string ctrlRamDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs");
@@ -144,7 +148,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ToRunProfile", common, StringComparison.Ordinal);
         Assert.Contains("CompositionRunRequest request = new(", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledCompositionRunAdapter", runner, StringComparison.Ordinal);
-        Assert.Contains("private static string FormatIssues", common, StringComparison.Ordinal);
+        Assert.Contains("internal static string FormatIssues", common, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.FormatIssues", abInputProjection, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static string FormatIssues", abInputProjection, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeProfilesByIc", standardMergeCompilation, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInStandardMergeProfiles", standardMergeCompilation, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInStandardMergeProfiles", catalog, StringComparison.Ordinal);
@@ -219,8 +225,13 @@ public sealed partial class RepositoryBoundaryTests
             return value.Length == 64 && value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
         }
 
-        Assert.Equal(34, bundle.Split('"').Count(IsSha256Literal));
-        Assert.Equal(39, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
+        Assert.Equal(35, bundle.Split('"').Count(IsSha256Literal));
+        Assert.Equal(42, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
+        Assert.Equal(1, CountOccurrences(bundle, "nt51919-nt51929-nt51932-ab-merge"));
+        Assert.Contains(
+            "2019958454425df63666cad975135fdfc46540e291680b8a551ed07f00aa167a",
+            bundle,
+            StringComparison.Ordinal);
         Assert.Equal(
             1,
             CountOccurrences(

@@ -115,12 +115,12 @@
           <Button
               Grid.Row="2"
               Classes="command"
-              IsEnabled="False">
-            <Border Classes="workflowCard" Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcBorderMutedBrush}">
+              Command="{Binding BeginAbMergeFromHomeCommand}">
+            <Border Classes="workflowCard">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource NfcTextDisabledBrush}" Text="AB Code" />
-                <Border Grid.Column="1" Padding="10,4" Background="{DynamicResource NfcSelectionSurfaceBrush}" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcPillCornerRadius}">
-                  <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextDisabledBrush}" Text="{Binding Text.PendingLabel}" />
+                <TextBlock Classes="strongText" Text="AB Code" />
+                <Border Grid.Column="1" Classes="workflowOpenPill">
+                  <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
                 </Border>
               </Grid>
             </Border>

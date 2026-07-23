@@ -77,7 +77,11 @@
                 Content="{Binding DisplayName}"
                 HorizontalAlignment="Left"
                 IsVisible="{Binding HasFile}"
-                ToolTip.Tip="{Binding DisplayDetail}" />
+                ToolTip.BetweenShowDelay="-1"
+                ToolTip.Placement="BottomEdgeAlignedLeft"
+                ToolTip.ShowDelay="300"
+                ToolTip.Tip="{Binding DisplayDetail}"
+                ToolTip.VerticalOffset="8" />
           </StackPanel>
         </Grid>
       </Border>

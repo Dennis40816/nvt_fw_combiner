@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using NvtFwCombiner.Bootstrap;
 using System.Collections.ObjectModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -16,7 +17,8 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         string title,
         string description,
         FirmwareSlotKind kind,
-        bool isOptional = false)
+        bool isOptional = false,
+        string? regionId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -27,6 +29,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         Description = description;
         SlotKind = kind;
         IsOptional = isOptional;
+        RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
     }
 
     /// <summary>Stable slot id used by drag/drop handlers.</summary>
@@ -40,6 +43,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>Display-only slot kind used by the slot card icon.</summary>
     public FirmwareSlotKind SlotKind { get; }
+
+    /// <summary>Profile-owned physical region identity used only for coverage selection projection.</summary>
+    public string? RegionId { get; }
 
     /// <summary>Requirement label for the active workflow.</summary>
     public string RequirementLabel => IsOptional ? OptionalText : RequiredText;
@@ -61,6 +67,41 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>True when the slot has decoded firmware facts to show.</summary>
     public bool HasFirmwareFacts => FirmwareFacts.Count > 0;
+
+    /// <summary>True when the selected source has a current health or pending inspection state.</summary>
+    public bool HasInputInspectionStatus => IsInputInspectionPending || InputInspectionSeverity is not null;
+
+    /// <summary>True when the latest completed input inspection blocks Build.</summary>
+    public bool BlocksBuild => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Blocking;
+
+    /// <summary>True while the selected source awaits a current inspection.</summary>
+    public bool IsInputInspectionPending { get; private set; }
+
+    /// <summary>Highest completed typed input health, or null before inspection.</summary>
+    public WorkbenchInputInspectionSeverity? InputInspectionSeverity { get; private set; }
+
+    /// <summary>Concise localized health and next-action line.</summary>
+    public string InputInspectionStatus { get; private set; } = string.Empty;
+
+    /// <summary>True when the highest completed input health is blocking.</summary>
+    public bool IsInputInspectionBlocking => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Blocking;
+
+    /// <summary>True when the highest completed input health is warning.</summary>
+    public bool IsInputInspectionWarning => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Warning;
+
+    /// <summary>True when the highest completed input health is valid.</summary>
+    public bool IsInputInspectionValid => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Valid;
+
+    /// <summary>Vector icon path for the highest completed or pending input health.</summary>
+    public string InputInspectionIconPathData => IsInputInspectionPending
+        ? "M12 3A9 9 0 1 0 21 12 M12 7V12L15 14"
+        : InputInspectionSeverity switch
+        {
+            WorkbenchInputInspectionSeverity.Blocking => "M12 3A9 9 0 1 0 12 21A9 9 0 1 0 12 3 M12 7V13 M12 17H12.01",
+            WorkbenchInputInspectionSeverity.Warning => "M12 3L22 20H2L12 3 M12 9V14 M12 17H12.01",
+            WorkbenchInputInspectionSeverity.Valid => "M4 12L9 17L20 6",
+            _ => string.Empty,
+        };
 
     /// <summary>Selected local file path.</summary>
     [ObservableProperty]
@@ -113,6 +154,55 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(HasFirmwareFacts));
+    }
+
+    /// <summary>Marks the current selected source as awaiting a fresh typed inspection.</summary>
+    public void SetInputInspectionPending(string status)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(status);
+        IsInputInspectionPending = true;
+        InputInspectionSeverity = null;
+        InputInspectionStatus = status;
+        NotifyInputInspectionChanged();
+    }
+
+    /// <summary>Applies one completed highest-severity typed input diagnostic.</summary>
+    public void SetInputInspection(
+        WorkbenchInputInspectionSeverity severity,
+        string status)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(status);
+        if (!Enum.IsDefined(severity))
+        {
+            throw new ArgumentOutOfRangeException(nameof(severity), severity, null);
+        }
+
+        IsInputInspectionPending = false;
+        InputInspectionSeverity = severity;
+        InputInspectionStatus = status;
+        NotifyInputInspectionChanged();
+    }
+
+    /// <summary>Clears stale input health when the selected path or compiled context changes.</summary>
+    public void ClearInputInspection()
+    {
+        IsInputInspectionPending = false;
+        InputInspectionSeverity = null;
+        InputInspectionStatus = string.Empty;
+        NotifyInputInspectionChanged();
+    }
+
+    private void NotifyInputInspectionChanged()
+    {
+        OnPropertyChanged(nameof(HasInputInspectionStatus));
+        OnPropertyChanged(nameof(BlocksBuild));
+        OnPropertyChanged(nameof(IsInputInspectionPending));
+        OnPropertyChanged(nameof(InputInspectionSeverity));
+        OnPropertyChanged(nameof(InputInspectionStatus));
+        OnPropertyChanged(nameof(IsInputInspectionBlocking));
+        OnPropertyChanged(nameof(IsInputInspectionWarning));
+        OnPropertyChanged(nameof(IsInputInspectionValid));
+        OnPropertyChanged(nameof(InputInspectionIconPathData));
     }
 
 }

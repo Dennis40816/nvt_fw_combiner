@@ -6,31 +6,30 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
 public sealed partial class HexEditorViewportControl
 {
-    private void OnPointerMoved(object? sender, PointerEventArgs e)
+    internal void UpdateHoveredCell(Point point)
     {
-        Point point = e.GetPosition(this);
         string? nextAddress = (TryHitTest(point, out HexEditorByteCellViewModel? cell, out _) ||
                                TryHitTestAscii(point, out cell, out _) ||
                                TryHitTestStructuralAscii(point, out cell, out _))
             ? cell!.Address
             : null;
-        if (string.Equals(_hoveredAddress, nextAddress, StringComparison.Ordinal))
+        if (string.Equals(HoveredAddress, nextAddress, StringComparison.Ordinal))
         {
             return;
         }
 
-        _hoveredAddress = nextAddress;
+        HoveredAddress = nextAddress;
         InvalidateVisual();
     }
 
-    private void OnPointerExited(object? sender, PointerEventArgs e)
+    internal void ClearHoveredCell()
     {
-        if (_hoveredAddress is null)
+        if (HoveredAddress is null)
         {
             return;
         }
 
-        _hoveredAddress = null;
+        HoveredAddress = null;
         InvalidateVisual();
     }
 
@@ -141,18 +140,20 @@ public sealed partial class HexEditorViewportControl
     {
         cell = null;
         bounds = default;
-        if (_workspace is null || point.X < GetByteStart() || point.X >= GetAsciiStart())
+        if (_workspace is null)
         {
             return false;
         }
 
+        double cellStart = GetByteStart();
+        double cellWidth = GetCellWidth();
         double y = 0;
         foreach (HexEditorViewportRowViewModel row in _workspace.ViewportRows)
         {
             if (point.Y >= y && point.Y < y + RowHeight)
             {
-                int index = (int)((point.X - GetByteStart()) / GetCellWidth());
-                if (index >= 0 && index < row.Bytes.Count)
+                int index = ResolveCellIndex(point, cellStart, cellWidth, row.Bytes.Count, y, RowHeight);
+                if (index >= 0)
                 {
                     cell = row.Bytes[index];
                     bounds = GetCellRect(index, y);
@@ -197,8 +198,8 @@ public sealed partial class HexEditorViewportControl
         {
             if (point.Y >= y && point.Y < y + RowHeight)
             {
-                int index = (int)((point.X - asciiStart) / cellWidth);
-                if (index >= 0 && index < row.Bytes.Count)
+                int index = ResolveCellIndex(point, asciiStart, cellWidth, row.Bytes.Count, y, RowHeight);
+                if (index >= 0)
                 {
                     cell = row.Bytes[index];
                     bounds = GetAsciiCellRect(index, y);
@@ -212,6 +213,21 @@ public sealed partial class HexEditorViewportControl
         }
 
         return false;
+    }
+
+    internal static int ResolveCellIndex(
+        Point point,
+        double cellStart,
+        double cellWidth,
+        int cellCount,
+        double rowTop,
+        double rowHeight)
+    {
+        return cellWidth <= 0 || cellCount <= 0 || rowHeight <= 0 ||
+            point.X < cellStart || point.X >= cellStart + (cellWidth * cellCount) ||
+            point.Y < rowTop || point.Y >= rowTop + rowHeight
+            ? -1
+            : (int)((point.X - cellStart) / cellWidth);
     }
 
     private HexEditorByteCellViewModel? FindSelectedCell()

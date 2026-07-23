@@ -65,14 +65,24 @@ public static partial class WorkbenchCompositionService
         List<WorkbenchFirmwareInspectionResult> results = [];
         foreach (WorkbenchFirmwareInspectionInput input in inputs)
         {
-            results.Add(new WorkbenchFirmwareInspectionResult(
-                input.InspectionId,
-                InspectFirmware(
-                    icId,
-                    input.Path,
-                    input.TpPath,
-                    input.CtrlRamRequest,
-                    ReadOnce)));
+            WorkbenchFirmwareInspection inspection = InspectFirmware(
+                icId,
+                input.Path,
+                input.TpPath,
+                input.CtrlRamRequest,
+                ReadOnce);
+            if (!string.IsNullOrWhiteSpace(input.AbMergeAddressSpaceId))
+            {
+                inspection = inspection with
+                {
+                    AbMergeInput = InspectAbMergeInput(
+                        icId,
+                        input.AbMergeAddressSpaceId,
+                        ReadOnce(input.Path)),
+                };
+            }
+
+            results.Add(new WorkbenchFirmwareInspectionResult(input.InspectionId, inspection));
         }
 
         return results;
@@ -105,6 +115,8 @@ public static partial class WorkbenchCompositionService
         FirmwareConfigMetadata? tpFirmwareConfig = string.Equals(path, tpPath, StringComparison.Ordinal)
             ? firmwareConfig
             : ReadFirmwareConfigMetadataValue(icId, tpImage);
+        FirmwareConfigMetadata? cmiFirmwareConfig = tpFirmwareConfig ??
+            (string.IsNullOrWhiteSpace(tpPath) ? firmwareConfig : null);
         LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
             icId,
             firmwareConfig,
@@ -118,7 +130,7 @@ public static partial class WorkbenchCompositionService
             detectedIcId ?? DetectFirmwareIcHintFromHeader(image),
             ReadFirmwareConfigMetadata(firmwareConfig, postbuildProfile),
             ReadDpVersionMetadata(icId, image),
-            ReadCmiDpCodeMetadata(icId, image, tpFirmwareConfig?.ChipNumber),
+            ReadCmiDpCodeMetadata(icId, image, cmiFirmwareConfig?.ChipNumber),
             ReadFirmwareContextSuggestion(icId, firmwareConfig),
             ctrlRamDisplay);
     }

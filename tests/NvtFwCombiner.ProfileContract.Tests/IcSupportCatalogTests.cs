@@ -50,6 +50,7 @@ public sealed class IcSupportCatalogTests
         Assert.Equal(
             [
                 "standard-merge",
+                "ab-merge",
                 "dp-replace",
                 "ctrlram-replace",
                 "general-merge",
@@ -57,6 +58,30 @@ public sealed class IcSupportCatalogTests
             ],
             IcWorkflowIds.All);
         Assert.All(IcWorkflowIds.All, workflowId => Assert.True(IcWorkflowIds.IsKnown(workflowId), workflowId));
+    }
+
+    /// <summary>Only the owner-approved perfect family exposes AB Merge; retained 950/951 candidates stay closed.</summary>
+    [Fact]
+    public void AbMergeExposureIsLimitedToTheApprovedPilot()
+    {
+        string[] exposedIcIds =
+        [
+            .. IcSupportCatalog.All
+                .Where(entry => entry.SupportsWorkflow(IcWorkflowIds.AbMerge))
+                .Select(entry => entry.IcId)
+                .Order(StringComparer.Ordinal),
+        ];
+
+        Assert.Equal(["NT51919", "NT51929", "NT51932"], exposedIcIds);
+        Assert.All(exposedIcIds, icId =>
+        {
+            Assert.True(IcSupportCatalog.TryFind(icId, out IcSupportEntry? entry));
+            Assert.Equal(
+                IcWorkflowEvidenceStatus.GoldenVerified,
+                entry!.GetWorkflowEvidenceStatus(IcWorkflowIds.AbMerge));
+        });
+        Assert.False(IcSupportCatalog.SupportsWorkflow("NT51950", IcWorkflowIds.AbMerge));
+        Assert.False(IcSupportCatalog.SupportsWorkflow("NT51951", IcWorkflowIds.AbMerge));
     }
 
     /// <summary>Every IC workflow id maps to a runtime experience descriptor.</summary>

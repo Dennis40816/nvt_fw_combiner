@@ -18,7 +18,14 @@ public sealed class CompositionProfileDocumentUnionTests
               { "kind": "exact-resolved-map-capacity" },
               { "kind": "bounded", "minimumBytes": 4, "maximumBytes": 32 },
               { "kind": "normal-dp-extract-with-warning", "issueCode": "DP_SIZE_WARNING" },
-              { "kind": "tp-maximum-256k", "maximumBytes": 262144 }
+              { "kind": "tp-maximum-256k", "maximumBytes": 262144 },
+              {
+                "kind": "declared-prefix-with-warning",
+                "requiredEndExclusive": 524288,
+                "expectedOuterLengths": [524288],
+                "shortInputIssueCode": "INPUT_SHORT",
+                "unexpectedOuterLengthIssueCode": "INPUT_OUTER_LENGTH"
+              }
             ]
             """);
         CompositionProfileInputNormalizationDocument[] normalizations =
@@ -86,6 +93,10 @@ public sealed class CompositionProfileDocumentUnionTests
         AssertPropertyNames(lengthJson.RootElement[2], "kind", "maximumBytes", "minimumBytes");
         AssertPropertyNames(lengthJson.RootElement[3], "issueCode", "kind");
         AssertPropertyNames(lengthJson.RootElement[4], "kind", "maximumBytes");
+        AssertPropertyNames(
+            lengthJson.RootElement[5],
+            "expectedOuterLengths", "kind", "requiredEndExclusive", "shortInputIssueCode",
+            "unexpectedOuterLengthIssueCode");
 
         using JsonDocument normalizationJson = SerializeToDocument(normalizations);
         AssertPropertyNames(normalizationJson.RootElement[0], "kind");

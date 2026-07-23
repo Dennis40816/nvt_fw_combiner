@@ -33,6 +33,8 @@ public sealed partial class RepositoryBoundaryTests
         string workflowTemplates = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml");
         string shellPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowShellPanels.axaml");
+        string workflowContextSetupModal = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/WorkflowContextSetupModal.axaml");
         string firmwareSlotCard = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml");
         string firmwareSlotCardCode = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml.cs");
         string generalMappingRow = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/GeneralMappingRow.axaml");
@@ -52,6 +54,7 @@ public sealed partial class RepositoryBoundaryTests
             sharedTemplates,
             firmwareSlotCard,
             generalMappingRow,
+            workflowContextSetupModal,
             replaceSelectionModal,
             reportModal);
 
@@ -64,6 +67,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("BeginGeneralReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("ShowHexEditorCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("BeginNormalMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("BeginAbMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("BeginGeneralMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"Standard Merge\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"Customized Merge\"", pageTemplates, StringComparison.Ordinal);
@@ -79,7 +83,8 @@ public sealed partial class RepositoryBoundaryTests
             "x:Name=\"CompositionBuildActionRail\"\n        Grid.Row=\"3\"",
             shell,
             StringComparison.Ordinal);
-        Assert.Contains("DeviceContextTitle", shellPanels, StringComparison.Ordinal);
+        Assert.Contains("DeviceContextTitle", workflowContextSetupModal, StringComparison.Ordinal);
+        Assert.DoesNotContain("DeviceContextTitle", shellPanels, StringComparison.Ordinal);
         Assert.Contains("IsDeviceContextVisible", shell, StringComparison.Ordinal);
         Assert.Contains("NavigationTrail", shellPanels, StringComparison.Ordinal);
         Assert.Contains("GoBackCommand", shellPanels, StringComparison.Ordinal);
@@ -127,7 +132,7 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"1.15*,430\"", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.OutputLayoutTitle}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("IsEnabled=\"False\"", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsEnabled=\"False\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("LoadReportJsonButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("SaveReportButton_OnClick", reportModal, StringComparison.Ordinal);
         Assert.Contains("BuildMergeButton_OnClick", shell, StringComparison.Ordinal);

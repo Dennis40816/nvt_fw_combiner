@@ -13,6 +13,10 @@ public sealed partial class ShellTextResources
 
     public string OutputLayoutTitle { get; private init; } = string.Empty;
 
+    public string OutputLayoutChangedStateLabel { get; private init; } = string.Empty;
+
+    public string OutputLayoutKeptStateLabel { get; private init; } = string.Empty;
+
     public string PlanTitle { get; private init; } = string.Empty;
 
     public string ValidationTitle { get; private init; } = string.Empty;
@@ -129,6 +133,18 @@ public sealed partial class ShellTextResources
 
     public string AbCodeMergeDetail { get; private init; } = string.Empty;
 
+    public string IcDetailTitle { get; private init; } = string.Empty;
+
+    public string IcDetailFamilyLabel { get; private init; } = string.Empty;
+
+    public string IcDetailReuseLabel { get; private init; } = string.Empty;
+
+    public string IcDetailRuntimeLabel { get; private init; } = string.Empty;
+
+    public string IcDetailEvidenceLabel { get; private init; } = string.Empty;
+
+    public string IcDetailSupportLabel { get; private init; } = string.Empty;
+
     public string MergeModeTooltip { get; private init; } = string.Empty;
 
     public string WorkflowContextReplaceDetail { get; private init; } = string.Empty;
@@ -164,6 +180,8 @@ public sealed partial class ShellTextResources
     public string ContextUpdatedToastTitle { get; private init; } = string.Empty;
 
     public string FirmwareInspectionLoadingStatus { get; private init; } = string.Empty;
+
+    public string FirmwareInspectionStaleFileStatus { get; private init; } = string.Empty;
 
     public string UtilToolsLabel { get; private init; } = string.Empty;
 

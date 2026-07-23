@@ -58,6 +58,115 @@ public sealed record WorkbenchIcFamilySummary(
     WorkbenchIcFamilyRelationship Relationship,
     string? Scope);
 
+/// <summary>Profile-owned AB input role projected without exposing raw profile strings to Presentation.</summary>
+public enum WorkbenchAbMergeInputRole
+{
+    /// <summary>Complete two-bank DP_AB container.</summary>
+    DpAb,
+
+    /// <summary>Touch payload for bank A.</summary>
+    TpA,
+
+    /// <summary>Touch payload for bank B.</summary>
+    TpB,
+}
+
+/// <summary>One required AB slot lowered from the compiled input contract.</summary>
+public sealed record WorkbenchAbMergeInputSlot(
+    string SlotId,
+    string AddressSpaceId,
+    WorkbenchAbMergeInputRole Role,
+    long RequiredEndExclusive,
+    IReadOnlyList<long> ExpectedOuterLengths);
+
+/// <summary>Stable completed health priority for one selected input.</summary>
+public enum WorkbenchInputInspectionSeverity
+{
+    /// <summary>The input satisfies its compiled policy and metadata is readable.</summary>
+    Valid,
+
+    /// <summary>The input is accepted but requires user attention.</summary>
+    Warning,
+
+    /// <summary>The input blocks Build.</summary>
+    Blocking,
+}
+
+/// <summary>Typed corrective action for a workbench input diagnostic.</summary>
+public enum WorkbenchInputInspectionNextAction
+{
+    /// <summary>No action is required.</summary>
+    None,
+
+    /// <summary>Select a readable local BIN.</summary>
+    SelectReadableInput,
+
+    /// <summary>Select an input that reaches the compiled required end.</summary>
+    SelectCompatibleInput,
+
+    /// <summary>Review the ignored immutable source tail.</summary>
+    ReviewIgnoredTrailingBytes,
+
+    /// <summary>Review an unexpected but accepted outer length.</summary>
+    ReviewUnexpectedOuterLength,
+
+    /// <summary>Version metadata is informational; review the Unknown value.</summary>
+    ReviewUnknownVersion,
+}
+
+/// <summary>One stable input diagnostic used for deterministic severity aggregation.</summary>
+public sealed record WorkbenchInputInspectionIssue(
+    WorkbenchInputInspectionSeverity Severity,
+    string Code,
+    bool BlocksBuild,
+    WorkbenchInputInspectionNextAction NextAction);
+
+/// <summary>One explicit AB bank or TP version value shown without routing authority.</summary>
+public enum WorkbenchAbVersionKind
+{
+    /// <summary>DP bank 1 CMI value.</summary>
+    Dp1,
+
+    /// <summary>DP bank 2 CMI value.</summary>
+    Dp2,
+
+    /// <summary>TPA NVT Backup firmware value.</summary>
+    TpA,
+
+    /// <summary>TPB NVT Backup firmware value.</summary>
+    TpB,
+}
+
+/// <summary>One independently decoded AB version value.</summary>
+public sealed record WorkbenchAbVersionValue(
+    WorkbenchAbVersionKind Kind,
+    string Value,
+    string? JiraBadge,
+    bool IsUnknown);
+
+/// <summary>One immutable AB input inspection projected from the compiled contract and accepted prefix.</summary>
+public sealed record WorkbenchAbMergeInputInspection(
+    string AddressSpaceId,
+    long? ActualLength,
+    long RequiredEndExclusive,
+    IReadOnlyList<long> ExpectedOuterLengths,
+    ByteRange? IgnoredTrailingRange,
+    IReadOnlyList<WorkbenchInputInspectionIssue> Issues,
+    IReadOnlyList<WorkbenchAbVersionValue> Versions)
+{
+    /// <summary>Highest-priority deterministic issue.</summary>
+    public WorkbenchInputInspectionIssue PrimaryIssue => Issues
+        .OrderByDescending(static issue => issue.Severity)
+        .ThenBy(static issue => issue.Code, StringComparer.Ordinal)
+        .First();
+
+    /// <summary>True when the current selected source cannot be built.</summary>
+    public bool BlocksBuild => Issues.Any(static issue => issue.BlocksBuild);
+
+    /// <summary>Number of immutable source bytes excluded from execution.</summary>
+    public long IgnoredTrailingBytes => IgnoredTrailingRange?.Length ?? 0;
+}
+
 /// <summary>One compiled built-in profile summary exposed without its legacy profile model.</summary>
 public sealed record WorkbenchProfileSummary(
     string ProfileId,
@@ -120,7 +229,11 @@ public sealed record WorkbenchFirmwareInspection(
     WorkbenchDpVersionMetadata? DpVersion,
     WorkbenchCmiDpCodeMetadata? CmiDpCode,
     WorkbenchFirmwareContextSuggestion? ContextSuggestion,
-    WorkbenchCtrlRamInspectionDisplay? CtrlRamDisplay);
+    WorkbenchCtrlRamInspectionDisplay? CtrlRamDisplay)
+{
+    /// <summary>AB-specific typed inspection when the request names one compiled AB input space.</summary>
+    public WorkbenchAbMergeInputInspection? AbMergeInput { get; init; }
+}
 
 /// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>
 public sealed record WorkbenchCtrlRamInspectionRequest(string NumberToken);
@@ -137,7 +250,8 @@ public sealed record WorkbenchFirmwareInspectionInput(
     string InspectionId,
     string Path,
     string? TpPath = null,
-    WorkbenchCtrlRamInspectionRequest? CtrlRamRequest = null);
+    WorkbenchCtrlRamInspectionRequest? CtrlRamRequest = null,
+    string? AbMergeAddressSpaceId = null);
 
 /// <summary>One named materialized result from a shared distinct-path read batch.</summary>
 public sealed record WorkbenchFirmwareInspectionResult(
@@ -208,7 +322,8 @@ public sealed record WorkbenchMemoryCoverageSegment(
     string Fill,
     double BarWidth,
     bool IsChanged,
-    WorkbenchMemoryCoverageRole Role);
+    WorkbenchMemoryCoverageRole Role,
+    string? RegionId = null);
 
 /// <summary>One coherent range, row, and coverage projection from a single compiled workflow state.</summary>
 public sealed record WorkbenchMemoryDisplay(
@@ -254,4 +369,5 @@ internal sealed record CoverageSegment(
     string Detail,
     string Fill,
     bool IsChanged,
-    WorkbenchMemoryCoverageRole Role);
+    WorkbenchMemoryCoverageRole Role,
+    string? RegionId = null);
