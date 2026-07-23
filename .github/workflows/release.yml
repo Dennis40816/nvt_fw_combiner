@@ -210,11 +210,15 @@ jobs:
             "repos/$env:NFC_REPOSITORY/issues/$env:NFC_PULL_REQUEST/comments" `
             'Final PR issue-comment evidence could not be read.')
           $reviewedCommitPrefix = $pr.headRefOid.Substring(0, 10)
-          $reviewedCommitMarker = 'Reviewed commit: `{0}`' -f $reviewedCommitPrefix
+          $reviewedCommitPattern = '(?i)Reviewed\s+commit:\*{0,2}\s*`' +
+            [regex]::Escape($reviewedCommitPrefix) + '`'
           $codexIssueCommentCandidates = @($issueComments |
             Where-Object {
               (Get-NormalizedReviewer $_.user.login) -eq $codexReviewer -and
-              ([string]$_.body).Contains($reviewedCommitMarker, [System.StringComparison]::Ordinal) -and
+              [regex]::IsMatch(
+                [string]$_.body,
+                $reviewedCommitPattern,
+                [System.Text.RegularExpressions.RegexOptions]::CultureInvariant) -and
               -not [string]::IsNullOrWhiteSpace([string]$_.created_at)
             } |
             ForEach-Object {
