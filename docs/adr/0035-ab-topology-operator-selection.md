@@ -28,8 +28,9 @@ so IC number is not currently an execution selector for that candidate.
 All currently registered Standard Merge profiles expose no IC-number control.
 General Merge and the already admitted NT51919/NT51929/NT51932 AB pilot also
 expose no IC-number control.  Firmware inspection may display observed version
-or FWConfig facts, but no Merge inspection may open a number-mismatch modal,
-change a selected number, or select a build plan from TP metadata.
+or FWConfig facts, but a page without a visible IC-number control may not open
+a number-mismatch modal, change a selected number, or select a build plan from
+TP metadata.
 
 Replace retains its existing explicit IC-number behaviour.  This preserves the
 only currently admitted flow where that operator choice is part of the profile
@@ -43,6 +44,10 @@ will present an inline warning equivalent to:
 
 > Select the physical IC topology. TP FWConfig metadata is reported for review
 > only; it never changes this selection or chooses an AB build plan.
+
+If a later visible selector is paired with an observed mismatch, the UI may
+ask the operator to confirm a change.  It must never apply that change
+automatically; a hidden selector may never produce that modal.
 
 The selected topology must be bound into the typed Composition request,
 Preview token, and report provenance.  It selects an already profile-declared

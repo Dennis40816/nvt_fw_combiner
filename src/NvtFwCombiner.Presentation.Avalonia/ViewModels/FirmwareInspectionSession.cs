@@ -244,11 +244,9 @@ internal static class FirmwareInspectionRequestFactory
         string? abMergeAddressSpaceId = context.IsAbMerge
             ? context.AbAddressSpaceBySlotId.GetValueOrDefault(slot.SlotId)
             : null;
-        // A firmware number is an operator-selectable Replace context. Merge TP inputs may
-        // report their own FWConfig topology, but that observation cannot open a modal for
-        // a hidden selector or change a Merge plan.
-        bool applyWorkflowContext = applyVerifiedContext &&
-            slot.SlotId != context.MergeTpSlotId && !context.IsAbMerge;
+        // Firmware metadata can request confirmation only when the current page exposes an
+        // operator-selectable Number. A hidden control cannot be changed by a modal.
+        bool applyWorkflowContext = applyVerifiedContext && context.IsNumberSelectorVisible;
         return new FirmwareInspectionItemRequest(
             slot.SlotId,
             slot.SlotKind,
@@ -399,6 +397,7 @@ internal readonly record struct FirmwareInspectionRequestContext(
     FirmwareSlotViewModel MergeTpSlot,
     FirmwareSlotViewModel ReplaceBaseSlot,
     bool IsCtrlRamReplace,
+    bool IsNumberSelectorVisible,
     string SelectedNumber,
     bool IsAbMerge,
     IReadOnlyDictionary<string, string> AbAddressSpaceBySlotId,

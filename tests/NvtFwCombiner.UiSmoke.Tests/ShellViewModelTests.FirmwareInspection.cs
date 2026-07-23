@@ -326,9 +326,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
     }
 
-    /// <summary>Accepting an IC hint reinspects the retained Base and applies its verified Number off dispatcher.</summary>
+    /// <summary>Accepting an IC hint does not open a Number prompt while that control is hidden.</summary>
     [Fact]
-    public async Task AcceptedIcMismatchContinuesVerifiedBaseContext()
+    public async Task AcceptedIcMismatchDoesNotPromptForHiddenNumberContext()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-accepted-ic-context");
         string basePath = workspace.Write("NT51927_base.bin", [0x01]);
@@ -356,14 +356,8 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("NT51927", viewModel.SelectedIc);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
-        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
-
-        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
-
-        Assert.Equal("2", viewModel.SelectedNumber);
         Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
         Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
-        Assert.Equal("Context updated", viewModel.ShellToastTitle);
     }
 
     /// <summary>A non-authoritative marker within one perfect family keeps the selected IC without prompting.</summary>
