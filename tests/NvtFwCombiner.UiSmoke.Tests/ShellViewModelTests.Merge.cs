@@ -34,6 +34,25 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("NT51950 / single: refresh profile, slots, validation", viewModel.DeviceContextStatus);
     }
 
+    /// <summary>Every admitted Standard Merge profile keeps IC Number out of its authoring context.</summary>
+    [Fact]
+    public void EverySupportedStandardMergeHidesNumberSelector()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.ShowMergeCommand.Execute(null);
+
+        foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetStandardMergeProfileSummaries())
+        {
+            viewModel.SelectedIc = profile.IcId;
+
+            Assert.True(viewModel.IsNormalMergeModeSelected, profile.IcId);
+            Assert.True(viewModel.IsStandardMergeSupported, profile.IcId);
+            Assert.False(viewModel.IsNumberSelectorVisible, profile.IcId);
+            Assert.True(viewModel.IsNumberSelectorPlaceholderVisible, profile.IcId);
+        }
+    }
+
     /// <summary>AB Code is exposed only for the approved pilot and its Home entry cannot select another IC.</summary>
     [Fact]
     public void AbMergeExposureAndHomeContextAreLimitedToApprovedPilot()
