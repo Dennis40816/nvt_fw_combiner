@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Numerics;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
@@ -66,6 +67,27 @@ public sealed class Nt51951AbMergeCandidateProfileTests
             composition.DefaultOutputFileName);
 
         Assert.Same(composition, request.CompiledComposition);
+    }
+
+    /// <summary>Verifies a selector-free AB map rejects a hidden topology request at compiler admission.</summary>
+    [Fact]
+    public void CandidateProfileRejectsHiddenTopologySelection()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51951-ab-candidate");
+        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
+            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+            "nt51951-ab-merge",
+            "0.2.0",
+            "NT51951",
+            ExperienceIds.AbMerge,
+            Capacity,
+            new TopologySelection(1, "1 IC", TopologySelectionSource.Requested, "test"),
+            []);
+
+        Assert.False(compilation.IsCompiled);
+        Assert.Equal(
+            ["profile.v2.compile.topology-not-declared"],
+            compilation.Issues.Select(static issue => issue.Code));
     }
 
     /// <summary>Verifies the engine stages complete banks, relocates only TPB DIFF, and keeps caller TPB immutable.</summary>

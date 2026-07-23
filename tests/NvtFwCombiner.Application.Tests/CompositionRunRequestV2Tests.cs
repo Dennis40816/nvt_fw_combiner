@@ -65,6 +65,29 @@ public sealed partial class CompositionRunRequestV2Tests
             "v2-output.bin"));
     }
 
+    /// <summary>Verifies a supported AB route retains its profile-declared topology admission.</summary>
+    [Fact]
+    public void SupportedAbRuntimeAcceptsMatchingTopologySelection()
+    {
+        TopologySelection topology = new(1, "1 IC", TopologySelectionSource.Requested, "test");
+        CompiledComposition composition = CreateV2RuntimeExecutable(
+            outputTemplate: CompiledOutputNamingRequirement.AbCodeV1Template,
+            requiredTokenIds: ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"],
+            modeId: ExperienceIds.AbMerge,
+            experienceId: ExperienceIds.AbMerge,
+            topologyRequirement: TopologyRequirement.RequireSingleChip(),
+            requestedTopology: topology);
+
+        var request = new CompositionRunRequest(
+            "supported-ab-runtime",
+            composition,
+            [CreateBinding()],
+            composition.DefaultOutputFileName,
+            abMergeTopologySelection: topology);
+
+        Assert.Equal(topology, request.AbMergeTopologySelection);
+    }
+
     /// <summary>Verifies a token-free V2 artifact can allow a safe plain-file-name output override.</summary>
     [Fact]
     public void RuntimeArtifactAllowsStaticOutputOverridePolicy()
@@ -303,16 +326,26 @@ public sealed partial class CompositionRunRequestV2Tests
     private static CompiledComposition CreateV2RuntimeExecutable(
         bool allowOutputOverride = false,
         CompositionKind compositionKind = CompositionKind.Merge,
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable)
+        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        string outputTemplate = "v2-output.bin",
+        IReadOnlyList<string>? requiredTokenIds = null,
+        string modeId = "standard",
+        string experienceId = "standard-merge",
+        TopologyRequirement? topologyRequirement = null,
+        TopologySelection? requestedTopology = null)
     {
         return CreateV2Artifact(
             new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
-            "v2-output.bin",
-            [],
+            outputTemplate,
+            requiredTokenIds ?? [],
             runtimeExecutable: true,
             allowOutputOverride: allowOutputOverride,
             compositionKind: compositionKind,
-            icNumberPolicy: icNumberPolicy);
+            icNumberPolicy: icNumberPolicy,
+            modeId: modeId,
+            experienceId: experienceId,
+            topologyRequirement: topologyRequirement,
+            requestedTopology: requestedTopology);
     }
 
     private static CompiledComposition CreateV2ReplaceRuntimeExecutable()
@@ -390,9 +423,14 @@ public sealed partial class CompositionRunRequestV2Tests
         string modeId = "standard",
         string experienceId = "standard-merge",
         CompiledInputContract? inputContract = null,
-        CompositionPlan? plan = null)
+        CompositionPlan? plan = null,
+        TopologyRequirement? topologyRequirement = null,
+        TopologySelection? requestedTopology = null)
     {
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(modeId);
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            modeId,
+            topologyRequirement: topologyRequirement,
+            requestedTopology: requestedTopology);
         var provenance = new V2CompilationProvenance(
             new ProfileBundleIdentity(
                 "bundle-v2",
@@ -468,7 +506,9 @@ public sealed partial class CompositionRunRequestV2Tests
 
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap(
         string modeId = "standard",
-        FirmwareWriteConstraint rootWriteConstraint = FirmwareWriteConstraint.Forbidden)
+        FirmwareWriteConstraint rootWriteConstraint = FirmwareWriteConstraint.Forbidden,
+        TopologyRequirement? topologyRequirement = null,
+        TopologySelection? requestedTopology = null)
     {
         FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             "map",
@@ -476,7 +516,7 @@ public sealed partial class CompositionRunRequestV2Tests
             new FirmwareMapApplicability(
                 ["NT-SYNTHETIC"],
                 [modeId],
-                TopologyRequirement.NoTopologyConstraint(),
+                topologyRequirement ?? TopologyRequirement.NoTopologyConstraint(),
                 4),
             FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
             [new FirmwareRegionSet(
@@ -502,7 +542,7 @@ public sealed partial class CompositionRunRequestV2Tests
             "NT-SYNTHETIC",
             modeId,
             4,
-            requestedTopology: null,
+            requestedTopology,
             []));
 
         return Assert.IsType<FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap>(result.ResolvedMap);

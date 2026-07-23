@@ -324,12 +324,12 @@ public sealed class CompositionRunRequest
         CompiledComposition compiledComposition,
         TopologySelection? selection)
     {
-        if (!compiledComposition.IsV2AbFunctionOpenCandidate)
+        if (!compiledComposition.IsV2AbMergeRuntimeRoute)
         {
             if (selection is not null)
             {
                 throw new ArgumentException(
-                    "AB topology selection is allowed only for an admitted AB Merge candidate.",
+                    "AB topology selection is allowed only for an admitted AB Merge route.",
                     nameof(selection));
             }
 

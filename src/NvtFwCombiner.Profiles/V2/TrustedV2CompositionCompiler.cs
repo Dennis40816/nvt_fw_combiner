@@ -11,6 +11,7 @@ internal static class TrustedV2CompositionCompiler
     private const string MapSelectionInvalid = "profile.v2.compile.map-selection-invalid";
     private const string MapCapacityRequired = "profile.v2.compile.map-capacity-required";
     private const string MapCapacityUnavailable = "profile.v2.compile.map-capacity-unavailable";
+    private const string TopologyNotDeclared = "profile.v2.compile.topology-not-declared";
     private const string PreparationNotAdmitted = "profile.v2.compile.preparation-not-admitted";
     private const string RuntimeReferenceResolutionArtifactInvalid =
         "profile.v2.runtime-reference-replace.resolution-artifact-invalid";
@@ -293,9 +294,20 @@ internal static class TrustedV2CompositionCompiler
 
         if (requestedTopology is not null)
         {
+            if (mapCandidates.All(static map =>
+                    map.Applicability.TopologyRequirement.Kind == TopologyRequirementKind.None))
+            {
+                return Failed(
+                    [],
+                    TopologyNotDeclared,
+                    "The selected trusted V2 AB Merge map does not declare a topology selection.");
+            }
+
             mapCandidates =
             [
-                .. mapCandidates.Where(map => map.Applicability.TopologyRequirement.Matches(requestedTopology)),
+                .. mapCandidates.Where(map =>
+                    map.Applicability.TopologyRequirement.Kind != TopologyRequirementKind.None &&
+                    map.Applicability.TopologyRequirement.Matches(requestedTopology)),
             ];
         }
 

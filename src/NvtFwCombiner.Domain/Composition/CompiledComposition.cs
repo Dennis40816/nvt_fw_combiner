@@ -120,6 +120,21 @@ public sealed partial class CompiledComposition
             blocker.Kind is CompiledProfilePromotionBlockerKind.Golden or
                 CompiledProfilePromotionBlockerKind.HumanReview);
 
+    /// <summary>
+    /// Whether this trusted V2 artifact is an AB Merge route executable by the
+    /// current runtime, either as the narrow function-open candidate or as a
+    /// fully supported profile.
+    /// </summary>
+    public bool IsV2AbMergeRuntimeRoute =>
+        (Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable ||
+         IsV2AbFunctionOpenCandidate) &&
+        Authority is ProfileBundleV2CompilationAuthority &&
+        V2Details is { } details &&
+        details.Provenance.Context is ResolvedMapV2CompilationContext &&
+        CompositionKind == CompositionKind.Merge &&
+        StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.AbMerge) &&
+        details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1;
+
     /// <summary>Authority that established this artifact.</summary>
     public CompositionCompilationAuthority Authority { get; }
 
