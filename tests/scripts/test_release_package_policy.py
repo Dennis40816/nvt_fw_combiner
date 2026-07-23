@@ -386,7 +386,12 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
         self.assertIn("ready_for_review", ci)
         self.assertIn("Final reviewed pull request merged as this main commit", release)
-        self.assertIn("--required --json name,state,bucket", release)
+        self.assertIn("--json name,state,bucket 2>&1", release)
+        self.assertIn(
+            "`--required` cannot resolve checks after the final PR's head branch is closed.",
+            release,
+        )
+        self.assertNotIn("--required --json name,state,bucket", release)
         self.assertIn("reviewDecision", release)
         self.assertIn("headTree", release)
         self.assertIn("contents: read", release)

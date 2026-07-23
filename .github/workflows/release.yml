@@ -235,8 +235,11 @@ jobs:
           $codexReview = @($codexEvidence |
             Sort-Object submittedAt -Descending |
             Select-Object -First 1)
+          # `--required` cannot resolve checks after the final PR's head branch is closed.
+          # The protected-main merge gate has already enforced required checks; retain every
+          # recorded check here and require the resulting non-empty evidence set to pass.
           $checksText = gh pr checks $env:NFC_PULL_REQUEST --repo $env:NFC_REPOSITORY `
-            --required --json name,state,bucket 2>&1
+            --json name,state,bucket 2>&1
           try { $checks = $checksText | ConvertFrom-Json -ErrorAction Stop }
           catch { throw "Required check evidence is unavailable or malformed: $checksText" }
           $snapshot = [ordered]@{
