@@ -101,8 +101,10 @@ public sealed partial class ShellViewModelTests
         WriteUiAbCmi(dp, 0, major: 0x06, minor: 0x05, jira: 0x123);
         WriteUiAbCmi(dp, tpLength, major: 0x07, minor: 0x08, jira: 0x456);
         string dpPath = workspace.Write("dp-ab.bin", dp);
-        string tpAPath = workspace.Write("tp-a.bin", CreateUiAbTpImage(0x81, 0x00));
-        string tpBPath = workspace.Write("tp-b.bin", CreateUiAbTpImage(0x82, 0x03));
+        string tpAPath = workspace.Write("tp-a.bin", CreateUiAbTpImage(
+            0x81, 0x00, commonFwMajor: 1, commonFwMinor: 4, commonFwAdditional: 1, projectId: 0x5102));
+        string tpBPath = workspace.Write("tp-b.bin", CreateUiAbTpImage(
+            0x82, 0x03, commonFwMajor: 2, commonFwMinor: 0, commonFwAdditional: 0, projectId: 0x6A5C));
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51929";
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
@@ -131,12 +133,22 @@ public sealed partial class ShellViewModelTests
             static slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
         Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP1" && fact.Value.StartsWith("D0605", StringComparison.Ordinal));
         Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP2" && fact.Value.StartsWith("D0708", StringComparison.Ordinal));
+        FirmwareSlotViewModel tpASlot = viewModel.MergeSlots.Single(
+            static slot => slot.SlotId == CompositionAddressSpaceIds.TpAInput);
         Assert.Contains(
-            viewModel.MergeSlots.Single(static slot => slot.SlotId == CompositionAddressSpaceIds.TpAInput).FirmwareFacts,
+            tpASlot.FirmwareFacts,
             static fact => fact.Label == "TPA" && fact.Value == "T81-00");
+        Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "Common FW" && fact.Value == "1.4.1");
+        Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x5102");
+        Assert.DoesNotContain(tpASlot.FirmwareFacts, static fact => fact.Label == "TP");
+        FirmwareSlotViewModel tpBSlot = viewModel.MergeSlots.Single(
+            static slot => slot.SlotId == CompositionAddressSpaceIds.TpBInput);
         Assert.Contains(
-            viewModel.MergeSlots.Single(static slot => slot.SlotId == CompositionAddressSpaceIds.TpBInput).FirmwareFacts,
+            tpBSlot.FirmwareFacts,
             static fact => fact.Label == "TPB" && fact.Value == "T82-03");
+        Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "Common FW" && fact.Value == "2.0.0");
+        Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x6A5C");
+        Assert.DoesNotContain(tpBSlot.FirmwareFacts, static fact => fact.Label == "TP");
         Assert.True(viewModel.CanBuildMerge);
         Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
 
@@ -454,7 +466,13 @@ public sealed partial class ShellViewModelTests
         image[start + 2] = checked((byte)((minor << 4) | ((jira >> 8) & 0x0F)));
     }
 
-    private static byte[] CreateUiAbTpImage(byte version, byte subVersion)
+    private static byte[] CreateUiAbTpImage(
+        byte version,
+        byte subVersion,
+        byte commonFwMajor,
+        byte commonFwMinor,
+        byte commonFwAdditional,
+        ushort projectId)
     {
         const int tpLength = 0x40000;
         const int backupStart = 0x1000;
@@ -463,6 +481,11 @@ public sealed partial class ShellViewModelTests
         image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
         image[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
         image[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = subVersion;
+        image[backupStart + FirmwareConfigLayout.CommonFwMajorVersionOffset] = commonFwMajor;
+        image[backupStart + FirmwareConfigLayout.CommonFwMinorVersionOffset] = commonFwMinor;
+        image[backupStart + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = commonFwAdditional;
+        image[backupStart + FirmwareConfigLayout.ProjectIdOffset] = (byte)(projectId & 0xFF);
+        image[backupStart + FirmwareConfigLayout.ProjectIdOffset + 1] = checked((byte)(projectId >> 8));
         image[markerStart] = 0x00;
         image[markerStart + 1] = (byte)'N';
         image[markerStart + 2] = (byte)'V';

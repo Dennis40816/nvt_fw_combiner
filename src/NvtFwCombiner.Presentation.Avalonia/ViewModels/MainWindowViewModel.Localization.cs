@@ -29,9 +29,9 @@ public sealed partial class MainWindowViewModel
                     slot.SlotId,
                     slot.FilePath,
                     out WorkbenchFirmwareInspection projected) &&
-                projected.AbMergeInput is { } inspection)
+                projected.AbMergeInput is not null)
             {
-                FirmwareInspectionProjection.ApplyAbInputInspection(slot, inspection, Text);
+                FirmwareInspectionProjection.ApplyAbInputInspection(slot, projected, Text);
             }
         }
 

@@ -159,9 +159,9 @@ public sealed partial class MainWindowViewModel
                 continue;
             }
 
-            if (inspection.AbMergeInput is { } abInput)
+            if (inspection.AbMergeInput is not null)
             {
-                FirmwareInspectionProjection.ApplyAbInputInspection(slot, abInput, Text);
+                FirmwareInspectionProjection.ApplyAbInputInspection(slot, inspection, Text);
             }
             else if (item.PublishFacts)
             {

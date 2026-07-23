@@ -301,13 +301,13 @@ internal static class FirmwareInspectionProjection
 
     internal static void ApplyAbInputInspection(
         FirmwareSlotViewModel slot,
-        WorkbenchAbMergeInputInspection inspection,
+        WorkbenchFirmwareInspection inspection,
         ShellTextResources text)
     {
         slot.SetFirmwareFacts(CreateAbFirmwareFacts(inspection));
         slot.SetInputInspection(
-            inspection.PrimaryIssue.Severity,
-            text.GetAbInputInspectionStatus(inspection));
+            inspection.AbMergeInput!.PrimaryIssue.Severity,
+            text.GetAbInputInspectionStatus(inspection.AbMergeInput));
     }
 
     internal static bool ApplyStaleAbInputInspection(
@@ -340,14 +340,20 @@ internal static class FirmwareInspectionProjection
     }
 
     internal static IReadOnlyList<FirmwareSlotFactViewModel> CreateAbFirmwareFacts(
-        WorkbenchAbMergeInputInspection inspection)
+        WorkbenchFirmwareInspection inspection)
     {
+        WorkbenchAbMergeInputInspection abInput = inspection.AbMergeInput ??
+            throw new ArgumentException("AB firmware facts require an AB input inspection.", nameof(inspection));
         return
         [
-            .. inspection.Versions.Select(version => new FirmwareSlotFactViewModel(
+            .. abInput.Versions.Select(version => new FirmwareSlotFactViewModel(
                 ShellTextResources.GetAbVersionLabel(version.Kind),
                 version.JiraBadge is null ? version.Value : $"{version.Value} · {version.JiraBadge}",
                 version.IsUnknown)),
+            // AB owns the bank-specific TP A/TP B version labels. Reuse the standard
+            // typed FWConfig projection for the remaining per-input TP identity facts.
+            .. UiCompositionRunner.GetFirmwareSlotFacts(inspection).Where(static fact =>
+                !string.Equals(fact.Label, "TP", StringComparison.Ordinal)),
         ];
     }
 }
