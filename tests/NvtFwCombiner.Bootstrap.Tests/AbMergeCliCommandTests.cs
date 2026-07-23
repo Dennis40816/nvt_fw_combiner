@@ -252,6 +252,7 @@ public sealed class AbMergeCliCommandTests
             previewOutputFileName: null,
             abMergeTopologySelection: null,
             automaticOutputDirectory: workspace.Root,
+            reportPath: null,
             cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded, result.Status.ToString());
@@ -259,6 +260,41 @@ public sealed class AbMergeCliCommandTests
         Assert.Equal(workspace.Root, Path.GetDirectoryName(result.CommittedOutputId));
         using var report = JsonDocument.Parse(result.ReportJson);
         Assert.False(report.RootElement.GetProperty("OutputNaming").GetProperty("IsExplicitOverride").GetBoolean());
+    }
+
+    /// <summary>Dynamic AB output commit protects a report path after the profile-name preflight.</summary>
+    [Fact]
+    public async Task CliAutomaticBuildRejectsReportPathMatchingTheResolvedOutputAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-ab-cli-automatic-report-alias");
+        byte[] dp = new byte[0x80000];
+        SetCmiDpVersion(dp, 0, 0x82, 0x0);
+        SetCmiDpVersion(dp, 0x40000, 0x83, 0x1);
+        IReadOnlyDictionary<string, string> slots = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionAddressSpaceIds.DpAbInput] = workspace.Write("dp-ab.bin", dp),
+            [CompositionAddressSpaceIds.TpAInput] = workspace.Write("tp-a.bin", CreateTp(0x80, 0x04)),
+            [CompositionAddressSpaceIds.TpBInput] = workspace.Write("tp-b.bin", CreateTp(0x81, 0x02)),
+        };
+        string outputFileName = await AbMergeWorkbenchCompositionService.ResolveAutomaticOutputFileNameAsync(
+            "NT51929",
+            slots,
+            TestContext.Current.CancellationToken);
+        string reportPath = workspace.PathFor(outputFileName);
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await AbMergeWorkbenchCompositionService.RunAbMergeForCliAsync(
+                "NT51929",
+                slots,
+                build: true,
+                outputPath: null,
+                previewOutputFileName: null,
+                abMergeTopologySelection: null,
+                automaticOutputDirectory: workspace.Root,
+                reportPath: reportPath,
+                cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.False(File.Exists(reportPath));
     }
 
     private static void SetCmiDpVersion(byte[] image, int bankStart, byte major, byte minor)

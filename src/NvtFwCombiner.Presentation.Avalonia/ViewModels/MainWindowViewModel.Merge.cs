@@ -240,6 +240,37 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    /// <summary>
+    /// Refreshes an AB automatic save name after the native dialog closes without replacing a user-entered name.
+    /// </summary>
+    internal async ValueTask<string?> TryResolveAbMergeBuildOutputPathAsync(
+        string selectedOutputPath,
+        string initialAutomaticFileName,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(selectedOutputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(initialAutomaticFileName);
+
+        if (!IsAbCodeMergeModeSelected ||
+            !string.Equals(
+                Path.GetFileName(selectedOutputPath),
+                initialAutomaticFileName,
+                StringComparison.Ordinal))
+        {
+            return selectedOutputPath;
+        }
+
+        MergeBuildSavePreparation? refreshedPreparation = await TryPrepareMergeBuildSaveAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (refreshedPreparation is null)
+        {
+            return null;
+        }
+
+        string outputDirectory = Path.GetDirectoryName(Path.GetFullPath(selectedOutputPath))!;
+        return Path.Combine(outputDirectory, refreshedPreparation.SuggestedFileName);
+    }
+
     private Task RunStandardMergeAsync(bool build, string? outputPath)
     {
         string icId = SelectedIc;

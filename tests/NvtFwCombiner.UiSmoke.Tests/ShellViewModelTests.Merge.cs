@@ -216,6 +216,27 @@ public sealed partial class ShellViewModelTests
             suggestedOutputName);
         Assert.DoesNotContain("D06-05", suggestedOutputName, StringComparison.Ordinal);
 
+        WriteUiAbCmi(dp, 0, major: 0x09, minor: 0x00, jira: 0x123);
+        await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
+        string? refreshedAutomaticOutputPath = await viewModel.TryResolveAbMergeBuildOutputPathAsync(
+            workspace.PathFor(suggestedOutputName),
+            suggestedOutputName,
+            TestContext.Current.CancellationToken);
+
+        Assert.NotNull(refreshedAutomaticOutputPath);
+        Assert.Equal(workspace.Root, Path.GetDirectoryName(refreshedAutomaticOutputPath));
+        Assert.Matches(
+            "^NT51929_FlashCode_A_D0900T8100_B_D0708T8203_[0-9]{8}\\.bin$",
+            Path.GetFileName(refreshedAutomaticOutputPath));
+
+        string customOutputPath = workspace.PathFor("operator-name.bin");
+        Assert.Equal(
+            customOutputPath,
+            await viewModel.TryResolveAbMergeBuildOutputPathAsync(
+                customOutputPath,
+                suggestedOutputName,
+                TestContext.Current.CancellationToken));
+
         await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
@@ -250,6 +271,9 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.CanBuildMerge);
         File.Delete(dpPath);
+
+        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+        Assert.False(viewModel.CanBuildMerge);
 
         MergeBuildSavePreparation? preparation = await viewModel.TryPrepareMergeBuildSaveAsync(
             TestContext.Current.CancellationToken);

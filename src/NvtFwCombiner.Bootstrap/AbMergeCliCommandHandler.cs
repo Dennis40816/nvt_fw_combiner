@@ -94,13 +94,34 @@ internal static class AbMergeCliCommandHandler
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             profile.DefaultOutputFileName);
+        string? reportPath = options.Values.GetValueOrDefault("--report");
+        if (build && !hasExplicitOutput)
+        {
+            try
+            {
+                string automaticOutputFileName = await AbMergeWorkbenchCompositionService
+                    .ResolveAutomaticOutputFileNameAsync(
+                        profile.IcId,
+                        slotPaths,
+                        cancellationToken,
+                        options.Values.GetValueOrDefault("--ab-topology"))
+                    .ConfigureAwait(false);
+                outputTarget = new CliOutputTarget(outputTarget.OutputDirectory, automaticOutputFileName);
+            }
+            catch (InvalidOperationException exception)
+            {
+                await error.WriteLineAsync($"error: {exception.Message}").ConfigureAwait(false);
+                return CompositionFailed;
+            }
+        }
+
         if (build)
         {
             CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
         }
 
         CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            options.Values.GetValueOrDefault("--report"),
+            reportPath,
             bindings,
             outputTarget,
             build);
@@ -113,18 +134,18 @@ internal static class AbMergeCliCommandHandler
                 !build && hasExplicitOutput ? outputTarget.FileName : null,
                 abMergeTopologySelection,
                 build && !hasExplicitOutput ? outputTarget.OutputDirectory : null,
+                build ? reportPath : null,
                 cancellationToken)
             .ConfigureAwait(false);
         CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            options.Values.GetValueOrDefault("--report"),
+            reportPath,
             bindings,
             new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
             build);
-        bool reportWritten = options.Values.TryGetValue("--report", out string? reportPath);
-        if (reportWritten)
+        if (!string.IsNullOrWhiteSpace(reportPath))
         {
             await CliCompositionRunSupport.WriteReportJsonAsync(
-                    reportPath!,
+                    reportPath,
                     result.ReportJson,
                     output,
                     cancellationToken)

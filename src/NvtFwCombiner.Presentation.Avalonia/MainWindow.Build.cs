@@ -16,6 +16,11 @@ public sealed partial class MainWindow
         await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
         if (!viewModel.CanBuildMerge)
         {
+            if (viewModel.IsAbCodeMergeModeSelected)
+            {
+                _ = await viewModel.TryPrepareMergeBuildSaveAsync(CancellationToken.None);
+            }
+
             return;
         }
 
@@ -49,7 +54,16 @@ public sealed partial class MainWindow
             }
         }
 
-        await viewModel.BuildMergeAsync(outputPath, aFlashCodeOutputPath);
+        string? resolvedOutputPath = await viewModel.TryResolveAbMergeBuildOutputPathAsync(
+            outputPath,
+            preparation.SuggestedFileName,
+            CancellationToken.None);
+        if (string.IsNullOrWhiteSpace(resolvedOutputPath))
+        {
+            return;
+        }
+
+        await viewModel.BuildMergeAsync(resolvedOutputPath, aFlashCodeOutputPath);
     }
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)

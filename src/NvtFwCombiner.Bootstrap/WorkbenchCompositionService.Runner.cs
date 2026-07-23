@@ -30,7 +30,8 @@ public static partial class WorkbenchCompositionService
         CompositionRunProgressFeed? progress = null,
         string? previewOutputFileName = null,
         TopologySelection? abMergeTopologySelection = null,
-        string? automaticOutputDirectory = null)
+        string? automaticOutputDirectory = null,
+        IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null)
     {
         CompositionRunResult result = await RunCompiledCompositionResultAsync(
             runIdPrefix,
@@ -46,7 +47,8 @@ public static partial class WorkbenchCompositionService
             progress,
             previewOutputFileName,
             abMergeTopologySelection,
-            automaticOutputDirectory).ConfigureAwait(false);
+            automaticOutputDirectory,
+            additionalOutputProtectedPaths).ConfigureAwait(false);
         return ToWorkbenchRunResult(result);
     }
 
@@ -65,7 +67,8 @@ public static partial class WorkbenchCompositionService
         CompositionRunProgressFeed? progress = null,
         string? previewOutputFileName = null,
         TopologySelection? abMergeTopologySelection = null,
-        string? automaticOutputDirectory = null)
+        string? automaticOutputDirectory = null,
+        IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null)
     {
         string[] inputRoots =
         [
@@ -94,12 +97,19 @@ public static partial class WorkbenchCompositionService
 
             outputFileName = previewOutputFileName;
         }
+        List<ProtectedPathGuard.ProtectedPath> outputProtectedPaths =
+            ProtectedPathGuard.CreateProtectedPaths(bindings, outputPath: null);
+        if (additionalOutputProtectedPaths is not null)
+        {
+            outputProtectedPaths.AddRange(additionalOutputProtectedPaths);
+        }
+
         if (build)
         {
             ProtectedPathGuard.EnsureDoesNotAlias(
                 ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
                 "Output path",
-                ProtectedPathGuard.CreateProtectedPaths(bindings, outputPath: null),
+                outputProtectedPaths,
                 nameof(outputPath));
         }
 
@@ -114,7 +124,7 @@ public static partial class WorkbenchCompositionService
             ? new ProtectedCompositionOutputWriter(
                 new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true),
                 outputDirectory,
-                ProtectedPathGuard.CreateProtectedPaths(bindings, outputPath: null))
+                outputProtectedPaths)
             : null;
         CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
         CompositionRunRequest request = new(
