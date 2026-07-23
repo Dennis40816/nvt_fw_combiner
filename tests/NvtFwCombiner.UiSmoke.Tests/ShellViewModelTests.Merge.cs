@@ -84,6 +84,9 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
         Assert.Equal("NT51929", viewModel.SelectedIc);
         Assert.Equal(
+            ["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"],
+            viewModel.IcChoices);
+        Assert.Equal(
             [
                 CompositionAddressSpaceIds.DpAbInput,
                 CompositionAddressSpaceIds.TpAInput,
@@ -92,31 +95,42 @@ public sealed partial class ShellViewModelTests
             viewModel.MergeSlots.Select(static slot => slot.SlotId));
     }
 
-    /// <summary>NT51950 selects its profile-owned physical layout before inspecting or building AB inputs.</summary>
+    /// <summary>NT51950 selects its profile-owned physical layout through the shared IC Number context.</summary>
     [Fact]
     public void Nt51950AbMergeSelectsSingleOrCascadeTopology()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51950";
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
         Assert.True(viewModel.HasAbMergeTopologyChoices);
+        Assert.True(viewModel.IsNumberSelectorVisible);
+        Assert.False(viewModel.IsNumberSelectorPlaceholderVisible);
         Assert.Equal(
             ["single", "cascade"],
             viewModel.AbMergeTopologyChoices.Select(static choice => choice.Token));
-        Assert.Equal("single", viewModel.SelectedAbMergeTopologyChoice?.Token);
+        Assert.Equal(
+            ["single", "cascade"],
+            viewModel.NumberSelectionChoices.Select(static choice => choice.Token));
+        Assert.Equal("single", viewModel.SelectedNumber);
         Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.MergeMemoryRangeLabel);
 
-        viewModel.SelectedAbMergeTopologyChoice = viewModel.AbMergeTopologyChoices.Single(
-            static choice => choice.Token == "cascade");
+        viewModel.SelectedNumber = "cascade";
 
-        Assert.Equal("cascade", viewModel.SelectedAbMergeTopologyChoice?.Token);
+        Assert.Equal("cascade", viewModel.SelectedNumber);
         Assert.Equal("0x00000-0xFFFFF (len 0x100000)", viewModel.MergeMemoryRangeLabel);
 
         viewModel.SelectedIc = "NT51951";
         Assert.True(viewModel.IsAbMergeSupported);
         Assert.False(viewModel.HasAbMergeTopologyChoices);
-        Assert.Null(viewModel.SelectedAbMergeTopologyChoice);
+        Assert.False(viewModel.IsNumberSelectorVisible);
+        Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
+        Assert.Empty(viewModel.NumberSelectionChoices);
+
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.Standard;
+
+        Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.IcChoices);
     }
 
     /// <summary>AB inputs publish independent versions and typed health before Preview becomes available.</summary>

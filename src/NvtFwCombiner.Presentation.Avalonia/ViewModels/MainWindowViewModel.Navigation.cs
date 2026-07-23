@@ -100,7 +100,8 @@ public sealed partial class MainWindowViewModel
 
     private bool ShouldShowNumberSelectorForSelectedPage()
     {
-        return IsReplaceVisible;
+        return IsReplaceVisible ||
+            (IsMergeVisible && IsAbCodeMergeModeSelected && HasAbMergeTopologyChoices);
     }
 
     private void NavigateToPage(ShellPage page)

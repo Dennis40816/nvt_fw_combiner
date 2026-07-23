@@ -7,6 +7,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private static readonly IReadOnlyList<string> s_abMergeIcChoices =
+        Array.AsReadOnly([.. WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId)]);
+
     private static string DefaultIcId => WorkbenchCompositionService.GetDefaultIcId();
 
     /// <summary>Gets the shell milestone label.</summary>
@@ -35,8 +38,10 @@ public sealed partial class MainWindowViewModel
         ? $"{DisplayedDeviceIc} / {DisplayedDeviceNumber}: {DisplayedDeviceContextRefreshSummary}"
         : $"{DisplayedDeviceIc}: {DisplayedDeviceContextRefreshSummary}";
 
-    /// <summary>Gets selectable IC choices from the current catalog.</summary>
-    public IReadOnlyList<string> IcChoices { get; } = WorkbenchCompositionService.GetSupportedIcIds();
+    /// <summary>Gets IC choices admitted by the active authoring mode.</summary>
+    public IReadOnlyList<string> IcChoices => IsAbCodeMergeModeSelected
+        ? s_abMergeIcChoices
+        : WorkbenchCompositionService.GetSupportedIcIds();
 
     /// <summary>Gets replace mode choices.</summary>
     public IReadOnlyList<string> ReplaceModeChoices { get; } =
@@ -437,13 +442,6 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
     public partial string SelectedNumber { get; set; } = WorkbenchIcNumberTokens.SingleChip;
-
-    /// <summary>Gets or sets the operator-selected profile topology for an AB Merge IC that requires it.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
-    [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
-    [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
-    public partial WorkbenchAbMergeTopologyChoice? SelectedAbMergeTopologyChoice { get; set; }
 
     /// <summary>Gets or sets General Merge output length text.</summary>
     [ObservableProperty]

@@ -77,34 +77,12 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshAbMergeTopologyChoices()
     {
-        string? selectedToken = SelectedAbMergeTopologyChoice?.Token;
         IReadOnlyList<WorkbenchAbMergeTopologyChoice> choices =
             AbMergeWorkbenchCompositionService.GetTopologyChoices(SelectedIc);
-        _isRefreshingAbMergeTopology = true;
-        try
+        AbMergeTopologyChoices.Clear();
+        foreach (WorkbenchAbMergeTopologyChoice choice in choices)
         {
-            AbMergeTopologyChoices.Clear();
-            foreach (WorkbenchAbMergeTopologyChoice choice in choices)
-            {
-                AbMergeTopologyChoices.Add(choice);
-            }
-
-            WorkbenchAbMergeTopologyChoice? retainedChoice = null;
-            foreach (WorkbenchAbMergeTopologyChoice choice in choices)
-            {
-                if (StringComparer.Ordinal.Equals(choice.Token, selectedToken))
-                {
-                    retainedChoice = choice;
-                    break;
-                }
-            }
-
-            SelectedAbMergeTopologyChoice = retainedChoice ??
-                (choices.Count == 0 ? null : choices[0]);
-        }
-        finally
-        {
-            _isRefreshingAbMergeTopology = false;
+            AbMergeTopologyChoices.Add(choice);
         }
 
         OnPropertyChanged(nameof(HasAbMergeTopologyChoices));
@@ -112,7 +90,10 @@ public sealed partial class MainWindowViewModel
 
     private string? GetSelectedAbMergeTopologyToken()
     {
-        return SelectedAbMergeTopologyChoice?.Token;
+        return AbMergeTopologyChoices.Any(choice =>
+            StringComparer.Ordinal.Equals(choice.Token, SelectedNumber))
+            ? SelectedNumber
+            : null;
     }
 
     private string GetRequiredStandardMergeSlotLabels()
@@ -153,7 +134,7 @@ public sealed partial class MainWindowViewModel
     {
         return IsAbCodeMergeModeSelected &&
             IsAbMergeSupported &&
-            (!HasAbMergeTopologyChoices || SelectedAbMergeTopologyChoice is not null) &&
+            (!HasAbMergeTopologyChoices || GetSelectedAbMergeTopologyToken() is not null) &&
             MergeSlots.Count > 0 &&
             MergeSlots.All(static slot =>
                 slot.HasFile &&

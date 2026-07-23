@@ -167,10 +167,6 @@ public sealed partial class ShellTextResources
             AbCodeMergeDetail = Pick(
                 "Compose one compiled DP_AB container with independent TPA and TPB payloads. Input versions are informational and never choose the route.",
                 "以 compiled profile 合成一個 DP_AB container 與獨立 TPA、TPB payload；input 版本只供確認，絕不選擇執行路徑。"),
-            AbMergeTopologyLabel = Pick("AB topology", "AB 拓撲"),
-            AbMergeTopologyDetail = Pick(
-                "Choose the declared layout before inspecting or building AB Code.",
-                "在檢查或建立 AB Code 前，請選擇已宣告的版面。"),
             IcDetailTitle = Pick("IC details", "IC 詳細資訊"),
             IcDetailFamilyLabel = Pick("Family", "Family"),
             IcDetailReuseLabel = Pick("Reusable scope", "可沿用範圍"),

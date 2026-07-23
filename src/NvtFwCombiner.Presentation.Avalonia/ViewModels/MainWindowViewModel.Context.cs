@@ -10,8 +10,20 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshNumberChoicesForSelectedIc()
     {
-        IReadOnlyList<IcNumberChoiceViewModel> nextDisplayChoices = UiCompositionRunner.GetNumberSelectionChoices(SelectedIc);
+        IReadOnlyList<IcNumberChoiceViewModel> nextDisplayChoices = IsAbCodeMergeModeSelected
+            ?
+            [
+                .. AbMergeWorkbenchCompositionService.GetTopologyChoices(SelectedIc)
+                    .Select(static choice => new IcNumberChoiceViewModel(choice.Token, choice.DisplayLabel)),
+            ]
+            : UiCompositionRunner.GetNumberSelectionChoices(SelectedIc);
         NumberSelectionChoices = nextDisplayChoices;
+        if (nextDisplayChoices.Count == 0)
+        {
+            OnPropertyChanged(nameof(SelectedNumberChoice));
+            return;
+        }
+
         if (!nextDisplayChoices.Any(choice =>
                 string.Equals(choice.Token, SelectedNumber, StringComparison.Ordinal)))
         {
@@ -154,6 +166,7 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(IsNormalMergeModeSelected));
             OnPropertyChanged(nameof(IsGeneralMergeModeSelected));
             OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
+            OnPropertyChanged(nameof(IcChoices));
             OnPropertyChanged(nameof(IsNumberSelectorVisible));
             OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
             OnPropertyChanged(nameof(DeviceContextStatus));
@@ -161,6 +174,7 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(MergeReadinessStatus));
             OnPropertyChanged(nameof(MergeMemorySummary));
             ResetRunResultForContextChange();
+            RefreshNumberChoicesForSelectedIc();
             RefreshMergeSlotRequirements();
             if (IsAbCodeMergeModeSelected && MergeSlots.Any(slot => slot.HasFile))
             {
@@ -312,6 +326,7 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(SelectedMergeMode));
             OnPropertyChanged(nameof(IsNormalMergeModeSelected));
             OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
+            OnPropertyChanged(nameof(IcChoices));
         }
 
         _isRefreshingFirmwareInspectionContext = true;
@@ -372,27 +387,6 @@ public sealed partial class MainWindowViewModel
             resetRunResult: true,
             preserveReplaceSlotFiles: true);
         RefreshCtrlRamDisplayFromInspection();
-    }
-
-    partial void OnSelectedAbMergeTopologyChoiceChanged(WorkbenchAbMergeTopologyChoice? value)
-    {
-        _ = value;
-        if (_isRefreshingAbMergeTopology || !IsAbCodeMergeModeSelected)
-        {
-            return;
-        }
-
-        InvalidateFirmwareInspection(clearFileProjections: true);
-        RefreshAbMergeInputSlots();
-        RefreshMergeMemoryMapState();
-        ResetRunResultForContextChange();
-        OnPropertyChanged(nameof(HasAbMergeTopologyChoices));
-        if (MergeSlots.Any(static slot => slot.HasFile))
-        {
-            _ = RefreshSelectedMergeFirmwareInspectionsAsync();
-        }
-
-        RefreshCommandState();
     }
 
     partial void OnGeneralMergeOutputLengthChanged(string value)
