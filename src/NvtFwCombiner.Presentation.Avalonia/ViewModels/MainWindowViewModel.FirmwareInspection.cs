@@ -174,7 +174,10 @@ public sealed partial class MainWindowViewModel
 
             if (item.PromptForMismatch)
             {
-                PromptForFirmwareIcMismatch(slot, inspection.DetectedIcId);
+                if (ReconcileFirmwareIcMismatch(slot, inspection.DetectedIcId))
+                {
+                    return;
+                }
             }
 
             if (item.ApplyVerifiedContext && !IsFirmwareIcMismatchModalOpen)

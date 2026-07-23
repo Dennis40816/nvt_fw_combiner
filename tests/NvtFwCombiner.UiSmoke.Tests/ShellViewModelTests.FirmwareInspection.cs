@@ -360,25 +360,33 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
     }
 
-    /// <summary>A non-authoritative marker within one perfect family keeps the selected IC without prompting.</summary>
+    /// <summary>A marker within one perfect family silently adopts the detected IC and retains the selected BIN.</summary>
     [Fact]
-    public async Task PerfectFamilyIcHintKeepsCurrentContextWithoutPrompt()
+    public async Task PerfectFamilyIcHintAdoptsDetectedContextWithoutPrompt()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-perfect-family-context");
-        string basePath = workspace.Write("NT51927_base.bin", [0x01]);
-        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
-        [
-            .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
-                input.InspectionId,
-                new WorkbenchFirmwareInspection("NT51927", null, null, null, null, null))),
-        ]);
-        viewModel.SelectedIc = "NT51917";
+        string basePath = workspace.Write("NT51932_base.bin", [0x01]);
+        var batches = new List<(string IcId, WorkbenchFirmwareInspectionInput[] Inputs)>();
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
+        {
+            batches.Add((icId, [.. inputs]));
+            return
+            [
+                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                    input.InspectionId,
+                    new WorkbenchFirmwareInspection("NT51932", null, null, null, null, null))),
+            ];
+        });
+        viewModel.SelectedIc = "NT51929";
 
         await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
+        await viewModel.FirmwareInspectionRefreshTask;
 
         Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
-        Assert.Equal("NT51917", viewModel.SelectedIc);
+        Assert.Equal("NT51932", viewModel.SelectedIc);
         Assert.Equal(basePath, viewModel.ReplaceBaseSlot.FilePath);
+        Assert.Equal("NT51932", batches[^1].IcId);
+        Assert.Contains(batches[^1].Inputs, static input => input.InspectionId == "replace-base");
     }
 
     /// <summary>Accepting a replacement hint retains a compatible slot and reinspects it in the new IC context.</summary>

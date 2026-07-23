@@ -29,25 +29,26 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that retains the current IC context despite the prompt.</summary>
     public IRelayCommand DismissFirmwareIcMismatchCommand { get; }
 
-    private void PromptForFirmwareIcMismatch(FirmwareSlotViewModel slot, string? detectedIc)
+    private bool ReconcileFirmwareIcMismatch(FirmwareSlotViewModel slot, string? detectedIc)
     {
         if (IsFirmwareIcMismatchModalOpen ||
             !slot.HasFile ||
             string.IsNullOrWhiteSpace(slot.FilePath))
         {
-            return;
+            return false;
         }
 
         if (string.IsNullOrWhiteSpace(detectedIc) ||
             !IcChoices.Contains(detectedIc, StringComparer.OrdinalIgnoreCase) ||
             string.Equals(detectedIc, SelectedIc, StringComparison.OrdinalIgnoreCase))
         {
-            return;
+            return false;
         }
 
         if (WorkbenchCompositionService.ArePerfectFamilyMembers(SelectedIc, detectedIc))
         {
-            return;
+            SelectDetectedFirmwareIc(detectedIc, slot.SlotId, slot.FilePath);
+            return true;
         }
 
         FirmwareIcMismatchFileName = Path.GetFileName(slot.FilePath);
@@ -58,21 +59,30 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(FirmwareIcMismatchDetectedIc));
         OnPropertyChanged(nameof(FirmwareIcMismatchCurrentIc));
         IsFirmwareIcMismatchModalOpen = true;
+        return false;
     }
 
     private void AcceptFirmwareIcMismatch()
     {
-        _acceptedFirmwareMismatchSelection =
-            _firmwareIcMismatchSlotId is { } slotId && _firmwareIcMismatchPath is { } path
-                ? new AcceptedFirmwareMismatchSelection(slotId, path)
-                : null;
         IsFirmwareIcMismatchModalOpen = false;
         if (!string.IsNullOrWhiteSpace(FirmwareIcMismatchDetectedIc))
         {
-            SelectedIc = FirmwareIcMismatchDetectedIc;
+            SelectDetectedFirmwareIc(
+                FirmwareIcMismatchDetectedIc,
+                _firmwareIcMismatchSlotId,
+                _firmwareIcMismatchPath);
         }
         _firmwareIcMismatchSlotId = null;
         _firmwareIcMismatchPath = null;
+    }
+
+    private void SelectDetectedFirmwareIc(string detectedIc, string? slotId, string? path)
+    {
+        _acceptedFirmwareMismatchSelection =
+            slotId is not null && path is not null
+                ? new AcceptedFirmwareMismatchSelection(slotId, path)
+                : null;
+        SelectedIc = detectedIc;
     }
 
     private void DismissFirmwareIcMismatch()
