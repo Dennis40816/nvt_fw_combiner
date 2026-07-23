@@ -181,8 +181,8 @@ public sealed partial class ShellTextResources
     {
         return !supported
             ? SelectLanguage(
-                $"{ic}: AB Code is not available. Select NT51919, NT51929, or NT51932.",
-                $"{ic}：尚未開放 AB Code；請選擇 NT51919、NT51929 或 NT51932。")
+                $"{ic}: AB Code is not available. Select a declared AB Code route for this release.",
+                $"{ic}：尚未開放 AB Code；請選擇本版本已宣告的 AB Code 路徑。")
             : blockingCount > 0
             ? SelectLanguage(
                 $"Build blocked: {blockingCount} input error(s) · {selectedCount}/{requiredCount} selected.",

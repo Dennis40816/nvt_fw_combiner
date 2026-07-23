@@ -10,6 +10,20 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    /// <summary>The unavailable AB readiness hint directs the user to declared routes without duplicating catalog facts.</summary>
+    [Fact]
+    public void AbMergeUnavailableReadinessDirectsToDeclaredRoutes()
+    {
+        MainWindowViewModel english = ShellViewModelFactory.Create();
+        MainWindowViewModel traditionalChinese = ShellViewModelFactory.Create(ShellLanguage.ChineseTraditional);
+
+        string englishHint = english.Text.GetAbMergeReadinessStatus("NT51917", false, 0, 0, 0, 0);
+        string traditionalChineseHint = traditionalChinese.Text.GetAbMergeReadinessStatus("NT51917", false, 0, 0, 0, 0);
+
+        Assert.Contains("declared AB Code route", englishHint, StringComparison.Ordinal);
+        Assert.Contains("已宣告的 AB Code 路徑", traditionalChineseHint, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies Normal Merge hides IC Number while preserving row layout space.</summary>
     [Fact]
     public void NormalMergeHidesNumberSelectorButKeepsPlaceholder()
