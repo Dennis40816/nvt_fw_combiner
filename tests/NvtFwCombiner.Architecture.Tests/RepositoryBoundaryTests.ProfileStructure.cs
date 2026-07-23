@@ -103,7 +103,7 @@ public sealed partial class RepositoryBoundaryTests
                      "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge.json",
                  })
         {
-            using JsonDocument profile = JsonDocument.Parse(ReadText(profilePath));
+            using var profile = JsonDocument.Parse(ReadText(profilePath));
             string[] requiredRegions =
             [
                 .. profile.RootElement.GetProperty("mapBinding").GetProperty("requiredRegionIds")
