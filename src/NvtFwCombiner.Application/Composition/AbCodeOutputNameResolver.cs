@@ -1,6 +1,7 @@
 using System.Globalization;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -22,10 +23,10 @@ internal static class AbCodeOutputNameResolver
             return OutputNameResolution.Static(request.OutputFileName);
         }
 
-        TokenResolution dpA = ReadDpToken(request.CompiledComposition.IcId, inputBytes, inputSummaries, 0, "dp-a");
-        TokenResolution dpB = ReadDpToken(request.CompiledComposition.IcId, inputBytes, inputSummaries, DpBankLength, "dp-b");
-        TokenResolution tpA = ReadTpToken(inputBytes, inputSummaries, CompositionAddressSpaceIds.TpAInput, "tp-a");
-        TokenResolution tpB = ReadTpToken(inputBytes, inputSummaries, CompositionAddressSpaceIds.TpBInput, "tp-b");
+        TokenResolution dpA = ReadDpToken(request, inputBytes, inputSummaries, "a-cmi-dp-version", 0, "dp-a");
+        TokenResolution dpB = ReadDpToken(request, inputBytes, inputSummaries, "b-cmi-dp-version", DpBankLength, "dp-b");
+        TokenResolution tpA = ReadTpToken(request, inputBytes, inputSummaries, CompositionAddressSpaceIds.TpAInput, "tp-a");
+        TokenResolution tpB = ReadTpToken(request, inputBytes, inputSummaries, CompositionAddressSpaceIds.TpBInput, "tp-b");
         string date = startedAtUtc.UtcDateTime.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
         string canonicalIcNumber = GetCanonicalIcNumber(request.CompiledComposition.IcId);
         OutputNamingTokenSummary[] tokens =
@@ -83,38 +84,98 @@ internal static class AbCodeOutputNameResolver
     }
 
     private static TokenResolution ReadDpToken(
-        string icId,
+        CompositionRunRequest request,
         IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
-        int bankStart,
+        string cmiRegionId,
+        int legacyBankStart,
         string tokenId)
     {
-        return TryGetAcceptedSnapshot(inputBytes, inputSummaries, CompositionAddressSpaceIds.DpAbInput, out ReadOnlyMemory<byte> snapshot, out string? hash) &&
-               snapshot.Length == DpAbLength &&
-               GenFlashVersionCatalog.TryReadCmiDpCode(icId, snapshot.Span.Slice(bankStart, DpBankLength), out CmiDpCodeMetadata metadata)
-            ? new TokenResolution(new OutputNamingTokenSummary(
-                tokenId,
-                FormattableString.Invariant($"D{metadata.MajorVersionByte:X2}{metadata.MinorVersionNibble:X2}"),
-                IsKnown: true,
+        return !TryGetAcceptedSnapshot(
+                request,
+                inputBytes,
+                inputSummaries,
                 CompositionAddressSpaceIds.DpAbInput,
-                hash,
-                "cmi-dp-code"))
-            : new TokenResolution(new OutputNamingTokenSummary(
+                out ReadOnlyMemory<byte> snapshot,
+                out string? hash)
+            ? UnknownDpToken(tokenId, hash)
+            : TryGetProfileCmiOffset(request.CompiledComposition, cmiRegionId, snapshot.Length, out int cmiOffset)
+                ? KnownDpToken(tokenId, snapshot.Span.Slice(cmiOffset, 3), hash, "profile-cmi-reg16-18")
+                : snapshot.Length == DpAbLength &&
+                  GenFlashVersionCatalog.TryReadCmiDpCode(
+                      request.CompiledComposition.IcId,
+                      snapshot.Span.Slice(legacyBankStart, DpBankLength),
+                      out CmiDpCodeMetadata metadata)
+            ? KnownDpToken(
                 tokenId,
-                "Dxxxx",
-                IsKnown: false,
-                CompositionAddressSpaceIds.DpAbInput,
+                [
+                    metadata.SystemCodeLowByte,
+                    metadata.MajorVersionByte,
+                    (byte)((metadata.MinorVersionNibble << 4) | ((metadata.JiraNumber >> 8) & 0x0F)),
+                ],
                 hash,
-                "cmi-dp-code"));
+                "legacy-cmi-reg16-18")
+            : UnknownDpToken(tokenId, hash);
+    }
+
+    private static bool TryGetProfileCmiOffset(
+        CompiledComposition composition,
+        string regionId,
+        int snapshotLength,
+        out int offset)
+    {
+        offset = 0;
+        FirmwareRegion? region = composition.V2Details?.Provenance.ResolvedMap.ImageMap.Regions.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.RegionId, regionId));
+        if (region is null || region.Range.Length != 3 || region.Range.Start < 0 ||
+            region.Range.EndExclusive > snapshotLength || region.Range.Start > int.MaxValue)
+        {
+            return false;
+        }
+
+        offset = checked((int)region.Range.Start);
+        return true;
+    }
+
+    private static TokenResolution KnownDpToken(
+        string tokenId,
+        ReadOnlySpan<byte> registers16To18,
+        string? hash,
+        string parserId)
+    {
+        byte register16 = registers16To18[0];
+        byte major = registers16To18[1];
+        byte register18 = registers16To18[2];
+        byte minor = (byte)(register18 >> 4);
+        ushort jira = (ushort)(register16 | ((register18 & 0x0F) << 8));
+        return new TokenResolution(new OutputNamingTokenSummary(
+            tokenId,
+            FormattableString.Invariant($"D{major:X2}{minor:X2}"),
+            IsKnown: true,
+            CompositionAddressSpaceIds.DpAbInput,
+            hash,
+            FormattableString.Invariant($"{parserId};reg16=0x{register16:X2};reg17=0x{major:X2};reg18=0x{register18:X2};jira={jira}")));
+    }
+
+    private static TokenResolution UnknownDpToken(string tokenId, string? hash)
+    {
+        return new TokenResolution(new OutputNamingTokenSummary(
+            tokenId,
+            "Dxxxx",
+            IsKnown: false,
+            CompositionAddressSpaceIds.DpAbInput,
+            hash,
+            "cmi-reg16-18"));
     }
 
     private static TokenResolution ReadTpToken(
+        CompositionRunRequest request,
         IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         string addressSpaceId,
         string tokenId)
     {
-        return TryGetAcceptedSnapshot(inputBytes, inputSummaries, addressSpaceId, out ReadOnlyMemory<byte> snapshot, out string? hash) &&
+        return TryGetAcceptedSnapshot(request, inputBytes, inputSummaries, addressSpaceId, out ReadOnlyMemory<byte> snapshot, out string? hash) &&
                FirmwareConfigMetadataReader.TryReadBackup(snapshot.Span, out FirmwareConfigMetadata metadata) &&
                metadata.IsFirmwareVersionBarValid
             ? new TokenResolution(new OutputNamingTokenSummary(
@@ -134,6 +195,7 @@ internal static class AbCodeOutputNameResolver
     }
 
     private static bool TryGetAcceptedSnapshot(
+        CompositionRunRequest request,
         IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         string addressSpaceId,
@@ -144,17 +206,44 @@ internal static class AbCodeOutputNameResolver
         acceptedSnapshotSha256 = null;
         InputArtifactSummary? summary = inputSummaries.SingleOrDefault(candidate =>
             StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId));
-        if (summary?.ExecutionSnapshot is not { } executionSnapshot ||
-            !inputBytes.TryGetValue(addressSpaceId, out byte[]? input) ||
-            executionSnapshot.AcceptedRange.Start != 0 ||
-            executionSnapshot.AcceptedRange.Length > input.LongLength)
+        if (!inputBytes.TryGetValue(addressSpaceId, out byte[]? input))
         {
             return false;
         }
 
-        snapshot = input.AsMemory(0, checked((int)executionSnapshot.AcceptedRange.Length));
-        acceptedSnapshotSha256 = executionSnapshot.AcceptedSha256;
-        return true;
+        if (summary?.ExecutionSnapshot is { } executionSnapshot &&
+            executionSnapshot.AcceptedRange.Start == 0 &&
+            executionSnapshot.AcceptedRange.Length <= input.LongLength)
+        {
+            snapshot = input.AsMemory(0, checked((int)executionSnapshot.AcceptedRange.Length));
+            acceptedSnapshotSha256 = executionSnapshot.AcceptedSha256;
+            return true;
+        }
+
+        // Exact contracts accept the complete immutable input; they deliberately have no
+        // declared-prefix execution snapshot.  The profile contract, not an IC, PID, or
+        // version value, is the sole authority for this fallback.
+        CompiledInputSpaceBinding? spaceBinding = request.CompiledComposition.V2Details?
+            .InputContract.SpaceBindings
+            .SingleOrDefault(binding => StringComparer.Ordinal.Equals(binding.AddressSpaceId, addressSpaceId));
+        CompiledInputSlotRequirement? slot = spaceBinding is null
+            ? null
+            : request.CompiledComposition.V2Details!.InputContract.Slots.SingleOrDefault(candidate =>
+                StringComparer.Ordinal.Equals(candidate.SlotId, spaceBinding.SlotId));
+        long? exactBytes = slot?.LengthRequirement switch
+        {
+            CompiledExactBytesInputLengthRequirement exact => exact.Bytes,
+            CompiledExactResolvedMapCapacityInputLengthRequirement exact => exact.Bytes,
+            _ => null,
+        };
+        if (exactBytes is null || input.LongLength != exactBytes.Value || input.LongLength > int.MaxValue)
+        {
+            return false;
+        }
+
+        snapshot = input;
+        acceptedSnapshotSha256 = summary?.Sha256;
+        return acceptedSnapshotSha256 is not null;
     }
 
     private sealed record TokenResolution(OutputNamingTokenSummary Summary);

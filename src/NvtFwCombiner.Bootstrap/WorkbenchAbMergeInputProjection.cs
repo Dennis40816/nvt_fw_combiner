@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -11,11 +12,14 @@ internal static class WorkbenchAbMergeInputProjection
     private const string AbTpBRole = "tp-b";
     private const string UnknownAbVersion = "Unknown";
 
-    internal static IReadOnlyList<WorkbenchAbMergeInputSlot> GetInputSlots(string icId)
+    internal static IReadOnlyList<WorkbenchAbMergeInputSlot> GetInputSlots(
+        string icId,
+        TopologySelection? requestedTopology = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         return !AbMergeWorkbenchCompositionService.TryCompileAbMerge(
                 icId,
+                requestedTopology,
                 out CompiledComposition? composition,
                 out _) || composition.V2Details is null
             ? []
@@ -25,12 +29,14 @@ internal static class WorkbenchAbMergeInputProjection
     internal static WorkbenchAbMergeInputInspection Inspect(
         string icId,
         string addressSpaceId,
-        byte[]? image)
+        byte[]? image,
+        TopologySelection? requestedTopology = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         if (!AbMergeWorkbenchCompositionService.TryCompileAbMerge(
                 icId,
+                requestedTopology,
                 out CompiledComposition? composition,
                 out IReadOnlyList<CompositionIssue> compileIssues) ||
             composition.V2Details is not { } details)
@@ -57,7 +63,7 @@ internal static class WorkbenchAbMergeInputProjection
         }
 
         CompiledInputArtifactInspectionResult inspected =
-            CompiledInputArtifactInspectionService.InspectDeclaredPrefix(
+            CompiledInputArtifactInspectionService.Inspect(
                 details.InputContract,
                 addressSpaceId,
                 image);
@@ -102,16 +108,14 @@ internal static class WorkbenchAbMergeInputProjection
                     StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId));
                 CompiledInputSlotRequirement slot = details.InputContract.Slots.Single(candidate =>
                     StringComparer.Ordinal.Equals(candidate.SlotId, binding.SlotId));
-                CompiledDeclaredPrefixWithWarningInputLengthRequirement length =
-                    slot.LengthRequirement as CompiledDeclaredPrefixWithWarningInputLengthRequirement ??
-                    throw new InvalidOperationException(
-                        $"Supported AB input '{addressSpaceId}' must use declared-prefix authority.");
+                (long requiredEndExclusive, IReadOnlyList<long> expectedOuterLengths) =
+                    ProjectLengthRequirement(slot.LengthRequirement, addressSpaceId);
                 return new WorkbenchAbMergeInputSlot(
                     slot.SlotId,
                     binding.AddressSpaceId,
                     MapRole(slot.Role),
-                    length.RequiredEndExclusive,
-                    length.ExpectedOuterLengths);
+                    requiredEndExclusive,
+                    expectedOuterLengths);
             }),
         ];
     }
@@ -143,12 +147,17 @@ internal static class WorkbenchAbMergeInputProjection
         CompiledComposition composition,
         ReadOnlySpan<byte> snapshot)
     {
+        if (TryReadDeclaredCmiVersions(composition, snapshot, out List<WorkbenchAbVersionValue>? declaredVersions))
+        {
+            return declaredVersions!;
+        }
+
         CompositionOperation tpA = FindOutputCopy(composition, CompositionAddressSpaceIds.TpAInput);
         CompositionOperation tpB = FindOutputCopy(composition, CompositionAddressSpaceIds.TpBWork);
         long bankLength = checked(tpB.TargetRange.Start - tpA.TargetRange.Start);
-        if (bankLength <= 0 || bankLength > int.MaxValue || checked(bankLength * 2) != snapshot.Length)
+        if (bankLength <= 0 || bankLength > int.MaxValue || checked(bankLength * 2) > snapshot.Length)
         {
-            throw new InvalidOperationException("Compiled AB bank geometry is not a symmetric two-bank layout.");
+            throw new InvalidOperationException("Compiled AB input does not contain both declared DP banks.");
         }
 
         int length = checked((int)bankLength);
@@ -157,6 +166,59 @@ internal static class WorkbenchAbMergeInputProjection
             ReadDpVersion(icId, WorkbenchAbVersionKind.Dp1, snapshot[..length]),
             ReadDpVersion(icId, WorkbenchAbVersionKind.Dp2, snapshot.Slice(length, length)),
         ];
+    }
+
+    private static bool TryReadDeclaredCmiVersions(
+        CompiledComposition composition,
+        ReadOnlySpan<byte> snapshot,
+        out List<WorkbenchAbVersionValue>? versions)
+    {
+        versions = null;
+        IReadOnlyList<FirmwareRegion>? regions = composition.V2Details?.Provenance.ResolvedMap.ImageMap.Regions;
+        if (regions is null)
+        {
+            return false;
+        }
+
+        FirmwareRegion? a = regions.SingleOrDefault(region =>
+            StringComparer.Ordinal.Equals(region.RegionId, "a-cmi-dp-version"));
+        FirmwareRegion? b = regions.SingleOrDefault(region =>
+            StringComparer.Ordinal.Equals(region.RegionId, "b-cmi-dp-version"));
+        if (a is null && b is null)
+        {
+            return false;
+        }
+
+        versions =
+        [
+            ReadDeclaredCmiVersion(WorkbenchAbVersionKind.Dp1, snapshot, a),
+            ReadDeclaredCmiVersion(WorkbenchAbVersionKind.Dp2, snapshot, b),
+        ];
+        return true;
+    }
+
+    private static WorkbenchAbVersionValue ReadDeclaredCmiVersion(
+        WorkbenchAbVersionKind kind,
+        ReadOnlySpan<byte> snapshot,
+        FirmwareRegion? region)
+    {
+        if (region is null || region.Range.Length != 3 || region.Range.Start < 0 ||
+            region.Range.EndExclusive > snapshot.Length || region.Range.Start > int.MaxValue)
+        {
+            return new WorkbenchAbVersionValue(kind, UnknownAbVersion, JiraBadge: null, IsUnknown: true);
+        }
+
+        ReadOnlySpan<byte> registers = snapshot.Slice(checked((int)region.Range.Start), 3);
+        byte register16 = registers[0];
+        byte major = registers[1];
+        byte register18 = registers[2];
+        byte minor = (byte)(register18 >> 4);
+        ushort jira = (ushort)(register16 | ((register18 & 0x0F) << 8));
+        return new WorkbenchAbVersionValue(
+            kind,
+            FormattableString.Invariant($"D{major:X2}{minor:X2}"),
+            jira == 0 ? null : $"AUTO_PRJ-{jira}",
+            IsUnknown: false);
     }
 
     private static CompositionOperation FindOutputCopy(
@@ -222,6 +284,23 @@ internal static class WorkbenchAbMergeInputProjection
             AbTpARole => WorkbenchAbMergeInputRole.TpA,
             AbTpBRole => WorkbenchAbMergeInputRole.TpB,
             _ => throw new InvalidOperationException($"Supported AB profile declares unknown input role '{role}'."),
+        };
+    }
+
+    private static (long RequiredEndExclusive, IReadOnlyList<long> ExpectedOuterLengths) ProjectLengthRequirement(
+        CompiledInputLengthRequirement requirement,
+        string addressSpaceId)
+    {
+        return requirement switch
+        {
+            CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix =>
+                (declaredPrefix.RequiredEndExclusive, declaredPrefix.ExpectedOuterLengths),
+            CompiledExactBytesInputLengthRequirement exact =>
+                (exact.Bytes, [exact.Bytes]),
+            CompiledExactResolvedMapCapacityInputLengthRequirement exact =>
+                (exact.Bytes, [exact.Bytes]),
+            _ => throw new InvalidOperationException(
+                $"Supported AB input '{addressSpaceId}' has no displayable length contract."),
         };
     }
 

@@ -7,35 +7,43 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Application/Bootstrap runtime evidence for the owner-approved three-IC AB pilot.</summary>
+/// <summary>Application/Bootstrap runtime evidence for the function-open AB profiles.</summary>
 public sealed class AbMergeRuntimeAdmissionTests
 {
     private const int DpLength = 0x80000;
     private const int TpLength = 0x40000;
 
-    /// <summary>Only the owner-approved perfect family is exposed by the runtime registry.</summary>
+    /// <summary>Function-open AB profiles are exposed even while 950/951 certification evidence remains pending.</summary>
     [Fact]
     public void RuntimeCatalogContainsOnlyTheApprovedPilot()
     {
         Assert.Equal(
-            ["NT51919", "NT51929", "NT51932"],
+            ["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"],
             WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId));
         Assert.All(
             WorkbenchCompositionService.GetAbMergeProfileSummaries(),
             static profile => Assert.True(profile.CompileSucceeded, string.Join(',', profile.IssueCodes)));
         Assert.True(AbMergeWorkbenchCompositionService.IsAbMergeSupported("51929"));
-        Assert.False(AbMergeWorkbenchCompositionService.IsAbMergeSupported("NT51950"));
-        Assert.False(AbMergeWorkbenchCompositionService.IsAbMergeSupported("NT51951"));
+        Assert.True(AbMergeWorkbenchCompositionService.IsAbMergeSupported("NT51950"));
+        Assert.True(AbMergeWorkbenchCompositionService.IsAbMergeSupported("NT51951"));
     }
 
-    /// <summary>The desktop adapter exposes exactly the three compiler-owned pilot slots.</summary>
+    /// <summary>The desktop adapter exposes compiler-owned slots with each profile's declared prefix authority.</summary>
     [Theory]
-    [InlineData("NT51919")]
-    [InlineData("NT51929")]
-    [InlineData("NT51932")]
-    public void WorkbenchInputLayoutComesFromTheCompiledProfile(string icId)
+    [InlineData("NT51919", DpLength, TpLength)]
+    [InlineData("NT51929", DpLength, TpLength)]
+    [InlineData("NT51932", DpLength, TpLength)]
+    [InlineData("NT51950", 0x80000, 0x37000)]
+    [InlineData("NT51951", 0x100000, 0x37000)]
+    public void WorkbenchInputLayoutComesFromTheCompiledProfile(
+        string icId,
+        int expectedDpLength,
+        int expectedTpPrefixLength)
     {
         IReadOnlyList<WorkbenchAbMergeInputSlot> slots = WorkbenchCompositionService.GetAbMergeInputSlots(icId);
+        IReadOnlyList<long> expectedTpOuterLengths = icId is "NT51950" or "NT51951"
+            ? [0x37000, 0x40000]
+            : [TpLength];
 
         Assert.Collection(
             slots,
@@ -43,18 +51,87 @@ public sealed class AbMergeRuntimeAdmissionTests
                 slot,
                 CompositionAddressSpaceIds.DpAbInput,
                 WorkbenchAbMergeInputRole.DpAb,
-                DpLength),
+                expectedDpLength,
+                [expectedDpLength]),
             slot => AssertAbSlot(
                 slot,
                 CompositionAddressSpaceIds.TpAInput,
                 WorkbenchAbMergeInputRole.TpA,
-                TpLength),
+                expectedTpPrefixLength,
+                expectedTpOuterLengths),
             slot => AssertAbSlot(
                 slot,
                 CompositionAddressSpaceIds.TpBInput,
                 WorkbenchAbMergeInputRole.TpB,
-                TpLength));
-        Assert.Empty(WorkbenchCompositionService.GetAbMergeInputSlots("NT51950"));
+                expectedTpPrefixLength,
+                expectedTpOuterLengths));
+    }
+
+    /// <summary>Only NT51950's AB profile exposes symbolic map topology selection.</summary>
+    [Fact]
+    public void TopologyChoicesAreProfileMapOwned()
+    {
+        Assert.Equal(
+            ["single", "cascade"],
+            AbMergeWorkbenchCompositionService.GetTopologyChoices("NT51950")
+                .Select(static choice => choice.Token));
+        Assert.Empty(AbMergeWorkbenchCompositionService.GetTopologyChoices("NT51951"));
+        Assert.Empty(AbMergeWorkbenchCompositionService.GetTopologyChoices("NT51929"));
+    }
+
+    /// <summary>NT51950 rejects a selected topology that disagrees with both canonical TP FWConfig Backups before postbuild.</summary>
+    [Fact]
+    public async Task Nt51950BlocksTopologySelectionThatDisagreesWithTpMetadataAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51950-ab-topology-selection");
+        Dictionary<string, string> paths = WriteNt51950Inputs(workspace, tpAChipCount: 2, tpBChipCount: 2);
+
+        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+            "NT51950",
+            paths,
+            build: false,
+            TestContext.Current.CancellationToken,
+            abMergeTopologySelection: RequestedTopology("single"));
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("AB_TP_TOPOLOGY_SELECTION_MISMATCH", result.ReportJson, StringComparison.Ordinal);
+    }
+
+    /// <summary>NT51950 rejects TPA and TPB that declare different canonical FWConfig Backup topologies before postbuild.</summary>
+    [Fact]
+    public async Task Nt51950BlocksMismatchedTpTopologiesAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51950-ab-topology-pair");
+        Dictionary<string, string> paths = WriteNt51950Inputs(workspace, tpAChipCount: 1, tpBChipCount: 2);
+
+        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+            "NT51950",
+            paths,
+            build: false,
+            TestContext.Current.CancellationToken,
+            abMergeTopologySelection: RequestedTopology("single"));
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("AB_TP_TOPOLOGY_MISMATCH", result.ReportJson, StringComparison.Ordinal);
+    }
+
+    /// <summary>NT51950 rejects a TP source whose accepted prefix does not contain a valid canonical FWConfig Backup.</summary>
+    [Fact]
+    public async Task Nt51950BlocksMissingCanonicalTpFirmwareConfigBackupAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51950-ab-topology-metadata");
+        Dictionary<string, string> paths = WriteNt51950Inputs(workspace, tpAChipCount: 1, tpBChipCount: 1);
+        paths[CompositionAddressSpaceIds.TpBInput] = workspace.Write("inputs/tp-b-invalid.bin", new byte[0x37000]);
+
+        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+            "NT51950",
+            paths,
+            build: false,
+            TestContext.Current.CancellationToken,
+            abMergeTopologySelection: RequestedTopology("single"));
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", result.ReportJson, StringComparison.Ordinal);
     }
 
     /// <summary>Load inspection projects independent DP1/DP2 and TPA/TPB values without routing on them.</summary>
@@ -100,6 +177,30 @@ public sealed class AbMergeRuntimeAdmissionTests
         Assert.False(dp.BlocksBuild);
         Assert.False(a.BlocksBuild);
         Assert.False(b.BlocksBuild);
+    }
+
+    /// <summary>NT51950 Cascade projects DP versions from the compiled map CMI regions, not a version- or PID-selected rule.</summary>
+    [Fact]
+    public void Nt51950CascadeLoadInspectionUsesCompiledCmiRegions()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade-load-inspection");
+        byte[] dpAb = new byte[0x100000];
+        WriteCmiAt(dpAb, 0x5016, major: 0x82, minor: 0x03, jira: 0x123);
+        WriteCmiAt(dpAb, 0x45016, major: 0x83, minor: 0x04, jira: 0x456);
+
+        WorkbenchAbMergeInputInspection inspection = WorkbenchCompositionService.InspectAbMergeInput(
+            "NT51950",
+            CompositionAddressSpaceIds.DpAbInput,
+            workspace.Write("dp-ab-cascade.bin", dpAb),
+            RequestedTopology("cascade"));
+
+        Assert.Equal(WorkbenchInputInspectionSeverity.Valid, inspection.PrimaryIssue.Severity);
+        Assert.Equal(
+            [
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp1, "D8203", "AUTO_PRJ-291", false),
+                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp2, "D8304", "AUTO_PRJ-1110", false),
+            ],
+            inspection.Versions);
     }
 
     /// <summary>Ignored tails warn immediately while metadata remains bounded to the accepted prefix.</summary>
@@ -279,6 +380,31 @@ public sealed class AbMergeRuntimeAdmissionTests
         };
     }
 
+    private static Dictionary<string, string> WriteNt51950Inputs(
+        TempWorkspace workspace,
+        byte tpAChipCount,
+        byte tpBChipCount)
+    {
+        return new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionAddressSpaceIds.DpAbInput] = workspace.Write("inputs/dp-ab.bin", new byte[0x80000]),
+            [CompositionAddressSpaceIds.TpAInput] = workspace.Write(
+                "inputs/tp-a.bin",
+                CreateTpImage(0x81, 0x00, tpAChipCount, 0x37000)),
+            [CompositionAddressSpaceIds.TpBInput] = workspace.Write(
+                "inputs/tp-b.bin",
+                CreateTpImage(0x82, 0x01, tpBChipCount, 0x37000)),
+        };
+    }
+
+    private static Domain.Firmware.TopologySelection RequestedTopology(string token)
+    {
+        Assert.True(AbMergeWorkbenchCompositionService.TryCreateTopologySelection(
+            token,
+            out Domain.Firmware.TopologySelection? topology));
+        return Assert.IsType<Domain.Firmware.TopologySelection>(topology);
+    }
+
     private static byte[] CreatePattern(int length, byte salt)
     {
         byte[] bytes = new byte[length];
@@ -294,13 +420,14 @@ public sealed class AbMergeRuntimeAdmissionTests
         WorkbenchAbMergeInputSlot slot,
         string addressSpaceId,
         WorkbenchAbMergeInputRole role,
-        int requiredLength)
+        int requiredLength,
+        IReadOnlyList<long> expectedOuterLengths)
     {
         Assert.Equal(addressSpaceId, slot.SlotId);
         Assert.Equal(addressSpaceId, slot.AddressSpaceId);
         Assert.Equal(role, slot.Role);
         Assert.Equal(requiredLength, slot.RequiredEndExclusive);
-        Assert.Equal([requiredLength], slot.ExpectedOuterLengths);
+        Assert.Equal(expectedOuterLengths, slot.ExpectedOuterLengths);
     }
 
     private static void WriteCmi(
@@ -311,20 +438,35 @@ public sealed class AbMergeRuntimeAdmissionTests
         ushort jira)
     {
         const int register16Offset = 0x401A;
-        int start = checked(bankStart + register16Offset);
+        WriteCmiAt(image, checked(bankStart + register16Offset), major, minor, jira);
+    }
+
+    private static void WriteCmiAt(
+        byte[] image,
+        int register16Offset,
+        byte major,
+        byte minor,
+        ushort jira)
+    {
+        int start = register16Offset;
         image[start] = checked((byte)(jira & 0xFF));
         image[start + 1] = major;
         image[start + 2] = checked((byte)((minor << 4) | ((jira >> 8) & 0x0F)));
     }
 
-    private static byte[] CreateTpImage(byte version, byte subVersion)
+    private static byte[] CreateTpImage(
+        byte version,
+        byte subVersion,
+        byte chipCount = 1,
+        int length = TpLength)
     {
         const int backupStart = 0x1000;
         const int markerStart = backupStart + 0xFFC;
-        byte[] image = new byte[TpLength];
+        byte[] image = new byte[length];
         image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
         image[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
         image[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = subVersion;
+        image[backupStart + FirmwareConfigLayout.ChipNumberOffset] = chipCount;
         image[markerStart] = 0x00;
         image[markerStart + 1] = (byte)'N';
         image[markerStart + 2] = (byte)'V';

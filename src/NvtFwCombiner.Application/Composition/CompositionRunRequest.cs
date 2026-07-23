@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -15,7 +16,8 @@ public sealed class CompositionRunRequest
         string outputFileName,
         string? approvedPreviewToken = null,
         IcNumberSelection? icNumberSelection = null,
-        bool outputFileNameIsOverride = false)
+        bool outputFileNameIsOverride = false,
+        TopologySelection? abMergeTopologySelection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(compiledComposition);
@@ -28,6 +30,7 @@ public sealed class CompositionRunRequest
         ValidateExecutableComposition(compiledComposition);
         ValidateRuntimeValidationRequirements(compiledComposition);
         ValidateIcNumberSelection(compiledComposition, icNumberSelection);
+        ValidateAbMergeTopologySelection(compiledComposition, abMergeTopologySelection);
         ValidateV2RuntimeRequest(
             compiledComposition,
             copiedBindings,
@@ -41,6 +44,7 @@ public sealed class CompositionRunRequest
         IsOutputFileNameOverride = effectiveOutputFileNameIsOverride;
         ApprovedPreviewToken = string.IsNullOrWhiteSpace(approvedPreviewToken) ? null : approvedPreviewToken;
         IcNumberSelection = icNumberSelection;
+        AbMergeTopologySelection = abMergeTopologySelection;
     }
 
     /// <summary>Stable run id for reports and diagnostics.</summary>
@@ -64,6 +68,9 @@ public sealed class CompositionRunRequest
     /// <summary>IC number selected for Replace profile binding.</summary>
     public IcNumberSelection? IcNumberSelection { get; }
 
+    /// <summary>Explicit topology chosen only for an AB Merge profile whose resolved map requires it.</summary>
+    public TopologySelection? AbMergeTopologySelection { get; }
+
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
     {
@@ -75,7 +82,8 @@ public sealed class CompositionRunRequest
             OutputFileName,
             previewToken,
             IcNumberSelection,
-            IsOutputFileNameOverride);
+            IsOutputFileNameOverride,
+            AbMergeTopologySelection);
     }
 
     private static Dictionary<string, InputArtifactBinding> CopyBindings(IEnumerable<InputArtifactBinding> bindings)
@@ -131,7 +139,8 @@ public sealed class CompositionRunRequest
         if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
             compiledComposition.Authority is ProfileBundleV2CompilationAuthority &&
             compiledComposition.V2Details is { Provenance.Promotion.Stage: CompiledProfilePromotionStage.ExecutableCandidate } details &&
-            details.Provenance.Context is LogicalOutputV2CompilationContext or RuntimeReferenceReplaceV2CompilationContext)
+            (details.Provenance.Context is LogicalOutputV2CompilationContext or RuntimeReferenceReplaceV2CompilationContext ||
+             compiledComposition.IsV2AbFunctionOpenCandidate))
         {
             return;
         }
@@ -308,6 +317,52 @@ public sealed class CompositionRunRequest
             !IsPositiveInteger(selection.Parts[^1]))
         {
             throw new ArgumentException("Numeric IC number selection must be a positive integer.", nameof(selection));
+        }
+    }
+
+    private static void ValidateAbMergeTopologySelection(
+        CompiledComposition compiledComposition,
+        TopologySelection? selection)
+    {
+        if (!compiledComposition.IsV2AbFunctionOpenCandidate)
+        {
+            if (selection is not null)
+            {
+                throw new ArgumentException(
+                    "AB topology selection is allowed only for an admitted AB Merge candidate.",
+                    nameof(selection));
+            }
+
+            return;
+        }
+
+        TopologyRequirement requirement = compiledComposition.V2Details!
+            .Provenance.ResolvedMap.ImageMap.Applicability.TopologyRequirement;
+        if (requirement.Kind == TopologyRequirementKind.None)
+        {
+            if (selection is not null)
+            {
+                throw new ArgumentException(
+                    "The resolved AB Merge map does not expose a topology selection.",
+                    nameof(selection));
+            }
+
+            return;
+        }
+
+        if (selection is null)
+        {
+            throw new ArgumentException(
+                "The resolved AB Merge map requires an explicit topology selection.",
+                nameof(selection));
+        }
+
+        if (selection.Source != TopologySelectionSource.Requested ||
+            !requirement.Matches(selection))
+        {
+            throw new ArgumentException(
+                "The requested AB Merge topology does not match the resolved profile map.",
+                nameof(selection));
         }
     }
 

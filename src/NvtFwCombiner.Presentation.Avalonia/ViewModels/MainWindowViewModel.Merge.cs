@@ -42,9 +42,17 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshAbMergeSlots()
     {
+        RefreshAbMergeTopologyChoices();
+        RefreshAbMergeInputSlots();
+    }
+
+    private void RefreshAbMergeInputSlots()
+    {
         MergeSlots.Clear();
         _abMergeAddressSpaceBySlotId.Clear();
-        foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(SelectedIc))
+        foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(
+                     SelectedIc,
+                     GetSelectedAbMergeTopologyToken()))
         {
             if (!_abMergeSlotsByAddressSpace.TryGetValue(input.AddressSpaceId, out FirmwareSlotViewModel? slot))
             {
@@ -65,6 +73,46 @@ public sealed partial class MainWindowViewModel
             _abMergeAddressSpaceBySlotId[input.SlotId] = input.AddressSpaceId;
             MergeSlots.Add(slot);
         }
+    }
+
+    private void RefreshAbMergeTopologyChoices()
+    {
+        string? selectedToken = SelectedAbMergeTopologyChoice?.Token;
+        IReadOnlyList<WorkbenchAbMergeTopologyChoice> choices =
+            AbMergeWorkbenchCompositionService.GetTopologyChoices(SelectedIc);
+        _isRefreshingAbMergeTopology = true;
+        try
+        {
+            AbMergeTopologyChoices.Clear();
+            foreach (WorkbenchAbMergeTopologyChoice choice in choices)
+            {
+                AbMergeTopologyChoices.Add(choice);
+            }
+
+            WorkbenchAbMergeTopologyChoice? retainedChoice = null;
+            foreach (WorkbenchAbMergeTopologyChoice choice in choices)
+            {
+                if (StringComparer.Ordinal.Equals(choice.Token, selectedToken))
+                {
+                    retainedChoice = choice;
+                    break;
+                }
+            }
+
+            SelectedAbMergeTopologyChoice = retainedChoice ??
+                (choices.Count == 0 ? null : choices[0]);
+        }
+        finally
+        {
+            _isRefreshingAbMergeTopology = false;
+        }
+
+        OnPropertyChanged(nameof(HasAbMergeTopologyChoices));
+    }
+
+    private string? GetSelectedAbMergeTopologyToken()
+    {
+        return SelectedAbMergeTopologyChoice?.Token;
     }
 
     private string GetRequiredStandardMergeSlotLabels()
@@ -105,6 +153,7 @@ public sealed partial class MainWindowViewModel
     {
         return IsAbCodeMergeModeSelected &&
             IsAbMergeSupported &&
+            (!HasAbMergeTopologyChoices || SelectedAbMergeTopologyChoice is not null) &&
             MergeSlots.Count > 0 &&
             MergeSlots.All(static slot =>
                 slot.HasFile &&
@@ -210,7 +259,8 @@ public sealed partial class MainWindowViewModel
                 build,
                 progress,
                 cancellationToken,
-                outputPath),
+                outputPath,
+                GetSelectedAbMergeTopologyToken()),
             (action, errorMessage) => LoadRunErrorReport(
                 action,
                 profileId,

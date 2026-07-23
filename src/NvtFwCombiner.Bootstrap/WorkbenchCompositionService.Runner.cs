@@ -2,6 +2,7 @@ using System.Globalization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Infrastructure.Time;
 
@@ -27,7 +28,8 @@ public static partial class WorkbenchCompositionService
         CancellationToken cancellationToken,
         IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
         CompositionRunProgressFeed? progress = null,
-        string? previewOutputFileName = null)
+        string? previewOutputFileName = null,
+        TopologySelection? abMergeTopologySelection = null)
     {
         string[] inputRoots =
         [
@@ -81,7 +83,8 @@ public static partial class WorkbenchCompositionService
             bindings,
             outputFileName,
             icNumberSelection: icNumberSelection,
-            outputFileNameIsOverride: outputPath is not null || previewOutputFileName is not null);
+            outputFileNameIsOverride: outputPath is not null || previewOutputFileName is not null,
+            abMergeTopologySelection: abMergeTopologySelection);
 
         CompositionRunResult result = progress is null
             ? await service.PreviewOrBuildAsync(request, build, cancellationToken).ConfigureAwait(false)

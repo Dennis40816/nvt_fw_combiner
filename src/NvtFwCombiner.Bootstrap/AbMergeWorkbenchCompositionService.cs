@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -22,6 +23,7 @@ public static class AbMergeWorkbenchCompositionService
 
     internal static bool TryCompileAbMerge(
         string icId,
+        TopologySelection? requestedTopology,
         [NotNullWhen(true)] out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
@@ -35,8 +37,60 @@ public static class AbMergeWorkbenchCompositionService
             return false;
         }
 
-        registration.TryCompile(inputLength: null, out composition, out issues);
+        registration.TryCompile(inputLength: null, requestedTopology, out composition, out issues);
         return composition is not null;
+    }
+
+    internal static bool TryCompileAbMerge(
+        string icId,
+        [NotNullWhen(true)] out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        return TryCompileAbMerge(icId, requestedTopology: null, out composition, out issues);
+    }
+
+    /// <summary>Returns the two symbolic topology choices only for AB profiles with topology-specific maps.</summary>
+    public static IReadOnlyList<WorkbenchAbMergeTopologyChoice> GetTopologyChoices(string icId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        return BuiltInV2RegistrationRegistry.AbMergeByIc.TryGetValue(
+                   IcSupportCatalog.NormalizeIcId(icId),
+                   out BuiltInV2Registration? registration) &&
+               registration.HasMultipleMapCapacities
+            ?
+            [
+                new WorkbenchAbMergeTopologyChoice("single", "1 IC"),
+                new WorkbenchAbMergeTopologyChoice("cascade", "Cascade"),
+            ]
+            : [];
+    }
+
+    /// <summary>Converts a profile-owned symbolic AB topology token into its typed selection.</summary>
+    /// <param name="token">The profile-owned topology token.</param>
+    /// <param name="topology">The resulting selection when the token is recognized.</param>
+    /// <returns><see langword="true"/> when <paramref name="token"/> is recognized.</returns>
+    public static bool TryCreateTopologySelection(
+        string token,
+        [NotNullWhen(true)] out TopologySelection? topology)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(token);
+        topology = token.Trim().ToLowerInvariant() switch
+        {
+            "single" => new TopologySelection(1, "1 IC", TopologySelectionSource.Requested, "ab-topology"),
+            "cascade" => new TopologySelection(2, "Cascade", TopologySelectionSource.Requested, "ab-topology"),
+            _ => null,
+        };
+        return topology is not null;
+    }
+
+    /// <summary>Resolves one Bootstrap-owned symbolic topology token or fails before profile compilation.</summary>
+    internal static TopologySelection? ResolveTopologySelection(string? token)
+    {
+        return string.IsNullOrWhiteSpace(token)
+            ? null
+            : TryCreateTopologySelection(token, out TopologySelection? topology)
+            ? topology
+            : throw new ArgumentException("The AB Merge topology token is not profile-owned.", nameof(token));
     }
 
     /// <summary>Runs AB Merge preview or build through the shared Application composition service.</summary>
@@ -45,7 +99,8 @@ public static class AbMergeWorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
         CancellationToken cancellationToken,
-        string? outputPath = null)
+        string? outputPath = null,
+        TopologySelection? abMergeTopologySelection = null)
     {
         return RunAbMergeCoreAsync(
             icId,
@@ -54,7 +109,8 @@ public static class AbMergeWorkbenchCompositionService
             outputPath,
             previewOutputFileName: null,
             progress: null,
-            cancellationToken);
+            abMergeTopologySelection: abMergeTopologySelection,
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>Runs AB Merge for the focused CLI adapter while preserving explicit output policy.</summary>
@@ -64,6 +120,7 @@ public static class AbMergeWorkbenchCompositionService
         bool build,
         string? outputPath,
         string? previewOutputFileName,
+        TopologySelection? abMergeTopologySelection,
         CancellationToken cancellationToken)
     {
         return RunAbMergeCoreAsync(
@@ -73,7 +130,8 @@ public static class AbMergeWorkbenchCompositionService
             outputPath,
             build ? null : previewOutputFileName,
             progress: null,
-            cancellationToken);
+            abMergeTopologySelection: abMergeTopologySelection,
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>Runs AB Merge and publishes bounded Application-owned lifecycle phases.</summary>
@@ -83,7 +141,8 @@ public static class AbMergeWorkbenchCompositionService
         bool build,
         CompositionRunProgressFeed progress,
         CancellationToken cancellationToken,
-        string? outputPath = null)
+        string? outputPath = null,
+        TopologySelection? abMergeTopologySelection = null)
     {
         ArgumentNullException.ThrowIfNull(progress);
         return RunAbMergeCoreAsync(
@@ -92,8 +151,29 @@ public static class AbMergeWorkbenchCompositionService
             build,
             outputPath,
             previewOutputFileName: null,
+            progress: progress,
+            abMergeTopologySelection: abMergeTopologySelection,
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>Runs AB Merge with a Bootstrap-owned symbolic topology token.</summary>
+    public static ValueTask<WorkbenchRunResult> RunAbMergeWithProgressAsync(
+        string icId,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken,
+        string? outputPath = null,
+        string? abMergeTopologyToken = null)
+    {
+        return RunAbMergeWithProgressAsync(
+            icId,
+            slotPaths,
+            build,
             progress,
-            cancellationToken);
+            cancellationToken,
+            outputPath,
+            ResolveTopologySelection(abMergeTopologyToken));
     }
 
     private static async ValueTask<WorkbenchRunResult> RunAbMergeCoreAsync(
@@ -103,6 +183,7 @@ public static class AbMergeWorkbenchCompositionService
         string? outputPath,
         string? previewOutputFileName,
         CompositionRunProgressFeed? progress,
+        TopologySelection? abMergeTopologySelection,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -114,7 +195,22 @@ public static class AbMergeWorkbenchCompositionService
             throw new InvalidOperationException($"AB Merge is not available for '{icId}'.");
         }
 
-        if (!TryCompileAbMerge(normalizedIcId, out CompiledComposition? composition, out IReadOnlyList<CompositionIssue> issues))
+        IReadOnlyList<WorkbenchAbMergeTopologyChoice> topologyChoices = GetTopologyChoices(normalizedIcId);
+        if (topologyChoices.Count > 0 && abMergeTopologySelection is null)
+        {
+            throw new InvalidOperationException("AB Merge requires one explicit topology choice: 1 IC or Cascade.");
+        }
+
+        if (topologyChoices.Count == 0 && abMergeTopologySelection is not null)
+        {
+            throw new InvalidOperationException("The selected AB Merge profile does not expose an IC topology choice.");
+        }
+
+        if (!TryCompileAbMerge(
+                normalizedIcId,
+                abMergeTopologySelection,
+                out CompiledComposition? composition,
+                out IReadOnlyList<CompositionIssue> issues))
         {
             throw new InvalidOperationException(WorkbenchCompositionService.FormatIssues(issues));
         }
@@ -141,10 +237,11 @@ public static class AbMergeWorkbenchCompositionService
             firstInputPath,
             build,
             outputPath,
-            externalProcessor: null,
+            externalProcessor: ExternalProcessorFactory.GetOrCreateOrNull(),
             icNumberSelection: null,
-            cancellationToken,
+            cancellationToken: cancellationToken,
             progress: progress,
-            previewOutputFileName: previewOutputFileName).ConfigureAwait(false);
+            previewOutputFileName: previewOutputFileName,
+            abMergeTopologySelection: abMergeTopologySelection).ConfigureAwait(false);
     }
 }

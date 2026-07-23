@@ -78,7 +78,9 @@ public static partial class WorkbenchCompositionService
                     AbMergeInput = InspectAbMergeInput(
                         icId,
                         input.AbMergeAddressSpaceId,
-                        ReadOnce(input.Path)),
+                        ReadOnce(input.Path),
+                        AbMergeWorkbenchCompositionService.ResolveTopologySelection(
+                            input.AbMergeTopologyToken)),
                 };
             }
 

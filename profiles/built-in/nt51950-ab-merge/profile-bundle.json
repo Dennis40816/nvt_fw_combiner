@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51950-ab-merge",
-  "bundleVersion": "0.9.3-ab-candidate.3",
+  "bundleVersion": "0.9.15-ab-function-open.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "cde274b5a1e2a08698b67dc83bc11d92632fe708d9e61dbdc637496a9d2b50bd",
+  "contentHash": "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -11,7 +11,7 @@
       "kind": "schema",
       "path": "schemas/composition-profile-v2.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "6b98f8032dc320ded5cda97566ac8e1ec591baaab0eb60fc9a03ef1640c4d44f"
+      "contentHash": "2f26a55a9b856bb2850dac87177ddc7db8c2523d81a08cc69643662b20bd3ba6"
     },
     {
       "entryId": "firmware-family-v1-schema",
@@ -25,21 +25,21 @@
       "kind": "firmware-family",
       "path": "families/nt51950-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "d5f8a6f865c743679b701036fdadfeb4a5e001d0f718c378063cccda7ee7fdc4"
+      "contentHash": "bd3509a6a2406366f5d6c21ad53eba1f165df74afd1e20663492200fb5479b85"
     },
     {
       "entryId": "nt51950-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51950-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "e043a2ef9c494b0897b24413f6bc44a59031bf9a629266d4c9775e45190a9081"
+      "contentHash": "2b5b5dad4c1db5ac96cf55352de0c850cc9295bdaea6c0c7fecc3caefe3107c2"
     },
     {
       "entryId": "nt51951-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51951-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "d8b5bf441b34f87437132bb2e59b9f07360a3d36b8e2cd2b23ddd4c73af26778"
+      "contentHash": "4746b633f65901a98271a97c55253e8c938bf7c378c1bc22a92af6fb477490ca"
     }
   ]
 }

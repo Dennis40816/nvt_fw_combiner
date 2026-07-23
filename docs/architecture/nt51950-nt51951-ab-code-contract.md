@@ -4,9 +4,24 @@ Status: `0.9.15` release-target design and review contract. It does not itself
 claim certification or replace the profile, processor binding, or executable
 tests as the source of runtime behavior.
 
-Related authority: [ADR 0035](../adr/0035-ab-topology-operator-selection.md),
-[ADR 0036](../adr/0036-output-destination-and-ab-naming-v2.md), and the
-[IC workflow reference](ic-workflow-flowcharts.md).
+Related authority: [ADR 0035](../adr/0035-ab-topology-operator-selection.md)
+and [ADR 0036](../adr/0036-output-destination-and-ab-naming-v2.md).
+
+## Function state and certification debt
+
+All three routes in this document are function-open in `0.9.15`: the shared
+Application executor is reachable from UI and CLI. This is not a support or
+certification claim.
+
+| Route | Direct golden state | Certification debt |
+| --- | --- | --- |
+| NT51950 `1 IC` | Owner-supplied; formal intake/closure pending | Firmware-owner postbuild/map review and release evidence. |
+| NT51950 `Cascade` | Missing | Direct vector plus firmware-owner postbuild/map review and release evidence. |
+| NT51951 selector-free | Missing | Direct vector plus firmware-owner postbuild/map review and release evidence. |
+
+No NT51950 evidence certifies NT51951, and the `1 IC` vector does not certify
+NT51950 `Cascade`. Standard Merge, DP Replace, and CtrlRAM evidence do not
+substitute for an AB Code direct golden.
 
 ## Declared layouts
 
@@ -31,6 +46,10 @@ NT51951 has one declared byte plan and never presents an IC-number control.
 - NVT flash-header/FWConfig parsing is required for both TPA and TPB; the
   report records FW/subversion, chip classification, Common FW, and PID/project
   provenance. Missing or invalid required NVT metadata fails closed.
+- TP version/subversion, Common FW, PID/project identifiers, source filename,
+  hash, and display text are never route selectors. Only canonical IC, the
+  compiled profile map, and (for NT51950 alone) the explicit `1 IC`/`Cascade`
+  selection determine memory coordinates and processor invocation.
 - DP CMI is read-only. Reg17 supplies the DP major byte; the high nibble of
   Reg18 supplies the zero-padded DP minor nibble. Reg16 and the low nibble of
   Reg18 remain report/Jira provenance, not filename fields.
@@ -51,6 +70,13 @@ receive the layout addend:
 | ILM | `[0xA100,0xA104)` |
 | DLM | `[0xA110,0xA114)` |
 | DIFF | `[0xA120,0xA124)` |
+
+The host first materializes a private A/B Combiner work image: 512 KiB for
+NT51950 (`A[0x00000,0x40000)`, `B[0x40000,0x80000)`) and 1 MiB for NT51951
+(`A[0x00000,0x80000)`, `B[0x80000,0x100000)`). The processor writes that
+private image, never the complete DP output. Its postbuilt B bank is then the
+sole B-slot backfill source; the already-copied DP tail remains byte-for-byte
+unchanged.
 
 The approved staged postbuild route then calculates CRC-32/MPEG-2 over
 `[0xA100,0xA130)` and writes its little-endian value at `[0xA130,0xA134)`.
@@ -75,7 +101,7 @@ the compiled profile and staged processor are the executable authority.
 Editable Mermaid Live permalink (generated from this exact source on
 2026-07-23):
 
-https://mermaid.live/edit#pako:eNpNkcFuwjAQRH9l5TP8AIdKJCEUiaqIol6aqtrGG7Dk2K5j00aIf-_aUaE5RJHzZnY8exGtlSQWotP2uz2hD3CoGgP8LN8a8YpaSQwEYXQkYVmAp69IQwA0Eg47cJ469dOId5jPH6BgSWndCF3UGqrdBwuCBRuDi4GhybjIbPnHHnZLSCHAozkSRMMx-EPe-DLzVeK1NcSC4p_ghlUZWzG2J23blDqRm-3TDKr0SpGrTV3fFKusqJMiGkDnvD3zLYeAPD6LnR3CZ1T6HqbOmnXqhrzqRkDNzU343Bo9glRdl2eV-xK4LXVGTaa9B11ni0e2eD6T1zjmUcpwUwUM2k7lYrC9atl95JJtb8NkIGaiJ9-jkry0SyPCiXr-s2iEpA6j5pqvzGAM9mU0rVgEH2kmoktrrBQePfbT4fUXa62hpQ
+https://mermaid.live/edit#pako:eJxNkU1vwjAMhv-KlTNodw6T-kEBaUiIoV3WaQpNAhFp3KUJrEP89zmpBusBVeV57Nf2lTUoJJsxZfDSHLnzsCtrC_Rk7zV740YL7iX4oZMCshyc_Aqy98CtgN0GOieV_q7ZB0ynz5CTUmA3gArGQLn5JMEjYPBd8ASNhfPEFn_sbpNBDAGO24OEYCkGvYg7XyS-jLxBK0nI_wl3rEzYnLCtNNjE1JFcvawnUMafGLlcVdXdmCejImNNtNM07I-kkfQ5ytlTDgW2e22lgwu6E-iW_-tXJXsR-wULvOscnmlHvSdIpNYd9n4ftHmMskjOMm6W-qkBuKG9j_gUrRlAaKVS0mJbAO2ashhpm0fbZSqxohI5b05K06Jz6A2OJ-EeW91Q1YHmwBb9KLIJa6VruRZ06mvN_FG29M-sZkIqHgwd50YMDx5fB9uwmXdBTljo4vFLzQ-Ot-PH2y_0NrMb
 
 ```mermaid
 flowchart TD
@@ -83,12 +109,13 @@ flowchart TD
     B --> C["Copy TPA code range unchanged"]
     C --> D["Clone TPB code range"]
     D --> E["Relocate TPB ILM, DLM, and DIFF"]
-    E --> F["Run approved staged TPB postbuild"]
-    F --> G["Verify allowed TPB-only diff and CRC equivalence"]
-    G --> H["Overlay TPB into B slot and atomically promote"]
+    E --> F["Materialize private A/B Combiner work image"]
+    F --> G["Run approved staged TPB postbuild"]
+    G --> H["Verify allowed TPB-only diff and CRC equivalence"]
+    H --> I["Backfill B slot and atomically promote"]
 ```
 
 The `0.9.15` release handoff must record this file path, its commit SHA, and
-the permalink above. The release-level all-IC/all-mode index references this
-contract; it is a documentation deliverable, not an implementation-convergence
-authorization.
+the permalink above. Broader all-IC/all-mode documentation and Mermaid work
+are deferred to an owner-selected later milestone; this dedicated contract is
+not an implementation-convergence authorization.

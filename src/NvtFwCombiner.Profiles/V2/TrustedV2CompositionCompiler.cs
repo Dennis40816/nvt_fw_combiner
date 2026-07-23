@@ -217,6 +217,7 @@ internal static class TrustedV2CompositionCompiler
             memberId,
             modeId,
             requestedMapCapacity,
+            requestedTopology: null,
             []);
     }
 
@@ -230,7 +231,38 @@ internal static class TrustedV2CompositionCompiler
         long? requestedMapCapacity,
         IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts)
     {
+        return Compile(
+            catalog,
+            profileId,
+            profileVersion,
+            memberId,
+            modeId,
+            requestedMapCapacity,
+            requestedTopology: null,
+            resolutionArtifacts);
+    }
+
+    /// <summary>Compiles one trusted map-bound AB profile with an explicit topology selection.</summary>
+    internal static V2CompositionPlanCompileResult Compile(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string modeId,
+        long? requestedMapCapacity,
+        TopologySelection? requestedTopology,
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts)
+    {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
+        if (requestedTopology is not null &&
+            !StringComparer.Ordinal.Equals(modeId, ExperienceIds.AbMerge))
+        {
+            return Failed(
+                [],
+                "profile.v2.compile.topology-not-admitted",
+                "Only AB Merge compilation can use an explicit topology selection.");
+        }
+
         if (!TryResolveMapCandidates(
                 catalog,
                 profileId,
@@ -259,6 +291,14 @@ internal static class TrustedV2CompositionCompiler
             }
         }
 
+        if (requestedTopology is not null)
+        {
+            mapCandidates =
+            [
+                .. mapCandidates.Where(map => map.Applicability.TopologyRequirement.Matches(requestedTopology)),
+            ];
+        }
+
         if (mapCandidates.Length != 1)
         {
             return Failed(
@@ -277,7 +317,7 @@ internal static class TrustedV2CompositionCompiler
                     memberId,
                     modeId,
                     mapCandidates[0].CapacityBytes,
-                    requestedTopology: null,
+                    requestedTopology,
                     resolutionArtifacts)));
         return preparation.IsAdmitted
             ? V2CompositionPlanCompiler.Compile(preparation)

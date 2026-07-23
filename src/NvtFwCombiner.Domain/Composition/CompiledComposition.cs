@@ -101,6 +101,25 @@ public sealed partial class CompiledComposition
     /// <summary>Execution eligibility established by the compiler authority.</summary>
     public CompiledCompositionEligibility Eligibility { get; }
 
+    /// <summary>
+    /// Whether this profile-bundle candidate is the deliberately narrow AB Code
+    /// function-open route: executable product behavior with only golden or
+    /// firmware-owner certification debt remaining.
+    /// </summary>
+    public bool IsV2AbFunctionOpenCandidate =>
+        Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
+        Authority is ProfileBundleV2CompilationAuthority &&
+        V2Details is { } details &&
+        details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
+        details.Provenance.Context is ResolvedMapV2CompilationContext &&
+        CompositionKind == CompositionKind.Merge &&
+        StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.AbMerge) &&
+        details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
+        details.Provenance.Promotion.Blockers.Count != 0 &&
+        details.Provenance.Promotion.Blockers.All(static blocker =>
+            blocker.Kind is CompiledProfilePromotionBlockerKind.Golden or
+                CompiledProfilePromotionBlockerKind.HumanReview);
+
     /// <summary>Authority that established this artifact.</summary>
     public CompositionCompilationAuthority Authority { get; }
 

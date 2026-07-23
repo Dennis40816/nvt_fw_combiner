@@ -374,6 +374,27 @@ public sealed partial class MainWindowViewModel
         RefreshCtrlRamDisplayFromInspection();
     }
 
+    partial void OnSelectedAbMergeTopologyChoiceChanged(WorkbenchAbMergeTopologyChoice? value)
+    {
+        _ = value;
+        if (_isRefreshingAbMergeTopology || !IsAbCodeMergeModeSelected)
+        {
+            return;
+        }
+
+        InvalidateFirmwareInspection(clearFileProjections: true);
+        RefreshAbMergeInputSlots();
+        RefreshMergeMemoryMapState();
+        ResetRunResultForContextChange();
+        OnPropertyChanged(nameof(HasAbMergeTopologyChoices));
+        if (MergeSlots.Any(static slot => slot.HasFile))
+        {
+            _ = RefreshSelectedMergeFirmwareInspectionsAsync();
+        }
+
+        RefreshCommandState();
+    }
+
     partial void OnGeneralMergeOutputLengthChanged(string value)
     {
         if (_deferredState.IsLoadingWorkflow || !_deferredState.IsWorkflowLoaded)

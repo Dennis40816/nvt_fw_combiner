@@ -19,7 +19,7 @@ Update this document in the same change when any of these sources change:
 - `docs/architecture/supported-ic-matrix.md`
 - `docs/architecture/adding-ic-merge-replace-workflow.md`
 
-The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks that this document lists every IC from the built-in Standard Merge profiles and the CtrlRAM postbuild catalog. The test is a sync guard only; the C# catalog and owner evidence remain the source of behavior truth.
+The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks that this document lists every IC from the built-in Standard Merge and AB Merge profiles, plus the CtrlRAM postbuild catalog. The test is a sync guard only; the C# catalog and owner evidence remain the source of behavior truth.
 
 ## Notation
 

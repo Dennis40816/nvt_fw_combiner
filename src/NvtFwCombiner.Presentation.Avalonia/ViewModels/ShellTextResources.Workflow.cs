@@ -133,6 +133,10 @@ public sealed partial class ShellTextResources
 
     public string AbCodeMergeDetail { get; private init; } = string.Empty;
 
+    public string AbMergeTopologyLabel { get; private init; } = string.Empty;
+
+    public string AbMergeTopologyDetail { get; private init; } = string.Empty;
+
     public string IcDetailTitle { get; private init; } = string.Empty;
 
     public string IcDetailFamilyLabel { get; private init; } = string.Empty;

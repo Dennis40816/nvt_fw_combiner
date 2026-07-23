@@ -138,7 +138,9 @@ public sealed partial class MainWindowViewModel
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
-        foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(SelectedIc))
+        foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(
+                     SelectedIc,
+                     GetSelectedAbMergeTopologyToken()))
         {
             if (_abMergeSlotsByAddressSpace.TryGetValue(input.AddressSpaceId, out FirmwareSlotViewModel? slot))
             {

@@ -114,6 +114,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51929-dp-replace",
             "nt51929-standard-merge",
             "nt51919-nt51929-nt51932-ab-merge",
+            "nt51950-ab-merge",
             "nt51930-standard-merge",
             "nt51931-dp-replace",
             "nt51931-standard-merge",
@@ -139,10 +140,9 @@ public sealed partial class RepositoryBoundaryTests
             XAttribute include = Assert.Single(bundle.Attributes());
 
             Assert.Equal("Include", include.Name.LocalName);
-            if (string.Equals(
-                    bundle.Attribute("Include")?.Value,
-                    "nt51919-nt51929-nt51932-ab-merge",
-                    StringComparison.Ordinal))
+            if (bundle.Attribute("Include")?.Value is
+                    "nt51919-nt51929-nt51932-ab-merge" or
+                    "nt51950-ab-merge")
             {
                 Assert.Equal(
                     "composition-profile-v2.10.schema.json",

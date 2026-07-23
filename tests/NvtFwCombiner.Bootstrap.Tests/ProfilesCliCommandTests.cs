@@ -30,6 +30,8 @@ public sealed class ProfilesCliCommandTests
             "nt51919-ab-merge-alias  ic=NT51919  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51929-ab-merge  ic=NT51929  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51932-ab-merge  ic=NT51932  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
+            "nt51950-ab-merge  ic=NT51950  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
+            "nt51951-ab-merge  ic=NT51951  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "Built-in replace profiles:",
             "nt51917-dp-replace-gen-flash-alias  ic=NT51917  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output=nt51917-dp-replace.bin",
             "nt51919-dp-replace-gen-flash-alias  ic=NT51919  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output=nt51919-dp-replace.bin",

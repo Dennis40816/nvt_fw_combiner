@@ -299,8 +299,8 @@ public sealed partial class ShellTextResources
     {
         return abMerge
             ? SelectLanguage(
-                "AB runtime is limited to the owner-approved 51919/51929/51932 pilot; metadata never selects support.",
-                "AB runtime 僅限 owner 核准的 51919/51929/51932 pilot；metadata 絕不選擇支援範圍。")
+                "AB runtime follows compiled profile contracts; function-open routes can still have direct golden closure pending. Metadata never selects support.",
+                "AB runtime 依 compiled profile contract 決定；功能開放的路徑仍可能等待直接 golden 結案；metadata 絕不選擇支援範圍。")
             : SelectLanguage(
                 "Availability follows compiled profiles and safety contracts; family labels do not expand support.",
                 "可用性以 compiled profile 與 safety contract 為準；family 標示不會擴張支援範圍。");

@@ -76,9 +76,9 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("## AB function availability, direct-golden debt, and progress", matrix, StringComparison.Ordinal);
         Assert.Contains("A missing direct golden is an evidence debt, not a", matrix, StringComparison.Ordinal);
-        Assert.Contains("**28.6%**; **5 missing**", matrix, StringComparison.Ordinal);
-        Assert.Contains("NT51950 two-IC, NT51951 one-IC, and NT51951 two-IC", matrix, StringComparison.Ordinal);
-        Assert.Contains("**60.0%**", matrix, StringComparison.Ordinal);
+        Assert.Contains("**33.3%**; **4 missing**", matrix, StringComparison.Ordinal);
+        Assert.Contains("NT51950 `Cascade`, and selector-free NT51951", matrix, StringComparison.Ordinal);
+        Assert.Contains("**66.7%**", matrix, StringComparison.Ordinal);
         Assert.Contains("**80.0%**", matrix, StringComparison.Ordinal);
         Assert.Contains("**0.0%**; function availability must not be presented as certification.", matrix, StringComparison.Ordinal);
     }
@@ -190,7 +190,7 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Equal(13, standardMergeIcIds.Length);
         Assert.Equal(standardMergeIcIds.Length, standardMergeIcIds.Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(["NT51919", "NT51929", "NT51932"], abMergeIcIds);
+        Assert.Equal(["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"], abMergeIcIds);
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2RegistrationRegistry.cs", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2Bundle.cs", reference, StringComparison.Ordinal);

@@ -50,7 +50,8 @@ internal sealed class FirmwareInspectionSession
                 item.Path,
                 item.TpPath,
                 item.CtrlRamRequest,
-                item.AbMergeAddressSpaceId)),
+                item.AbMergeAddressSpaceId,
+                item.AbMergeTopologyToken)),
         ];
         IReadOnlyList<WorkbenchFirmwareInspectionResult> inspections = _reader(request.IcId, inputs);
         var inspectionsById = inspections.ToDictionary(
@@ -256,7 +257,8 @@ internal static class FirmwareInspectionRequestFactory
             publishFacts,
             promptForMismatch,
             applyWorkflowContext,
-            abMergeAddressSpaceId);
+            abMergeAddressSpaceId,
+            context.AbMergeTopologyToken);
     }
 }
 
@@ -407,6 +409,7 @@ internal readonly record struct FirmwareInspectionRequestContext(
     string SelectedNumber,
     bool IsAbMerge,
     IReadOnlyDictionary<string, string> AbAddressSpaceBySlotId,
+    string? AbMergeTopologyToken,
     string MergeDpSlotId,
     string MergeTpSlotId,
     string ReplaceBaseSlotId);
@@ -428,7 +431,8 @@ internal readonly record struct FirmwareInspectionItemRequest(
     bool PublishFacts,
     bool PromptForMismatch,
     bool ApplyVerifiedContext,
-    string? AbMergeAddressSpaceId);
+    string? AbMergeAddressSpaceId,
+    string? AbMergeTopologyToken);
 
 internal readonly record struct FirmwareInspectionBatchResult(
     IReadOnlyDictionary<string, WorkbenchFirmwareInspection> InspectionsById,

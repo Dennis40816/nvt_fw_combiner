@@ -44,6 +44,7 @@ public sealed partial class MainWindowViewModel
     private readonly DeferredShellState _deferredState = new();
     private readonly IFileRevealService _fileRevealService;
     private readonly bool _isInitializing = true;
+    private bool _isRefreshingAbMergeTopology;
     private string _selectedMergeMode = NormalMergeMode;
 
     /// <summary>Initializes the main workbench view model.</summary>

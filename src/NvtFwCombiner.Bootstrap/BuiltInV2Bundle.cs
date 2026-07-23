@@ -2,6 +2,7 @@ using System.Collections.Frozen;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
+using NvtFwCombiner.Profiles;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -42,6 +43,7 @@ internal static class BuiltInV2BundleRegistry
             ("nt51931-dp-replace", "eae8c593556e9cb5d639d2f05c94f8144d091767e490e746cd5cdeb2b5384c9c"),
             ("nt51931-standard-merge", "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f"),
             ("nt51932-ctrlram-replace-candidate", "7530d67111fdf3c93c1ae934f2ca0c903bfed35b2f4ab351eea18f0a5a58f3cd"),
+            ("nt51950-ab-merge", "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206"),
             ("nt51950-ctrlram-replace-candidate", "dc5031993636feb26a60ff96e3517da2fb982f39b83e92724c73dd1df8cf7b16"),
             ("nt51951-ctrlram-replace-candidate", "497d99edcfc9ef03cd3d28e3dd7bf821a8db0c9cda5e1cab7aba18fb8d8f8bbd"),
             ("nt51950-nt51951-general-merge-logical-candidate", "1da78f9a6d8aae1e7fbbda0f5977272b5c9902194ab102f2232586edd77eb121"),
@@ -100,12 +102,62 @@ internal sealed class BuiltInV2Bundle
                 : compilation.Issues);
     }
 
+    /// <summary>
+    /// Compiles the narrowly admitted AB Code function-open route. It may run a
+    /// profile whose only remaining blockers are direct-golden certification or
+    /// firmware-owner review; every other candidate remains non-executable.
+    /// </summary>
+    internal V2CompositionPlanCompileResult CompileAbMergeFunctionOpen(
+        string profileId,
+        string profileVersion,
+        string icId,
+        long? requestedMapCapacity,
+        TopologySelection? requestedTopology,
+        string failureMessage)
+    {
+        V2CompositionPlanCompileResult compilation = Compile(
+            profileId,
+            profileVersion,
+            icId,
+            IcWorkflowIds.AbMerge,
+            requestedMapCapacity,
+            requestedTopology,
+            []);
+        return compilation.CompiledComposition is { } composition &&
+               (composition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable ||
+                composition.IsV2AbFunctionOpenCandidate)
+            ? compilation
+            : V2CompositionPlanCompileResult.Failed(
+            compilation.Issues.Count == 0
+                ? [new CompositionIssue(CompilationFailed, failureMessage)]
+                : compilation.Issues);
+    }
+
     internal V2CompositionPlanCompileResult Compile(
         string profileId,
         string profileVersion,
         string icId,
         string experienceId,
         long? requestedMapCapacity,
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts)
+    {
+        return Compile(
+            profileId,
+            profileVersion,
+            icId,
+            experienceId,
+            requestedMapCapacity,
+            requestedTopology: null,
+            resolutionArtifacts);
+    }
+
+    internal V2CompositionPlanCompileResult Compile(
+        string profileId,
+        string profileVersion,
+        string icId,
+        string experienceId,
+        long? requestedMapCapacity,
+        TopologySelection? requestedTopology,
         IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts)
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
@@ -118,6 +170,7 @@ internal sealed class BuiltInV2Bundle
                 icId,
                 experienceId,
                 requestedMapCapacity,
+                requestedTopology,
                 resolutionArtifacts);
         }
         catch (Exception exception) when (IsBundleLoadFailure(exception))

@@ -63,6 +63,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets merge input slots.</summary>
     public ObservableCollection<FirmwareSlotViewModel> MergeSlots { get; } = [];
 
+    /// <summary>Gets profile-owned symbolic AB topologies when the selected AB IC requires an operator choice.</summary>
+    public ObservableCollection<WorkbenchAbMergeTopologyChoice> AbMergeTopologyChoices { get; } = [];
+
     /// <summary>Gets the independent General Replace base firmware slot.</summary>
     public FirmwareSlotViewModel ReplaceBaseSlot { get; } = new(
         ReplaceBaseSlotId,
@@ -204,6 +207,9 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>True when the reserved AB Code Merge option is selected.</summary>
     public bool IsAbCodeMergeModeSelected => string.Equals(SelectedMergeMode, AbCodeMergeMode, StringComparison.Ordinal);
+
+    /// <summary>True when the selected AB profile exposes an operator topology selector.</summary>
+    public bool HasAbMergeTopologyChoices => AbMergeTopologyChoices.Count > 0;
 
     /// <summary>True when the selected IC has an admitted AB profile.</summary>
     public bool IsAbMergeSupported => AbMergeWorkbenchCompositionService.IsAbMergeSupported(SelectedIc);
@@ -431,6 +437,13 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
     public partial string SelectedNumber { get; set; } = WorkbenchIcNumberTokens.SingleChip;
+
+    /// <summary>Gets or sets the operator-selected profile topology for an AB Merge IC that requires it.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
+    [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
+    [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
+    public partial WorkbenchAbMergeTopologyChoice? SelectedAbMergeTopologyChoice { get; set; }
 
     /// <summary>Gets or sets General Merge output length text.</summary>
     [ObservableProperty]

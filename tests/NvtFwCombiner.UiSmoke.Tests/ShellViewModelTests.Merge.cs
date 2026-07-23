@@ -21,7 +21,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.IsDeviceContextVisible);
         Assert.True(viewModel.IsNormalMergeModeSelected);
-        Assert.Equal(["Normal", "General"], viewModel.MergeModeChoices);
+        Assert.Equal(["Normal", "AB Code", "General"], viewModel.MergeModeChoices);
         Assert.False(viewModel.IsNumberSelectorVisible);
         Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.DeviceContextStatus);
@@ -53,25 +53,27 @@ public sealed partial class ShellViewModelTests
         }
     }
 
-    /// <summary>AB Code is exposed only for the approved pilot and its Home entry cannot select another IC.</summary>
+    /// <summary>AB Code is available for all function-open profiles and Home exposes only those ICs.</summary>
     [Fact]
-    public void AbMergeExposureAndHomeContextAreLimitedToApprovedPilot()
+    public void AbMergeExposureAndHomeContextContainAllFunctionOpenProfiles()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Assert.DoesNotContain(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
+        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
         viewModel.SelectedIc = "NT51929";
         Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
         viewModel.SelectedIc = "NT51950";
-        Assert.DoesNotContain(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
+        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
+        viewModel.SelectedIc = "NT51951";
+        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
 
         viewModel.BeginAbMergeFromHomeCommand.Execute(null);
 
         Assert.True(viewModel.IsWorkflowContextModalOpen);
         Assert.Equal(
-            ["NT51919", "NT51929", "NT51932"],
+            ["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"],
             viewModel.WorkflowContextSetup.IcChoices);
-        Assert.Equal("NT51919", viewModel.WorkflowContextSetup.SelectedIc);
+        Assert.Equal("NT51951", viewModel.WorkflowContextSetup.SelectedIc);
 
         viewModel.WorkflowContextSetup.SelectedIc = "NT51929";
         viewModel.ConfirmWorkflowContextCommand.Execute(null);
@@ -88,6 +90,33 @@ public sealed partial class ShellViewModelTests
                 CompositionAddressSpaceIds.TpBInput,
             ],
             viewModel.MergeSlots.Select(static slot => slot.SlotId));
+    }
+
+    /// <summary>NT51950 selects its profile-owned physical layout before inspecting or building AB inputs.</summary>
+    [Fact]
+    public void Nt51950AbMergeSelectsSingleOrCascadeTopology()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+
+        Assert.True(viewModel.HasAbMergeTopologyChoices);
+        Assert.Equal(
+            ["single", "cascade"],
+            viewModel.AbMergeTopologyChoices.Select(static choice => choice.Token));
+        Assert.Equal("single", viewModel.SelectedAbMergeTopologyChoice?.Token);
+        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.MergeMemoryRangeLabel);
+
+        viewModel.SelectedAbMergeTopologyChoice = viewModel.AbMergeTopologyChoices.Single(
+            static choice => choice.Token == "cascade");
+
+        Assert.Equal("cascade", viewModel.SelectedAbMergeTopologyChoice?.Token);
+        Assert.Equal("0x00000-0xFFFFF (len 0x100000)", viewModel.MergeMemoryRangeLabel);
+
+        viewModel.SelectedIc = "NT51951";
+        Assert.True(viewModel.IsAbMergeSupported);
+        Assert.False(viewModel.HasAbMergeTopologyChoices);
+        Assert.Null(viewModel.SelectedAbMergeTopologyChoice);
     }
 
     /// <summary>AB inputs publish independent versions and typed health before Preview becomes available.</summary>

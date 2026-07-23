@@ -71,9 +71,9 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SelectedIc = "NT51950";
 
-        Assert.DoesNotContain("AB", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
+        Assert.Contains("AB", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
         Assert.Equal("✓ Verified: DP · ! Open: CtrlRAM, Customized", viewModel.SelectedIcDetailEvidence);
-        Assert.Contains("compiled profiles", viewModel.SelectedIcDetailSupport, StringComparison.Ordinal);
+        Assert.Contains("compiled profile contracts", viewModel.SelectedIcDetailSupport, StringComparison.Ordinal);
 
         viewModel.SelectedIc = "NT51931";
 

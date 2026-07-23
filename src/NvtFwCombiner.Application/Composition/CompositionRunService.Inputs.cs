@@ -33,6 +33,11 @@ public sealed partial class CompositionRunService
         }
 
         ValidateV2InputLengthRequirements(request, inputBytes, issues);
+        if (issues.Count == 0)
+        {
+            ValidateAbMergeTopologyMetadata(request, inputBytes, issues);
+        }
+
         return new BoundInputs(inputBytes, inputSummaries, issues);
     }
 
@@ -78,8 +83,25 @@ public sealed partial class CompositionRunService
                 continue;
             }
 
-            switch (slots[binding.SlotId].LengthRequirement)
+            CompiledInputSlotRequirement slot = slots[binding.SlotId];
+            switch (slot.LengthRequirement)
             {
+                case CompiledExactBytesInputLengthRequirement exact
+                    when slot.Normalization is CompiledNoInputNormalization &&
+                         bytes.LongLength != exact.Bytes:
+                    issues.Add(new CompositionIssue(
+                        CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                        $"Input bytes for address space '{binding.AddressSpaceId}' must exactly match the compiled length (actual {bytes.LongLength} bytes, expected {exact.Bytes} bytes).",
+                        binding.AddressSpaceId));
+                    break;
+                case CompiledExactResolvedMapCapacityInputLengthRequirement exact
+                    when slot.Normalization is CompiledNoInputNormalization &&
+                         bytes.LongLength != exact.Bytes:
+                    issues.Add(new CompositionIssue(
+                        CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                        $"Input bytes for address space '{binding.AddressSpaceId}' must exactly match the resolved-map capacity (actual {bytes.LongLength} bytes, expected {exact.Bytes} bytes).",
+                        binding.AddressSpaceId));
+                    break;
                 case CompiledTpMaximum256KInputLengthRequirement
                     when bytes.LongLength > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes:
                     issues.Add(new CompositionIssue(

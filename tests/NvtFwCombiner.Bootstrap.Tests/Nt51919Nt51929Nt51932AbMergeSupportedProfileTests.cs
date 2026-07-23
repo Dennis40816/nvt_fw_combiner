@@ -9,7 +9,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
 {
     private const string BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string BundleContentHash = "5602e56244840a216e4ffa081a99a533a485b14d28271360fa02289f050814f8";
+    private const string BundleContentHash = "390743408fbaa172a6e4dc073c0c9f515de94faf502b996bd0380af0fb388680";
     private const int Capacity = 0x80000;
     private const int TpCodeStart = 0x7000;
     private const int TpCodeLength = 0x39000;

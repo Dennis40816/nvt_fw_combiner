@@ -178,6 +178,9 @@ public sealed record WorkbenchProfileSummary(
     bool CompileSucceeded,
     IReadOnlyList<string> IssueCodes);
 
+/// <summary>One profile-owned AB Merge topology choice exposed only when map selection requires it.</summary>
+public sealed record WorkbenchAbMergeTopologyChoice(string Token, string DisplayLabel);
+
 /// <summary>Firmware facts read from the canonical NVT-located FWConfig Backup block.</summary>
 public sealed record WorkbenchFirmwareConfigMetadata(
     long FirmwareConfigBackupStart,
@@ -251,7 +254,8 @@ public sealed record WorkbenchFirmwareInspectionInput(
     string Path,
     string? TpPath = null,
     WorkbenchCtrlRamInspectionRequest? CtrlRamRequest = null,
-    string? AbMergeAddressSpaceId = null);
+    string? AbMergeAddressSpaceId = null,
+    string? AbMergeTopologyToken = null);
 
 /// <summary>One named materialized result from a shared distinct-path read batch.</summary>
 public sealed record WorkbenchFirmwareInspectionResult(

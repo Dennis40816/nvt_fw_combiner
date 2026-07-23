@@ -68,6 +68,7 @@ public sealed partial class MainWindowViewModel
             SelectedNumber,
             IsAbCodeMergeModeSelected,
             _abMergeAddressSpaceBySlotId,
+            GetSelectedAbMergeTopologyToken(),
             MergeDpSlotId,
             MergeTpSlotId,
             ReplaceBaseSlotId);

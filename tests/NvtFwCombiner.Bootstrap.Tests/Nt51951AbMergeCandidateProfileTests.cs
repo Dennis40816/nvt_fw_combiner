@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51951AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "06a671a3a6a6cb16e5cef7ed356a61626fdbd4395cd47299b95f60bb645885af";
+    private const string BundleContentHash = "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206";
     private const int Capacity = 0x100000;
     private const int BankLength = 0x80000;
     private const int TpInputLength = 0x37000;
@@ -25,8 +25,9 @@ public sealed class Nt51951AbMergeCandidateProfileTests
         CompiledComposition composition = CompileCandidate(workspace);
 
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
+        Assert.True(composition.IsV2AbFunctionOpenCandidate);
         Assert.Equal("nt51951-ab-merge-1024k", details.Provenance.ResolvedMap.ImageMap.MapId);
-        Assert.Equal(CompiledProfilePromotionStage.Compilable, details.Provenance.Promotion.Stage);
+        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
         Assert.Equal(
             ["direct-golden-evidence", "firmware-owner-review"],
             details.Provenance.Promotion.Blockers.Select(static blocker => blocker.BlockerId));
@@ -37,8 +38,11 @@ public sealed class Nt51951AbMergeCandidateProfileTests
         Assert.Equal(new ByteRange(0xA120, sizeof(uint)), relocation.SourceRange);
         Assert.Equal(new BigInteger(0x80000), Assert.IsType<ScalarTransform>(relocation.ScalarTransform).Addend);
 
-        ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
-            composition.Plan.OrderedOperations[^1].ExternalProcessorInvocation);
+        CompositionOperation postbuild = Assert.Single(
+            composition.Plan.OrderedOperations,
+            static operation => StringComparer.Ordinal.Equals(operation.OperationId, "run-nt51951-ab-combiner"));
+        ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(postbuild.ExternalProcessorInvocation);
+        Assert.Equal("ab-combiner-work", postbuild.TargetSpaceId);
         Assert.Equal("nfc-nt51951-ab-merge-combiner-v1", invocation.ProcessorId);
         Assert.Equal(
             [new ByteRange(0x8A100, 4), new ByteRange(0x8A110, 4), new ByteRange(0x8A130, 4)],
@@ -48,18 +52,20 @@ public sealed class Nt51951AbMergeCandidateProfileTests
             static binding => Assert.Equal(new ByteRange(0, BankLength), binding.SourceRange));
     }
 
-    /// <summary>Verifies the direct-golden-blocked candidate cannot create an application run request.</summary>
+    /// <summary>Verifies the narrowly admitted function-open candidate can create an application run request.</summary>
     [Fact]
-    public void CandidateProfileCannotCreateApplicationRunRequest()
+    public void FunctionOpenCandidateCanCreateApplicationRunRequest()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51951-ab-candidate");
         CompiledComposition composition = CompileCandidate(workspace);
 
-        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-            new CompositionRunRequest("ab-candidate", composition, [], composition.DefaultOutputFileName));
+        var request = new CompositionRunRequest(
+            "ab-candidate",
+            composition,
+            CreateRuntimeBindings(),
+            composition.DefaultOutputFileName);
 
-        Assert.Equal("compiledComposition", exception.ParamName);
-        Assert.Contains("not executable", exception.Message, StringComparison.Ordinal);
+        Assert.Same(composition, request.CompiledComposition);
     }
 
     /// <summary>Verifies the engine stages complete banks, relocates only TPB DIFF, and keeps caller TPB immutable.</summary>
@@ -117,12 +123,37 @@ public sealed class Nt51951AbMergeCandidateProfileTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
             "nt51951-ab-merge",
-            "0.1.0",
+            "0.2.0",
             "NT51951",
             ExperienceIds.AbMerge,
             Capacity);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+    }
+
+    private static InputArtifactBinding[] CreateRuntimeBindings()
+    {
+        return
+        [
+            new InputArtifactBinding(
+                "dp-ab-input",
+                "dp-ab-input",
+                "dp-ab-input-artifact",
+                "dp.bin",
+                CompiledInputArtifactClass.DpFirmware),
+            new InputArtifactBinding(
+                "tp-a-input",
+                "tp-a-input",
+                "tp-a-input-artifact",
+                "tp-a.bin",
+                CompiledInputArtifactClass.TpFirmware),
+            new InputArtifactBinding(
+                "tp-b-input",
+                "tp-b-input",
+                "tp-b-input-artifact",
+                "tp-b.bin",
+                CompiledInputArtifactClass.TpFirmware),
+        ];
     }
 
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)
