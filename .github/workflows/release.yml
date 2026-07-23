@@ -135,10 +135,19 @@ jobs:
           $headCommitText = gh api "repos/$env:NFC_REPOSITORY/git/commits/$($pr.headRefOid)"
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed PR head tree could not be read.' }
           $headCommit = $headCommitText | ConvertFrom-Json
-          $reviewsText = gh api --paginate --slurp `
-            "repos/$env:NFC_REPOSITORY/pulls/$env:NFC_PULL_REQUEST/reviews" --jq 'add'
-          if ($LASTEXITCODE -ne 0) { throw 'Final PR approval evidence could not be read.' }
-          $reviews = @($reviewsText | ConvertFrom-Json)
+          function Get-PaginatedGitHubArray([string]$endpoint, [string]$failureMessage) {
+            $pagesText = gh api --paginate --slurp $endpoint
+            if ($LASTEXITCODE -ne 0) { throw $failureMessage }
+            $pages = $pagesText | ConvertFrom-Json -NoEnumerate
+            foreach ($page in $pages) {
+              foreach ($item in $page) {
+                Write-Output $item
+              }
+            }
+          }
+          $reviews = @(Get-PaginatedGitHubArray `
+            "repos/$env:NFC_REPOSITORY/pulls/$env:NFC_PULL_REQUEST/reviews" `
+            'Final PR approval evidence could not be read.')
           $codexReviewer = 'chatgpt-codex-connector'
           function Get-NormalizedReviewer([object]$login) {
             $normalized = ([string]$login).Trim().ToLowerInvariant()
@@ -179,10 +188,9 @@ jobs:
                 submittedAt = [string]$_.submitted_at
               }
             })
-          $inlineCommentsText = gh api --paginate --slurp `
-            "repos/$env:NFC_REPOSITORY/pulls/$env:NFC_PULL_REQUEST/comments" --jq 'add'
-          if ($LASTEXITCODE -ne 0) { throw 'Final PR inline-comment evidence could not be read.' }
-          $inlineComments = @($inlineCommentsText | ConvertFrom-Json)
+          $inlineComments = @(Get-PaginatedGitHubArray `
+            "repos/$env:NFC_REPOSITORY/pulls/$env:NFC_PULL_REQUEST/comments" `
+            'Final PR inline-comment evidence could not be read.')
           $codexInlineCommentCandidates = @($inlineComments |
             Where-Object {
               (Get-NormalizedReviewer $_.user.login) -eq $codexReviewer -and
@@ -198,10 +206,9 @@ jobs:
                 submittedAt = [string]$_.created_at
               }
             })
-          $issueCommentsText = gh api --paginate --slurp `
-            "repos/$env:NFC_REPOSITORY/issues/$env:NFC_PULL_REQUEST/comments" --jq 'add'
-          if ($LASTEXITCODE -ne 0) { throw 'Final PR issue-comment evidence could not be read.' }
-          $issueComments = @($issueCommentsText | ConvertFrom-Json)
+          $issueComments = @(Get-PaginatedGitHubArray `
+            "repos/$env:NFC_REPOSITORY/issues/$env:NFC_PULL_REQUEST/comments" `
+            'Final PR issue-comment evidence could not be read.')
           $reviewedCommitPrefix = $pr.headRefOid.Substring(0, 10)
           $reviewedCommitMarker = 'Reviewed commit: `{0}`' -f $reviewedCommitPrefix
           $codexIssueCommentCandidates = @($issueComments |
