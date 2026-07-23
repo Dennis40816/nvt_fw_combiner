@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Text.Json;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -226,6 +227,38 @@ public sealed class AbMergeCliCommandTests
         Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
         Assert.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal);
         Assert.Equal(0x80000, new FileInfo(outputPath).Length);
+    }
+
+    /// <summary>CLI automatic builds keep the CLI-owned working directory while preserving the dynamic output name.</summary>
+    [Fact]
+    public async Task CliBuildUsesAutomaticOutputDirectoryWithoutTurningItIntoAnOverrideAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-ab-cli-automatic-output");
+        string dpPath = workspace.Write("dp-ab.bin", new byte[0x80000]);
+        string tpAPath = workspace.Write("tp-a.bin", new byte[0x40000]);
+        string tpBPath = workspace.Write("tp-b.bin", new byte[0x40000]);
+        IReadOnlyDictionary<string, string> slots = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionAddressSpaceIds.DpAbInput] = dpPath,
+            [CompositionAddressSpaceIds.TpAInput] = tpAPath,
+            [CompositionAddressSpaceIds.TpBInput] = tpBPath,
+        };
+
+        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeForCliAsync(
+            "NT51929",
+            slots,
+            build: true,
+            outputPath: null,
+            previewOutputFileName: null,
+            abMergeTopologySelection: null,
+            automaticOutputDirectory: workspace.Root,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.Status.ToString());
+        Assert.NotNull(result.CommittedOutputId);
+        Assert.Equal(workspace.Root, Path.GetDirectoryName(result.CommittedOutputId));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.False(report.RootElement.GetProperty("OutputNaming").GetProperty("IsExplicitOverride").GetBoolean());
     }
 
     private static void SetCmiDpVersion(byte[] image, int bankStart, byte major, byte minor)

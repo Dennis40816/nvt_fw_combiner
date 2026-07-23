@@ -222,6 +222,46 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.HasLoadedReport);
     }
 
+    /// <summary>A source that disappears after inspection becomes a Build report before the native save dialog opens.</summary>
+    [Fact]
+    public async Task AbMergeBuildSavePreparationReportsStaleInput()
+    {
+        const int dpLength = 0x80000;
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-stale-input");
+        byte[] dp = new byte[dpLength];
+        WriteUiAbCmi(dp, 0, major: 0x06, minor: 0x05, jira: 0x123);
+        WriteUiAbCmi(dp, dpLength / 2, major: 0x07, minor: 0x08, jira: 0x456);
+        string dpPath = workspace.Write("dp-ab.bin", dp);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51929";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.DpAbInput,
+            dpPath,
+            TestContext.Current.CancellationToken);
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpAInput,
+            workspace.Write("tp-a.bin", CreateUiAbTpImage(0x81, 0x00, 1, 4, 1, 0x5102)),
+            TestContext.Current.CancellationToken);
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpBInput,
+            workspace.Write("tp-b.bin", CreateUiAbTpImage(0x82, 0x03, 2, 0, 0, 0x6A5C)),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(viewModel.CanBuildMerge);
+        File.Delete(dpPath);
+
+        MergeBuildSavePreparation? preparation = await viewModel.TryPrepareMergeBuildSaveAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(preparation);
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Equal("Build failed", viewModel.LastRunResult.Title);
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.True(viewModel.IsReportModalOpen);
+        Assert.Equal("ui.run.failed", viewModel.LoadedReport.PrimaryIssue.Title);
+    }
+
     /// <summary>A short AB source blocks immediately while an ignored tail remains a non-blocking warning.</summary>
     [Fact]
     public async Task AbMergeLoadHealthDistinguishesBlockingAndWarning()

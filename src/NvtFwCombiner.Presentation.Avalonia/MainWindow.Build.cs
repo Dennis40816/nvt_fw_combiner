@@ -19,15 +19,19 @@ public sealed partial class MainWindow
             return;
         }
 
-        WorkbenchAbAFlashCodeDeliveryPlan? aFlashCodePlan = await viewModel
-            .TryCreateAbAFlashCodeDeliveryPlanAsync(CancellationToken.None);
+        MergeBuildSavePreparation? preparation = await viewModel.TryPrepareMergeBuildSaveAsync(
+            CancellationToken.None);
+        if (preparation is null)
+        {
+            return;
+        }
+
+        WorkbenchAbAFlashCodeDeliveryPlan? aFlashCodePlan = preparation.AFlashCodePlan;
         bool exportAFlashCode = aFlashCodePlan is not null &&
             await viewModel.PromptForAbAFlashCodeDeliveryAsync();
-        string suggestedFileName = await viewModel.ResolveMergeOutputFileNameForSaveAsync(
-            CancellationToken.None);
         string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
             StorageProvider,
-            suggestedFileName);
+            preparation.SuggestedFileName);
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             return;

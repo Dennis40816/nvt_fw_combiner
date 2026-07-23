@@ -112,6 +112,7 @@ internal static class AbMergeCliCommandHandler
                 build && hasExplicitOutput ? outputTarget.FullPath : null,
                 !build && hasExplicitOutput ? outputTarget.FileName : null,
                 abMergeTopologySelection,
+                build && !hasExplicitOutput ? outputTarget.OutputDirectory : null,
                 cancellationToken)
             .ConfigureAwait(false);
         CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(

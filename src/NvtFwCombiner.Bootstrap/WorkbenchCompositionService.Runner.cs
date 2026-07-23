@@ -29,7 +29,8 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
         CompositionRunProgressFeed? progress = null,
         string? previewOutputFileName = null,
-        TopologySelection? abMergeTopologySelection = null)
+        TopologySelection? abMergeTopologySelection = null,
+        string? automaticOutputDirectory = null)
     {
         CompositionRunResult result = await RunCompiledCompositionResultAsync(
             runIdPrefix,
@@ -44,7 +45,8 @@ public static partial class WorkbenchCompositionService
             virtualArtifacts,
             progress,
             previewOutputFileName,
-            abMergeTopologySelection).ConfigureAwait(false);
+            abMergeTopologySelection,
+            automaticOutputDirectory).ConfigureAwait(false);
         return ToWorkbenchRunResult(result);
     }
 
@@ -62,7 +64,8 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
         CompositionRunProgressFeed? progress = null,
         string? previewOutputFileName = null,
-        TopologySelection? abMergeTopologySelection = null)
+        TopologySelection? abMergeTopologySelection = null,
+        string? automaticOutputDirectory = null)
     {
         string[] inputRoots =
         [
@@ -75,7 +78,8 @@ public static partial class WorkbenchCompositionService
             firstInputPath,
             build,
             outputPath,
-            compiledComposition.DefaultOutputFileName);
+            compiledComposition.DefaultOutputFileName,
+            automaticOutputDirectory);
         if (previewOutputFileName is not null)
         {
             if (build ||

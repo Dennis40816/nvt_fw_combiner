@@ -112,6 +112,7 @@ public static class AbMergeWorkbenchCompositionService
             progress: null,
             abMergeTopologySelection: abMergeTopologySelection,
             aFlashCodeOutputPath: aFlashCodeOutputPath,
+            automaticOutputDirectory: null,
             cancellationToken: cancellationToken);
     }
 
@@ -123,6 +124,7 @@ public static class AbMergeWorkbenchCompositionService
         string? outputPath,
         string? previewOutputFileName,
         TopologySelection? abMergeTopologySelection,
+        string? automaticOutputDirectory,
         CancellationToken cancellationToken)
     {
         return RunAbMergeCoreAsync(
@@ -134,6 +136,7 @@ public static class AbMergeWorkbenchCompositionService
             progress: null,
             abMergeTopologySelection: abMergeTopologySelection,
             aFlashCodeOutputPath: null,
+            automaticOutputDirectory: automaticOutputDirectory,
             cancellationToken: cancellationToken);
     }
 
@@ -158,6 +161,7 @@ public static class AbMergeWorkbenchCompositionService
             progress: progress,
             abMergeTopologySelection: abMergeTopologySelection,
             aFlashCodeOutputPath: aFlashCodeOutputPath,
+            automaticOutputDirectory: null,
             cancellationToken: cancellationToken);
     }
 
@@ -249,6 +253,7 @@ public static class AbMergeWorkbenchCompositionService
         CompositionRunProgressFeed? progress,
         TopologySelection? abMergeTopologySelection,
         string? aFlashCodeOutputPath,
+        string? automaticOutputDirectory,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -305,7 +310,8 @@ public static class AbMergeWorkbenchCompositionService
             cancellationToken: cancellationToken,
             progress: progress,
             previewOutputFileName: previewOutputFileName,
-            abMergeTopologySelection: abMergeTopologySelection).ConfigureAwait(false);
+            abMergeTopologySelection: abMergeTopologySelection,
+            automaticOutputDirectory: automaticOutputDirectory).ConfigureAwait(false);
         if (aFlashCodePlan is null || !build || result.Status != CompositionExecutionStatus.Succeeded ||
             string.IsNullOrWhiteSpace(result.CommittedOutputId))
         {

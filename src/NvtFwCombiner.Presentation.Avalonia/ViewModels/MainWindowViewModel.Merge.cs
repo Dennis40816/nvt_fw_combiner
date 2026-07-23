@@ -2,6 +2,10 @@ using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
+internal sealed record MergeBuildSavePreparation(
+    string SuggestedFileName,
+    WorkbenchAbAFlashCodeDeliveryPlan? AFlashCodePlan);
+
 public sealed partial class MainWindowViewModel
 {
     /// <summary>Builds the active Merge output to a user-selected path.</summary>
@@ -210,6 +214,32 @@ public sealed partial class MainWindowViewModel
             .ConfigureAwait(false);
     }
 
+    /// <summary>Prepares all Build save-dialog data and converts admission failures into the standard run report.</summary>
+    internal async ValueTask<MergeBuildSavePreparation?> TryPrepareMergeBuildSaveAsync(
+        CancellationToken cancellationToken)
+    {
+        if (!IsAbCodeMergeModeSelected)
+        {
+            return new MergeBuildSavePreparation(MergeOutputFileName, AFlashCodePlan: null);
+        }
+
+        try
+        {
+            string suggestedFileName = await ResolveMergeOutputFileNameForSaveAsync(cancellationToken)
+                .ConfigureAwait(false);
+            WorkbenchAbAFlashCodeDeliveryPlan? aFlashCodePlan = await TryCreateAbAFlashCodeDeliveryPlanAsync(
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return new MergeBuildSavePreparation(suggestedFileName, aFlashCodePlan);
+        }
+        catch (Exception exception) when (
+            exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            PublishAbMergeBuildSavePreparationFailure(exception.Message);
+            return null;
+        }
+    }
+
     private Task RunStandardMergeAsync(bool build, string? outputPath)
     {
         string icId = SelectedIc;
@@ -268,12 +298,7 @@ public sealed partial class MainWindowViewModel
     private Task RunAbMergeAsync(bool build, string? outputPath, string? aFlashCodeOutputPath)
     {
         string icId = SelectedIc;
-        IReadOnlyDictionary<string, string> slotPaths = MergeSlots
-            .Where(static slot => slot.HasFile)
-            .ToDictionary(
-                slot => _abMergeAddressSpaceBySlotId[slot.SlotId],
-                slot => slot.FilePath!,
-                StringComparer.Ordinal);
+        IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
         string profileId = WorkbenchCompositionService.GetAbMergeProfileSummaries()
             .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))
             .ProfileId;
@@ -300,6 +325,29 @@ public sealed partial class MainWindowViewModel
                 experienceId: WorkbenchWorkflowIds.AbMerge));
     }
 
+    private void PublishAbMergeBuildSavePreparationFailure(string message)
+    {
+        string icId = SelectedIc;
+        string number = SelectedNumber;
+        IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
+        string profileId = WorkbenchCompositionService.GetAbMergeProfileSummaries()
+            .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))
+            .ProfileId;
+        LoadRunErrorReport(
+            "Build",
+            profileId,
+            icId,
+            number,
+            message,
+            slotPaths,
+            compositionKind: "Merge",
+            modeId: WorkbenchWorkflowIds.AbMerge,
+            experienceId: WorkbenchWorkflowIds.AbMerge);
+        LastRunResult = new UiRunResultViewModel("Build failed", message, "No output", succeeded: false);
+        OnPropertyChanged(nameof(LastRunResult));
+        ShowReport();
+    }
+
     private Dictionary<string, string> CreateStandardMergeSlotPaths()
     {
         Dictionary<string, string> paths = new(StringComparer.Ordinal);
@@ -307,6 +355,16 @@ public sealed partial class MainWindowViewModel
         AddPath(paths, WorkbenchAddressSpaceIds.TpInput, _mergeTpSlot);
         AddPath(paths, WorkbenchAddressSpaceIds.LdInput, _mergeLdSlot);
         return paths;
+    }
+
+    private Dictionary<string, string> CreateAbMergeSlotPaths()
+    {
+        return MergeSlots
+            .Where(static slot => slot.HasFile)
+            .ToDictionary(
+                slot => _abMergeAddressSpaceBySlotId[slot.SlotId],
+                slot => slot.FilePath!,
+                StringComparer.Ordinal);
     }
 
     private Dictionary<string, string> CreateGeneralMergeSlotPaths()
