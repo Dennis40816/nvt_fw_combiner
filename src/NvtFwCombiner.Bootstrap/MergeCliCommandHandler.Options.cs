@@ -12,22 +12,14 @@ internal static partial class MergeCliCommandHandler
     {
         options = new ParsedOptions(
             new Dictionary<string, string>(StringComparer.Ordinal),
-            new Dictionary<string, List<string>>(StringComparer.Ordinal),
-            new HashSet<string>(StringComparer.Ordinal));
+            new Dictionary<string, List<string>>(StringComparer.Ordinal));
         string[] valueOptions = build
             ? ["--profile", "--size", "--mapping", "--rule", "--slot", "--output", "--report"]
             : ["--profile", "--size", "--mapping", "--rule", "--slot", "--report"];
         string[] repeatableOptions = ["--mapping", "--slot"];
-        string[] flags = build ? ["--overwrite"] : [];
         for (int index = 0; index < args.Length; index++)
         {
             string token = args[index];
-            if (flags.Contains(token, StringComparer.Ordinal))
-            {
-                _ = options.Flags.Add(token);
-                continue;
-            }
-
             if (!valueOptions.Contains(token, StringComparer.Ordinal))
             {
                 error.WriteLine($"error: unknown option '{token}'");
@@ -77,8 +69,7 @@ internal static partial class MergeCliCommandHandler
 
     private sealed record ParsedOptions(
         Dictionary<string, string> Values,
-        Dictionary<string, List<string>> RepeatedValues,
-        HashSet<string> Flags)
+        Dictionary<string, List<string>> RepeatedValues)
     {
         public List<string> GetValues(string option)
         {

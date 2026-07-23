@@ -42,8 +42,7 @@ internal static class AbMergeCliCommandHandler
         }
 
         string[] valueOptions = ["--profile", "--dp-ab", "--tp-a", "--tp-b", "--ab-topology", "--output", "--report"];
-        string[] flagOptions = action == "build" ? ["--overwrite"] : [];
-        if (!CliOptionParser.TryParse(args[1..], valueOptions, [], flagOptions, error, out ParsedCliOptions options))
+        if (!CliOptionParser.TryParse(args[1..], valueOptions, [], [], error, out ParsedCliOptions options))
         {
             return UsageError;
         }
@@ -274,6 +273,6 @@ internal static class AbMergeCliCommandHandler
     {
         await output.WriteLineAsync("Usage:").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner ab-merge preview --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path>] [--report <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner ab-merge build --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner ab-merge build --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path>] [--report <path>]").ConfigureAwait(false);
     }
 }

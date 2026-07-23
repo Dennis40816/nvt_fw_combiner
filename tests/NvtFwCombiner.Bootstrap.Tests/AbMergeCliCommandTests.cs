@@ -21,6 +21,7 @@ public sealed class AbMergeCliCommandTests
             "ab-merge preview --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>]",
             result.Output,
             StringComparison.Ordinal);
+        Assert.DoesNotContain("--overwrite", result.Output, StringComparison.Ordinal);
     }
 
     /// <summary>AB preview routes all three named sources through the supported V2 profile and exports evidence.</summary>

@@ -415,6 +415,41 @@ public sealed class AbMergeRuntimeAdmissionTests
         Assert.False(File.Exists(outputPath));
     }
 
+    /// <summary>
+    /// The rendered automatic AB filename is checked again before commit, so a dynamic name can never
+    /// overwrite an input that differs from the profile's static filename template.
+    /// </summary>
+    [Fact]
+    public async Task RenderedAutomaticOutputNameCannotAliasInputAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-ab-rendered-output-alias");
+        Dictionary<string, string> paths = WriteInputs(workspace);
+        string automaticFileName = await AbMergeWorkbenchCompositionService
+            .ResolveAutomaticOutputFileNameAsync(
+                "NT51929",
+                paths,
+                TestContext.Current.CancellationToken);
+        string originalDpPath = paths[CompositionAddressSpaceIds.DpAbInput];
+        byte[] originalDpBytes = await File.ReadAllBytesAsync(
+            originalDpPath,
+            TestContext.Current.CancellationToken);
+        string aliasedDpPath = Path.Combine(Path.GetDirectoryName(originalDpPath)!, automaticFileName);
+        File.Move(originalDpPath, aliasedDpPath);
+        paths[CompositionAddressSpaceIds.DpAbInput] = aliasedDpPath;
+
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+                "NT51929",
+                paths,
+                build: true,
+                TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Contains("Output path must not overwrite input artifact", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(
+            originalDpBytes,
+            await File.ReadAllBytesAsync(aliasedDpPath, TestContext.Current.CancellationToken));
+    }
+
     /// <summary>A post-primary I/O failure is reported as partial delivery and never pretends that both requested outputs were delivered.</summary>
     [Fact]
     public async Task AFlashCodeDeliveryFailureRetainsPrimaryAndReportsIncompleteArtifactAsync()

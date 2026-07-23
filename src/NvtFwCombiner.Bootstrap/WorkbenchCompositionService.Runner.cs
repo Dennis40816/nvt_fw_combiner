@@ -106,8 +106,11 @@ public static partial class WorkbenchCompositionService
         // Composition outputs replace an unrelated existing target atomically.  The
         // protected-path guard above remains the hard boundary: an input alias is
         // never an eligible output target.
-        AtomicFileCompositionOutputWriter? writer = build
-            ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
+        ICompositionOutputWriter? writer = build
+            ? new ProtectedCompositionOutputWriter(
+                new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true),
+                outputDirectory,
+                ProtectedPathGuard.CreateProtectedPaths(bindings, outputPath: null))
             : null;
         CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
         CompositionRunRequest request = new(

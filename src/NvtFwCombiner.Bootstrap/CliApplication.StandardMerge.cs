@@ -39,12 +39,11 @@ public static partial class CliApplication
         }
 
         string[] valueOptions = ["--profile", "--dp", "--tp", "--ld", "--output", "--report"];
-        string[] flagOptions = action == "build" ? ["--overwrite"] : [];
         if (!CliOptionParser.TryParse(
                 args[1..],
                 valueOptions,
                 [],
-                flagOptions,
+                [],
                 error,
                 out ParsedCliOptions options))
         {

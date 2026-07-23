@@ -60,7 +60,6 @@ public sealed partial class ReplaceCliCommandTests
             dp,
             "--output",
             reference,
-            "--overwrite",
         ]);
 
         Assert.Equal(70, result.ExitCode);
