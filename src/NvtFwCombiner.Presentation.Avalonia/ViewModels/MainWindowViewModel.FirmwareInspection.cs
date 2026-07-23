@@ -64,7 +64,6 @@ public sealed partial class MainWindowViewModel
             _mergeTpSlot,
             ReplaceBaseSlot,
             IsCtrlRamReplaceModeSelected,
-            IsReplaceVisible,
             SelectedNumber,
             IsAbCodeMergeModeSelected,
             _abMergeAddressSpaceBySlotId,
