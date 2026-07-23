@@ -113,6 +113,32 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.CanBuildMerge);
     }
 
+    /// <summary>Changing NT51950's selected AB topology discards projections and re-inspects the retained inputs.</summary>
+    [Fact]
+    public async Task AbTopologyChangeReinspectsSelectedInputs()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-topology-refresh");
+        var observedTopologies = new List<string?>();
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
+        {
+            observedTopologies.AddRange(inputs.Select(static input => input.AbMergeTopologyToken));
+            return WorkbenchCompositionService.InspectFirmwareBatch(icId, inputs);
+        });
+        viewModel.SelectedIc = "NT51950";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.DpAbInput,
+            workspace.Write("dp-ab.bin", new byte[0x80000]),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(["single"], observedTopologies);
+
+        viewModel.SelectedNumber = "cascade";
+        await viewModel.FirmwareInspectionRefreshTask;
+
+        Assert.Equal(["single", "cascade"], observedTopologies);
+    }
+
     /// <summary>UI projections keep one selected snapshot until explicit reselection; Build remains authoritative.</summary>
     [Fact]
     public async Task CtrlRamCachedDisplayKeepsSelectedSnapshotUntilReselection()

@@ -380,12 +380,19 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        InvalidateFirmwareInspection();
+        // AB validation is topology-sensitive.  Preserve no projection across a topology
+        // switch, then let the shared refresh below inspect the currently selected inputs.
+        InvalidateFirmwareInspection(clearFileProjections: IsAbCodeMergeModeSelected);
         InvalidateCtrlRamFirmwareVersionContext();
         OnPropertyChanged(nameof(SelectedNumberChoice));
         RefreshContextState(
             resetRunResult: true,
             preserveReplaceSlotFiles: true);
+        if (IsAbCodeMergeModeSelected && MergeSlots.Any(slot => slot.HasFile))
+        {
+            _ = RefreshSelectedMergeFirmwareInspectionsAsync();
+        }
+
         RefreshCtrlRamDisplayFromInspection();
     }
 
