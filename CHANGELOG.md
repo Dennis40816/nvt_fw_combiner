@@ -6,6 +6,71 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 No unreleased changes.
 
+## [0.10.0] - 2026-07-25
+
+### Summary
+
+This planning release establishes the reviewed IC-first maintainability program
+for the next `0.10.x` implementation slices. It ships no production refactor
+and does not change firmware bytes, supported routes, processor authority, or
+AB certification status.
+
+### Product and engineering changes
+
+#### Maintainability program and execution plan
+
+- Before → After: maintainability decisions, IC/topology vocabulary, artifact
+  metadata planning, authoring-session isolation, Memory Layout/Hex seams, and
+  migration gates were dispersed across workshop discussion and documents; they
+  now have one approved specification, canonical terminology, lifecycle rules,
+  and a repository-anchored ticket dependency plan.
+- Affected: future `0.10.x` implementation work only. Existing Merge, Replace,
+  Hex Editor, reports, UI behavior, CLI behavior, profiles, and firmware bytes
+  are unchanged by this release.
+- Support status: support-neutral. The release does not promote an IC, workflow,
+  topology, golden alias, or firmware evidence route.
+- Compatibility: no input, output, saved-data, profile, protocol, or package
+  migration is required.
+- Verification: the canonical full verifier passed locally; the formal release
+  workflow still supplies exact-main CI, package, provenance, asset, and
+  downloaded-package evidence.
+
+#### FlashMap evidence and ADR lifecycle
+
+- The owner-updated `IC_FlashMap_20260725.xlsx` reference is hash-pinned with
+  source provenance.
+- ADR lifecycle vocabulary now distinguishes accepted, deprecated, partially
+  superseded, superseded, and historical decisions, with reciprocal successor
+  links where a later ADR changes an earlier decision.
+
+### Known issues and deferred work
+
+- #170 through #197 remain dependency-gated implementation tickets. Publishing
+  this plan does not start or complete any of them.
+- The clean-Windows visible UI smoke and release-workflow annotated-tag newline
+  hardening remain explicit later `0.10.x` work. This release does not claim
+  either as complete.
+- The final `0.10.x` 50% production-code reduction target becomes executable
+  only after #171 integrates the ADR 0021 measurement into the canonical
+  verifier; #197 applies it at program integration.
+
+### Upgrade and rollback
+
+- Upgrade by replacing the complete previous portable folder with
+  `NvtFwCombiner-v0.10.0-win-x64`; do not copy individual files into an older
+  package folder.
+- No firmware data or saved settings migration is required. Roll back by
+  restoring the untouched `v0.9.16` portable folder.
+
+### Downloads and integrity
+
+- The stable GitHub Release publishes `NvtFwCombiner-v0.10.0-win-x64.zip`, its
+  SPDX SBOM, provenance, candidate manifest, and outer SHA-256 list. GitHub
+  also provides tag-derived source ZIP and TAR.GZ downloads.
+- Verify the outer checksum list and provenance source identity before
+  distribution. The Windows x64 package is self-contained and does not require
+  a separately installed .NET or Python runtime.
+
 ## [0.9.16] - 2026-07-24
 
 ### Summary
