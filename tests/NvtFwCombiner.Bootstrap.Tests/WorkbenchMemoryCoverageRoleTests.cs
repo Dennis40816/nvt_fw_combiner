@@ -101,38 +101,66 @@ public sealed class WorkbenchMemoryCoverageRoleTests
             300.000001));
     }
 
-    /// <summary>AB postbuild rows distinguish full-image staging from the exact TPB write authority.</summary>
-    [Fact]
-    public void Nt51950AbPostbuildDisplayShowsStagingScopeAndAllowedWrites()
-    {
-        WorkbenchMemoryDisplay display =
-            WorkbenchCompositionService.GetAbMergeMemoryDisplay("NT51950", "single");
-
-        WorkbenchMemoryMapRow postbuild = Assert.Single(
-            display.MemoryMapRows,
-            static row => row.ActionLabel == "Postbuild");
-
-        Assert.StartsWith("Staging/read scope: Postbuild AB work ", postbuild.RangeLabel, StringComparison.Ordinal);
-        Assert.Contains(
-            "Allowed writes: 0x4A100-0x4A103 (len 0x4), 0x4A110-0x4A113 (len 0x4), " +
-            "0x4A130-0x4A133 (len 0x4).",
-            postbuild.Detail,
-            StringComparison.Ordinal);
-    }
-
-    /// <summary>NT51950-family AB output banks use typed work-buffer colors instead of the unknown gray fallback.</summary>
+    /// <summary>NT51950-family AB coverage follows the selected DP container and exposes only user inputs.</summary>
     [Theory]
-    [InlineData("NT51950", "single")]
-    [InlineData("NT51951", null)]
-    public void Nt51950FamilyAbCoverageColorsCompiledWorkBuffers(string icId, string? topologyToken)
+    [InlineData(
+        "NT51950",
+        "single",
+        0x90000L,
+        "0x00000-0x8FFFF (len 0x90000)",
+        "0x4A000-0x76FFF (len 0x2D000)")]
+    [InlineData(
+        "NT51950",
+        "cascade",
+        0x100000L,
+        "0x00000-0xFFFFF (len 0x100000)",
+        "0x4A000-0x76FFF (len 0x2D000)")]
+    [InlineData(
+        "NT51951",
+        null,
+        0x100000L,
+        "0x00000-0xFFFFF (len 0x100000)",
+        "0x8A000-0xB6FFF (len 0x2D000)")]
+    public void Nt51950FamilyAbCoverageUsesSelectedDpLengthAndOnlyFirmwareInputs(
+        string icId,
+        string? topologyToken,
+        long dpInputLength,
+        string expectedFullRange,
+        string expectedTpBRange)
     {
         WorkbenchMemoryDisplay display =
-            WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId, topologyToken);
+            WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId, topologyToken, dpInputLength);
 
-        Assert.Contains(display.CoverageSegments, segment =>
-            segment.SourceLabel == "A bank work" && segment.Fill == "#16A34A");
-        Assert.Contains(display.CoverageSegments, segment =>
-            segment.SourceLabel == "Postbuild AB work" && segment.Fill == "#7C3AED");
+        Assert.Equal(expectedFullRange, display.RangeLabel);
+        Assert.Collection(
+            display.MemoryMapRows,
+            row =>
+            {
+                Assert.Equal(expectedFullRange, row.RangeLabel);
+                Assert.Equal("DP AB", row.AfterSource);
+            },
+            row =>
+            {
+                Assert.Equal("0x0A000-0x36FFF (len 0x2D000)", row.RangeLabel);
+                Assert.Equal("TPA", row.AfterSource);
+            },
+            row =>
+            {
+                Assert.Equal(expectedTpBRange, row.RangeLabel);
+                Assert.Equal("TPB", row.AfterSource);
+            });
+        Assert.Equal(
+            ["DP AB", "TPA", "TPB"],
+            display.CoverageSegments.Select(static segment => segment.SourceLabel).Distinct(StringComparer.Ordinal));
+        Assert.DoesNotContain(display.MemoryMapRows, static row =>
+            row.ActionLabel.Contains("Postbuild", StringComparison.OrdinalIgnoreCase) ||
+            row.Detail.Contains("CRC", StringComparison.OrdinalIgnoreCase) ||
+            row.Detail.Contains("Allowed writes", StringComparison.OrdinalIgnoreCase) ||
+            row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(display.CoverageSegments, segment => segment.Fill == "#CBD5E1");
+        Assert.InRange(
+            display.CoverageSegments.Sum(static segment => segment.BarWidth),
+            299.999999,
+            300.000001);
     }
 }

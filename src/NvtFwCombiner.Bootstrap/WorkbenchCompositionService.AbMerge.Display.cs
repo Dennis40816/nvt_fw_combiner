@@ -65,11 +65,17 @@ public static partial class WorkbenchCompositionService
             abMergeTopologySelection);
     }
 
-    /// <summary>Gets AB final output ownership directly from the compiled plan.</summary>
+    /// <summary>Gets user-facing AB final input ownership from the compiled profile and selected DP length.</summary>
     public static WorkbenchMemoryDisplay GetAbMergeMemoryDisplay(
         string icId,
-        TopologySelection? abMergeTopologySelection = null)
+        TopologySelection? abMergeTopologySelection = null,
+        long? dpInputLength = null)
     {
+        if (dpInputLength.HasValue)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(dpInputLength.Value);
+        }
+
         if (!AbMergeWorkbenchCompositionService.TryCompileAbMerge(
                 icId,
                 abMergeTopologySelection,
@@ -84,77 +90,93 @@ public static partial class WorkbenchCompositionService
         }
 
         ImageInitialization initialization = composition.Plan.OutputInitialization;
+        long displayCapacity = dpInputLength ?? initialization.Capacity;
+        FirmwareRegion[] tpCodeRegions =
+        [
+            .. composition.V2Details!.Provenance.ResolvedMap.ImageMap.Regions
+                .Where(static region =>
+                    region.Owner == FirmwareRegionOwner.Tp &&
+                    region.Kind == FirmwareRegionKind.Code)
+                .OrderBy(static region => region.Range.Start),
+        ];
+        if (tpCodeRegions.Length != 2)
+        {
+            const string detail = "The compiled AB map must declare exactly one TPA and one TPB code region.";
+            return CreateMessageDisplay(
+                detail,
+                ("Profile", "No output", "Blocked", "No output", detail),
+                ("No range", "AB Merge unavailable", detail, "#CBD5E1"));
+        }
+
+        ByteRange fullDpRange = new(0, displayCapacity);
+        FirmwareRegion tpA = tpCodeRegions[0];
+        FirmwareRegion tpB = tpCodeRegions[1];
         CoverageSegment[] coverage =
         [
             new(
-                new ByteRange(0, initialization.Capacity),
-                $"Blank 0x{initialization.FillByte:X2}",
-                "No AB input writes this output range.",
-                "#CBD5E1",
+                fullDpRange,
+                "DP AB",
+                "Use the selected DP AB container as the complete output base.",
+                CoverageFill("DP AB"),
                 false,
                 WorkbenchMemoryCoverageRole.Standard),
         ];
+        coverage = ApplyCoverageWrite(
+            coverage,
+            new CoverageSegment(
+                tpA.Range,
+                "TPA",
+                "Overlay TPA at the fixed profile-declared TP A range.",
+                CoverageFill("TPA"),
+                false,
+                WorkbenchMemoryCoverageRole.Standard));
+        coverage = ApplyCoverageWrite(
+            coverage,
+            new CoverageSegment(
+                tpB.Range,
+                "TPB",
+                "Overlay TPB at the fixed profile-declared TP B range.",
+                CoverageFill("TPB"),
+                false,
+                WorkbenchMemoryCoverageRole.Standard));
         List<WorkbenchMemoryMapRow> rows =
         [
             new(
-                FormatFullRange(initialization.Capacity),
+                FormatDisplayRange(fullDpRange),
                 "No output",
-                "Initialize",
-                $"Blank output 0x{initialization.FillByte:X2}",
-                "Initialize the compiled AB output before applying the ordered profile operations."),
+                "Copy",
+                "DP AB",
+                "Use the selected DP AB container length for the output memory layout."),
+            new(
+                FormatDisplayRange(tpA.Range),
+                "DP AB",
+                "Overlay",
+                "TPA",
+                "Overlay TPA at the fixed profile-declared TP A range."),
+            new(
+                FormatDisplayRange(tpB.Range),
+                "DP AB",
+                "Overlay",
+                "TPB",
+                "Overlay TPB at the fixed profile-declared TP B range."),
         ];
-        foreach (CompositionOperation operation in composition.Plan.OrderedOperations)
-        {
-            string targetSpace = AddressSpaceLabel(operation.TargetSpaceId);
-            string sourceSpace = operation.SourceSpaceId is null
-                ? operation.Kind.ToString()
-                : AddressSpaceLabel(operation.SourceSpaceId);
-            ExternalProcessorInvocation? invocation = operation.ExternalProcessorInvocation;
-            bool isPostbuild = operation.Kind == CompositionOperationKind.RunExternalProcessor &&
-                invocation is not null;
-            string rangeLabel = isPostbuild
-                ? $"Staging/read scope: {targetSpace} {FormatDisplayRange(operation.TargetRange)}"
-                : $"{targetSpace} {FormatDisplayRange(operation.TargetRange)}";
-            string detail = isPostbuild
-                ? $"Sequence {operation.Sequence}: {operation.Reason} Allowed writes: " +
-                  $"{string.Join(", ", invocation!.AllowedWriteRanges.Select(FormatDisplayRange))}."
-                : $"Sequence {operation.Sequence}: {operation.Reason}";
-            rows.Add(new WorkbenchMemoryMapRow(
-                rangeLabel,
-                targetSpace,
-                ActionLabel(operation.Kind),
-                sourceSpace,
-                detail));
-            if (!StringComparer.Ordinal.Equals(operation.TargetSpaceId, CompositionAddressSpaceIds.OutputImage))
-            {
-                continue;
-            }
-
-            coverage = ApplyCoverageWrite(
-                coverage,
-                new CoverageSegment(
-                    operation.TargetRange,
-                    sourceSpace,
-                    operation.Reason,
-                    CoverageFill(sourceSpace),
-                    false,
-                    WorkbenchMemoryCoverageRole.Standard));
-        }
 
         return new WorkbenchMemoryDisplay(
-            FormatFullRange(initialization.Capacity),
+            FormatFullRange(displayCapacity),
             rows,
-            ToWorkbenchCoverageSegments(coverage, initialization.Capacity));
+            ToWorkbenchCoverageSegments(coverage, displayCapacity));
     }
 
     /// <summary>Gets AB output ownership from a Bootstrap-owned symbolic topology token.</summary>
     public static WorkbenchMemoryDisplay GetAbMergeMemoryDisplay(
         string icId,
-        string? abMergeTopologyToken)
+        string? abMergeTopologyToken,
+        long? dpInputLength = null)
     {
         return GetAbMergeMemoryDisplay(
             icId,
-            AbMergeWorkbenchCompositionService.ResolveTopologySelection(abMergeTopologyToken));
+            AbMergeWorkbenchCompositionService.ResolveTopologySelection(abMergeTopologyToken),
+            dpInputLength);
     }
 
 }
