@@ -280,6 +280,9 @@ public static class AbMergeWorkbenchCompositionService
         string firstInputPath = bindings.Single(static binding =>
             binding.AddressSpaceId == CompositionAddressSpaceIds.DpAbInput).ArtifactId;
 
+        List<ProtectedPathGuard.ProtectedPath>? primaryOutputProtectedPaths = additionalOutputProtectedPaths is null
+            ? null
+            : [.. additionalOutputProtectedPaths];
         WorkbenchAbAFlashCodeDeliveryPlan? aFlashCodePlan = null;
         if (!string.IsNullOrWhiteSpace(aFlashCodeOutputPath))
         {
@@ -311,6 +314,10 @@ public static class AbMergeWorkbenchCompositionService
                 aFlashCodePlan,
                 outputPath,
                 aFlashCodeOutputPath);
+            primaryOutputProtectedPaths ??= [];
+            primaryOutputProtectedPaths.Add(new ProtectedPathGuard.ProtectedPath(
+                Path.GetFullPath(aFlashCodeOutputPath),
+                "A FlashCode output"));
         }
 
         CompositionRunResult result = await WorkbenchCompositionService.RunCompiledCompositionResultAsync(
@@ -327,7 +334,7 @@ public static class AbMergeWorkbenchCompositionService
             previewOutputFileName: previewOutputFileName,
             abMergeTopologySelection: abMergeTopologySelection,
             automaticOutputDirectory: automaticOutputDirectory,
-            additionalOutputProtectedPaths: additionalOutputProtectedPaths,
+            additionalOutputProtectedPaths: primaryOutputProtectedPaths,
             outputPathUsesAutomaticName: outputPathUsesAutomaticName).ConfigureAwait(false);
         if (aFlashCodePlan is null || !build || result.Status != CompositionExecutionStatus.Succeeded ||
             string.IsNullOrWhiteSpace(result.CommittedOutputId))
