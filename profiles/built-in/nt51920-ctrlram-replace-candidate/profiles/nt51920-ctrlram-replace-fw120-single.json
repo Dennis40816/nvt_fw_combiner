@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51920-ctrlram-replace-fw120-single",
-  "profileVersion": "0.2.0",
+  "profileVersion": "0.3.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -26,14 +26,17 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51920-ctrlram-replace",
-    "familyVersion": "0.2.0",
-    "familyContentHash": "42ce3783f5fbe252a38d5fb8aa9d317213af0ca9f085ebc8302dfb1ac133150d",
+    "familyVersion": "0.3.0",
+      "familyContentHash": "4b3bc466c59aaf15aaab25df425cfee1bf4aae4dcdc555c8b1e385a9ab76e233",
     "mapIds": [ "nt51920-ctrlram-fw120-single-full-flash" ],
     "requiredRegionIds": [
       "flash-image",
       "fw-config-source",
+      "header-crc-0018",
       "header-crc-001c",
       "header-crc-003c",
+      "header-crc-004c",
+      "header-crc-005c",
       "header-crc-00fc",
       "normal-master",
       "mp-master",
@@ -82,8 +85,11 @@
   ],
   "views": [
     { "viewId": "processor-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "header-crc-0018-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-0018" } },
     { "viewId": "header-crc-001c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-001c" } },
     { "viewId": "header-crc-003c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-003c" } },
+    { "viewId": "header-crc-004c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-004c" } },
+    { "viewId": "header-crc-005c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-005c" } },
     { "viewId": "header-crc-00fc-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-00fc" } },
     { "viewId": "normal-master-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "normal-master" } },
     { "viewId": "mp-master-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "mp-master" } },
@@ -94,8 +100,11 @@
   ],
   "metadataBindings": [],
   "regionAccessRules": [
+    { "regionId": "header-crc-0018", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate ILM CRC 0." },
     { "regionId": "header-crc-001c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
     { "regionId": "header-crc-003c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
+    { "regionId": "header-crc-004c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate CtrlRAM CRC." },
+    { "regionId": "header-crc-005c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate MP CtrlRAM CRC." },
     { "regionId": "header-crc-00fc", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
     { "regionId": "normal-master", "access": "explicit-range", "reason": "Copy at most 0x2800 bytes from the immutable Normal CtrlRAM input." },
     { "regionId": "mp-master", "access": "explicit-range", "reason": "Copy at most 0x1700 bytes from the immutable MP CtrlRAM input." },
@@ -128,8 +137,11 @@
       "integrityDisposition": "recalculate-and-write",
       "allowedReadViewIds": [ "processor-image" ],
       "allowedWriteViewIds": [
+        "header-crc-0018-output",
         "header-crc-001c-output",
         "header-crc-003c-output",
+        "header-crc-004c-output",
+        "header-crc-005c-output",
         "header-crc-00fc-output",
         "normal-master-output",
         "mp-master-output",

@@ -6,6 +6,66 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 No unreleased changes.
 
+## [0.9.16] - 2026-07-24
+
+### Summary
+
+This hot-fix aligns CtrlRAM Replace postbuild authority with the IC header
+workbook, fixes three operator-visible Merge/Replace state projections, and adds
+direct NT51929 single Normal CtrlRAM regression evidence. Existing Standard
+Merge, Customized Merge/Replace, DP Replace, AB byte execution, output naming,
+and support-certification state remain unchanged.
+
+### Product changes
+
+#### Exact CRC/header authority for CtrlRAM Replace
+
+- Before → After: a legacy Combiner postbuild could update real CRC words that were not represented by the selected profile, causing an otherwise valid CtrlRAM Replace to fail the host-side write-range check; profiles now authorize only their classified Header CRC, Header Copy CRC, CtrlRAM/MP CRC, and topology-applicable DiffDLM/DLM CRC words.
+- Affected: Replace → CtrlRAM for NT51919, NT51920, NT51923, NT51926, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951. NT51929-family cascade is explicitly bounded to 2–8 IC. NT51932 uses the Type A/B header model. NT51950/NT51951 DIFF CRC fields are identified as DLM1 through DLM19.
+- Support status: Corrective and support-neutral. The change does not add an IC/mode route, promote a candidate profile, infer one family's map for another family, or certify an AB route.
+- Compatibility: Single-IC profiles continue to reject cascade-only DiffDLM/DLM CRC writes. Header copy remains the declared copy target; CRC words are separate exact postbuild write ranges. External processing remains confined to host-created staging copies and inputs remain immutable.
+- Verification: Profile closure, catalog/trust-anchor, exact-range, topology, real-tool smoke, and owner-evidence tests run through the canonical verifier. An owner-supplied NT51929 single Andes cross-replacement differs from its owner output at exactly 16 bytes: four bytes in each declared Header/Header Copy CRC word and zero bytes in the cascade-only DLM CRC range.
+- Limitations: The new NT51929 evidence covers that single-IC Normal CtrlRAM cross-replacement only. It does not provide cascade evidence or authorize redistribution of the private fixture.
+
+#### AB Memory coverage clarity for NT51950/NT51951
+
+- Before → After: the AB Memory coverage panel could show staging, CRC, and work-buffer rows that looked like broad writable output ranges; it now shows only `DP AB`, `TPA`, and `TPB`.
+- Affected: Merge → AB Code for NT51950 `1 IC`/`Cascade` and selector-free NT51951. `DP AB` reflects the selected DP container length; TPA and TPB retain their fixed profile-declared spans.
+- Support status: Presentation-only and support-neutral. AB execution ranges, postbuild authority, topology selection, and certification state are unchanged.
+- Compatibility: Existing inputs, output sizes, reports, automatic names, and CLI behavior are unchanged. CRC rows are intentionally absent from this operator summary.
+- Verification: Bootstrap coverage-role and UI smoke tests lock the exact three-row projection and selected-input sizing.
+- Limitations: Direct AB certification debt for NT51950 Cascade and NT51951 remains open.
+
+#### Replace context and TP-firmware inspection fixes
+
+- Before → After: returning from AB Code to Replace could show the AB page's IC/IC-number selection on the first Replace device dialog, and CtrlRAM Replace could continue into DP version/CMI inspection after identifying a TP firmware input; Replace now restores its own device context immediately, and TP firmware bypasses DP-only metadata inspection.
+- Affected: Merge → AB Code navigation back to Replace, plus Replace → CtrlRAM firmware inspection for profile-classified TP inputs.
+- Support status: Support-neutral UI/application correction; composition bytes and profile admission do not change.
+- Compatibility: Merge and Replace retain independent IC/number selections. Full FlashCode inputs still receive their declared DP and TP inspection, while TP firmware continues to expose TP facts and build through the same composition service.
+- Verification: UI device-context, navigation, number-mismatch, firmware-inspection, and Bootstrap inspection regressions run in the canonical verifier.
+- Limitations: The broader shared Support Matrix and error/report experience remain planned for `0.10.0`.
+
+### Security
+
+- This release does not change a CRC algorithm, command order, executable binding, arbitrary-command policy, or source/final-output immutability boundary.
+- Postbuild write authority is narrower than the legacy header span and is expressed as exact half-open ranges; bytes between classified CRC words remain unauthorized.
+- The NT51929 private golden is repository test evidence only, is excluded from the release reference selector, and is not packaged for redistribution.
+
+### Known issues
+
+- AB function availability remains a certification-neutral `0.9.15` state. Missing per-route direct AB evidence and firmware-owner promotion review still block support-certification claims.
+- The protected workflow's deterministic package smoke uses `-SkipUiLaunch`. Visible clean-Windows UI smoke and annotated-tag CRLF/LF comparison hardening remain tracked for `0.10.0`; this release does not claim those deferred checks passed.
+
+### Upgrade and rollback
+
+- Upgrade by replacing the complete previous portable folder with `NvtFwCombiner-v0.9.16-win-x64`; do not copy only the EXE or merge package contents into an older or OneDrive-synchronized profile tree.
+- Saved preferences and report history require no migration. Roll back by restoring the untouched `v0.9.15` portable folder; firmware outputs remain ordinary BIN files.
+
+### Downloads and integrity
+
+- The stable GitHub Release publishes `NvtFwCombiner-v0.9.16-win-x64.zip`, its SPDX SBOM, provenance, candidate manifest, and outer SHA-256 list. GitHub also provides tag-derived source ZIP and TAR.GZ downloads.
+- Verify the outer checksum list and provenance source identity before distribution. The Windows x64 package is self-contained and does not require a separately installed .NET or Python runtime.
+
 ## [0.9.15] - 2026-07-24
 
 ### Summary

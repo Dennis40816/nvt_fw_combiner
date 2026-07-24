@@ -2,9 +2,9 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Keeps future scope in the single NFC roadmap while preserving the 0.9.x record.</summary>
+    /// <summary>Keeps future scope in the single NFC roadmap while preserving the 0.9.x hot-fix record.</summary>
     [Fact]
-    public void NfcRoadmapMakesV0915TerminalAndSequencesV010AndV011()
+    public void NfcRoadmapRecordsV0916HotfixAndSequencesV010AndV011()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string tags = ReadText("docs/governance/development-tags.md");
@@ -17,7 +17,13 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("# NFC Roadmap", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("This is the single canonical roadmap for future NFC work.", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("`0.9.15` | Final 0.9.x release", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`0.9.15` | AB function opening", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`0.9.16` | Exceptional CRC/header-authority hot-fix", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains(
+            "must include or reconcile the complete reviewed `v0.9.16`",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("`0.9.15` | Final 0.9.x release", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("## `0.10.x`: support visibility, issue/report experience, and maintainability", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("| `0.10.0` | M0/M1 inventory", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("| `0.10.1` | M2 test-harness convergence", nfcRoadmap, StringComparison.Ordinal);

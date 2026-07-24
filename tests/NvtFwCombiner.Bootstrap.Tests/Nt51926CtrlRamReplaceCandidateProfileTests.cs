@@ -71,8 +71,11 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal([new ByteRange(0, Capacity)], invocation.AllowedReadRanges);
         Assert.Equal(
             [
+                new ByteRange(0x18, 4),
                 new ByteRange(0x1C, 4),
                 new ByteRange(0x3C, 4),
+                new ByteRange(0x4C, 4),
+                new ByteRange(0x5C, 4),
                 new ByteRange(0xFC, 4),
                 new ByteRange(0x22800, 0x2C00),
                 new ByteRange(0x25400, 0x2400),
@@ -179,10 +182,10 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         CompiledComposition second = CompileCandidate([.. referenceBase]);
 
         Assert.Equal(
-            "0d3d5b14b26d2c812b367710455293277d21be0c9f233811eeb163150d4a2e12",
+            "f11e8bc970bfebcb803082c9f048b235fd990fba440f5900cbe81e100b3c9cd3",
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
-            "df3e7e0b2c25504786aac59a4ffe028e801b75357b83c44115d83a5dde2852c6",
+            "16015cf9f7d33e587d23010dba27d5f878a897105d12f4192911172627a472d1",
             first.CompilationFingerprint);
         Assert.Equal(
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,
@@ -483,7 +486,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         V2CompositionPlanCompileResult compilation = BuiltInV2BundleRegistry.All[
             "nt51926-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
                 "nt51926-ctrlram-replace-fw141-runtime-cascade",
-                "0.2.0",
+                "0.3.0",
                 "NT51926",
                 ExperienceIds.CtrlRamReplace,
                 new TopologySelection(
@@ -547,7 +550,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             referenceBase);
         return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].Compile(
             "nt51926-ctrlram-replace-fw141-cascade",
-            "0.5.0",
+            "0.6.0",
             "NT51926",
             ExperienceIds.CtrlRamReplace,
             referenceBase.Length,

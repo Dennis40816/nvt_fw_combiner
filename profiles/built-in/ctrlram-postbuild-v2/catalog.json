@@ -1336,13 +1336,15 @@
           "branch": "single"
         },
         {
-          "kind": "generic-cascade",
-          "branch": "cascade"
+          "kind": "count-range",
+          "branch": "cascade",
+          "minimumCount": 2,
+          "maximumCount": 8
         }
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
-      "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51919 follows NT51929"
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51919 follows NT51929 and cascade is 2-8 IC"
     },
     {
       "processorId": "nfc.nt51920.ctrlram-postbuild-v1",
@@ -4622,13 +4624,15 @@
           "branch": "single"
         },
         {
-          "kind": "generic-cascade",
-          "branch": "cascade"
+          "kind": "count-range",
+          "branch": "cascade",
+          "minimumCount": 2,
+          "maximumCount": 8
         }
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
-      "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51929 follows NT51932"
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51929 follows NT51932 and cascade is 2-8 IC"
     },
     {
       "processorId": "nfc.nt51930.ctrlram-postbuild-v1",
@@ -5219,13 +5223,15 @@
           "branch": "single"
         },
         {
-          "kind": "generic-cascade",
-          "branch": "cascade"
+          "kind": "count-range",
+          "branch": "cascade",
+          "minimumCount": 2,
+          "maximumCount": 8
         }
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
-      "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat"
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: cascade is 2-8 IC"
     },
     {
       "processorId": "nfc.nt51950.ctrlram-postbuild-v1",

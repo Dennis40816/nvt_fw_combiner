@@ -25,6 +25,8 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             _ => tpFirmware);
 
         Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, inspection.BaseFirmwareArtifactKind);
+        Assert.Null(inspection.DpVersion);
+        Assert.Null(inspection.CmiDpCode);
     }
 
     /// <summary>Other ICs classify a full base only from their declared DP bytes, even at TP-prefix length.</summary>
@@ -50,6 +52,10 @@ public sealed partial class WorkbenchFirmwareInspectionTests
 
         Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, erased.BaseFirmwareArtifactKind);
         Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, programmed.BaseFirmwareArtifactKind);
+        Assert.Null(erased.DpVersion);
+        Assert.Null(erased.CmiDpCode);
+        _ = Assert.NotNull(programmed.DpVersion);
+        _ = Assert.NotNull(programmed.CmiDpCode);
     }
 
     /// <summary>NT51950 full containers classify from their declared post-prefix DP region after the length check.</summary>

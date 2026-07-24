@@ -8,6 +8,22 @@ Owner update 2026-06-30:
 - `IC FlashMap` postbuild scripts now provide the first verified legacy Combiner 1.13.0 command sequences for CtrlRAM Replace. Postbuild remains the behavioral truth; mmap and TP Overview explain/document the ranges.
 - Do not declare production Replace parity until each enabled profile has command shape, tool version, parameters, read/write ranges, execution order, and golden evidence.
 
+Owner update 2026-07-24:
+
+- Normal-mode CtrlRAM postbuild may rewrite only the modeled ILM0, DLM0,
+  FW Config, CtrlRAM, MP CtrlRAM, and Header CRC words at
+  `[0x18,0x1C)`, `[0x1C,0x20)`, `[0x3C,0x40)`, `[0x4C,0x50)`,
+  `[0x5C,0x60)`, and `[0xFC,0x100)`.
+- Cascade-only DLM CRC authority is bounded by the approved header layout:
+  NT51919/29/32 (2–8 IC) `[0x7128,0x7144)`, NT51930 (2–13 IC)
+  `[0x7128,0x7158)`, NT51931 `[0x006C,0x00B8)`, and NT51950/51
+  `[0xA134,0xA180)`. Single-chip plans do not receive these ranges.
+- NT51950/51 AB remains unchanged: the full A/B image is the Combiner
+  staging/read scope, while processor write authority remains only TPB
+  `[0x4A100,0x4A104)`, `[0x4A110,0x4A114)`, and `[0x4A130,0x4A134)`.
+  The UI now states this distinction instead of presenting the whole scope as
+  if it were a postbuild calculation range.
+
 | IC | Mode/evidence | TPA policy | TPB policy | Current processor facts | Status |
 | --- | --- | --- | --- | --- | --- |
 | NT51919 | fact-scoped NT51929 alias | None | Address relocation only; no CRC configured | fixed-`0x80000` V2 candidate resolves the explicit region-set alias, copies full DP, and applies the same three checked TPB scalar relocations as its source fact | Owner-approved fact-scoped alias with complete plan parity to the tracked NT51929 fixture; no direct NT51919 product golden, and runtime promotion review remains pending |

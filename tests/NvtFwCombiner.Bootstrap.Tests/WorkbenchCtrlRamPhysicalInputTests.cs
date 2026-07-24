@@ -59,9 +59,9 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
 
     /// <summary>932/950 cascade NF clearly identifies the external DiffNFMerge prerequisite.</summary>
     [Theory]
-    [InlineData("NT51919", "cascade")]
-    [InlineData("NT51929", "cascade")]
-    [InlineData("NT51932", "cascade")]
+    [InlineData("NT51919", WorkbenchIcNumberTokens.CascadeTwoToEight)]
+    [InlineData("NT51929", WorkbenchIcNumberTokens.CascadeTwoToEight)]
+    [InlineData("NT51932", WorkbenchIcNumberTokens.CascadeTwoToEight)]
     [InlineData("NT51932", "2")]
     [InlineData("NT51950", "cascade")]
     [InlineData("NT51950", "2")]

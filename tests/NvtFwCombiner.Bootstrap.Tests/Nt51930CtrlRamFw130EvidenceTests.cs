@@ -406,6 +406,7 @@ public sealed partial class Nt51930CtrlRamFw130EvidenceTests
         return [
             new(0x7100, 4),
             new(0x7118, 4),
+            new(0x7128, 0x30),
             new(NfStart, 577),
             new(NormalStart, NormalLength),
             new(MpStart, MpLength),

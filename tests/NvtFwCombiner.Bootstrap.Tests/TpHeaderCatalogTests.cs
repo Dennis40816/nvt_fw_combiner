@@ -61,6 +61,38 @@ public sealed class TpHeaderCatalogTests
         Assert.Equal("Header CRC 3", headerCrc.DisplayName);
     }
 
+    /// <summary>Owner-confirmed NT51932 Type A/B layouts expose DLM CRC 1 through 7 for up to eight ICs.</summary>
+    [Fact]
+    public void Nt51932HeaderModelsTypeAbDlmCrcFields()
+    {
+        Assert.True(TpHeaderCatalog.TryGetLayout("NT51932", out TpHeaderLayout? layout));
+        Assert.Equal(TpHeaderModelStatus.Workbook, layout!.Status);
+
+        for (int index = 1; index <= 7; index++)
+        {
+            long start = 0x7128 + ((index - 1) * 4);
+            Assert.True(
+                TpHeaderCatalog.TryFindField("NT51932", new ByteRange(start, 4), out TpHeaderField? field));
+            Assert.Equal($"dlm-crc-{index}", field!.FieldId);
+            Assert.Equal($"DLM CRC {index}", field.DisplayName);
+        }
+    }
+
+    /// <summary>NT51950/951 DIFF CRC slots are owner-classified as DLM CRC 1 through 19.</summary>
+    [Theory]
+    [InlineData("NT51950")]
+    [InlineData("NT51951")]
+    public void Nt51950FamilyHeaderNumbersDiffCrcAsDlmCrc(string icId)
+    {
+        for (int index = 1; index <= 19; index++)
+        {
+            long start = 0xA134 + ((index - 1) * 4);
+            Assert.True(TpHeaderCatalog.TryFindField(icId, new ByteRange(start, 4), out TpHeaderField? field));
+            Assert.Equal($"dlm-crc-{index}", field!.FieldId);
+            Assert.Equal($"DLM CRC {index}", field.DisplayName);
+        }
+    }
+
     /// <summary>Ambiguous header-field declarations fail before a report can select an arbitrary subject.</summary>
     [Fact]
     public void HeaderLayoutRejectsOverlappingFields()

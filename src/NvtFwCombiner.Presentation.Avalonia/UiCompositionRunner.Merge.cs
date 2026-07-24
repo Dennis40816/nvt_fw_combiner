@@ -26,11 +26,13 @@ public static partial class UiCompositionRunner
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetAbMergeMemoryDisplay(
             string icId,
-            string? abMergeTopologyToken = null)
+            string? abMergeTopologyToken = null,
+            long? dpInputLength = null)
     {
         WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetAbMergeMemoryDisplay(
             icId,
-            abMergeTopologyToken);
+            abMergeTopologyToken,
+            dpInputLength);
         return (
             display.RangeLabel,
             [.. display.MemoryMapRows.Select(ToMemoryMapRow)],

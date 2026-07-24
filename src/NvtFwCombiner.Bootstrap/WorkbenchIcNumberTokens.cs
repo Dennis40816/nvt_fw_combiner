@@ -11,6 +11,9 @@ public static class WorkbenchIcNumberTokens
     /// <summary>Cascade selector token.</summary>
     public const string Cascade = IcNumberSelectionTokens.Cascade;
 
+    /// <summary>NT51919/29/32's currently supported multi-chip count-range selector.</summary>
+    public const string CascadeTwoToEight = "cascade_2to8";
+
     /// <summary>NT51930's currently supported multi-chip count-range selector.</summary>
     public const string CascadeTwoToThirteen = "cascade_2to13";
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51920-ctrlram-replace",
-  "familyVersion": "0.2.0",
+  "familyVersion": "0.3.0",
   "members": [
     {
       "memberId": "NT51920",
@@ -27,8 +27,17 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 0, "length": 28 },
+          "range": { "start": 0, "length": 24 },
           "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-0018",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 24, "length": 4 },
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
@@ -59,11 +68,47 @@
           "alignment": 1
         },
         {
-          "regionId": "gap-0040",
+          "regionId": "gap-0040-to-004c",
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 64, "length": 188 },
+          "range": { "start": 64, "length": 12 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-004c",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 76, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-0050-to-005c",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 80, "length": 12 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-005c",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 92, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-0060-to-00fc",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 96, "length": 156 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -195,8 +240,17 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 0, "length": 28 },
+          "range": { "start": 0, "length": 24 },
           "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-0018",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 24, "length": 4 },
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
@@ -227,11 +281,47 @@
           "alignment": 1
         },
         {
-          "regionId": "gap-0040",
+          "regionId": "gap-0040-to-004c",
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 64, "length": 188 },
+          "range": { "start": 64, "length": 12 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-004c",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 76, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-0050-to-005c",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 80, "length": 12 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-005c",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 92, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-0060-to-00fc",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 96, "length": 156 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
