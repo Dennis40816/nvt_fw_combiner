@@ -19,11 +19,20 @@ authority.
 
 ### 1. Pin the fixed point
 
-Whatever the user said is the fixed point — a commit SHA, branch name, tag, `main`, `HEAD~5`, etc. If they didn't specify one, ask for it.
+If the user asks to review a specific commit, that commit is the review target,
+not the comparison base: resolve it, then capture
+`git diff <target>^..<target>` and `git log <target>^..<target> --oneline`.
+This remains correct when the target is `HEAD` or `HEAD` later advances.
 
-Capture the diff command once: `git diff <fixed-point>...HEAD` (three-dot, so the comparison is against the merge-base). Also note the list of commits via `git log <fixed-point>..HEAD --oneline`.
+For a branch, tag, `main`, `HEAD~5`, or an explicit “since <fixed-point>”
+request, treat the supplied value as the fixed point and capture
+`git diff <fixed-point>...HEAD` (three-dot, so the comparison is against the
+merge-base) plus `git log <fixed-point>..HEAD --oneline`. If the user supplies
+neither a target commit nor a fixed point, ask for one.
 
-Before going further, confirm the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff should fail here — not inside two parallel sub-agents.
+Before going further, confirm the selected target or fixed point resolves and
+the diff is non-empty. A bad ref or empty diff should fail here — not inside
+two parallel sub-agents.
 
 ### 2. Identify the spec source
 

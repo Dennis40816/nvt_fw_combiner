@@ -7,10 +7,11 @@ For NFC repository work, apply [Agent Skill Routing](../../../docs/governance/ag
 
 This skill takes the current conversation context and codebase understanding and produces a spec (you may know this document as a PRD). Do NOT interview the user — just synthesize what you already know.
 
-Use `docs/governance/agent-issue-tracker.md`. In the current repository,
-`ready-for-agent` is not provisioned: draft the spec, then stop before GitHub
-creation/labeling and report that exact gate unless the owner has since approved
-and configured it.
+Use `docs/governance/agent-issue-tracker.md` as the live label and publication
+authority. When an explicitly named GitHub target is in scope and
+`ready-for-agent` is available, publish the completed spec with that label. If
+the tracker records the label as missing, draft the spec and stop before GitHub
+creation/labeling with that exact gate.
 
 ## Process
 
@@ -18,11 +19,16 @@ and configured it.
    haven't already. Use NFC's canonical specification/contract/profile
    vocabulary throughout the spec, and respect relevant ADRs.
 
-2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
+2. Derive the seams at which to test the feature from the conversation and the
+   existing codebase. Existing seams should be preferred to new ones and the
+   highest seam is preferred. If a necessary seam is still uncertain, record
+   the assumption and validation need in Testing Decisions; do not pause to
+   interview the user.
 
-Check with the user that these seams match their expectations.
-
-3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
+3. Write the spec using the template below. Publish it to an explicitly named
+   project-issue target only when the tracker gate above permits that mutation;
+   apply `ready-for-agent` with no additional triage. Otherwise return the
+   drafted spec and the exact publication gate.
 
 <spec-template>
 

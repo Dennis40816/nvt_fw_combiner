@@ -40,8 +40,11 @@ commit.
   evidence provenance, ADR lifecycle, validation standards, and #170–#197
   dependency plan. It starts no production refactor and makes no firmware or
   support-promotion claim.
-- `v0.9.17` — NT51951 AB Code golden-certification closure milestone: establish independent direct evidence for its selector-free plan without borrowing NT51950 evidence or promoting support automatically.
-- `v0.9.18` — family/evidence-model unification milestone: normalize Perfect-family and LDC-TP-only evidence vocabulary, covered workflow/topology scope, excluded DP facts, support-matrix/report/review-handoff language, and the prerequisite design record for a later IC family/rule authoring UI. It does not change runtime admission, profiles, maps, processors, or golden evidence.
+
+The untagged `0.9.17` and `0.9.18` planning proposals were superseded before
+release. They are not valid tag or branch names; their former certification and
+family-evidence scope belongs to the active `0.11.0` roadmap after the final
+`0.10.x` integration release.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.10` are maintained in
@@ -76,14 +79,11 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.10.0` starts only from the official reviewed `v0.9.16` release tag. It is
   a planning and governance release; later `0.10.x` version allocation follows
   the approved #170–#197 dependency graph rather than this tag.
-- `0.9.17` starts only from the official reviewed `v0.9.16` release tag. It owns independent NT51951 AB direct-golden and firmware-owner certification closure; it cannot derive any byte rule or certification from NT51950.
-- `0.9.18` starts only from the official reviewed `v0.9.17` release tag. It owns family/evidence-model unification: Perfect-family sharing remains like-for-like only, while LDC-family sharing is TP/CtrlRAM-only and never covers a DP workflow. It is the prerequisite for, not the implementation of, a future IC family/rule authoring UI.
 
-The authoritative `0.9.15`–`0.9.18` scope, delivery-to-review contract, candidate admission ledger, and family/evidence foundation live in the single [v0.9.15–v0.9.18 Delivery and Family Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md).
-
-### Post-`0.9.17` owner-decision backlog
-
-Error experience unification, IC family/rule authoring UI, Customized-plan reuse/import, and Report detail/layout/function review are planned discussion tracks. Family/rule authoring cannot be assigned until `0.9.18` has completed its model/ADR gate; the other tracks remain unassigned. Their required workshops, safety boundaries, and implementation risk are recorded in the [v0.9.15–v0.9.18 Delivery and Family Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md#post-v0918-owner-decision-queue). A future milestone must not absorb any of them until the owner selects its order and the required contract/ADR is approved.
+The former `0.9.17`/`0.9.18` delivery roadmap remains historical evidence only.
+Active post-`0.10.x` sequencing is maintained in the
+[NFC Roadmap](../architecture/nfc_roadmap.md); a release planner must not
+recreate the superseded branch names.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
@@ -134,8 +134,6 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.15` | AB function open, delivery readiness, and review automation | Open NT51919/NT51929/NT51932 plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 AB routes. Direct-golden debt blocks support certification, not function availability. Shared viewport/Changes/Button Presentation work is deferred pending a new owner-selected milestone. |
 | `v0.9.16` | Exceptional CRC/header-authority hot-fix | Classify owner-approved CRC write windows, correct Replace/AB UI behavior and TP inspection, and lock the NT51929 single Normal CtrlRAM golden; former NT51950 AB certification work moved to `0.11.0`. |
 | `v0.10.0` | Maintainability planning and governance | Publish the approved IC-first architecture, terminology, FlashMap provenance, ADR lifecycle, validation standards, and dependency-gated #170–#197 execution plan without changing firmware behavior or support truth. |
-| `v0.9.17` | NT51951 AB golden-certification closure | Establish independent direct evidence for its selector-free plan; do not copy NT51950 memory, command, or certification evidence. |
-| `v0.9.18` | Family/evidence model unification | Normalize Perfect-family and LDC-TP-only scope before any family/rule authoring UI; no runtime or firmware evidence promotion. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -189,8 +187,6 @@ v0.9.14         separately gated AB re-admission and targeted UI correctness fix
 v0.9.15         AB function open, input/output usability, and review automation
 v0.9.16         exceptional CRC/header-authority and UI-correctness hot-fix
 v0.10.0         maintainability planning and dependency-gated execution program
-v0.9.17         NT51951 AB golden-certification closure
-v0.9.18         family/evidence model unification
 v1.0.0          stable
 ```
 

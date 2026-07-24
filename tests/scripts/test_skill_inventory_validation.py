@@ -139,6 +139,25 @@ class SkillInventoryValidationTests(unittest.TestCase):
             )
         )
 
+    def test_rejects_malformed_openai_yaml_before_field_validation(self) -> None:
+        self.write_skill("implicit-skill")
+        metadata_path = (
+            self.root
+            / ".agents"
+            / "skills"
+            / "implicit-skill"
+            / "agents"
+            / "openai.yaml"
+        )
+        metadata_path.write_text(
+            metadata_path.read_text(encoding="utf-8") + "malformed: [\n",
+            encoding="utf-8",
+        )
+
+        errors = self.validate(expected={"implicit-skill"}, user_invoked=set())
+
+        self.assertTrue(any("metadata is not valid YAML" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

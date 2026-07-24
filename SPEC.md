@@ -201,10 +201,10 @@ Codex 與 agent governance 主要參考：
 | P0/P1 known defects | 0 | 0 |
 
 The coverage percentages above are milestone targets, not currently enforced
-.NET gates. `0.10.0` first records executed .NET/Python line and branch
-baselines. Subsequent CI prevents overall regression, applies a non-decreasing
-changed-module ratchet, and uses `85%` line / `80%` branch as the minimum target
-for new or substantially changed Domain/Application code. A repository-wide
+.NET gates. Ticket #171 must first record executed .NET/Python line and branch
+baselines, then make CI prevent overall regression and apply a non-decreasing
+changed-module ratchet. Its reviewed target is `85%` line / `80%` branch for
+new or substantially changed Domain/Application code. A repository-wide
 fail-under is promoted only after its collector, baseline, exclusions, and
 performance are reviewed. Coverage 不是正確性的替代品；golden regression、
 property test、contract test、architecture test、independent staging diff 與
@@ -718,14 +718,17 @@ The UI must make atomicity visible: whole-only, declared-parts, or explicit-rang
 
 ### 11.4 Preview/Build separation
 
-Build automatically runs the same validation path as Preview before committing
-output. Preview remains available once IC/mode/IC Count context is sufficient
-to perform a meaningful diagnostic run, even when inputs, compilation, range
-policy, processor/tool readiness, or integrity disposition will produce a
-blocked Preview report. Build is enabled only when capability, required-input,
-and runtime-dependency readiness are current. Evidence status is not a Build
-switch. Both actions revalidate at execution time and fail closed through that
-run's report when state changes after the UI check.
+This is target acceptance for the later ticketed authoring-session and runtime
+readiness migration, not a claim about the `0.10.0` runtime. Once those slices
+land, Build automatically runs the same validation path as Preview before
+committing output. Preview remains available once IC/mode/IC Count context is
+sufficient to perform a meaningful diagnostic run, even when inputs,
+compilation, range policy, processor/tool readiness, or integrity disposition
+will produce a blocked Preview report. Build is then enabled only when
+capability, required-input, and runtime-dependency readiness are current.
+Evidence status is not a Build switch. Both actions revalidate at execution
+time and fail closed through that run's report when state changes after the UI
+check.
 
 Before a run, a disabled Build action shows an exclamation status on a
 hoverable/focusable outer affordance. Hover or keyboard focus uses the existing

@@ -29,6 +29,7 @@ from external_tool_policy import (
     validate_repository_external_tool_manifests,
 )
 from repository_contract_validation import validate_v2_contract_model
+from skill_metadata_validation import parse_skill_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_FILES = {
@@ -503,34 +504,23 @@ def validate_skills(errors: list[str]) -> None:
                 f"skill requires agents/openai.yaml: {path.relative_to(ROOT)}"
             )
             continue
-        metadata = metadata_path.read_text(encoding="utf-8")
-        for required_pattern, field in (
-            (r"(?m)^interface:\s*$", "interface"),
-            (r'(?m)^\s+display_name:\s*".+"\s*$', "display_name"),
-            (r'(?m)^\s+short_description:\s*".+"\s*$', "short_description"),
-            (r'(?m)^\s+default_prompt:\s*".+"\s*$', "default_prompt"),
-        ):
-            if re.search(required_pattern, metadata) is None:
+        metadata = parse_skill_metadata(metadata_path, ROOT, errors)
+        if metadata is None:
+            continue
+        interface = metadata["interface"]
+        for field in ("display_name", "short_description", "default_prompt"):
+            value = interface.get(field)
+            if not isinstance(value, str) or not value:
                 errors.append(
                     f"skill metadata requires {field}: {metadata_path.relative_to(ROOT)}"
                 )
-        default_prompt_match = re.search(
-            r'(?m)^\s+default_prompt:\s*"(.+)"\s*$', metadata
-        )
-        if (
-            default_prompt_match is not None
-            and f"${name}" not in default_prompt_match.group(1)
-        ):
+        default_prompt = interface.get("default_prompt")
+        if isinstance(default_prompt, str) and f"{'$'}{name}" not in default_prompt:
             errors.append(
                 "skill metadata default_prompt must reference "
-                f"${name}: {metadata_path.relative_to(ROOT)}"
+                f"{'$'}{name}: {metadata_path.relative_to(ROOT)}"
             )
-        implicit_match = re.search(
-            r"(?m)^\s+allow_implicit_invocation:\s*(true|false)\s*$", metadata
-        )
-        implicit_disabled = (
-            implicit_match is not None and implicit_match.group(1) == "false"
-        )
+        implicit_disabled = metadata["policy"].get("allow_implicit_invocation") is False
         if name in EXPECTED_USER_INVOKED_SKILLS and not implicit_disabled:
             errors.append(
                 "user-invoked skill must set allow_implicit_invocation: false: "
