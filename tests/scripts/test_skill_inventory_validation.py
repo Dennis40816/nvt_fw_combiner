@@ -158,6 +158,46 @@ class SkillInventoryValidationTests(unittest.TestCase):
 
         self.assertTrue(any("metadata is not valid YAML" in error for error in errors))
 
+    def test_rejects_unknown_interface_metadata_field(self) -> None:
+        self.write_skill("implicit-skill")
+        metadata_path = (
+            self.root
+            / ".agents"
+            / "skills"
+            / "implicit-skill"
+            / "agents"
+            / "openai.yaml"
+        )
+        metadata_path.write_text(
+            metadata_path.read_text(encoding="utf-8") + '  unexpected: "value"\n',
+            encoding="utf-8",
+        )
+
+        errors = self.validate(expected={"implicit-skill"}, user_invoked=set())
+
+        self.assertTrue(any("metadata is not valid YAML" in error for error in errors))
+
+    def test_rejects_unknown_policy_metadata_field(self) -> None:
+        self.write_skill("explicit-skill", implicit_invocation=False)
+        metadata_path = (
+            self.root
+            / ".agents"
+            / "skills"
+            / "explicit-skill"
+            / "agents"
+            / "openai.yaml"
+        )
+        metadata_path.write_text(
+            metadata_path.read_text(encoding="utf-8") + "  unexpected_policy: true\n",
+            encoding="utf-8",
+        )
+
+        errors = self.validate(
+            expected={"explicit-skill"}, user_invoked={"explicit-skill"}
+        )
+
+        self.assertTrue(any("metadata is not valid YAML" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

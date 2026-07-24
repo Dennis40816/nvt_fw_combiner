@@ -7,6 +7,12 @@ import re
 from pathlib import Path
 
 
+ALLOWED_FIELDS = {
+    "interface": {"display_name", "short_description", "default_prompt"},
+    "policy": {"allow_implicit_invocation"},
+}
+
+
 def parse_skill_metadata(
     metadata_path: Path, repository_root: Path, errors: list[str]
 ) -> dict[str, dict[str, str | bool]] | None:
@@ -52,7 +58,7 @@ def parse_skill_metadata(
 
         field, raw_value = field_match.groups()
         section = metadata[current_section]
-        if field in section:
+        if field not in ALLOWED_FIELDS[current_section] or field in section:
             errors.append(
                 f"skill metadata is not valid YAML at {metadata_path.relative_to(repository_root)}:{line_number}"
             )
