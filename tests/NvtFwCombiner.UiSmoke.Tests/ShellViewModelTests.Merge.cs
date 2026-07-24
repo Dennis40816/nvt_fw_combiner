@@ -147,9 +147,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.IcChoices);
     }
 
-    /// <summary>Selected DP_AB size drives AB coverage while CRC and work-buffer details stay out of the UI.</summary>
+    /// <summary>A rejected DP_AB size cannot override compiled coverage while processor effects remain on TPB.</summary>
     [Fact]
-    public async Task Nt51950AbMemoryUsesSelectedDpLengthAndOnlyFirmwareInputs()
+    public async Task Nt51950AbMemoryKeepsCompiledCapacityForRejectedDpLength()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-memory");
         string dpPath = workspace.Write("dp-ab-90000.bin", new byte[0x90000]);
@@ -163,17 +163,21 @@ public sealed partial class ShellViewModelTests
             dpPath,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal("0x00000-0x8FFFF (len 0x90000)", viewModel.MergeMemoryRangeLabel);
+        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.MergeMemoryRangeLabel);
         Assert.Equal(
             ["DP AB", "TPA", "TPB"],
             viewModel.MergeMemoryRows.Select(static row => row.AfterSource));
+        Assert.Contains(
+            "does not match the compiled 0x80000 layout",
+            viewModel.MergeMemoryRows[0].Detail,
+            StringComparison.Ordinal);
+        Assert.Equal("Transform + Overlay + Postbuild", viewModel.MergeMemoryRows[2].ActionLabel);
         Assert.Equal(
             ["DP AB", "TPA", "TPB"],
             viewModel.MergeCoverageSegments
                 .Select(static segment => segment.SourceLabel)
                 .Distinct(StringComparer.Ordinal));
         Assert.DoesNotContain(viewModel.MergeMemoryRows, static row =>
-            row.ActionLabel.Contains("Postbuild", StringComparison.OrdinalIgnoreCase) ||
             row.Detail.Contains("CRC", StringComparison.OrdinalIgnoreCase) ||
             row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
         Assert.True(viewModel.MergeSlots.Single(static slot =>
