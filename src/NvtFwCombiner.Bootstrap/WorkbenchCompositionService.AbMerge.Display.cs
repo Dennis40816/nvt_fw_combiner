@@ -90,9 +90,38 @@ public static partial class WorkbenchCompositionService
         }
 
         ImageInitialization initialization = composition.Plan.OutputInitialization;
-        long displayCapacity = dpInputLength is > 0
-            ? dpInputLength.Value
+        bool selectedDpLengthMatchesCompiledCapacity =
+            dpInputLength is > 0 && dpInputLength.Value == initialization.Capacity;
+        long displayCapacity = selectedDpLengthMatchesCompiledCapacity
+            ? dpInputLength!.Value
             : initialization.Capacity;
+        string dpDetail = dpInputLength is > 0 && !selectedDpLengthMatchesCompiledCapacity
+            ? $"Selected DP AB length 0x{dpInputLength.Value:X} does not match the compiled " +
+                $"0x{initialization.Capacity:X} layout; Memory coverage uses the compiled capacity."
+            : "Use the selected DP AB container length for the output memory layout.";
+        bool transformsTpB = composition.Plan.OrderedOperations.Any(static operation =>
+            operation.Kind == CompositionOperationKind.TransformScalar);
+        bool postbuildsTpB = composition.Plan.OrderedOperations.Any(static operation =>
+            operation.Kind == CompositionOperationKind.RunExternalProcessor);
+        string tpBAction = (transformsTpB, postbuildsTpB) switch
+        {
+            (true, true) => "Transform + Overlay + Postbuild",
+            (true, false) => "Transform + Overlay",
+            (false, true) => "Overlay + Postbuild",
+            _ => "Overlay",
+        };
+        string tpBDetail = (transformsTpB, postbuildsTpB) switch
+        {
+            (true, true) =>
+                "Transform TPB fields, overlay TPB at the fixed profile-declared TP B range, " +
+                "then apply the profile-declared postbuild effects.",
+            (true, false) =>
+                "Transform TPB fields, then overlay TPB at the fixed profile-declared TP B range.",
+            (false, true) =>
+                "Overlay TPB at the fixed profile-declared TP B range, then apply the " +
+                "profile-declared postbuild effects.",
+            _ => "Overlay TPB at the fixed profile-declared TP B range.",
+        };
         FirmwareRegion[] tpCodeRegions =
         [
             .. composition.V2Details!.Provenance.ResolvedMap.ImageMap.Regions
@@ -137,7 +166,7 @@ public static partial class WorkbenchCompositionService
             new CoverageSegment(
                 tpB.Range,
                 "TPB",
-                "Overlay TPB at the fixed profile-declared TP B range.",
+                tpBDetail,
                 CoverageFill("TPB"),
                 false,
                 WorkbenchMemoryCoverageRole.Standard));
@@ -148,7 +177,7 @@ public static partial class WorkbenchCompositionService
                 "No output",
                 "Copy",
                 "DP AB",
-                "Use the selected DP AB container length for the output memory layout."),
+                dpDetail),
             new(
                 FormatDisplayRange(tpA.Range),
                 "DP AB",
@@ -158,9 +187,9 @@ public static partial class WorkbenchCompositionService
             new(
                 FormatDisplayRange(tpB.Range),
                 "DP AB",
-                "Overlay",
+                tpBAction,
                 "TPB",
-                "Overlay TPB at the fixed profile-declared TP B range."),
+                tpBDetail),
         ];
 
         return new WorkbenchMemoryDisplay(

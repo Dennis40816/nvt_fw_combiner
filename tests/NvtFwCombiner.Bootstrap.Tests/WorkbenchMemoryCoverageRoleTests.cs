@@ -106,27 +106,31 @@ public sealed class WorkbenchMemoryCoverageRoleTests
     [InlineData(
         "NT51950",
         "single",
-        0x90000L,
-        "0x00000-0x8FFFF (len 0x90000)",
-        "0x4A000-0x76FFF (len 0x2D000)")]
+        0x80000L,
+        "0x00000-0x7FFFF (len 0x80000)",
+        "0x4A000-0x76FFF (len 0x2D000)",
+        "Transform + Overlay + Postbuild")]
     [InlineData(
         "NT51950",
         "cascade",
         0x100000L,
         "0x00000-0xFFFFF (len 0x100000)",
-        "0x4A000-0x76FFF (len 0x2D000)")]
+        "0x4A000-0x76FFF (len 0x2D000)",
+        "Transform + Overlay + Postbuild")]
     [InlineData(
         "NT51951",
         null,
         0x100000L,
         "0x00000-0xFFFFF (len 0x100000)",
-        "0x8A000-0xB6FFF (len 0x2D000)")]
-    public void Nt51950FamilyAbCoverageUsesSelectedDpLengthAndOnlyFirmwareInputs(
+        "0x8A000-0xB6FFF (len 0x2D000)",
+        "Transform + Overlay + Postbuild")]
+    public void Nt51950FamilyAbCoverageUsesCompiledDpCapacityAndOnlyFirmwareInputs(
         string icId,
         string? topologyToken,
         long dpInputLength,
         string expectedFullRange,
-        string expectedTpBRange)
+        string expectedTpBRange,
+        string expectedTpBAction)
     {
         WorkbenchMemoryDisplay display =
             WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId, topologyToken, dpInputLength);
@@ -148,12 +152,12 @@ public sealed class WorkbenchMemoryCoverageRoleTests
             {
                 Assert.Equal(expectedTpBRange, row.RangeLabel);
                 Assert.Equal("TPB", row.AfterSource);
+                Assert.Equal(expectedTpBAction, row.ActionLabel);
             });
         Assert.Equal(
             ["DP AB", "TPA", "TPB"],
             display.CoverageSegments.Select(static segment => segment.SourceLabel).Distinct(StringComparer.Ordinal));
         Assert.DoesNotContain(display.MemoryMapRows, static row =>
-            row.ActionLabel.Contains("Postbuild", StringComparison.OrdinalIgnoreCase) ||
             row.Detail.Contains("CRC", StringComparison.OrdinalIgnoreCase) ||
             row.Detail.Contains("Allowed writes", StringComparison.OrdinalIgnoreCase) ||
             row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
@@ -162,6 +166,35 @@ public sealed class WorkbenchMemoryCoverageRoleTests
             display.CoverageSegments.Sum(static segment => segment.BarWidth),
             299.999999,
             300.000001);
+    }
+
+    /// <summary>An unaccepted DP artifact length cannot invent an output layout the compiled profile cannot build.</summary>
+    [Fact]
+    public void Nt51950SingleAbCoverageFallsBackToCompiledCapacityForMismatchedDpLength()
+    {
+        WorkbenchMemoryDisplay display =
+            WorkbenchCompositionService.GetAbMergeMemoryDisplay("NT51950", "single", dpInputLength: 0x90000);
+
+        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", display.RangeLabel);
+        Assert.Contains(
+            "does not match the compiled 0x80000 layout",
+            display.MemoryMapRows[0].Detail,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>Type A/B profiles expose TPB relocation without adding CRC or staging rows.</summary>
+    [Theory]
+    [InlineData("NT51929")]
+    [InlineData("NT51932")]
+    public void TypeAbCoverageShowsTpBTransformWithoutProcessorInternals(string icId)
+    {
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId);
+
+        Assert.Equal(["DP AB", "TPA", "TPB"], display.MemoryMapRows.Select(static row => row.AfterSource));
+        Assert.Equal("Transform + Overlay", display.MemoryMapRows[2].ActionLabel);
+        Assert.DoesNotContain(display.MemoryMapRows, static row =>
+            row.Detail.Contains("CRC", StringComparison.OrdinalIgnoreCase) ||
+            row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>An empty selected DP artifact is treated as absent until file inspection supplies a usable size.</summary>
