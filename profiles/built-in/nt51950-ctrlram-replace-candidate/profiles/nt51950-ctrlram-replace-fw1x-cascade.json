@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51950-ctrlram-replace-fw1x-cascade",
-  "profileVersion": "0.4.0",
+  "profileVersion": "0.5.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -26,8 +26,8 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51950-ctrlram-replace",
-    "familyVersion": "0.4.0",
-    "familyContentHash": "92901556a701a51334fdc86c6b7ff61a0389155f850ae0113fc7f3c703dd9023",
+    "familyVersion": "0.5.0",
+      "familyContentHash": "2acdab2e0b6eb55f223a943f949c90e6d44a023bf920dfb30bc83ee435261b16",
     "mapIds": [
       "nt51950-ctrlram-fw1x-cascade-tp-work",
       "nt51950-ctrlram-fw1x-cascade-full-flash"

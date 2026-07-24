@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51920-ctrlram-replace-fw120-cascade2",
-  "profileVersion": "0.2.0",
+  "profileVersion": "0.3.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -26,8 +26,8 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51920-ctrlram-replace",
-    "familyVersion": "0.2.0",
-      "familyContentHash": "92cd18bfb32e0c9c63ea845eac2f2e09ce69bc4708b239fbe1e0f1487c90fa2a",
+    "familyVersion": "0.3.0",
+      "familyContentHash": "4b3bc466c59aaf15aaab25df425cfee1bf4aae4dcdc555c8b1e385a9ab76e233",
     "mapIds": [ "nt51920-ctrlram-fw120-cascade2-full-flash" ],
     "requiredRegionIds": [
       "flash-image",

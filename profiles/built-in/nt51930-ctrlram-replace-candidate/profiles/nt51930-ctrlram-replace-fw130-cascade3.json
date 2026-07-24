@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51930-ctrlram-replace-fw130-cascade3",
-  "profileVersion": "0.2.0",
+  "profileVersion": "0.3.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -26,8 +26,8 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51930-ctrlram-replace",
-    "familyVersion": "0.2.0",
-    "familyContentHash": "4201afd645e0d4742610b3a1a6ad10572ccc53368d6d5f62c464ab3980f61766",
+    "familyVersion": "0.3.0",
+      "familyContentHash": "f71b04ae5fb9aed8c9003c54fd562d0db37be9a5715557776f93d69cb03c7830",
     "mapIds": [ "nt51930-ctrlram-fw130-cascade3-full-flash" ],
     "requiredRegionIds": [
       "flash-image",

@@ -30,8 +30,8 @@
   },
   "mapBinding": {
     "familyId": "nt51932-ctrlram-replace",
-    "familyVersion": "0.3.0",
-      "familyContentHash": "f0ba86188896de301513c8c211749041847df9df8105dd51bc51073da258d4f4",
+    "familyVersion": "0.4.0",
+      "familyContentHash": "600bd207b8d19aad6e52fe7103fd5ad395e8c8f03664b698c2a79c7b58fe91d4",
     "mapIds": [
       "nt51932-ctrlram-fw1x-single-full-flash"
     ],

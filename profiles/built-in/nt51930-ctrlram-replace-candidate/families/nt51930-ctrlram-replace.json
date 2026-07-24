@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51930-ctrlram-replace",
-  "familyVersion": "0.2.0",
+  "familyVersion": "0.3.0",
   "members": [
     {
       "memberId": "NT51930",
