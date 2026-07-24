@@ -10,7 +10,7 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshNumberChoicesForSelectedIc()
     {
-        IReadOnlyList<IcNumberChoiceViewModel> nextDisplayChoices = IsAbCodeMergeModeSelected
+        IReadOnlyList<IcNumberChoiceViewModel> nextDisplayChoices = IsAbMergeContextActive
             ?
             [
                 .. AbMergeWorkbenchCompositionService.GetTopologyChoices(SelectedIc)
@@ -197,6 +197,7 @@ public sealed partial class MainWindowViewModel
         }
 
         SelectedPage = page;
+        RefreshNumberChoicesForSelectedIc();
         OnPropertyChanged(nameof(SelectedPage));
         OnPropertyChanged(nameof(IsHomeVisible));
         OnPropertyChanged(nameof(IsSettingsVisible));
@@ -209,6 +210,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
         OnPropertyChanged(nameof(DeviceContextStatus));
+        OnPropertyChanged(nameof(IcChoices));
         UpdateNavigationState();
     }
 

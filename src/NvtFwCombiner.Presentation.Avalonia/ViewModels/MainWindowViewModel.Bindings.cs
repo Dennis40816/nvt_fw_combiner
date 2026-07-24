@@ -38,8 +38,8 @@ public sealed partial class MainWindowViewModel
         ? $"{DisplayedDeviceIc} / {DisplayedDeviceNumber}: {DisplayedDeviceContextRefreshSummary}"
         : $"{DisplayedDeviceIc}: {DisplayedDeviceContextRefreshSummary}";
 
-    /// <summary>Gets IC choices admitted by the active authoring mode.</summary>
-    public IReadOnlyList<string> IcChoices => IsAbCodeMergeModeSelected
+    /// <summary>Gets IC choices admitted by the active authoring context.</summary>
+    public IReadOnlyList<string> IcChoices => IsAbMergeContextActive
         ? s_abMergeIcChoices
         : WorkbenchCompositionService.GetSupportedIcIds();
 
@@ -212,6 +212,9 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>True when the reserved AB Code Merge option is selected.</summary>
     public bool IsAbCodeMergeModeSelected => string.Equals(SelectedMergeMode, AbCodeMergeMode, StringComparison.Ordinal);
+
+    /// <summary>True only while the visible Merge page is authoring AB Code.</summary>
+    private bool IsAbMergeContextActive => IsMergeVisible && IsAbCodeMergeModeSelected;
 
     /// <summary>True when the selected AB profile exposes an operator topology selector.</summary>
     public bool HasAbMergeTopologyChoices => AbMergeTopologyChoices.Count > 0;
