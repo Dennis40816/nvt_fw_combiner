@@ -27,7 +27,7 @@
   "mapBinding": {
     "familyId": "nt51950-ctrlram-replace",
     "familyVersion": "0.4.0",
-    "familyContentHash": "495c2b1e6f905e6c5fbc708274865b19536e91ee0a9fc6545c45046a3d65ecd2",
+    "familyContentHash": "92901556a701a51334fdc86c6b7ff61a0389155f850ae0113fc7f3c703dd9023",
     "mapIds": [
       "nt51950-ctrlram-fw200-single-tp-work",
       "nt51950-ctrlram-fw200-single-full-flash"

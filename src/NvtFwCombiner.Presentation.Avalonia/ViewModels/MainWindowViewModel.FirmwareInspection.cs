@@ -192,7 +192,9 @@ public sealed partial class MainWindowViewModel
             }
         }
 
-        if (request.Items.Any(static item => item.SlotId == MergeDpSlotId))
+        if (request.Items.Any(static item =>
+                item.SlotId == MergeDpSlotId ||
+                item.AbMergeAddressSpaceId is not null))
         {
             RefreshMergeMemoryMapState();
         }
@@ -274,7 +276,8 @@ public sealed partial class MainWindowViewModel
         }
 
         NotifySlotFileOutputNames();
-        if (slots.ContainsKey(MergeDpSlotId))
+        if (slots.ContainsKey(MergeDpSlotId) ||
+            (IsAbCodeMergeModeSelected && slots.Keys.Any(_abMergeAddressSpaceBySlotId.ContainsKey)))
         {
             RefreshMergeMemoryMapState();
         }

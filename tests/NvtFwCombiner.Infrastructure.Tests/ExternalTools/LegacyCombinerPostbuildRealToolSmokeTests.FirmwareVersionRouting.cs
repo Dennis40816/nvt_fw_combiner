@@ -19,7 +19,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             { "NT51919", "51929", "nfc.nt51919.ctrlram-postbuild-v1", IcNumberInputMode.SingleSelector, "single" },
             { "NT51929", "51929", "nfc.nt51929.ctrlram-postbuild-v1", IcNumberInputMode.SingleSelector, "single" },
             { "NT51930", "51930", "nfc.nt51930.ctrlram-postbuild-fw1.x", IcNumberInputMode.CascadeSelector, "cascade_2to13" },
-            { "NT51932", "51932", "nfc.nt51932.ctrlram-postbuild-v1", IcNumberInputMode.CascadeSelector, "cascade" },
+            { "NT51932", "51932", "nfc.nt51932.ctrlram-postbuild-v1", IcNumberInputMode.CascadeSelector, "cascade_2to8" },
             { "NT51950", "51950", "nfc.nt51950.ctrlram-postbuild-v1", IcNumberInputMode.SingleSelector, "single" },
             { "NT51951", "51951", "nfc.nt51951.ctrlram-postbuild-v1", IcNumberInputMode.SingleSelector, "single" },
         };

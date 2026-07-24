@@ -1,0 +1,147 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51929-andes-normal-cross-110us-to-115us-20260724",
+  "ic": "NT51929",
+  "workflow": "ctrlram-replace",
+  "variantOrVersion": "andes-d22-t01",
+  "topology": "single",
+  "directGolden": true,
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner supplied the 51929-normal-ctrlram-replace.7z archive through HackMD and directed this NT51929 single Normal CtrlRAM Andes case to be added as a golden on 2026-07-24.",
+  "project": "Andes-D22T01-Tsen",
+  "icCount": 1,
+  "baseKind": "andes-toolchain-flashcode-110us",
+  "profileId": "nt51929-ctrlram-replace-fw200-single",
+  "artifacts": [
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/expected/Andes_NT51929_FlashCode_D22T01_20260721_Tsen_115us.bin",
+      "size": 262144,
+      "sha256": "9fd3302e867312cf49e85ca44208620928a6fec64a52727dc35950c366e2493c",
+      "legacyPaths": [
+        "testdata/golden/owner-handoff/20260724/51929-normal-ctrlram-replace/51929/Single/Andes_NT51929_FlashCode_D22T01_20260721_Tsen_115us.bin"
+      ],
+      "originalFileName": "Andes_NT51929_FlashCode_D22T01_20260721_Tsen_115us.bin",
+      "sourceRole": "expected-final-output-115us"
+    },
+    {
+      "artifactId": "reference-base",
+      "role": "input",
+      "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/inputs/Andes_NT51929_FlashCode_D22T01_20260721_Tsen_110us.bin",
+      "size": 262144,
+      "sha256": "cef8589ca247237b2e8993422dd2be4e0460373a3caa936c7f24a3c08f759f18",
+      "legacyPaths": [
+        "testdata/golden/owner-handoff/20260724/51929-normal-ctrlram-replace/51929/Single/Andes_NT51929_FlashCode_D22T01_20260721_Tsen_110us.bin"
+      ],
+      "originalFileName": "Andes_NT51929_FlashCode_D22T01_20260721_Tsen_110us.bin",
+      "sourceRole": "replace-base-flashcode-110us"
+    },
+    {
+      "artifactId": "normal-ctrlram-input",
+      "role": "input",
+      "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/inputs/AUO_16.4_CTRLRAM_Tsen_115us.bin",
+      "size": 655360,
+      "sha256": "4272f4db1d40155f3fcc492f1d6fb218c1d4832945fed1000fc8177e947f6adb",
+      "legacyPaths": [
+        "testdata/golden/owner-handoff/20260724/51929-normal-ctrlram-replace/51929/Single/AUO_16.4_CTRLRAM_Tsen_115us.bin"
+      ],
+      "originalFileName": "AUO_16.4_CTRLRAM_Tsen_115us.bin",
+      "sourceRole": "ctrlram-normal-input-115us"
+    },
+    {
+      "artifactId": "normal-ctrlram-control",
+      "role": "input",
+      "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/inputs/AUO_16.4_CTRLRAM_Tsen_110us.bin",
+      "size": 655360,
+      "sha256": "edb7fc302cbfbb191c1fd494566cf9d6176d53f9f62bf90119350dd65c2b1c34",
+      "legacyPaths": [
+        "testdata/golden/owner-handoff/20260724/51929-normal-ctrlram-replace/51929/Single/AUO_16.4_CTRLRAM_Tsen_110us.bin"
+      ],
+      "originalFileName": "AUO_16.4_CTRLRAM_Tsen_110us.bin",
+      "sourceRole": "ctrlram-normal-control-110us"
+    },
+    {
+      "artifactId": "owner-readme",
+      "role": "provenance",
+      "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/provenance/README.txt",
+      "size": 261,
+      "sha256": "69803dc6bef0aa30c0fa6760a9c2634d9c63b2e52e188312fce661dfd09ad475",
+      "legacyPaths": [
+        "testdata/golden/owner-handoff/20260724/51929-normal-ctrlram-replace/51929/Single/README.txt"
+      ],
+      "originalFileName": "README.txt",
+      "sourceRole": "owner-instructions"
+    }
+  ],
+  "sourceIntake": {
+    "archive": {
+      "fileName": "51929-normal-ctrlram-replace.7z",
+      "sha256": "a91657b8b55d587ec2e86cfc4fc08249bd581cd1dc8d9acb19516376fd5e3f54",
+      "transfer": "HackMD CJK14 numbered-note transfer",
+      "noteNumber": 1,
+      "noteCreatedAtTaipei": "2026-07-24T15:49:55+08:00",
+      "recoveredAtTaipei": "2026-07-24T16:03:36+08:00"
+    }
+  },
+  "promotion": {
+    "runtimeSupportPromotion": false,
+    "releaseRedistributionApproved": false
+  },
+  "phaseBResult": {
+    "caseId": "nt51929-andes-normal-cross-110us-to-115us-20260724",
+    "ic": "NT51929",
+    "workflow": "ctrlram-replace",
+    "variant": "Andes D22T01",
+    "project": "Andes-D22T01-Tsen",
+    "topology": "single",
+    "chipCount": 1,
+    "baseKind": "andes-toolchain-flashcode-110us",
+    "ownerExpectedSha256": "9fd3302e867312cf49e85ca44208620928a6fec64a52727dc35950c366e2493c",
+    "v2OutputSha256": "b426125b966901ee8a0efc49ec598ebb7a6641a4391cc0f7c122d764f9f8464f",
+    "differenceCounts": {
+      "ownerToV2": 16,
+      "ctrlRamPayload": 0,
+      "perAllowedCrcWord": [
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    "allowedDifferenceRanges": [
+      {
+        "start": "0x7100",
+        "endExclusive": "0x7104",
+        "classification": "header-crc-word"
+      },
+      {
+        "start": "0x7118",
+        "endExclusive": "0x711C",
+        "classification": "header-crc-word"
+      },
+      {
+        "start": "0x27FF0",
+        "endExclusive": "0x27FF4",
+        "classification": "header-copy-crc-word"
+      },
+      {
+        "start": "0x28008",
+        "endExclusive": "0x2800C",
+        "classification": "header-copy-crc-word"
+      }
+    ],
+    "excludedCascadeOnlyDifferenceRange": {
+      "start": "0x7128",
+      "endExclusive": "0x7144",
+      "classification": "diff-dlm-and-dlm-crc-words",
+      "reason": "The owner case is single IC; cascade-only DiffDLM and DLM1-DLM7 CRC words are unchanged."
+    },
+    "routeProfileId": "nt51929-ctrlram-replace-fw200-single",
+    "processorId": "nfc.nt51929.ctrlram-postbuild-v1",
+    "toolBindingId": "legacy-combiner-1.13.0",
+    "inputArtifactsUnchanged": true,
+    "goldenRegressionTest": "Nt51929AndesNormalCtrlRamGoldenTests.SingleNormalCrossReplacementDiffersFromAndesGoldenOnlyAtDeclaredCrcWordsAsync",
+    "runtimeSupportPromotion": false
+  }
+}

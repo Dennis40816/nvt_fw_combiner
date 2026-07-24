@@ -59,11 +59,20 @@
           "alignment": 1
         },
         {
-          "regionId": "gap-a134",
+          "regionId": "header-dlm-crc-a134-a180",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 41268, "length": 76 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-a180",
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 41268, "length": 98508 },
+          "range": { "start": 41344, "length": 98432 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },

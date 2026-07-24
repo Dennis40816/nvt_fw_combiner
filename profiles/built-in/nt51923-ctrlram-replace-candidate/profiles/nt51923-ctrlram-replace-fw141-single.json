@@ -31,15 +31,18 @@
   "mapBinding": {
     "familyId": "nt51923-ctrlram-replace",
     "familyVersion": "0.2.0",
-    "familyContentHash": "a368c79061f2d95e9c845de3db69b8116f38541ee8d59962abff4a37ddcfc7e7",
+      "familyContentHash": "083a1c9368c80db6b95eaeddeea1efc791f8921f169d5f7d46b9c8e101669990",
     "mapIds": [
       "nt51923-ctrlram-fw141-single-full-flash"
     ],
     "requiredRegionIds": [
       "flash-image",
       "fw-config-source",
+      "header-crc-0018",
       "header-crc-001c",
       "header-crc-003c",
+      "header-crc-004c",
+      "header-crc-005c",
       "header-crc-00fc",
       "normal-ctrlram",
       "mp-ctrlram",
@@ -130,6 +133,14 @@
       }
     },
     {
+      "viewId": "header-crc-0018-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-crc-0018"
+      }
+    },
+    {
       "viewId": "header-crc-001c-output",
       "spaceId": "output-image",
       "selector": {
@@ -143,6 +154,22 @@
       "selector": {
         "kind": "map-region",
         "regionId": "header-crc-003c"
+      }
+    },
+    {
+      "viewId": "header-crc-004c-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-crc-004c"
+      }
+    },
+    {
+      "viewId": "header-crc-005c-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "header-crc-005c"
       }
     },
     {
@@ -205,6 +232,11 @@
   "metadataBindings": [],
   "regionAccessRules": [
     {
+      "regionId": "header-crc-0018",
+      "access": "hidden",
+      "reason": "Only the declared Legacy Combiner processor may recalculate ILM CRC 0."
+    },
+    {
       "regionId": "header-crc-001c",
       "access": "hidden",
       "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word."
@@ -213,6 +245,16 @@
       "regionId": "header-crc-003c",
       "access": "hidden",
       "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word."
+    },
+    {
+      "regionId": "header-crc-004c",
+      "access": "hidden",
+      "reason": "Only the declared Legacy Combiner processor may recalculate CtrlRAM CRC."
+    },
+    {
+      "regionId": "header-crc-005c",
+      "access": "hidden",
+      "reason": "Only the declared Legacy Combiner processor may recalculate MP CtrlRAM CRC."
     },
     {
       "regionId": "header-crc-00fc",
@@ -276,8 +318,11 @@
         "processor-image"
       ],
       "allowedWriteViewIds": [
+        "header-crc-0018-output",
         "header-crc-001c-output",
         "header-crc-003c-output",
+        "header-crc-004c-output",
+        "header-crc-005c-output",
         "header-crc-00fc-output",
         "normal-ctrlram-output",
         "mp-ctrlram-output",

@@ -100,4 +100,67 @@ public sealed class WorkbenchMemoryCoverageRoleTests
             299.999999,
             300.000001));
     }
+
+    /// <summary>NT51950-family AB coverage follows the selected DP container and exposes only user inputs.</summary>
+    [Theory]
+    [InlineData(
+        "NT51950",
+        "single",
+        0x90000L,
+        "0x00000-0x8FFFF (len 0x90000)",
+        "0x4A000-0x76FFF (len 0x2D000)")]
+    [InlineData(
+        "NT51950",
+        "cascade",
+        0x100000L,
+        "0x00000-0xFFFFF (len 0x100000)",
+        "0x4A000-0x76FFF (len 0x2D000)")]
+    [InlineData(
+        "NT51951",
+        null,
+        0x100000L,
+        "0x00000-0xFFFFF (len 0x100000)",
+        "0x8A000-0xB6FFF (len 0x2D000)")]
+    public void Nt51950FamilyAbCoverageUsesSelectedDpLengthAndOnlyFirmwareInputs(
+        string icId,
+        string? topologyToken,
+        long dpInputLength,
+        string expectedFullRange,
+        string expectedTpBRange)
+    {
+        WorkbenchMemoryDisplay display =
+            WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId, topologyToken, dpInputLength);
+
+        Assert.Equal(expectedFullRange, display.RangeLabel);
+        Assert.Collection(
+            display.MemoryMapRows,
+            row =>
+            {
+                Assert.Equal(expectedFullRange, row.RangeLabel);
+                Assert.Equal("DP AB", row.AfterSource);
+            },
+            row =>
+            {
+                Assert.Equal("0x0A000-0x36FFF (len 0x2D000)", row.RangeLabel);
+                Assert.Equal("TPA", row.AfterSource);
+            },
+            row =>
+            {
+                Assert.Equal(expectedTpBRange, row.RangeLabel);
+                Assert.Equal("TPB", row.AfterSource);
+            });
+        Assert.Equal(
+            ["DP AB", "TPA", "TPB"],
+            display.CoverageSegments.Select(static segment => segment.SourceLabel).Distinct(StringComparer.Ordinal));
+        Assert.DoesNotContain(display.MemoryMapRows, static row =>
+            row.ActionLabel.Contains("Postbuild", StringComparison.OrdinalIgnoreCase) ||
+            row.Detail.Contains("CRC", StringComparison.OrdinalIgnoreCase) ||
+            row.Detail.Contains("Allowed writes", StringComparison.OrdinalIgnoreCase) ||
+            row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(display.CoverageSegments, segment => segment.Fill == "#CBD5E1");
+        Assert.InRange(
+            display.CoverageSegments.Sum(static segment => segment.BarWidth),
+            299.999999,
+            300.000001);
+    }
 }

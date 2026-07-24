@@ -54,6 +54,7 @@ public sealed partial class MainWindowViewModel
     private void RefreshMergeMemoryMapState()
     {
         long? selectedMergeDpInputLength = GetSelectedMergeDpInputLength();
+        long? selectedAbMergeDpInputLength = GetSelectedAbMergeDpInputLength();
         (
             string rangeLabel,
             IReadOnlyList<MemoryMapRowViewModel> rows,
@@ -64,7 +65,8 @@ public sealed partial class MainWindowViewModel
                     CreateGeneralMergeMappingInputs()),
                 AbCodeMergeMode => UiCompositionRunner.GetAbMergeMemoryDisplay(
                     SelectedIc,
-                    GetSelectedAbMergeTopologyToken()),
+                    GetSelectedAbMergeTopologyToken(),
+                    selectedAbMergeDpInputLength),
                 _ => UiCompositionRunner.GetStandardMergeMemoryDisplay(
                     SelectedIc,
                     selectedMergeDpInputLength),
@@ -129,6 +131,18 @@ public sealed partial class MainWindowViewModel
     {
         return WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
             _firmwareInspectionSession.TryGetFileLength(_mergeDpSlot, out long length)
+                ? length
+                : null;
+    }
+
+    private long? GetSelectedAbMergeDpInputLength()
+    {
+        WorkbenchAbMergeInputSlot? dpInput = WorkbenchCompositionService
+            .GetAbMergeInputSlots(SelectedIc, GetSelectedAbMergeTopologyToken())
+            .SingleOrDefault(static input => input.Role == WorkbenchAbMergeInputRole.DpAb);
+        return dpInput is not null &&
+            _abMergeSlotsByAddressSpace.TryGetValue(dpInput.AddressSpaceId, out FirmwareSlotViewModel? slot) &&
+            _firmwareInspectionSession.TryGetFileLength(slot, out long length)
                 ? length
                 : null;
     }

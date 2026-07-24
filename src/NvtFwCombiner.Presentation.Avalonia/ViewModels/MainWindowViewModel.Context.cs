@@ -360,10 +360,12 @@ public sealed partial class MainWindowViewModel
         }
 
         _ = RefreshAllSelectedFirmwareInspectionsAsync(acceptedMismatchSlotId);
+        RememberReplaceWorkflowContext();
     }
 
     partial void OnSelectedNumberChanged(string value)
     {
+        RememberReplaceWorkflowContext();
         InvalidateFirmwareNumberMismatch();
         if (_isRefreshingFirmwareInspectionContext)
         {

@@ -193,6 +193,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IcNumberSelectionTokens.SingleChip", postbuildSelector, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.Cascade", postbuildSelector, StringComparison.Ordinal);
         Assert.Contains("public const string SingleChip = IcNumberSelectionTokens.SingleChip;", workbenchTokens, StringComparison.Ordinal);
+        Assert.Contains("public const string CascadeTwoToEight = \"cascade_2to8\";", workbenchTokens, StringComparison.Ordinal);
         Assert.Contains("public const string CascadeTwoToThirteen = \"cascade_2to13\";", workbenchTokens, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.IsSingle(number)", workbenchSelections, StringComparison.Ordinal);
         Assert.Contains("WorkbenchIcNumberTokens.SingleChip", presentationBindings, StringComparison.Ordinal);

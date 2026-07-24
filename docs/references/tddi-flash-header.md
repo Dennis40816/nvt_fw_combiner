@@ -94,6 +94,28 @@ header CRC field  : 0x91E8FA91
 
 This supports the existing 256-byte Copy Header length for NT51923/NT51926 normal-mode postbuild.
 
+## 2026-07-24 Owner Classification Update
+
+The owner reviewed the same hash-pinned workbook against current product
+topology and confirmed:
+
+- NT51919/NT51929/NT51932 currently admit at most eight IC. Their 932 model
+  therefore uses workbook Type A/B, not Type C. Cascade is explicitly 2–8 IC,
+  and DLM CRC 1 through 7 occupy `[0x7128,0x7144)`.
+- On the 950 worksheet, DLM CRC 0 is `[0xA11C,0xA120)`, Header CRC is
+  `[0xA130,0xA134)`, and the 19 four-byte words labeled
+  `Reserved (DIFF CRC)` at `[0xA134,0xA180)` are DLM CRC 1 through 19 in
+  ascending address order. NT51951 aliases this TP header fact.
+- NT51930 cascade uses DLM CRC 1 through 12 at `[0x7128,0x7158)`;
+  NT51931 cascade uses DLM CRC 1 through 19 at `[0x006C,0x00B8)`.
+- For normal 920/923/925/926 headers, Combiner may refresh ILM0, DLM0,
+  FW Config, CtrlRAM, MP CtrlRAM, and Header CRC words. This classification
+  applies to postbuild write authorization only; it does not grant write access
+  to intervening descriptor bytes.
+
+Single-chip NT-based plans retain only their base Header/DLM0 CRC authority.
+The additional DLM words above are cascade-only.
+
 ## NT51923 vs NT51926 Implications
 
 Current repo behavior that this evidence supports:

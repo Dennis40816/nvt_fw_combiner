@@ -257,7 +257,7 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
             artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
     }
 
-    /// <summary>NT51919 and NT51929 generic cascade routes consume the owner-declared DiffDLM range.</summary>
+    /// <summary>NT51919 and NT51929 bounded cascade routes consume the owner-declared DiffDLM range.</summary>
     [Theory]
     [InlineData("NT51919", "nt51919-ctrlram-replace-fw1x-cascade")]
     [InlineData("NT51929", "nt51929-ctrlram-replace-fw1x-cascade")]
@@ -281,7 +281,7 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             icId,
-            "cascade",
+            WorkbenchIcNumberTokens.CascadeTwoToEight,
             slotPaths,
             build: true,
             outputPath,

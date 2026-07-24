@@ -56,10 +56,10 @@ Application category object until an actual report semantic emits one.
 | NT51926 | 925&926 normal | Workbook | Direct `925&926` worksheet model; never uses `926NB`. |
 | NT51927 | 927 | Workbook + postbuild continuation | `927` worksheet Header #0 through #2; its continuation marker and the approved three-chip final-header copy confirm Header #3 coverage for reporting. |
 | NT51928 | 927 | Documented alias | Non-NB only; NT51928 NB is not modeled. |
-| NT51929 | 932 common | Documented alias | TP Overview owner confirmation: follows NT51932 postbuild. |
+| NT51929 | 932 Type A/B | Documented alias | TP Overview owner confirmation: follows NT51932 postbuild and is limited to 2–8 IC cascade. |
 | NT51930 | 930 | Workbook | Direct `930` worksheet model. |
 | NT51931 | 931 | Workbook | Direct `931` worksheet model. |
-| NT51932 | 932 common | Workbook common fields | Only fields shared by the worksheet's Type A/B/C diagrams are modeled. |
+| NT51932 | 932 Type A/B | Workbook | Owner confirmed the current 1–8 IC product scope uses the worksheet Type A/B layout; Type C is not admitted. |
 | NT51950 | 950 | Workbook | Direct `950` worksheet model. |
 | NT51951 | 950 | Documented alias | TP Overview owner confirmation: follows NT51950 postbuild. |
 
@@ -72,8 +72,8 @@ Application category object until an actual report semantic emits one.
 | 931 | `[0x0000, 0x0100)` | Adds DLM DIFF and DLM CRC 1 through 19 fields. |
 | 927 | `[0x0000, 0x0100)`, `[0x0200, 0x02E0)` | Global header, command header, workbook-described per-IC headers 0 through 2, and Header #3 from the workbook continuation plus three-chip final-header copy source coverage. |
 | 930 | `[0x7100, 0x7200)` | NT-based descriptor layout. |
-| 932 common | `[0x7100, 0x7200)` | Common fields only; no type-specific inference. |
-| 950 | `[0xA100, 0xA200)` | NT51950-based descriptor layout. |
+| 932 Type A/B | `[0x7100, 0x7200)` | Type A/B fields for 1–8 IC, including DLM CRC 1 through 7. |
+| 950 | `[0xA100, 0xA200)` | NT51950-based descriptor layout, including owner-classified DIFF CRC words as DLM CRC 1 through 19. |
 
 ## Complete Current Field Inventory
 
@@ -86,18 +86,18 @@ layout and is not a second independently inferred model.
 | IC | Header layout | Model status | Field count |
 | --- | --- | --- | ---: |
 | NT51917 | NT51927 / 927 | Documented alias | 68 |
-| NT51919 | NT51932 / 932 common | Documented alias | 12 |
+| NT51919 | NT51932 / 932 Type A/B | Documented alias | 19 |
 | NT51920 | 920&923 normal | Workbook | 25 |
 | NT51923 | 920&923 normal | Workbook | 25 |
 | NT51926 | 925&926 normal | Workbook | 26 |
 | NT51927 | 927 | Workbook + postbuild continuation | 68 |
 | NT51928 | NT51927 / 927 (non-NB only) | Documented alias | 68 |
-| NT51929 | NT51932 / 932 common | Documented alias | 12 |
+| NT51929 | NT51932 / 932 Type A/B | Documented alias | 19 |
 | NT51930 | 930 | Workbook | 44 |
 | NT51931 | 931 | Workbook | 49 |
-| NT51932 | 932 common fields | Workbook common fields | 12 |
-| NT51950 | 950 | Workbook | 12 |
-| NT51951 | NT51950 / 950 | Documented alias | 12 |
+| NT51932 | 932 Type A/B | Workbook | 19 |
+| NT51950 | 950 | Workbook + owner DIFF-CRC classification | 31 |
+| NT51951 | NT51950 / 950 | Documented alias | 31 |
 
 ### 920&923 Normal (NT51920, NT51923)
 
@@ -226,9 +226,11 @@ grant write authority or assert parity beyond those named fields.
 | `[0x719C, 0x71A0)` | DLM start address in BIN |
 | `[0x71A0, 0x71A4)` | DLM DIFF start address in BIN |
 
-### 932 Common (NT51919, NT51929, NT51932)
+### 932 Type A/B (NT51919, NT51929, NT51932)
 
-Only the fields common to the worksheet's Type A/B/C diagrams are modeled:
+The owner confirmed that current cascade products are limited to 2–8 IC, so
+the workbook's Type A/B layout is authoritative. Type C (9–16 IC) remains
+outside the admitted model.
 
 | Range | Field |
 | --- | --- |
@@ -244,6 +246,7 @@ Only the fields common to the worksheet's Type A/B/C diagrams are modeled:
 | `[0x7124, 0x7125)` | Build read command |
 | `[0x7125, 0x7126)` | Build divider count |
 | `[0x7126, 0x7127)` | SPI option |
+| `[0x7128, 0x7144)` | DLM CRC 1 through DLM CRC 7; one four-byte field every four bytes |
 
 ### 950 (NT51950, NT51951)
 
@@ -261,6 +264,7 @@ Only the fields common to the worksheet's Type A/B/C diagrams are modeled:
 | `[0xA12B, 0xA12C)` | Build divider count |
 | `[0xA12C, 0xA12D)` | SPI option |
 | `[0xA130, 0xA134)` | Header CRC |
+| `[0xA134, 0xA180)` | DLM CRC 1 through DLM CRC 19; owner-classified from the workbook's `Reserved (DIFF CRC)` words |
 
 ## Field Examples
 
@@ -286,7 +290,8 @@ The first row is the requested reference: bytes `0x0000` through `0x0003` are th
 
 | IC family | Range | Title emitted when the exact postbuild change is inside the field |
 | --- | --- | --- |
-| NT51920/NT51923/NT51926 normal | `[0x001C, 0x0020)` | `DLM CRC 0` |
+| NT51920/NT51923/NT51926 normal | `[0x0018, 0x0020)` | `ILM CRC 0`, `DLM CRC 0` |
+| NT51920/NT51923/NT51926 normal | `[0x003C, 0x0060)` at the modeled CRC words | `FW Config CRC`, `CtrlRAM CRC`, `MP CtrlRAM CRC` |
 | NT51920/NT51923/NT51926 normal | `[0x00FC, 0x0100)` | `Header CRC` |
 | NT51927-based | `[0x023C, 0x0240)` | `DLM CRC 0` |
 | NT51927-based | `[0x024C, 0x0250)` | `Header CRC 0` |
@@ -294,8 +299,12 @@ The first row is the requested reference: bytes `0x0000` through `0x0003` are th
 | NT51927-based | `[0x02DC, 0x02E0)` | `Header CRC 3` |
 | NT51930/NT51932-based | `[0x7100, 0x7104)` | `Header CRC` |
 | NT51930/NT51932-based | `[0x7118, 0x711C)` | `DLM CRC 0` |
+| NT51930 cascade, 2–13 IC | `[0x7128, 0x7158)` | `DLM CRC 1` through `DLM CRC 12` |
+| NT51919/NT51929/NT51932 cascade, 2–8 IC | `[0x7128, 0x7144)` | `DLM CRC 1` through `DLM CRC 7` |
+| NT51931 cascade | `[0x006C, 0x00B8)` | `DLM CRC 1` through `DLM CRC 19` |
 | NT51950/NT51951-based | `[0xA11C, 0xA120)` | `DLM CRC 0` |
 | NT51950/NT51951-based | `[0xA130, 0xA134)` | `Header CRC` |
+| NT51950/NT51951 cascade | `[0xA134, 0xA180)` | `DLM CRC 1` through `DLM CRC 19` |
 
 ## Report Projection
 

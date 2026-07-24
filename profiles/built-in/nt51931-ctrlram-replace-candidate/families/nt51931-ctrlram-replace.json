@@ -41,11 +41,29 @@
           "alignment": 1
         },
         {
-          "regionId": "gap-0020",
+          "regionId": "gap-0020-to-006c",
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 32, "length": 220 },
+          "range": { "start": 32, "length": 76 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-dlm-crc-006c-00b8",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 108, "length": 76 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-00b8-to-00fc",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 184, "length": 68 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },

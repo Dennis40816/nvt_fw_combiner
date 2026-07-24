@@ -408,7 +408,7 @@ public sealed class BuiltInTpFlashMapCatalogTests
         Assert.Equal(
             [
                 new IcNumberChoice("single", "1 IC"),
-                new IcNumberChoice("cascade", "Cascade"),
+                new IcNumberChoice("cascade_2to8", "2–8 IC"),
             ],
             nt51932);
         Assert.Equal(

@@ -35,7 +35,7 @@
   "mapBinding": {
     "familyId": "nt51926-ctrlram-replace",
     "familyVersion": "0.6.0",
-    "familyContentHash": "cc9dee1bff96fe5e0ee0ce6761d73e806c13f6f3050203d9670297eceeee1b3a",
+      "familyContentHash": "536cbef1e3987685e7b121f9c37cf344a58df6aced686b1cdf3fee59b5fd1c74",
     "mapIds": [
       "nt51926-ctrlram-fw141-tp-work-240k",
       "nt51926-ctrlram-fw141-full-flash-256k"
@@ -50,8 +50,11 @@
       "nf-ctrlram",
       "fw-config-backup",
       "header-copy",
+      "header-crc-18",
       "header-crc-1c",
       "header-crc-3c",
+      "header-crc-4c",
+      "header-crc-5c",
       "header-crc-fc"
     ],
     "requiredMetadataStructureIds": [
@@ -182,8 +185,11 @@
     { "viewId": "nf-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "nf-ctrlram" } },
     { "viewId": "fw-config-backup-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "fw-config-backup" } },
     { "viewId": "header-copy-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy" } },
+    { "viewId": "header-crc-18-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-18" } },
     { "viewId": "header-crc-1c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-1c" } },
     { "viewId": "header-crc-3c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-3c" } },
+    { "viewId": "header-crc-4c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-4c" } },
+    { "viewId": "header-crc-5c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-5c" } },
     { "viewId": "header-crc-fc-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-fc" } }
   ],
   "metadataBindings": [],
@@ -195,8 +201,11 @@
     { "regionId": "nf-ctrlram", "access": "explicit-range", "reason": "The declared 0x2DD0-byte region is a maximum; the immutable replacement may populate only its available prefix." },
     { "regionId": "fw-config-backup", "access": "explicit-range", "reason": "Combiner copies the reviewed firmware-config source block to the backup target; it is not user authoring authority." },
     { "regionId": "header-copy", "access": "explicit-range", "reason": "Combiner owns the reviewed header copy and final header CRC refresh target." },
+    { "regionId": "header-crc-18", "access": "explicit-range", "reason": "Only the declared Legacy Combiner processor may recalculate ILM CRC 0." },
     { "regionId": "header-crc-1c", "access": "explicit-range", "reason": "Combiner recalculates this reviewed source header integrity field." },
     { "regionId": "header-crc-3c", "access": "explicit-range", "reason": "Combiner recalculates this reviewed source header integrity field." },
+    { "regionId": "header-crc-4c", "access": "explicit-range", "reason": "Only the declared Legacy Combiner processor may recalculate CtrlRAM CRC." },
+    { "regionId": "header-crc-5c", "access": "explicit-range", "reason": "Only the declared Legacy Combiner processor may recalculate MP CtrlRAM CRC." },
     { "regionId": "header-crc-fc", "access": "explicit-range", "reason": "Combiner recalculates this reviewed source header integrity field." }
   ],
   "operations": [
@@ -230,8 +239,11 @@
         "nf-ctrlram-output",
         "fw-config-backup-output",
         "header-copy-output",
+        "header-crc-18-output",
         "header-crc-1c-output",
         "header-crc-3c-output",
+        "header-crc-4c-output",
+        "header-crc-5c-output",
         "header-crc-fc-output"
       ],
       "stagedSourceBindings": [

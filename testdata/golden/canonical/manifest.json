@@ -47,6 +47,21 @@
       }
     },
     {
+      "legacyRoot": "testdata/golden/owner-handoff/20260724/51929-normal-ctrlram-replace",
+      "source": {
+        "fileName": "51929-normal-ctrlram-replace.7z",
+        "sha256": "a91657b8b55d587ec2e86cfc4fc08249bd581cd1dc8d9acb19516376fd5e3f54",
+        "transfer": "HackMD CJK14 numbered-note transfer",
+        "noteNumber": 1,
+        "noteCreatedAtTaipei": "2026-07-24T15:49:55+08:00",
+        "noteCharacters": 27562,
+        "noteSha256": "ff69540e865d48556836b2331e5aeb98412c0cdaca621d64811bbff4b5a3b144",
+        "sourceClassification": "private-owner-approved-golden",
+        "approval": "Repository owner supplied this archive and directed the NT51929 single Normal CtrlRAM Andes case to be added as a golden on 2026-07-24.",
+        "evidenceScope": "NT51929 single Normal CtrlRAM cross-replacement only; no runtime support promotion or release redistribution."
+      }
+    },
+    {
       "legacyRoot": "testdata/golden/ctrlram-replace/fixtures/20260718",
       "source": {
         "fileName": "Golden_最後一次_20260718_Reply.7z",
@@ -220,6 +235,10 @@
     {
       "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
       "manifestPath": "NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/provenance/case.json"
+    },
+    {
+      "caseId": "nt51929-andes-normal-cross-110us-to-115us-20260724",
+      "manifestPath": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/provenance/case.json"
     },
     {
       "caseId": "nt51950-fw200-single-auto-prj-676-20260717",

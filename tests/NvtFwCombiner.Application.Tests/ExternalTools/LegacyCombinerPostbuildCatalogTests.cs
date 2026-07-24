@@ -29,7 +29,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Equal("51950_2.0.0", LegacyCombinerPostbuildCatalog.Nt51951.DisplayCategory);
     }
 
-    /// <summary>Locks normal-mode source header CRC word writes outside explicit copy targets.</summary>
+    /// <summary>Locks every normal-mode CRC word that Combiner may refresh outside explicit copy targets.</summary>
     [Fact]
     public void NormalModePlansDeclareKnownSourceHeaderIntegrityWrites()
     {
@@ -39,9 +39,16 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
 
         IReadOnlyList<ByteRange> ranges = IntegrityRanges(plan, 0x40000);
 
-        Assert.Contains(new ByteRange(0x1C, 4), ranges);
-        Assert.Contains(new ByteRange(0x3C, 4), ranges);
-        Assert.Contains(new ByteRange(0xFC, 4), ranges);
+        Assert.Equal(
+            [
+                new ByteRange(0x18, 4),
+                new ByteRange(0x1C, 4),
+                new ByteRange(0x3C, 4),
+                new ByteRange(0x4C, 4),
+                new ByteRange(0x5C, 4),
+                new ByteRange(0xFC, 4),
+            ],
+            ranges);
     }
 
     /// <summary>Locks NT-based source header CRC word writes observed in real-tool smoke evidence.</summary>
@@ -76,6 +83,78 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Contains(new ByteRange(0xFC, 4), nt51931Ranges);
         Assert.Contains(new ByteRange(0xA11C, 4), nt51950Ranges);
         Assert.Contains(new ByteRange(0xA130, 4), nt51950Ranges);
+    }
+
+    /// <summary>Locks cascade-only DLM CRC authority to the owner-confirmed header capacity of each family.</summary>
+    [Fact]
+    public void NtBasedCascadePlansDeclareDlmCrcWords()
+    {
+        LegacyCombinerPostbuildCommandPlan nt51932 = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51932,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade_2to8"]));
+        LegacyCombinerPostbuildCommandPlan nt51930 = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade_2to13"]));
+        LegacyCombinerPostbuildCommandPlan nt51931 = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51931,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+        LegacyCombinerPostbuildCommandPlan nt51950 = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51950,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+
+        Assert.Contains(new ByteRange(0x7128, 0x1C), IntegrityRanges(nt51932, 0x40000));
+        Assert.Contains(new ByteRange(0x7128, 0x30), IntegrityRanges(nt51930, 0x40000));
+        Assert.Contains(new ByteRange(0x6C, 0x4C), IntegrityRanges(nt51931, 0x40000));
+        Assert.Contains(new ByteRange(0xA134, 0x4C), IntegrityRanges(nt51950, 0x40000));
+    }
+
+    /// <summary>Single-chip plans do not authorize cascade-only DLM CRC words.</summary>
+    [Fact]
+    public void NtBasedSinglePlansExcludeCascadeOnlyDlmCrcWords()
+    {
+        LegacyCombinerPostbuildCommandPlan nt51932 = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51932,
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+        LegacyCombinerPostbuildCommandPlan nt51950 = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51950,
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        Assert.DoesNotContain(new ByteRange(0x7128, 0x1C), IntegrityRanges(nt51932, 0x40000));
+        Assert.DoesNotContain(new ByteRange(0xA134, 0x4C), IntegrityRanges(nt51950, 0x40000));
+    }
+
+    /// <summary>The NT51919/29/32 family accepts only owner-confirmed 2–8 IC cascade counts.</summary>
+    [Fact]
+    public void Nt51929FamilyCascadePlansAreLimitedToTwoThroughEightIc()
+    {
+        LegacyCombinerPostbuildProfile[] profiles =
+        [
+            LegacyCombinerPostbuildCatalog.Nt51919,
+            LegacyCombinerPostbuildCatalog.Nt51929,
+            LegacyCombinerPostbuildCatalog.Nt51932,
+        ];
+
+        foreach (LegacyCombinerPostbuildProfile profile in profiles)
+        {
+            Assert.Equal(
+                LegacyCombinerPostbuildBranch.Cascade,
+                LegacyCombinerPostbuildPlanner.CreatePlan(
+                    profile,
+                    new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"])).Branch);
+            Assert.Equal(
+                LegacyCombinerPostbuildBranch.Cascade,
+                LegacyCombinerPostbuildPlanner.CreatePlan(
+                    profile,
+                    new IcNumberSelection(IcNumberInputMode.NumericSelector, ["8"])).Branch);
+            _ = Assert.Throws<ArgumentException>(() =>
+                LegacyCombinerPostbuildPlanner.CreatePlan(
+                    profile,
+                    new IcNumberSelection(IcNumberInputMode.NumericSelector, ["9"])));
+            _ = Assert.Throws<ArgumentException>(() =>
+                LegacyCombinerPostbuildPlanner.CreatePlan(
+                    profile,
+                    new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"])));
+        }
     }
 
     /// <summary>Locks NT51927-family CRC-only header integrity writes observed in owner golden self-tests.</summary>
