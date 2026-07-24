@@ -39,11 +39,12 @@ only from its exact official predecessor release tag.
 | `0.9.12` | CtrlRAM production routing and interaction stabilization. |
 | `0.9.13` | Urgent UI/release stabilization. |
 | `0.9.14` | AB re-admission, minimum authoring UI, and CI-owned release promotion. |
-| `0.9.15` | Final 0.9.x release: AB function opening, output/delivery usability, and review handoff. |
+| `0.9.15` | AB function opening, output/delivery usability, and review handoff. |
+| `0.9.16` | Exceptional CRC/header-authority hot-fix with Replace/AB UI corrections, TP inspection correction, and NT51929 single Normal CtrlRAM golden evidence. |
 
-## `0.9.15` terminal release record
+## `0.9.15` baseline and `0.9.16` hot-fix record
 
-`0.9.15` is the final 0.9.x version.  It is based on official `v0.9.14` tag
+`0.9.15` is based on official `v0.9.14` tag
 `58f5bbf4cdbfb4e02036c8c1b40c48aa88fa21f7`, peeled commit
 `9b15d8757ccb44167c471ca4e602036066bcdea9`.
 
@@ -52,23 +53,33 @@ It function-opens only NT51919/NT51929/NT51932 AB, NT51950 AB `1 IC`/
 naming, optional A-only FlashCode delivery for the Perfect-family route, and
 delivery-to-review evidence collection.  It does not certify those routes.
 
-Before publishing the stable release, the exact reviewed `0.9.15` head still
-requires protected CI, independent Codex review, firmware-owner/release-owner
-approval, release-package/provenance evidence, and a clean-Windows package
-smoke.  Missing direct AB golden remains a certification debt; its closure is
-scheduled below and is not represented as an existing support claim.
+`0.9.16` is an exceptional hot-fix based only on official `v0.9.15`, annotated
+tag object `eac9319a0e7fb3315e032a207104b7ed60fc4235`, peeled commit
+`008333a9c96ea65454a334824d349f3574373edd`.  It owns the reviewed CRC/header
+write-authority classification, Replace/AB UI state and coverage corrections,
+TP-firmware inspection correction, and the NT51929 single Normal CtrlRAM golden.
+It does not certify AB Code, change a CRC algorithm/order, or absorb the former
+NT51950 AB certification assignment; that evidence work is scheduled in the
+`0.11.0` track.
+
+The `v0.9.15` package assets were independently validated.  Visible
+clean-Windows UI smoke and release-workflow annotated-tag newline hardening
+remain explicit `0.10.0` gates and are not represented as completed by this
+hot-fix.
 
 ## `0.10.x`: support visibility, issue/report experience, and maintainability
 
-`0.10.0` begins only from the official reviewed `v0.9.15` tag.  The complete
-`0.10.x` sequence owns the three R2 product tracks below and finishes the
-skills/documents/test/production-maintainability program before `0.11.0`
-begins.  The ordered minor allocation is a release boundary, not permission to
-mix unreviewed refactors into a product slice:
+`0.10.0` was originally planned from official `v0.9.15`.  Before any `0.10.0`
+release, its branch must include or reconcile the complete reviewed `v0.9.16`
+hot-fix; a branch created before `v0.9.16` cannot omit or partially recreate
+those fixes.  The complete `0.10.x` sequence owns the three R2 product tracks
+below and finishes the skills/documents/test/production-maintainability
+program before `0.11.0` begins.  The ordered minor allocation is a release
+boundary, not permission to mix unreviewed refactors into a product slice:
 
 | Version | Ordered scope | Exit boundary |
 | --- | --- | --- |
-| `0.10.0` | M0/M1 inventory, documentation/skill rationalization, reviewed Matt Pocock active-skill adoption, and Settings Support Matrix. | Exact `v0.9.15` baseline; one reviewed ownership/skill inventory; no route-admission change. |
+| `0.10.0` | M0/M1 inventory, documentation/skill rationalization, reviewed Matt Pocock active-skill adoption, and Settings Support Matrix. | Original `v0.9.15` planning baseline plus complete reviewed `v0.9.16` reconciliation; one reviewed ownership/skill inventory; no route-admission change. |
 | `0.10.1` | M2 test-harness convergence and Error experience unification. | Exact `v0.10.0` baseline; characterization remains intact and stable issue codes remain authoritative. |
 | `0.10.2` | M3/M4 production refactoring and Report detail/layout/function review. | Exact `v0.10.1` baseline; byte/report/UI parity and all R2/R3 gates remain explicit. |
 
@@ -108,7 +119,7 @@ release readiness, or R2/R3 human gates.
 
 | Phase | Scope | Exit gate |
 | --- | --- | --- |
-| M0 | Reconcile to exact `v0.9.15`; inventory module ownership/dependencies, public contracts, tests, documentation, ADRs, and installed skills. | One reviewed baseline report names every item, authority, consumer, overlap, and disposition. No production behavior change. |
+| M0 | Reconcile the original `v0.9.15` planning baseline with the complete reviewed `v0.9.16` hot-fix; inventory module ownership/dependencies, public contracts, tests, documentation, ADRs, and installed skills. | One reviewed baseline report names every item, authority, consumer, overlap, and disposition. No production behavior change. |
 | M1 | Rationalize documentation/skills and adopt the reviewed active Matt Pocock skills with a pinned upstream revision and explicit invocation/routing policy. | Every keep/merge/replace/delete choice records retained authority, inbound-link migration, compatibility, and representative workflow validation. |
 | M2 | Simplify the test harness before production restructuring: exact duplicate setup/builders/fixtures/assertions, slow/flaky seams, and test-only production seams. | Characterization, contract, architecture, property, integration, and golden responsibilities remain explicit; no evidence is deleted for a metric. |
 | M3 | Refactor production in small vertical slices around reviewed ownership seams. | Each slice has a fixed baseline, narrow behavioral/architecture tests, migration/rollback seam, Polytail, independent review, and canonical verification. |
