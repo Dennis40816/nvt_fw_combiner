@@ -6,28 +6,75 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 No unreleased changes.
 
-## [0.9.15] - 2026-07-23
+## [0.9.15] - 2026-07-24
 
-### Review candidate — not a published release
+### Summary
+
+This release opens the profile-declared AB Code workflow for NT51950 and NT51951,
+makes the resulting FlashCode identity auditable from accepted DP/TP metadata, and
+adds an optional A-only FlashCode delivery for the NT51929 family. It also improves
+CtrlRAM Replace handling of TP firmware bases for NT51950/NT51951 and adds
+release-review evidence automation. Standard Merge, Customized Merge, DP Replace,
+and existing CtrlRAM workflows retain their established execution contracts.
+
+### Product changes
 
 #### AB Code function opening and output identity
 
 - Before → After: AB Code exposed only the fixed NT51919/NT51929/NT51932 route; it now also exposes profile-owned NT51950 `1 IC`/`Cascade` choices and selector-free NT51951 in Merge UI and CLI. Every route declares its A/B CMI readers in its compiled map, so output naming and input inspection have no IC-specific GenFlash catalog fallback. The selected canonical IC, compiled map, and—only for NT51950—the explicit topology token select execution; TP version, PID, Common FW, project ID, filename, and hash never select a route.
 - Affected: Merge → AB Code. NT51950 `1 IC` outputs 512 KiB; NT51950 `Cascade` and NT51951 output 1 MiB. Every TPA/TPB input must cover `[0x00000,0x37000)` and contributes only `[0x0A000,0x37000)`.
-- Support status: Function open, not certified. NT51950 `1 IC` has owner-supplied evidence pending formal closure; NT51950 `Cascade` and NT51951 direct AB golden vectors remain missing. No NT51950 evidence promotes NT51951, and no normal Merge/Replace/CtrlRAM golden substitutes for AB Code evidence.
-- Compatibility: Existing explicit output paths continue to win; their selected path is the report identity. Automatic names now use `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` with a UTC date. Output/input aliases fail closed; a different pre-existing output is atomically replaced.
-- Security: TPA remains byte-for-byte copied. TPB alone is cloned, relocates ILM/DLM/DIFF through the declared staged path, is postbuilt in a host-owned A/B work image, and backfills only the declared B slot after allowed-diff and independent CRC-equivalence checks. Inputs and the complete DP tail remain immutable/preserved.
-- Verification: profile/runtime/UI/CLI boundary tests, C#/postbuild CRC equivalence, source immutability, output-override, stale-tail, topology-mismatch, and output-preservation tests pass in the complete repository verifier.
+- Support status: Function open but not certified. NT51950 `1 IC` has evidence pending formal closure; direct AB vectors for NT51950 `Cascade` and NT51951 remain unavailable. Evidence from one IC or normal Merge/Replace/CtrlRAM does not promote another AB route.
+- Compatibility: Existing explicit output paths continue to win and remain the report identity. Automatic names use `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` with a UTC date. Output/input aliases fail closed; a different pre-existing output is atomically replaced.
+- Verification: Profile, runtime, UI, CLI, source-immutability, output-override, stale-tail, topology-mismatch, and output-preservation coverage runs through the canonical repository verifier.
+- Limitations: NT51950/NT51951 AB availability is support-neutral until direct evidence and firmware-owner review close the route-specific promotion gates.
+
+#### Optional NT51929 A-only FlashCode delivery
+
+- Before → After: an NT51929 AB build produced only the combined A/B container; the operator can now choose before Build whether to also write the profile-declared A bank as a separate FlashCode, with a separate save choice for each output.
+- Affected: Merge → AB Code for the NT51919/NT51929/NT51932 family. NT51950 and NT51951 intentionally do not expose this A-only delivery.
+- Support status: Available within the existing AB pilot scope; it does not certify additional ICs or change AB evidence status.
+- Compatibility: Declining the optional delivery preserves the prior one-output flow. Automatic and explicit output names remain distinct, and every reported artifact uses its effective saved name.
+- Verification: UI and Bootstrap tests cover the two-save-dialog order, automatic-name re-resolution, output/input alias rejection before execution, A-bank range declaration, primary-output preservation, and partial-delivery reporting.
+- Limitations: The optional A-only artifact is a profile-declared NT51929-family delivery only; it is not inferred for other AB layouts.
+
+#### CtrlRAM Replace TP firmware-base recognition
+
+- Before → After: CtrlRAM Replace could present an NT51950/NT51951 TP firmware base as a FlashCode-shaped input; it now recognizes the declared TP-only form and names a successful output as `NT519xx_TPFW_Tvvvv_yyyyMMdd.bin`, including an operator-selected TP version update.
+- Affected: Replace → CtrlRAM for NT51950 and NT51951. TP-only input is the declared `[0x00000,0x37000)` prefix; full FlashCode bases retain their complete image and their FlashCode naming.
+- Support status: Support-neutral routing and naming improvement. It does not promote AB Code or reuse one IC's evidence for another.
+- Compatibility: Existing full FlashCode CtrlRAM Replace continues to preserve the tail outside the TP prefix. Other ICs classify TP firmware from their profile-declared DP regions rather than from a shared size shortcut.
+- Verification: Candidate profile, map-closure, output-naming, full-flash tail-preservation, TP version propagation, and canonical repository verification tests cover the behavior.
+- Limitations: The postbuild tool runs only over the declared TP prefix; its write authority and all firmware support claims remain profile-declared and review-gated.
 
 #### Delivery-to-review automation
 
-- Before → After: reviewers had to reconstruct baseline, changed-file, and residual-gate evidence manually; the read-only `collect_review_handoff.py` collector now fails closed for dirty/ambiguous lineage and records the exact annotated baseline, peeled SHA, branch/tree, committed diff, supplied CI state, verification state, impact, unchanged boundaries, and all required human gates.
-- Affected: version-branch review handoff only. The collector is evidence-only and cannot build, merge, tag, push, publish, or promote support.
-- Remaining gates: independent reviewer/Codex review, firmware-owner map/processor approval, protected CI, clean Windows package smoke, and release-owner approval remain open. Direct-golden closure is explicit `0.11.0` certification work, not a claim of current support certification. This candidate must not be represented as a stable release or support certification.
+- Before → After: reviewers had to reconstruct baseline, changed-file, and residual-gate evidence manually; the read-only `collect_review_handoff.py` collector now fails closed for dirty or ambiguous lineage and records the exact annotated baseline, peeled SHA, branch/tree, committed diff, supplied CI state, verification state, impact, unchanged boundaries, and required human gates.
+- Affected: Version-branch review handoff only.
+- Support status: Release-process improvement; firmware support and byte behavior are unchanged.
+- Compatibility: The collector is evidence-only and cannot build, merge, tag, push, publish, or promote support.
+- Verification: Review-handoff contract coverage and canonical verification validate clean-lineage and release-evidence behavior.
+- Limitations: Direct AB evidence closure is planned certification work and remains separate from this automation.
 
-#### Deferred work
+### Security
 
-- All-IC/all-mode documentation and Mermaid adoption, execution-path convergence, shared viewport/Changes/Button presentation work, Settings Support Matrix, error-experience unification, IC family/rule authoring, customized-plan import, and report-layout redesign remain owner-selected later work. They are not hidden dependencies of this candidate.
+- AB inputs remain immutable. TPA is copied unchanged; TPB is processed only through the declared host-owned staging path, and the complete DP tail is preserved.
+- Automatic output names and optional A-only delivery are checked against selected inputs before composition. Explicit output paths remain allowed only when they do not alias protected inputs.
+- This release does not broaden arbitrary command execution, change checksum algorithms, or allow an external processor outside its declared read/write ranges.
+
+### Known issues
+
+- No function-open AB route is certified. NT51929 requires firmware-owner promotion review; NT51919 and NT51932 still require their own direct-product golden closure beyond the approved NT51929 fact scope; NT51950 `1 IC` has a supplied vector awaiting formal intake/certification; NT51950 `Cascade` and NT51951 still require direct vectors. Firmware-owner promotion remains outstanding for every route. Availability is not a certification claim.
+- All-IC/all-mode workflow documentation, shared presentation convergence, Settings Support Matrix, error-experience unification, IC family/rule authoring, customized-plan import, and report-layout redesign remain scheduled for later owner-selected releases.
+
+### Upgrade and rollback
+
+- Upgrade by replacing the complete previous portable folder with `NvtFwCombiner-v0.9.15-win-x64`; do not copy only the EXE or merge package contents into a OneDrive-synchronized profile tree.
+- Saved preferences and report history require no migration. Roll back by restoring the untouched `v0.9.14` portable folder; firmware outputs remain ordinary BIN files.
+
+### Downloads and integrity
+
+- The stable GitHub Release publishes `NvtFwCombiner-v0.9.15-win-x64.zip`, its SPDX SBOM, provenance, candidate manifest, and outer SHA-256 list. GitHub also provides tag-derived source ZIP and TAR.GZ downloads.
+- Verify the outer checksum list and provenance source identity before distribution. The Windows x64 package is self-contained and does not require a separately installed .NET or Python runtime.
 
 ## [0.9.14] - 2026-07-22
 
