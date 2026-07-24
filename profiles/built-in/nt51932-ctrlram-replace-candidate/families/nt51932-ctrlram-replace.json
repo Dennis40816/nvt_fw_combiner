@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51932-ctrlram-replace",
-  "familyVersion": "0.3.0",
+  "familyVersion": "0.4.0",
   "members": [
     {
       "memberId": "NT51932",
@@ -59,11 +59,29 @@
           "alignment": 1
         },
         {
-          "regionId": "gap-711c",
+          "regionId": "gap-711c-to-7128",
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 28956, "length": 98532 },
+          "range": { "start": 28956, "length": 12 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-dlm-crc-7128-7144",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 28968, "length": 28 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-7144-to-fwconfig",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 28996, "length": 98492 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -249,7 +267,7 @@
       "applicability": {
         "memberIds": [ "NT51932" ],
         "modeIds": [ "ctrlram-replace" ],
-        "topologyRequirement": { "kind": "cascade", "minimumChipCount": 2 },
+        "topologyRequirement": { "kind": "cascade", "minimumChipCount": 2, "maximumChipCount": 8 },
         "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",

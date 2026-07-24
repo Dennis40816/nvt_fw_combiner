@@ -1,11 +1,14 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
     private WorkflowContextTarget? _workflowContextTarget;
+    private string _replaceWorkflowContextIc = WorkbenchCompositionService.GetDefaultIcId();
+    private string _replaceWorkflowContextNumber = WorkbenchIcNumberTokens.SingleChip;
 
     /// <summary>Gets the cancelable IC context draft shown for Home workflow shortcuts.</summary>
     public WorkflowContextSetupViewModel WorkflowContextSetup { get; } = new();
@@ -30,7 +33,9 @@ public sealed partial class MainWindowViewModel
         IReadOnlyList<string>? icChoices = null)
     {
         _workflowContextTarget = new WorkflowContextTarget(page, mode, showNumber);
-        WorkflowContextSetup.Configure(SelectedIc, SelectedNumber, showNumber, icChoices);
+        string draftIc = page == ShellPage.Replace ? _replaceWorkflowContextIc : SelectedIc;
+        string draftNumber = page == ShellPage.Replace ? _replaceWorkflowContextNumber : SelectedNumber;
+        WorkflowContextSetup.Configure(draftIc, draftNumber, showNumber, icChoices);
         WorkflowContextDetail = page == ShellPage.Replace
             ? Text.WorkflowContextReplaceDetail
             : Text.WorkflowContextMergeDetail;
@@ -44,6 +49,12 @@ public sealed partial class MainWindowViewModel
         {
             IsWorkflowContextModalOpen = false;
             return;
+        }
+
+        if (target.Page == ShellPage.Replace)
+        {
+            _replaceWorkflowContextIc = WorkflowContextSetup.SelectedIc;
+            _replaceWorkflowContextNumber = WorkflowContextSetup.SelectedNumber;
         }
 
         SelectedIc = WorkflowContextSetup.SelectedIc;
@@ -69,6 +80,17 @@ public sealed partial class MainWindowViewModel
     {
         _workflowContextTarget = null;
         IsWorkflowContextModalOpen = false;
+    }
+
+    private void RememberReplaceWorkflowContext()
+    {
+        if (!IsReplaceVisible)
+        {
+            return;
+        }
+
+        _replaceWorkflowContextIc = SelectedIc;
+        _replaceWorkflowContextNumber = SelectedNumber;
     }
 
     private sealed record WorkflowContextTarget(ShellPage Page, string Mode, bool ShowNumber);

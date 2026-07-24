@@ -1,10 +1,41 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.15 AB delivery and review candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.16 CRC/header hot-fix candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.15`
+Specification package version: `0.9.16`
 
-## 0.9.15 AB delivery and review candidate — not published
+## 0.9.16 CRC/header hot-fix candidate — not published
+
+The `0.9.16` branch starts from official stable `v0.9.15`, peeled to
+`008333a9c96ea65454a334824d349f3574373edd`. Feature PR 168 reviewed head
+`a275d61a95e74b729e9cc6ec26580524db1c363f` and version-branch merge
+`f0dd1cf222a468d4ae10ec08b89cdffaba82e3ed` share exact tree
+`1da8c2781fc4b0c90ca24a1e471b26807d9cf857`. Exact-head Codex review found no
+major issues and the feature PR's policy/Polytail, Python, and .NET checks
+passed.
+
+The hot-fix authorizes only classified CRC/header write words, keeps
+cascade-only DLM CRC authority out of single-IC profiles, corrects AB Memory
+coverage and independent Replace device context, and skips DP metadata
+inspection for TP firmware. The direct NT51929 single Andes golden locks four
+Header/Header Copy CRC words, 16 changed bytes total, production-route output
+SHA-256
+`b426125b966901ee8a0efc49ec598ebb7a6641a4391cc0f7c122d764f9f8464f`,
+and unchanged inputs. The private evidence is not selected for release
+redistribution and does not promote runtime support.
+
+Local `python scripts/verify.py --all` passed at version-branch code/test head
+`9584defc21e9288a3629aaf16fcda9bcd415f704`: 158 repository Python tests,
+28 CRC-worker tests at 98.88% coverage, Domain 361, ProfileContract 359,
+Application 222, GoldenRegression 19, Architecture 106, Infrastructure 273
+with two declared Unix-only skips, Bootstrap 752, and UI Smoke 351. Release
+build completed with zero warnings and zero errors. Final exact-head review,
+protected-main CI, candidate packaging, protected promotion, downloaded-asset
+verification, and release-owner approval remain before publication. Visible
+clean-Windows UI smoke and the annotated-tag newline comparison defect remain
+explicit `0.10.0` follow-up; this report does not describe them as passing.
+
+## 0.9.15 stable release baseline
 
 The `0.9.15` candidate is derived from the official `v0.9.14` release tag,
 peeled to `9b15d8757ccb44167c471ca4e602036066bcdea9`. It opens the declared
@@ -13,12 +44,11 @@ NT51950 `1 IC`/`Cascade`, and selector-free NT51951. Its output identity,
 topology confirmation, TPB-only staged postbuild, direct-golden debt ledger,
 and read-only delivery-to-review collector are part of the candidate scope.
 
-This is not a stable release or support-certification claim. The exact reviewed
-head, tree, and verification state are supplied by the handoff collector after
-the candidate is frozen. Independent Codex review, firmware-owner map/processor
-review, direct AB golden closure, protected CI, clean Windows package smoke,
-and release-owner approval remain required before a protected-main tag or
-GitHub Release may exist.
+Stable tag `v0.9.15` peels to
+`008333a9c96ea65454a334824d349f3574373edd` and is the immutable baseline for
+the `0.9.16` hot-fix. Its function availability remains distinct from
+support-certification: direct AB golden and firmware-owner promotion debt stay
+explicit for the affected routes.
 
 ## 0.9.14 AB pilot and CI-owned release candidate
 

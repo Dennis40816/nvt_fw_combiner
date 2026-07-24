@@ -352,8 +352,11 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
     {
         List<ByteRange> ranges =
         [
+            new(0x18, 4),
             new(0x1C, 4),
             new(0x3C, 4),
+            new(0x4C, 4),
+            new(0x5C, 4),
             new(0xFC, 4),
             new(0x22800, 0x2C00),
             new(0x25400, 0x2400),

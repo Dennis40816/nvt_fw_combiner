@@ -117,7 +117,7 @@ public sealed class CtrlRamV2RouteRegistryTests
             out CtrlRamV2Route? route));
         Assert.NotNull(route);
         Assert.Equal(expectedProfileId, route.ProfileId);
-        Assert.Equal("0.4.0", route.ProfileVersion);
+        Assert.Equal("0.5.0", route.ProfileVersion);
     }
 
     private static CtrlRamV2RouteKey Key(

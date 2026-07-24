@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51929-ctrlram-replace-candidate",
-  "bundleVersion": "0.9.12-candidate.1",
+  "bundleVersion": "0.9.16-candidate.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "1f5a9f05d632b2b792d7a25a034305a0d71569f24b53ba058cc1d5b0f627710e",
+  "contentHash": "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,35 +25,35 @@
       "kind": "firmware-family",
       "path": "families/nt51929-ctrlram-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "339782c058c8c2cc6cd373cf6e49406170974233c892e79e0c5c4b228b6b2a71"
+      "contentHash": "6e5390f635af437c772f0b9f213acb9dd16c93d992ad0b8efb4224a59ba0ebd0"
     },
     {
       "entryId": "nt51919-ctrlram-replace-fw200-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51919-ctrlram-replace-fw200-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "d0a94a425ef44f1746f31a07d9f3d8e51298213f2c7463828a6128e1ddf0d2fd"
+      "contentHash": "52c0ac5ad85edbd8753012c0c8f0bcf29e67bccbf6b8c18c3d416c430f607568"
     },
     {
       "entryId": "nt51919-ctrlram-replace-fw1x-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51919-ctrlram-replace-fw1x-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "82fa243fdfb23ac0d19d4c6adae47649eb3cc52dd418d831ede002b6dc4a9fc1"
+      "contentHash": "d94eb303be2a1c758d8f8558494f95849c6420362a3f2deebc74a96265ae1466"
     },
     {
       "entryId": "nt51929-ctrlram-replace-fw200-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-ctrlram-replace-fw200-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "3b7e5a57a15be4e86828a7d2ae543c466e295df623ace79141933b6411b3eb61"
+      "contentHash": "087ad0b76157f15a978c429e0f87bdd25ec06871402d5c3b88b0056def70da68"
     },
     {
       "entryId": "nt51929-ctrlram-replace-fw1x-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-ctrlram-replace-fw1x-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "619ac2e88aea8c67327f7fb0157d33b62dbdc63f21c37baac25b87a24b8311b5"
+      "contentHash": "201e4c46d87dbe1830206a3682a584f149f3374e51cd29b88462d33244ab8702"
     }
   ]
 }

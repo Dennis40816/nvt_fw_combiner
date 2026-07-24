@@ -8,12 +8,297 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Proves newly closed runtime plans compile only their declared topology and byte authority.</summary>
 public sealed class CtrlRamV2PlanClosureProfileTests
 {
-    private const string Nt51929BundleHash = "1f5a9f05d632b2b792d7a25a034305a0d71569f24b53ba058cc1d5b0f627710e";
+    private const string Nt51920BundleHash = "eafad4284d5e25dcfd32d54c4c160958a0fd7eb9a21dda3ae44f73f3a2cb56c7";
+    private const string Nt51923BundleHash = "8c1318f9e83a658028b1e0a07b2c38a28bcdeb6031d3a393d6b4912c2cdba14f";
+    private const string Nt51926BundleHash = "4e77aef1aca3f388ef4c1526d88cd2f89f51132e76cfe0fccf774ccf786078e7";
+    private const string Nt51929BundleHash = "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365";
     private const string Nt51928BundleHash = "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634";
-    private const string Nt51931BundleHash = "2ae7169f047bc016e6d82f967981b72876efb58c4b59c39f7a86cf7428931300";
-    private const string Nt51932BundleHash = "7530d67111fdf3c93c1ae934f2ca0c903bfed35b2f4ab351eea18f0a5a58f3cd";
-    private const string Nt51950BundleHash = "48525d7783994676762a07410eb437711ce0772e94c6dabc571b9bf94b887b3f";
-    private const string Nt51951BundleHash = "9e522d6f5cce1a40af9f6a95d102477c8d29ce9d6c2d34084da5f0c25aaf1559";
+    private const string Nt51930BundleHash = "9750eaa60fc76f4368ea27279f4e3900af10ce3a252783b7f95fd8d6a0f7af57";
+    private const string Nt51931BundleHash = "5580e22edce0755c785693093917f12f2dfb173941e31ca12b1e2d1c312c5a20";
+    private const string Nt51932BundleHash = "7184a75733724cf85c0c63d219b24abbeac372eee1197063c2b2d2179aca7257";
+    private const string Nt51950BundleHash = "d3f745c68d948e7e3a3a07d5717de2114742f881444076d93d2232343f98049e";
+    private const string Nt51951BundleHash = "f48429f505f71fbe7c258780dc1ef848c1d9a402d79906c1e24b3a1097192728";
+
+    /// <summary>Normal-header profiles grant every owner-classified CRC word and no surrounding gap bytes.</summary>
+    [Theory]
+    [InlineData(
+        "nt51920-ctrlram-replace-candidate",
+        Nt51920BundleHash,
+        "nt51920-ctrlram-replace-fw120-single",
+        "NT51920",
+        1,
+        0x22780)]
+    [InlineData(
+        "nt51920-ctrlram-replace-candidate",
+        Nt51920BundleHash,
+        "nt51920-ctrlram-replace-fw120-cascade2",
+        "NT51920",
+        2,
+        0x22780)]
+    [InlineData(
+        "nt51923-ctrlram-replace-candidate",
+        Nt51923BundleHash,
+        "nt51923-ctrlram-replace-fw141-single",
+        "NT51923",
+        1,
+        0x22800)]
+    [InlineData(
+        "nt51923-ctrlram-replace-candidate",
+        Nt51923BundleHash,
+        "nt51923-ctrlram-replace-fw141-cascade3",
+        "NT51923",
+        3,
+        0x22800)]
+    [InlineData(
+        "nt51926-ctrlram-replace-candidate",
+        Nt51926BundleHash,
+        "nt51926-ctrlram-replace-fw200-runtime-single",
+        "NT51926",
+        1,
+        0x22800)]
+    [InlineData(
+        "nt51926-ctrlram-replace-candidate",
+        Nt51926BundleHash,
+        "nt51926-ctrlram-replace-fw200-runtime-cascade",
+        "NT51926",
+        3,
+        0x22800)]
+    public void NormalHeaderProfilesCompileExactCrcWordAuthority(
+        string bundleDirectory,
+        string bundleHash,
+        string profileId,
+        string icId,
+        int chipCount,
+        long targetStart)
+    {
+        CompiledComposition composition = Compile(
+            bundleDirectory,
+            bundleHash,
+            profileId,
+            icId,
+            chipCount,
+            targetStart,
+            targetLength: 1,
+            profileVersion: "0.3.0");
+        IReadOnlyList<ByteRange> allowedWrites = Processor(composition).AllowedWriteRanges;
+
+        ByteRange[] expectedHeaderWords =
+        [
+            new(0x18, 4),
+            new(0x1C, 4),
+            new(0x3C, 4),
+            new(0x4C, 4),
+            new(0x5C, 4),
+            new(0xFC, 4),
+        ];
+        Assert.All(expectedHeaderWords, range => Assert.Contains(range, allowedWrites));
+        Assert.DoesNotContain(allowedWrites, static range => range == new ByteRange(0x20, 0x1C));
+        Assert.DoesNotContain(allowedWrites, static range => range == new ByteRange(0x40, 0x20));
+    }
+
+    /// <summary>Cascade profiles grant only their workbook-defined DLM CRC span.</summary>
+    [Theory]
+    [InlineData(
+        "nt51929-ctrlram-replace-candidate",
+        Nt51929BundleHash,
+        "nt51919-ctrlram-replace-fw1x-cascade",
+        "NT51919",
+        2,
+        0x2D100,
+        0x7128,
+        0x1C,
+        0x40000,
+        "0.3.0")]
+    [InlineData(
+        "nt51929-ctrlram-replace-candidate",
+        Nt51929BundleHash,
+        "nt51929-ctrlram-replace-fw1x-cascade",
+        "NT51929",
+        8,
+        0x2D100,
+        0x7128,
+        0x1C,
+        0x40000,
+        "0.3.0")]
+    [InlineData(
+        "nt51930-ctrlram-replace-candidate",
+        Nt51930BundleHash,
+        "nt51930-ctrlram-replace-fw130-cascade3",
+        "NT51930",
+        3,
+        0x21650,
+        0x7128,
+        0x30,
+        0x40000,
+        "0.3.0")]
+    [InlineData(
+        "nt51931-ctrlram-replace-candidate",
+        Nt51931BundleHash,
+        "nt51931-ctrlram-replace-fw130-cascade6",
+        "NT51931",
+        6,
+        0x16800,
+        0x6C,
+        0x4C,
+        0x40000,
+        "0.3.0")]
+    [InlineData(
+        "nt51932-ctrlram-replace-candidate",
+        Nt51932BundleHash,
+        "nt51932-ctrlram-replace-fw200-cascade3",
+        "NT51932",
+        3,
+        0x1FC00,
+        0x7128,
+        0x1C,
+        0x40000,
+        "0.3.0")]
+    [InlineData(
+        "nt51950-ctrlram-replace-candidate",
+        Nt51950BundleHash,
+        "nt51950-ctrlram-replace-fw1x-cascade",
+        "NT51950",
+        2,
+        0x33200,
+        0xA134,
+        0x4C,
+        0x40000,
+        "0.5.0")]
+    [InlineData(
+        "nt51951-ctrlram-replace-candidate",
+        Nt51951BundleHash,
+        "nt51951-ctrlram-replace-fw1x-cascade",
+        "NT51951",
+        2,
+        0x33200,
+        0xA134,
+        0x4C,
+        0x80000,
+        "0.5.0")]
+    public void CascadeProfilesCompileDlmCrcAuthority(
+        string bundleDirectory,
+        string bundleHash,
+        string profileId,
+        string icId,
+        int chipCount,
+        long targetStart,
+        long crcStart,
+        long crcLength,
+        long referenceCapacity,
+        string profileVersion)
+    {
+        CompiledComposition composition = Compile(
+            bundleDirectory,
+            bundleHash,
+            profileId,
+            icId,
+            chipCount,
+            targetStart,
+            targetLength: 1,
+            referenceCapacity,
+            profileVersion: profileVersion);
+
+        Assert.Contains(new ByteRange(crcStart, crcLength), Processor(composition).AllowedWriteRanges);
+    }
+
+    /// <summary>Single profiles do not inherit cascade-only DLM CRC authority from their family map.</summary>
+    [Theory]
+    [InlineData(
+        "nt51929-ctrlram-replace-candidate",
+        Nt51929BundleHash,
+        "nt51919-ctrlram-replace-fw200-single",
+        "NT51919",
+        0x1FC00,
+        0x7128,
+        0x1C,
+        0x40000,
+        "0.2.0")]
+    [InlineData(
+        "nt51929-ctrlram-replace-candidate",
+        Nt51929BundleHash,
+        "nt51929-ctrlram-replace-fw200-single",
+        "NT51929",
+        0x1FC00,
+        0x7128,
+        0x1C,
+        0x40000,
+        "0.2.0")]
+    [InlineData(
+        "nt51930-ctrlram-replace-candidate",
+        Nt51930BundleHash,
+        "nt51930-ctrlram-replace-fw1x-runtime-single",
+        "NT51930",
+        0x1FC00,
+        0x7128,
+        0x30,
+        0x40000,
+        "0.2.0")]
+    [InlineData(
+        "nt51931-ctrlram-replace-candidate",
+        Nt51931BundleHash,
+        "nt51931-ctrlram-replace-fw1x-single",
+        "NT51931",
+        0x16800,
+        0x6C,
+        0x4C,
+        0x40000,
+        "0.2.0")]
+    [InlineData(
+        "nt51932-ctrlram-replace-candidate",
+        Nt51932BundleHash,
+        "nt51932-ctrlram-replace-fw1x-single",
+        "NT51932",
+        0x1FC00,
+        0x7128,
+        0x1C,
+        0x40000,
+        "0.2.0")]
+    [InlineData(
+        "nt51950-ctrlram-replace-candidate",
+        Nt51950BundleHash,
+        "nt51950-ctrlram-replace-fw200-single",
+        "NT51950",
+        0x22C00,
+        0xA134,
+        0x4C,
+        0x40000,
+        "0.3.0")]
+    [InlineData(
+        "nt51951-ctrlram-replace-candidate",
+        Nt51951BundleHash,
+        "nt51951-ctrlram-replace-fw200-single",
+        "NT51951",
+        0x22C00,
+        0xA134,
+        0x4C,
+        0x80000,
+        "0.3.0")]
+    public void SingleProfilesExcludeCascadeDlmCrcAuthority(
+        string bundleDirectory,
+        string bundleHash,
+        string profileId,
+        string icId,
+        long targetStart,
+        long crcStart,
+        long crcLength,
+        long referenceCapacity,
+        string profileVersion)
+    {
+        CompiledComposition composition = Compile(
+            bundleDirectory,
+            bundleHash,
+            profileId,
+            icId,
+            chipCount: 1,
+            targetStart,
+            targetLength: 1,
+            referenceCapacity,
+            profileVersion: profileVersion);
+
+        Assert.DoesNotContain(
+            Processor(composition).AllowedWriteRanges,
+            range => range.Overlaps(new ByteRange(crcStart, crcLength)));
+    }
 
     /// <summary>NT51919/NT51929 cascade routes own DiffDLM but not the overlapping single FWConfig backup view.</summary>
     [Theory]
@@ -31,7 +316,8 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             icId,
             chipCount: 2,
             targetStart: 0x2D100,
-            targetLength: 0x8C00);
+            targetLength: 0x8C00,
+            profileVersion: "0.3.0");
 
         Assert.Equal("nt51929-ctrlram-fw1x-cascade-full-flash", composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(processorId, Processor(composition).ProcessorId);
@@ -147,7 +433,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             targetStart: 0x33200,
             targetLength: 0x1400,
             referenceCapacity: 0x40000,
-            profileVersion: "0.4.0");
+            profileVersion: "0.5.0");
         CompiledComposition nt51951 = Compile(
             "nt51951-ctrlram-replace-candidate",
             Nt51951BundleHash,
@@ -157,7 +443,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             targetStart: 0x33200,
             targetLength: 0x1400,
             referenceCapacity: 0x80000,
-            profileVersion: "0.4.0");
+            profileVersion: "0.5.0");
 
         Assert.Equal(0x40000, nt51950.V2Details!.Provenance.ResolvedMap.CapacityBytes);
         Assert.Equal(0x80000, nt51951.V2Details!.Provenance.ResolvedMap.CapacityBytes);
@@ -184,7 +470,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         "nt51950-ctrlram-replace-fw1x-cascade",
         "NT51950",
         2,
-        "0.4.0",
+        "0.5.0",
         0x33200,
         "nt51950-ctrlram-fw1x-cascade-tp-work")]
     [InlineData(
@@ -202,7 +488,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         "nt51951-ctrlram-replace-fw1x-cascade",
         "NT51951",
         2,
-        "0.4.0",
+        "0.5.0",
         0x33200,
         "nt51951-ctrlram-fw1x-cascade-tp-work")]
     public void Nt51950FamilyTpFirmwareBasesCompileWithPrefixOnlyProcessorAuthority(

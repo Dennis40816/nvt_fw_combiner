@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.15 stable-release source; publication is controlled by the protected release workflow`
-> 文件版本：`0.9.15`
-> 基準日期：`2026-07-23`
+> 文件狀態：`0.9.16 hot-fix stable-release source; publication is controlled by the protected release workflow`
+> 文件版本：`0.9.16`
+> 基準日期：`2026-07-24`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,7 +30,7 @@
 
 ## 0.1 Current owner priority
 
-`0.9.15` is the stable-release source derived from official `v0.9.14` peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`. It owns AB delivery/review automation and function availability for the declared NT51919/NT51929/NT51932, NT51950 `single`/`cascade`, and selector-free NT51951 plans. Direct golden debt remains visible and blocks certification rather than execution; NT51950/NT51951 AB certification closure and Perfect/LDC-family evidence-model work move to `0.11.0`. `0.10.0` is limited to Support Matrix, error experience, and report experience work. The canonical future sequence is [NFC Roadmap](docs/architecture/nfc_roadmap.md). Publication is permitted only after independent review, firmware-owner approval, protected CI, clean-Windows package smoke, and release-owner approval; missing direct golden remains explicit future certification debt rather than an existing support claim.
+`0.9.16` is a focused hot-fix source derived from official `v0.9.15` peeled commit `008333a9c96ea65454a334824d349f3574373edd`. It authorizes only profile-classified Header/Header Copy and topology-applicable CtrlRAM/DLM CRC writes, corrects AB/Replace presentation state, and skips DP-only metadata inspection for TP firmware. Single-IC routes explicitly exclude cascade-only DiffDLM/DLM CRC words. Owner-supplied NT51929 single Normal CtrlRAM evidence locks the production route to four Header/Header Copy CRC words without promoting runtime support or release redistribution of the private evidence. The `0.9.15` AB function state and its certification debt otherwise remain unchanged. `0.10.0` continues to own the broader Support Matrix, error/report experience, clean-Windows UI-smoke closure, and release-workflow annotated-tag newline hardening. The canonical future sequence is [NFC Roadmap](docs/architecture/nfc_roadmap.md). Publication is permitted only after independent review, firmware-owner approval, protected CI, package verification, and release-owner approval; an omitted external gate must remain explicit rather than being described as passing.
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
 - NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.

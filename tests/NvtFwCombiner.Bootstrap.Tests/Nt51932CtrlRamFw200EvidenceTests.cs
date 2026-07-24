@@ -58,7 +58,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
 
         WorkbenchFirmwareContextSuggestion suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
             WorkbenchCompositionService.TryReadFirmwareContextSuggestion("NT51932", outputPath));
-        Assert.Equal("cascade", suggestion.NumberToken);
+        Assert.Equal(WorkbenchIcNumberTokens.CascadeTwoToEight, suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
         Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);
         Assert.Equal(metadata.ProjectId, suggestion.ProjectId);
@@ -82,7 +82,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(evidence, evidence.Expected.Path);
         string v2Path = workspace.PathFor("v2.bin");
         WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51932", "cascade", WorkbenchReplaceModes.CtrlRam, slots, true,
+            "NT51932", WorkbenchIcNumberTokens.CascadeTwoToEight, WorkbenchReplaceModes.CtrlRam, slots, true,
             TestContext.Current.CancellationToken, v2Path);
 
         Assert.True(v2.Succeeded, v2.ReportJson);
@@ -137,9 +137,9 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
 
     /// <summary>Requested generic-cascade routing accepts display-only metadata variations.</summary>
     [Theory]
-    [InlineData("cascade", 2, 0, 0, 3, 0xFFFF)]
-    [InlineData("cascade", 1, 3, 0, 3, 0x5601)]
-    [InlineData("cascade", 2, 0, 0, 2, 0x5601)]
+    [InlineData(WorkbenchIcNumberTokens.CascadeTwoToEight, 2, 0, 0, 3, 0xFFFF)]
+    [InlineData(WorkbenchIcNumberTokens.CascadeTwoToEight, 1, 3, 0, 3, 0x5601)]
+    [InlineData(WorkbenchIcNumberTokens.CascadeTwoToEight, 2, 0, 0, 2, 0x5601)]
     public async Task ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(
         string number,
         byte major,
@@ -187,7 +187,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
 
         string outputPath = workspace.PathFor("output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
-            "NT51932", "cascade", CreateSlotPaths(evidence, referencePath), true,
+            "NT51932", WorkbenchIcNumberTokens.CascadeTwoToEight, CreateSlotPaths(evidence, referencePath), true,
             outputPath, null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded, result.ReportJson);
@@ -239,7 +239,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51932-fw200-alias");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
-            icId, "cascade", CreateSlotPaths(evidence, evidence.Expected.Path), true,
+            icId, WorkbenchIcNumberTokens.CascadeTwoToEight, CreateSlotPaths(evidence, evidence.Expected.Path), true,
             workspace.PathFor("alias.bin"), null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded, result.ReportJson);
@@ -300,7 +300,8 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         AssertProcessorIdentity(session);
         Assert.Equal([new ByteRange(0, Capacity)], ReadRanges(session, "ProcessorAllowedReadRanges"));
         ByteRange[] expectedWrites = [
-            new(0x7100, 4), new(0x7118, 4), new(NfStart, 1758), new(NormalStart, NormalLength),
+            new(0x7100, 4), new(0x7118, 4), new(0x7128, 0x1C),
+            new(NfStart, 1758), new(NormalStart, NormalLength),
             new(VnStart, 4120), new(HeaderCopyStart, HeaderCopyLength), new(DiffStart, DiffLength),
         ];
         Assert.Equal(expectedWrites, ReadRanges(session, "ProcessorAllowedWriteRanges"));

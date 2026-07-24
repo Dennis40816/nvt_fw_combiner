@@ -63,8 +63,11 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         Assert.Empty(invocation.StagedSourceBindings);
         Assert.Equal(
             [
+                new ByteRange(0x18, 4),
                 new ByteRange(0x1C, 4),
                 new ByteRange(0x3C, 4),
+                new ByteRange(0x4C, 4),
+                new ByteRange(0x5C, 4),
                 new ByteRange(0xFC, 4),
                 new ByteRange(VnStart, sourceLength),
                 new ByteRange(0x32F50, 0x100),
@@ -191,7 +194,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         new byte[] { 0x00, 0x4E, 0x56, 0x54 }.CopyTo(reference, 0x3BFFC);
         return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
             profileId,
-            "0.2.0",
+            "0.3.0",
             "NT51926",
             ExperienceIds.CtrlRamReplace,
             new TopologySelection(

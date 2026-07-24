@@ -6,6 +6,7 @@ namespace NvtFwCombiner.Application.ExternalTools;
 public static partial class LegacyCombinerPostbuildPlanner
 {
     private static void AddNtBasedHeaderIntegrityRanges(
+        LegacyCombinerPostbuildCommandPlan plan,
         LegacyCombinerPostbuildCommand command,
         long capacity,
         List<LegacyCombinerPostbuildWriteRange> ranges)
@@ -36,6 +37,27 @@ public static partial class LegacyCombinerPostbuildPlanner
                     ranges,
                     capacity,
                     new ByteRange(block.SourceOffset + crcWordOffset, 4),
+                    TpHeaderSectionIds.FlashHeaderCrc);
+            }
+
+            ByteRange? cascadeDlmCrcOffsets = plan.Branch == LegacyCombinerPostbuildBranch.Cascade
+                ? command.ModeArgument switch
+                {
+                    "NT51930BASED_NORMAL_MODE" => new ByteRange(0x128, 0x30),
+                    "NT51932BASED_NORMAL_MODE" => new ByteRange(0x128, 0x1C),
+                    "NT51931BASED_NORMAL_MODE" => new ByteRange(0x6C, 0x4C),
+                    "NT51950BASED_NORMAL_MODE" => new ByteRange(0x134, 0x4C),
+                    _ => null,
+                }
+                : null;
+            if (cascadeDlmCrcOffsets is { } offsets &&
+                (offsets.EndExclusive <= block.FirmwareRange.Length ||
+                 IsNt51930LegacyHeaderCopy(command, block)))
+            {
+                AddIfWithin(
+                    ranges,
+                    capacity,
+                    new ByteRange(checked(block.SourceOffset + offsets.Start), offsets.Length),
                     TpHeaderSectionIds.FlashHeaderCrc);
             }
         }
