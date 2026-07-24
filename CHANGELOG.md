@@ -63,7 +63,7 @@ and existing CtrlRAM workflows retain their established execution contracts.
 
 ### Known issues
 
-- Direct AB golden-vector closure and firmware-owner promotion remain outstanding for NT51950 `Cascade` and NT51951. Their availability is not a certification claim.
+- No function-open AB route is certified. NT51929 requires firmware-owner promotion review; NT51919 and NT51932 still require their own direct-product golden closure beyond the approved NT51929 fact scope; NT51950 `1 IC` has a supplied vector awaiting formal intake/certification; NT51950 `Cascade` and NT51951 still require direct vectors. Firmware-owner promotion remains outstanding for every route. Availability is not a certification claim.
 - All-IC/all-mode workflow documentation, shared presentation convergence, Settings Support Matrix, error-experience unification, IC family/rule authoring, customized-plan import, and report-layout redesign remain scheduled for later owner-selected releases.
 
 ### Upgrade and rollback
