@@ -163,4 +163,30 @@ public sealed class WorkbenchMemoryCoverageRoleTests
             299.999999,
             300.000001);
     }
+
+    /// <summary>An empty selected DP artifact is treated as absent until file inspection supplies a usable size.</summary>
+    [Theory]
+    [InlineData("NT51950", "single")]
+    [InlineData("NT51951", null)]
+    public void Nt51950FamilyAbCoverageTreatsZeroDpLengthAsAbsent(
+        string icId,
+        string? topologyToken)
+    {
+        WorkbenchMemoryDisplay omitted =
+            WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId, topologyToken);
+        WorkbenchMemoryDisplay empty =
+            WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId, topologyToken, dpInputLength: 0);
+
+        Assert.Equal(omitted.RangeLabel, empty.RangeLabel);
+        Assert.Equal(omitted.MemoryMapRows, empty.MemoryMapRows);
+        Assert.Equal(omitted.CoverageSegments, empty.CoverageSegments);
+    }
+
+    /// <summary>Negative file lengths remain invalid programmer input.</summary>
+    [Fact]
+    public void Nt51950FamilyAbCoverageRejectsNegativeDpLength()
+    {
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            WorkbenchCompositionService.GetAbMergeMemoryDisplay("NT51950", "single", dpInputLength: -1));
+    }
 }

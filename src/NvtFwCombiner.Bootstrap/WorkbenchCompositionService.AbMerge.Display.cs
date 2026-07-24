@@ -71,9 +71,9 @@ public static partial class WorkbenchCompositionService
         TopologySelection? abMergeTopologySelection = null,
         long? dpInputLength = null)
     {
-        if (dpInputLength.HasValue)
+        if (dpInputLength is < 0)
         {
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(dpInputLength.Value);
+            ArgumentOutOfRangeException.ThrowIfNegative(dpInputLength.Value);
         }
 
         if (!AbMergeWorkbenchCompositionService.TryCompileAbMerge(
@@ -90,7 +90,9 @@ public static partial class WorkbenchCompositionService
         }
 
         ImageInitialization initialization = composition.Plan.OutputInitialization;
-        long displayCapacity = dpInputLength ?? initialization.Capacity;
+        long displayCapacity = dpInputLength is > 0
+            ? dpInputLength.Value
+            : initialization.Capacity;
         FirmwareRegion[] tpCodeRegions =
         [
             .. composition.V2Details!.Provenance.ResolvedMap.ImageMap.Regions
