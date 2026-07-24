@@ -37,6 +37,29 @@ public static partial class WorkbenchCompositionService
         return CreateOutputFileNameSuggestion(normalizedIc, dpVersion, tpVersion, date);
     }
 
+    /// <summary>Creates the CtrlRAM Replace name from the declared base-image shape and TP version.</summary>
+    public static WorkbenchOutputFileNameSuggestion CreateCtrlRamReplaceOutputFileNameFromInspections(
+        string icId,
+        IReadOnlyList<WorkbenchOutputNameInspectionCandidate> candidates,
+        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit = null,
+        DateOnly? date = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(candidates);
+
+        string normalizedIc = IcSupportCatalog.NormalizeIcId(icId);
+        string dpVersion = FindInspectedDpVersionToken(candidates) ?? UnknownVersionToken;
+        string tpVersion = firmwareVersionEdit is { } edit
+            ? FormattableString.Invariant($"{edit.FirmwareVersion:X2}{edit.FirmwareSubVersion:X2}")
+            : FindInspectedTpVersionToken(candidates) ?? UnknownVersionToken;
+        bool isTpFirmwareBase = candidates.Any(static candidate =>
+            candidate.Kind == WorkbenchOutputNameCandidateKind.Base &&
+            candidate.Inspection?.BaseFirmwareArtifactKind == WorkbenchBaseFirmwareArtifactKind.TpFirmware);
+        return isTpFirmwareBase
+            ? CreateTpFirmwareOutputFileNameSuggestion(normalizedIc, dpVersion, tpVersion, date)
+            : CreateOutputFileNameSuggestion(normalizedIc, dpVersion, tpVersion, date);
+    }
+
     /// <summary>Creates a CtrlRAM Replace suggestion using the user-confirmed TP version.</summary>
     public static WorkbenchOutputFileNameSuggestion CreateFlashCodeOutputFileNameFromInspections(
         string icId,
@@ -64,6 +87,22 @@ public static partial class WorkbenchCompositionService
         string dateToken = (date ?? DateOnly.FromDateTime(DateTime.Now)).ToString("yyyyMMdd", CultureInfo.InvariantCulture);
         return new WorkbenchOutputFileNameSuggestion(
             FormattableString.Invariant($"{normalizedIc}_FlashCode_D{dpVersion}T{tpVersion}_{dateToken}.bin"),
+            dpVersion,
+            dpVersion != UnknownVersionToken,
+            tpVersion,
+            tpVersion != UnknownVersionToken,
+            dateToken);
+    }
+
+    private static WorkbenchOutputFileNameSuggestion CreateTpFirmwareOutputFileNameSuggestion(
+        string normalizedIc,
+        string dpVersion,
+        string tpVersion,
+        DateOnly? date)
+    {
+        string dateToken = (date ?? DateOnly.FromDateTime(DateTime.Now)).ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        return new WorkbenchOutputFileNameSuggestion(
+            FormattableString.Invariant($"{normalizedIc}_TPFW_T{tpVersion}_{dateToken}.bin"),
             dpVersion,
             dpVersion != UnknownVersionToken,
             tpVersion,

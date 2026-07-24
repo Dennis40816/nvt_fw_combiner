@@ -238,6 +238,19 @@ public sealed record WorkbenchFirmwareContextSuggestion(
     string CommonFwVersion,
     ushort ProjectId);
 
+/// <summary>Read-only base-image shape classification used only for CtrlRAM Replace output naming.</summary>
+public enum WorkbenchBaseFirmwareArtifactKind
+{
+    /// <summary>The available bytes do not establish a declared TP-only or FlashCode shape.</summary>
+    Unknown,
+
+    /// <summary>A declared TP work prefix or a full container with only erased/cleared DP regions.</summary>
+    TpFirmware,
+
+    /// <summary>A declared full Flash container containing programmed DP bytes.</summary>
+    FlashCode,
+}
+
 /// <summary>One read-only workbench projection decoded from one immutable firmware image read.</summary>
 public sealed record WorkbenchFirmwareInspection(
     string? DetectedIcId,
@@ -245,7 +258,8 @@ public sealed record WorkbenchFirmwareInspection(
     WorkbenchDpVersionMetadata? DpVersion,
     WorkbenchCmiDpCodeMetadata? CmiDpCode,
     WorkbenchFirmwareContextSuggestion? ContextSuggestion,
-    WorkbenchCtrlRamInspectionDisplay? CtrlRamDisplay)
+    WorkbenchCtrlRamInspectionDisplay? CtrlRamDisplay,
+    WorkbenchBaseFirmwareArtifactKind BaseFirmwareArtifactKind = WorkbenchBaseFirmwareArtifactKind.Unknown)
 {
     /// <summary>AB-specific typed inspection when the request names one compiled AB input space.</summary>
     public WorkbenchAbMergeInputInspection? AbMergeInput { get; init; }

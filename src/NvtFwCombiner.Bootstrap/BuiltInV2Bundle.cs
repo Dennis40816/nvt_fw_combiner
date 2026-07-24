@@ -44,8 +44,8 @@ internal static class BuiltInV2BundleRegistry
             ("nt51931-standard-merge", "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f"),
             ("nt51932-ctrlram-replace-candidate", "7530d67111fdf3c93c1ae934f2ca0c903bfed35b2f4ab351eea18f0a5a58f3cd"),
             ("nt51950-ab-merge", "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206"),
-            ("nt51950-ctrlram-replace-candidate", "dc5031993636feb26a60ff96e3517da2fb982f39b83e92724c73dd1df8cf7b16"),
-            ("nt51951-ctrlram-replace-candidate", "497d99edcfc9ef03cd3d28e3dd7bf821a8db0c9cda5e1cab7aba18fb8d8f8bbd"),
+            ("nt51950-ctrlram-replace-candidate", "48525d7783994676762a07410eb437711ce0772e94c6dabc571b9bf94b887b3f"),
+            ("nt51951-ctrlram-replace-candidate", "9e522d6f5cce1a40af9f6a95d102477c8d29ce9d6c2d34084da5f0c25aaf1559"),
             ("nt51950-nt51951-general-merge-logical-candidate", "1da78f9a6d8aae1e7fbbda0f5977272b5c9902194ab102f2232586edd77eb121"),
             ("nt51950-nt51951-standard-merge", "65987f6b1e41feaca92e7b258bca282df9ae133f90db6877ba6b97c04d91f0f4"),
         }.ToFrozenDictionary(

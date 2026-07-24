@@ -16,7 +16,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Creates the CtrlRAM Replace output name from the confirmed version choice.</summary>
     public string CreateCtrlRamReplaceOutputFileName(WorkbenchCtrlRamFirmwareVersionEdit? edit)
     {
-        return FirmwareOutputNamingProjection.CreateFlashCodeOutputFileName(
+        return FirmwareOutputNamingProjection.CreateCtrlRamReplaceOutputFileName(
             SelectedIc,
             ReplaceSlots.Concat([ReplaceBaseSlot]),
             _firmwareInspectionSession,

@@ -376,6 +376,21 @@ internal static class FirmwareOutputNamingProjection
             : WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(icId, candidates, edit).FileName;
     }
 
+    internal static string CreateCtrlRamReplaceOutputFileName(
+        string icId,
+        IEnumerable<FirmwareSlotViewModel> slots,
+        FirmwareInspectionSession inspectionSession,
+        WorkbenchCtrlRamFirmwareVersionEdit? edit)
+    {
+        ArgumentNullException.ThrowIfNull(slots);
+        WorkbenchOutputNameInspectionCandidate[] candidates =
+            [.. slots.Select(slot => ToCandidate(slot, inspectionSession))];
+        return WorkbenchCompositionService.CreateCtrlRamReplaceOutputFileNameFromInspections(
+            icId,
+            candidates,
+            edit).FileName;
+    }
+
     private static WorkbenchOutputNameInspectionCandidate ToCandidate(
         FirmwareSlotViewModel slot,
         FirmwareInspectionSession inspectionSession)

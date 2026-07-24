@@ -134,7 +134,8 @@ public static partial class WorkbenchCompositionService
             ReadDpVersionMetadata(icId, image),
             ReadCmiDpCodeMetadata(icId, image, cmiFirmwareConfig?.ChipNumber),
             ReadFirmwareContextSuggestion(icId, firmwareConfig),
-            ctrlRamDisplay);
+            ctrlRamDisplay,
+            ClassifyBaseFirmwareArtifact(icId, image));
     }
 
     /// <summary>Reprojects CtrlRAM display state from an existing immutable firmware inspection.</summary>
@@ -243,6 +244,89 @@ public static partial class WorkbenchCompositionService
                     firmwareConfig.CommonFwVersion,
                     firmwareConfig.ProjectId)
                 : null;
+    }
+
+    private static WorkbenchBaseFirmwareArtifactKind ClassifyBaseFirmwareArtifact(
+        string icId,
+        ReadOnlySpan<byte> image)
+    {
+        if (!BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? resolvedFlashMap) ||
+            resolvedFlashMap is not { } flashMap)
+        {
+            return WorkbenchBaseFirmwareArtifactKind.Unknown;
+        }
+
+        if (IsNt51950Family(icId) && image.Length == flashMap.TpPrefixLength)
+        {
+            // Only NT51950/NT51951 TP FW has the owner-declared standalone 0x37000 shape.
+            // Other ICs always classify from their declared DP regions.
+            return WorkbenchBaseFirmwareArtifactKind.TpFirmware;
+        }
+
+        if (image.Length < flashMap.TpPrefixLength ||
+            !flashMap.FullFlashCapacities.Contains(image.Length))
+        {
+            return WorkbenchBaseFirmwareArtifactKind.Unknown;
+        }
+
+        bool hasDeclaredDpRegion = false;
+        bool hasPresentDpRegion = false;
+        foreach (TpFlashMapRegion region in flashMap.Regions)
+        {
+            if (region.Kind != TpFlashMapRegionKind.Dp)
+            {
+                continue;
+            }
+
+            hasDeclaredDpRegion = true;
+            if (region.Range.Start < image.Length && region.Range.EndExclusive > image.Length)
+            {
+                return WorkbenchBaseFirmwareArtifactKind.Unknown;
+            }
+
+            if (region.Range.EndExclusive > image.Length)
+            {
+                continue;
+            }
+
+            hasPresentDpRegion = true;
+            ReadOnlySpan<byte> dpBytes = image.Slice(
+                checked((int)region.Range.Start),
+                checked((int)region.Range.Length));
+            if (!IsErasedOrCleared(dpBytes))
+            {
+                return WorkbenchBaseFirmwareArtifactKind.FlashCode;
+            }
+        }
+
+        return hasDeclaredDpRegion && hasPresentDpRegion
+            ? WorkbenchBaseFirmwareArtifactKind.TpFirmware
+            : WorkbenchBaseFirmwareArtifactKind.Unknown;
+    }
+
+    private static bool IsErasedOrCleared(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.IsEmpty || (bytes[0] is not 0x00 and not 0xFF))
+        {
+            return false;
+        }
+
+        byte expected = bytes[0];
+        foreach (byte value in bytes)
+        {
+            if (value != expected)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsNt51950Family(string icId)
+    {
+        return string.Equals(icId, "NT51950", StringComparison.Ordinal) ||
+            string.Equals(icId, "NT51951", StringComparison.Ordinal);
     }
 
     private static FirmwareConfigMetadata? ReadFirmwareConfigMetadataValue(
