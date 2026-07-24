@@ -148,6 +148,12 @@ release readiness, or R2/R3 human gates.
 
 ### Maintainability sequence
 
+The accepted workshop direction, baseline evidence, migration seams, and open
+questions are preserved in
+[`0.10.x-maintainability-working-design.md`](0.10.x-maintainability-working-design.md).
+That working record is subordinate to this roadmap and to canonical
+specifications, ADRs, contracts, profiles, and executable evidence.
+
 | Phase | Scope | Exit gate |
 | --- | --- | --- |
 | M0 | Reconcile the original `v0.9.15` planning baseline with the complete reviewed `v0.9.16` hot-fix; inventory module ownership/dependencies, public contracts, tests, documentation, ADRs, and installed skills. | One reviewed baseline report names every item, authority, consumer, overlap, and disposition. No production behavior change. |
