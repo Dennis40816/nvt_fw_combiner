@@ -6,6 +6,29 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 No unreleased changes.
 
+## [0.9.15] - 2026-07-23
+
+### Review candidate — not a published release
+
+#### AB Code function opening and output identity
+
+- Before → After: AB Code exposed only the fixed NT51919/NT51929/NT51932 route; it now also exposes profile-owned NT51950 `1 IC`/`Cascade` choices and selector-free NT51951 in Merge UI and CLI. Every route declares its A/B CMI readers in its compiled map, so output naming and input inspection have no IC-specific GenFlash catalog fallback. The selected canonical IC, compiled map, and—only for NT51950—the explicit topology token select execution; TP version, PID, Common FW, project ID, filename, and hash never select a route.
+- Affected: Merge → AB Code. NT51950 `1 IC` outputs 512 KiB; NT51950 `Cascade` and NT51951 output 1 MiB. Every TPA/TPB input must cover `[0x00000,0x37000)` and contributes only `[0x0A000,0x37000)`.
+- Support status: Function open, not certified. NT51950 `1 IC` has owner-supplied evidence pending formal closure; NT51950 `Cascade` and NT51951 direct AB golden vectors remain missing. No NT51950 evidence promotes NT51951, and no normal Merge/Replace/CtrlRAM golden substitutes for AB Code evidence.
+- Compatibility: Existing explicit output paths continue to win; their selected path is the report identity. Automatic names now use `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` with a UTC date. Output/input aliases fail closed; a different pre-existing output is atomically replaced.
+- Security: TPA remains byte-for-byte copied. TPB alone is cloned, relocates ILM/DLM/DIFF through the declared staged path, is postbuilt in a host-owned A/B work image, and backfills only the declared B slot after allowed-diff and independent CRC-equivalence checks. Inputs and the complete DP tail remain immutable/preserved.
+- Verification: profile/runtime/UI/CLI boundary tests, C#/postbuild CRC equivalence, source immutability, output-override, stale-tail, topology-mismatch, and output-preservation tests pass in the complete repository verifier.
+
+#### Delivery-to-review automation
+
+- Before → After: reviewers had to reconstruct baseline, changed-file, and residual-gate evidence manually; the read-only `collect_review_handoff.py` collector now fails closed for dirty/ambiguous lineage and records the exact annotated baseline, peeled SHA, branch/tree, committed diff, supplied CI state, verification state, impact, unchanged boundaries, and all required human gates.
+- Affected: version-branch review handoff only. The collector is evidence-only and cannot build, merge, tag, push, publish, or promote support.
+- Remaining gates: independent reviewer/Codex review, firmware-owner map/processor approval, protected CI, clean Windows package smoke, and release-owner approval remain open. Direct-golden closure is explicit `0.11.0` certification work, not a claim of current support certification. This candidate must not be represented as a stable release or support certification.
+
+#### Deferred work
+
+- All-IC/all-mode documentation and Mermaid adoption, execution-path convergence, shared viewport/Changes/Button presentation work, Settings Support Matrix, error-experience unification, IC family/rule authoring, customized-plan import, and report-layout redesign remain owner-selected later work. They are not hidden dependencies of this candidate.
+
 ## [0.9.14] - 2026-07-22
 
 ### Summary

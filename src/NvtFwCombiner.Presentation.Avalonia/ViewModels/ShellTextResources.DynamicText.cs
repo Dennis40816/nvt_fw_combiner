@@ -181,8 +181,8 @@ public sealed partial class ShellTextResources
     {
         return !supported
             ? SelectLanguage(
-                $"{ic}: AB Code is not available. Select NT51919, NT51929, or NT51932.",
-                $"{ic}：尚未開放 AB Code；請選擇 NT51919、NT51929 或 NT51932。")
+                $"{ic}: AB Code is not available. Select a declared AB Code route for this release.",
+                $"{ic}：尚未開放 AB Code；請選擇本版本已宣告的 AB Code 路徑。")
             : blockingCount > 0
             ? SelectLanguage(
                 $"Build blocked: {blockingCount} input error(s) · {selectedCount}/{requiredCount} selected.",
@@ -299,8 +299,8 @@ public sealed partial class ShellTextResources
     {
         return abMerge
             ? SelectLanguage(
-                "AB runtime is limited to the owner-approved 51919/51929/51932 pilot; metadata never selects support.",
-                "AB runtime 僅限 owner 核准的 51919/51929/51932 pilot；metadata 絕不選擇支援範圍。")
+                "AB runtime follows compiled profile contracts; function-open routes can still have direct golden closure pending. Metadata never selects support.",
+                "AB runtime 依 compiled profile contract 決定；功能開放的路徑仍可能等待直接 golden 結案；metadata 絕不選擇支援範圍。")
             : SelectLanguage(
                 "Availability follows compiled profiles and safety contracts; family labels do not expand support.",
                 "可用性以 compiled profile 與 safety contract 為準；family 標示不會擴張支援範圍。");

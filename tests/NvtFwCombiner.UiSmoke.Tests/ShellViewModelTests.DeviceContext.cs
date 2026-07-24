@@ -53,6 +53,49 @@ public sealed partial class ShellViewModelTests
             static choice => choice.Token == WorkbenchIcNumberTokens.Cascade);
     }
 
+    /// <summary>Leaving AB Merge restores the standard IC and Number projections for Replace.</summary>
+    [Fact]
+    public void ReplaceDoesNotInheritAbMergeSelectorProjection()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedIc = "NT51950";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
+
+        viewModel.ShowReplaceCommand.Execute(null);
+
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.IcChoices);
+        Assert.NotEmpty(viewModel.NumberSelectionChoices);
+        Assert.NotNull(viewModel.SelectedNumberChoice);
+
+        viewModel.SelectedIc = "NT51929";
+
+        Assert.Equal(
+            [
+                new IcNumberChoiceViewModel(WorkbenchIcNumberTokens.SingleChip, "1 IC"),
+                new IcNumberChoiceViewModel(WorkbenchIcNumberTokens.Cascade, "Cascade"),
+            ],
+            viewModel.NumberSelectionChoices);
+        Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.SelectedNumberChoice?.Token);
+    }
+
+    /// <summary>Changing from AB Code to Standard Merge restores the full IC selector.</summary>
+    [Fact]
+    public void StandardMergeDoesNotInheritAbMergeIcChoices()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedIc = "NT51950";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.Standard;
+
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.IcChoices);
+    }
+
     /// <summary>The consolidated IC detail exposes family, runtime, evidence, and support without badge-only meaning.</summary>
     [Fact]
     public void IcDetailTracksSelectedIcAndProvidesScreenReaderEquivalent()
@@ -71,9 +114,9 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SelectedIc = "NT51950";
 
-        Assert.DoesNotContain("AB", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
+        Assert.Contains("AB", viewModel.SelectedIcDetailRuntime, StringComparison.Ordinal);
         Assert.Equal("✓ Verified: DP · ! Open: CtrlRAM, Customized", viewModel.SelectedIcDetailEvidence);
-        Assert.Contains("compiled profiles", viewModel.SelectedIcDetailSupport, StringComparison.Ordinal);
+        Assert.Contains("compiled profile contracts", viewModel.SelectedIcDetailSupport, StringComparison.Ordinal);
 
         viewModel.SelectedIc = "NT51931";
 

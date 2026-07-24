@@ -113,6 +113,73 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.CanBuildMerge);
     }
 
+    /// <summary>Changing NT51950's selected AB topology discards projections and re-inspects the retained inputs.</summary>
+    [Fact]
+    public async Task AbTopologyChangeReinspectsSelectedInputs()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-topology-refresh");
+        var observedTopologies = new List<string?>();
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
+        {
+            observedTopologies.AddRange(inputs.Select(static input => input.AbMergeTopologyToken));
+            return WorkbenchCompositionService.InspectFirmwareBatch(icId, inputs);
+        });
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedIc = "NT51950";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.DpAbInput,
+            workspace.Write("dp-ab.bin", new byte[0x80000]),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(["single"], observedTopologies);
+
+        viewModel.SelectedNumber = "cascade";
+        await viewModel.FirmwareInspectionRefreshTask;
+
+        Assert.Equal(["single", "cascade"], observedTopologies);
+    }
+
+    /// <summary>Accepting a visible NT51950 topology prompt refreshes the retained AB input under the accepted selection.</summary>
+    [Fact]
+    public async Task AcceptingAbTopologyPromptReinspectsSelectedInputs()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-topology-prompt-refresh");
+        var observedTopologies = new List<string?>();
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        {
+            observedTopologies.AddRange(inputs.Select(static input => input.AbMergeTopologyToken));
+            return
+            [
+                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                    input.InspectionId,
+                    new WorkbenchFirmwareInspection(
+                        null,
+                        null,
+                        null,
+                        null,
+                        new WorkbenchFirmwareContextSuggestion("NT51950", "cascade", 2, "1.0.0", 0x5195),
+                        null))),
+            ];
+        });
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedIc = "NT51950";
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+
+        await viewModel.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpAInput,
+            workspace.Write("tp-a.bin", new byte[0x37000]),
+            TestContext.Current.CancellationToken);
+        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal(["single"], observedTopologies);
+
+        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
+        await viewModel.FirmwareInspectionRefreshTask;
+
+        Assert.Equal("cascade", viewModel.SelectedNumber);
+        Assert.Equal(["single", "cascade"], observedTopologies);
+    }
+
     /// <summary>UI projections keep one selected snapshot until explicit reselection; Build remains authoritative.</summary>
     [Fact]
     public async Task CtrlRamCachedDisplayKeepsSelectedSnapshotUntilReselection()
@@ -326,9 +393,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
     }
 
-    /// <summary>Accepting an IC hint reinspects the retained Base and applies its verified Number off dispatcher.</summary>
+    /// <summary>Accepting an IC hint does not open a Number prompt while that control is hidden.</summary>
     [Fact]
-    public async Task AcceptedIcMismatchContinuesVerifiedBaseContext()
+    public async Task AcceptedIcMismatchDoesNotPromptForHiddenNumberContext()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-accepted-ic-context");
         string basePath = workspace.Write("NT51927_base.bin", [0x01]);
@@ -356,35 +423,37 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("NT51927", viewModel.SelectedIc);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
-        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
-
-        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
-
-        Assert.Equal("2", viewModel.SelectedNumber);
         Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
         Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
-        Assert.Equal("Context updated", viewModel.ShellToastTitle);
     }
 
-    /// <summary>A non-authoritative marker within one perfect family keeps the selected IC without prompting.</summary>
+    /// <summary>A marker within one perfect family silently adopts the detected IC and retains the selected BIN.</summary>
     [Fact]
-    public async Task PerfectFamilyIcHintKeepsCurrentContextWithoutPrompt()
+    public async Task PerfectFamilyIcHintAdoptsDetectedContextWithoutPrompt()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-perfect-family-context");
-        string basePath = workspace.Write("NT51927_base.bin", [0x01]);
-        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
-        [
-            .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
-                input.InspectionId,
-                new WorkbenchFirmwareInspection("NT51927", null, null, null, null, null))),
-        ]);
-        viewModel.SelectedIc = "NT51917";
+        string basePath = workspace.Write("NT51932_base.bin", [0x01]);
+        var batches = new List<(string IcId, WorkbenchFirmwareInspectionInput[] Inputs)>();
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
+        {
+            batches.Add((icId, [.. inputs]));
+            return
+            [
+                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                    input.InspectionId,
+                    new WorkbenchFirmwareInspection("NT51932", null, null, null, null, null))),
+            ];
+        });
+        viewModel.SelectedIc = "NT51929";
 
         await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
+        await viewModel.FirmwareInspectionRefreshTask;
 
         Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
-        Assert.Equal("NT51917", viewModel.SelectedIc);
+        Assert.Equal("NT51932", viewModel.SelectedIc);
         Assert.Equal(basePath, viewModel.ReplaceBaseSlot.FilePath);
+        Assert.Equal("NT51932", batches[^1].IcId);
+        Assert.Contains(batches[^1].Inputs, static input => input.InspectionId == "replace-base");
     }
 
     /// <summary>Accepting a replacement hint retains a compatible slot and reinspects it in the new IC context.</summary>

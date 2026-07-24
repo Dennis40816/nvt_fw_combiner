@@ -394,6 +394,17 @@
     </ContentControl>
 
     <ContentControl
+        x:Name="AbAFlashCodeDeliveryPromptModalHost"
+        Grid.RowSpan="5"
+        IsVisible="{Binding IsAbAFlashCodeDeliveryPromptOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MainWindowViewModel">
+          <views:AbAFlashCodeDeliveryPromptModal />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl
         x:Name="WorkflowContextSetupModalHost"
         Grid.RowSpan="5"
         IsVisible="{Binding IsWorkflowContextModalOpen}">

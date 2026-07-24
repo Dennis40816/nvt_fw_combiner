@@ -95,8 +95,7 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs,
         bool build,
         CancellationToken cancellationToken,
-        string? outputPath = null,
-        bool overwrite = true)
+        string? outputPath = null)
     {
         return RunGeneralMergeV2Async(
             icId,
@@ -105,7 +104,6 @@ public static partial class WorkbenchCompositionService
             build,
             cancellationToken,
             outputPath,
-            overwrite,
             progress: null);
     }
 
@@ -117,8 +115,7 @@ public static partial class WorkbenchCompositionService
         bool build,
         CompositionRunProgressFeed progress,
         CancellationToken cancellationToken,
-        string? outputPath = null,
-        bool overwrite = true)
+        string? outputPath = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(mappingInputs);
@@ -131,7 +128,6 @@ public static partial class WorkbenchCompositionService
             build,
             cancellationToken,
             outputPath,
-            overwrite,
             progress).ConfigureAwait(false);
     }
 }

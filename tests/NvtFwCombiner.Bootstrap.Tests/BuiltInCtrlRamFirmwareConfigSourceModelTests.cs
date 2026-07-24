@@ -48,9 +48,13 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
             ["nt51931-ctrlram-fw130-cascade6-full-flash"] = "cascade:2-*",
             ["nt51932-ctrlram-fw1x-single-full-flash"] = "single",
             ["nt51932-ctrlram-fw200-cascade3-full-flash"] = "cascade:2-*",
+            ["nt51950-ctrlram-fw200-single-tp-work"] = "single",
             ["nt51950-ctrlram-fw200-single-full-flash"] = "single",
+            ["nt51950-ctrlram-fw1x-cascade-tp-work"] = "cascade:2-*",
             ["nt51950-ctrlram-fw1x-cascade-full-flash"] = "cascade:2-*",
+            ["nt51951-ctrlram-fw200-single-tp-work"] = "single",
             ["nt51951-ctrlram-fw200-single-full-flash"] = "single",
+            ["nt51951-ctrlram-fw1x-cascade-tp-work"] = "cascade:2-*",
             ["nt51951-ctrlram-fw1x-cascade-full-flash"] = "cascade:2-*",
         };
 

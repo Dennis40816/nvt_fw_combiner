@@ -123,6 +123,36 @@ public sealed partial class ShellViewModelTests
             tpPath,
             TestContext.Current.CancellationToken);
 
+        Assert.False(viewModel.IsNumberSelectorVisible);
+        Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
+    }
+
+    /// <summary>Standard Merge records TP FWConfig topology as metadata without offering a hidden Number change.</summary>
+    [Fact]
+    public async Task StandardMergeTpInspectionDoesNotPromptForFirmwareNumberContext()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-standard-number-context");
+        string tpPath = workspace.Write("tp.bin", [0x01]);
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        [
+            .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                input.InspectionId,
+                new WorkbenchFirmwareInspection(
+                    null,
+                    null,
+                    null,
+                    null,
+                    new WorkbenchFirmwareContextSuggestion("NT51929", "cascade", 2, "1.4.1", 0x5192),
+                    null))),
+        ]);
+        viewModel.SelectedIc = "NT51929";
+        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+
+        await viewModel.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
+
+        Assert.True(viewModel.IsNormalMergeModeSelected);
+        Assert.False(viewModel.IsNumberSelectorVisible);
         Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
     }

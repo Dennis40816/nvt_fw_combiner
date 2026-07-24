@@ -150,9 +150,9 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsMergeVisible);
     }
 
-    /// <summary>Verifies filename and verified TP FWConfig context changes both require confirmation.</summary>
+    /// <summary>Verifies an IC marker remains actionable while a hidden Merge TP number stays informational.</summary>
     [Fact]
-    public void SlotLoadingPromptsForIcMarkerAndAppliesVerifiedTpNumber()
+    public void SlotLoadingPromptsForIcMarkerButDoesNotApplyMergeTpNumber()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51926";
@@ -170,12 +170,8 @@ public sealed partial class ShellViewModelTests
         string tpPath = golden.ManifestPath(golden.CaseByIc("51926").GetProperty("inputs").GetProperty("tp-input"));
         viewModel.SetSlotFile("merge-tp", tpPath);
 
-        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("single", viewModel.SelectedNumber);
-        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
-
-        Assert.Equal("cascade", viewModel.SelectedNumber);
-        Assert.Equal("Context updated", viewModel.ShellToastTitle);
     }
 
     /// <summary>Verifies a printable header marker is advisory in the same way as a filename marker.</summary>

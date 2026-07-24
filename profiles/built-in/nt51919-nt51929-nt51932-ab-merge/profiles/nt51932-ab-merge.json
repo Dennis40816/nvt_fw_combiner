@@ -19,9 +19,9 @@
   "mapBinding": {
     "familyId": "nt51919-nt51929-nt51932-ab-merge",
     "familyVersion": "0.1.0",
-    "familyContentHash": "f3004851cc55845b9917c3230595cbb700d92b4f28272a26bf5ee6b11d5fa1eb",
+    "familyContentHash": "282e6b1c6ba8ed5af648dfab255190207718a430989d0539539742f802891ad5",
     "mapIds": ["nt51932-ab-merge-512k"],
-    "requiredRegionIds": ["ab-image", "tpa-code", "tpb-code"],
+    "requiredRegionIds": ["ab-image", "a-cmi-dp-version", "b-cmi-dp-version", "tpa-code", "tpb-code"],
     "requiredMetadataStructureIds": [],
     "requiredCapabilityIds": []
   },
@@ -116,10 +116,17 @@
   "validations": [],
   "processorStages": [],
   "output": {
-    "fileNameTemplate": "nt51932-ab-merge.bin",
+    "fileNameTemplate": "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
-    "requiredTokenIds": []
+    "requiredTokenIds": [
+      "date",
+      "dp-a",
+      "dp-b",
+      "ic",
+      "tp-a",
+      "tp-b"
+    ]
   },
   "evidenceRefs": ["uploaded-ab-combiner-51932"]
 }

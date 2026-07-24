@@ -65,13 +65,13 @@ internal static class CtrlRamV2RouteRegistry
         Route("NT51932", "nfc.nt51932.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip,
             "nt51932-ctrlram-replace-candidate", "nt51932-ctrlram-replace-fw1x-single"),
         Route("NT51950", "nfc.nt51950.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip,
-            "nt51950-ctrlram-replace-candidate", "nt51950-ctrlram-replace-fw200-single"),
+            "nt51950-ctrlram-replace-candidate", "nt51950-ctrlram-replace-fw200-single", "0.3.0"),
         Route("NT51950", "nfc.nt51950.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade,
-            "nt51950-ctrlram-replace-candidate", "nt51950-ctrlram-replace-fw1x-cascade", "0.3.0"),
+            "nt51950-ctrlram-replace-candidate", "nt51950-ctrlram-replace-fw1x-cascade", "0.4.0"),
         Route("NT51951", "nfc.nt51951.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.SingleChip,
-            "nt51951-ctrlram-replace-candidate", "nt51951-ctrlram-replace-fw200-single"),
+            "nt51951-ctrlram-replace-candidate", "nt51951-ctrlram-replace-fw200-single", "0.3.0"),
         Route("NT51951", "nfc.nt51951.ctrlram-postbuild-v1", LegacyCombinerPostbuildBranch.Cascade,
-            "nt51951-ctrlram-replace-candidate", "nt51951-ctrlram-replace-fw1x-cascade", "0.3.0"),
+            "nt51951-ctrlram-replace-candidate", "nt51951-ctrlram-replace-fw1x-cascade", "0.4.0"),
     ]);
 
     private static readonly ReadOnlyDictionary<CtrlRamV2RouteKey, CtrlRamV2Route> ByKey =

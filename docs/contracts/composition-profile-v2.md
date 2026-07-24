@@ -58,7 +58,10 @@ not an experience, UI, or member-id inference. The
 contexts in ADR 0019 and ADR 0020. The separate `V2RuntimeExecutable` eligibility is minted only by
 the Profiles compiler for the closed blank-output Merge or reference-clone DP Replace subset when
 promotion is exactly `supported`, blockers are empty, each input slot has exactly one immutable
-singleton space, and the output template is token-free with the `reject` invalid-character policy.
+singleton space, and the output template is either token-free or the exact closed AB Code v1 template
+with the `reject` invalid-character policy. The AB exception is admitted only for the AB Merge
+execution context and is rendered by Application from accepted execution snapshots; arbitrary token
+templates remain non-executable.
 An `executable-candidate` never creates generic runtime authority, production routing, or support;
 ADR 0019 logical-output and ADR 0020 runtime-reference-replace are the only explicit Application
 admission shapes.
@@ -255,12 +258,15 @@ map. Reference images, mutable work buffers, and processor-owned non-CtrlRAM flo
 Original input file names are an unconditional v2 provenance/UI invariant rather than a configurable
 profile flag; a V2 runtime binding supplies its original plain filename and caller-declared typed slot
 assertion, which Application matches to the compiled slot and accepted extension before reading bytes.
-The original filename remains in reports and preview-token identity. Runtime templates are token-free.
-Their static template supplies the default output filename; `allowOverride: false` requires that exact
-filename, while `allowOverride: true` accepts another Windows-safe caller filename that is bound to
-the Preview-to-Build token. Runtime admission requires the `reject` invalid-character policy;
-`replace-underscore` remains non-executable until token rendering is implemented. Output names still
-follow `output.fileNameTemplate`.
+The original filename remains in reports and preview-token identity. Runtime templates are normally
+token-free. The sole exception is the exact AB Code v1 template
+`NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin`, which Application renders from accepted execution
+snapshots under ADR 0034; no other token template is executable. A static template supplies the
+default output filename; the AB renderer supplies its automatic candidate. `allowOverride: false`
+requires that automatic result, while `allowOverride: true` accepts another Windows-safe caller
+filename that is bound to the Preview-to-Build token. Runtime admission requires the `reject`
+invalid-character policy; `replace-underscore` remains non-executable. Output names still follow
+`output.fileNameTemplate`.
 
 ## Metadata and validation
 

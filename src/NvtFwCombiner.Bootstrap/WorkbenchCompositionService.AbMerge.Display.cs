@@ -1,41 +1,78 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using static NvtFwCombiner.Bootstrap.WorkbenchMemoryDisplayProjection;
 
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    /// <summary>Gets required AB input cards directly from the compiled profile contract.</summary>
-    public static IReadOnlyList<WorkbenchAbMergeInputSlot> GetAbMergeInputSlots(string icId)
+    /// <summary>Gets required AB input cards from a Bootstrap-owned symbolic topology token.</summary>
+    public static IReadOnlyList<WorkbenchAbMergeInputSlot> GetAbMergeInputSlots(
+        string icId,
+        string? abMergeTopologyToken)
     {
-        return WorkbenchAbMergeInputProjection.GetInputSlots(icId);
+        return GetAbMergeInputSlots(
+            icId,
+            AbMergeWorkbenchCompositionService.ResolveTopologySelection(abMergeTopologyToken));
+    }
+
+    /// <summary>Gets required AB input cards directly from the compiled profile contract.</summary>
+    public static IReadOnlyList<WorkbenchAbMergeInputSlot> GetAbMergeInputSlots(
+        string icId,
+        TopologySelection? abMergeTopologySelection = null)
+    {
+        return WorkbenchAbMergeInputProjection.GetInputSlots(icId, abMergeTopologySelection);
     }
 
     /// <summary>Reads one selected AB file once and projects compiled health plus informational versions.</summary>
     public static WorkbenchAbMergeInputInspection InspectAbMergeInput(
         string icId,
         string addressSpaceId,
-        string path)
+        string path,
+        TopologySelection? abMergeTopologySelection = null)
     {
         return WorkbenchAbMergeInputProjection.Inspect(
             icId,
             addressSpaceId,
-            TryReadFirmwareImage(path));
+            TryReadFirmwareImage(path),
+            abMergeTopologySelection);
+    }
+
+    /// <summary>Reads one selected AB file using a Bootstrap-owned symbolic topology token.</summary>
+    public static WorkbenchAbMergeInputInspection InspectAbMergeInput(
+        string icId,
+        string addressSpaceId,
+        string path,
+        string? abMergeTopologyToken)
+    {
+        return InspectAbMergeInput(
+            icId,
+            addressSpaceId,
+            path,
+            AbMergeWorkbenchCompositionService.ResolveTopologySelection(abMergeTopologyToken));
     }
 
     internal static WorkbenchAbMergeInputInspection InspectAbMergeInput(
         string icId,
         string addressSpaceId,
-        byte[]? image)
+        byte[]? image,
+        TopologySelection? abMergeTopologySelection = null)
     {
-        return WorkbenchAbMergeInputProjection.Inspect(icId, addressSpaceId, image);
+        return WorkbenchAbMergeInputProjection.Inspect(
+            icId,
+            addressSpaceId,
+            image,
+            abMergeTopologySelection);
     }
 
     /// <summary>Gets AB final output ownership directly from the compiled plan.</summary>
-    public static WorkbenchMemoryDisplay GetAbMergeMemoryDisplay(string icId)
+    public static WorkbenchMemoryDisplay GetAbMergeMemoryDisplay(
+        string icId,
+        TopologySelection? abMergeTopologySelection = null)
     {
         if (!AbMergeWorkbenchCompositionService.TryCompileAbMerge(
                 icId,
+                abMergeTopologySelection,
                 out CompiledComposition? composition,
                 out IReadOnlyList<CompositionIssue> issues))
         {
@@ -98,6 +135,16 @@ public static partial class WorkbenchCompositionService
             FormatFullRange(initialization.Capacity),
             rows,
             ToWorkbenchCoverageSegments(coverage, initialization.Capacity));
+    }
+
+    /// <summary>Gets AB output ownership from a Bootstrap-owned symbolic topology token.</summary>
+    public static WorkbenchMemoryDisplay GetAbMergeMemoryDisplay(
+        string icId,
+        string? abMergeTopologyToken)
+    {
+        return GetAbMergeMemoryDisplay(
+            icId,
+            AbMergeWorkbenchCompositionService.ResolveTopologySelection(abMergeTopologyToken));
     }
 
 }

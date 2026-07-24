@@ -1,5 +1,7 @@
 using NvtFwCombiner.Domain.Composition;
 
+using System.Text.Json.Serialization;
+
 namespace NvtFwCombiner.Application.Composition;
 
 /// <summary>Application run summary for one preview or build; not the canonical composition-report-v1 wire contract.</summary>
@@ -23,7 +25,9 @@ public sealed class CompositionRunReport
         OutputArtifactSummary output,
         IReadOnlyList<OutputDifferenceSummary>? outputDifferences = null,
         string? compilationFingerprint = null,
-        IReadOnlyList<ValidationRunSummary>? validations = null)
+        IReadOnlyList<ValidationRunSummary>? validations = null,
+        OutputNamingSummary? outputNaming = null,
+        IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
@@ -60,6 +64,10 @@ public sealed class CompositionRunReport
         OutputDifferences = outputDifferences is null ? [] : [.. outputDifferences];
         CompilationFingerprint = compilationFingerprint;
         Validations = Array.AsReadOnly(validations is null ? Array.Empty<ValidationRunSummary>() : [.. validations]);
+        OutputNaming = outputNaming;
+        DeliveryArtifacts = deliveryArtifacts is { Count: > 0 }
+            ? Array.AsReadOnly([.. deliveryArtifacts])
+            : null;
     }
 
     /// <summary>Stable run id.</summary>
@@ -112,4 +120,39 @@ public sealed class CompositionRunReport
 
     /// <summary>Compiled validation outcomes retained independently from operation execution.</summary>
     public IReadOnlyList<ValidationRunSummary> Validations { get; }
+
+    /// <summary>Output-name rendering provenance when a typed renderer resolved the automatic name.</summary>
+    public OutputNamingSummary? OutputNaming { get; }
+
+    /// <summary>Additional artifacts delivered from the completed primary composition output.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<DeliveryArtifactSummary>? DeliveryArtifacts { get; }
+
+    /// <summary>Creates an immutable report revision after an adapter-owned delivery phase.</summary>
+    public CompositionRunReport WithDeliveryArtifacts(
+        IReadOnlyList<DeliveryArtifactSummary> deliveryArtifacts,
+        IReadOnlyList<CompositionIssue>? additionalIssues = null)
+    {
+        ArgumentNullException.ThrowIfNull(deliveryArtifacts);
+        return new CompositionRunReport(
+            RunId,
+            ProfileId,
+            ProfileVersion,
+            IcId,
+            ModeId,
+            ExperienceId,
+            CompositionKind,
+            StartedAtUtc,
+            CompletedAtUtc,
+            Inputs,
+            Operations,
+            Mutations,
+            [.. Issues, .. additionalIssues ?? []],
+            Output,
+            OutputDifferences,
+            CompilationFingerprint,
+            Validations,
+            OutputNaming,
+            deliveryArtifacts);
+    }
 }

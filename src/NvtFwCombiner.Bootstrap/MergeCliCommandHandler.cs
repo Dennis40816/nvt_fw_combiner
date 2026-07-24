@@ -7,7 +7,6 @@ internal static partial class MergeCliCommandHandler
     private const int Success = 0;
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
-    private const int SoftwareError = 70;
     private const string GeneralMergeModeId = IcWorkflowIds.GeneralMerge;
 
     internal static async Task<int> RunAsync(
@@ -82,13 +81,6 @@ internal static partial class MergeCliCommandHandler
                 "Output path",
                 protectedPaths,
                 "--output");
-            if (!options.Flags.Contains("--overwrite") && File.Exists(outputTarget.FullPath))
-            {
-                await error.WriteLineAsync(
-                        $"error: output file already exists: {outputTarget.FullPath}; pass --overwrite to replace it.")
-                    .ConfigureAwait(false);
-                return SoftwareError;
-            }
         }
 
         if (options.Values.TryGetValue("--report", out string? reportPath))
@@ -108,8 +100,7 @@ internal static partial class MergeCliCommandHandler
                 mappings,
                 action == "build",
                 cancellationToken,
-                outputPath,
-                overwrite: options.Flags.Contains("--overwrite"))
+                outputPath)
             .ConfigureAwait(false);
         bool reportWritten = options.Values.TryGetValue("--report", out string? requestedReportPath);
         if (reportWritten)

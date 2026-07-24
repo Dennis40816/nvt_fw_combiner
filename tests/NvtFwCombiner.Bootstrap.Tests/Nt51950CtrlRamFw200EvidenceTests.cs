@@ -17,6 +17,7 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
     private const string CurrentOutputSha256 = "a32e6896b840d44e4933adb8827d66bfe642a1347835a1c5bda848cb33ecd5c4";
     private const string RegisteredCombinerSha256 = "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf";
     private const int Capacity = 0x40000;
+    private const int TpPrefixCapacity = 0x37000;
     private const int NfStart = 0x22C00;
     private const int NfMaximumLength = 0x2A10;
     private const int NormalStart = 0x25610;
@@ -330,7 +331,7 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
         Assert.Equal(ExpectedArguments(), ReadNormalizedArguments(session));
         Assert.Equal(2, session.GetProperty("ExecutedCommands").GetArrayLength());
         AssertProcessorIdentity(session);
-        Assert.Equal([new ByteRange(0, Capacity)], ReadRanges(session, "ProcessorAllowedReadRanges"));
+        Assert.Equal([new ByteRange(0, TpPrefixCapacity)], ReadRanges(session, "ProcessorAllowedReadRanges"));
         ByteRange[] expectedWrites = [
             new(0xA11C, 4), new(0xA130, 4), new(NfStart, 2816), new(NormalStart, NormalLength),
             new(VnStart, VnLength), new(HeaderCopyStart, HeaderCopyLength),

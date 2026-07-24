@@ -35,6 +35,8 @@ internal static class BuiltInV2RegistrationRegistry
             new BuiltInV2Registration("NT51919", "nt51919-ab-merge-alias", "0.2.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
             new BuiltInV2Registration("NT51929", "nt51929-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
             new BuiltInV2Registration("NT51932", "nt51932-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+            new BuiltInV2Registration("NT51950", "nt51950-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51950-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+            new BuiltInV2Registration("NT51951", "nt51951-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51950-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
         ]);
 
     internal static ReadOnlyDictionary<string, BuiltInV2Registration> AbMergeByIc { get; } =
@@ -132,6 +134,8 @@ internal sealed class BuiltInV2Registration
 
     private bool IsStandardMerge => WorkflowId == IcWorkflowIds.StandardMerge;
 
+    private bool IsAbMerge => WorkflowId == IcWorkflowIds.AbMerge;
+
     private bool IsDpReplace => WorkflowId == IcWorkflowIds.DpReplace;
 
     private string ProfileLabel => WorkflowId switch
@@ -186,6 +190,27 @@ internal sealed class BuiltInV2Registration
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        TryCompile(inputLength, requestedTopology: null, out composition, out issues);
+    }
+
+    internal void TryCompile(
+        long? inputLength,
+        TopologySelection? requestedTopology,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        if (requestedTopology is not null && !IsAbMerge)
+        {
+            composition = null;
+            issues =
+            [
+                new CompositionIssue(
+                    "profile.v2.builtin.topology-not-admitted",
+                    "Only AB Merge built-in registrations admit an explicit topology selection."),
+            ];
+            return;
+        }
+
         IReadOnlyList<long> capacities = GetMapCapacities(out issues);
         if (issues.Count != 0)
         {
@@ -194,28 +219,38 @@ internal sealed class BuiltInV2Registration
         }
 
         long? requestedCapacity = null;
-        if (IsStandardMerge && capacities.Count > 1)
+        TopologySelection? effectiveTopology = requestedTopology;
+        if ((IsStandardMerge || IsAbMerge) && capacities.Count > 1)
         {
             if (inputLength is null)
             {
-                composition = null;
-                issues = [];
-                return;
-            }
+                if (IsStandardMerge)
+                {
+                    composition = null;
+                    issues = [];
+                    return;
+                }
 
-            if (!capacities.Contains(inputLength.Value))
+                requestedCapacity = requestedTopology is null ? capacities[0] : null;
+                effectiveTopology ??= CreateSummaryTopology();
+            }
+            else if (!capacities.Contains(inputLength.Value))
             {
                 composition = null;
                 issues =
                 [
                     new CompositionIssue(
-                        WorkbenchIssueCodes.StandardMergeDpLengthUnsupported,
-                        $"Selected DP BIN length 0x{inputLength.Value:X} is unsupported; {IcId} Standard Merge accepts DP input lengths {BuiltInV2Bundle.FormatCapacities(capacities)}."),
+                        IsStandardMerge
+                            ? WorkbenchIssueCodes.StandardMergeDpLengthUnsupported
+                            : CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                        $"Selected DP BIN length 0x{inputLength.Value:X} is unsupported; {IcId} {ProfileLabel} accepts DP input lengths {BuiltInV2Bundle.FormatCapacities(capacities)}."),
                 ];
                 return;
             }
-
-            requestedCapacity = inputLength;
+            else
+            {
+                requestedCapacity = inputLength;
+            }
         }
         else if (IsDpReplace)
         {
@@ -234,7 +269,7 @@ internal sealed class BuiltInV2Registration
             requestedCapacity = inputLength;
         }
 
-        V2CompositionPlanCompileResult compilation = CompileExecutable(requestedCapacity);
+        V2CompositionPlanCompileResult compilation = CompileExecutable(requestedCapacity, effectiveTopology);
         composition = compilation.CompiledComposition;
         issues = compilation.Issues;
     }
@@ -284,19 +319,40 @@ internal sealed class BuiltInV2Registration
                 [new CompositionIssue(
                     BuiltInV2Bundle.CompilationFailed,
                     $"The built-in V2 {ProfileLabel} for {IcId} has no declared {(IsDpReplace ? "base" : "map")} capacities.")]),
-            _ => CompileExecutable(IsDpReplace || (IsStandardMerge && capacities.Count > 1) ? capacities[0] : null),
+            _ => CompileExecutable(
+                IsDpReplace || ((IsStandardMerge || IsAbMerge) && capacities.Count > 1) ? capacities[0] : null,
+                IsAbMerge && capacities.Count > 1 ? CreateSummaryTopology() : null),
         };
     }
 
-    private V2CompositionPlanCompileResult CompileExecutable(long? requestedMapCapacity)
+    private V2CompositionPlanCompileResult CompileExecutable(
+        long? requestedMapCapacity,
+        TopologySelection? requestedTopology = null)
     {
-        return _bundle.CompileExecutable(
-            ProfileId,
-            _profileVersion,
-            IcId,
-            WorkflowId,
-            requestedMapCapacity,
-            $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.");
+        return IsAbMerge
+            ? _bundle.CompileAbMergeFunctionOpen(
+                ProfileId,
+                _profileVersion,
+                IcId,
+                requestedMapCapacity,
+                requestedTopology,
+                $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.")
+            : _bundle.CompileExecutable(
+                ProfileId,
+                _profileVersion,
+                IcId,
+                WorkflowId,
+                requestedMapCapacity,
+                $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.");
+    }
+
+    private static TopologySelection CreateSummaryTopology()
+    {
+        return new TopologySelection(
+            chipCount: 1,
+            label: "1 IC",
+            source: TopologySelectionSource.Requested,
+            sourceId: "summary-default");
     }
 }
 

@@ -209,6 +209,41 @@ public sealed class DeclaredPrefixInputInspectorTests
             result.NextAction);
     }
 
+    /// <summary>Exact compiled inputs block both a short and a tailed source without prefix truncation.</summary>
+    [Fact]
+    public void CompiledContractProjectionRejectsExactLengthMismatch()
+    {
+        var slot = new CompiledInputSlotRequirement(
+            "source-slot",
+            "source",
+            CompiledInputArtifactClass.Auxiliary,
+            required: true,
+            CompiledInputSlotCardinality.ExactlyOne,
+            [".bin"],
+            new CompiledExactResolvedMapCapacityInputLengthRequirement(16),
+            new CompiledNoInputNormalization());
+        var contract = new CompiledInputContract(
+            [slot],
+            [new CompiledInputSpaceBinding(
+                "source-input",
+                slot.SlotId,
+                CompiledInputInstancePolicy.Singleton)]);
+
+        CompiledInputArtifactInspectionResult result =
+            CompiledInputArtifactInspectionService.Inspect(contract, "source-input", Sequence(17));
+
+        Assert.Equal(16, result.RequiredEndExclusive);
+        Assert.Equal([16L], result.ExpectedOuterLengths);
+        Assert.Null(result.AcceptedSnapshotRange);
+        Assert.Null(result.IgnoredTrailingRange);
+        Assert.Equal(CompiledInputArtifactInspectionSeverity.Blocking, result.Severity);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, result.IssueCode);
+        Assert.True(result.BlocksBuild);
+        Assert.Equal(
+            CompiledInputArtifactInspectionNextAction.SelectCompatibleInput,
+            result.NextAction);
+    }
+
     /// <summary>Unknown spaces and non-declared-prefix rules cannot be inspected through this use case.</summary>
     [Fact]
     public void CompiledContractProjectionRejectsUnownedPolicySelection()

@@ -159,6 +159,8 @@ public sealed partial class MainWindowViewModel
         SelectCtrlRamFirmwareVersionPreserveCommand = new RelayCommand(SelectCtrlRamFirmwareVersionPreserve);
         SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
         CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);
+        AcceptAbAFlashCodeDeliveryPromptCommand = new RelayCommand(AcceptAbAFlashCodeDeliveryPrompt);
+        DeclineAbAFlashCodeDeliveryPromptCommand = new RelayCommand(DeclineAbAFlashCodeDeliveryPrompt);
         CloseBuildCompletedModalCommand = new RelayCommand(CloseBuildCompletedModal);
         RevealFileCommand = new RelayCommand<string>(RevealFile);
         RevealBuildCompletedOutputCommand = new RelayCommand(RevealBuildCompletedOutput);

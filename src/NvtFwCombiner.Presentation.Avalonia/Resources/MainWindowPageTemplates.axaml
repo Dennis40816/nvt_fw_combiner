@@ -102,10 +102,10 @@
           <Button
               Grid.Row="1"
               Classes="command"
-              Command="{Binding BeginGeneralMergeFromHomeCommand}">
+              Command="{Binding BeginAbMergeFromHomeCommand}">
             <Border Classes="workflowCard">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <TextBlock Classes="strongText" Text="Customized Merge" />
+                <TextBlock Classes="strongText" Text="AB Code" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
                   <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
                 </Border>
@@ -115,10 +115,10 @@
           <Button
               Grid.Row="2"
               Classes="command"
-              Command="{Binding BeginAbMergeFromHomeCommand}">
+              Command="{Binding BeginGeneralMergeFromHomeCommand}">
             <Border Classes="workflowCard">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <TextBlock Classes="strongText" Text="AB Code" />
+                <TextBlock Classes="strongText" Text="Customized Merge" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
                   <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
                 </Border>

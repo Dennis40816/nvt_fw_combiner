@@ -12,7 +12,7 @@
       Padding="22"
       HorizontalAlignment="Center"
       VerticalAlignment="Center">
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="5">
         <TextBlock Classes="modalTitle" Text="{Binding Text.BuildCompletedTitle}" />
         <TextBlock Classes="mutedText" Text="{Binding Text.BuildCompletedDetail}" TextWrapping="Wrap" />
@@ -33,15 +33,31 @@
         </StackPanel>
       </Border>
 
+      <Border Grid.Row="2" Classes="subtleSurface" IsVisible="{Binding HasBuildCompletedAdditionalOutput}" Padding="12,10">
+        <StackPanel Spacing="{DynamicResource NfcSpace4}">
+          <TextBlock Classes="fieldLabel" Text="{Binding Text.BuildCompletedAdditionalOutputLabel}" />
+          <Button
+              AutomationProperties.HelpText="{Binding BuildCompletedAdditionalOutputPath}"
+              AutomationProperties.Name="{Binding BuildCompletedAdditionalOutputDisplayName}"
+              Classes="fileRevealAction"
+              Command="{Binding RevealFileCommand}"
+              CommandParameter="{Binding BuildCompletedAdditionalOutputPath}"
+              Content="{Binding BuildCompletedAdditionalOutputDisplayName}"
+              HorizontalAlignment="Left"
+              Tag="{Binding BuildCompletedAdditionalOutputPath}"
+              ToolTip.Tip="{Binding BuildCompletedAdditionalOutputPath}" />
+        </StackPanel>
+      </Border>
+
       <TextBlock
-          Grid.Row="2"
+          Grid.Row="3"
           Classes="warningText"
           AutomationProperties.LiveSetting="Polite"
           IsVisible="{Binding HasBuildCompletedOpenFolderError}"
           Text="{Binding BuildCompletedOpenFolderError}"
           TextWrapping="Wrap" />
 
-      <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+      <StackPanel Grid.Row="4" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
             Classes="secondary"
             AutomationProperties.Name="{Binding Text.BuildCompletedOpenFolderLabel}"

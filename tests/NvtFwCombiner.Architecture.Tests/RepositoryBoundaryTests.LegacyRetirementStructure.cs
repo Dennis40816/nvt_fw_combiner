@@ -18,6 +18,7 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog",
             [
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs",
+                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareInspection.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Context.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.FirmwareVersion.cs",

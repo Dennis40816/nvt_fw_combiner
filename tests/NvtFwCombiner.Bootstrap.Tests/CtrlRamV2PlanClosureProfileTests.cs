@@ -12,8 +12,8 @@ public sealed class CtrlRamV2PlanClosureProfileTests
     private const string Nt51928BundleHash = "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634";
     private const string Nt51931BundleHash = "2ae7169f047bc016e6d82f967981b72876efb58c4b59c39f7a86cf7428931300";
     private const string Nt51932BundleHash = "7530d67111fdf3c93c1ae934f2ca0c903bfed35b2f4ab351eea18f0a5a58f3cd";
-    private const string Nt51950BundleHash = "dc5031993636feb26a60ff96e3517da2fb982f39b83e92724c73dd1df8cf7b16";
-    private const string Nt51951BundleHash = "497d99edcfc9ef03cd3d28e3dd7bf821a8db0c9cda5e1cab7aba18fb8d8f8bbd";
+    private const string Nt51950BundleHash = "48525d7783994676762a07410eb437711ce0772e94c6dabc571b9bf94b887b3f";
+    private const string Nt51951BundleHash = "9e522d6f5cce1a40af9f6a95d102477c8d29ce9d6c2d34084da5f0c25aaf1559";
 
     /// <summary>NT51919/NT51929 cascade routes own DiffDLM but not the overlapping single FWConfig backup view.</summary>
     [Theory]
@@ -147,7 +147,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             targetStart: 0x33200,
             targetLength: 0x1400,
             referenceCapacity: 0x40000,
-            profileVersion: "0.3.0");
+            profileVersion: "0.4.0");
         CompiledComposition nt51951 = Compile(
             "nt51951-ctrlram-replace-candidate",
             Nt51951BundleHash,
@@ -157,7 +157,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             targetStart: 0x33200,
             targetLength: 0x1400,
             referenceCapacity: 0x80000,
-            profileVersion: "0.3.0");
+            profileVersion: "0.4.0");
 
         Assert.Equal(0x40000, nt51950.V2Details!.Provenance.ResolvedMap.CapacityBytes);
         Assert.Equal(0x80000, nt51951.V2Details!.Provenance.ResolvedMap.CapacityBytes);
@@ -165,6 +165,75 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             Processor(nt51950).AllowedWriteRanges,
             Processor(nt51951).AllowedWriteRanges);
         Assert.Contains(new ByteRange(0x33200, 0x1400), Processor(nt51950).AllowedWriteRanges);
+    }
+
+    /// <summary>TP FW bases stage only the declared 0x37000-byte prefix for NT51950/NT51951.</summary>
+    [Theory]
+    [InlineData(
+        "nt51950-ctrlram-replace-candidate",
+        Nt51950BundleHash,
+        "nt51950-ctrlram-replace-fw200-single",
+        "NT51950",
+        1,
+        "0.3.0",
+        0x22C00,
+        "nt51950-ctrlram-fw200-single-tp-work")]
+    [InlineData(
+        "nt51950-ctrlram-replace-candidate",
+        Nt51950BundleHash,
+        "nt51950-ctrlram-replace-fw1x-cascade",
+        "NT51950",
+        2,
+        "0.4.0",
+        0x33200,
+        "nt51950-ctrlram-fw1x-cascade-tp-work")]
+    [InlineData(
+        "nt51951-ctrlram-replace-candidate",
+        Nt51951BundleHash,
+        "nt51951-ctrlram-replace-fw200-single",
+        "NT51951",
+        1,
+        "0.3.0",
+        0x22C00,
+        "nt51951-ctrlram-fw200-single-tp-work")]
+    [InlineData(
+        "nt51951-ctrlram-replace-candidate",
+        Nt51951BundleHash,
+        "nt51951-ctrlram-replace-fw1x-cascade",
+        "NT51951",
+        2,
+        "0.4.0",
+        0x33200,
+        "nt51951-ctrlram-fw1x-cascade-tp-work")]
+    public void Nt51950FamilyTpFirmwareBasesCompileWithPrefixOnlyProcessorAuthority(
+        string bundleDirectory,
+        string bundleHash,
+        string profileId,
+        string icId,
+        int chipCount,
+        string profileVersion,
+        long targetStart,
+        string expectedMapId)
+    {
+        const long tpPrefixLength = 0x37000;
+        CompiledComposition composition = Compile(
+            bundleDirectory,
+            bundleHash,
+            profileId,
+            icId,
+            chipCount,
+            targetStart: targetStart,
+            targetLength: 0x1400,
+            referenceCapacity: tpPrefixLength,
+            profileVersion: profileVersion);
+
+        Assert.Equal(expectedMapId, composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal(tpPrefixLength, composition.V2Details.Provenance.ResolvedMap.CapacityBytes);
+        Assert.Equal([new ByteRange(0, tpPrefixLength)], Processor(composition).AllowedReadRanges);
+        Assert.Contains(new ByteRange(targetStart, 0x1400), Processor(composition).AllowedWriteRanges);
+        Assert.All(
+            Processor(composition).AllowedWriteRanges,
+            range => Assert.True(range.EndExclusive <= tpPrefixLength));
     }
 
     private static CompiledComposition Compile(

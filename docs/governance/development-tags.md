@@ -1,6 +1,10 @@
 # Development Tags and Milestone Nodes
 
-Tags are immutable annotated SemVer tags describing code that exists. Future milestones are reserved here and are not pre-created against the wrong commit.
+Tags are immutable annotated SemVer tags describing code that exists. Future
+milestone scope, sequencing, and dates are maintained only in
+[NFC Roadmap](../architecture/nfc_roadmap.md); historical milestone descriptions
+here are not active planning authority and are not pre-created against the wrong
+commit.
 
 ## Initial node
 
@@ -29,7 +33,10 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.9.12` — CtrlRAM production-routing and interaction-stabilization milestone: start only from exact stable `v0.9.11`; replace golden-identity admission with IC/profile/typed-plan authority; improve failure feedback and navigation safety; add complete release notes and deterministic branch/review governance; and retain support-neutral firmware gates.
 - `v0.9.13` — urgent UI and release-stabilization milestone: correct action feedback/layout, exact-file reveal, TP-version UX/naming, Inputs scrolling, OneDrive diagnostics, NT51951 DP guidance, and Standard/Customized display labels without changing firmware behavior or support truth.
 - `v0.9.14` — AB architecture re-admission, targeted UI correctness, and release-automation milestone: re-audit the first owner-approved AB family under ADR 0032, add typed load diagnostics and the minimum AB authoring UI, add IC detail disclosure, fix file-hover hit testing, modal/action-rail layering, action-rail consistency, and empty Replace coverage semantics, reduce duplicate Actions work, and move stable tag/release creation behind one protected CI promotion.
-- `v0.9.15` — cross-workflow UI unification, shared Hex viewport, and interaction-feedback milestone: align Merge/Replace headers, Evidence presentation, and Memory coverage components, implement the owner-reviewed Changes redesign, and make every Button expose a distinct accessible pressed/click acknowledgement without moving host or firmware semantics into Presentation.
+- `v0.9.15` — AB Code function-open, delivery-readiness, and review-automation milestone: start only from the official `v0.9.14` release commit, open the reviewed NT51919/NT51929/NT51932 route plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 in UI/CLI, complete owner-authorized AB input/output usability and reviewer-facing delivery automation, and retain code size as a non-blocking review metric. Direct-golden debt remains visible for support certification; it does not block these function-open routes. The shared Hex viewport, Changes redesign, and global Button-feedback backlog are deferred to a later owner-selected milestone.
+- `v0.9.16` — NT51950 AB Code golden-certification closure milestone: establish independently reviewed `1 IC` and `Cascade` topology, memory, size, and regression evidence without inferring cascade certification from the supplied `1 IC` golden.
+- `v0.9.17` — NT51951 AB Code golden-certification closure milestone: establish independent direct evidence for its selector-free plan without borrowing NT51950 evidence or promoting support automatically.
+- `v0.9.18` — family/evidence-model unification milestone: normalize Perfect-family and LDC-TP-only evidence vocabulary, covered workflow/topology scope, excluded DP facts, support-matrix/report/review-handoff language, and the prerequisite design record for a later IC family/rule authoring UI. It does not change runtime admission, profiles, maps, processors, or golden evidence.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.10` are maintained in
@@ -59,7 +66,16 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.12` starts from stable `v0.9.11` at peeled commit `14470f95eafe810de08db03d3e0370e81d086338`. Its integration and feature branches follow [Branch, Version, and Release Governance](branch-version-and-release-governance.md); no stale `0.9.11` feature branch is a valid substitute baseline. CtrlRAM runtime/profile work remains support-neutral until its normal R3 evidence and firmware-owner gates close.
 - `0.9.13` starts from the exact latest reviewed `0.9.12` head and is limited to the support-neutral UI/release stabilization scope recorded in its changelog. It does not admit AB or alter firmware composition authority.
 - `0.9.14` starts from stable `v0.9.13`/`main` commit `f9f8dbcd979ecdef43f432016787e57763819492`. It owns AB re-admission as an R3 track under ADR 0032, typed input diagnostics, the minimum AB authoring surface, IC detail disclosure, targeted hover/modal/action-rail/coverage UI fixes, canonical toolchain/CI efficiency, and protected CI-owned stable release promotion. Existing AB candidates remain hidden until their exact route, evidence, review, and firmware-owner gates close.
-- `0.9.15` owns cross-workflow header/Evidence/Memory coverage unification, the deferred shared viewport, and global Button feedback Presentation work.
+- `0.9.15` starts from official `v0.9.14` tag `58f5bbf4cdbfb4e02036c8c1b40c48aa88fa21f7`, peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`. It opens the reviewed NT51919/NT51929/NT51932 AB function plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 in UI/CLI, and owns output-name/input-inspection correctness plus delivery-to-review automation. All five routes remain function-open but support certification is not promoted. Direct-golden debt is explicit support-certification evidence, not a function gate. Cross-workflow header/Evidence/Memory coverage unification, the shared viewport, Changes redesign, and global Button feedback must be reassigned to a later owner-selected milestone before implementation.
+- `0.9.16` starts only from the official reviewed `v0.9.15` release tag. It owns NT51950 AB direct-golden and firmware-owner certification closure; a supplied `1 IC` golden cannot infer `Cascade` evidence, range, command, size policy, profile, or support status.
+- `0.9.17` starts only from the official reviewed `v0.9.16` release tag. It owns independent NT51951 AB direct-golden and firmware-owner certification closure; it cannot derive any byte rule or certification from NT51950.
+- `0.9.18` starts only from the official reviewed `v0.9.17` release tag. It owns family/evidence-model unification: Perfect-family sharing remains like-for-like only, while LDC-family sharing is TP/CtrlRAM-only and never covers a DP workflow. It is the prerequisite for, not the implementation of, a future IC family/rule authoring UI.
+
+The authoritative `0.9.15`–`0.9.18` scope, delivery-to-review contract, candidate admission ledger, and family/evidence foundation live in the single [v0.9.15–v0.9.18 Delivery and Family Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md).
+
+### Post-`0.9.17` owner-decision backlog
+
+Error experience unification, IC family/rule authoring UI, Customized-plan reuse/import, and Report detail/layout/function review are planned discussion tracks. Family/rule authoring cannot be assigned until `0.9.18` has completed its model/ADR gate; the other tracks remain unassigned. Their required workshops, safety boundaries, and implementation risk are recorded in the [v0.9.15–v0.9.18 Delivery and Family Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md#post-v0918-owner-decision-queue). A future milestone must not absorb any of them until the owner selects its order and the required contract/ADR is approved.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
@@ -77,7 +93,7 @@ This exception does not permit direct `main` merges, automatic tags, support pro
 
 ## Milestone scope
 
-Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB Merge candidate work is active for the `v0.9.3` evidence path, but it remains hidden from UI/CLI and is not a support claim until its per-IC golden, processor, and firmware-owner gates close. Standard Merge has executable profiles for the uploaded golden-backed gen_flash set, owner-confirmed NT51917/NT51919 aliases, NT51930 flash-map, and NT51950/NT51951 DP Perspective cases. NT51930 and NT51950/NT51951 now have owner golden fixtures indexed under `testdata/golden/canonical`; support exposure still requires firmware-owner sign-off. Replace now has profile-driven DP Replace authoring for all 13 selectable ICs; NT51928 non-NB additionally requires its separate full-FlashCode-shaped LDC input. Authoring availability is support-neutral and does not change golden or firmware-owner release gates. CtrlRAM per-region Preview/Build continues through staged Combiner postbuild, and CtrlRAM parity still needs private golden outputs and firmware-owner review.
+Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. The `0.9.15` AB Merge function is open in UI/CLI for NT51919/NT51929/NT51932, NT51950 `1 IC`/`Cascade`, and selector-free NT51951; its profile/IC/topology route is never selected from TP metadata. This remains a function-availability statement, not a support claim: each direct-golden and firmware-owner certification gate stays explicit. Standard Merge has executable profiles for the uploaded golden-backed gen_flash set, owner-confirmed NT51917/NT51919 aliases, NT51930 flash-map, and NT51950/NT51951 DP Perspective cases. NT51930 and NT51950/NT51951 now have owner golden fixtures indexed under `testdata/golden/canonical`; support exposure still requires firmware-owner sign-off. Replace now has profile-driven DP Replace authoring for all 13 selectable ICs; NT51928 non-NB additionally requires its separate full-FlashCode-shaped LDC input. Authoring availability is support-neutral and does not change golden or firmware-owner release gates. CtrlRAM per-region Preview/Build continues through staged Combiner postbuild, and CtrlRAM parity still needs private golden outputs and firmware-owner review.
 
 | Milestone | Scope | Implementation boundary |
 | --- | --- | --- |
@@ -107,7 +123,10 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.12` | CtrlRAM routing and interaction stabilization | Use IC/effective profile/typed plan production authority, surface actionable failures, require complete release notes and deterministic branch/review governance, and preserve support-neutral R3 gates. |
 | `v0.9.13` | Urgent UI and release stabilization | Deliver support-neutral action feedback/layout, file reveal, TP-version UX/naming, Inputs scrolling, OneDrive diagnostics, NT51951 guidance, and terminology corrections. |
 | `v0.9.14` | AB re-admission and targeted UI correctness | Deliver separately gated typed AB production authority, the minimum AB authoring UI, IC details, and owner-approved hover, modal/action-rail, and empty Replace coverage fixes. |
-| `v0.9.15` | UI unification, shared Hex viewport, and Button feedback | Align workflow headers/Evidence/Memory coverage, deliver the reviewed read-only Changes redesign, and provide consistent accessible pressed/click acknowledgement. |
+| `v0.9.15` | AB function open, delivery readiness, and review automation | Open NT51919/NT51929/NT51932 plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 AB routes. Direct-golden debt blocks support certification, not function availability. Shared viewport/Changes/Button Presentation work is deferred pending a new owner-selected milestone. |
+| `v0.9.16` | NT51950 AB golden-certification closure | Establish separately reviewed `1 IC` and `Cascade` evidence; the supplied `1 IC` golden proves neither cascade behavior nor support. |
+| `v0.9.17` | NT51951 AB golden-certification closure | Establish independent direct evidence for its selector-free plan; do not copy NT51950 memory, command, or certification evidence. |
+| `v0.9.18` | Family/evidence model unification | Normalize Perfect-family and LDC-TP-only scope before any family/rule authoring UI; no runtime or firmware evidence promotion. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -158,7 +177,10 @@ v0.9.11         reconstructed stabilization and release hygiene
 v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance
 v0.9.13         urgent UI and release stabilization
 v0.9.14         separately gated AB re-admission and targeted UI correctness fixes
-v0.9.15         cross-workflow UI unification, shared Hex/Changes, and global Button feedback
+v0.9.15         AB function open, input/output usability, and review automation
+v0.9.16         NT51950 AB golden-certification closure
+v0.9.17         NT51951 AB golden-certification closure
+v0.9.18         family/evidence model unification
 v1.0.0          stable
 ```
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51951-ctrlram-replace",
-  "familyVersion": "0.3.0",
+  "familyVersion": "0.4.0",
   "members": [
     {
       "memberId": "NT51951",
@@ -11,14 +11,14 @@
   "capabilities": [],
   "regionSets": [
     {
-      "regionSetId": "nt51951-ctrlram-fw200-full-flash",
+      "regionSetId": "nt51951-ctrlram-fw200-tp-work",
       "addressSpaceId": "flash",
       "regions": [
         {
           "regionId": "flash-image",
           "owner": "system",
           "kind": "image",
-          "range": { "start": 0, "length": 524288 },
+          "range": { "start": 0, "length": 225280 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -144,7 +144,24 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 214528, "length": 309760 },
+          "range": { "start": 214528, "length": 10752 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"
+      ]
+    },
+    {
+      "regionSetId": "nt51951-ctrlram-fw200-full-flash-tail",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "full-flash-tail",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 225280, "length": 299008 },
           "writeConstraint": "forbidden",
           "alignment": 1
         }
@@ -164,7 +181,7 @@
           "length": 4096,
           "locator": {
             "kind": "marker-relative",
-            "searchRange": { "addressSpaceId": "flash", "start": 0, "length": 524288 },
+            "searchRange": { "addressSpaceId": "flash", "start": 0, "length": 225280 },
             "markerHex": "004e5654",
             "selection": { "kind": "unique" },
             "resultOffset": -4092,
@@ -219,6 +236,22 @@
   ],
   "imageMaps": [
     {
+      "mapId": "nt51951-ctrlram-fw200-single-tp-work",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51951" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "single" },
+        "capacityBytes": 225280
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51951-ctrlram-fw200-tp-work" ],
+      "metadataSetIds": [ "nt51951-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"
+      ]
+    },
+    {
       "mapId": "nt51951-ctrlram-fw200-single-full-flash",
       "addressSpaceId": "flash",
       "applicability": {
@@ -228,7 +261,26 @@
         "capacityBytes": 524288
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [ "nt51951-ctrlram-fw200-full-flash" ],
+      "regionSetIds": [
+        "nt51951-ctrlram-fw200-tp-work",
+        "nt51951-ctrlram-fw200-full-flash-tail"
+      ],
+      "metadataSetIds": [ "nt51951-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"
+      ]
+    },
+    {
+      "mapId": "nt51951-ctrlram-fw1x-cascade-tp-work",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51951" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "cascade", "minimumChipCount": 2 },
+        "capacityBytes": 225280
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51951-ctrlram-fw200-tp-work" ],
       "metadataSetIds": [ "nt51951-fwconfig-backup-locator" ],
       "evidenceRefs": [
         "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"
@@ -244,7 +296,10 @@
         "capacityBytes": 524288
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [ "nt51951-ctrlram-fw200-full-flash" ],
+      "regionSetIds": [
+        "nt51951-ctrlram-fw200-tp-work",
+        "nt51951-ctrlram-fw200-full-flash-tail"
+      ],
       "metadataSetIds": [ "nt51951-fwconfig-backup-locator" ],
       "evidenceRefs": [
         "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"

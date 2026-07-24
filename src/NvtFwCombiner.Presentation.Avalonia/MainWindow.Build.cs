@@ -1,4 +1,5 @@
 using Avalonia.Interactivity;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -15,18 +16,59 @@ public sealed partial class MainWindow
         await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
         if (!viewModel.CanBuildMerge)
         {
+            if (viewModel.IsAbCodeMergeModeSelected)
+            {
+                _ = await viewModel.TryPrepareMergeBuildSaveAsync(CancellationToken.None);
+            }
+
             return;
         }
 
-        string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
-            StorageProvider,
-            viewModel.MergeOutputFileName);
-        if (string.IsNullOrWhiteSpace(outputPath))
+        MergeBuildSavePreparation? preparation = await viewModel.TryPrepareMergeBuildSaveAsync(
+            CancellationToken.None);
+        if (preparation is null)
         {
             return;
         }
 
-        await viewModel.BuildMergeAsync(outputPath);
+        WorkbenchAbAFlashCodeDeliveryPlan? aFlashCodePlan = preparation.AFlashCodePlan;
+        bool exportAFlashCode = aFlashCodePlan is not null &&
+            await viewModel.PromptForAbAFlashCodeDeliveryAsync();
+        string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
+            StorageProvider,
+            preparation.SuggestedFileName);
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            return;
+        }
+        bool outputPathUsesAutomaticName = viewModel.IsAbCodeMergeModeSelected &&
+            string.Equals(
+                Path.GetFileName(outputPath),
+                preparation.SuggestedFileName,
+                StringComparison.Ordinal);
+
+        string? aFlashCodeOutputPath = null;
+        bool aFlashCodeOutputPathUsesAutomaticName = false;
+        if (exportAFlashCode)
+        {
+            aFlashCodeOutputPath = await FirmwareFilePickerDialogs.PickAbAFlashCodeOutputPathAsync(
+                StorageProvider,
+                aFlashCodePlan!.SuggestedFileName);
+            if (string.IsNullOrWhiteSpace(aFlashCodeOutputPath))
+            {
+                return;
+            }
+            aFlashCodeOutputPathUsesAutomaticName = string.Equals(
+                Path.GetFileName(aFlashCodeOutputPath),
+                aFlashCodePlan!.SuggestedFileName,
+                StringComparison.Ordinal);
+        }
+
+        await viewModel.BuildMergeAsync(
+            outputPath,
+            aFlashCodeOutputPath,
+            outputPathUsesAutomaticName,
+            aFlashCodeOutputPathUsesAutomaticName);
     }
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)

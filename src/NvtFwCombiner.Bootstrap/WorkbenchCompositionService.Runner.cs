@@ -2,6 +2,7 @@ using System.Globalization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Infrastructure.Time;
 
@@ -24,24 +25,85 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         IExternalProcessor? externalProcessor,
         IcNumberSelection? icNumberSelection,
-        bool overwrite,
         CancellationToken cancellationToken,
         IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
         CompositionRunProgressFeed? progress = null,
-        string? previewOutputFileName = null)
+        string? previewOutputFileName = null,
+        TopologySelection? abMergeTopologySelection = null,
+        string? automaticOutputDirectory = null,
+        IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null,
+        bool outputPathUsesAutomaticName = false,
+        Action<string, OutputNamingSummary?>? additionalOutputPreflight = null)
     {
+        CompositionRunResult result = await RunCompiledCompositionResultAsync(
+            runIdPrefix,
+            compiledComposition,
+            bindings,
+            firstInputPath,
+            build,
+            outputPath,
+            externalProcessor,
+            icNumberSelection,
+            cancellationToken,
+            virtualArtifacts,
+            progress,
+            previewOutputFileName,
+            abMergeTopologySelection,
+            automaticOutputDirectory,
+            additionalOutputProtectedPaths,
+            outputPathUsesAutomaticName,
+            additionalOutputPreflight).ConfigureAwait(false);
+        return ToWorkbenchRunResult(result);
+    }
+
+    /// <summary>Runs one composition and retains the typed Application result for a bounded adapter delivery phase.</summary>
+    internal static async ValueTask<CompositionRunResult> RunCompiledCompositionResultAsync(
+        string runIdPrefix,
+        CompiledComposition compiledComposition,
+        IReadOnlyList<InputArtifactBinding> bindings,
+        string firstInputPath,
+        bool build,
+        string? outputPath,
+        IExternalProcessor? externalProcessor,
+        IcNumberSelection? icNumberSelection,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
+        CompositionRunProgressFeed? progress = null,
+        string? previewOutputFileName = null,
+        TopologySelection? abMergeTopologySelection = null,
+        string? automaticOutputDirectory = null,
+        IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null,
+        bool outputPathUsesAutomaticName = false,
+        Action<string, OutputNamingSummary?>? additionalOutputPreflight = null)
+    {
+        if (outputPathUsesAutomaticName &&
+            (string.IsNullOrWhiteSpace(outputPath) || previewOutputFileName is not null))
+        {
+            throw new ArgumentException(
+                "An automatic output directory requires a selected output path and cannot be combined with a Preview output name.",
+                nameof(outputPathUsesAutomaticName));
+        }
+
         string[] inputRoots =
         [
             .. bindings
                 .Where(binding => !VirtualArtifactLocator.IsVirtual(binding.ArtifactId))
                 .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
-                .Distinct(StringComparer.OrdinalIgnoreCase),
         ];
         (string outputDirectory, string outputFileName) = ResolveOutputTarget(
             firstInputPath,
             build,
             outputPath,
-            compiledComposition.DefaultOutputFileName);
+            compiledComposition.DefaultOutputFileName,
+            automaticOutputDirectory);
+        if (outputPathUsesAutomaticName)
+        {
+            // The native save dialog supplies the destination directory.  Keep the compiled
+            // template as the Application request value so execution snapshots render the final
+            // automatic name, rather than accidentally treating the dialog's stale suggestion as
+            // an operator override.
+            outputFileName = compiledComposition.DefaultOutputFileName;
+        }
         if (previewOutputFileName is not null)
         {
             if (build ||
@@ -56,12 +118,19 @@ public static partial class WorkbenchCompositionService
 
             outputFileName = previewOutputFileName;
         }
-        if (build)
+        List<ProtectedPathGuard.ProtectedPath> outputProtectedPaths =
+            ProtectedPathGuard.CreateProtectedPaths(bindings, outputPath: null);
+        if (additionalOutputProtectedPaths is not null)
+        {
+            outputProtectedPaths.AddRange(additionalOutputProtectedPaths);
+        }
+
+        if (build && !outputPathUsesAutomaticName)
         {
             ProtectedPathGuard.EnsureDoesNotAlias(
                 ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
                 "Output path",
-                ProtectedPathGuard.CreateProtectedPaths(bindings, outputPath: null),
+                outputProtectedPaths,
                 nameof(outputPath));
         }
 
@@ -69,8 +138,15 @@ public static partial class WorkbenchCompositionService
         IArtifactReader reader = virtualArtifacts is { Count: > 0 }
             ? new OverlayArtifactReader(fileReader, virtualArtifacts)
             : fileReader ?? throw new InvalidOperationException("A composition requires at least one physical or virtual input artifact.");
-        AtomicFileCompositionOutputWriter? writer = build
-            ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite)
+        // Composition outputs replace an unrelated existing target atomically.  The
+        // protected-path guard above remains the hard boundary: an input alias is
+        // never an eligible output target.
+        ICompositionOutputWriter? writer = build
+            ? new ProtectedCompositionOutputWriter(
+                new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true),
+                outputDirectory,
+                outputProtectedPaths,
+                additionalOutputPreflight)
             : null;
         CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
         CompositionRunRequest request = new(
@@ -78,12 +154,43 @@ public static partial class WorkbenchCompositionService
             compiledComposition,
             bindings,
             outputFileName,
-            icNumberSelection: icNumberSelection);
+            icNumberSelection: icNumberSelection,
+            outputFileNameIsOverride: (outputPath is not null && !outputPathUsesAutomaticName) ||
+                previewOutputFileName is not null,
+            abMergeTopologySelection: abMergeTopologySelection);
 
         CompositionRunResult result = progress is null
             ? await service.PreviewOrBuildAsync(request, build, cancellationToken).ConfigureAwait(false)
             : await service.PreviewOrBuildAsync(request, build, progress, cancellationToken).ConfigureAwait(false);
-        return ToWorkbenchRunResult(result);
+        return result;
+    }
+
+    /// <summary>Resolves an automatic filename through Application input admission without executing a composition.</summary>
+    internal static async ValueTask<CompositionOutputNamePreview> ResolveAutomaticOutputNameAsync(
+        string runIdPrefix,
+        CompiledComposition compiledComposition,
+        IReadOnlyList<InputArtifactBinding> bindings,
+        TopologySelection? abMergeTopologySelection,
+        CancellationToken cancellationToken)
+    {
+        string[] inputRoots =
+        [
+            .. bindings
+                .Where(binding => !VirtualArtifactLocator.IsVirtual(binding.ArtifactId))
+                .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
+        ];
+        IArtifactReader reader = inputRoots.Length > 0
+            ? new FileArtifactReader(inputRoots)
+            : throw new InvalidOperationException(
+                "Automatic output naming requires at least one physical input artifact.");
+        var service = new CompositionRunService(reader, new SystemClock());
+        var request = new CompositionRunRequest(
+            CreateWorkbenchRunId(runIdPrefix, build: false),
+            compiledComposition,
+            bindings,
+            compiledComposition.DefaultOutputFileName,
+            abMergeTopologySelection: abMergeTopologySelection);
+        return await service.ResolveOutputNameAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
     private static string CreateWorkbenchRunId(string prefix, bool build)

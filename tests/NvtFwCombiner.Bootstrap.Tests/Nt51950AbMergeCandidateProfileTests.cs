@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Numerics;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
@@ -11,7 +12,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "06a671a3a6a6cb16e5cef7ed356a61626fdbd4395cd47299b95f60bb645885af";
+    private const string BundleContentHash = "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206";
     private const int Capacity = 0x80000;
     private const int BankLength = 0x40000;
     private const int TpInputLength = 0x37000;
@@ -26,11 +27,14 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         CompiledComposition composition = CompileCandidate(workspace);
 
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
+        Assert.True(composition.IsV2AbFunctionOpenCandidate);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.Equal("nt51950-ab-merge-512k", details.Provenance.ResolvedMap.ImageMap.MapId);
+        AssertRegionRange(details, "a-cmi-dp-version", 0x3B016, 3);
+        AssertRegionRange(details, "b-cmi-dp-version", 0x7B016, 3);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
         Assert.Equal(
-            ["firmware-owner-review"],
+            ["firmware-owner-review", "golden-certification-closure"],
             details.Provenance.Promotion.Blockers.Select(static blocker => blocker.BlockerId));
         Assert.Equal(Capacity, composition.Plan.OutputInitialization.Capacity);
         Assert.Equal(
@@ -41,9 +45,11 @@ public sealed class Nt51950AbMergeCandidateProfileTests
                 "seed-b-bank-from-dp",
                 "relocate-tpb-diff-for-b-bank",
                 "overlay-tpb-into-b-bank",
-                "copy-a-bank-to-output",
-                "copy-b-bank-to-output",
+                "copy-a-bank-to-combiner-work",
+                "copy-b-bank-to-combiner-work",
                 "run-nt51950-ab-combiner",
+                "copy-a-bank-to-output",
+                "copy-postbuild-b-bank-to-output",
             ],
             composition.Plan.OrderedOperations.Select(static operation => operation.OperationId));
         CompositionOperation diffRelocation = Assert.Single(
@@ -54,8 +60,11 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(new ByteRange(0xA120, sizeof(uint)), diffRelocation.TargetRange);
         Assert.Equal(new BigInteger(0x40000), Assert.IsType<ScalarTransform>(diffRelocation.ScalarTransform).Addend);
 
-        CompositionOperation postbuild = composition.Plan.OrderedOperations[^1];
+        CompositionOperation postbuild = Assert.Single(
+            composition.Plan.OrderedOperations,
+            static operation => StringComparer.Ordinal.Equals(operation.OperationId, "run-nt51950-ab-combiner"));
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(postbuild.ExternalProcessorInvocation);
+        Assert.Equal("ab-combiner-work", postbuild.TargetSpaceId);
         Assert.Equal("nfc-nt51950-ab-merge-combiner-v1", invocation.ProcessorId);
         Assert.Equal("legacy-combiner-1.13.0", invocation.ToolBindingId);
         Assert.Equal(
@@ -72,18 +81,21 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             static binding => Assert.Equal(new ByteRange(0, BankLength), binding.SourceRange));
     }
 
-    /// <summary>Verifies the repository-only Combiner candidate cannot create an application run request.</summary>
+    /// <summary>Verifies the narrowly admitted function-open candidate can create an application run request.</summary>
     [Fact]
-    public void CandidateProfileCannotCreateApplicationRunRequest()
+    public void FunctionOpenCandidateCanCreateApplicationRunRequest()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
         CompiledComposition composition = CompileCandidate(workspace);
 
-        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-            new CompositionRunRequest("ab-candidate", composition, [], composition.DefaultOutputFileName));
+        var request = new CompositionRunRequest(
+            "ab-candidate",
+            composition,
+            CreateRuntimeBindings(),
+            composition.DefaultOutputFileName,
+            abMergeTopologySelection: SingleTopology());
 
-        Assert.Equal("compiledComposition", exception.ParamName);
-        Assert.Contains("not executable", exception.Message, StringComparison.Ordinal);
+        Assert.Same(composition, request.CompiledComposition);
     }
 
     /// <summary>Verifies the engine stages immutable A/B artifacts, relocates only TPB DIFF, and leaves header CRC to Combiner.</summary>
@@ -155,7 +167,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
             "nt51950-ab-merge",
-            "0.1.1",
+            "0.2.0",
             "NT51950",
             ExperienceIds.AbMerge,
             requestedMapCapacity: BankLength);
@@ -166,14 +178,36 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             static issue => StringComparer.Ordinal.Equals(issue.Code, "profile.v2.compile.map-capacity-unavailable"));
     }
 
-    /// <summary>Verifies the fixed candidate rejects every one-byte input-capacity deviation before staging.</summary>
+    /// <summary>Verifies the same NT51950 contract selects the declared cascade map at one mebibyte.</summary>
+    [Fact]
+    public void CandidateProfileSelectsOneMebibyteCascadeMap()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
+        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
+            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+            "nt51950-ab-merge",
+            "0.2.0",
+            "NT51950",
+            ExperienceIds.AbMerge,
+            requestedMapCapacity: 0x100000,
+            requestedTopology: CascadeTopology(),
+            resolutionArtifacts: []);
+
+        Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
+        Assert.Equal("nt51950-ab-merge-1024k", details.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal(0x100000, composition.Plan.OutputInitialization.Capacity);
+        AssertRegionRange(details, "a-cmi-dp-version", 0x5016, 3);
+        AssertRegionRange(details, "b-cmi-dp-version", 0x45016, 3);
+    }
+
+    /// <summary>Verifies the candidate rejects incomplete DP or TP prefixes before staging.</summary>
     [Theory]
     [InlineData("dp-ab-input", Capacity - 1)]
     [InlineData("dp-ab-input", Capacity + 1)]
     [InlineData("tp-a-input", TpInputLength - 1)]
-    [InlineData("tp-a-input", TpInputLength + 1)]
     [InlineData("tp-b-input", TpInputLength - 1)]
-    [InlineData("tp-b-input", TpInputLength + 1)]
     public async Task CandidatePlanRejectsOneByteInputCapacityDeviationAsync(string inputId, int length)
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
@@ -201,8 +235,10 @@ public sealed class Nt51950AbMergeCandidateProfileTests
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
         CompiledComposition composition = CompileCandidate(workspace);
-        ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
-            composition.Plan.OrderedOperations[^1].ExternalProcessorInvocation);
+        CompositionOperation postbuild = Assert.Single(
+            composition.Plan.OrderedOperations,
+            static operation => StringComparer.Ordinal.Equals(operation.OperationId, "run-nt51950-ab-combiner"));
+        ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(postbuild.ExternalProcessorInvocation);
         var policy = new ChangedRangePolicy(invocation.AllowedWriteRanges);
 
         foreach (ByteRange changedByte in new[]
@@ -224,10 +260,12 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
             "nt51950-ab-merge",
-            "0.1.1",
+            "0.2.0",
             "NT51950",
             ExperienceIds.AbMerge,
-            Capacity);
+            Capacity,
+            SingleTopology(),
+            []);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
     }
@@ -240,6 +278,53 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             ["tp-a-input"] = new byte[TpInputLength],
             ["tp-b-input"] = new byte[TpInputLength],
         };
+    }
+
+    private static void AssertRegionRange(
+        V2CompiledCompositionDetails details,
+        string regionId,
+        long start,
+        long length)
+    {
+        FirmwareRegion region = Assert.Single(
+            details.Provenance.ResolvedMap.ImageMap.Regions,
+            candidate => StringComparer.Ordinal.Equals(candidate.RegionId, regionId));
+        Assert.Equal(new ByteRange(start, length), region.Range);
+    }
+
+    private static InputArtifactBinding[] CreateRuntimeBindings()
+    {
+        return
+        [
+            new InputArtifactBinding(
+                "dp-ab-input",
+                "dp-ab-input",
+                "dp-ab-input-artifact",
+                "dp.bin",
+                CompiledInputArtifactClass.DpFirmware),
+            new InputArtifactBinding(
+                "tp-a-input",
+                "tp-a-input",
+                "tp-a-input-artifact",
+                "tp-a.bin",
+                CompiledInputArtifactClass.TpFirmware),
+            new InputArtifactBinding(
+                "tp-b-input",
+                "tp-b-input",
+                "tp-b-input-artifact",
+                "tp-b.bin",
+                CompiledInputArtifactClass.TpFirmware),
+        ];
+    }
+
+    private static TopologySelection SingleTopology()
+    {
+        return new TopologySelection(1, "1 IC", TopologySelectionSource.Requested, "test");
+    }
+
+    private static TopologySelection CascadeTopology()
+    {
+        return new TopologySelection(2, "Cascade", TopologySelectionSource.Requested, "test");
     }
 
     private static byte[] CreatePattern(int length, byte salt)

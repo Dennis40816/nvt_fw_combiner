@@ -1,4 +1,4 @@
-"""Behavioral tests for the strict source-size ratchet."""
+"""Behavioral tests for source-size review findings."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 from scripts.code_size_policy import (
     CodeSizeLimits,
     measure_code_size,
-    validate_code_size_policy,
+    review_code_size_policy,
 )
 
 
@@ -46,10 +46,8 @@ class CodeSizePolicyTests(unittest.TestCase):
             partial_type_named_maximums=named_partial_maximums or {},
         )
 
-    def validate(self, limits: CodeSizeLimits) -> list[str]:
-        errors: list[str] = []
-        validate_code_size_policy(self.root, errors, limits)
-        return errors
+    def review(self, limits: CodeSizeLimits) -> list[str]:
+        return review_code_size_policy(self.root, limits)
 
     def test_accepts_an_exact_baseline_and_excludes_generated_directories(self) -> None:
         self.write("src/Product/Program.cs", "namespace Product;\nclass Program {}\n")
@@ -59,17 +57,19 @@ class CodeSizePolicyTests(unittest.TestCase):
 
         self.assertEqual(1, snapshot.production_files)
         self.assertEqual(2, snapshot.production_nonblank)
-        self.assertEqual([], self.validate(self.limits(production=2)))
+        self.assertEqual([], self.review(self.limits(production=2)))
 
-    def test_rejects_production_growth_above_ceiling_and_accepts_reduction(
+    def test_reports_production_growth_above_threshold_and_accepts_reduction(
         self,
     ) -> None:
         self.write("src/Product/Program.cs", "one\ntwo\n")
 
-        growth = self.validate(self.limits(production=1))
-        reduction = self.validate(self.limits(production=3))
+        growth = self.review(self.limits(production=1))
+        reduction = self.review(self.limits(production=3))
 
-        self.assertTrue(any("exceeded maximum: 2 > 1" in error for error in growth))
+        self.assertTrue(
+            any("exceeded threshold: 2 > 1" in finding for finding in growth)
+        )
         self.assertEqual([], reduction)
 
     def test_counts_only_redundant_exact_json_copies(self) -> None:
@@ -82,37 +82,40 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertEqual(1, snapshot.duplicate_json_groups)
         self.assertEqual(1, snapshot.duplicate_json_copies)
         self.assertEqual(3, snapshot.duplicate_json_nonblank)
-        growth = self.validate(self.limits(production=0, duplicates=2))
-        reduction = self.validate(self.limits(production=0, duplicates=4))
+        growth = self.review(self.limits(production=0, duplicates=2))
+        reduction = self.review(self.limits(production=0, duplicates=4))
 
-        self.assertTrue(any("grew: 3 > ratchet 2" in error for error in growth))
+        self.assertTrue(any("grew: 3 > ratchet 2" in finding for finding in growth))
         self.assertTrue(
-            any("lower the ratchet from 4 to 3" in error for error in reduction)
+            any(
+                "consider lowering the ratchet from 4 to 3" in finding
+                for finding in reduction
+            )
         )
 
-    def test_enforces_default_and_exact_partial_aggregate_limits(self) -> None:
+    def test_reports_default_and_exact_partial_aggregate_thresholds(self) -> None:
         declaration = "namespace Product;\npublic partial class Workbench {}\n"
         self.write("src/Product/Workbench.One.cs", declaration)
         self.write("src/Product/Workbench.Two.cs", declaration)
 
-        default_growth = self.validate(self.limits(production=4, partial_max=3))
-        default_equal = self.validate(self.limits(production=4, partial_max=4))
-        default_reduction = self.validate(self.limits(production=4, partial_max=5))
-        exact_equal = self.validate(
+        default_growth = self.review(self.limits(production=4, partial_max=3))
+        default_equal = self.review(self.limits(production=4, partial_max=4))
+        default_reduction = self.review(self.limits(production=4, partial_max=5))
+        exact_equal = self.review(
             self.limits(
                 production=4,
                 partial_max=3,
                 exact_partials={"Product.Workbench": 4},
             )
         )
-        exact_growth = self.validate(
+        exact_growth = self.review(
             self.limits(
                 production=4,
                 partial_max=3,
                 exact_partials={"Product.Workbench": 3},
             )
         )
-        exact_reduction = self.validate(
+        exact_reduction = self.review(
             self.limits(
                 production=4,
                 partial_max=3,
@@ -120,28 +123,35 @@ class CodeSizePolicyTests(unittest.TestCase):
             )
         )
 
-        self.assertTrue(any("maximum is 3" in error for error in default_growth))
+        self.assertTrue(any("threshold is 3" in finding for finding in default_growth))
         self.assertEqual([], default_equal)
         self.assertEqual([], default_reduction)
         self.assertEqual([], exact_equal)
-        self.assertTrue(any("grew: 4 > ratchet 3" in error for error in exact_growth))
         self.assertTrue(
-            any("lower the ratchet from 5 to 4" in error for error in exact_reduction)
+            any("grew: 4 > ratchet 3" in finding for finding in exact_growth)
+        )
+        self.assertTrue(
+            any(
+                "consider lowering the ratchet from 5 to 4" in finding
+                for finding in exact_reduction
+            )
         )
 
-    def test_named_partial_maximum_accepts_reduction_without_rebaselining(self) -> None:
+    def test_named_partial_threshold_accepts_reduction_without_rebaselining(
+        self,
+    ) -> None:
         declaration = "namespace Product;\npublic partial class Workbench {}\n"
         self.write("src/Product/Workbench.One.cs", declaration)
         self.write("src/Product/Workbench.Two.cs", declaration)
 
-        accepted = self.validate(
+        accepted = self.review(
             self.limits(
                 production=4,
                 partial_max=3,
                 named_partial_maximums={"Product.Workbench": 5},
             )
         )
-        growth = self.validate(
+        growth = self.review(
             self.limits(
                 production=4,
                 partial_max=5,
@@ -152,8 +162,9 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertEqual([], accepted)
         self.assertTrue(
             any(
-                "partial aggregate Product.Workbench exceeded maximum: 4 > 3" in error
-                for error in growth
+                "partial aggregate Product.Workbench exceeded threshold: 4 > 3"
+                in finding
+                for finding in growth
             )
         )
 

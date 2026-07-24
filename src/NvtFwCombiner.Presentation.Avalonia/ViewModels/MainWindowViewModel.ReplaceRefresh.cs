@@ -62,7 +62,9 @@ public sealed partial class MainWindowViewModel
                 GeneralMergeMode => UiCompositionRunner.GetGeneralMergeMemoryDisplay(
                     GeneralMergeOutputLength,
                     CreateGeneralMergeMappingInputs()),
-                AbCodeMergeMode => UiCompositionRunner.GetAbMergeMemoryDisplay(SelectedIc),
+                AbCodeMergeMode => UiCompositionRunner.GetAbMergeMemoryDisplay(
+                    SelectedIc,
+                    GetSelectedAbMergeTopologyToken()),
                 _ => UiCompositionRunner.GetStandardMergeMemoryDisplay(
                     SelectedIc,
                     selectedMergeDpInputLength),

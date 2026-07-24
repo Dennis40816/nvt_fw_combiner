@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51950-ab-merge",
-  "familyVersion": "0.1.1",
+  "familyVersion": "0.2.0",
   "members": [
     {
       "memberId": "NT51950",
@@ -22,10 +22,7 @@
           "regionId": "ab-image",
           "owner": "system",
           "kind": "image",
-          "range": {
-            "start": 0,
-            "length": 524288
-          },
+          "range": { "start": 0, "length": 524288 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -34,22 +31,16 @@
           "parentRegionId": "ab-image",
           "owner": "system",
           "kind": "image",
-          "range": {
-            "start": 0,
-            "length": 262144
-          },
+          "range": { "start": 0, "length": 262144 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
-          "regionId": "a-unmapped-prefix",
+          "regionId": "a-control-prefix",
           "parentRegionId": "a-bank",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": {
-            "start": 0,
-            "length": 40960
-          },
+          "range": { "start": 0, "length": 40960 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -58,22 +49,34 @@
           "parentRegionId": "a-bank",
           "owner": "tp",
           "kind": "code",
-          "range": {
-            "start": 40960,
-            "length": 184320
-          },
+          "range": { "start": 40960, "length": 184320 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
-          "regionId": "a-unmapped-suffix",
+          "regionId": "a-control-before-cmi",
           "parentRegionId": "a-bank",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": {
-            "start": 225280,
-            "length": 36864
-          },
+          "range": { "start": 225280, "length": 16406 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-cmi-dp-version",
+          "parentRegionId": "a-bank",
+          "owner": "dp",
+          "kind": "command",
+          "range": { "start": 241686, "length": 3 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-control-after-cmi",
+          "parentRegionId": "a-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 241689, "length": 20455 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -82,22 +85,16 @@
           "parentRegionId": "ab-image",
           "owner": "system",
           "kind": "image",
-          "range": {
-            "start": 262144,
-            "length": 262144
-          },
+          "range": { "start": 262144, "length": 262144 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
-          "regionId": "b-unmapped-prefix",
+          "regionId": "b-control-prefix",
           "parentRegionId": "b-bank",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": {
-            "start": 262144,
-            "length": 40960
-          },
+          "range": { "start": 262144, "length": 40960 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -106,29 +103,189 @@
           "parentRegionId": "b-bank",
           "owner": "tp",
           "kind": "code",
-          "range": {
-            "start": 303104,
-            "length": 184320
-          },
+          "range": { "start": 303104, "length": 184320 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
-          "regionId": "b-unmapped-suffix",
+          "regionId": "b-control-before-cmi",
           "parentRegionId": "b-bank",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": {
-            "start": 487424,
-            "length": 36864
-          },
+          "range": { "start": 487424, "length": 16406 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-cmi-dp-version",
+          "parentRegionId": "b-bank",
+          "owner": "dp",
+          "kind": "command",
+          "range": { "start": 503830, "length": 3 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-control-after-cmi",
+          "parentRegionId": "b-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 503833, "length": 20455 },
           "writeConstraint": "forbidden",
           "alignment": 1
         }
       ],
-      "evidenceRefs": [
-        "nt51950-ab-combiner-audit-2026-07-14"
-      ]
+      "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
+    },
+    {
+      "regionSetId": "nt51950-ab-merge-1024k-flash",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "ab-image",
+          "owner": "system",
+          "kind": "image",
+          "range": { "start": 0, "length": 1048576 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-bank",
+          "parentRegionId": "ab-image",
+          "owner": "system",
+          "kind": "image",
+          "range": { "start": 0, "length": 262144 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-control-prefix",
+          "parentRegionId": "a-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 0, "length": 20480 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-tp-code",
+          "parentRegionId": "a-bank",
+          "owner": "tp",
+          "kind": "code",
+          "range": { "start": 40960, "length": 184320 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-control-before-cmi",
+          "parentRegionId": "a-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 20480, "length": 22 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-cmi-dp-version",
+          "parentRegionId": "a-bank",
+          "owner": "dp",
+          "kind": "command",
+          "range": { "start": 20502, "length": 3 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-control-after-cmi",
+          "parentRegionId": "a-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 20505, "length": 20455 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-bank",
+          "parentRegionId": "ab-image",
+          "owner": "system",
+          "kind": "image",
+          "range": { "start": 262144, "length": 262144 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-control-tail",
+          "parentRegionId": "a-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 225280, "length": 36864 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-control-prefix",
+          "parentRegionId": "b-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 262144, "length": 20480 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-tp-code",
+          "parentRegionId": "b-bank",
+          "owner": "tp",
+          "kind": "code",
+          "range": { "start": 303104, "length": 184320 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-control-before-cmi",
+          "parentRegionId": "b-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 282624, "length": 22 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-cmi-dp-version",
+          "parentRegionId": "b-bank",
+          "owner": "dp",
+          "kind": "command",
+          "range": { "start": 282646, "length": 3 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-control-after-cmi",
+          "parentRegionId": "b-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 282649, "length": 20455 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-control-tail",
+          "parentRegionId": "b-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 487424, "length": 36864 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "dp-preserved-tail",
+          "parentRegionId": "ab-image",
+          "owner": "dp",
+          "kind": "data",
+          "range": { "start": 524288, "length": 524288 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
     },
     {
       "regionSetId": "nt51951-ab-merge-1024k-flash",
@@ -138,10 +295,7 @@
           "regionId": "ab-image",
           "owner": "system",
           "kind": "image",
-          "range": {
-            "start": 0,
-            "length": 1048576
-          },
+          "range": { "start": 0, "length": 1048576 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -150,22 +304,34 @@
           "parentRegionId": "ab-image",
           "owner": "system",
           "kind": "image",
-          "range": {
-            "start": 0,
-            "length": 524288
-          },
+          "range": { "start": 0, "length": 524288 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
-          "regionId": "a-unmapped-prefix",
+          "regionId": "a-control-before-cmi",
           "parentRegionId": "a-bank",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": {
-            "start": 0,
-            "length": 40960
-          },
+          "range": { "start": 0, "length": 20502 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-cmi-dp-version",
+          "parentRegionId": "a-bank",
+          "owner": "dp",
+          "kind": "command",
+          "range": { "start": 20502, "length": 3 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-control-after-cmi",
+          "parentRegionId": "a-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 20505, "length": 20455 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -174,23 +340,17 @@
           "parentRegionId": "a-bank",
           "owner": "tp",
           "kind": "code",
-          "range": {
-            "start": 40960,
-            "length": 184320
-          },
+          "range": { "start": 40960, "length": 184320 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
-          "regionId": "a-unmapped-suffix",
+          "regionId": "a-dp-preserved-tail",
           "parentRegionId": "a-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": {
-            "start": 225280,
-            "length": 299008
-          },
-          "writeConstraint": "forbidden",
+          "owner": "dp",
+          "kind": "data",
+          "range": { "start": 225280, "length": 299008 },
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
@@ -198,22 +358,34 @@
           "parentRegionId": "ab-image",
           "owner": "system",
           "kind": "image",
-          "range": {
-            "start": 524288,
-            "length": 524288
-          },
+          "range": { "start": 524288, "length": 524288 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
-          "regionId": "b-unmapped-prefix",
+          "regionId": "b-control-before-cmi",
           "parentRegionId": "b-bank",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": {
-            "start": 524288,
-            "length": 40960
-          },
+          "range": { "start": 524288, "length": 20502 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-cmi-dp-version",
+          "parentRegionId": "b-bank",
+          "owner": "dp",
+          "kind": "command",
+          "range": { "start": 544790, "length": 3 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-control-after-cmi",
+          "parentRegionId": "b-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 544793, "length": 20455 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -222,29 +394,21 @@
           "parentRegionId": "b-bank",
           "owner": "tp",
           "kind": "code",
-          "range": {
-            "start": 565248,
-            "length": 184320
-          },
+          "range": { "start": 565248, "length": 184320 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
-          "regionId": "b-unmapped-suffix",
+          "regionId": "b-dp-preserved-tail",
           "parentRegionId": "b-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": {
-            "start": 749568,
-            "length": 299008
-          },
-          "writeConstraint": "forbidden",
+          "owner": "dp",
+          "kind": "data",
+          "range": { "start": 749568, "length": 299008 },
+          "writeConstraint": "explicit-range",
           "alignment": 1
         }
       ],
-      "evidenceRefs": [
-        "nt51951-ab-combiner-topology-regression-2026-07-15"
-      ]
+      "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ]
     }
   ],
   "metadataSets": [],
@@ -253,49 +417,43 @@
       "mapId": "nt51950-ab-merge-512k",
       "addressSpaceId": "flash",
       "applicability": {
-        "memberIds": [
-          "NT51950"
-        ],
-        "modeIds": [
-          "ab-merge"
-        ],
-        "topologyRequirement": {
-          "kind": "none"
-        },
+        "memberIds": [ "NT51950" ],
+        "modeIds": [ "ab-merge" ],
+        "topologyRequirement": { "kind": "single" },
         "capacityBytes": 524288
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [
-        "nt51950-ab-merge-512k-flash"
-      ],
+      "regionSetIds": [ "nt51950-ab-merge-512k-flash" ],
       "metadataSetIds": [],
-      "evidenceRefs": [
-        "nt51950-ab-combiner-audit-2026-07-14"
-      ]
+      "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
+    },
+    {
+      "mapId": "nt51950-ab-merge-1024k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51950" ],
+        "modeIds": [ "ab-merge" ],
+        "topologyRequirement": { "kind": "cascade", "minimumChipCount": 2 },
+        "capacityBytes": 1048576
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51950-ab-merge-1024k-flash" ],
+      "metadataSetIds": [],
+      "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
     },
     {
       "mapId": "nt51951-ab-merge-1024k",
       "addressSpaceId": "flash",
       "applicability": {
-        "memberIds": [
-          "NT51951"
-        ],
-        "modeIds": [
-          "ab-merge"
-        ],
-        "topologyRequirement": {
-          "kind": "none"
-        },
+        "memberIds": [ "NT51951" ],
+        "modeIds": [ "ab-merge" ],
+        "topologyRequirement": { "kind": "none" },
         "capacityBytes": 1048576
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [
-        "nt51951-ab-merge-1024k-flash"
-      ],
+      "regionSetIds": [ "nt51951-ab-merge-1024k-flash" ],
       "metadataSetIds": [],
-      "evidenceRefs": [
-        "nt51951-ab-combiner-topology-regression-2026-07-15"
-      ]
+      "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ]
     }
   ],
   "factAliases": [],

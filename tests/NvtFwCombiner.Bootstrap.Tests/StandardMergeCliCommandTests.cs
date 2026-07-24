@@ -74,7 +74,6 @@ public sealed class StandardMergeCliCommandTests
             tpPath,
             "--output",
             outputPath,
-            "--overwrite",
         ]);
 
         Assert.Equal(0, result.ExitCode);
@@ -110,7 +109,6 @@ public sealed class StandardMergeCliCommandTests
             tpPath,
             "--output",
             outputPath,
-            "--overwrite",
         ]);
 
         Assert.Equal(0, result.ExitCode);
@@ -146,7 +144,6 @@ public sealed class StandardMergeCliCommandTests
             tpPath,
             "--output",
             outputPath,
-            "--overwrite",
         ]);
 
         Assert.Equal(0, result.ExitCode);
@@ -182,7 +179,6 @@ public sealed class StandardMergeCliCommandTests
             tpPath,
             "--output",
             outputPath,
-            "--overwrite",
         ]);
 
         Assert.Equal(0, result.ExitCode);
@@ -218,7 +214,6 @@ public sealed class StandardMergeCliCommandTests
             tpPath,
             "--output",
             outputPath,
-            "--overwrite",
         ]);
 
         Assert.Equal(0, result.ExitCode);
@@ -257,7 +252,6 @@ public sealed class StandardMergeCliCommandTests
             tpPath,
             "--output",
             outputPath,
-            "--overwrite",
         ]);
 
         Assert.Equal(0, result.ExitCode);
@@ -299,7 +293,6 @@ public sealed class StandardMergeCliCommandTests
             ldPath,
             "--output",
             outputPath,
-            "--overwrite",
         ]);
 
         Assert.Equal(0, result.ExitCode);
@@ -496,7 +489,6 @@ public sealed class StandardMergeCliCommandTests
             tpPath,
             "--output",
             dpPath,
-            "--overwrite",
         ]);
 
         Assert.Equal(70, result.ExitCode);
@@ -582,7 +574,6 @@ public sealed class StandardMergeCliCommandTests
             golden.TpPath,
             "--output",
             outputPath,
-            "--overwrite",
         ]);
 
         Assert.Equal(0, result.ExitCode);

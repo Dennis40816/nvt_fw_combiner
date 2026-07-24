@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.InputInspection;
@@ -60,6 +61,28 @@ public sealed record CompiledInputArtifactInspectionResult(
 /// </summary>
 public static class CompiledInputArtifactInspectionService
 {
+    /// <summary>Inspects one immutable source using its complete compiled length contract.</summary>
+    public static CompiledInputArtifactInspectionResult Inspect(
+        CompiledInputContract inputContract,
+        string addressSpaceId,
+        ReadOnlyMemory<byte> sourceBytes)
+    {
+        (CompiledInputSpaceBinding binding, CompiledInputSlotRequirement slot) =
+            ResolveBinding(inputContract, addressSpaceId);
+        return slot.LengthRequirement switch
+        {
+            CompiledDeclaredPrefixWithWarningInputLengthRequirement =>
+                InspectDeclaredPrefix(inputContract, addressSpaceId, sourceBytes),
+            CompiledExactBytesInputLengthRequirement exact =>
+                InspectExact(binding, slot, exact.Bytes, sourceBytes),
+            CompiledExactResolvedMapCapacityInputLengthRequirement exact =>
+                InspectExact(binding, slot, exact.Bytes, sourceBytes),
+            _ => throw new ArgumentException(
+                $"Compiled input address space '{addressSpaceId}' has no supported inspection projection.",
+                nameof(addressSpaceId)),
+        };
+    }
+
     /// <summary>Creates one deterministic diagnostic from a compiled declared-prefix requirement.</summary>
     public static CompiledInputArtifactInspectionResult InspectDeclaredPrefix(
         CompiledInputContract inputContract,
@@ -69,13 +92,8 @@ public static class CompiledInputArtifactInspectionService
         ArgumentNullException.ThrowIfNull(inputContract);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
 
-        CompiledInputSpaceBinding binding = inputContract.SpaceBindings.SingleOrDefault(candidate =>
-            StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId)) ??
-            throw new ArgumentException(
-                $"Compiled input contract does not declare address space '{addressSpaceId}'.",
-                nameof(addressSpaceId));
-        CompiledInputSlotRequirement slot = inputContract.Slots.Single(candidate =>
-            StringComparer.Ordinal.Equals(candidate.SlotId, binding.SlotId));
+        (CompiledInputSpaceBinding binding, CompiledInputSlotRequirement slot) =
+            ResolveBinding(inputContract, addressSpaceId);
         if (slot.LengthRequirement is not CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement)
         {
             throw new ArgumentException(
@@ -105,6 +123,52 @@ public static class CompiledInputArtifactInspectionService
             inspection.IssueCode,
             inspection.BuildImpact == InputArtifactBuildImpact.Blocked,
             MapNextAction(inspection.NextAction));
+    }
+
+    private static (CompiledInputSpaceBinding Binding, CompiledInputSlotRequirement Slot) ResolveBinding(
+        CompiledInputContract inputContract,
+        string addressSpaceId)
+    {
+        ArgumentNullException.ThrowIfNull(inputContract);
+        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
+        CompiledInputSpaceBinding binding = inputContract.SpaceBindings.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId)) ??
+            throw new ArgumentException(
+                $"Compiled input contract does not declare address space '{addressSpaceId}'.",
+                nameof(addressSpaceId));
+        CompiledInputSlotRequirement slot = inputContract.Slots.Single(candidate =>
+            StringComparer.Ordinal.Equals(candidate.SlotId, binding.SlotId));
+        return (binding, slot);
+    }
+
+    private static CompiledInputArtifactInspectionResult InspectExact(
+        CompiledInputSpaceBinding binding,
+        CompiledInputSlotRequirement slot,
+        long expectedLength,
+        ReadOnlyMemory<byte> sourceBytes)
+    {
+        string sha256 = Convert.ToHexStringLower(SHA256.HashData(sourceBytes.Span));
+        bool matches = sourceBytes.Length == expectedLength;
+        return new CompiledInputArtifactInspectionResult(
+            binding.AddressSpaceId,
+            slot.SlotId,
+            sourceBytes.Length,
+            sha256,
+            expectedLength,
+            [expectedLength],
+            matches ? new ByteRange(0, expectedLength) : null,
+            matches ? sha256 : null,
+            IgnoredTrailingRange: null,
+            matches
+                ? CompiledInputArtifactInspectionSeverity.Valid
+                : CompiledInputArtifactInspectionSeverity.Blocking,
+            matches
+                ? InputArtifactInspectionIssueCodes.Ready
+                : CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+            BlocksBuild: !matches,
+            matches
+                ? CompiledInputArtifactInspectionNextAction.None
+                : CompiledInputArtifactInspectionNextAction.SelectCompatibleInput);
     }
 
     private static CompiledInputArtifactInspectionSeverity MapSeverity(InputArtifactInspectionSeverity severity)

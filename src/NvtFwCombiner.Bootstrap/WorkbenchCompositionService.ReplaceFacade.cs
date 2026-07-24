@@ -101,7 +101,8 @@ public static partial class WorkbenchCompositionService
 
     /// <summary>
     /// Returns whether two ICs are owner-declared perfect members of the same family.
-    /// This advisory relationship does not grant workflow, profile, or byte-write authority.
+    /// This relationship may reconcile a detected UI catalog context without a confirmation prompt;
+    /// it does not grant workflow, profile, or byte-write authority.
     /// </summary>
     public static bool ArePerfectFamilyMembers(string firstIcId, string secondIcId)
     {

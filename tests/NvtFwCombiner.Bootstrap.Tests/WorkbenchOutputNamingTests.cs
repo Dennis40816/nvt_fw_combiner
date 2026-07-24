@@ -351,6 +351,67 @@ public sealed class WorkbenchOutputNamingTests
         Assert.True(suggestion.HasTpVersion);
     }
 
+    /// <summary>CtrlRAM Replace names an inspected TP FW base separately without changing FlashCode naming elsewhere.</summary>
+    [Fact]
+    public void CtrlRamTpFirmwareBaseUsesTpFwNameOnlyForCtrlRamReplace()
+    {
+        WorkbenchFirmwareInspection tpFirmwareBase = new(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            WorkbenchBaseFirmwareArtifactKind.TpFirmware);
+        WorkbenchFirmwareInspection flashCodeBase = tpFirmwareBase with
+        {
+            BaseFirmwareArtifactKind = WorkbenchBaseFirmwareArtifactKind.FlashCode,
+        };
+        WorkbenchCtrlRamFirmwareVersionEdit edit = new(0x05, 0x00);
+        DateOnly date = new(2026, 7, 24);
+
+        WorkbenchOutputFileNameSuggestion tpFirmware =
+            WorkbenchCompositionService.CreateCtrlRamReplaceOutputFileNameFromInspections(
+                "NT51950",
+                [new WorkbenchOutputNameInspectionCandidate(WorkbenchOutputNameCandidateKind.Base, tpFirmwareBase)],
+                edit,
+                date);
+        WorkbenchOutputFileNameSuggestion flashCode =
+            WorkbenchCompositionService.CreateCtrlRamReplaceOutputFileNameFromInspections(
+                "NT51950",
+                [new WorkbenchOutputNameInspectionCandidate(WorkbenchOutputNameCandidateKind.Base, flashCodeBase)],
+                edit,
+                date);
+        WorkbenchOutputFileNameSuggestion ordinary =
+            WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(
+                "NT51950",
+                [new WorkbenchOutputNameInspectionCandidate(WorkbenchOutputNameCandidateKind.Base, tpFirmwareBase)],
+                edit,
+                date);
+
+        Assert.Equal("NT51950_TPFW_T0500_20260724.bin", tpFirmware.FileName);
+        Assert.Equal("NT51950_FlashCode_DxxxxT0500_20260724.bin", flashCode.FileName);
+        Assert.Equal("NT51950_FlashCode_DxxxxT0500_20260724.bin", ordinary.FileName);
+    }
+
+    /// <summary>NT51950's registered TP input uses the 0x37000 TP shape and its Backup TP version.</summary>
+    [Fact]
+    public void Nt51950TpFirmwareGoldenUsesTpFwCtrlRamName()
+    {
+        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51950",
+            GoldenArtifactPath("51950", "tp-input"));
+
+        WorkbenchOutputFileNameSuggestion suggestion =
+            WorkbenchCompositionService.CreateCtrlRamReplaceOutputFileNameFromInspections(
+                "NT51950",
+                [new WorkbenchOutputNameInspectionCandidate(WorkbenchOutputNameCandidateKind.Base, inspection)],
+                date: new DateOnly(2026, 7, 24));
+
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, inspection.BaseFirmwareArtifactKind);
+        Assert.Equal("NT51950_TPFW_T0400_20260724.bin", suggestion.FileName);
+    }
+
     private static WorkbenchOutputFileNameSuggestion InspectDirectCtrlRamGolden(
         string icId,
         string caseId,

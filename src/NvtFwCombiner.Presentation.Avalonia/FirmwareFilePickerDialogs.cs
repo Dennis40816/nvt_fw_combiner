@@ -32,6 +32,16 @@ internal static class FirmwareFilePickerDialogs
         return file?.TryGetLocalPath();
     }
 
+    public static Task<string?> PickAbAFlashCodeOutputPathAsync(
+        IStorageProvider storageProvider,
+        string suggestedFileName)
+    {
+        return PickFirmwareBinOutputPathAsync(
+            storageProvider,
+            "Save A FlashCode BIN",
+            suggestedFileName);
+    }
+
     public static async Task<string?> PickReplacedFirmwareOutputPathAsync(
         IStorageProvider storageProvider,
         string suggestedFileName)

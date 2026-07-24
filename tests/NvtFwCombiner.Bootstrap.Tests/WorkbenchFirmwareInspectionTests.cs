@@ -8,6 +8,75 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Parity and read-count evidence for the shell firmware inspection facade.</summary>
 public sealed partial class WorkbenchFirmwareInspectionTests
 {
+    /// <summary>NT51950/NT51951 alone recognize their owner-declared standalone 0x37000 TP FW shape.</summary>
+    [Theory]
+    [InlineData("NT51950")]
+    [InlineData("NT51951")]
+    public void Nt51950FamilyTpPrefixClassifiesBeforeDpContent(string icId)
+    {
+        byte[] tpFirmware = new byte[0x37000];
+        tpFirmware[0] = 0x5A;
+
+        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+            icId,
+            "tp-fw.bin",
+            tpPath: null,
+            ctrlRamRequest: null,
+            _ => tpFirmware);
+
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, inspection.BaseFirmwareArtifactKind);
+    }
+
+    /// <summary>Other ICs classify a full base only from their declared DP bytes, even at TP-prefix length.</summary>
+    [Fact]
+    public void OtherIcFullBaseClassifiesFromDeclaredDpContent()
+    {
+        byte[] erasedDp = new byte[0x40000];
+        byte[] programmedDp = (byte[])erasedDp.Clone();
+        programmedDp[0] = 0x5A;
+
+        WorkbenchFirmwareInspection erased = WorkbenchCompositionService.InspectFirmware(
+            "NT51929",
+            "erased.bin",
+            tpPath: null,
+            ctrlRamRequest: null,
+            _ => erasedDp);
+        WorkbenchFirmwareInspection programmed = WorkbenchCompositionService.InspectFirmware(
+            "NT51929",
+            "programmed.bin",
+            tpPath: null,
+            ctrlRamRequest: null,
+            _ => programmedDp);
+
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, erased.BaseFirmwareArtifactKind);
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, programmed.BaseFirmwareArtifactKind);
+    }
+
+    /// <summary>NT51950 full containers classify from their declared post-prefix DP region after the length check.</summary>
+    [Fact]
+    public void Nt51950FullBaseClassifiesFromDeclaredDpContent()
+    {
+        byte[] erasedDp = new byte[0x40000];
+        byte[] programmedDp = (byte[])erasedDp.Clone();
+        programmedDp[0x38000] = 0x5A;
+
+        WorkbenchFirmwareInspection erased = WorkbenchCompositionService.InspectFirmware(
+            "NT51950",
+            "erased.bin",
+            tpPath: null,
+            ctrlRamRequest: null,
+            _ => erasedDp);
+        WorkbenchFirmwareInspection programmed = WorkbenchCompositionService.InspectFirmware(
+            "NT51950",
+            "programmed.bin",
+            tpPath: null,
+            ctrlRamRequest: null,
+            _ => programmedDp);
+
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, erased.BaseFirmwareArtifactKind);
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, programmed.BaseFirmwareArtifactKind);
+    }
+
     /// <summary>The consolidated snapshot preserves existing metadata and CtrlRAM display projections.</summary>
     [Fact]
     public void InspectionMatchesExistingFirmwareAndCtrlRamDisplayReaders()

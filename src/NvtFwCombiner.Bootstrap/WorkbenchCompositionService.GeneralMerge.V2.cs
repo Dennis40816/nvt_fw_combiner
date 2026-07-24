@@ -22,7 +22,6 @@ public static partial class WorkbenchCompositionService
         bool build,
         CancellationToken cancellationToken,
         string? outputPath = null,
-        bool overwrite = true,
         CompositionRunProgressFeed? progress = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -160,7 +159,6 @@ public static partial class WorkbenchCompositionService
             outputPath,
             externalProcessor: null,
             icNumberSelection: null,
-            overwrite: overwrite,
             cancellationToken: cancellationToken,
             progress: progress).ConfigureAwait(false);
     }

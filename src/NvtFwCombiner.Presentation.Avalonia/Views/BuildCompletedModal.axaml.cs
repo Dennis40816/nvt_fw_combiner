@@ -10,4 +10,5 @@ public sealed partial class BuildCompletedModal : UserControl
     {
         InitializeComponent();
     }
+
 }

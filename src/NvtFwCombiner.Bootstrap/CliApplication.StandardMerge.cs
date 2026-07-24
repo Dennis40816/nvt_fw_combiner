@@ -39,12 +39,11 @@ public static partial class CliApplication
         }
 
         string[] valueOptions = ["--profile", "--dp", "--tp", "--ld", "--output", "--report"];
-        string[] flagOptions = action == "build" ? ["--overwrite"] : [];
         if (!CliOptionParser.TryParse(
                 args[1..],
                 valueOptions,
                 [],
-                flagOptions,
+                [],
                 error,
                 out ParsedCliOptions options))
         {
@@ -141,7 +140,7 @@ public static partial class CliApplication
             .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)];
         var reader = new FileArtifactReader(inputRoots);
         AtomicFileCompositionOutputWriter? writer = action == "build"
-            ? new AtomicFileCompositionOutputWriter(outputTarget.OutputDirectory, options.Flags.Contains("--overwrite"))
+            ? new AtomicFileCompositionOutputWriter(outputTarget.OutputDirectory, overwrite: true)
             : null;
         var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.GetOrCreateOrNull());
         var request = new CompositionRunRequest(

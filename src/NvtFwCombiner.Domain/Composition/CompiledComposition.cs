@@ -49,7 +49,11 @@ public sealed partial class CompiledComposition
         ValidateIcNumberPolicy(identity.CompositionKind, icNumberPolicy);
         ValidateDefaultOutputFileName(identity.Details.OutputNamingRequirement.FileNameTemplate);
         ValidateV2InputRequirements(plan, identity.CompositionKind, identity.ExperienceId, identity.Details);
-        ValidateV2Eligibility(identity.Details, eligibility);
+        ValidateV2Eligibility(
+            identity.Details,
+            identity.ExperienceId,
+            identity.CompositionKind,
+            eligibility);
 
         Plan = plan;
         ProfileId = identity.ProfileId;
@@ -96,6 +100,40 @@ public sealed partial class CompiledComposition
 
     /// <summary>Execution eligibility established by the compiler authority.</summary>
     public CompiledCompositionEligibility Eligibility { get; }
+
+    /// <summary>
+    /// Whether this profile-bundle candidate is the deliberately narrow AB Code
+    /// function-open route: executable product behavior with only golden or
+    /// firmware-owner certification debt remaining.
+    /// </summary>
+    public bool IsV2AbFunctionOpenCandidate =>
+        Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
+        Authority is ProfileBundleV2CompilationAuthority &&
+        V2Details is { } details &&
+        details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
+        details.Provenance.Context is ResolvedMapV2CompilationContext &&
+        CompositionKind == CompositionKind.Merge &&
+        StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.AbMerge) &&
+        details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
+        details.Provenance.Promotion.Blockers.Count != 0 &&
+        details.Provenance.Promotion.Blockers.All(static blocker =>
+            blocker.Kind is CompiledProfilePromotionBlockerKind.Golden or
+                CompiledProfilePromotionBlockerKind.HumanReview);
+
+    /// <summary>
+    /// Whether this trusted V2 artifact is an AB Merge route executable by the
+    /// current runtime, either as the narrow function-open candidate or as a
+    /// fully supported profile.
+    /// </summary>
+    public bool IsV2AbMergeRuntimeRoute =>
+        (Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable ||
+         IsV2AbFunctionOpenCandidate) &&
+        Authority is ProfileBundleV2CompilationAuthority &&
+        V2Details is { } details &&
+        details.Provenance.Context is ResolvedMapV2CompilationContext &&
+        CompositionKind == CompositionKind.Merge &&
+        StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.AbMerge) &&
+        details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1;
 
     /// <summary>Authority that established this artifact.</summary>
     public CompositionCompilationAuthority Authority { get; }
@@ -468,6 +506,8 @@ public sealed partial class CompiledComposition
 
     private static void ValidateV2Eligibility(
         V2CompiledCompositionDetails details,
+        string experienceId,
+        CompositionKind compositionKind,
         CompiledCompositionEligibility eligibility)
     {
         if (eligibility == CompiledCompositionEligibility.V2PlanCompiled)
@@ -483,13 +523,18 @@ public sealed partial class CompiledComposition
                 "Unknown profile-bundle-v2 composition eligibility.");
         }
 
+        CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
+        bool hasExecutableOutputContract = output.InvalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.Reject &&
+            (output.RendererKind == CompiledOutputNameRendererKind.Static ||
+             (output.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
+              compositionKind == CompositionKind.Merge &&
+              StringComparer.Ordinal.Equals(experienceId, ExperienceIds.AbMerge)));
         if (details.Provenance.Promotion.Stage != CompiledProfilePromotionStage.Supported ||
             details.Provenance.Promotion.Blockers.Count != 0 ||
-            details.OutputNamingRequirement.RequiredTokenIds.Count != 0 ||
-            details.OutputNamingRequirement.InvalidCharacterPolicy != CompiledOutputInvalidCharacterPolicy.Reject)
+            !hasExecutableOutputContract)
         {
             throw new ArgumentException(
-                "V2 runtime execution requires a supported, unblocked profile with a token-free reject output template.",
+                "V2 runtime execution requires a supported, unblocked profile with a typed reject output renderer admitted for its experience.",
                 nameof(details));
         }
     }

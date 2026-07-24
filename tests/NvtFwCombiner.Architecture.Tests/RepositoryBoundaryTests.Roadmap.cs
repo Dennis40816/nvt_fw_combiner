@@ -2,30 +2,59 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Locks the shared viewport and global Button acknowledgement backlog to v0.9.15.</summary>
+    /// <summary>Keeps future scope in the single NFC roadmap while preserving the 0.9.x record.</summary>
     [Fact]
-    public void V0915OwnsSharedViewportAndGlobalButtonFeedback()
+    public void NfcRoadmapMakesV0915TerminalAndSequencesV010AndV011()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string tags = ReadText("docs/governance/development-tags.md");
+        string deliveryRoadmap = ReadText("docs/architecture/v0.9.15-0.9.17-roadmap.md");
+        string nfcRoadmap = ReadText("docs/architecture/nfc_roadmap.md");
 
-        Assert.Contains("## v0.9.15: shared Hex viewport, Changes redesign, and interaction feedback", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Every interactive\nAvalonia `Button`", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Pointer, touch, Space, and Enter", roadmap, StringComparison.Ordinal);
-        Assert.Contains("Reduced-motion mode", roadmap, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.12` | CtrlRAM routing and interaction stabilization", tags, StringComparison.Ordinal);
-        Assert.Contains("`v0.9.15` | UI unification, shared Hex viewport, and Button feedback", tags, StringComparison.Ordinal);
-        Assert.DoesNotContain("Shared Hex viewport and Changes redesign work remain deferred to `0.9.12`", tags, StringComparison.Ordinal);
+        Assert.Contains("Status: historical execution and release evidence", roadmap, StringComparison.Ordinal);
+        Assert.Contains("Status: historical release-planning evidence", deliveryRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Future\nmilestone scope, sequencing, and dates are maintained only", tags, StringComparison.Ordinal);
 
-        int progressionStart = tags.IndexOf("## Progression", StringComparison.Ordinal);
-        int progressionEnd = tags.IndexOf("## Rules", StringComparison.Ordinal);
-        string progression = tags[progressionStart..progressionEnd];
-        Assert.Contains("v0.9.12         CtrlRAM production routing, interaction stabilization, and release governance", progression, StringComparison.Ordinal);
-        Assert.Contains("v0.9.15         cross-workflow UI unification, shared Hex/Changes, and global Button feedback", progression, StringComparison.Ordinal);
-        Assert.DoesNotContain("code-size/shared Hex", progression, StringComparison.Ordinal);
+        Assert.Contains("# NFC Roadmap", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("This is the single canonical roadmap for future NFC work.", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`0.9.15` | Final 0.9.x release", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## `0.10.x`: support visibility, issue/report experience, and maintainability", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `0.10.0` | M0/M1 inventory", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `0.10.1` | M2 test-harness convergence", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| `0.10.2` | M3/M4 production refactoring", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Settings Support Matrix", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Error experience unification", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Report detail, layout, and functional review", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("### Matt Pocock skills transition contract", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`mattpocock/skills`", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`setup-matt-pocock-skills`", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## `0.11.0`: AB certification and family evidence model", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Close NT51950 AB `1 IC` and `Cascade`", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Close selector-free NT51951 AB", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Perfect-family and `ldc-tp-only` evidence model", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| M0 |", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("| M4 |", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## Later `0.11.x` owner queue", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Selection-change validation lifecycle", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Unified selection/admission/input-check projection", nfcRoadmap, StringComparison.Ordinal);
     }
 
-    /// <summary>Locks AB execution out of v0.9.13 and assigns typed re-admission to the separately gated v0.9.14 track.</summary>
+    /// <summary>Separates reviewed AB function availability from direct-golden and support-certification debt.</summary>
+    [Fact]
+    public void AbFunctionAvailabilityDoesNotHideGoldenDebt()
+    {
+        string matrix = ReadText("docs/architecture/supported-ic-matrix.md");
+
+        Assert.Contains("## AB function availability, direct-golden debt, and progress", matrix, StringComparison.Ordinal);
+        Assert.Contains("A missing direct golden is an evidence debt, not a", matrix, StringComparison.Ordinal);
+        Assert.Contains("**33.3%**; **4 missing**", matrix, StringComparison.Ordinal);
+        Assert.Contains("NT51950 `Cascade`, and selector-free NT51951", matrix, StringComparison.Ordinal);
+        Assert.Contains("**66.7%**", matrix, StringComparison.Ordinal);
+        Assert.Contains("**100.0%**; external golden, firmware-owner, independent-review, packaging, and release-owner gates remain open.", matrix, StringComparison.Ordinal);
+        Assert.Contains("**0.0%**; function availability must not be presented as certification.", matrix, StringComparison.Ordinal);
+    }
+
+    /// <summary>Locks the historical v0.9.13 AB gate and the current function-open but certification-neutral re-admission state.</summary>
     [Fact]
     public void V0914OwnsAbCodeProductionReadmissionWithoutV0913Exposure()
     {
@@ -50,8 +79,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("equal or `Unknown` values never collapse", releaseRoadmap, StringComparison.Ordinal);
         Assert.Contains("AB uses one DP_AB card with distinct DP1/DP2 subrows", releaseRoadmap, StringComparison.Ordinal);
         Assert.Contains("The first `v0.9.14` AB pilot", specification, StringComparison.Ordinal);
-        Assert.Contains("output-naming migration remains a separate compatibility decision", specification, StringComparison.Ordinal);
-        Assert.Contains("Existing candidates remain hidden and rejected at the Application run boundary throughout `v0.9.13`", specification, StringComparison.Ordinal);
+        Assert.Contains("AB follows ADR 0036's `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` form", specification, StringComparison.Ordinal);
+        Assert.Contains("AB Code architecture was re-admitted under ADR 0032 in `v0.9.14`", specification, StringComparison.Ordinal);
+        Assert.Contains("The `0.9.15` candidate exposes only the declared NT51919/NT51929/NT51932", specification, StringComparison.Ordinal);
+        Assert.Contains("still gate support certification and release", specification, StringComparison.Ordinal);
         Assert.Contains("Cross-workflow Merge/Replace header, Evidence, and Memory coverage unification", releaseRoadmap, StringComparison.Ordinal);
         Assert.Contains("slot cards show one highest-severity icon", releaseRoadmap, StringComparison.Ordinal);
     }
@@ -132,7 +163,7 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Equal(13, standardMergeIcIds.Length);
         Assert.Equal(standardMergeIcIds.Length, standardMergeIcIds.Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(["NT51919", "NT51929", "NT51932"], abMergeIcIds);
+        Assert.Equal(["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"], abMergeIcIds);
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2RegistrationRegistry.cs", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2Bundle.cs", reference, StringComparison.Ordinal);

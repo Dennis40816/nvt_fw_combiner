@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51919-nt51929-nt51932-ab-merge-family",
-  "bundleVersion": "0.9.14-ab-supported.2",
+  "bundleVersion": "0.9.15-ab-supported.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "2019958454425df63666cad975135fdfc46540e291680b8a551ed07f00aa167a",
+  "contentHash": "93902043b6e4ea4c8a2023a7f02c798e4497de3523b21115797e9b302ce22292",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,28 +25,28 @@
       "kind": "composition-profile",
       "path": "profiles/nt51919-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "d3df72c6143726a8931831ff8b4873dc3328412d78a40ebf95d14f2442fe10e7"
+      "contentHash": "44ee6e69545ec0a592fc037c2670b7ba42aca3c20784eee2c5ea7d97c3abb125"
     },
     {
       "entryId": "nt51919-nt51929-nt51932-ab-merge-family",
       "kind": "firmware-family",
       "path": "families/nt51919-nt51929-nt51932-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "f3004851cc55845b9917c3230595cbb700d92b4f28272a26bf5ee6b11d5fa1eb"
+      "contentHash": "282e6b1c6ba8ed5af648dfab255190207718a430989d0539539742f802891ad5"
     },
     {
       "entryId": "nt51929-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "253a56eb5cd8530541c0cdada230b9e2fa5d033e8f3f2ab7a2516daadc62d963"
+      "contentHash": "59c330450e25b701ee8a0908cb25d89424faed301c8fb523a5b639b42137cc4e"
     },
     {
       "entryId": "nt51932-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51932-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "aeea9a0241969a69b886f0cd3d51c2bb7b98c6062d001178364033bca97d3a01"
+      "contentHash": "d93da6ea54280ab1bad2a986bad87441c7339ab2191db9ae3bbe3274050c560f"
     }
   ]
 }
