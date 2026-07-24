@@ -100,4 +100,39 @@ public sealed class WorkbenchMemoryCoverageRoleTests
             299.999999,
             300.000001));
     }
+
+    /// <summary>AB postbuild rows distinguish full-image staging from the exact TPB write authority.</summary>
+    [Fact]
+    public void Nt51950AbPostbuildDisplayShowsStagingScopeAndAllowedWrites()
+    {
+        WorkbenchMemoryDisplay display =
+            WorkbenchCompositionService.GetAbMergeMemoryDisplay("NT51950", "single");
+
+        WorkbenchMemoryMapRow postbuild = Assert.Single(
+            display.MemoryMapRows,
+            static row => row.ActionLabel == "Postbuild");
+
+        Assert.StartsWith("Staging/read scope: Postbuild AB work ", postbuild.RangeLabel, StringComparison.Ordinal);
+        Assert.Contains(
+            "Allowed writes: 0x4A100-0x4A103 (len 0x4), 0x4A110-0x4A113 (len 0x4), " +
+            "0x4A130-0x4A133 (len 0x4).",
+            postbuild.Detail,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>NT51950-family AB output banks use typed work-buffer colors instead of the unknown gray fallback.</summary>
+    [Theory]
+    [InlineData("NT51950", "single")]
+    [InlineData("NT51951", null)]
+    public void Nt51950FamilyAbCoverageColorsCompiledWorkBuffers(string icId, string? topologyToken)
+    {
+        WorkbenchMemoryDisplay display =
+            WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId, topologyToken);
+
+        Assert.Contains(display.CoverageSegments, segment =>
+            segment.SourceLabel == "A bank work" && segment.Fill == "#16A34A");
+        Assert.Contains(display.CoverageSegments, segment =>
+            segment.SourceLabel == "Postbuild AB work" && segment.Fill == "#7C3AED");
+        Assert.DoesNotContain(display.CoverageSegments, segment => segment.Fill == "#CBD5E1");
+    }
 }

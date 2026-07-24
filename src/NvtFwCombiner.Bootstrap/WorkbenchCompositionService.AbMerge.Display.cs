@@ -109,12 +109,22 @@ public static partial class WorkbenchCompositionService
             string sourceSpace = operation.SourceSpaceId is null
                 ? operation.Kind.ToString()
                 : AddressSpaceLabel(operation.SourceSpaceId);
+            ExternalProcessorInvocation? invocation = operation.ExternalProcessorInvocation;
+            bool isPostbuild = operation.Kind == CompositionOperationKind.RunExternalProcessor &&
+                invocation is not null;
+            string rangeLabel = isPostbuild
+                ? $"Staging/read scope: {targetSpace} {FormatDisplayRange(operation.TargetRange)}"
+                : $"{targetSpace} {FormatDisplayRange(operation.TargetRange)}";
+            string detail = isPostbuild
+                ? $"Sequence {operation.Sequence}: {operation.Reason} Allowed writes: " +
+                  $"{string.Join(", ", invocation!.AllowedWriteRanges.Select(FormatDisplayRange))}."
+                : $"Sequence {operation.Sequence}: {operation.Reason}";
             rows.Add(new WorkbenchMemoryMapRow(
-                $"{targetSpace} {FormatDisplayRange(operation.TargetRange)}",
+                rangeLabel,
                 targetSpace,
                 ActionLabel(operation.Kind),
                 sourceSpace,
-                $"Sequence {operation.Sequence}: {operation.Reason}"));
+                detail));
             if (!StringComparer.Ordinal.Equals(operation.TargetSpaceId, CompositionAddressSpaceIds.OutputImage))
             {
                 continue;
