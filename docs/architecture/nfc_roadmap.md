@@ -52,10 +52,14 @@ It function-opens only NT51919/NT51929/NT51932 AB, NT51950 AB `1 IC`/
 naming, optional A-only FlashCode delivery for the Perfect-family route, and
 delivery-to-review evidence collection.  It does not certify those routes.
 
-Before publishing the stable release, the exact reviewed `0.9.15` head still
-requires protected CI, independent Codex review, firmware-owner/release-owner
-approval, release-package/provenance evidence, and a clean-Windows package
-smoke.  Missing direct AB golden remains a certification debt; its closure is
+The exact reviewed `0.9.15` head passed protected CI, independent Codex review,
+candidate package/provenance evidence, and the portable package smoke. Its
+annotated tag and GitHub Release were created from that exact identity. Final
+published-release verification remains recorded as an incomplete release-process
+gate: GitHub's tag API returned CRLF while the immutable workflow compared an LF
+tag message byte-for-byte, and visible clean-Windows UI smoke was not performed.
+No tag, Release body, asset, firmware byte, or certification claim is changed by
+that record. Missing direct AB golden remains certification debt; its closure is
 scheduled below and is not represented as an existing support claim.
 
 ## `0.10.x`: support visibility, issue/report experience, and maintainability
@@ -68,7 +72,7 @@ mix unreviewed refactors into a product slice:
 
 | Version | Ordered scope | Exit boundary |
 | --- | --- | --- |
-| `0.10.0` | M0/M1 inventory, documentation/skill rationalization, reviewed Matt Pocock active-skill adoption, and Settings Support Matrix. | Exact `v0.9.15` baseline; one reviewed ownership/skill inventory; no route-admission change. |
+| `0.10.0` | M0/M1 inventory, documentation/skill rationalization, reviewed Matt Pocock active-skill adoption, Settings Support Matrix, and release-promotion recovery hardening. | Exact `v0.9.15` baseline; one reviewed ownership/skill inventory; no route-admission change. |
 | `0.10.1` | M2 test-harness convergence and Error experience unification. | Exact `v0.10.0` baseline; characterization remains intact and stable issue codes remain authoritative. |
 | `0.10.2` | M3/M4 production refactoring and Report detail/layout/function review. | Exact `v0.10.1` baseline; byte/report/UI parity and all R2/R3 gates remain explicit. |
 
@@ -103,6 +107,25 @@ inventory-only; none is silently adopted.  Repository firmware skills remain
 authoritative: Matt Pocock workflows must not weaken `AGENTS.md`, Polytail,
 profile/CRC-worker contracts, golden regression, supervised branch development,
 release readiness, or R2/R3 human gates.
+
+### Release-promotion recovery hardening
+
+`0.10.0` repairs the release-process defect observed during `v0.9.15` publication:
+
+- Canonicalize only transport-level line endings when comparing the GitHub API's
+  annotated-tag message to the candidate message; preserve every tag field,
+  source SHA/tree, candidate run, manifest digest, artifact digest, Release
+  body, asset name, and asset hash as exact identity checks.
+- Add regression coverage for LF candidate text versus the GitHub API CRLF
+  representation, and for a same-run recovery after tag creation. The test must
+  still reject any changed logical tag line or candidate binding.
+- Provide a reviewed recovery path that continues to use the original immutable
+  candidate run and digest; it must never move a stable tag, overwrite a release
+  asset, or reuse a different candidate under the same version.
+- Make the visible clean-Windows x64 smoke explicit: no separately installed
+  .NET or Python, desktop startup, profile load, CRC-worker `123456789` check,
+  representative Preview/Build, and report generation. `-SkipUiLaunch` remains
+  package-structure evidence only, never this gate.
 
 ### Maintainability sequence
 
