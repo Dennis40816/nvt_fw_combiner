@@ -116,8 +116,13 @@ The reviewed upstream active inventory contains 22 skills:
 | Productivity | user-invoked | `grill-me`, `handoff`, `teach`, `writing-great-skills` |
 | Productivity | model-invoked | `grilling` |
 
-Deprecated, in-progress, personal, and miscellaneous upstream directories are
-inventory-only; none is silently adopted.  Repository firmware skills remain
+The 22-skill table is the upstream review surface, not an instruction to install
+every entry. NFC activates 18: `triage` and `wayfinder` remain deferred until
+their owner-approved GitHub labels/dependency behavior exist; `grill-me` is
+merged into direct `$grilling` routing; `teach` stays outside the production
+repository. `grill-with-docs` remains the explicit repo-oriented composition of
+`$grilling` and `$domain-modeling`. Deprecated, in-progress, personal, and
+miscellaneous upstream directories are inventory-only. Repository firmware skills remain
 authoritative: Matt Pocock workflows must not weaken `AGENTS.md`, Polytail,
 profile/CRC-worker contracts, golden regression, supervised branch development,
 release readiness, or R2/R3 human gates.

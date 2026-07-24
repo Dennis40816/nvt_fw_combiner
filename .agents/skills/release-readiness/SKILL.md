@@ -12,10 +12,14 @@ description: Prepare, audit, or troubleshoot an NFC prerelease/stable release, c
    equal the reviewed tree; matching messages or ancestry alone is insufficient.
 2. Confirm version consistency across tag, `VERSION`, assemblies, worker,
    changelog, release manifest, package names, and release notes.
-3. Require the exact final `main` commit to pass CI and package workflows before
+3. When comparing an annotated-tag message returned by GitHub, normalize only
+   transport CRLF/LF line endings. Keep every logical line, tag field, source
+   SHA/tree, candidate run, manifest digest, artifact digest, release body,
+   asset name, and asset hash as exact identity checks.
+4. Require the exact final `main` commit to pass CI and package workflows before
    creating an annotated stable tag. Build only from that reachable commit in an
    approved release environment.
-4. Never move or silently replace a stable tag or stable asset. A source or
+5. Never move or silently replace a stable tag or stable asset. A source or
    behavior correction requires a new version decision.
 
 ## Verify The Portable Package

@@ -1,0 +1,4 @@
+interface:
+  display_name: "CRC Worker Contract"
+  short_description: "Change or verify the NFC CRC/header worker contract"
+  default_prompt: "Use $crc-worker-contract to review this CRC/header worker or staged-transform change."

@@ -1,0 +1,144 @@
+"""Behavioral tests for repository skill inventory and Codex metadata."""
+
+from __future__ import annotations
+
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+SCRIPTS = Path(__file__).resolve().parents[2] / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+
+import validate_repository as repository_validation  # noqa: E402
+
+
+class SkillInventoryValidationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary_directory.name)
+
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
+    def write_skill(
+        self,
+        name: str,
+        *,
+        extra_frontmatter: str = "",
+        implicit_invocation: bool | None = None,
+        include_metadata: bool = True,
+        prompt_name: str | None = None,
+    ) -> None:
+        skill_root = self.root / ".agents" / "skills" / name
+        skill_root.mkdir(parents=True)
+        extra_line = f"{extra_frontmatter}\n" if extra_frontmatter else ""
+        (skill_root / "SKILL.md").write_text(
+            "---\n"
+            f"name: {name}\n"
+            f"description: Exercise the {name} repository workflow safely.\n"
+            f"{extra_line}"
+            "---\n\n"
+            f"# {name}\n",
+            encoding="utf-8",
+        )
+        if not include_metadata:
+            return
+        policy = ""
+        if implicit_invocation is not None:
+            value = "true" if implicit_invocation else "false"
+            policy = f"policy:\n  allow_implicit_invocation: {value}\n"
+        metadata_root = skill_root / "agents"
+        metadata_root.mkdir()
+        referenced_name = prompt_name or name
+        (metadata_root / "openai.yaml").write_text(
+            "interface:\n"
+            f'  display_name: "{name}"\n'
+            f'  short_description: "Exercise the {name} workflow"\n'
+            f'  default_prompt: "Use ${referenced_name} for this workflow."\n'
+            f"{policy}",
+            encoding="utf-8",
+        )
+
+    def validate(
+        self,
+        *,
+        expected: set[str] | None = None,
+        user_invoked: set[str] | None = None,
+    ) -> list[str]:
+        errors: list[str] = []
+        with (
+            patch.object(repository_validation, "ROOT", self.root),
+            patch.object(
+                repository_validation,
+                "EXPECTED_SKILLS",
+                (
+                    {"explicit-skill", "implicit-skill"}
+                    if expected is None
+                    else expected
+                ),
+            ),
+            patch.object(
+                repository_validation,
+                "EXPECTED_USER_INVOKED_SKILLS",
+                {"explicit-skill"} if user_invoked is None else user_invoked,
+            ),
+        ):
+            repository_validation.validate_skills(errors)
+        return errors
+
+    def test_accepts_exact_inventory_and_invocation_metadata(self) -> None:
+        self.write_skill("explicit-skill", implicit_invocation=False)
+        self.write_skill("implicit-skill")
+
+        self.assertEqual([], self.validate())
+
+    def test_rejects_unsupported_frontmatter_key(self) -> None:
+        self.write_skill(
+            "explicit-skill",
+            extra_frontmatter='argument-hint: "topic"',
+            implicit_invocation=False,
+        )
+
+        errors = self.validate(
+            expected={"explicit-skill"}, user_invoked={"explicit-skill"}
+        )
+
+        self.assertTrue(
+            any("frontmatter keys must be exactly" in error for error in errors)
+        )
+
+    def test_rejects_missing_openai_metadata(self) -> None:
+        self.write_skill("implicit-skill", include_metadata=False)
+
+        errors = self.validate(expected={"implicit-skill"}, user_invoked=set())
+
+        self.assertTrue(any("requires agents/openai.yaml" in error for error in errors))
+
+    def test_rejects_invocation_policy_mismatch(self) -> None:
+        self.write_skill("explicit-skill")
+        self.write_skill("implicit-skill", implicit_invocation=False)
+
+        errors = self.validate()
+
+        self.assertTrue(any("user-invoked skill must set" in error for error in errors))
+        self.assertTrue(
+            any("model-invoked skill must not disable" in error for error in errors)
+        )
+
+    def test_rejects_default_prompt_for_another_skill(self) -> None:
+        self.write_skill("implicit-skill", prompt_name="other-skill")
+
+        errors = self.validate(expected={"implicit-skill"}, user_invoked=set())
+
+        self.assertTrue(
+            any(
+                "default_prompt must reference $implicit-skill" in error
+                for error in errors
+            )
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

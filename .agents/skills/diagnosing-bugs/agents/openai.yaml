@@ -1,0 +1,4 @@
+interface:
+  display_name: "Diagnosing Bugs"
+  short_description: "Diagnose hard bugs and regressions"
+  default_prompt: "Use $diagnosing-bugs to establish a tight reproduction and evidence-backed root cause."

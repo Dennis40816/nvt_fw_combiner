@@ -11,9 +11,10 @@ Status: Reviewed `0.10.0` M1 adoption inventory.
   [`third-party/mattpocock-skills/LICENSE`](../../third-party/mattpocock-skills/LICENSE)
 - Local form: NFC-adapted copies under `.agents/skills/<name>/`
 
-Only the 22 reviewed active skills are adopted. Upstream `deprecated`,
-`in-progress`, `personal`, and `misc` directories remain inventory-only and are
-not copied into the active repository skill set.
+The upstream active inventory contains 22 reviewed skills. NFC activates 18,
+defers two until their GitHub prerequisites exist, and excludes two redundant
+or off-domain workflows. Upstream `deprecated`, `in-progress`, `personal`, and
+`misc` directories remain inventory-only and are not copied.
 
 ## Repository-native skills
 
@@ -41,14 +42,12 @@ skills. Their descriptions remain the routing triggers.
 | Skill | Disposition | Local routing |
 | --- | --- | --- |
 | `ask-matt` | Adopt/adapt | Router for the adopted workflow set |
-| `grill-with-docs` | Adopt/adapt | Grilling plus canonical NFC domain/ADR updates |
-| `triage` | Adopt/adapt | Uses the owner-gated GitHub configuration |
+| `grill-with-docs` | Adopt/adapt | `$grilling` plus canonical NFC domain/ADR updates |
 | `improve-codebase-architecture` | Adopt/adapt | Requires `$nfc-architecture-change` |
 | `setup-matt-pocock-skills` | Adopt/replace setup behavior | Audits this preconfigured integration; does not overwrite NFC authority |
 | `to-spec` | Adopt/adapt | Publishes only under explicit tracker authority |
 | `to-tickets` | Adopt/adapt | Tracer-bullet tickets with explicit blocking edges |
 | `implement` | Adopt/adapt | Uses NFC branch/test/phase-commit gates |
-| `wayfinder` | Adopt/adapt | Missing GitHub labels/dependencies fail closed |
 
 ### Engineering, model-invoked
 
@@ -67,11 +66,18 @@ skills. Their descriptions remain the routing triggers.
 
 | Skill | Invocation | Disposition | Local routing |
 | --- | --- | --- | --- |
-| `grill-me` | User | Adopt | Explicit wrapper for `$grilling` |
 | `handoff` | User | Adopt/adapt | Redacted OS-temp handoff only |
-| `teach` | User | Adopt/adapt | Dedicated teaching workspace only |
 | `writing-great-skills` | User | Adopt/adapt | Codex `openai.yaml` invocation model |
 | `grilling` | Model | Adopt | One decision question at a time |
+
+## Deferred and excluded upstream active skills
+
+| Skill | Disposition | Reason / activation gate |
+| --- | --- | --- |
+| `triage` | Defer | Missing `needs-*` and `ready-*` state labels; activate only after owner-approved GitHub vocabulary |
+| `wayfinder` | Defer | Missing `wayfinder:*` labels and unverified dependency/sub-issue behavior |
+| `grill-me` | Exclude/merge | One-line alias; `$ask-matt` routes directly to `$grilling` |
+| `teach` | Exclude | General teaching workspace is outside the NFC production repository domain |
 
 ## Compatibility decisions
 
@@ -111,9 +117,10 @@ skills. Their descriptions remain the routing triggers.
 | Implement/review | `$implement` uses the test ladder; `$code-review` applies `$polytail` |
 | Domain/architecture | No imported skill creates `CONTEXT.md` or bypasses `$nfc-architecture-change` |
 | Conflict recovery | Wrong-branch operations may be safely aborted; unrelated files are not broadly staged |
-| Tracker workflows | Missing triage/wayfinder labels stop before GitHub mutation |
+| Deferred tracker workflows | Inventory records missing triage/wayfinder gates; no inactive skill directory is installed |
 | Invocation | All user-invoked skills are explicit in `agents/openai.yaml` |
 
-Repository validation locks the installed set, frontmatter shape, metadata
-presence, and invocation classification. The skill creator validator is run on
-every adopted skill, followed by the canonical repository gates.
+Repository validation locks the 29 installed skills (11 NFC-native plus 18
+adapted upstream), frontmatter shape, metadata presence, and invocation
+classification. The skill creator validator is run on every adopted skill,
+followed by the canonical repository gates.

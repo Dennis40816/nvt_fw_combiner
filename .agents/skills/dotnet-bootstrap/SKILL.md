@@ -11,4 +11,5 @@ description: Change the .NET 10 SDK pin, installation/bootstrap scripts, solutio
 4. Preserve dependency direction and central package management. Add a project only with its layer purpose, references, tests, and solution entry.
 5. Update Windows and POSIX scripts together and keep them idempotent.
 6. Prove clean-clone restore/build/test on supported runners; state when the current environment cannot execute .NET.
-7. Run structure validation and Polytail; document SDK/package/release impact.
+7. Run the narrow bootstrap/architecture tests, `$polytail`, and the final gate
+   required by the risk class; document SDK/package/release impact.

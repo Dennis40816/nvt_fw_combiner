@@ -12,4 +12,6 @@ description: Design or modify Merge/Replace screens, Display/TP HW/TP FW/General
 5. Display address space, source/target ranges, operation, overlap and processor effects before Build.
 6. Add keyboard, focus, screen-reader, localization and high-contrast acceptance coverage.
 7. Add ViewModel/unit tests plus the narrowest UI smoke/snapshot coverage available.
-8. Run `$polytail` and report whether any core/profile contract changed.
+8. Run the narrow UI tests, `$polytail`, and the final gate required by the risk
+   class. Report whether any core/profile contract changed and route that change
+   through its authoritative skill.

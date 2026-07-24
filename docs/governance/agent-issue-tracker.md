@@ -39,18 +39,18 @@ any transition that requires one stops before mutation and reports the exact
 missing label.
 
 The `wayfinder:map`, `wayfinder:research`, `wayfinder:prototype`,
-`wayfinder:grilling`, and `wayfinder:task` labels are also missing. `$wayfinder`
-may draft a map locally, but it must stop before publishing or assigning tickets
-until the owner authorizes the required GitHub vocabulary.
+`wayfinder:grilling`, and `wayfinder:task` labels are also missing. The
+upstream `triage` and `wayfinder` skills therefore remain uninstalled/deferred
+until the owner authorizes the required GitHub vocabulary and behavior.
 
 ## Mutation gates
 
 - `$to-spec` and `$to-tickets` may publish only when explicitly invoked with a
   GitHub target. If `ready-for-agent` is required, the missing-label gate applies.
-- `$triage` recommends before applying roles unless the owner gave an exact
-  transition. It never creates labels implicitly.
-- `$wayfinder` uses GitHub sub-issues/dependencies only after confirming the
-  repository supports them and the label gate passes.
+- A future `$triage` activation must recommend before applying roles unless the
+  owner gave an exact transition. It never creates labels implicitly.
+- A future `$wayfinder` activation must confirm GitHub sub-issues/dependencies
+  and pass the label gate before mutation.
 - No issue workflow closes, labels, assigns, comments on, or edits a PR/issue
   outside the named target set.
 - Label creation, deletion, renaming, and repository settings remain separate

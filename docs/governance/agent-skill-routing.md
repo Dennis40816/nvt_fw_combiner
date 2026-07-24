@@ -77,7 +77,7 @@ on the wrong branch, preserve recoverable evidence and safely abort or restore
 the intended state. Stage only resolved files belonging to the active
 operation; never stage the whole worktree.
 
-### Prototype, research, teach, and hand off
+### Prototype, research, learning, and hand off
 
 - `$prototype` answers one design question in an isolated temporary or
   owner-approved branch location. Promotion to production is a separate tested
@@ -86,9 +86,8 @@ operation; never stage the whole worktree.
 - `$research` is read-only unless the user also asks for a durable artifact.
   Sources are cited, private evidence stays private, and research does not
   authorize a branch, issue, or repository write.
-- `$teach` writes its learning workspace only when the user explicitly selects
-  a dedicated teaching location. It does not seed teaching files into this
-  production repository by implication.
+- General teaching uses a dedicated workspace selected by the user; the NFC
+  production repository does not install the upstream `teach` workflow.
 - `$handoff` writes only a redacted temporary handoff and points at existing
   canonical artifacts rather than duplicating them.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: ".NET Bootstrap"
+  short_description: "Maintain the pinned NFC .NET developer bootstrap"
+  default_prompt: "Use $dotnet-bootstrap to review this SDK, package, restore, or solution-bootstrap change."

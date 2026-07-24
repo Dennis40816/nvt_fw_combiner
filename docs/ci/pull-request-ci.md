@@ -4,7 +4,11 @@ The executable workflow is [`.github/workflows/ci.yml`](../../.github/workflows/
 
 ## Required public checks
 
-1. **`policy / polytail`** validates repository structure, forbidden tracked files, schemas, Markdown links, layered AGENTS, skill frontmatter, immutable reference hashes, action pins, version/license consistency, dependency direction, and canonical architecture fields.
+1. **`policy / polytail`** validates repository structure, forbidden tracked
+   files, schemas, Markdown links, layered AGENTS, the exact skill inventory,
+   skill frontmatter and Codex invocation metadata, immutable reference hashes,
+   action pins, version/license consistency, dependency direction, and
+   canonical architecture fields.
 2. **`python-worker / verify`** runs Ruff format/check, Pyright strict, Pylint, pytest, branch coverage, protocol/process tests, plus the structure gate.
 3. **`dotnet / build-test`** installs the SDK pinned by `global.json` through the repository installer, restores, checks formatting, builds Release with warnings as errors, and runs the public .NET tests.
 
