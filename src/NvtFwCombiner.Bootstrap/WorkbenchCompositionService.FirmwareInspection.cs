@@ -119,6 +119,8 @@ public static partial class WorkbenchCompositionService
             : ReadFirmwareConfigMetadataValue(icId, tpImage);
         FirmwareConfigMetadata? cmiFirmwareConfig = tpFirmwareConfig ??
             (string.IsNullOrWhiteSpace(tpPath) ? firmwareConfig : null);
+        WorkbenchBaseFirmwareArtifactKind artifactKind = ClassifyBaseFirmwareArtifact(icId, image);
+        bool shouldProjectDpMetadata = artifactKind != WorkbenchBaseFirmwareArtifactKind.TpFirmware;
         LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
             icId,
             firmwareConfig,
@@ -131,11 +133,11 @@ public static partial class WorkbenchCompositionService
         return new WorkbenchFirmwareInspection(
             detectedIcId ?? DetectFirmwareIcHintFromHeader(image),
             ReadFirmwareConfigMetadata(firmwareConfig, postbuildProfile),
-            ReadDpVersionMetadata(icId, image),
-            ReadCmiDpCodeMetadata(icId, image, cmiFirmwareConfig?.ChipNumber),
+            shouldProjectDpMetadata ? ReadDpVersionMetadata(icId, image) : null,
+            shouldProjectDpMetadata ? ReadCmiDpCodeMetadata(icId, image, cmiFirmwareConfig?.ChipNumber) : null,
             ReadFirmwareContextSuggestion(icId, firmwareConfig),
             ctrlRamDisplay,
-            ClassifyBaseFirmwareArtifact(icId, image));
+            artifactKind);
     }
 
     /// <summary>Reprojects CtrlRAM display state from an existing immutable firmware inspection.</summary>
