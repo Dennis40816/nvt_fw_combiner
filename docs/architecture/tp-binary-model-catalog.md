@@ -12,7 +12,7 @@ Related decision: [ADR 0013](../adr/0013-tp-binary-model-and-report-semantic-pro
 
 Evidence sources:
 
-- `docs/references/ic-flashmap/IC_FlashMap_20260705.xlsx` TP Overview rows;
+- `docs/references/ic-flashmap/IC_FlashMap_20260725.xlsx` TP Overview rows;
 - `docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx` named header worksheets;
 - documented owner aliases already recorded in hash-pinned
   `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`.

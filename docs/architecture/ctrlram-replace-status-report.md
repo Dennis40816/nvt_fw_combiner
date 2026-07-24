@@ -119,7 +119,7 @@ Primary files:
 - `docs/references/ic-flashmap/postbuild/*.bat`
 - `docs/references/ic-flashmap/mmap/*.h`
 - `docs/references/ic-flashmap/common-fw/ap_fwconfig.c`
-- `docs/references/ic-flashmap/IC_FlashMap_20260705.xlsx`
+- `docs/references/ic-flashmap/IC_FlashMap_20260725.xlsx`
 - `testdata/golden/canonical/manifest.json`
 - `testdata/golden/ctrlram-replace/manifest.json`
 - `testdata/golden/ctrlram-replace/manifest.20260717.json` (remaining
@@ -296,7 +296,7 @@ TP Overview evidence notes:
 
 NT51927 flash-header cross-check:
 
-- `IC_FlashMap_20260705.xlsx` records `0x00200` Common Header, `0x00220` Flash Header, `0x1E230` Master header copy, `0x27230` Slave R header copy, `0x30230` Slave L header copy, and `0x32DC0` Header backup.
+- `IC_FlashMap_20260725.xlsx` records `0x00200` Common Header, `0x00220` Flash Header, `0x1E230` Master header copy, `0x27230` Slave R header copy, `0x30230` Slave L header copy, and `0x32DC0` Header backup.
 - `51927_1.4.1_mmap.h` records cascade header CRC offsets.
 - Observed changed words align with 16-byte descriptor CRC positions (`descriptor + 0x0C`), including split 3-chip diff ranges where one byte in a 4-byte word happened to match.
 - Synthetic sentinel replacement confirmed the real Combiner 1.13.0 path can update additional 3-chip main-header CRC words that self-replacement did not necessarily surface.
