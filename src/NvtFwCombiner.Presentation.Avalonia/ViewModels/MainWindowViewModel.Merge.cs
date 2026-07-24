@@ -9,10 +9,13 @@ internal sealed record MergeBuildSavePreparation(
 public sealed partial class MainWindowViewModel
 {
     /// <summary>Builds the active Merge output to a user-selected path.</summary>
-    public Task BuildMergeAsync(string outputPath, string? aFlashCodeOutputPath = null)
+    public Task BuildMergeAsync(
+        string outputPath,
+        string? aFlashCodeOutputPath = null,
+        bool outputPathUsesAutomaticName = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
-        return RunMergeAsync(build: true, outputPath, aFlashCodeOutputPath);
+        return RunMergeAsync(build: true, outputPath, aFlashCodeOutputPath, outputPathUsesAutomaticName);
     }
 
     private void RefreshMergeSlotRequirements()
@@ -158,12 +161,16 @@ public sealed partial class MainWindowViewModel
         });
     }
 
-    private Task RunMergeAsync(bool build, string? outputPath, string? aFlashCodeOutputPath = null)
+    private Task RunMergeAsync(
+        bool build,
+        string? outputPath,
+        string? aFlashCodeOutputPath = null,
+        bool outputPathUsesAutomaticName = false)
     {
         return SelectedMergeMode switch
         {
             NormalMergeMode => RunStandardMergeAsync(build, outputPath),
-            AbCodeMergeMode => RunAbMergeAsync(build, outputPath, aFlashCodeOutputPath),
+            AbCodeMergeMode => RunAbMergeAsync(build, outputPath, aFlashCodeOutputPath, outputPathUsesAutomaticName),
             GeneralMergeMode => RunGeneralMergeAsync(build, outputPath),
             _ => Task.CompletedTask,
         };
@@ -363,7 +370,11 @@ public sealed partial class MainWindowViewModel
                 experienceId: WorkbenchWorkflowIds.GeneralMerge));
     }
 
-    private Task RunAbMergeAsync(bool build, string? outputPath, string? aFlashCodeOutputPath)
+    private Task RunAbMergeAsync(
+        bool build,
+        string? outputPath,
+        string? aFlashCodeOutputPath,
+        bool outputPathUsesAutomaticName)
     {
         string icId = SelectedIc;
         IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
@@ -380,7 +391,8 @@ public sealed partial class MainWindowViewModel
                 cancellationToken,
                 outputPath,
                 GetSelectedAbMergeTopologyToken(),
-                aFlashCodeOutputPath),
+                aFlashCodeOutputPath,
+                outputPathUsesAutomaticName),
             (action, errorMessage) => LoadRunErrorReport(
                 action,
                 profileId,

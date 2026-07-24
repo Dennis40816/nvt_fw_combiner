@@ -258,6 +258,27 @@ public sealed partial class ShellViewModelTests
                 initialAFlashCodePlan.SuggestedFileName,
                 TestContext.Current.CancellationToken));
 
+        WriteUiAbCmi(dp, 0, major: 0x0A, minor: 0x01, jira: 0x123);
+        await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
+        await viewModel.BuildMergeAsync(
+            refreshedAutomaticOutputPath,
+            outputPathUsesAutomaticName: true);
+
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.NotEqual(refreshedAutomaticOutputPath, viewModel.LastRunResult.Output);
+        Assert.Matches(
+            "^NT51929_FlashCode_A_D0A01T8100_B_D0708T8203_[0-9]{8}\\.bin$",
+            Path.GetFileName(viewModel.LastRunResult.Output));
+        Assert.True(File.Exists(viewModel.LastRunResult.Output));
+        using (var report = JsonDocument.Parse(viewModel.LoadedReportJson))
+        {
+            JsonElement naming = report.RootElement.GetProperty("OutputNaming");
+            Assert.False(naming.GetProperty("IsExplicitOverride").GetBoolean());
+            Assert.Equal(
+                Path.GetFileName(viewModel.LastRunResult.Output),
+                naming.GetProperty("ActualFileName").GetString());
+        }
+
         await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);

@@ -41,6 +41,11 @@ public sealed partial class MainWindow
         {
             return;
         }
+        bool outputPathUsesAutomaticName = viewModel.IsAbCodeMergeModeSelected &&
+            string.Equals(
+                Path.GetFileName(outputPath),
+                preparation.SuggestedFileName,
+                StringComparison.Ordinal);
 
         string? aFlashCodeOutputPath = null;
         if (exportAFlashCode)
@@ -75,7 +80,10 @@ public sealed partial class MainWindow
             }
         }
 
-        await viewModel.BuildMergeAsync(resolvedOutputPath, aFlashCodeOutputPath);
+        await viewModel.BuildMergeAsync(
+            resolvedOutputPath,
+            aFlashCodeOutputPath,
+            outputPathUsesAutomaticName);
     }
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)

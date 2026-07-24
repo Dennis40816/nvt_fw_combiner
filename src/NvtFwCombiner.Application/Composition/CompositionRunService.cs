@@ -241,6 +241,13 @@ public sealed partial class CompositionRunService
                 boundInputs.InputSummaries,
                 startedAtUtc)
             : OutputNameResolution.Static(request.OutputFileName);
+        if (commitOutput && boundInputs.Issues.Count == 0 &&
+            _outputWriter is ICompositionOutputCommitPreflight outputPreflight)
+        {
+            // The renderer has now bound the name to these exact accepted snapshots.  Perform
+            // filesystem identity admission before plan execution or any staged processor work.
+            outputPreflight.EnsureCanCommit(outputName.FileName);
+        }
         var executedCommandsByOperationId = new Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>(StringComparer.Ordinal);
         CompositionExecutionResult execution;
         if (boundInputs.Issues.Count == 0)

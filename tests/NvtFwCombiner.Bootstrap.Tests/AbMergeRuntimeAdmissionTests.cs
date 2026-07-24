@@ -416,8 +416,8 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     }
 
     /// <summary>
-    /// The rendered automatic AB filename is checked again before commit, so a dynamic name can never
-    /// overwrite an input that differs from the profile's static filename template.
+    /// The rendered automatic AB filename is checked after accepted-input naming but before composition,
+    /// so a dynamic name can never stage or overwrite an input that differs from the static template.
     /// </summary>
     [Fact]
     public async Task RenderedAutomaticOutputNameCannotAliasInputAsync()
@@ -437,17 +437,27 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         File.Move(originalDpPath, aliasedDpPath);
         paths[CompositionAddressSpaceIds.DpAbInput] = aliasedDpPath;
 
+        var progress = new CompositionRunProgressFeed();
         ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+            AbMergeWorkbenchCompositionService.RunAbMergeWithProgressAsync(
                 "NT51929",
                 paths,
                 build: true,
-                TestContext.Current.CancellationToken).AsTask());
+                progress: progress,
+                cancellationToken: TestContext.Current.CancellationToken,
+                abMergeTopologySelection: null).AsTask());
 
         Assert.Contains("Output path must not overwrite input artifact", exception.Message, StringComparison.Ordinal);
         Assert.Equal(
             originalDpBytes,
             await File.ReadAllBytesAsync(aliasedDpPath, TestContext.Current.CancellationToken));
+        var phases = new List<CompositionRunPhase>();
+        await foreach (CompositionRunProgressSnapshot snapshot in progress.ReadAllAsync(TestContext.Current.CancellationToken))
+        {
+            phases.Add(snapshot.CurrentPhase);
+        }
+
+        Assert.Equal([CompositionRunPhase.Preparing, CompositionRunPhase.ReadingInputs], phases);
     }
 
     /// <summary>A post-primary I/O failure is reported as partial delivery and never pretends that both requested outputs were delivered.</summary>

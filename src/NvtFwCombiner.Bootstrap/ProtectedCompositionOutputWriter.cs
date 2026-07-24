@@ -9,7 +9,7 @@ namespace NvtFwCombiner.Bootstrap;
 /// Automatic output naming is resolved after input admission. The earlier Bootstrap preflight can
 /// therefore only protect the profile's template filename; this adapter protects the rendered name.
 /// </remarks>
-internal sealed class ProtectedCompositionOutputWriter : ICompositionOutputWriter
+internal sealed class ProtectedCompositionOutputWriter : ICompositionOutputWriter, ICompositionOutputCommitPreflight
 {
     private readonly ICompositionOutputWriter _inner;
     private readonly string _outputDirectory;
@@ -30,16 +30,22 @@ internal sealed class ProtectedCompositionOutputWriter : ICompositionOutputWrite
     }
 
     /// <inheritdoc />
-    public ValueTask<string> CommitAsync(
-        string fileName,
-        ReadOnlyMemory<byte> outputBytes,
-        CancellationToken cancellationToken)
+    public void EnsureCanCommit(string fileName)
     {
         ProtectedPathGuard.EnsureDoesNotAlias(
             ProtectedPathGuard.CombineFullPath(_outputDirectory, fileName),
             "Output path",
             _protectedPaths,
             nameof(fileName));
+    }
+
+    /// <inheritdoc />
+    public ValueTask<string> CommitAsync(
+        string fileName,
+        ReadOnlyMemory<byte> outputBytes,
+        CancellationToken cancellationToken)
+    {
+        EnsureCanCommit(fileName);
         return _inner.CommitAsync(fileName, outputBytes, cancellationToken);
     }
 }

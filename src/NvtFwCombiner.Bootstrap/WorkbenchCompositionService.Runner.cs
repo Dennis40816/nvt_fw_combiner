@@ -31,7 +31,8 @@ public static partial class WorkbenchCompositionService
         string? previewOutputFileName = null,
         TopologySelection? abMergeTopologySelection = null,
         string? automaticOutputDirectory = null,
-        IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null)
+        IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null,
+        bool outputPathUsesAutomaticName = false)
     {
         CompositionRunResult result = await RunCompiledCompositionResultAsync(
             runIdPrefix,
@@ -48,7 +49,8 @@ public static partial class WorkbenchCompositionService
             previewOutputFileName,
             abMergeTopologySelection,
             automaticOutputDirectory,
-            additionalOutputProtectedPaths).ConfigureAwait(false);
+            additionalOutputProtectedPaths,
+            outputPathUsesAutomaticName).ConfigureAwait(false);
         return ToWorkbenchRunResult(result);
     }
 
@@ -68,8 +70,17 @@ public static partial class WorkbenchCompositionService
         string? previewOutputFileName = null,
         TopologySelection? abMergeTopologySelection = null,
         string? automaticOutputDirectory = null,
-        IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null)
+        IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null,
+        bool outputPathUsesAutomaticName = false)
     {
+        if (outputPathUsesAutomaticName &&
+            (string.IsNullOrWhiteSpace(outputPath) || previewOutputFileName is not null))
+        {
+            throw new ArgumentException(
+                "An automatic output directory requires a selected output path and cannot be combined with a Preview output name.",
+                nameof(outputPathUsesAutomaticName));
+        }
+
         string[] inputRoots =
         [
             .. bindings
@@ -82,6 +93,14 @@ public static partial class WorkbenchCompositionService
             outputPath,
             compiledComposition.DefaultOutputFileName,
             automaticOutputDirectory);
+        if (outputPathUsesAutomaticName)
+        {
+            // The native save dialog supplies the destination directory.  Keep the compiled
+            // template as the Application request value so execution snapshots render the final
+            // automatic name, rather than accidentally treating the dialog's stale suggestion as
+            // an operator override.
+            outputFileName = compiledComposition.DefaultOutputFileName;
+        }
         if (previewOutputFileName is not null)
         {
             if (build ||
@@ -103,7 +122,7 @@ public static partial class WorkbenchCompositionService
             outputProtectedPaths.AddRange(additionalOutputProtectedPaths);
         }
 
-        if (build)
+        if (build && !outputPathUsesAutomaticName)
         {
             ProtectedPathGuard.EnsureDoesNotAlias(
                 ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
@@ -132,7 +151,8 @@ public static partial class WorkbenchCompositionService
             bindings,
             outputFileName,
             icNumberSelection: icNumberSelection,
-            outputFileNameIsOverride: outputPath is not null || previewOutputFileName is not null,
+            outputFileNameIsOverride: (outputPath is not null && !outputPathUsesAutomaticName) ||
+                previewOutputFileName is not null,
             abMergeTopologySelection: abMergeTopologySelection);
 
         CompositionRunResult result = progress is null

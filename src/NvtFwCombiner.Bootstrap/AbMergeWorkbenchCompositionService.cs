@@ -101,7 +101,8 @@ public static class AbMergeWorkbenchCompositionService
         CancellationToken cancellationToken,
         string? outputPath = null,
         TopologySelection? abMergeTopologySelection = null,
-        string? aFlashCodeOutputPath = null)
+        string? aFlashCodeOutputPath = null,
+        bool outputPathUsesAutomaticName = false)
     {
         return RunAbMergeCoreAsync(
             icId,
@@ -114,6 +115,7 @@ public static class AbMergeWorkbenchCompositionService
             aFlashCodeOutputPath: aFlashCodeOutputPath,
             automaticOutputDirectory: null,
             additionalOutputProtectedPaths: null,
+            outputPathUsesAutomaticName: outputPathUsesAutomaticName,
             cancellationToken: cancellationToken);
     }
 
@@ -142,6 +144,7 @@ public static class AbMergeWorkbenchCompositionService
             additionalOutputProtectedPaths: string.IsNullOrWhiteSpace(reportPath)
                 ? null
                 : [new ProtectedPathGuard.ProtectedPath(reportPath, "CLI report")],
+            outputPathUsesAutomaticName: false,
             cancellationToken: cancellationToken);
     }
 
@@ -154,7 +157,8 @@ public static class AbMergeWorkbenchCompositionService
         CancellationToken cancellationToken,
         string? outputPath = null,
         TopologySelection? abMergeTopologySelection = null,
-        string? aFlashCodeOutputPath = null)
+        string? aFlashCodeOutputPath = null,
+        bool outputPathUsesAutomaticName = false)
     {
         ArgumentNullException.ThrowIfNull(progress);
         return RunAbMergeCoreAsync(
@@ -168,6 +172,7 @@ public static class AbMergeWorkbenchCompositionService
             aFlashCodeOutputPath: aFlashCodeOutputPath,
             automaticOutputDirectory: null,
             additionalOutputProtectedPaths: null,
+            outputPathUsesAutomaticName: outputPathUsesAutomaticName,
             cancellationToken: cancellationToken);
     }
 
@@ -180,17 +185,19 @@ public static class AbMergeWorkbenchCompositionService
         CancellationToken cancellationToken,
         string? outputPath = null,
         string? abMergeTopologyToken = null,
-        string? aFlashCodeOutputPath = null)
+        string? aFlashCodeOutputPath = null,
+        bool outputPathUsesAutomaticName = false)
     {
         return RunAbMergeWithProgressAsync(
-            icId,
-            slotPaths,
-            build,
-            progress,
-            cancellationToken,
-            outputPath,
-            ResolveTopologySelection(abMergeTopologyToken),
-            aFlashCodeOutputPath);
+            icId: icId,
+            slotPaths: slotPaths,
+            build: build,
+            progress: progress,
+            cancellationToken: cancellationToken,
+            outputPath: outputPath,
+            abMergeTopologySelection: ResolveTopologySelection(abMergeTopologyToken),
+            aFlashCodeOutputPath: aFlashCodeOutputPath,
+            outputPathUsesAutomaticName: outputPathUsesAutomaticName);
     }
 
     /// <summary>Resolves the compiled AB automatic filename without executing or publishing firmware output.</summary>
@@ -261,6 +268,7 @@ public static class AbMergeWorkbenchCompositionService
         string? aFlashCodeOutputPath,
         string? automaticOutputDirectory,
         IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths,
+        bool outputPathUsesAutomaticName,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -319,7 +327,8 @@ public static class AbMergeWorkbenchCompositionService
             previewOutputFileName: previewOutputFileName,
             abMergeTopologySelection: abMergeTopologySelection,
             automaticOutputDirectory: automaticOutputDirectory,
-            additionalOutputProtectedPaths: additionalOutputProtectedPaths).ConfigureAwait(false);
+            additionalOutputProtectedPaths: additionalOutputProtectedPaths,
+            outputPathUsesAutomaticName: outputPathUsesAutomaticName).ConfigureAwait(false);
         if (aFlashCodePlan is null || !build || result.Status != CompositionExecutionStatus.Succeeded ||
             string.IsNullOrWhiteSpace(result.CommittedOutputId))
         {
