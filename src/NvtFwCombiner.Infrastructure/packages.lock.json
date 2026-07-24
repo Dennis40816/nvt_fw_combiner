@@ -4,37 +4,37 @@
     "net10.0": {
       "JsonSchema.Net": {
         "type": "Direct",
-        "requested": "[8.0.5, )",
-        "resolved": "8.0.5",
-        "contentHash": "QoEqdoAUgAkbzuFAiHySjGuh8lJs8L8DxkEDGJLEebtlZ6+EbEr0wmYlidErSS2ASNFOModueb83DLNIRLqshg==",
+        "requested": "[9.3.0, )",
+        "resolved": "9.3.0",
+        "contentHash": "d780/OM10Vi3ZwXtWsdjSwg4T2Gv6PEs4QO1TOcfwYJsT3IpkV6u6RUJYDxNFifc4jsNeIk+0RgRh1X38R5ySA==",
         "dependencies": {
-          "JsonPointer.Net": "6.0.1"
+          "JsonPointer.Net": "7.0.1"
         }
       },
       "Humanizer.Core": {
         "type": "Transitive",
-        "resolved": "3.0.1",
-        "contentHash": "scB3+KcxNmEjZK5V8rKCW2gIiL8m8KH91w14FuuExyhi9xTyAJ+jr+DDxGdy12mHmioe2uvjxTfMgM7WmSUFlw=="
+        "resolved": "3.0.10",
+        "contentHash": "yZIhtw8sYuvsONzQbZxWpR60tMWYHXoo0DL6nyOqSFiU5POjBTSEyWFpTQtJEZuy+oqiYTXKXY/Mjx7KnqIQFw=="
       },
       "Json.More.Net": {
         "type": "Transitive",
-        "resolved": "2.2.0",
-        "contentHash": "fiyEZJNgiCzDa7/N9bZ+CnM5qnawyJ54+CkHNZ2svwxWBWNNFzydJ7RlroqMdOjokGBiLcKIxdajNvOklzlYqQ=="
+        "resolved": "3.0.1",
+        "contentHash": "fRctF2J2SILYG6wqP21drmeEODmCVkVQ/b3MndDu2fT1swfySyUgq7ePCk+aENGlDcIm05fyfjh9vcuqDEfv3w=="
       },
       "JsonPointer.Net": {
         "type": "Transitive",
-        "resolved": "6.0.1",
-        "contentHash": "EbSJkd/1y9r0WBIptjUctA6BzjgKh1aNU/g6QGgdMZVZ8wc0S/ysQhfiQerP9/VFTeENFHFdCQaoOk9fZqwnFQ==",
+        "resolved": "7.0.1",
+        "contentHash": "5C497yxfktYFsqxKG+GUQPsMvBqIjzLkqtDEdMGsnBpl3/OB8DOvTo7LEyRX7AVc1kVVj0IX5zhmLrlbvAYEnw==",
         "dependencies": {
-          "Humanizer.Core": "3.0.1",
-          "Json.More.Net": "2.2.0"
+          "Humanizer.Core": "3.0.10",
+          "Json.More.Net": "3.0.1"
         }
       },
       "nvtfwcombiner.application": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.9.2, )",
-          "NvtFwCombiner.Domain": "[0.9.2, )"
+          "NvtFwCombiner.Contracts": "[0.9.16, )",
+          "NvtFwCombiner.Domain": "[0.9.16, )"
         }
       },
       "nvtfwcombiner.contracts": {
