@@ -73,10 +73,13 @@ receive the layout addend:
 
 The host first materializes a private A/B Combiner work image: 512 KiB for
 NT51950 (`A[0x00000,0x40000)`, `B[0x40000,0x80000)`) and 1 MiB for NT51951
-(`A[0x00000,0x80000)`, `B[0x80000,0x100000)`). The processor writes that
-private image, never the complete DP output. Its postbuilt B bank is then the
-sole B-slot backfill source; the already-copied DP tail remains byte-for-byte
-unchanged.
+(`A[0x00000,0x80000)`, `B[0x80000,0x100000)`). That whole private image is
+the processor's staging/read scope, not its write authority. The host admits
+changes only to B-bank TPB ILM, DLM, and Header CRC: respectively
+`[0x4A100,0x4A104)`, `[0x4A110,0x4A114)`, and `[0x4A130,0x4A134)` for
+NT51950; the corresponding NT51951 ranges begin at `0x8A100`, `0x8A110`, and
+`0x8A130`. Its postbuilt B bank is then the sole B-slot backfill source; the
+already-copied DP tail remains byte-for-byte unchanged.
 
 The approved staged postbuild route then calculates CRC-32/MPEG-2 over
 `[0xA100,0xA130)` and writes its little-endian value at `[0xA130,0xA134)`.
@@ -86,6 +89,12 @@ the same pure calculation only as an independent equivalence assertion. The
 host rejects a changed DP byte, any out-of-range TPB mutation, a length change,
 or a C#/postbuild CRC disagreement before it imports the staged TPB bytes into
 the B slot.
+
+The workbench Memory coverage view labels A bank, B bank, and postbuild A/B
+work buffers with their roles. The postbuild step description shows the full
+staging/read scope and the three exact allowed-write ranges separately; the
+full `[0x00000,0x80000)` NT51950 scope must not be described as one CRC
+calculation interval.
 
 Required tests include all three maps, complete DP preservation, short-prefix
 rejection, longer-tail independence, NVT metadata detection, TPA no-write,
