@@ -1,6 +1,6 @@
 # Agent Issue Tracker Configuration
 
-Status: Active local configuration; GitHub label setup remains owner-gated.
+Status: Active local configuration; `ready-for-agent` is available.
 
 ## Tracker
 
@@ -21,7 +21,7 @@ Every AI-authored triage comment starts with:
 
 ## Current label vocabulary
 
-Read-only inventory captured on 2026-07-24:
+Inventory updated on 2026-07-25:
 
 | Canonical role | Repository label | State |
 | --- | --- | --- |
@@ -29,14 +29,15 @@ Read-only inventory captured on 2026-07-24:
 | Category: enhancement | `enhancement` | Available |
 | State: needs-triage | — | Missing |
 | State: needs-info | — | Missing |
-| State: ready-for-agent | — | Missing |
+| State: ready-for-agent | `ready-for-agent` | Available |
 | State: ready-for-human | — | Missing |
 | State: wontfix | `wontfix` | Available |
 
-`question`, `help wanted`, and `good first issue` are not substitutes for the
-missing state roles. Until the owner explicitly creates or maps those roles,
-any transition that requires one stops before mutation and reports the exact
-missing label.
+`question`, `help wanted`, and `good first issue` are not substitutes for
+missing state roles. `ready-for-agent` means an owner-approved ticket is
+sufficiently specified for agent implementation; its explicit `Blocked by`
+edges still determine whether it is on the executable frontier. Any transition
+requiring another missing role stops before mutation and reports that label.
 
 The `wayfinder:map`, `wayfinder:research`, `wayfinder:prototype`,
 `wayfinder:grilling`, and `wayfinder:task` labels are also missing. The

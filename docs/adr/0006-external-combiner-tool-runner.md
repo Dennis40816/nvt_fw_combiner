@@ -1,8 +1,8 @@
 # ADR 0006: External Combiner Tool Runner for CRC/Header Processing
 
-Status: Accepted for `0.1.0` planning baseline
-
-Date: 2026-06-26
+- Status: Accepted
+- Date: 2026-06-26
+- Amended by: ADR 0015
 
 ## Context
 

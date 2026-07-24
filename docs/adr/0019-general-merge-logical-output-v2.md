@@ -4,6 +4,7 @@
 - Date: 2026-07-15
 - Owners: Product owner + architecture owner
 - Amends: ADR 0015 and ADR 0018
+- Amended by: ADR 0020
 
 ## Context
 

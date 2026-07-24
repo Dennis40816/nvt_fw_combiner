@@ -3,6 +3,7 @@
 - Status: Accepted for repository bootstrap
 - Date: 2026-06-25
 - Owners: Product owner + architecture owner + DP/CtrlRAM firmware reviewers
+- Amended by: ADR 0015
 
 ## Context
 

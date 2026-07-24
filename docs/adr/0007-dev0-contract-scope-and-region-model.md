@@ -1,8 +1,8 @@
 # ADR 0007: Dev0 Contract Scope, Region Model Refinements, and Saved Rule Promotion
 
-Status: Accepted for `0.1.0` planning baseline
-
-Date: 2026-06-26
+- Status: Accepted; Dev0/Dev1 sequencing is historical
+- Date: 2026-06-26
+- Amended by: ADR 0015
 
 ## Context
 

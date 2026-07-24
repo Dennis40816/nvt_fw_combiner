@@ -72,15 +72,48 @@ the next planned convergence slice. Until then, code-size policy must not force
 unrelated refactors into the release candidate or weaken tests, evidence, and
 firmware-safety boundaries.
 
+### 0.10.x maintainability-program amendment
+
+Owner decision, 2026-07-25: the `0.10.x` maintainability program has a separate
+production-runtime reduction objective. This amendment is the single canonical
+definition of that measurement:
+
+- baseline commit: `946c217e`;
+- counted C#: nonblank physical lines in `src/**/*.cs`, excluding
+  `src/NvtFwCombiner.Presentation.Avalonia/**` and generated/build directories;
+- counted Python: nonblank physical lines in
+  `tools/crc-worker/src/**/*.py`, excluding generated/cache directories;
+- excluded: tests, UI/Presentation, scripts, packaging, generated/build output,
+  `refcode`, vendored code, and declarative profiles; and
+- baseline and target: 45,214 nonblank lines across 405 files at baseline,
+  reduced by at least 50% to 22,607 lines or fewer at final `0.10.x`
+  integration. Later added or removed files in the counted paths remain part of
+  the measurement.
+
+Nonblank means a physical line whose Unicode text is not empty after whitespace
+trimming; files are decoded as UTF-8 with an optional BOM. The target cannot be
+met by deleting tests, compressing formatting, moving runtime logic into an
+excluded path, generating an equivalent hidden owner, reducing coverage, or
+weakening behavioral, architecture, firmware, security, or release gates.
+
+This is an owner-approved program target, not yet a second executable validator
+gate. The current `src/` C#/AXAML capacity ceiling and partial/duplicate
+ratchets remain enforced until #171 adds this exact metric and its tests to the
+existing `scripts/verify.py` path. That migration must preserve the existing
+measurement during transition or explicitly supersede it in the same reviewed
+change; it must not add another verification entry point. #197 applies the
+22,607-line target as a final integration gate only after #171 has made the
+measurement executable.
+
 This is a convergence control, not permission to delete safety. Tests, golden
 vectors, evidence manifests, documentation, firmware-owner gates, and useful
 comments are outside the production-source metric. A change must not weaken
 validation, byte parity, immutable-input handling, self-contained packaging,
 or human review merely to satisfy a number.
 
-`scripts/verify.py` remains the only canonical verification entry point. The
-measurement module has no command-line entry point and is invoked by the
-existing repository structure validator.
+`scripts/verify.py` remains the only canonical verification entry point. Code
+size measurement modules have no independent command-line entry point and are
+invoked by the existing repository structure validator.
 
 ## Consequences
 

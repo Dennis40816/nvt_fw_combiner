@@ -3,6 +3,7 @@
 - Status: Partially superseded by ADR 0014 for the Home Hex Editor UI
 - Date: 2026-07-10
 - Owners: Product owner + architecture owner; individual IC/range enablement remains firmware-owner reviewed
+- Amended by: ADR 0027 for authoritative Build orchestration
 
 ## Context
 

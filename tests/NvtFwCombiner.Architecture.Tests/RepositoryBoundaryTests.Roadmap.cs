@@ -4,45 +4,53 @@ public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Keeps future scope in the single NFC roadmap while preserving the 0.9.x hot-fix record.</summary>
     [Fact]
-    public void NfcRoadmapRecordsV0916HotfixAndSequencesV010AndV011()
+    public void NfcRoadmapRecordsV0916AndDependencyAllocatesV010xBeforeV011()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string tags = ReadText("docs/governance/development-tags.md");
         string deliveryRoadmap = ReadText("docs/architecture/v0.9.15-0.9.17-roadmap.md");
         string nfcRoadmap = ReadText("docs/architecture/nfc_roadmap.md");
+        string dependencyPlan = ReadText("docs/governance/0.10.x-ticket-dependency-plan.md");
 
         Assert.Contains("Status: historical execution and release evidence", roadmap, StringComparison.Ordinal);
         Assert.Contains("Status: historical release-planning evidence", deliveryRoadmap, StringComparison.Ordinal);
         Assert.Contains("Future\nmilestone scope, sequencing, and dates are maintained only", tags, StringComparison.Ordinal);
 
         Assert.Contains("# NFC Roadmap", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("This is the single canonical roadmap for future NFC work.", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("`0.9.15` | AB function opening", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("`0.9.16` | Exceptional CRC/header-authority hot-fix", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains(
-            "must include or reconcile the complete reviewed `v0.9.16`",
-            nfcRoadmap,
-            StringComparison.Ordinal);
+        Assert.Contains("This file owns future milestone order and release boundaries only.", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`0.10.0` reconciles its original `v0.9.15` planning baseline", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("reviewed `v0.9.16` hot-fix", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## `0.10.0`: planning and governance baseline", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## Later `0.10.x`: dependency-allocated implementation", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("It does not allocate or implement a production Support Matrix", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("issues #170 through #197", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Dependency depth is not a release version.", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## `0.11.0`: AB certification and family evidence", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("NT51950 AB `1 IC` and `Cascade`", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("selector-free NT51951 AB", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Perfect-family and `ldc-tp-only` evidence scope", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("saved/customized-rule persistence and import", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("IC family/rule authoring UI", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("agent-skill-inventory.md", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("0.10.x-ticket-dependency-plan.md", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("verification-report.md", nfcRoadmap, StringComparison.Ordinal);
+
+        Assert.DoesNotContain("Historical 0.9.x release index", nfcRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("`0.9.15` | AB function opening", nfcRoadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("`0.9.15` | Final 0.9.x release", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("## `0.10.x`: support visibility, issue/report experience, and maintainability", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `0.10.0` | M0/M1 inventory", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `0.10.1` | M2 test-harness convergence", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| `0.10.2` | M3/M4 production refactoring", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Settings Support Matrix", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Error experience unification", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Report detail, layout, and functional review", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("### Matt Pocock skills transition contract", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("`mattpocock/skills`", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("`setup-matt-pocock-skills`", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("## `0.11.0`: AB certification and family evidence model", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Close NT51950 AB `1 IC` and `Cascade`", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Close selector-free NT51951 AB", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Perfect-family and `ldc-tp-only` evidence model", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| M0 |", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("| M4 |", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("## Later `0.11.x` owner queue", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Selection-change validation lifecycle", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Unified selection/admission/input-check projection", nfcRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("| `0.10.1` |", nfcRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("| `0.10.2` |", nfcRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("The reviewed upstream active inventory contains 22 skills", nfcRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("| Engineering |", nfcRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("| Phase | Scope | Exit gate |", nfcRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Canonicalize only transport-level line endings", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Status: owner-approved and published on 2026-07-25.", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 0 | #170 | Establish executable Support Matrix baseline | — |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 9 | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #195, #196 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains(
+            "Dependency depth is a topological planning aid, not a release number.",
+            dependencyPlan,
+            StringComparison.Ordinal);
     }
 
     /// <summary>Separates reviewed AB function availability from direct-golden and support-certification debt.</summary>

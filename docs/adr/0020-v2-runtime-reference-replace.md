@@ -5,6 +5,7 @@
 - Amended: 2026-07-18 for the NT51926 processor-free DP runtime slice
 - Owners: Architecture owner + firmware owner
 - Amends: ADR 0015 and ADR 0019
+- Amended by: ADR 0023 and ADR 0024
 
 ## Context
 

@@ -12,6 +12,12 @@
       "sha256": "f4b9a72374e66fd09a03fd874f8c7e9e8bf9fa3710f67b9e0211c23b939f021e",
       "lastWriteTimeTaipei": "2026-07-05T00:08:41+08:00",
       "notes": "Owner-provided package containing an IC FlashMap workbook update and owner-approved NT51926/NT51927 firmware golden payloads."
+    },
+    {
+      "name": "owner-workbook-update-20260725",
+      "sha256": "07a77229d6c88441f101f19d9703ddcaef04c5a7463b56fc189a1a626a9cc839",
+      "lastWriteTimeTaipei": "2026-07-25T01:38:23+08:00",
+      "notes": "Owner-provided IC FlashMap workbook update explicitly approved for inclusion in the 0.10.0 branch."
     }
   ],
   "additionalExtractedFiles": [

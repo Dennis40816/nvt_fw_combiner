@@ -1,6 +1,6 @@
 # ADR 0001: Use Clean Architecture with explicit firmware-domain boundaries
 
-- Status: Proposed for repository bootstrap
+- Status: Accepted
 - Date: 2026-06-25
 - Owners: Product owner + architecture reviewer
 - Supersedes: None
