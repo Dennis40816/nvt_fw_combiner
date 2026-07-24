@@ -15,7 +15,7 @@ for the next `0.10.x` implementation slices. It ships no production refactor
 and does not change firmware bytes, supported routes, processor authority, or
 AB certification status.
 
-### Product and engineering changes
+### Product changes
 
 #### Maintainability program and execution plan
 
@@ -34,16 +34,31 @@ AB certification status.
 - Verification: the canonical full verifier passed locally; the formal release
   workflow still supplies exact-main CI, package, provenance, asset, and
   downloaded-package evidence.
+- Limitations: this release records the approved implementation program only;
+  no ticketed production refactor or new firmware capability is included.
 
 #### FlashMap evidence and ADR lifecycle
 
-- The owner-updated `IC_FlashMap_20260725.xlsx` reference is hash-pinned with
-  source provenance.
-- ADR lifecycle vocabulary now distinguishes accepted, deprecated, partially
-  superseded, superseded, and historical decisions, with reciprocal successor
-  links where a later ADR changes an earlier decision.
+- Before → After: the owner-updated `IC_FlashMap_20260725.xlsx` reference and
+  ADR lifecycle decisions had no single release provenance/terminology record;
+  they are now hash-pinned and lifecycle-classified.
+- Affected: evidence intake and architecture governance only; existing
+  firmware inputs, profiles, executable routes, and user data are unchanged.
+- Support status: support-neutral. No IC, topology, golden alias, or evidence
+  route is promoted by the reference intake.
+- Compatibility: no input, output, saved-data, profile, protocol, or package
+  migration is required.
+- Verification: the workbook size and SHA-256 are recorded in the reference
+  manifest; the canonical repository verifier checks the documentation links.
+- Limitations: this records evidence provenance and decision lifecycle only;
+  later tickets must still turn approved plans into executable capabilities.
 
-### Known issues and deferred work
+### Security
+
+Firmware inputs remain immutable, release assets are integrity-manifested, and
+this release introduces no new processor, network, or file-write authority.
+
+### Known issues
 
 - #170 through #197 remain dependency-gated implementation tickets. Publishing
   this plan does not start or complete any of them.

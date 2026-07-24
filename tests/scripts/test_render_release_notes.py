@@ -52,6 +52,14 @@ Download the Windows ZIP, SPDX SBOM, provenance, candidate manifest, and outer S
 
 
 class RenderReleaseNotesTests(unittest.TestCase):
+    def test_current_version_release_section_renders(self) -> None:
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+
+        notes = MODULE.render_release_notes(changelog, version)
+
+        self.assertTrue(notes.startswith(f"# NVT FW Combiner v{version}\n"))
+
     def test_renders_only_requested_complete_stable_section(self) -> None:
         changelog = f"# Changelog\n\n## [Unreleased]\n\nLater work.\n\n{complete_section()}\n## [0.9.13]\n\nOld.\n"
 
