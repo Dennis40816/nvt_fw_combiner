@@ -25,10 +25,10 @@ and unchanged inputs. The private evidence is not selected for release
 redistribution and does not promote runtime support.
 
 Local `python scripts/verify.py --all` passed at version-branch code/test head
-`9aa89d28412fea01695213d400dde286b9176f94`: 158 repository Python tests,
+`9584defc21e9288a3629aaf16fcda9bcd415f704`: 158 repository Python tests,
 28 CRC-worker tests at 98.88% coverage, Domain 361, ProfileContract 359,
 Application 222, GoldenRegression 19, Architecture 106, Infrastructure 273
-with two declared Unix-only skips, Bootstrap 749, and UI Smoke 351. Release
+with two declared Unix-only skips, Bootstrap 752, and UI Smoke 351. Release
 build completed with zero warnings and zero errors. Final exact-head review,
 protected-main CI, candidate packaging, protected promotion, downloaded-asset
 verification, and release-owner approval remain before publication. Visible
