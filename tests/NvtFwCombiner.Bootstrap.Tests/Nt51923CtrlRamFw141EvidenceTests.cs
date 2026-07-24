@@ -202,13 +202,15 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         Assert.Equal([new ByteRange(0, 0x40000)], ReadRanges(session, "ProcessorAllowedReadRanges"));
         ByteRange[] expectedWrites = StringComparer.Ordinal.Equals(topology, "cascade")
             ? [
-                new(0x1C, 4), new(0x3C, 4), new(0xFC, 4),
+                new(0x18, 4), new(0x1C, 4), new(0x3C, 4),
+                new(0x4C, 4), new(0x5C, 4), new(0xFC, 4),
                 new(0x22800, 14336), new(0x26000, 10240),
                 new(0x28800, 3072), new(0x29400, 3072), new(0x2A000, 17584),
                 new(0x2E800, 5728), new(0x30310, 256), new(0x3B000, 2048),
             ]
             : [
-                new(0x1C, 4), new(0x3C, 4), new(0xFC, 4),
+                new(0x18, 4), new(0x1C, 4), new(0x3C, 4),
+                new(0x4C, 4), new(0x5C, 4), new(0xFC, 4),
                 new(0x22800, 14336), new(0x26000, 10240), new(0x2A000, 17584),
                 new(0x2E800, 5728), new(0x30310, 256), new(0x3B000, 2048),
             ];

@@ -59,11 +59,29 @@
           "alignment": 1
         },
         {
-          "regionId": "gap-711c",
+          "regionId": "gap-711c-to-7128",
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 28956, "length": 98532 },
+          "range": { "start": 28956, "length": 12 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-dlm-crc-7128-7158",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 28968, "length": 48 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-7158-to-fwconfig",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 29016, "length": 98472 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },

@@ -111,7 +111,12 @@ public sealed partial class ShellViewModelTests
                     null,
                     null,
                     null,
-                    new WorkbenchFirmwareContextSuggestion("NT51929", "cascade", 2, "1.4.1", 0x5192),
+                    new WorkbenchFirmwareContextSuggestion(
+                        "NT51929",
+                        WorkbenchIcNumberTokens.CascadeTwoToEight,
+                        2,
+                        "1.4.1",
+                        0x5192),
                     null))),
         ]);
         viewModel.SelectedIc = "NT51929";
@@ -143,7 +148,12 @@ public sealed partial class ShellViewModelTests
                     null,
                     null,
                     null,
-                    new WorkbenchFirmwareContextSuggestion("NT51929", "cascade", 2, "1.4.1", 0x5192),
+                    new WorkbenchFirmwareContextSuggestion(
+                        "NT51929",
+                        WorkbenchIcNumberTokens.CascadeTwoToEight,
+                        2,
+                        "1.4.1",
+                        0x5192),
                     null))),
         ]);
         viewModel.SelectedIc = "NT51929";

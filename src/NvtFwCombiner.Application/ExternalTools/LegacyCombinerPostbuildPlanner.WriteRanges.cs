@@ -19,12 +19,15 @@ public static partial class LegacyCombinerPostbuildPlanner
             switch (command.Family)
             {
                 case LegacyCombinerCommandFamily.NormalMode when command.ModeArgument is "CRC_Enable" or "CRC32_Enable":
+                    AddIfWithin(ranges, capacity, new ByteRange(0x18, 4), TpHeaderSectionIds.FlashHeaderCrc);
                     AddIfWithin(ranges, capacity, new ByteRange(0x1C, 4), TpHeaderSectionIds.FlashHeaderCrc);
                     AddIfWithin(ranges, capacity, new ByteRange(0x3C, 4), TpHeaderSectionIds.FlashHeaderCrc);
+                    AddIfWithin(ranges, capacity, new ByteRange(0x4C, 4), TpHeaderSectionIds.FlashHeaderCrc);
+                    AddIfWithin(ranges, capacity, new ByteRange(0x5C, 4), TpHeaderSectionIds.FlashHeaderCrc);
                     AddIfWithin(ranges, capacity, new ByteRange(0xFC, 4), TpHeaderSectionIds.FlashHeaderCrc);
                     break;
                 case LegacyCombinerCommandFamily.NtBasedNormalMode when command.CrcArgument is "CRC8" or "CRC32":
-                    AddNtBasedHeaderIntegrityRanges(command, capacity, ranges);
+                    AddNtBasedHeaderIntegrityRanges(plan, command, capacity, ranges);
                     break;
                 case LegacyCombinerCommandFamily.CrcOnlyMode
                     when command.ModeArgument == "NT51927BASED_GEN_CRC_MODE" && command.CrcArgument == "CRC32":

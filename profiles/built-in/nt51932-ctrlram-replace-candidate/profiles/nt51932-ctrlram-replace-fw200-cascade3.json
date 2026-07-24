@@ -27,13 +27,14 @@
   "mapBinding": {
     "familyId": "nt51932-ctrlram-replace",
     "familyVersion": "0.3.0",
-    "familyContentHash": "5a03d7d59a6f5f8859fcaeefa667fc53ee2fe5da20a64a059d7f9b7f5d6b06cf",
+      "familyContentHash": "f0ba86188896de301513c8c211749041847df9df8105dd51bc51073da258d4f4",
     "mapIds": [ "nt51932-ctrlram-fw200-cascade3-full-flash" ],
     "requiredRegionIds": [
       "flash-image",
       "fw-config-source",
       "header-crc-7100",
       "header-crc-7118",
+      "header-dlm-crc-7128-7144",
       "nf-ctrlram",
       "normal-ctrlram",
       "vn-ctrlram",
@@ -97,6 +98,7 @@
     { "viewId": "processor-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
     { "viewId": "header-crc-7100-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-7100" } },
     { "viewId": "header-crc-7118-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-7118" } },
+    { "viewId": "header-dlm-crc-7128-7144-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-dlm-crc-7128-7144" } },
     { "viewId": "nf-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "nf-ctrlram" } },
     { "viewId": "normal-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "normal-ctrlram" } },
     { "viewId": "vn-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-ctrlram" } },
@@ -107,6 +109,7 @@
   "regionAccessRules": [
     { "regionId": "header-crc-7100", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
     { "regionId": "header-crc-7118", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
+    { "regionId": "header-dlm-crc-7128-7144", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate cascade DLM CRC 1 through 7." },
     { "regionId": "nf-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x1F90 bytes and preserve the reference tail when the immutable source is shorter." },
     { "regionId": "normal-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x4A00 bytes and preserve the reference tail when the immutable source is shorter." },
     { "regionId": "vn-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x1960 bytes and preserve the reference tail when the immutable source is shorter." },
@@ -139,6 +142,7 @@
       "allowedWriteViewIds": [
         "header-crc-7100-output",
         "header-crc-7118-output",
+        "header-dlm-crc-7128-7144-output",
         "nf-ctrlram-output",
         "normal-ctrlram-output",
         "vn-ctrlram-output",

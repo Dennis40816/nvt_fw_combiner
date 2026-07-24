@@ -20,19 +20,19 @@ public static partial class TpHeaderCatalog
         TpHeaderLayout nt51927 = CreateNt51927Layout();
         TpHeaderLayout nt51930 = CreateNt51930Layout();
         TpHeaderLayout nt51931 = CreateNt51931Layout();
-        TpHeaderLayout nt51932 = CreateNt51932CommonLayout();
+        TpHeaderLayout nt51932 = CreateNt51932TypeAbLayout();
         TpHeaderLayout nt51950 = CreateNt51950Layout();
 
         return new Dictionary<string, TpHeaderLayout>(StringComparer.Ordinal)
         {
             ["NT51917"] = Alias("nt51917-header-927", "NT51917 TP header (NT51927 alias)", nt51927, "TP Overview owner confirmation: NT51917 follows NT51927."),
-            ["NT51919"] = Alias("nt51919-header-932-common", "NT51919 TP header (NT51932 postbuild alias)", nt51932, "TP Overview owner confirmation chain: NT51919 follows NT51929; NT51929 follows NT51932 postbuild."),
+            ["NT51919"] = Alias("nt51919-header-932-type-ab", "NT51919 TP header (NT51932 Type A/B alias)", nt51932, "TP Overview owner confirmation chain: NT51919 follows NT51929; NT51929 follows NT51932 postbuild."),
             ["NT51920"] = Alias("nt51920-header-920-923", "NT51920 normal TP header", normal920And923, normal920And923.Evidence, TpHeaderModelStatus.Workbook),
             ["NT51923"] = Alias("nt51923-header-920-923", "NT51923 normal TP header", normal920And923, normal920And923.Evidence, TpHeaderModelStatus.Workbook),
             ["NT51926"] = Alias("nt51926-header-925-926", "NT51926 normal TP header", normal925And926, normal925And926.Evidence, TpHeaderModelStatus.Workbook),
             ["NT51927"] = nt51927,
             ["NT51928"] = Alias("nt51928-header-927", "NT51928 TP header (non-NB NT51927 alias)", nt51927, "TP Overview evidence: NT51928 non-NB follows NT51927. NB is intentionally not modeled."),
-            ["NT51929"] = Alias("nt51929-header-932-common", "NT51929 TP header (NT51932 postbuild alias)", nt51932, "TP Overview owner confirmation: NT51929 follows NT51932 postbuild."),
+            ["NT51929"] = Alias("nt51929-header-932-type-ab", "NT51929 TP header (NT51932 Type A/B alias)", nt51932, "TP Overview owner confirmation: NT51929 follows NT51932 postbuild."),
             ["NT51930"] = nt51930,
             ["NT51931"] = nt51931,
             ["NT51932"] = nt51932,
@@ -237,52 +237,68 @@ public static partial class TpHeaderCatalog
             "TDDI_Flash_Header.xlsx worksheet '930'.");
     }
 
-    private static TpHeaderLayout CreateNt51932CommonLayout()
+    private static TpHeaderLayout CreateNt51932TypeAbLayout()
     {
+        List<TpHeaderField> fields =
+        [
+            Word("header-crc", "Header CRC", 0x7100),
+            Word("ilm-destination-address-in-sram", "ILM destination address in SRAM", 0x7104),
+            Word("ilm-size", "ILM size", 0x7108),
+            Word("ilm-crc-0", "ILM CRC 0", 0x710C),
+            Word("dlm-destination-address-in-sram", "DLM destination address in SRAM", 0x7110),
+            Word("dlm-size", "DLM size", 0x7114),
+            Word("dlm-crc-0", "DLM CRC 0", 0x7118),
+            Word("dlm-diff-destination-address-in-sram", "DLM DIFF destination address in SRAM", 0x711C),
+            Field("dlm-diff-size", "DLM DIFF size", 0x7120, 2),
+            Field("build-read-command", "Build read command", 0x7124, 1),
+            Field("build-divider-count", "Build divider count", 0x7125, 1),
+            Field("spi-option", "SPI option", 0x7126, 1),
+        ];
+        for (int index = 1; index <= 7; index++)
+        {
+            fields.Add(Word($"dlm-crc-{index}", $"DLM CRC {index}", 0x7128 + ((index - 1) * 4)));
+        }
+
         return new TpHeaderLayout(
-            "nt51932-header-932-common",
-            "NT51932 TP header common fields",
-            TpHeaderModelStatus.WorkbookCommonFields,
+            "nt51932-header-932-type-ab",
+            "NT51932 TP header Type A/B fields",
+            TpHeaderModelStatus.Workbook,
             [new ByteRange(0x7100, 0x0100)],
-            [
-                Word("header-crc", "Header CRC", 0x7100),
-                Word("ilm-destination-address-in-sram", "ILM destination address in SRAM", 0x7104),
-                Word("ilm-size", "ILM size", 0x7108),
-                Word("ilm-crc-0", "ILM CRC 0", 0x710C),
-                Word("dlm-destination-address-in-sram", "DLM destination address in SRAM", 0x7110),
-                Word("dlm-size", "DLM size", 0x7114),
-                Word("dlm-crc-0", "DLM CRC 0", 0x7118),
-                Word("dlm-diff-destination-address-in-sram", "DLM DIFF destination address in SRAM", 0x711C),
-                Field("dlm-diff-size", "DLM DIFF size", 0x7120, 2),
-                Field("build-read-command", "Build read command", 0x7124, 1),
-                Field("build-divider-count", "Build divider count", 0x7125, 1),
-                Field("spi-option", "SPI option", 0x7126, 1),
-            ],
-            "TDDI_Flash_Header.xlsx worksheet '932'; only fields common to its Type A/B/C diagrams are modeled.");
+            fields,
+            "TDDI_Flash_Header.xlsx worksheet '932' Type A (1-3 IC) and Type B (1-8 IC); " +
+            "owner confirmation 2026-07-24 limits current NT51919/29/32 cascade use to 2-8 IC.");
     }
 
     private static TpHeaderLayout CreateNt51950Layout()
     {
+        List<TpHeaderField> fields =
+        [
+            Word("ilm-start-address-in-bin", "ILM start address in BIN", 0xA100),
+            Word("ilm-destination-address-in-sram", "ILM destination address in SRAM", 0xA104),
+            Word("ilm-size", "ILM size", 0xA108),
+            Word("ilm-crc-0", "ILM CRC 0", 0xA10C),
+            Word("dlm-start-address-in-bin", "DLM start address in BIN", 0xA110),
+            Word("dlm-destination-address-in-sram", "DLM destination address in SRAM", 0xA114),
+            Word("dlm-size", "DLM size", 0xA118),
+            Word("dlm-crc-0", "DLM CRC 0", 0xA11C),
+            Field("build-read-command", "Build read command", 0xA12A, 1),
+            Field("build-divider-count", "Build divider count", 0xA12B, 1),
+            Field("spi-option", "SPI option", 0xA12C, 1),
+            Word("header-crc", "Header CRC", 0xA130),
+        ];
+        for (int index = 1; index <= 19; index++)
+        {
+            fields.Add(Word($"dlm-crc-{index}", $"DLM CRC {index}", 0xA134 + ((index - 1) * 4)));
+        }
+
         return new TpHeaderLayout(
             "nt51950-header-950",
             "NT51950 TP header",
             TpHeaderModelStatus.Workbook,
             [new ByteRange(0xA100, 0x0100)],
-            [
-                Word("ilm-start-address-in-bin", "ILM start address in BIN", 0xA100),
-                Word("ilm-destination-address-in-sram", "ILM destination address in SRAM", 0xA104),
-                Word("ilm-size", "ILM size", 0xA108),
-                Word("ilm-crc-0", "ILM CRC 0", 0xA10C),
-                Word("dlm-start-address-in-bin", "DLM start address in BIN", 0xA110),
-                Word("dlm-destination-address-in-sram", "DLM destination address in SRAM", 0xA114),
-                Word("dlm-size", "DLM size", 0xA118),
-                Word("dlm-crc-0", "DLM CRC 0", 0xA11C),
-                Field("build-read-command", "Build read command", 0xA12A, 1),
-                Field("build-divider-count", "Build divider count", 0xA12B, 1),
-                Field("spi-option", "SPI option", 0xA12C, 1),
-                Word("header-crc", "Header CRC", 0xA130),
-            ],
-            "TDDI_Flash_Header.xlsx worksheet '950'.");
+            fields,
+            "TDDI_Flash_Header.xlsx worksheet '950'; owner confirmation 2026-07-24 classifies " +
+            "Reserved (DIFF CRC) words [0xA134,0xA180) as DLM CRC 1 through 19.");
     }
 
     private static TpHeaderField Word(string fieldId, string displayName, long start)
