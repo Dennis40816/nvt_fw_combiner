@@ -1,4 +1,5 @@
 using System.Text;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -148,6 +149,28 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.WorkflowContextSetup.IsNumberVisible);
         viewModel.ConfirmWorkflowContextCommand.Execute(null);
         Assert.True(viewModel.IsMergeVisible);
+    }
+
+    /// <summary>Returning from AB Code does not replace the saved Replace device context.</summary>
+    [Fact]
+    public void ReplaceContextDoesNotInheritAbCodeSelectionOnFirstOpen()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        string expectedReplaceIc = viewModel.SelectedIc;
+        string expectedReplaceNumber = viewModel.SelectedNumber;
+
+        viewModel.BeginAbMergeFromHomeCommand.Execute(null);
+        viewModel.WorkflowContextSetup.SelectedIc = "NT51929";
+        viewModel.ConfirmWorkflowContextCommand.Execute(null);
+        viewModel.SelectedNumber = WorkbenchIcNumberTokens.CascadeTwoToEight;
+        viewModel.GoBackCommand.Execute(null);
+
+        Assert.True(viewModel.IsHomeVisible);
+        viewModel.BeginDpReplaceFromHomeCommand.Execute(null);
+
+        Assert.True(viewModel.IsWorkflowContextModalOpen);
+        Assert.Equal(expectedReplaceIc, viewModel.WorkflowContextSetup.SelectedIc);
+        Assert.Equal(expectedReplaceNumber, viewModel.WorkflowContextSetup.SelectedNumber);
     }
 
     /// <summary>Verifies an IC marker remains actionable while a hidden Merge TP number stays informational.</summary>
