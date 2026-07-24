@@ -10,7 +10,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
 {
     private const string Nt51920BundleHash = "7394b8c650200fd6bb608312f1bf5177c5f1edf21cf9d485c7d5d5406d8a1b06";
     private const string Nt51923BundleHash = "a98432cdd049fde26a381534d9555b68671ef5e71604209a16b24972ad4b0cd1";
-    private const string Nt51926BundleHash = "866e2d0ece6d7d6761ea16b0a2a7f607edb9a338827634a0fdc60b36ecee4dd7";
+    private const string Nt51926BundleHash = "31ce9eb783667ef7ee9e86657a97fd7e541f52fff7239f1a90a19863a06002ae";
     private const string Nt51929BundleHash = "a60c51ec6a15ef32f91029bf31fca225cbb7f0081c2ee1d760cb8df2294cf74a";
     private const string Nt51928BundleHash = "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634";
     private const string Nt51930BundleHash = "33d81fed0864ec319b04c4fd1442b33a4891ecbee2e54ddab179304778c06d48";

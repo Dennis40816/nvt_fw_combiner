@@ -75,10 +75,10 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(
             [
                 new IcNumberChoiceViewModel(WorkbenchIcNumberTokens.SingleChip, "1 IC"),
-                new IcNumberChoiceViewModel(WorkbenchIcNumberTokens.Cascade, "Cascade"),
+                new IcNumberChoiceViewModel(WorkbenchIcNumberTokens.CascadeTwoToEight, "2–8 IC"),
             ],
             viewModel.NumberSelectionChoices);
-        Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.SelectedNumberChoice?.Token);
+        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumberChoice?.Token);
     }
 
     /// <summary>Changing from AB Code to Standard Merge restores the full IC selector.</summary>

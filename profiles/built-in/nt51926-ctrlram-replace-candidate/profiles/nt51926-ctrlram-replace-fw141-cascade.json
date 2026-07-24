@@ -201,11 +201,11 @@
     { "regionId": "nf-ctrlram", "access": "explicit-range", "reason": "The declared 0x2DD0-byte region is a maximum; the immutable replacement may populate only its available prefix." },
     { "regionId": "fw-config-backup", "access": "explicit-range", "reason": "Combiner copies the reviewed firmware-config source block to the backup target; it is not user authoring authority." },
     { "regionId": "header-copy", "access": "explicit-range", "reason": "Combiner owns the reviewed header copy and final header CRC refresh target." },
-    { "regionId": "header-crc-18", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate ILM CRC 0." },
+    { "regionId": "header-crc-18", "access": "explicit-range", "reason": "Only the declared Legacy Combiner processor may recalculate ILM CRC 0." },
     { "regionId": "header-crc-1c", "access": "explicit-range", "reason": "Combiner recalculates this reviewed source header integrity field." },
     { "regionId": "header-crc-3c", "access": "explicit-range", "reason": "Combiner recalculates this reviewed source header integrity field." },
-    { "regionId": "header-crc-4c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate CtrlRAM CRC." },
-    { "regionId": "header-crc-5c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate MP CtrlRAM CRC." },
+    { "regionId": "header-crc-4c", "access": "explicit-range", "reason": "Only the declared Legacy Combiner processor may recalculate CtrlRAM CRC." },
+    { "regionId": "header-crc-5c", "access": "explicit-range", "reason": "Only the declared Legacy Combiner processor may recalculate MP CtrlRAM CRC." },
     { "regionId": "header-crc-fc", "access": "explicit-range", "reason": "Combiner recalculates this reviewed source header integrity field." }
   ],
   "operations": [

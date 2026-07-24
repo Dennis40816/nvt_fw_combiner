@@ -71,8 +71,11 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal([new ByteRange(0, Capacity)], invocation.AllowedReadRanges);
         Assert.Equal(
             [
+                new ByteRange(0x18, 4),
                 new ByteRange(0x1C, 4),
                 new ByteRange(0x3C, 4),
+                new ByteRange(0x4C, 4),
+                new ByteRange(0x5C, 4),
                 new ByteRange(0xFC, 4),
                 new ByteRange(0x22800, 0x2C00),
                 new ByteRange(0x25400, 0x2400),
@@ -179,10 +182,10 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         CompiledComposition second = CompileCandidate([.. referenceBase]);
 
         Assert.Equal(
-            "0d3d5b14b26d2c812b367710455293277d21be0c9f233811eeb163150d4a2e12",
+            "57329d84a84e5b5f656dc940b829edce6e97a32ff812683acecd81a1a2e935f0",
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
-            "df3e7e0b2c25504786aac59a4ffe028e801b75357b83c44115d83a5dde2852c6",
+            "64f123b608cf0303f250ad93e03d42a08c461e112940a198b7703abbd62b4bd1",
             first.CompilationFingerprint);
         Assert.Equal(
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,

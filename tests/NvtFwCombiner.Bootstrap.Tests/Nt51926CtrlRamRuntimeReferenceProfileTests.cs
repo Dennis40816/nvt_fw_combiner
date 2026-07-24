@@ -63,8 +63,11 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         Assert.Empty(invocation.StagedSourceBindings);
         Assert.Equal(
             [
+                new ByteRange(0x18, 4),
                 new ByteRange(0x1C, 4),
                 new ByteRange(0x3C, 4),
+                new ByteRange(0x4C, 4),
+                new ByteRange(0x5C, 4),
                 new ByteRange(0xFC, 4),
                 new ByteRange(VnStart, sourceLength),
                 new ByteRange(0x32F50, 0x100),

@@ -24,7 +24,7 @@ internal static class BuiltInV2BundleRegistry
             ("nt51923-ctrlram-replace-candidate", "a98432cdd049fde26a381534d9555b68671ef5e71604209a16b24972ad4b0cd1"),
             ("nt51923-dp-replace", "4c822759f79167ab16331bb9590b89f3d7874ec518660ca098e545ae432569a0"),
             ("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96"),
-            ("nt51926-ctrlram-replace-candidate", "866e2d0ece6d7d6761ea16b0a2a7f607edb9a338827634a0fdc60b36ecee4dd7"),
+            ("nt51926-ctrlram-replace-candidate", "31ce9eb783667ef7ee9e86657a97fd7e541f52fff7239f1a90a19863a06002ae"),
             ("nt51927-ctrlram-replace-candidate", "d0c8a8775a35a01b52b8d8f32a93af0ac798067e2577d2420ab0dd65dd815d0f"),
             ("nt51927-dp-replace", "c805ce9881786131a299675ec84ff272cd3effc74310fc783965abb1a8400568"),
             ("nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1"),
