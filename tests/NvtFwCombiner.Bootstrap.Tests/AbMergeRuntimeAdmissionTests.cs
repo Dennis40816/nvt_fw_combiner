@@ -376,6 +376,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             StringComparer.Ordinal);
         Assert.Equal("T8100", namingTokens["tp-a"]);
         Assert.Equal(Path.GetFileName(outputPath), outputNaming.ActualFileName);
+        Assert.NotEqual(outputNaming.ActualFileName, outputNaming.AutomaticFileName);
+        Assert.Matches(
+            "^NT51929_FlashCode_A_D[0-9A-F]{4}T8100_B_D[0-9A-F]{4}T8203_[0-9]{8}\\.bin$",
+            outputNaming.AutomaticFileName);
 
         byte[] aFlashCode = await File.ReadAllBytesAsync(aFlashCodePath, TestContext.Current.CancellationToken);
         Assert.Equal(DpLength / 2, aFlashCodeDelivery.OutputSize);

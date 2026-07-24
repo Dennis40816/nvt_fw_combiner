@@ -32,7 +32,8 @@ public static partial class WorkbenchCompositionService
         TopologySelection? abMergeTopologySelection = null,
         string? automaticOutputDirectory = null,
         IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null,
-        bool outputPathUsesAutomaticName = false)
+        bool outputPathUsesAutomaticName = false,
+        Action<string, OutputNamingSummary?>? additionalOutputPreflight = null)
     {
         CompositionRunResult result = await RunCompiledCompositionResultAsync(
             runIdPrefix,
@@ -50,7 +51,8 @@ public static partial class WorkbenchCompositionService
             abMergeTopologySelection,
             automaticOutputDirectory,
             additionalOutputProtectedPaths,
-            outputPathUsesAutomaticName).ConfigureAwait(false);
+            outputPathUsesAutomaticName,
+            additionalOutputPreflight).ConfigureAwait(false);
         return ToWorkbenchRunResult(result);
     }
 
@@ -71,7 +73,8 @@ public static partial class WorkbenchCompositionService
         TopologySelection? abMergeTopologySelection = null,
         string? automaticOutputDirectory = null,
         IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null,
-        bool outputPathUsesAutomaticName = false)
+        bool outputPathUsesAutomaticName = false,
+        Action<string, OutputNamingSummary?>? additionalOutputPreflight = null)
     {
         if (outputPathUsesAutomaticName &&
             (string.IsNullOrWhiteSpace(outputPath) || previewOutputFileName is not null))
@@ -142,7 +145,8 @@ public static partial class WorkbenchCompositionService
             ? new ProtectedCompositionOutputWriter(
                 new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true),
                 outputDirectory,
-                outputProtectedPaths)
+                outputProtectedPaths,
+                additionalOutputPreflight)
             : null;
         CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
         CompositionRunRequest request = new(

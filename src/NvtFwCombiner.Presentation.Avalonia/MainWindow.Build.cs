@@ -48,6 +48,7 @@ public sealed partial class MainWindow
                 StringComparison.Ordinal);
 
         string? aFlashCodeOutputPath = null;
+        bool aFlashCodeOutputPathUsesAutomaticName = false;
         if (exportAFlashCode)
         {
             aFlashCodeOutputPath = await FirmwareFilePickerDialogs.PickAbAFlashCodeOutputPathAsync(
@@ -57,33 +58,17 @@ public sealed partial class MainWindow
             {
                 return;
             }
-        }
-
-        string? resolvedOutputPath = await viewModel.TryResolveAbMergeBuildOutputPathAsync(
-            outputPath,
-            preparation.SuggestedFileName,
-            CancellationToken.None);
-        if (string.IsNullOrWhiteSpace(resolvedOutputPath))
-        {
-            return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(aFlashCodeOutputPath))
-        {
-            aFlashCodeOutputPath = await viewModel.TryResolveAbAFlashCodeBuildOutputPathAsync(
-                aFlashCodeOutputPath,
+            aFlashCodeOutputPathUsesAutomaticName = string.Equals(
+                Path.GetFileName(aFlashCodeOutputPath),
                 aFlashCodePlan!.SuggestedFileName,
-                CancellationToken.None);
-            if (string.IsNullOrWhiteSpace(aFlashCodeOutputPath))
-            {
-                return;
-            }
+                StringComparison.Ordinal);
         }
 
         await viewModel.BuildMergeAsync(
-            resolvedOutputPath,
+            outputPath,
             aFlashCodeOutputPath,
-            outputPathUsesAutomaticName);
+            outputPathUsesAutomaticName,
+            aFlashCodeOutputPathUsesAutomaticName);
     }
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)

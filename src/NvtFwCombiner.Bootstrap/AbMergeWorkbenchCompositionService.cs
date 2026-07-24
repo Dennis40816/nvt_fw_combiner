@@ -102,7 +102,8 @@ public static class AbMergeWorkbenchCompositionService
         string? outputPath = null,
         TopologySelection? abMergeTopologySelection = null,
         string? aFlashCodeOutputPath = null,
-        bool outputPathUsesAutomaticName = false)
+        bool outputPathUsesAutomaticName = false,
+        bool aFlashCodeOutputPathUsesAutomaticName = false)
     {
         return RunAbMergeCoreAsync(
             icId,
@@ -116,6 +117,7 @@ public static class AbMergeWorkbenchCompositionService
             automaticOutputDirectory: null,
             additionalOutputProtectedPaths: null,
             outputPathUsesAutomaticName: outputPathUsesAutomaticName,
+            aFlashCodeOutputPathUsesAutomaticName: aFlashCodeOutputPathUsesAutomaticName,
             cancellationToken: cancellationToken);
     }
 
@@ -145,6 +147,7 @@ public static class AbMergeWorkbenchCompositionService
                 ? null
                 : [new ProtectedPathGuard.ProtectedPath(reportPath, "CLI report")],
             outputPathUsesAutomaticName: false,
+            aFlashCodeOutputPathUsesAutomaticName: false,
             cancellationToken: cancellationToken);
     }
 
@@ -158,7 +161,8 @@ public static class AbMergeWorkbenchCompositionService
         string? outputPath = null,
         TopologySelection? abMergeTopologySelection = null,
         string? aFlashCodeOutputPath = null,
-        bool outputPathUsesAutomaticName = false)
+        bool outputPathUsesAutomaticName = false,
+        bool aFlashCodeOutputPathUsesAutomaticName = false)
     {
         ArgumentNullException.ThrowIfNull(progress);
         return RunAbMergeCoreAsync(
@@ -173,6 +177,7 @@ public static class AbMergeWorkbenchCompositionService
             automaticOutputDirectory: null,
             additionalOutputProtectedPaths: null,
             outputPathUsesAutomaticName: outputPathUsesAutomaticName,
+            aFlashCodeOutputPathUsesAutomaticName: aFlashCodeOutputPathUsesAutomaticName,
             cancellationToken: cancellationToken);
     }
 
@@ -186,7 +191,8 @@ public static class AbMergeWorkbenchCompositionService
         string? outputPath = null,
         string? abMergeTopologyToken = null,
         string? aFlashCodeOutputPath = null,
-        bool outputPathUsesAutomaticName = false)
+        bool outputPathUsesAutomaticName = false,
+        bool aFlashCodeOutputPathUsesAutomaticName = false)
     {
         return RunAbMergeWithProgressAsync(
             icId: icId,
@@ -197,7 +203,8 @@ public static class AbMergeWorkbenchCompositionService
             outputPath: outputPath,
             abMergeTopologySelection: ResolveTopologySelection(abMergeTopologyToken),
             aFlashCodeOutputPath: aFlashCodeOutputPath,
-            outputPathUsesAutomaticName: outputPathUsesAutomaticName);
+            outputPathUsesAutomaticName: outputPathUsesAutomaticName,
+            aFlashCodeOutputPathUsesAutomaticName: aFlashCodeOutputPathUsesAutomaticName);
     }
 
     /// <summary>Resolves the compiled AB automatic filename without executing or publishing firmware output.</summary>
@@ -269,6 +276,7 @@ public static class AbMergeWorkbenchCompositionService
         string? automaticOutputDirectory,
         IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths,
         bool outputPathUsesAutomaticName,
+        bool aFlashCodeOutputPathUsesAutomaticName,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -280,10 +288,9 @@ public static class AbMergeWorkbenchCompositionService
         string firstInputPath = bindings.Single(static binding =>
             binding.AddressSpaceId == CompositionAddressSpaceIds.DpAbInput).ArtifactId;
 
-        List<ProtectedPathGuard.ProtectedPath>? primaryOutputProtectedPaths = additionalOutputProtectedPaths is null
-            ? null
-            : [.. additionalOutputProtectedPaths];
         WorkbenchAbAFlashCodeDeliveryPlan? aFlashCodePlan = null;
+        string? resolvedAFlashCodeOutputPath = null;
+        Action<string, OutputNamingSummary?>? additionalOutputPreflight = null;
         if (!string.IsNullOrWhiteSpace(aFlashCodeOutputPath))
         {
             if (!build || string.IsNullOrWhiteSpace(outputPath))
@@ -301,7 +308,7 @@ public static class AbMergeWorkbenchCompositionService
                     abMergeTopologySelection,
                     cancellationToken)
                 .ConfigureAwait(false);
-            aFlashCodePlan = !preview.CanUseAutomaticName
+            WorkbenchAbAFlashCodeDeliveryPlan plan = !preview.CanUseAutomaticName
                 ? throw new InvalidOperationException(WorkbenchCompositionService.FormatIssues(preview.Issues))
                 : await AbMergeAFlashCodeExportService.TryCreatePlanAsync(
                     composition,
@@ -310,14 +317,20 @@ public static class AbMergeWorkbenchCompositionService
                     cancellationToken).ConfigureAwait(false)
                     ?? throw new InvalidOperationException(
                         "The selected AB profile does not declare an optional A FlashCode delivery.");
-            AbMergeAFlashCodeExportService.ValidateOutputPath(
-                aFlashCodePlan,
-                outputPath,
-                aFlashCodeOutputPath);
-            primaryOutputProtectedPaths ??= [];
-            primaryOutputProtectedPaths.Add(new ProtectedPathGuard.ProtectedPath(
-                Path.GetFullPath(aFlashCodeOutputPath),
-                "A FlashCode output"));
+            aFlashCodePlan = plan;
+            string selectedAFlashCodeOutputPath = Path.GetFullPath(aFlashCodeOutputPath);
+            additionalOutputPreflight = (resolvedPrimaryOutputPath, outputNaming) =>
+            {
+                string candidateAFlashCodeOutputPath = ResolveAFlashCodeOutputPath(
+                    selectedAFlashCodeOutputPath,
+                    aFlashCodeOutputPathUsesAutomaticName,
+                    outputNaming);
+                AbMergeAFlashCodeExportService.ValidateOutputPath(
+                    plan,
+                    resolvedPrimaryOutputPath,
+                    candidateAFlashCodeOutputPath);
+                resolvedAFlashCodeOutputPath = candidateAFlashCodeOutputPath;
+            };
         }
 
         CompositionRunResult result = await WorkbenchCompositionService.RunCompiledCompositionResultAsync(
@@ -334,10 +347,12 @@ public static class AbMergeWorkbenchCompositionService
             previewOutputFileName: previewOutputFileName,
             abMergeTopologySelection: abMergeTopologySelection,
             automaticOutputDirectory: automaticOutputDirectory,
-            additionalOutputProtectedPaths: primaryOutputProtectedPaths,
-            outputPathUsesAutomaticName: outputPathUsesAutomaticName).ConfigureAwait(false);
+            additionalOutputProtectedPaths: additionalOutputProtectedPaths,
+            outputPathUsesAutomaticName: outputPathUsesAutomaticName,
+            additionalOutputPreflight: additionalOutputPreflight).ConfigureAwait(false);
         if (aFlashCodePlan is null || !build || result.Status != CompositionExecutionStatus.Succeeded ||
-            string.IsNullOrWhiteSpace(result.CommittedOutputId))
+            string.IsNullOrWhiteSpace(result.CommittedOutputId) ||
+            string.IsNullOrWhiteSpace(resolvedAFlashCodeOutputPath))
         {
             return WorkbenchCompositionService.ToWorkbenchRunResult(result);
         }
@@ -348,12 +363,12 @@ public static class AbMergeWorkbenchCompositionService
                 aFlashCodePlan,
                 result.OutputBytes,
                 result.CommittedOutputId,
-                aFlashCodeOutputPath!,
+                resolvedAFlashCodeOutputPath,
                 cancellationToken).ConfigureAwait(false);
             DeliveryArtifactSummary reportDelivery = AbMergeAFlashCodeExportService.CreateReportSummary(
                 aFlashCodePlan,
                 result.OutputBytes,
-                aFlashCodeOutputPath!,
+                resolvedAFlashCodeOutputPath,
                 committed: true);
             return WorkbenchCompositionService.ToWorkbenchRunResult(
                 result,
@@ -365,7 +380,7 @@ public static class AbMergeWorkbenchCompositionService
             DeliveryArtifactSummary reportDelivery = AbMergeAFlashCodeExportService.CreateReportSummary(
                 aFlashCodePlan,
                 result.OutputBytes,
-                aFlashCodeOutputPath!,
+                resolvedAFlashCodeOutputPath,
                 committed: false);
             var issue = new CompositionIssue(
                 "delivery.ab-a-flashcode.failed",
@@ -378,6 +393,30 @@ public static class AbMergeWorkbenchCompositionService
                 isDeliveryComplete: false,
                 deliveryFailureMessage: issue.Message);
         }
+    }
+
+    private static string ResolveAFlashCodeOutputPath(
+        string selectedOutputPath,
+        bool usesAutomaticName,
+        OutputNamingSummary? outputNaming)
+    {
+        if (!usesAutomaticName)
+        {
+            return selectedOutputPath;
+        }
+
+        if (!AbMergeAFlashCodeExportService.TryRenderSuggestedFileName(outputNaming, out string? fileName) ||
+            string.IsNullOrWhiteSpace(fileName))
+        {
+            throw new InvalidOperationException(
+                "The execution-derived AB naming provenance cannot render the requested A FlashCode output name.");
+        }
+
+        string outputDirectory = Path.GetDirectoryName(selectedOutputPath)
+            ?? throw new ArgumentException(
+                "An automatic A FlashCode output requires a concrete destination directory.",
+                nameof(selectedOutputPath));
+        return Path.Combine(outputDirectory, fileName);
     }
 
     private static InputArtifactBinding[] CreateInputBindings(

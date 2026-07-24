@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Composition;
+
 namespace NvtFwCombiner.Application.Ports;
 
 /// <summary>
@@ -10,6 +12,10 @@ namespace NvtFwCombiner.Application.Ports;
 /// </remarks>
 public interface ICompositionOutputCommitPreflight
 {
-    /// <summary>Verifies that the resolved output filename may be safely published later in this run.</summary>
-    void EnsureCanCommit(string fileName);
+    /// <summary>Verifies that the execution-derived output identity may be safely published later in this run.</summary>
+    /// <remarks>
+    /// <paramref name="outputNaming"/> is report-safe execution provenance. File-backed adapters may use it
+    /// to validate a dependent delivery destination, but must not parse a presentation filename to rederive it.
+    /// </remarks>
+    void EnsureCanCommit(string fileName, OutputNamingSummary? outputNaming);
 }

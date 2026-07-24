@@ -220,52 +220,18 @@ public sealed partial class ShellViewModelTests
         WorkbenchAbAFlashCodeDeliveryPlan initialAFlashCodePlan = Assert.IsType<WorkbenchAbAFlashCodeDeliveryPlan>(
             initialPreparation.AFlashCodePlan);
 
-        WriteUiAbCmi(dp, 0, major: 0x09, minor: 0x00, jira: 0x123);
-        await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
-        string? refreshedAutomaticOutputPath = await viewModel.TryResolveAbMergeBuildOutputPathAsync(
-            workspace.PathFor(suggestedOutputName),
-            suggestedOutputName,
-            TestContext.Current.CancellationToken);
-
-        Assert.NotNull(refreshedAutomaticOutputPath);
-        Assert.Equal(workspace.Root, Path.GetDirectoryName(refreshedAutomaticOutputPath));
-        Assert.Matches(
-            "^NT51929_FlashCode_A_D0900T8100_B_D0708T8203_[0-9]{8}\\.bin$",
-            Path.GetFileName(refreshedAutomaticOutputPath));
-
-        string? refreshedAFlashCodeOutputPath = await viewModel.TryResolveAbAFlashCodeBuildOutputPathAsync(
-            workspace.PathFor(initialAFlashCodePlan.SuggestedFileName),
-            initialAFlashCodePlan.SuggestedFileName,
-            TestContext.Current.CancellationToken);
-
-        Assert.NotNull(refreshedAFlashCodeOutputPath);
-        Assert.Equal(workspace.Root, Path.GetDirectoryName(refreshedAFlashCodeOutputPath));
-        Assert.Matches(
-            "^NT51929_FlashCode_D0900T8100_[0-9]{8}\\.bin$",
-            Path.GetFileName(refreshedAFlashCodeOutputPath));
-
-        string customOutputPath = workspace.PathFor("operator-name.bin");
-        Assert.Equal(
-            customOutputPath,
-            await viewModel.TryResolveAbMergeBuildOutputPathAsync(
-                customOutputPath,
-                suggestedOutputName,
-                TestContext.Current.CancellationToken));
-        Assert.Equal(
-            customOutputPath,
-            await viewModel.TryResolveAbAFlashCodeBuildOutputPathAsync(
-                customOutputPath,
-                initialAFlashCodePlan.SuggestedFileName,
-                TestContext.Current.CancellationToken));
-
         WriteUiAbCmi(dp, 0, major: 0x0A, minor: 0x01, jira: 0x123);
         await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
+        string automaticOutputPath = workspace.PathFor(suggestedOutputName);
+        string automaticAFlashCodeOutputPath = workspace.PathFor(initialAFlashCodePlan.SuggestedFileName);
         await viewModel.BuildMergeAsync(
-            refreshedAutomaticOutputPath,
-            outputPathUsesAutomaticName: true);
+            automaticOutputPath,
+            automaticAFlashCodeOutputPath,
+            outputPathUsesAutomaticName: true,
+            aFlashCodeOutputPathUsesAutomaticName: true);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.NotEqual(refreshedAutomaticOutputPath, viewModel.LastRunResult.Output);
+        Assert.NotEqual(automaticOutputPath, viewModel.LastRunResult.Output);
         Assert.Matches(
             "^NT51929_FlashCode_A_D0A01T8100_B_D0708T8203_[0-9]{8}\\.bin$",
             Path.GetFileName(viewModel.LastRunResult.Output));
@@ -277,6 +243,17 @@ public sealed partial class ShellViewModelTests
             Assert.Equal(
                 Path.GetFileName(viewModel.LastRunResult.Output),
                 naming.GetProperty("ActualFileName").GetString());
+            Assert.Equal(
+                Path.GetFileName(viewModel.LastRunResult.Output),
+                naming.GetProperty("AutomaticFileName").GetString());
+            JsonElement aFlashCodeDelivery = Assert.Single(
+                report.RootElement.GetProperty("DeliveryArtifacts").EnumerateArray());
+            Assert.Matches(
+                "^NT51929_FlashCode_D0A01T8100_[0-9]{8}\\.bin$",
+                aFlashCodeDelivery.GetProperty("FileName").GetString());
+            Assert.True(File.Exists(Path.Combine(
+                workspace.Root,
+                aFlashCodeDelivery.GetProperty("FileName").GetString()!)));
         }
 
         await viewModel.PreviewMergeCommand.ExecuteAsync(null);

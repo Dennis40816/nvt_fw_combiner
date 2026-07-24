@@ -12,10 +12,16 @@ public sealed partial class MainWindowViewModel
     public Task BuildMergeAsync(
         string outputPath,
         string? aFlashCodeOutputPath = null,
-        bool outputPathUsesAutomaticName = false)
+        bool outputPathUsesAutomaticName = false,
+        bool aFlashCodeOutputPathUsesAutomaticName = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
-        return RunMergeAsync(build: true, outputPath, aFlashCodeOutputPath, outputPathUsesAutomaticName);
+        return RunMergeAsync(
+            build: true,
+            outputPath,
+            aFlashCodeOutputPath,
+            outputPathUsesAutomaticName,
+            aFlashCodeOutputPathUsesAutomaticName);
     }
 
     private void RefreshMergeSlotRequirements()
@@ -165,12 +171,18 @@ public sealed partial class MainWindowViewModel
         bool build,
         string? outputPath,
         string? aFlashCodeOutputPath = null,
-        bool outputPathUsesAutomaticName = false)
+        bool outputPathUsesAutomaticName = false,
+        bool aFlashCodeOutputPathUsesAutomaticName = false)
     {
         return SelectedMergeMode switch
         {
             NormalMergeMode => RunStandardMergeAsync(build, outputPath),
-            AbCodeMergeMode => RunAbMergeAsync(build, outputPath, aFlashCodeOutputPath, outputPathUsesAutomaticName),
+            AbCodeMergeMode => RunAbMergeAsync(
+                build,
+                outputPath,
+                aFlashCodeOutputPath,
+                outputPathUsesAutomaticName,
+                aFlashCodeOutputPathUsesAutomaticName),
             GeneralMergeMode => RunGeneralMergeAsync(build, outputPath),
             _ => Task.CompletedTask,
         };
@@ -247,74 +259,6 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    /// <summary>
-    /// Refreshes an AB automatic save name after the native dialog closes without replacing a user-entered name.
-    /// </summary>
-    internal async ValueTask<string?> TryResolveAbMergeBuildOutputPathAsync(
-        string selectedOutputPath,
-        string initialAutomaticFileName,
-        CancellationToken cancellationToken)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(selectedOutputPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(initialAutomaticFileName);
-
-        if (!IsAbCodeMergeModeSelected ||
-            !string.Equals(
-                Path.GetFileName(selectedOutputPath),
-                initialAutomaticFileName,
-                StringComparison.Ordinal))
-        {
-            return selectedOutputPath;
-        }
-
-        MergeBuildSavePreparation? refreshedPreparation = await TryPrepareMergeBuildSaveAsync(cancellationToken)
-            .ConfigureAwait(false);
-        if (refreshedPreparation is null)
-        {
-            return null;
-        }
-
-        string outputDirectory = Path.GetDirectoryName(Path.GetFullPath(selectedOutputPath))!;
-        return Path.Combine(outputDirectory, refreshedPreparation.SuggestedFileName);
-    }
-
-    /// <summary>
-    /// Refreshes the optional A FlashCode automatic name after the native dialog closes without replacing a user-entered name.
-    /// </summary>
-    internal async ValueTask<string?> TryResolveAbAFlashCodeBuildOutputPathAsync(
-        string selectedOutputPath,
-        string initialAutomaticFileName,
-        CancellationToken cancellationToken)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(selectedOutputPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(initialAutomaticFileName);
-
-        if (!IsAbCodeMergeModeSelected ||
-            !string.Equals(
-                Path.GetFileName(selectedOutputPath),
-                initialAutomaticFileName,
-                StringComparison.Ordinal))
-        {
-            return selectedOutputPath;
-        }
-
-        MergeBuildSavePreparation? refreshedPreparation = await TryPrepareMergeBuildSaveAsync(cancellationToken)
-            .ConfigureAwait(false);
-        if (refreshedPreparation?.AFlashCodePlan is not { } refreshedPlan)
-        {
-            if (refreshedPreparation is not null)
-            {
-                PublishAbMergeBuildSavePreparationFailure(
-                    "The selected AB profile no longer declares the requested A FlashCode delivery.");
-            }
-
-            return null;
-        }
-
-        string outputDirectory = Path.GetDirectoryName(Path.GetFullPath(selectedOutputPath))!;
-        return Path.Combine(outputDirectory, refreshedPlan.SuggestedFileName);
-    }
-
     private Task RunStandardMergeAsync(bool build, string? outputPath)
     {
         string icId = SelectedIc;
@@ -374,7 +318,8 @@ public sealed partial class MainWindowViewModel
         bool build,
         string? outputPath,
         string? aFlashCodeOutputPath,
-        bool outputPathUsesAutomaticName)
+        bool outputPathUsesAutomaticName,
+        bool aFlashCodeOutputPathUsesAutomaticName)
     {
         string icId = SelectedIc;
         IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
@@ -392,7 +337,8 @@ public sealed partial class MainWindowViewModel
                 outputPath,
                 GetSelectedAbMergeTopologyToken(),
                 aFlashCodeOutputPath,
-                outputPathUsesAutomaticName),
+                outputPathUsesAutomaticName,
+                aFlashCodeOutputPathUsesAutomaticName),
             (action, errorMessage) => LoadRunErrorReport(
                 action,
                 profileId,

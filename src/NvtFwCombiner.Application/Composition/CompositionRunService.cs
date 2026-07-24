@@ -246,7 +246,7 @@ public sealed partial class CompositionRunService
         {
             // The renderer has now bound the name to these exact accepted snapshots.  Perform
             // filesystem identity admission before plan execution or any staged processor work.
-            outputPreflight.EnsureCanCommit(outputName.FileName);
+            outputPreflight.EnsureCanCommit(outputName.FileName, outputName.Summary);
         }
         var executedCommandsByOperationId = new Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>(StringComparer.Ordinal);
         CompositionExecutionResult execution;

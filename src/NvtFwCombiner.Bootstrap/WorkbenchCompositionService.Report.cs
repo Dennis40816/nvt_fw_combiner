@@ -40,7 +40,7 @@ public static partial class WorkbenchCompositionService
         {
             InspectionSnapshot = result.InspectionSnapshot,
             OutputBytes = result.Status == CompositionExecutionStatus.Succeeded
-                ? result.OutputBytes.ToArray()
+                ? result.OutputBytes
                 : ReadOnlyMemory<byte>.Empty,
             OutputNaming = report.OutputNaming,
             DeliveryArtifacts = deliveredArtifacts is null ? [] : [.. deliveredArtifacts],

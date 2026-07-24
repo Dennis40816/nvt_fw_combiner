@@ -71,7 +71,10 @@ public sealed class AbMergeCliCommandTests
         Assert.Equal("logical-ab-output.bin", report.RootElement.GetProperty("Output").GetProperty("FileName").GetString());
         JsonElement naming = report.RootElement.GetProperty("OutputNaming");
         Assert.True(naming.GetProperty("IsExplicitOverride").GetBoolean());
-        Assert.Equal("logical-ab-output.bin", naming.GetProperty("AutomaticFileName").GetString());
+        Assert.Equal("logical-ab-output.bin", naming.GetProperty("ActualFileName").GetString());
+        Assert.Matches(
+            $"^{expectedIcId}_FlashCode_A_D0000Txxxx_B_D0000Txxxx_[0-9]{{8}}\\.bin$",
+            naming.GetProperty("AutomaticFileName").GetString());
         Assert.False(File.Exists(logicalOutputPath));
     }
 

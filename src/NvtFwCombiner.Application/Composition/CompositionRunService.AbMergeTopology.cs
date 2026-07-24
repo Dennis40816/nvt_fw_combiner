@@ -15,6 +15,7 @@ public sealed partial class CompositionRunService
         List<CompositionIssue> issues)
     {
         if (!request.CompiledComposition.IsV2AbFunctionOpenCandidate ||
+            request.AbMergeTopologySelection is not { } selected ||
             !TryGetDeclaredTpPrefix(request, inputBytes, CompositionAddressSpaceIds.TpAInput, out ReadOnlySpan<byte> tpA) ||
             !TryGetDeclaredTpPrefix(request, inputBytes, CompositionAddressSpaceIds.TpBInput, out ReadOnlySpan<byte> tpB))
         {
@@ -38,11 +39,6 @@ public sealed partial class CompositionRunService
         }
 
         if (issues.Any(static issue => StringComparer.Ordinal.Equals(issue.Code, TpFirmwareConfigInvalid)))
-        {
-            return;
-        }
-
-        if (request.AbMergeTopologySelection is not { } selected)
         {
             return;
         }

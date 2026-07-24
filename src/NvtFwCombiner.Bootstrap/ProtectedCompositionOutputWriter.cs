@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Application.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -14,11 +15,13 @@ internal sealed class ProtectedCompositionOutputWriter : ICompositionOutputWrite
     private readonly ICompositionOutputWriter _inner;
     private readonly string _outputDirectory;
     private readonly IReadOnlyList<ProtectedPathGuard.ProtectedPath> _protectedPaths;
+    private readonly Action<string, OutputNamingSummary?>? _additionalPreflight;
 
     internal ProtectedCompositionOutputWriter(
         ICompositionOutputWriter inner,
         string outputDirectory,
-        IEnumerable<ProtectedPathGuard.ProtectedPath> protectedPaths)
+        IEnumerable<ProtectedPathGuard.ProtectedPath> protectedPaths,
+        Action<string, OutputNamingSummary?>? additionalPreflight = null)
     {
         ArgumentNullException.ThrowIfNull(inner);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
@@ -27,16 +30,25 @@ internal sealed class ProtectedCompositionOutputWriter : ICompositionOutputWrite
         _inner = inner;
         _outputDirectory = Path.GetFullPath(outputDirectory);
         _protectedPaths = [.. protectedPaths];
+        _additionalPreflight = additionalPreflight;
     }
 
     /// <inheritdoc />
-    public void EnsureCanCommit(string fileName)
+    public void EnsureCanCommit(string fileName, OutputNamingSummary? outputNaming)
     {
+        string outputPath = EnsurePrimaryOutputPath(fileName);
+        _additionalPreflight?.Invoke(outputPath, outputNaming);
+    }
+
+    private string EnsurePrimaryOutputPath(string fileName)
+    {
+        string outputPath = ProtectedPathGuard.CombineFullPath(_outputDirectory, fileName);
         ProtectedPathGuard.EnsureDoesNotAlias(
-            ProtectedPathGuard.CombineFullPath(_outputDirectory, fileName),
+            outputPath,
             "Output path",
             _protectedPaths,
             nameof(fileName));
+        return outputPath;
     }
 
     /// <inheritdoc />
@@ -45,7 +57,7 @@ internal sealed class ProtectedCompositionOutputWriter : ICompositionOutputWrite
         ReadOnlyMemory<byte> outputBytes,
         CancellationToken cancellationToken)
     {
-        EnsureCanCommit(fileName);
+        _ = EnsurePrimaryOutputPath(fileName);
         return _inner.CommitAsync(fileName, outputBytes, cancellationToken);
     }
 }

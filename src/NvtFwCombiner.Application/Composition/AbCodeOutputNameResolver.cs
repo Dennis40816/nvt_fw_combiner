@@ -41,7 +41,7 @@ internal static class AbCodeOutputNameResolver
         var summary = new OutputNamingSummary(
             "ab-code-v1",
             output.FileNameTemplate,
-            actualFileName,
+            automaticFileName,
             actualFileName,
             request.IsOutputFileNameOverride,
             "utc",
