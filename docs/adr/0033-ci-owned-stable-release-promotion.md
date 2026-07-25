@@ -3,6 +3,7 @@
 - Status: Accepted for `v0.9.14` planning; workflow and permission changes remain human-gated
 - Date: 2026-07-22
 - Owners: Product owner, release owner, security/repository owner
+- Amended by: [ADR 0038](0038-0.10.x-program-integration-branch.md) for the bounded `0.10.x` program-branch and subordinate-stage exception only
 
 ## Context
 

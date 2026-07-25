@@ -930,7 +930,9 @@ version.
    boundary, one narrow test set, and an explicit final verification gate.
 3. No exact `0.10.1`, `0.10.2`, or later allocation is fixed here. After this
    spec is approved, ticket planning establishes dependencies and the owner
-   groups only dependency-ready slices into releases.
+   groups only dependency-ready slices into unpublished internal stages on
+   `0.10.x`. Only the completed program integration may enter final release
+   allocation and workflow under ADR 0038.
 4. A slice may introduce a compatibility adapter temporarily, but it must name
    the callers that remain and the evidence required for deletion. A permanent
    parallel owner is not an acceptable endpoint.

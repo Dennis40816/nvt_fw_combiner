@@ -149,6 +149,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string rootInstructions = ReadText("AGENTS.md");
         string decision = ReadText("docs/adr/0038-0.10.x-program-integration-branch.md");
+        string promotionDecision = ReadText("docs/adr/0033-ci-owned-stable-release-promotion.md");
         string specification = ReadText("SPEC.md");
         string workingDesign = ReadText("docs/architecture/0.10.x-maintainability-working-design.md");
         string branchGovernance = ReadText("docs/governance/branch-version-and-release-governance.md");
@@ -160,6 +161,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains(
             "Only the final owner-approved `0.10.x` integration PR targets `main`",
             decision,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Risk: R3 release sequencing; owner-approved and release-owner human-gated",
+            decision,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Amends: [ADR 0033](0033-ci-owned-stable-release-promotion.md)",
+            decision,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Amended by: [ADR 0038](0038-0.10.x-program-integration-branch.md)",
+            promotionDecision,
             StringComparison.Ordinal);
         Assert.Contains(
             "Owner-bounded exact-version stage branches such as\n`0.10.1` are internal integration boundaries",
