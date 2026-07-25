@@ -71,6 +71,14 @@ public sealed partial class RepositoryBoundaryTests
             dependencyPlan,
             StringComparison.Ordinal);
         Assert.Contains(
+            "| #196 retirement batches | integrated #194 plus route-level R3 evidence |",
+            dependencyPlan,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "#196 may inventory early, but deletion starts only\nafter #194 is complete",
+            dependencyPlan,
+            StringComparison.Ordinal);
+        Assert.Contains(
             "Dependency depth is a topological planning aid, not a release number.",
             dependencyPlan,
             StringComparison.Ordinal);
@@ -153,6 +161,7 @@ public sealed partial class RepositoryBoundaryTests
         string specification = ReadText("SPEC.md");
         string workingDesign = ReadText("docs/architecture/0.10.x-maintainability-working-design.md");
         string branchGovernance = ReadText("docs/governance/branch-version-and-release-governance.md");
+        string contributing = ReadText("CONTRIBUTING.md");
 
         Assert.Contains(
             "subordinate exact-version stages merge by reviewed PR into the non-release `0.10.x` program branch",
@@ -189,6 +198,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains(
             "Under ADR 0038 it may instead be `0.10.x`",
             branchGovernance,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Release-sequencing, signing, publishing, or permission R3 changes require release-owner approval and release-policy evidence",
+            rootInstructions,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "A subordinate exact-version stage such as `0.10.1`\nbranches from `0.10.x`",
+            contributing,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "only the\n   completed program branch opens the final PR to `main`",
+            contributing,
             StringComparison.Ordinal);
     }
 

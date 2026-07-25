@@ -79,7 +79,7 @@ Use `docs/governance/development-execution-workflow.md` to select the narrow tes
 - Agent-authored PRs require a reviewer other than the implementer. The implementer must run Polytail before requesting review; the reviewer must apply Polytail before approval.
 - Agent-authored PRs must request Codex review by commenting `@codex review` or the owner-requested equivalent. Inspect thread-aware Codex review comments, address actionable findings, rerun required checks, and request re-review after fixes.
 - A review/CI polling automation is read-only: it detects and reports external state but never edits, comments, tags, merges, or reruns workflows. That limitation does not defer implementation ownership. When it reports actionable feedback for the current branch, the branch implementer must promptly diagnose and make every safe in-scope correction without waiting for another owner prompt; the supervisor/reviewer remains read-only and supplies findings only.
-- `R2` changes require architecture/contract review. `R3` changes require human firmware-owner review and byte-level evidence before merge.
+- `R2` changes require architecture/contract review. `R3` changes require the human approval and evidence appropriate to the authority they touch. Firmware-semantic R3 changes require firmware-owner review and byte-level evidence. Release-sequencing, signing, publishing, or permission R3 changes require release-owner approval and release-policy evidence; when they change no firmware semantics, they do not fabricate firmware byte evidence.
 - Do not merge with failing required checks, unresolved P0/P1 review findings, missing required tests, undocumented schema/profile drift, or private golden evidence gaps disguised as TODOs.
 - Merge PRs to `main` only after required CI is green and actionable Codex feedback is addressed or explicitly documented as non-actionable.
 - If a connector/tool cannot open a feature PR, push the feature branch and leave a clear handoff for merge into its approved integration branch. If it cannot open an integration PR, push only the source branch and leave a handoff with commit SHA, changed files, risks, commands run, and the owner-approved target (`0.10.x` for an ADR 0038 subordinate stage; `main` only for the final release integration).
@@ -172,3 +172,8 @@ A change is incomplete while it has placeholders, duplicate semantics, magic off
 ## High-risk human gate
 
 Human approval is required for profile/schema/protocol breaking changes; memory ranges/atomicity/access; CRC/checksum/header algorithms/order; processor read/write ranges; golden outputs; release signing/publishing/permissions/secrets; branch protection/CODEOWNERS; network/process authority; and new runtime dependencies.
+
+The approving role and evidence must match the authority being changed. Firmware
+authority uses firmware-owner review and byte-level evidence. Release authority
+uses release-owner approval and release-policy evidence. A change that touches
+both must satisfy both gates.
