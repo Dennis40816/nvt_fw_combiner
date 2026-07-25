@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class SupportMatrixProjectionTests
 {
     private const string ExpectedPolicySha256 =
-        "e0e9c2dec7a5a3875806d2558d775d094420b305edb7fe63a6e7001290d634ae";
+        "eeffb9be1afba4bc834b17fea63f08d628e170847cc4d0e5f50cdd2f39e9009b";
 
     /// <summary>NT51950/951 AB publication decisions bind only to their exact map/count pairs.</summary>
     [Fact]
@@ -52,6 +52,42 @@ public sealed class SupportMatrixProjectionTests
                     SupportEvidenceStatus.ContractOnly,
                     row.Evidence.Status);
             });
+        Assert.Equal(
+            [
+                (
+                    "NT51950",
+                    "nfc-nt51950-ab-merge-combiner-v1:" +
+                        "legacy-combiner-1.13.0",
+                    "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k-" +
+                        "integrity-ccca6b7eefff20fe"),
+                (
+                    "NT51950",
+                    "nfc-nt51950-ab-merge-combiner-v1:" +
+                        "legacy-combiner-1.13.0",
+                    "nt51950-ab-merge-2-plus-ic-" +
+                        "nt51950-ab-merge-1024k-" +
+                        "integrity-ccca6b7eefff20fe"),
+                (
+                    "NT51951",
+                    "nfc-nt51951-ab-merge-combiner-v1:" +
+                        "legacy-combiner-1.13.0",
+                    "nt51951-ab-merge-selector-free-" +
+                        "nt51951-ab-merge-1024k-" +
+                        "integrity-76ab8160b124f60a"),
+            ],
+            [
+                .. matrix.Rows
+                    .Where(static row =>
+                        row.Route.Identity.WorkflowId ==
+                            IcWorkflowIds.AbMerge &&
+                        row.Route.Identity.IcId is "NT51950" or "NT51951")
+                    .Select(static row => (
+                        row.Route.Identity.IcId,
+                        row.Route.Identity.IntegrityRouteId,
+                        row.Route.RouteId))
+                    .OrderBy(static row => row.IcId, StringComparer.Ordinal)
+                    .ThenBy(static row => row.RouteId, StringComparer.Ordinal),
+            ]);
     }
 
     /// <summary>Policy status never disguises authoring/execution divergence.</summary>

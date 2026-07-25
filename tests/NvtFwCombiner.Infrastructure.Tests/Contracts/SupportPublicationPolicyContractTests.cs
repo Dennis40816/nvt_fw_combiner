@@ -32,9 +32,20 @@ public sealed class SupportPublicationPolicyContractTests
             [
                 ("nt51919-general-merge-generic", "test-only"),
                 ("nt51919-general-replace-generic", "test-only"),
-                ("nt51950-ab-merge-1-ic-nt51950-ab-merge-512k", "candidate"),
-                ("nt51950-ab-merge-2-plus-ic-nt51950-ab-merge-1024k", "candidate"),
-                ("nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k", "candidate"),
+                (
+                    "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k-" +
+                        "integrity-ccca6b7eefff20fe",
+                    "candidate"),
+                (
+                    "nt51950-ab-merge-2-plus-ic-" +
+                        "nt51950-ab-merge-1024k-" +
+                        "integrity-ccca6b7eefff20fe",
+                    "candidate"),
+                (
+                    "nt51951-ab-merge-selector-free-" +
+                        "nt51951-ab-merge-1024k-" +
+                        "integrity-76ab8160b124f60a",
+                    "candidate"),
             ],
             Decisions(policy));
     }

@@ -9,7 +9,7 @@ namespace NvtFwCombiner.Infrastructure.Support;
 internal static partial class BuiltInSupportPublicationPolicy
 {
     private const string ExpectedSha256 =
-        "e0e9c2dec7a5a3875806d2558d775d094420b305edb7fe63a6e7001290d634ae";
+        "eeffb9be1afba4bc834b17fea63f08d628e170847cc4d0e5f50cdd2f39e9009b";
     internal static IReadOnlyList<PinnedSupportPublicationPolicyFile>
         HistoryFiles
     { get; } =

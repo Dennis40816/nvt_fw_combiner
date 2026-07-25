@@ -28,7 +28,7 @@
     },
     {
       "decisionId": "nt51950-ab-merge-1-ic-candidate",
-      "routeId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k",
+      "routeId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k-integrity-ccca6b7eefff20fe",
       "status": "candidate",
       "provenance": {
         "authorityKind": "owner-decision",
@@ -39,7 +39,7 @@
     },
     {
       "decisionId": "nt51950-ab-merge-2-plus-ic-candidate",
-      "routeId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-merge-1024k",
+      "routeId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-merge-1024k-integrity-ccca6b7eefff20fe",
       "status": "candidate",
       "provenance": {
         "authorityKind": "owner-decision",
@@ -50,7 +50,7 @@
     },
     {
       "decisionId": "nt51951-ab-merge-candidate",
-      "routeId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k",
+      "routeId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k-integrity-76ab8160b124f60a",
       "status": "candidate",
       "provenance": {
         "authorityKind": "owner-decision",

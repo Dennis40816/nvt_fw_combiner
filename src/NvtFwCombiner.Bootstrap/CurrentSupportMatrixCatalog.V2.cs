@@ -73,7 +73,8 @@ internal static partial class CurrentSupportMatrixCatalog
                         registration.IcId,
                         registration.WorkflowId,
                         countVariant,
-                        map.MapId),
+                        map.MapId,
+                        ResolveIntegrityRouteId(composition!)),
                     registration.IcId,
                     registration.WorkflowId,
                     executionAdmitted: true,
@@ -81,6 +82,24 @@ internal static partial class CurrentSupportMatrixCatalog
                     $"{registration.ProfileVersion}:{map.MapId}"));
             }
         }
+    }
+
+    private static string ResolveIntegrityRouteId(
+        CompiledComposition composition)
+    {
+        string[] processorRoutes =
+        [
+            .. composition.Plan.OrderedOperations
+                .Where(static operation =>
+                    operation.ExternalProcessorInvocation is not null)
+                .Select(static operation =>
+                    operation.ExternalProcessorInvocation!)
+                .Select(static invocation =>
+                    $"{invocation.ProcessorId}:{invocation.ToolBindingId}"),
+        ];
+        return processorRoutes.Length == 0
+            ? "not-applicable"
+            : string.Join('|', processorRoutes);
     }
 
     private static TopologySelection? CreateTopologySelection(
