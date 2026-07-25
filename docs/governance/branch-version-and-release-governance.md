@@ -44,6 +44,31 @@ verify ancestry, tree/patch differences, open PR intent, and a recovery ref. A
 branch that started before the final predecessor tag is not a valid release base
 merely because its name contains the new version.
 
+### 0.10.x maintainability-program integration exception
+
+Owner decision, 2026-07-25: the `0.10.x` maintainability program may use one
+long-lived integration branch named `0.10.x`, created from a verified
+`origin/main` SHA. This is a program-integration exception, not an exact release
+version and not a release branch.
+
+- An owner-bounded stage may use a subordinate exact-version integration branch
+  such as `0.10.1`, created from the current `0.10.x`. Its independent features
+  use `feature/<exact-version>/<topic>` and target that subordinate branch.
+  The completed exact-version branch then uses a reviewed PR to `0.10.x`.
+- A bounded program-wide slice may use `feature/0.10.x/<topic>` and target
+  `0.10.x` directly. Both routes retain normal CI, exact-head review, evidence,
+  and R2/R3 admission rules.
+- Slice and subordinate-version PRs into `0.10.x` cannot start a release
+  workflow or create a tag, package publication, GitHub Release, or
+  release-promotion run.
+- A final `0.10.x` to `main` integration PR is permitted only after the
+  maintainability integration gate, protected CI, required human gates, and an
+  explicit owner approval. That final boundary enters the release workflow;
+  tagging and publication remain separate owner-approved actions.
+- Existing feature branches based on an earlier `0.10.1` line are candidates,
+  not merge authority. Rebase or replay them onto `0.10.x`, re-run admission,
+  and obtain review for their new exact heads.
+
 ## Admit Work To A Version
 
 Every feature PR must state:

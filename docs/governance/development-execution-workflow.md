@@ -14,7 +14,34 @@ git status --short --branch
 
 Record existing user changes, then state the risk class, affected layers, acceptance criteria, required human gate, narrow test, and final gate. Preserve unrelated changes; do not stage or revert them.
 
-Also record the owner-selected version integration branch. Work directly on that exact-version branch when it is tightly coupled to the release. For an independently reviewable feature, create `feature/<version>/<topic>` from it and merge back to the same version branch before the version branch opens its final PR to `main`.
+Also record the owner-selected target integration branch. Normally this is an
+exact-version branch; the documented `0.10.x` maintainability-program exception
+uses the non-release `0.10.x` program branch plus optional subordinate
+exact-version stage branches such as `0.10.1`. Work directly on an exact-version
+branch when the stage is tightly coupled. For an independently reviewable
+feature, create `feature/<version>/<topic>` from the approved target and merge
+back to that same integration branch. Under the exception, the completed
+subordinate branch then uses a reviewed PR to `0.10.x`; only the final
+`0.10.x` to `main` boundary enters the release workflow.
+
+Before creating that branch, fetch and record the authoritative remote base
+SHA. A stale local `main` is not evidence of the current integration base; use
+the verified remote-tracking `origin/main` (or owner-selected remote base) and
+record its relationship to the local target integration branch.
+
+### 1.1 Ticket execution admission
+
+Before creating an implementation branch, apply
+[`ticket-execution-admission.md`](ticket-execution-admission.md). Record the
+slice acceptance ledger, planned mutable surfaces, active-branch overlap check,
+owner, risk/gates, narrow test, and final gate. The dependency graph alone does
+not permit parallel work on the same verifier, CI workflow, package graph,
+contract, profile/schema family, shared Presentation resource, or integration
+document.
+
+Do not begin a parent ticket that the admission policy marks `Split` until its
+ordered execution slices are recorded. A ticket that is `Keep` may still use
+separate phase commits when its policy or test ladder requires them.
 
 ## 2. Test Selection
 
@@ -56,6 +83,11 @@ Stage only explicit files belonging to the phase; never use `git add -A` or `git
 
 Use a Conventional Commit message that identifies the phase outcome. Do not commit exploratory investigation or temporary artifacts. `R3` commits remain review-only on a non-`main` branch until the required human gate passes.
 
+External review begins only after the phase is locally accepted and its head is
+frozen. Review and completion terms use the exact-head status vocabulary in
+[`ticket-execution-admission.md`](ticket-execution-admission.md); an earlier
+review, a partial CI result, or a pending reaction never closes a phase.
+
 ## 4. Retry Policy
 
 The first failed command is evidence, not a reason to rerun it unchanged.
@@ -68,6 +100,12 @@ The first failed command is evidence, not a reason to rerun it unchanged.
 
 ## 5. Handoff
 
-For a feature branch, provide the changed files, risk class, exact test commands/results, firmware/profile/protocol/release impact, human-review requirements, and unresolved evidence gaps for merge into its version integration branch.
+For a feature branch, provide the changed files, risk class, exact test
+commands/results, firmware/profile/protocol/release impact, human-review
+requirements, and unresolved evidence gaps for merge into its approved target
+integration branch.
 
-Only when the version branch is complete should the final handoff target `main`. Use the pull-request template to record the version branch, source branch, target branch, phase commits, verification evidence, and unresolved gates.
+Only when the target integration branch is complete should the final handoff
+target `main`. Use the pull-request template to record the integration branch,
+source branch, target branch, phase commits, verification evidence, and
+unresolved gates.

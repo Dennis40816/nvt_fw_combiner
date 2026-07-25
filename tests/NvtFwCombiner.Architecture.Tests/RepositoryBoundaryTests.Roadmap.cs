@@ -45,8 +45,28 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("| Phase | Scope | Exit gate |", nfcRoadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Canonicalize only transport-level line endings", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("Status: owner-approved and published on 2026-07-25.", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 0 | #170 | Establish executable Support Matrix baseline | — |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 9 | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #195, #196 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains(
+            "Owner allocation, 2026-07-25: the first subordinate stage is `0.10.1`",
+            dependencyPlan,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "scope is headless #170 plus #171 and #172.",
+            dependencyPlan,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "#173 and later data work remain unallocated until that stage",
+            dependencyPlan,
+            StringComparison.Ordinal);
+        Assert.Contains("all Presentation tickets remain deferred.", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("### Lane C — canonical capability and metadata", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains(
+            "| #170 | —; may run beside Lane V | Headless Support Matrix authority and projection; no Settings UI |",
+            dependencyPlan,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "| #197 | integrated #171, #172, #195, and #196 | Final program integration and release frontier |",
+            dependencyPlan,
+            StringComparison.Ordinal);
         Assert.Contains(
             "Dependency depth is a topological planning aid, not a release number.",
             dependencyPlan,
