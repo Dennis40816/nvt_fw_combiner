@@ -67,6 +67,69 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         self.assertEqual(0, result.returncode, result.stderr)
 
+    def test_coverage_reset_rejects_symlinked_repository_ancestor(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            external = temporary_root / "external"
+            root.mkdir()
+            report_directory = external / "coverage/python"
+            report_directory.mkdir(parents=True)
+            sentinel = report_directory / "keep.txt"
+            sentinel.write_text("keep", encoding="utf-8")
+            try:
+                (root / "artifacts").symlink_to(external, target_is_directory=True)
+            except OSError as error:
+                self.skipTest(f"directory symlinks are unavailable: {error}")
+
+            with (
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "COVERAGE_ROOT", root / "artifacts/coverage"),
+                self.assertRaisesRegex(RuntimeError, "symbolic link"),
+            ):
+                MODULE.reset_coverage_directory("python")
+
+            self.assertTrue(sentinel.is_file())
+
+    @unittest.skipUnless(
+        sys.platform == "win32" and hasattr(Path, "is_junction"),
+        "Windows junction contract",
+    )
+    def test_coverage_reset_rejects_repository_internal_junction(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            target = root / "docs"
+            report_directory = target / "coverage/python"
+            report_directory.mkdir(parents=True)
+            sentinel = report_directory / "keep.txt"
+            sentinel.write_text("keep", encoding="utf-8")
+            junction = root / "artifacts"
+            created = subprocess.run(
+                [
+                    "cmd.exe",
+                    "/d",
+                    "/c",
+                    "mklink",
+                    "/J",
+                    str(junction),
+                    str(target),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(0, created.returncode, created.stderr or created.stdout)
+            self.assertTrue(junction.is_junction())
+
+            with (
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "COVERAGE_ROOT", junction / "coverage"),
+                self.assertRaisesRegex(RuntimeError, "junction"),
+            ):
+                MODULE.reset_coverage_directory("python")
+
+            self.assertTrue(sentinel.is_file())
+
     def test_jobs_one_runs_every_lane_once_in_declared_order(self) -> None:
         calls: list[str] = []
 
@@ -1563,11 +1626,24 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
     def test_python_lane_emits_one_json_report_before_policy_validation(self) -> None:
         commands: list[list[str]] = []
+        python_collection = {
+            "coveragePyVersion": "7.14.3",
+            "pytestCovVersion": "6.3.0",
+        }
         with tempfile.TemporaryDirectory() as temporary:
             coverage_directory = Path(temporary) / "python"
             coverage_report = coverage_directory / "coverage.json"
             with (
                 patch.object(MODULE, "require_python_modules"),
+                patch.object(
+                    MODULE,
+                    "load_baseline",
+                    return_value={"collection": {"python": python_collection}},
+                ),
+                patch.object(
+                    MODULE,
+                    "require_python_distribution_versions",
+                ) as require_versions,
                 patch.object(
                     MODULE,
                     "reset_coverage_directory",
@@ -1584,7 +1660,34 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         pytest_command = next(command for command in commands if "pytest" in command)
         self.assertIn(f"--cov-report=json:{coverage_report}", pytest_command)
+        require_versions.assert_called_once_with(
+            {"coverage": "7.14.3", "pytest-cov": "6.3.0"}
+        )
         verify_coverage.assert_called_once_with("python", coverage_report)
+
+    def test_python_coverage_collector_versions_must_match_baseline(self) -> None:
+        expected = {"coverage": "7.14.3", "pytest-cov": "6.3.0"}
+        with patch.object(
+            MODULE.importlib_metadata,
+            "version",
+            side_effect=lambda distribution: expected[distribution],
+        ):
+            MODULE.require_python_distribution_versions(expected)
+
+        with (
+            patch.object(
+                MODULE.importlib_metadata,
+                "version",
+                side_effect=lambda distribution: (
+                    "7.14.2" if distribution == "coverage" else expected[distribution]
+                ),
+            ),
+            self.assertRaisesRegex(
+                RuntimeError,
+                "coverage expected 7.14.3, found 7.14.2",
+            ),
+        ):
+            MODULE.require_python_distribution_versions(expected)
 
     def test_parser_defaults_to_bounded_parallelism_and_rejects_excessive_jobs(
         self,

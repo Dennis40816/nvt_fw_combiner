@@ -34,7 +34,13 @@ silently shrink the executable denominator. Any future exception is a reviewed
 coverage-contract change with real before/after reports; it is not a local
 source or project setting. Structure validation pins the central collector
 version and test-only reference, while the restored .NET gate confirms every
-test project receives that exact central reference.
+test project receives that exact central reference. The restored inventory is
+evaluated in `Release`, accepts only the selected SDK's explicit built-in
+analyzer allowlist, and treats C# extensions case-insensitively when measuring
+changed modules. The Python lane also confirms the active `coverage.py` and
+`pytest-cov` distribution versions before collecting evidence. Coverage report
+directories are disposable only when their complete repository-relative path
+contains no symbolic-link or junction hop and resolves inside the repository.
 
 For `Domain` and `Application`, the baseline additionally records the nonblank
 production-line count. A module is substantially changed at the earlier of 20

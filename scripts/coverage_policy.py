@@ -507,9 +507,9 @@ def _module_csharp_pathspecs(module_path: Path) -> tuple[str, ...]:
 
     relative = module_path.as_posix()
     return (
-        f":(top,glob){relative}/**/*.cs",
-        f":(top,glob,exclude){relative}/**/bin/**/*.cs",
-        f":(top,glob,exclude){relative}/**/obj/**/*.cs",
+        f":(top,glob,icase){relative}/**/*.cs",
+        f":(top,glob,icase,exclude){relative}/**/bin/**/*.cs",
+        f":(top,glob,icase,exclude){relative}/**/obj/**/*.cs",
     )
 
 

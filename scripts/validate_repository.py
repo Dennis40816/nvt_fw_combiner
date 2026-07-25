@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tomllib
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 from urllib.parse import unquote
@@ -21,6 +22,7 @@ from canonical_golden_validation import (
 )
 from code_size_policy import is_physical_source_file, review_code_size_policy
 from coverage_configuration_policy import (
+    is_approved_sdk_analyzer,
     validate_coverage_collector_pin,
     validate_coverage_exclusion_policy,
     validate_evaluated_test_coverage_collector,
@@ -140,6 +142,15 @@ REQUIRED_FILES = {
     "refcode/ab_code_combiner/SOURCE_MANIFEST.json",
     "tools/crc-worker/pyproject.toml",
 }
+
+
+@dataclass(frozen=True)
+class EvaluatedProjectItems:
+    """Restored MSBuild items plus the SDK root that supplied implicit analyzers."""
+
+    items: dict[str, list[dict[str, Any]]]
+    msbuild_sdks_path: Path
+
 
 EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
@@ -919,9 +930,7 @@ def is_solution_test_project(relative: str) -> bool:
 
     path = PurePosixPath(relative)
     return (
-        bool(path.parts)
-        and path.parts[0] == "tests"
-        and path.stem.endswith(".Tests")
+        bool(path.parts) and path.parts[0] == "tests" and path.stem.endswith(".Tests")
     )
 
 
@@ -949,7 +958,7 @@ def validate_production_source_ownership(
 
 def evaluate_project_items(
     project_path: Path, errors: list[str]
-) -> dict[str, list[dict[str, Any]]] | None:
+) -> EvaluatedProjectItems | None:
     """Read evaluated source and package items, including imported package targets."""
 
     assets_file = project_path.parent / "obj" / "project.assets.json"
@@ -969,6 +978,8 @@ def evaluate_project_items(
                 "msbuild",
                 str(project_path),
                 "-nologo",
+                "-property:Configuration=Release",
+                "-getProperty:MSBuildSDKsPath",
                 "-getItem:Compile",
                 "-getItem:Analyzer",
                 "-getItem:PackageReference",
@@ -1001,6 +1012,15 @@ def evaluate_project_items(
     if not isinstance(items, dict):
         errors.append(f"evaluated repository MSBuild items are invalid for {relative}")
         return None
+    properties = document.get("Properties")
+    msbuild_sdks_path = (
+        properties.get("MSBuildSDKsPath") if isinstance(properties, dict) else None
+    )
+    if not isinstance(msbuild_sdks_path, str) or not msbuild_sdks_path:
+        errors.append(
+            f"evaluated repository MSBuild SDK path is invalid for {relative}"
+        )
+        return None
     typed_items: dict[str, list[dict[str, Any]]] = {}
     for kind in ("Compile", "Analyzer", "PackageReference"):
         value = items.get(kind)
@@ -1012,13 +1032,14 @@ def evaluate_project_items(
             )
             return None
         typed_items[kind] = value
-    return typed_items
+    return EvaluatedProjectItems(typed_items, Path(msbuild_sdks_path))
 
 
 def validate_evaluated_production_source_ownership(
     relative: str,
     project_directory: Path,
     items: dict[str, list[dict[str, Any]]],
+    msbuild_sdks_path: Path,
     errors: list[str],
 ) -> None:
     """Reject imported or packaged sources that escape the owned production tree."""
@@ -1044,7 +1065,7 @@ def validate_evaluated_production_source_ownership(
                 f"source tree: {relative} -> {full_path}"
             )
     for analyzer in items["Analyzer"]:
-        if analyzer.get("IsImplicitlyDefined") == "true":
+        if is_approved_sdk_analyzer(analyzer, msbuild_sdks_path):
             continue
         identity = analyzer.get("Identity", "<implicit>")
         errors.append(
@@ -1067,20 +1088,21 @@ def validate_restored_project_contracts(errors: list[str]) -> None:
         is_test_project = is_solution_test_project(relative)
         if not relative.startswith("src/") and not is_test_project:
             continue
-        items = evaluate_project_items(project_path, errors)
-        if items is None:
+        evaluated = evaluate_project_items(project_path, errors)
+        if evaluated is None:
             continue
         if relative.startswith("src/"):
             validate_evaluated_production_source_ownership(
                 relative,
                 project_path.parent,
-                items,
+                evaluated.items,
+                evaluated.msbuild_sdks_path,
                 errors,
             )
         if is_test_project:
             validate_evaluated_test_coverage_collector(
                 relative,
-                items,
+                evaluated.items,
                 collector,
                 ROOT,
                 errors,
@@ -1401,7 +1423,9 @@ def main(arguments: list[str] | None = None) -> int:
             for error in sorted(set(errors)):
                 print(f"ERROR: {error}", file=sys.stderr)
             return 1
-        print("Restored source ownership and test coverage collector validation passed.")
+        print(
+            "Restored source ownership and test coverage collector validation passed."
+        )
         return 0
 
     for finding in review_code_size_policy(ROOT):

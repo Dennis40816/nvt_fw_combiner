@@ -8,6 +8,19 @@ import xml.etree.ElementTree as element_tree
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
+APPROVED_SDK_ANALYZER_PATHS = frozenset(
+    path.casefold()
+    for path in (
+        "analyzers/Microsoft.CodeAnalysis.NetAnalyzers.dll",
+        "analyzers/Microsoft.CodeAnalysis.CSharp.NetAnalyzers.dll",
+        "codestyle/cs/Microsoft.CodeAnalysis.CodeStyle.dll",
+        "codestyle/cs/Microsoft.CodeAnalysis.CodeStyle.Fixes.dll",
+        "codestyle/cs/Microsoft.CodeAnalysis.CSharp.CodeStyle.dll",
+        "codestyle/cs/Microsoft.CodeAnalysis.CSharp.CodeStyle.Fixes.dll",
+    )
+)
+SDK_ANALYZER_TARGET_PATH = ("targets/Microsoft.NET.Sdk.Analyzers.targets").casefold()
+
 
 def validate_coverage_collector_pin(
     baseline: dict[str, Any], errors: list[str], root: Path
@@ -34,9 +47,7 @@ def validate_coverage_collector_pin(
         )
 
     build_root = element_tree.parse(root / "Directory.Build.props").getroot()
-    collector_references: list[
-        tuple[element_tree.Element, element_tree.Element]
-    ] = []
+    collector_references: list[tuple[element_tree.Element, element_tree.Element]] = []
     for item_group in build_root.iter("ItemGroup"):
         for reference in item_group.findall("PackageReference"):
             if reference.attrib.get("Include", "").casefold() == collector.casefold():
@@ -147,7 +158,7 @@ def validate_coverage_exclusion_policy(
                 document = element_tree.fromstring(text)
             except element_tree.ParseError:
                 document = None
-            for property_group in (() if document is None else document.iter()):
+            for property_group in () if document is None else document.iter():
                 if property_group.tag.rsplit("}", 1)[-1] != "PropertyGroup":
                     continue
                 for element in property_group:
@@ -176,6 +187,33 @@ def validate_coverage_exclusion_policy(
                 "coverage invocation filter requires an explicit reviewed "
                 f"coverage-contract exception: {relative}"
             )
+
+
+def is_approved_sdk_analyzer(analyzer: dict[str, Any], msbuild_sdks_path: Path) -> bool:
+    """Accept only the selected SDK's known built-in analyzer payloads."""
+
+    full_path = analyzer.get("FullPath")
+    defining_project = analyzer.get("DefiningProjectFullPath")
+    if (
+        analyzer.get("IsImplicitlyDefined") != "true"
+        or not isinstance(full_path, str)
+        or not isinstance(defining_project, str)
+    ):
+        return False
+    try:
+        sdk_root = (msbuild_sdks_path / "Microsoft.NET.Sdk").resolve(strict=True)
+        analyzer_path = Path(full_path).resolve(strict=True)
+        target_path = Path(defining_project).resolve(strict=True)
+        analyzer_relative = analyzer_path.relative_to(sdk_root).as_posix().casefold()
+        target_relative = target_path.relative_to(sdk_root).as_posix().casefold()
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return (
+        analyzer_path.is_file()
+        and target_path.is_file()
+        and analyzer_relative in APPROVED_SDK_ANALYZER_PATHS
+        and target_relative == SDK_ANALYZER_TARGET_PATH
+    )
 
 
 def validate_evaluated_test_coverage_collector(

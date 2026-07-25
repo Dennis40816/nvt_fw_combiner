@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import json
+import subprocess
 import tempfile
 import unittest
 import xml.etree.ElementTree as element_tree
 from pathlib import Path
 import sys
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "scripts"
@@ -15,6 +18,7 @@ sys.path.insert(0, str(SCRIPTS))
 from coverage_configuration_policy import (  # noqa: E402
     validate_evaluated_test_coverage_collector,
 )
+import validate_repository as repository_validator  # noqa: E402
 from validate_repository import (  # noqa: E402
     evaluate_project_items,
     is_solution_test_project,
@@ -28,6 +32,7 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.project_directory = Path(self.temporary_directory.name) / "Product"
         self.project_directory.mkdir()
+        self.sdks_directory = Path(self.temporary_directory.name) / "Sdks"
 
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
@@ -95,6 +100,7 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
                 ],
                 "Analyzer": [],
             },
+            self.sdks_directory,
             errors,
         )
 
@@ -113,6 +119,7 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
                 "Compile": [{"FullPath": str(source)}],
                 "Analyzer": [],
             },
+            self.sdks_directory,
             errors,
         )
 
@@ -130,6 +137,7 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
                 "Compile": [{"FullPath": str(source)}],
                 "Analyzer": [],
             },
+            self.sdks_directory,
             errors,
         )
 
@@ -149,6 +157,7 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
                 "Compile": [{"FullPath": str(source)}],
                 "Analyzer": [],
             },
+            self.sdks_directory,
             errors,
         )
 
@@ -169,11 +178,70 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
                     }
                 ],
             },
+            self.sdks_directory,
             errors,
         )
 
         self.assertEqual(1, len(errors))
         self.assertIn("evaluated analyzer", errors[0])
+
+    def test_rejects_forged_implicit_analyzer_metadata(self) -> None:
+        analyzer = self.project_directory / "generator.dll"
+        analyzer.write_bytes(b"not an SDK analyzer")
+        errors: list[str] = []
+
+        validate_evaluated_production_source_ownership(
+            "src/Product/Product.csproj",
+            self.project_directory,
+            {
+                "Compile": [],
+                "Analyzer": [
+                    {
+                        "Identity": str(analyzer),
+                        "FullPath": str(analyzer),
+                        "DefiningProjectFullPath": str(
+                            self.project_directory / "forged.targets"
+                        ),
+                        "IsImplicitlyDefined": "true",
+                    }
+                ],
+            },
+            self.sdks_directory,
+            errors,
+        )
+
+        self.assertEqual(1, len(errors))
+        self.assertIn("evaluated analyzer", errors[0])
+
+    def test_accepts_selected_sdk_allowlisted_analyzer(self) -> None:
+        sdk_root = self.sdks_directory / "Microsoft.NET.Sdk"
+        analyzer = sdk_root / "analyzers/Microsoft.CodeAnalysis.NetAnalyzers.dll"
+        target = sdk_root / "targets/Microsoft.NET.Sdk.Analyzers.targets"
+        analyzer.parent.mkdir(parents=True)
+        target.parent.mkdir(parents=True)
+        analyzer.write_bytes(b"SDK analyzer")
+        target.write_text("<Project />", encoding="utf-8")
+        errors: list[str] = []
+
+        validate_evaluated_production_source_ownership(
+            "src/Product/Product.csproj",
+            self.project_directory,
+            {
+                "Compile": [],
+                "Analyzer": [
+                    {
+                        "Identity": str(analyzer),
+                        "FullPath": str(analyzer),
+                        "DefiningProjectFullPath": str(target),
+                        "IsImplicitlyDefined": "true",
+                    }
+                ],
+            },
+            self.sdks_directory,
+            errors,
+        )
+
+        self.assertEqual([], errors)
 
     def test_requires_restored_assets_before_evaluating_production_items(self) -> None:
         errors: list[str] = []
@@ -185,6 +253,50 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
         self.assertIsNone(result)
         self.assertEqual(1, len(errors))
         self.assertIn("requires restored assets", errors[0])
+
+    def test_evaluates_restored_items_in_release_configuration(self) -> None:
+        root = Path(self.temporary_directory.name)
+        project = root / "src/Product/Product.csproj"
+        (project.parent / "obj").mkdir(parents=True)
+        (project.parent / "obj/project.assets.json").write_text(
+            "{}",
+            encoding="utf-8",
+        )
+        project.write_text("<Project />", encoding="utf-8")
+        output = json.dumps(
+            {
+                "Properties": {"MSBuildSDKsPath": str(self.sdks_directory)},
+                "Items": {
+                    "Compile": [],
+                    "Analyzer": [],
+                    "PackageReference": [],
+                },
+            }
+        )
+        completed = subprocess.CompletedProcess(
+            ["dotnet", "msbuild"],
+            0,
+            stdout=output,
+            stderr="",
+        )
+        errors: list[str] = []
+
+        with (
+            patch.object(repository_validator, "ROOT", root),
+            patch.object(
+                repository_validator.subprocess,
+                "run",
+                return_value=completed,
+            ) as run_command,
+        ):
+            result = repository_validator.evaluate_project_items(project, errors)
+
+        self.assertIsNotNone(result)
+        self.assertEqual([], errors)
+        self.assertIn(
+            "-property:Configuration=Release",
+            run_command.call_args.args[0],
+        )
 
     def test_accepts_centrally_defined_test_coverage_collector(self) -> None:
         errors: list[str] = []
