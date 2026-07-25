@@ -84,7 +84,7 @@ public sealed partial class RepositoryBoundaryTests
         string[] expectedIssueRows =
         [
             "| #170 | 0 | [0.10.x][01] Establish executable Support Matrix baseline | — |",
-            "| #171 | 0 | [0.10.x][02] Record coverage baseline and enforce ratchets | — |",
+            "| #171 | 1 | [0.10.x][02] Record coverage baseline and enforce ratchets | #172 |",
             "| #172 | 0 | [0.10.x][03] Add bounded concurrency to the canonical verifier | — |",
             "| #173 | 1 | [0.10.x][04] Deliver the NT51929 Standard Merge canonical capability tracer | #170 |",
             "| #174 | 2 | [0.10.x][05] Deliver canonical DPCMI inspection through NT51929 DP Replace | #173 |",

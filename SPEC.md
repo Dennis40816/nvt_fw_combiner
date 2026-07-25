@@ -1299,7 +1299,7 @@ architecture. The approved sequence is:
 ```text
 approved specification and consistency grill
   -> approved GitHub tickets #170-#197 plus #207/#208 and dependency edges
-  -> allocate the dependency-ready frontier to the next 0.10.x release
+  -> allocate the dependency-ready frontier to the next internal 0.10.x stage
   -> implement, review, verify, and delete old ownership slice by slice
 ```
 
