@@ -38,9 +38,9 @@ public static class SupportMatrixMaterializer
         Dictionary<string, SupportRouteDescriptor> routesById = routeArray.ToDictionary(
             static route => route.RouteId,
             StringComparer.Ordinal);
-        SupportEvidenceResolver evidenceResolver =
+        var evidenceResolver =
             SupportEvidenceResolver.Create(evidenceCatalog, routesById);
-        Dictionary<string, SupportPublicationDecision> decisions = policy.Decisions.ToDictionary(
+        var decisions = policy.Decisions.ToDictionary(
             static decision => decision.RouteId,
             StringComparer.Ordinal);
 
