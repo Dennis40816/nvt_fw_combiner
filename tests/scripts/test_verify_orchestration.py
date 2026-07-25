@@ -232,6 +232,24 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual("1", environment[MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE])
         self.assertEqual(log_path, run_command.call_args.kwargs["log_path"])
 
+    def test_isolated_lane_uses_its_focused_internal_owner(self) -> None:
+        lane = MODULE.VerificationLane(
+            "dotnet",
+            lambda _log_path: None,
+            isolate_action=True,
+            internal_name="dotnet-windows",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch.object(MODULE, "run") as run_command:
+                MODULE.run_lanes(
+                    (lane,),
+                    jobs=1,
+                    log_directory=Path(temporary),
+                )
+
+        command = run_command.call_args.args[0]
+        self.assertEqual(["--internal-lane", "dotnet-windows"], command[-2:])
+
     def test_internal_lanes_dispatch_each_canonical_owner_exactly_once(self) -> None:
         calls: list[str] = []
         with (
@@ -255,11 +273,18 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 "verify_dotnet",
                 side_effect=lambda _log_path: calls.append("dotnet"),
             ),
+            patch.object(
+                MODULE,
+                "verify_windows_process_orchestration",
+                side_effect=lambda _log_path: calls.append("windows-orchestration"),
+                create=True,
+            ),
         ):
             expected_calls = {
                 "structure": ["structure"],
                 "python": ["repository-scripts", "python"],
                 "dotnet": ["dotnet"],
+                "dotnet-windows": ["windows-orchestration", "dotnet"],
             }
             for lane_name, expected in expected_calls.items():
                 calls.clear()
@@ -346,6 +371,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self,
     ) -> None:
         fake_process = MagicMock()
+        cancellation = threading.Event()
 
         def create_then_terminate(*_args: object, **_kwargs: object) -> MagicMock:
             signal.raise_signal(signal.SIGTERM)
@@ -353,6 +379,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         with (
             MODULE.handle_external_termination(),
+            patch.object(MODULE, "PROCESS_CANCELLATION_REQUESTED", cancellation),
             patch.object(
                 MODULE.subprocess,
                 "Popen",
@@ -372,6 +399,32 @@ class VerifyOrchestrationTests(unittest.TestCase):
         activate.assert_called_once_with(fake_process)
         terminate.assert_called_once_with(fake_process)
         unregister.assert_called_once_with(fake_process)
+        self.assertTrue(cancellation.is_set())
+
+    def test_sigterm_latches_cancellation_before_dotnet_cleanup_can_spawn(
+        self,
+    ) -> None:
+        cancellation = threading.Event()
+        commands: list[list[str]] = []
+
+        def interrupt_first_command(command: list[str], **_kwargs: object) -> None:
+            commands.append(command)
+            if len(commands) == 1:
+                signal.raise_signal(signal.SIGTERM)
+
+        with (
+            MODULE.handle_external_termination(),
+            patch.object(MODULE, "PROCESS_CANCELLATION_REQUESTED", cancellation),
+            patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+            patch.object(MODULE, "run", side_effect=interrupt_first_command),
+            patch.object(MODULE, "stop_idle_build_workers") as stop_idle_workers,
+            self.assertRaises(MODULE.VerificationTerminationRequested),
+        ):
+            MODULE.verify_dotnet()
+
+        self.assertTrue(cancellation.is_set())
+        self.assertEqual([["dotnet", "--version"]], commands)
+        stop_idle_workers.assert_not_called()
 
     def test_windows_process_is_suspended_until_job_boundary_is_attached(
         self,
@@ -1256,6 +1309,35 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         self.assertEqual(["dotnet"], [lane.name for lane in lanes])
 
+    def test_windows_dotnet_only_plan_selects_platform_orchestration_owner(
+        self,
+    ) -> None:
+        with patch.object(MODULE.sys, "platform", "win32"):
+            lanes = MODULE.selected_lanes(
+                MODULE.parse_args(["--skip-python", "--skip-structure"])
+            )
+
+        self.assertEqual(["dotnet"], [lane.name for lane in lanes])
+        self.assertEqual("dotnet-windows", lanes[0].internal_name)
+
+    def test_windows_platform_owner_runs_only_the_job_object_integration(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            log_path = Path(temporary) / "dotnet.log"
+            with patch.object(MODULE, "run") as run_command:
+                MODULE.verify_windows_process_orchestration(log_path)
+
+        run_command.assert_called_once_with(
+            [
+                sys.executable,
+                "-m",
+                "unittest",
+                MODULE.WINDOWS_PROCESS_ORCHESTRATION_TEST,
+            ],
+            log_path=log_path,
+        )
+
     def test_public_invocation_rejects_an_empty_verification_plan(self) -> None:
         with (
             patch.object(
@@ -1282,17 +1364,21 @@ class VerifyOrchestrationTests(unittest.TestCase):
         run_lanes.assert_not_called()
 
     def test_main_returns_sigterm_exit_code_after_owned_cleanup_path(self) -> None:
+        cancellation = threading.Event()
+
         def request_sigterm(_args: argparse.Namespace) -> int:
             signal.raise_signal(signal.SIGTERM)
             return 0
 
         with (
+            patch.object(MODULE, "PROCESS_CANCELLATION_REQUESTED", cancellation),
             patch.object(MODULE, "parse_args", return_value=MagicMock()),
             patch.object(MODULE, "execute_verification", side_effect=request_sigterm),
         ):
             result = MODULE.main()
 
         self.assertEqual(128 + signal.SIGTERM, result)
+        self.assertTrue(cancellation.is_set())
 
     def test_idle_worker_cleanup_warnings_are_written_to_the_active_lane_log(
         self,
@@ -1323,7 +1409,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             patch.object(MODULE.sys, "platform", "win32"),
             patch.object(MODULE.shutil, "which", return_value="powershell"),
             patch.object(
-                MODULE.subprocess,
+                MODULE,
                 "run",
                 side_effect=subprocess.TimeoutExpired("cleanup", 30),
             ),
@@ -1333,6 +1419,40 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         write_warning.assert_called_once_with(
             "warning: idle Avalonia build worker cleanup exceeded its timeout.",
+            None,
+        )
+
+    def test_idle_worker_cleanup_without_lane_log_uses_timed_runner(self) -> None:
+        with (
+            patch.object(MODULE.sys, "platform", "win32"),
+            patch.object(MODULE.shutil, "which", return_value="powershell"),
+            patch.object(MODULE, "run") as timed_run,
+        ):
+            MODULE.stop_idle_build_workers(None, timeout_seconds=30)
+
+        timed_run.assert_called_once()
+        self.assertEqual(
+            30,
+            timed_run.call_args.kwargs["timeout_seconds"],
+        )
+
+    def test_idle_worker_cleanup_nonzero_without_lane_log_remains_a_warning(
+        self,
+    ) -> None:
+        with (
+            patch.object(MODULE.sys, "platform", "win32"),
+            patch.object(MODULE.shutil, "which", return_value="powershell"),
+            patch.object(
+                MODULE,
+                "run",
+                side_effect=subprocess.CalledProcessError(7, ["powershell"]),
+            ),
+            patch.object(MODULE, "write_cleanup_warning") as write_warning,
+        ):
+            MODULE.stop_idle_build_workers(None, timeout_seconds=30)
+
+        write_warning.assert_called_once_with(
+            "warning: idle Avalonia build worker cleanup returned exit code 7.",
             None,
         )
 

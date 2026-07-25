@@ -31,6 +31,10 @@ CTRL_RAM_REPLACE_FIXTURE_VERIFIER = (
 CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentinel.py"
 IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 REPOSITORY_SCRIPT_TESTS = ROOT / "tests" / "scripts"
+WINDOWS_PROCESS_ORCHESTRATION_TEST = (
+    "tests.scripts.test_verify_orchestration."
+    "VerifyOrchestrationTests.test_windows_owned_job_kills_descendants_after_root_exit"
+)
 DEFAULT_VERIFY_JOBS = 3
 MAXIMUM_VERIFY_JOBS = 3
 DEFAULT_LANE_TIMEOUT_SECONDS = 300
@@ -206,6 +210,7 @@ class VerificationLane:
     name: str
     action: LaneAction
     isolate_action: bool = False
+    internal_name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -455,6 +460,7 @@ def handle_external_termination():
         return
 
     def request_termination(signal_number: int, _frame: object) -> None:
+        PROCESS_CANCELLATION_REQUESTED.set()
         raise VerificationTerminationRequested(signal_number)
 
     previous_handler = signal.signal(signal.SIGTERM, request_termination)
@@ -808,14 +814,11 @@ def stop_idle_build_workers(
         str(ROOT),
     ]
     if log_path is None:
-        print(f"\n> {' '.join(command)}", flush=True)
         try:
-            result = subprocess.run(
-                command,
-                cwd=ROOT,
-                check=False,
-                timeout=remaining_timeout(timeout_seconds),
-            )
+            run(command, timeout_seconds=timeout_seconds)
+            return
+        except subprocess.CalledProcessError as error:
+            result = error
         except subprocess.TimeoutExpired:
             write_cleanup_warning(
                 "warning: idle Avalonia build worker cleanup exceeded its timeout.",
@@ -895,20 +898,46 @@ def verify_dotnet(log_path: Path | None = None) -> None:
     finally:
         # Avalonia/Roslyn may start compiler servers even with node reuse disabled.
         # Stop only servers from the repository-selected SDK after every verification run.
-        cleanup_timeout = remaining_timeout(CLEANUP_TIMEOUT_SECONDS)
-        if cleanup_timeout is None:
-            cleanup_timeout = CLEANUP_TIMEOUT_SECONDS
-        cleanup_deadline_token = CLEANUP_DEADLINE.set(monotonic() + cleanup_timeout)
-        try:
-            run(
-                [dotnet, "build-server", "shutdown"],
-                environment=environment,
-                log_path=log_path,
-                timeout_seconds=CLEANUP_TIMEOUT_SECONDS,
-            )
-            stop_idle_build_workers(log_path, timeout_seconds=CLEANUP_TIMEOUT_SECONDS)
-        finally:
-            CLEANUP_DEADLINE.reset(cleanup_deadline_token)
+        if not PROCESS_CANCELLATION_REQUESTED.is_set():
+            cleanup_timeout = remaining_timeout(CLEANUP_TIMEOUT_SECONDS)
+            if cleanup_timeout is None:
+                cleanup_timeout = CLEANUP_TIMEOUT_SECONDS
+            cleanup_deadline_token = CLEANUP_DEADLINE.set(monotonic() + cleanup_timeout)
+            try:
+                run(
+                    [dotnet, "build-server", "shutdown"],
+                    environment=environment,
+                    log_path=log_path,
+                    timeout_seconds=CLEANUP_TIMEOUT_SECONDS,
+                )
+                stop_idle_build_workers(
+                    log_path, timeout_seconds=CLEANUP_TIMEOUT_SECONDS
+                )
+            finally:
+                CLEANUP_DEADLINE.reset(cleanup_deadline_token)
+
+
+def verify_windows_process_orchestration(log_path: Path | None = None) -> None:
+    """Exercise the Windows-only Job Object integration when Python is skipped."""
+
+    run(
+        [
+            sys.executable,
+            "-m",
+            "unittest",
+            WINDOWS_PROCESS_ORCHESTRATION_TEST,
+        ],
+        log_path=log_path,
+    )
+
+
+def verify_windows_process_orchestration_and_dotnet(
+    log_path: Path | None = None,
+) -> None:
+    """Retain one Windows platform-test owner before the normal .NET lane."""
+
+    verify_windows_process_orchestration(log_path)
+    verify_dotnet(log_path)
 
 
 def parse_lane_timeout(value: str) -> int:
@@ -946,7 +975,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--skip-structure", action="store_true")
     parser.add_argument(
         "--internal-lane",
-        choices=("structure", "python", "dotnet"),
+        choices=("structure", "python", "dotnet", "dotnet-windows"),
         help=argparse.SUPPRESS,
     )
     parser.add_argument(
@@ -1008,7 +1037,19 @@ def selected_lanes(args: argparse.Namespace) -> tuple[VerificationLane, ...]:
                 )
             )
         if not args.skip_dotnet:
-            lanes.append(VerificationLane("dotnet", verify_dotnet, isolate_action=True))
+            internal_name = (
+                "dotnet-windows"
+                if sys.platform == "win32" and args.skip_python
+                else None
+            )
+            lanes.append(
+                VerificationLane(
+                    "dotnet",
+                    verify_dotnet,
+                    isolate_action=True,
+                    internal_name=internal_name,
+                )
+            )
     return tuple(lanes)
 
 
@@ -1019,6 +1060,7 @@ def run_internal_lane(name: str) -> None:
         "structure": verify_structure,
         "python": repository_script_and_python_lane(),
         "dotnet": verify_dotnet,
+        "dotnet-windows": verify_windows_process_orchestration_and_dotnet,
     }
     actions[name](None)
 
@@ -1062,7 +1104,7 @@ def run_lanes(
         deadline_token = LANE_DEADLINE.set(started + lane_timeout_seconds)
         try:
             if lane.isolate_action:
-                run_isolated_lane(lane.name, log_path)
+                run_isolated_lane(lane.internal_name or lane.name, log_path)
             else:
                 lane.action(log_path)
             remaining_timeout()
