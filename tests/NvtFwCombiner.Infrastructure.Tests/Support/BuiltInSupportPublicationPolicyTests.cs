@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Xml.Linq;
 using NvtFwCombiner.Application.Support;
 using NvtFwCombiner.Infrastructure.Support;
 using NvtFwCombiner.TestSupport;
@@ -27,6 +28,40 @@ public sealed class BuiltInSupportPublicationPolicyTests
             decision.RouteId ==
                 "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k" &&
             decision.Status == SupportPublicationStatus.Candidate);
+    }
+
+    /// <summary>The reviewed policy is present in build output and retained for publish.</summary>
+    [Fact]
+    public void PolicyIsDeployedAndDeclaredForPublish()
+    {
+        string relativePath = Path.Combine(
+            "docs",
+            "contracts",
+            "support-publication-policy-v1.json");
+        string deployedPath = Path.Combine(
+            AppContext.BaseDirectory,
+            relativePath);
+        string projectPath = RepositoryPaths.FromRepositoryRoot(
+            "src",
+            "NvtFwCombiner.Infrastructure",
+            "NvtFwCombiner.Infrastructure.csproj");
+        XElement content = Assert.Single(
+            XDocument.Load(projectPath).Descendants(),
+            element =>
+                element.Name.LocalName == "Content" &&
+                NormalizePath((string?)element.Attribute("Include")) ==
+                    "docs/contracts/support-publication-policy-v1.json");
+
+        Assert.True(File.Exists(deployedPath), deployedPath);
+        Assert.Equal(
+            "docs/contracts/support-publication-policy-v1.json",
+            NormalizePath((string?)content.Attribute("Link")));
+        Assert.Equal(
+            "PreserveNewest",
+            (string?)content.Attribute("CopyToOutputDirectory"));
+        Assert.Equal(
+            "PreserveNewest",
+            (string?)content.Attribute("CopyToPublishDirectory"));
     }
 
     /// <summary>A one-byte mutation fails before status materialization.</summary>
@@ -141,6 +176,18 @@ public sealed class BuiltInSupportPublicationPolicyTests
             expectedMessage,
             exception.Message,
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizePath(string? path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        string normalized = path.Replace('\\', '/');
+        const string repositoryPrefix = "../../";
+        return normalized.StartsWith(
+            repositoryPrefix,
+            StringComparison.Ordinal)
+            ? normalized[repositoryPrefix.Length..]
+            : normalized;
     }
 
     private static JsonObject CreatePolicyObject(

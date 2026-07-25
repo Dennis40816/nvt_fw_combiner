@@ -64,9 +64,14 @@ does not copy firmware facts or grant execution. During migration its
 denominator is the union of selectable, executable, and publication sources.
 Every unresolved or divergent source remains a fail-closed diagnostic.
 
-This source-contract phase does not yet load the policy at runtime. The same
-#170 branch adds the hash-closed loader, materializer, headless query, and
-package proof before the ticket can be integrated.
+The completed #170 baseline loads the policy only after its canonical bytes
+match the reviewed SHA-256, materializes it against the same current route
+snapshot, and exposes a fresh immutable query through
+`WorkbenchCompositionService.GetSupportMatrix()`. Infrastructure declares the
+policy as both build and publish content at the same relative path used by the
+loader. Tests prove the deployed file exists, the publish metadata remains
+closed, and the public query does not alter firmware execution or UI state.
+Settings disclosure remains deferred to #207.
 
 ## Consequences
 
