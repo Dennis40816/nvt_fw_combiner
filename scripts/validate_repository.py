@@ -1179,8 +1179,33 @@ def validate_workflows(errors: list[str]) -> None:
     if "python scripts/verify.py --skip-python --skip-structure" not in ci:
         errors.append("CI dotnet job must run the canonical .NET verifier")
     verifier = (ROOT / "scripts/verify.py").read_text(encoding="utf-8")
-    if '[dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"]' not in verifier:
-        errors.append("canonical verifier must run the full .NET solution test suite")
+    required_dotnet_coverage_markers = (
+        '            "test",',
+        "            str(SOLUTION),",
+        '            "--no-build",',
+        '"--collect:XPlat Code Coverage",',
+        '"--results-directory",',
+    )
+    if any(marker not in verifier for marker in required_dotnet_coverage_markers):
+        errors.append(
+            "canonical verifier must run the full .NET solution test suite "
+            "with coverage collection"
+        )
+    if verifier.count('"--evaluated-source-ownership-only"') != 1:
+        errors.append(
+            "canonical .NET verifier must own exactly one restored source-ownership check"
+        )
+    dotnet_job = ci[ci.index("  dotnet:") :] if "  dotnet:" in ci else ""
+    if "fetch-depth: 0" not in dotnet_job:
+        errors.append("CI dotnet job must fetch the fixed coverage baseline revision")
+    for marker in (
+        "name: python-coverage",
+        "path: artifacts/coverage/python/",
+        "name: dotnet-coverage",
+        "path: artifacts/coverage/dotnet/",
+    ):
+        if marker not in ci:
+            errors.append(f"CI is missing coverage evidence marker: {marker}")
     if "verify_ctrlram_replace_fixture.py" not in verifier:
         errors.append(
             "canonical verifier must include the CtrlRAM Replace fixture gate"

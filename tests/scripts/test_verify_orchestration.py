@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, call, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "verify.py"
+sys.path.insert(0, str(SCRIPT.parent))
 SPEC = importlib.util.spec_from_file_location("verify", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -1471,7 +1472,13 @@ class VerifyOrchestrationTests(unittest.TestCase):
             with (
                 patch.dict(os.environ, {"NFC_DOTNET_BUILD_LOG": str(ci_log)}),
                 patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "reset_coverage_directory",
+                    return_value=root / "coverage",
+                ),
                 patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(MODULE, "verify_coverage"),
                 patch.object(MODULE, "stop_idle_build_workers"),
             ):
                 MODULE.verify_dotnet(root / "dotnet.log")
@@ -1487,12 +1494,84 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(ci_log, build_calls[0]["mirror_log_path"])
         self.assertEqual("build output\n", ci_log_text)
 
+    def test_dotnet_lane_owns_restore_source_evaluation_and_coverage_in_order(
+        self,
+    ) -> None:
+        commands: list[list[str]] = []
+        with tempfile.TemporaryDirectory() as temporary:
+            coverage_directory = Path(temporary) / "dotnet"
+            with (
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "reset_coverage_directory",
+                    return_value=coverage_directory,
+                ),
+                patch.object(
+                    MODULE,
+                    "run",
+                    side_effect=lambda command, **_kwargs: commands.append(command),
+                ),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+                patch.object(MODULE, "stop_idle_build_workers"),
+            ):
+                MODULE.verify_dotnet()
+
+        restore_index = commands.index(["dotnet", "restore", str(MODULE.SOLUTION)])
+        ownership_index = commands.index(
+            [
+                sys.executable,
+                "scripts/validate_repository.py",
+                "--evaluated-source-ownership-only",
+            ]
+        )
+        format_index = next(
+            index
+            for index, command in enumerate(commands)
+            if len(command) > 1 and command[1] == "format"
+        )
+        test_command = next(command for command in commands if "test" in command)
+
+        self.assertLess(restore_index, ownership_index)
+        self.assertLess(ownership_index, format_index)
+        self.assertIn("--collect:XPlat Code Coverage", test_command)
+        self.assertEqual(
+            str(coverage_directory),
+            test_command[test_command.index("--results-directory") + 1],
+        )
+        verify_coverage.assert_called_once_with("dotnet", coverage_directory)
+
+    def test_python_lane_emits_one_json_report_before_policy_validation(self) -> None:
+        commands: list[list[str]] = []
+        with tempfile.TemporaryDirectory() as temporary:
+            coverage_directory = Path(temporary) / "python"
+            coverage_report = coverage_directory / "coverage.json"
+            with (
+                patch.object(MODULE, "require_python_modules"),
+                patch.object(
+                    MODULE,
+                    "reset_coverage_directory",
+                    return_value=coverage_directory,
+                ),
+                patch.object(
+                    MODULE,
+                    "run",
+                    side_effect=lambda command, **_kwargs: commands.append(command),
+                ),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+            ):
+                MODULE.verify_python()
+
+        pytest_command = next(command for command in commands if "pytest" in command)
+        self.assertIn(f"--cov-report=json:{coverage_report}", pytest_command)
+        verify_coverage.assert_called_once_with("python", coverage_report)
+
     def test_parser_defaults_to_bounded_parallelism_and_rejects_excessive_jobs(
         self,
     ) -> None:
         parsed = MODULE.parse_args([])
         self.assertEqual(3, parsed.jobs)
-        self.assertEqual(300, parsed.lane_timeout_seconds)
+        self.assertEqual(600, parsed.lane_timeout_seconds)
         with contextlib.redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
                 MODULE.parse_args(["--jobs", "4"])

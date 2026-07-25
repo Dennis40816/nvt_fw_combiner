@@ -22,6 +22,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic
 
+from coverage_policy import verify_coverage
+
 ROOT = Path(__file__).resolve().parents[1]
 WORKER_ROOT = ROOT / "tools" / "crc-worker"
 SOLUTION = ROOT / "NvtFwCombiner.slnx"
@@ -31,13 +33,14 @@ CTRL_RAM_REPLACE_FIXTURE_VERIFIER = (
 CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentinel.py"
 IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 REPOSITORY_SCRIPT_TESTS = ROOT / "tests" / "scripts"
+COVERAGE_ROOT = ROOT / "artifacts" / "coverage"
 WINDOWS_PROCESS_ORCHESTRATION_TEST = (
     "tests.scripts.test_verify_orchestration."
     "VerifyOrchestrationTests.test_windows_owned_job_kills_descendants_after_root_exit"
 )
 DEFAULT_VERIFY_JOBS = 3
 MAXIMUM_VERIFY_JOBS = 3
-DEFAULT_LANE_TIMEOUT_SECONDS = 300
+DEFAULT_LANE_TIMEOUT_SECONDS = 600
 MINIMUM_LANE_TIMEOUT_SECONDS = 60
 MAXIMUM_LANE_TIMEOUT_SECONDS = 900
 CLEANUP_TIMEOUT_SECONDS = 30
@@ -734,6 +737,16 @@ def verify_repository_scripts(log_path: Path | None = None) -> None:
     )
 
 
+def reset_coverage_directory(language: str) -> Path:
+    """Create one known disposable report directory below ignored artifacts."""
+
+    directory = COVERAGE_ROOT / language
+    if directory.exists():
+        shutil.rmtree(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
 def require_python_modules(names: tuple[str, ...]) -> None:
     missing = [name for name in names if importlib.util.find_spec(name) is None]
     if missing:
@@ -746,7 +759,10 @@ def require_python_modules(names: tuple[str, ...]) -> None:
 
 
 def verify_python(log_path: Path | None = None) -> None:
-    require_python_modules(("ruff", "pyright", "pylint", "pytest", "coverage"))
+    require_python_modules(
+        ("ruff", "pyright", "pylint", "pytest", "pytest_cov", "coverage")
+    )
+    coverage_report = reset_coverage_directory("python") / "coverage.json"
     commands = (
         [
             sys.executable,
@@ -768,10 +784,12 @@ def verify_python(log_path: Path | None = None) -> None:
             "--cov=nfc_crc_worker",
             "--cov-branch",
             "--cov-report=term-missing",
+            f"--cov-report=json:{coverage_report}",
         ],
     )
     for command in commands:
         run(command, cwd=WORKER_ROOT, log_path=log_path)
+    verify_coverage("python", coverage_report)
 
 
 def resolve_dotnet() -> str:
@@ -864,6 +882,7 @@ def write_cleanup_warning(message: str, log_path: Path | None) -> None:
 
 def verify_dotnet(log_path: Path | None = None) -> None:
     dotnet = resolve_dotnet()
+    coverage_directory = reset_coverage_directory("dotnet")
     environment = os.environ.copy()
     # Verification is a batch task, not an interactive build session. Avoid retaining MSBuild nodes after it ends.
     environment["MSBUILDDISABLENODEREUSE"] = "1"
@@ -871,9 +890,24 @@ def verify_dotnet(log_path: Path | None = None) -> None:
     commands = (
         [dotnet, "--version"],
         [dotnet, "restore", str(SOLUTION)],
+        [
+            sys.executable,
+            "scripts/validate_repository.py",
+            "--evaluated-source-ownership-only",
+        ],
         [dotnet, "format", str(SOLUTION), "--verify-no-changes", "--no-restore"],
         [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
-        [dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"],
+        [
+            dotnet,
+            "test",
+            str(SOLUTION),
+            "-c",
+            "Release",
+            "--no-build",
+            "--collect:XPlat Code Coverage",
+            "--results-directory",
+            str(coverage_directory),
+        ],
         # The full solution test command already runs CtrlRAM UI smoke tests. Keep the
         # fixture gate here for manifest and payload-hash validation only.
         [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"],
@@ -895,6 +929,7 @@ def verify_dotnet(log_path: Path | None = None) -> None:
                     )
             else:
                 run(command, environment=environment, log_path=log_path)
+        verify_coverage("dotnet", coverage_directory)
     finally:
         # Avalonia/Roslyn may start compiler servers even with node reuse disabled.
         # Stop only servers from the repository-selected SDK after every verification run.
@@ -1256,7 +1291,7 @@ def execute_verification(args: argparse.Namespace) -> int:
             jobs=args.jobs,
             lane_timeout_seconds=args.lane_timeout_seconds,
         )
-    except (RuntimeError, subprocess.CalledProcessError) as exc:
+    except (RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
         print(f"\nVERIFICATION FAILED: {exc}", file=sys.stderr)
         return 1
 

@@ -50,6 +50,14 @@ jobs:
         run: python -m pip install --disable-pip-version-check -e './tools/crc-worker[dev]'
       - name: Verify worker and repository policy
         run: python scripts/verify.py --skip-dotnet --skip-structure
+      - name: Upload Python coverage evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: python-coverage
+          path: artifacts/coverage/python/
+          if-no-files-found: ignore
+          retention-days: 3
 
   dotnet:
     name: dotnet / build-test
@@ -61,6 +69,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Install pinned repository .NET SDK
         shell: pwsh
         run: ./scripts/install-dotnet.ps1 -Scope Repository
@@ -95,5 +104,13 @@ jobs:
         with:
           name: dotnet-build-log
           path: ${{ runner.temp }}/dotnet-build.log
+          if-no-files-found: ignore
+          retention-days: 3
+      - name: Upload dotnet coverage evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dotnet-coverage
+          path: artifacts/coverage/dotnet/
           if-no-files-found: ignore
           retention-days: 3
