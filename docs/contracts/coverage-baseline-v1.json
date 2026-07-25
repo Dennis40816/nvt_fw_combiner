@@ -10,6 +10,8 @@
     },
     "python": {
       "collector": "pytest-cov / coverage.py",
+      "pytestCovVersion": "6.3.0",
+      "coveragePyVersion": "7.14.3",
       "format": "coverage-json"
     }
   },
@@ -17,11 +19,11 @@
     "dotnet": {
       "overall": {
         "lines": {
-          "covered": 33153,
-          "total": 40209
+          "covered": 33165,
+          "total": 40220
         },
         "branches": {
-          "covered": 11641,
+          "covered": 11657,
           "total": 15199
         }
       },
@@ -36,6 +38,16 @@
             "total": 2633
           }
         },
+        "Contracts": {
+          "lines": {
+            "covered": 478,
+            "total": 478
+          },
+          "branches": {
+            "covered": 0,
+            "total": 0
+          }
+        },
         "Application": {
           "lines": {
             "covered": 4162,
@@ -44,6 +56,56 @@
           "branches": {
             "covered": 1566,
             "total": 1904
+          }
+        },
+        "Profiles": {
+          "lines": {
+            "covered": 5951,
+            "total": 6389
+          },
+          "branches": {
+            "covered": 2459,
+            "total": 3048
+          }
+        },
+        "Infrastructure": {
+          "lines": {
+            "covered": 1977,
+            "total": 2206
+          },
+          "branches": {
+            "covered": 720,
+            "total": 873
+          }
+        },
+        "Bootstrap": {
+          "lines": {
+            "covered": 5826,
+            "total": 6684
+          },
+          "branches": {
+            "covered": 1972,
+            "total": 2638
+          }
+        },
+        "Cli": {
+          "lines": {
+            "covered": 8,
+            "total": 11
+          },
+          "branches": {
+            "covered": 0,
+            "total": 0
+          }
+        },
+        "PresentationAvalonia": {
+          "lines": {
+            "covered": 9263,
+            "total": 14073
+          },
+          "branches": {
+            "covered": 2748,
+            "total": 4103
           }
         }
       }

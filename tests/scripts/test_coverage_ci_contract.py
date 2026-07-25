@@ -17,6 +17,21 @@ class CoverageCiContractTests(unittest.TestCase):
 
         self.assertIn("fetch-depth: 0", dotnet_job)
 
+    def test_structure_job_installs_the_pinned_sdk_for_evaluated_project_policy(
+        self,
+    ) -> None:
+        workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+        structure_job = workflow[
+            workflow.index("  structure:") : workflow.index("  python-worker:")
+        ]
+
+        self.assertIn("./scripts/install-dotnet.sh --scope repository", structure_job)
+        self.assertIn("./.dotnet/dotnet restore NvtFwCombiner.slnx", structure_job)
+        self.assertLess(
+            structure_job.index("./.dotnet/dotnet restore NvtFwCombiner.slnx"),
+            structure_job.index("python scripts/verify.py --structure-only"),
+        )
+
     def test_ci_retains_short_lived_real_coverage_evidence(self) -> None:
         workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 

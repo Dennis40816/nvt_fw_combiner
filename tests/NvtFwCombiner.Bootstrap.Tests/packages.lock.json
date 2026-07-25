@@ -203,6 +203,12 @@
           "NvtFwCombiner.Profiles": "[0.10.0, )"
         }
       },
+      "nvtfwcombiner.cli": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Bootstrap": "[0.10.0, )"
+        }
+      },
       "nvtfwcombiner.contracts": {
         "type": "Project"
       },

@@ -209,6 +209,7 @@ EXPECTED_PROJECT_REFERENCES = {
     },
     "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj": {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+        "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),
@@ -871,6 +872,131 @@ def validate_production_source_ownership(
         )
 
 
+def evaluate_project_items(
+    project_path: Path, errors: list[str]
+) -> dict[str, list[dict[str, Any]]] | None:
+    """Read evaluated Compile and Analyzer items, including imported package targets."""
+
+    assets_file = project_path.parent / "obj" / "project.assets.json"
+    if not assets_file.is_file():
+        errors.append(
+            f"production MSBuild evaluation requires restored assets: {project_path.relative_to(ROOT).as_posix()}"
+        )
+        return None
+    executable_name = "dotnet.exe" if sys.platform == "win32" else "dotnet"
+    repository_dotnet = ROOT / ".dotnet" / executable_name
+    dotnet = str(repository_dotnet) if repository_dotnet.is_file() else "dotnet"
+    try:
+        result = subprocess.run(
+            [
+                dotnet,
+                "msbuild",
+                str(project_path),
+                "-nologo",
+                "-getItem:Compile",
+                "-getItem:Analyzer",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        errors.append(
+            f"could not start production MSBuild evaluation for {project_path.relative_to(ROOT).as_posix()}: {exc}"
+        )
+        return None
+    if result.returncode != 0:
+        errors.append(
+            f"could not evaluate production MSBuild items for {project_path.relative_to(ROOT).as_posix()}: {result.stderr.strip() or result.stdout.strip()}"
+        )
+        return None
+    try:
+        document = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        errors.append(
+            f"could not parse evaluated production MSBuild items for {project_path.relative_to(ROOT).as_posix()}: {exc.msg}"
+        )
+        return None
+    items = document.get("Items") if isinstance(document, dict) else None
+    if not isinstance(items, dict):
+        errors.append(
+            f"evaluated production MSBuild items are invalid for {project_path.relative_to(ROOT).as_posix()}"
+        )
+        return None
+    typed_items: dict[str, list[dict[str, Any]]] = {}
+    for kind in ("Compile", "Analyzer"):
+        value = items.get(kind)
+        if not isinstance(value, list) or not all(
+            isinstance(item, dict) for item in value
+        ):
+            errors.append(
+                f"evaluated production MSBuild {kind} items are invalid for {project_path.relative_to(ROOT).as_posix()}"
+            )
+            return None
+        typed_items[kind] = value
+    return typed_items
+
+
+def validate_evaluated_production_source_ownership(
+    relative: str,
+    project_directory: Path,
+    items: dict[str, list[dict[str, Any]]],
+    errors: list[str],
+) -> None:
+    """Reject imported/packaged sources that escape the owned production tree."""
+
+    if not relative.startswith("src/"):
+        return
+    owned_directory = project_directory.resolve()
+    for compile_item in items["Compile"]:
+        full_path = compile_item.get("FullPath")
+        if not isinstance(full_path, str):
+            errors.append(
+                f"production project has an invalid evaluated Compile item: {relative}"
+            )
+            continue
+        try:
+            Path(full_path).resolve().relative_to(owned_directory)
+        except ValueError:
+            errors.append(
+                f"production project must not add an evaluated Compile item outside its owned source tree: {relative} -> {full_path}"
+            )
+    for analyzer in items["Analyzer"]:
+        if analyzer.get("IsImplicitlyDefined") == "true":
+            continue
+        identity = analyzer.get("Identity", "<implicit>")
+        errors.append(
+            f"production project must not add an evaluated analyzer without an explicit architecture decision: {relative} -> {identity}"
+        )
+
+
+def validate_coverage_collector_pin(errors: list[str]) -> None:
+    """Keep the baseline's coverage collector identities reproducible in CI."""
+
+    pyproject = tomllib.loads(
+        (ROOT / "tools/crc-worker/pyproject.toml").read_text(encoding="utf-8")
+    )
+    development_dependencies = (
+        pyproject.get("project", {}).get("optional-dependencies", {}).get("dev")
+    )
+    expected = {"coverage==7.14.3", "pytest-cov==6.3.0"}
+    collector_dependencies = (
+        {
+            dependency
+            for dependency in development_dependencies
+            if isinstance(dependency, str)
+            and dependency.casefold().startswith(("coverage", "pytest-cov"))
+        }
+        if isinstance(development_dependencies, list)
+        else set()
+    )
+    if collector_dependencies != expected:
+        errors.append(
+            "tools/crc-worker/pyproject.toml must exactly pin the approved Python coverage collector versions"
+        )
+
+
 def validate_solution_and_dependencies(errors: list[str]) -> None:
     solution_root = ET.parse(ROOT / "NvtFwCombiner.slnx").getroot()
     solution_projects = {
@@ -899,6 +1025,12 @@ def validate_solution_and_dependencies(errors: list[str]) -> None:
                     f"production/test project includes refcode: {relative} -> {include}"
                 )
         validate_production_source_ownership(relative, root, errors)
+        if relative.startswith("src/"):
+            evaluated_items = evaluate_project_items(project_path, errors)
+            if evaluated_items is not None:
+                validate_evaluated_production_source_ownership(
+                    relative, project_path.parent, evaluated_items, errors
+                )
 
 
 def validate_contract_model(errors: list[str]) -> None:
@@ -1093,6 +1225,7 @@ def validate() -> list[str]:
         load_baseline(ROOT / "docs/contracts/coverage-baseline-v1.json")
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         errors.append(f"coverage baseline validation failed: {exc}")
+    validate_coverage_collector_pin(errors)
     validate_workflows(errors)
     validate_packaging_policy(files, errors)
     validate_agent_files(errors)

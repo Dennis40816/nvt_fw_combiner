@@ -8,8 +8,9 @@ and branch counts, not test counts.
 
 - .NET is collected from every solution test project by the test-only,
   centrally pinned `coverlet.collector` 6.0.4 package in Cobertura format.
-- Python is collected from `tools/crc-worker` by its existing
-  `pytest-cov`/`coverage.py` development dependency in JSON format.
+- Python is collected from `tools/crc-worker` by the exactly pinned
+  `pytest-cov` 6.3.0 / `coverage.py` 7.14.3 development dependencies in JSON
+  format.
 - Both report directories are recreated below ignored `artifacts/coverage/`.
   They are review evidence, not release inputs or source artifacts.
 
@@ -24,13 +25,15 @@ rejects a decrease in that language's overall line or branch rate. Rates are
 compared as integer fractions, so a changed number of executable lines cannot
 hide a regression by rounding.
 
-For `Domain` and `Application`, the checked-in baseline additionally records
-the nonblank production-line count. A module is substantially changed at the
-earlier of 20 changed lines or 10% of its baseline nonblank lines. The change
-count is calculated from zero-context Git hunks relative to the fixed baseline:
-an added, removed, or substituted physical source line counts once; untracked
-new C# files are included. On a substantial change the module must not regress
-from its own baseline and must meet at least 85% line and 80% branch coverage.
+The baseline records every production assembly, so a missing report cannot be
+hidden by the aggregate total. For `Domain` and `Application`, it additionally
+records the nonblank production-line count. A module is substantially changed
+at the earlier of 20 changed lines or 10% of its baseline nonblank lines. The
+change count is calculated from zero-context Git hunks relative to the fixed
+baseline: an added, removed, or substituted physical source line counts once;
+untracked new C# files, including blank physical lines, are included. On a
+substantial change the module must not regress from its own baseline and must
+meet at least 85% line and 80% branch coverage.
 
 This is deliberately not a premature repository-wide 85%/80% fail-under. The
 existing baseline remains visible and non-decreasing while the maintainability
@@ -38,8 +41,11 @@ program raises coverage where it changes product code.
 
 The non-UI production metric counts physical source files, so it cannot be
 reduced by moving compiled C# into an excluded directory. Repository validation
-rejects explicit `Compile Include` and explicit source-generating `Analyzer`
-entries in production projects; either requires a reviewed architecture change.
+rejects explicit or evaluated `Compile` items outside a production project's
+owned source tree, and source-generating `Analyzer` items introduced directly,
+through imported MSBuild, or by a package; either requires a reviewed
+architecture change. Evaluated checks require restored project assets and fail
+closed when those assets are absent.
 Generated/cache directories remain forbidden tracked content, and the existing
 .NET/Ruff format checks prevent layout-only compression from becoming a metric
 escape hatch. Tests are excluded from the size metric, but deleting or weakening

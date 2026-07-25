@@ -9,12 +9,14 @@ import unittest
 from pathlib import Path
 
 from scripts.coverage_policy import (
+    BASELINE_PATH,
     CoverageInventory,
     CoverageMeasure,
     CoverageSummary,
     _relative_source_path,
     changed_lines_from_zero_context_diff,
     changed_module_lines,
+    load_baseline,
     parse_dotnet_cobertura_reports,
     parse_python_coverage_report,
     validate_inventory,
@@ -83,12 +85,12 @@ class CoveragePolicyTests(unittest.TestCase):
 
     def test_parses_and_conservatively_merges_dotnet_cobertura_reports(self) -> None:
         domain_source_root = (self.root / "src/NvtFwCombiner.Domain").as_posix()
-        first = """<coverage><packages><package><classes><class filename=\"src/NvtFwCombiner.Domain/Thing.cs\"><lines>
-<line number=\"10\" hits=\"1\" branch=\"True\" condition-coverage=\"50% (1/2)\" />
+        first = """<coverage><packages><package><classes><class name=\"Thing\" filename=\"src/NvtFwCombiner.Domain/Thing.cs\"><lines>
+<line number=\"10\" hits=\"1\" branch=\"True\" condition-coverage=\"50% (1/2)\"><conditions><condition number=\"1\" type=\"jump\" coverage=\"50%\" /></conditions></line>
 <line number=\"11\" hits=\"0\" />
 </lines></class></classes></package></packages></coverage>"""
-        second = f"""<coverage><sources><source>{domain_source_root}</source></sources><packages><package><classes><class filename=\"Thing.cs\"><lines>
-<line number=\"10\" hits=\"0\" branch=\"True\" condition-coverage=\"100% (2/2)\" />
+        second = f"""<coverage><sources><source>{domain_source_root}</source></sources><packages><package><classes><class name=\"Thing\" filename=\"Thing.cs\"><lines>
+<line number=\"10\" hits=\"0\" branch=\"True\" condition-coverage=\"100% (2/2)\"><conditions><condition number=\"1\" type=\"jump\" coverage=\"100%\" /></conditions></line>
 </lines></class></classes></package></packages></coverage>"""
         self.write("reports/a/coverage.cobertura.xml", first)
         self.write("reports/b/coverage.cobertura.xml", second)
@@ -101,6 +103,32 @@ class CoveragePolicyTests(unittest.TestCase):
 
         self.assertEqual(summary(1, 2, 2, 2), inventory.overall)
         self.assertEqual(summary(1, 2, 2, 2), inventory.modules["Domain"])
+
+    def test_preserves_distinct_branch_identities_on_one_source_line(self) -> None:
+        report = """<coverage><packages><package><classes>
+<class name=\"First\" filename=\"src/NvtFwCombiner.Domain/Thing.cs\"><lines>
+<line number=\"10\" hits=\"1\" branch=\"True\" condition-coverage=\"50% (1/2)\"><conditions><condition number=\"1\" type=\"jump\" coverage=\"50%\" /></conditions></line>
+</lines></class>
+<class name=\"Second\" filename=\"src/NvtFwCombiner.Domain/Thing.cs\"><lines>
+<line number=\"10\" hits=\"0\" branch=\"True\" condition-coverage=\"50% (1/2)\"><conditions><condition number=\"2\" type=\"jump\" coverage=\"50%\" /></conditions></line>
+</lines></class>
+</classes></package></packages></coverage>"""
+        self.write("reports/coverage.cobertura.xml", report)
+
+        inventory = parse_dotnet_cobertura_reports(self.root / "reports", self.root)
+
+        self.assertEqual(summary(1, 1, 2, 4), inventory.overall)
+
+    def test_rejects_branch_report_without_a_condition_identity(self) -> None:
+        report = """<coverage><packages><package><classes>
+<class name="Thing" filename="src/NvtFwCombiner.Domain/Thing.cs"><lines>
+<line number="10" hits="1" branch="True" condition-coverage="50% (1/2)" />
+</lines></class>
+</classes></package></packages></coverage>"""
+        self.write("reports/coverage.cobertura.xml", report)
+
+        with self.assertRaisesRegex(ValueError, "no condition identity"):
+            parse_dotnet_cobertura_reports(self.root / "reports", self.root)
 
     def test_parses_python_json_branch_and_line_summary(self) -> None:
         report = {
@@ -164,9 +192,7 @@ class CoveragePolicyTests(unittest.TestCase):
             "./src/../../outside.cs",
         ):
             with self.subTest(spelling=spelling):
-                with self.assertRaisesRegex(
-                    ValueError, "outside the repository root"
-                ):
+                with self.assertRaisesRegex(ValueError, "outside the repository root"):
                     _relative_source_path(spelling, self.root)
 
     def test_counts_zero_context_substitution_once(self) -> None:
@@ -199,6 +225,28 @@ class CoveragePolicyTests(unittest.TestCase):
         changed = changed_module_lines(self.root, baseline_revision, module)
 
         self.assertEqual(0, changed)
+
+    def test_changed_module_counts_blank_lines_in_untracked_source(self) -> None:
+        module = Path("src/NvtFwCombiner.Domain")
+        self.write(f"{module}/Thing.cs", "class Thing {}\n")
+        self.run_git("init", "--quiet")
+        self.run_git("add", ".")
+        self.run_git(
+            "-c",
+            "user.name=Coverage Test",
+            "-c",
+            "user.email=coverage@example.invalid",
+            "commit",
+            "--quiet",
+            "-m",
+            "baseline",
+        )
+        baseline_revision = self.run_git("rev-parse", "HEAD").strip()
+        self.write(f"{module}/New.cs", "\n\nclass New {}\n")
+
+        changed = changed_module_lines(self.root, baseline_revision, module)
+
+        self.assertEqual(3, changed)
 
     def test_rejects_overall_coverage_regression(self) -> None:
         current = CoverageInventory(
@@ -251,6 +299,24 @@ class CoveragePolicyTests(unittest.TestCase):
         errors = validate_inventory(current, baseline(), "python")
 
         self.assertTrue(any("nfc_crc_worker is missing" in error for error in errors))
+
+    def test_rejects_boolean_coverage_counts_in_baseline(self) -> None:
+        document = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+        document["languages"]["dotnet"]["overall"]["lines"]["covered"] = True
+        path = self.write("coverage-baseline.json", json.dumps(document))
+
+        with self.assertRaisesRegex(ValueError, "integer covered and total"):
+            load_baseline(path)
+
+    def test_missing_production_assembly_fails_inventory_integrity(self) -> None:
+        baseline_document = load_baseline()
+        current = CoverageInventory(
+            summary(1, 1, 0, 0), {"Domain": summary(1, 1, 0, 0)}
+        )
+
+        errors = validate_inventory(current, baseline_document, "dotnet")
+
+        self.assertTrue(any("Cli is missing" in error for error in errors))
 
 
 if __name__ == "__main__":

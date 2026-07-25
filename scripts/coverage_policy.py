@@ -23,10 +23,17 @@ SCHEMA_VERSION = "1.0"
 DOTNET_LANGUAGE = "dotnet"
 PYTHON_LANGUAGE = "python"
 LANGUAGES = frozenset({DOTNET_LANGUAGE, PYTHON_LANGUAGE})
-RATCHET_MODULES = {
+PRODUCTION_MODULES = {
     "Domain": Path("src/NvtFwCombiner.Domain"),
+    "Contracts": Path("src/NvtFwCombiner.Contracts"),
     "Application": Path("src/NvtFwCombiner.Application"),
+    "Profiles": Path("src/NvtFwCombiner.Profiles"),
+    "Infrastructure": Path("src/NvtFwCombiner.Infrastructure"),
+    "Bootstrap": Path("src/NvtFwCombiner.Bootstrap"),
+    "Cli": Path("src/NvtFwCombiner.Cli"),
+    "PresentationAvalonia": Path("src/NvtFwCombiner.Presentation.Avalonia"),
 }
+RATCHET_MODULES = {name: PRODUCTION_MODULES[name] for name in ("Domain", "Application")}
 CONDITION_COVERAGE_PATTERN = re.compile(r"\((?P<covered>\d+)\s*/\s*(?P<total>\d+)\)")
 FULL_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 HUNK_PATTERN = re.compile(
@@ -103,8 +110,7 @@ class CoverageInventory:
 @dataclass(frozen=True)
 class _CoverageLine:
     line_hit: bool
-    covered_branches: int
-    total_branches: int
+    branches: dict[str, CoverageMeasure]
 
 
 def _document_measure(document: Any, label: str) -> CoverageMeasure:
@@ -112,7 +118,12 @@ def _document_measure(document: Any, label: str) -> CoverageMeasure:
         raise ValueError(f"{label} must be an object")
     covered = document.get("covered")
     total = document.get("total")
-    if not isinstance(covered, int) or not isinstance(total, int):
+    if (
+        not isinstance(covered, int)
+        or isinstance(covered, bool)
+        or not isinstance(total, int)
+        or isinstance(total, bool)
+    ):
         raise ValueError(f"{label} must contain integer covered and total values")
     return CoverageMeasure(covered, total)
 
@@ -164,6 +175,8 @@ def load_baseline(path: Path = BASELINE_PATH) -> dict[str, Any]:
         )
     if collection[PYTHON_LANGUAGE] != {
         "collector": "pytest-cov / coverage.py",
+        "pytestCovVersion": "6.3.0",
+        "coveragePyVersion": "7.14.3",
         "format": "coverage-json",
     }:
         raise ValueError(
@@ -183,6 +196,10 @@ def load_baseline(path: Path = BASELINE_PATH) -> dict[str, Any]:
         modules = language_document.get("modules")
         if not isinstance(modules, dict):
             raise ValueError(f"coverage baseline {language}.modules must be an object")
+        if language == DOTNET_LANGUAGE and set(modules) != set(PRODUCTION_MODULES):
+            raise ValueError(
+                "coverage baseline dotnet.modules must define every production assembly"
+            )
         for name, summary in modules.items():
             if not isinstance(name, str) or not name:
                 raise ValueError(
@@ -248,7 +265,7 @@ def _relative_source_path(
 
 def _module_name(relative_path: str, language: str) -> str | None:
     if language == DOTNET_LANGUAGE:
-        for name, directory in RATCHET_MODULES.items():
+        for name, directory in PRODUCTION_MODULES.items():
             if relative_path.startswith(f"{directory.as_posix()}/"):
                 return name
         return None
@@ -268,12 +285,49 @@ def _is_generated_path(relative_path: str) -> bool:
 
 def _summary_from_lines(lines: Iterable[_CoverageLine]) -> CoverageSummary:
     records = tuple(lines)
+    branches = tuple(
+        branch for record in records for branch in record.branches.values()
+    )
     return CoverageSummary(
         CoverageMeasure(sum(record.line_hit for record in records), len(records)),
         CoverageMeasure(
-            sum(record.covered_branches for record in records),
-            sum(record.total_branches for record in records),
+            sum(branch.covered for branch in branches),
+            sum(branch.total for branch in branches),
         ),
+    )
+
+
+def _branch_group_identity(
+    class_node: element_tree.Element,
+    relative_path: str,
+    line_number: int,
+    line_node: element_tree.Element,
+) -> str:
+    """Give one Cobertura condition group a stable source-level identity.
+
+    Coverlet reports the aggregate numerator/denominator on the line and emits
+    the individual condition numbers beneath it. A physical source line may be
+    shared by distinct generated classes or condition groups, so collapsing it
+    to a single count loses branch identities. The complete condition-number
+    set is the narrowest identity available in Cobertura without inventing
+    branch data that the report did not provide.
+    """
+
+    condition_numbers = sorted(
+        condition.get("number", "")
+        for condition in line_node.findall("./conditions/condition")
+    )
+    if not condition_numbers or any(not number for number in condition_numbers):
+        raise ValueError(
+            f"Cobertura branch line {relative_path}:{line_number} has no condition identity"
+        )
+    class_name = class_node.get("name")
+    if not class_name:
+        raise ValueError(
+            f"Cobertura branch line {relative_path}:{line_number} has no class identity"
+        )
+    return "|".join(
+        (class_name, relative_path, str(line_number), ",".join(condition_numbers))
     )
 
 
@@ -282,9 +336,11 @@ def parse_dotnet_cobertura_reports(
 ) -> CoverageInventory:
     """Merge Coverlet Cobertura reports conservatively by source line.
 
-    A source line can be included by multiple test assemblies. The report format
-    has counts rather than per-branch identities, so the maximum observed hit
-    count is safe and never claims coverage from summing duplicate reports.
+    A source line can be included by multiple test assemblies. Physical line
+    hits are merged by source line, while branch totals retain their Cobertura
+    class/condition-group identity. Repeated observations of the same identity
+    use the maximum hit count; distinct branch groups on the same source line
+    are never collapsed.
     """
 
     reports = sorted(report_root.rglob("coverage.cobertura.xml"))
@@ -317,8 +373,7 @@ def parse_dotnet_cobertura_reports(
                     )
                 line_number = int(number)
                 line_hit = int(hits) > 0
-                total_branches = 0
-                covered_branches = 0
+                branches: dict[str, CoverageMeasure] = {}
                 if line_node.get("branch") == "True":
                     condition = line_node.get("condition-coverage")
                     match = CONDITION_COVERAGE_PATTERN.search(condition or "")
@@ -326,25 +381,35 @@ def parse_dotnet_cobertura_reports(
                         raise ValueError(
                             f"{report} line {line_number} has invalid condition coverage"
                         )
-                    covered_branches = int(match.group("covered"))
-                    total_branches = int(match.group("total"))
+                    branch = CoverageMeasure(
+                        int(match.group("covered")), int(match.group("total"))
+                    )
+                    branches[
+                        _branch_group_identity(
+                            class_node, relative_path, line_number, line_node
+                        )
+                    ] = branch
                 existing = file_records.get(line_number)
                 if existing is None:
-                    file_records[line_number] = _CoverageLine(
-                        line_hit, covered_branches, total_branches
-                    )
+                    file_records[line_number] = _CoverageLine(line_hit, branches)
                 else:
-                    if (
-                        existing.total_branches not in (0, total_branches)
-                        and total_branches
-                    ):
-                        raise ValueError(
-                            f"{report} line {line_number} disagrees about branch count"
+                    merged_branches = dict(existing.branches)
+                    for identity, branch in branches.items():
+                        observed = merged_branches.get(identity)
+                        if observed is not None and observed.total != branch.total:
+                            raise ValueError(
+                                f"{report} line {line_number} disagrees about branch count"
+                            )
+                        merged_branches[identity] = (
+                            branch
+                            if observed is None
+                            else CoverageMeasure(
+                                max(observed.covered, branch.covered), branch.total
+                            )
                         )
                     file_records[line_number] = _CoverageLine(
                         existing.line_hit or line_hit,
-                        max(existing.covered_branches, covered_branches),
-                        max(existing.total_branches, total_branches),
+                        merged_branches,
                     )
 
     all_records: list[_CoverageLine] = []
@@ -488,10 +553,7 @@ def changed_module_lines(root: Path, base_revision: str, module_path: Path) -> i
     for relative_path in untracked:
         candidate = root / relative_path
         if _is_physical_csharp_source(relative_path) and candidate.is_file():
-            changed += sum(
-                bool(line.strip())
-                for line in candidate.read_text(encoding="utf-8-sig").splitlines()
-            )
+            changed += len(candidate.read_text(encoding="utf-8-sig").splitlines())
     return changed
 
 
