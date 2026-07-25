@@ -506,6 +506,108 @@ public sealed class SupportMatrixMaterializerTests
                 EvidenceCatalog()));
     }
 
+    /// <summary>A canonical superseded id still fails when no prior snapshot proves it existed.</summary>
+    [Fact]
+    public void RejectsUnprovenSupersededDecisionId()
+    {
+        SupportRouteDescriptor route = Route();
+        SupportPublicationPolicySnapshot policy = new(
+            "support-publication-policy",
+            "2.0.0",
+            new string('a', 64),
+            [new SupportPublicationDecision(
+                "candidate-route-v2",
+                route.RouteId,
+                SupportPublicationStatus.Candidate,
+                Provenance(),
+                ["misspelled-prior-decision"])],
+            "1.0.0",
+            new string('b', 64));
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            SupportPublicationPolicyValidator.Validate(policy));
+    }
+
+    /// <summary>A superseded id must be present in the exact prior policy snapshot.</summary>
+    [Fact]
+    public void RejectsSupersededDecisionIdAbsentFromPriorPolicy()
+    {
+        SupportRouteDescriptor route = Route();
+        SupportPublicationPolicySnapshot prior = Policy(new SupportPublicationDecision(
+            "actual-prior-decision",
+            route.RouteId,
+            SupportPublicationStatus.TestOnly,
+            Provenance()));
+        SupportPublicationPolicySnapshot policy = new(
+            "support-publication-policy",
+            "2.0.0",
+            new string('b', 64),
+            [new SupportPublicationDecision(
+                "candidate-route-v2",
+                route.RouteId,
+                SupportPublicationStatus.Candidate,
+                Provenance(),
+                ["misspelled-prior-decision"])],
+            prior.PolicyVersion,
+            prior.Sha256);
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            SupportPublicationPolicyValidator.Validate(policy, prior));
+    }
+
+    /// <summary>An exact prior policy snapshot closes a valid supersession relationship.</summary>
+    [Fact]
+    public void AcceptsSupersededDecisionIdFromPriorPolicy()
+    {
+        SupportRouteDescriptor route = Route();
+        SupportPublicationPolicySnapshot prior = Policy(new SupportPublicationDecision(
+            "prior-candidate-route",
+            route.RouteId,
+            SupportPublicationStatus.TestOnly,
+            Provenance()));
+        SupportPublicationPolicySnapshot policy = new(
+            "support-publication-policy",
+            "2.0.0",
+            new string('b', 64),
+            [new SupportPublicationDecision(
+                "candidate-route-v2",
+                route.RouteId,
+                SupportPublicationStatus.Candidate,
+                Provenance(),
+                ["prior-candidate-route"])],
+            prior.PolicyVersion,
+            prior.Sha256);
+
+        SupportPublicationPolicyValidator.Validate(policy, prior);
+    }
+
+    /// <summary>A same-id and same-version snapshot cannot replace the exact pinned predecessor.</summary>
+    [Fact]
+    public void RejectsPriorPolicyWithDifferentSha256()
+    {
+        SupportRouteDescriptor route = Route();
+        SupportPublicationPolicySnapshot prior = Policy(new SupportPublicationDecision(
+            "prior-candidate-route",
+            route.RouteId,
+            SupportPublicationStatus.TestOnly,
+            Provenance()));
+        SupportPublicationPolicySnapshot policy = new(
+            "support-publication-policy",
+            "2.0.0",
+            new string('b', 64),
+            [new SupportPublicationDecision(
+                "candidate-route-v2",
+                route.RouteId,
+                SupportPublicationStatus.Candidate,
+                Provenance(),
+                ["prior-candidate-route"])],
+            prior.PolicyVersion,
+            new string('c', 64));
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            SupportPublicationPolicyValidator.Validate(policy, prior));
+    }
+
     /// <summary>Duplicate exact routes cannot enter one snapshot.</summary>
     [Fact]
     public void RejectsDuplicateExactRoutes()
@@ -537,7 +639,21 @@ public sealed class SupportMatrixMaterializerTests
             "2.0.0",
             new string('a', 64),
             decisions,
-            "1.0.0");
+            "1.0.0",
+            new string('b', 64));
+        SupportPublicationPolicySnapshot priorPolicy = Policy(
+            new SupportPublicationDecision(
+                "old-decision",
+                route.RouteId,
+                SupportPublicationStatus.TestOnly,
+                Provenance()));
+        policy = new SupportPublicationPolicySnapshot(
+            policy.PolicyId,
+            policy.PolicyVersion,
+            policy.Sha256,
+            policy.Decisions,
+            policy.SupersedesPolicyVersion,
+            priorPolicy.Sha256);
         string[] counts = ["single"];
         string[] maps = ["nt51950-ab-merge-512k"];
         SupportEvidenceFactScope scope = new(
@@ -561,7 +677,8 @@ public sealed class SupportMatrixMaterializerTests
         SupportMatrix matrix = SupportMatrixMaterializer.Materialize(
             policy,
             [route],
-            evidence);
+            evidence,
+            supersededPolicy: priorPolicy);
 
         supersededIds[0] = "mutated-decision";
         decisions[0] = new SupportPublicationDecision(

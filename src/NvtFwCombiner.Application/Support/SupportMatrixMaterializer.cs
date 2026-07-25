@@ -26,14 +26,15 @@ public static class SupportMatrixMaterializer
         SupportPublicationPolicySnapshot policy,
         IEnumerable<SupportRouteDescriptor> routes,
         SupportEvidenceCatalogSnapshot evidenceCatalog,
-        IEnumerable<SupportUnresolvedScope>? unresolvedScopes = null)
+        IEnumerable<SupportUnresolvedScope>? unresolvedScopes = null,
+        SupportPublicationPolicySnapshot? supersededPolicy = null)
     {
         ArgumentNullException.ThrowIfNull(policy);
         ArgumentNullException.ThrowIfNull(routes);
         ArgumentNullException.ThrowIfNull(evidenceCatalog);
 
         SupportRouteDescriptor[] routeArray = [.. routes];
-        SupportPublicationPolicyValidator.Validate(policy);
+        SupportPublicationPolicyValidator.Validate(policy, supersededPolicy);
         ValidateRoutes(routeArray);
         Dictionary<string, SupportRouteDescriptor> routesById = routeArray.ToDictionary(
             static route => route.RouteId,

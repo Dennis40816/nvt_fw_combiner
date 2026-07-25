@@ -4,9 +4,72 @@ namespace NvtFwCombiner.Application.Support;
 public static class SupportPublicationPolicyValidator
 {
     /// <summary>Rejects an invalid or ambiguous publication snapshot.</summary>
-    public static void Validate(SupportPublicationPolicySnapshot policy)
+    public static void Validate(
+        SupportPublicationPolicySnapshot policy,
+        SupportPublicationPolicySnapshot? supersededPolicy = null)
     {
         ArgumentNullException.ThrowIfNull(policy);
+        ValidateSnapshot(policy);
+
+        bool supersedesDecisions = policy.Decisions.Any(
+            static decision => decision.SupersedesDecisionIds.Count != 0);
+        bool supersedesPolicy = policy.SupersedesPolicyVersion is not null;
+        if (supersedesPolicy != (policy.SupersedesPolicySha256 is not null))
+        {
+            throw new ArgumentException(
+                "Policy supersession requires both the prior version and SHA-256.",
+                nameof(policy));
+        }
+
+        if (!supersedesPolicy)
+        {
+            if (supersedesDecisions || supersededPolicy is not null)
+            {
+                throw new ArgumentException(
+                    "Decision supersession requires an exact prior policy snapshot and version.",
+                    nameof(policy));
+            }
+
+            return;
+        }
+
+        if (supersededPolicy is null)
+        {
+            throw new ArgumentException(
+                "Policy supersession requires the exact prior policy snapshot.",
+                nameof(supersededPolicy));
+        }
+
+        ValidateSnapshot(supersededPolicy);
+        if (!StringComparer.Ordinal.Equals(
+                policy.PolicyId,
+                supersededPolicy.PolicyId) ||
+            !StringComparer.Ordinal.Equals(
+                policy.SupersedesPolicyVersion,
+                supersededPolicy.PolicyVersion) ||
+            !StringComparer.Ordinal.Equals(
+                policy.SupersedesPolicySha256,
+                supersededPolicy.Sha256))
+        {
+            throw new ArgumentException(
+                "The supplied prior policy must match the superseded policy id, version, and SHA-256.",
+                nameof(supersededPolicy));
+        }
+
+        HashSet<string> priorDecisionIds =
+            [.. supersededPolicy.Decisions.Select(static decision => decision.DecisionId)];
+        if (policy.Decisions
+            .SelectMany(static decision => decision.SupersedesDecisionIds)
+            .Any(supersededId => !priorDecisionIds.Contains(supersededId)))
+        {
+            throw new ArgumentException(
+                "Every superseded decision id must exist in the supplied prior policy.",
+                nameof(policy));
+        }
+    }
+
+    private static void ValidateSnapshot(SupportPublicationPolicySnapshot policy)
+    {
         ValidateText(policy.PolicyId, nameof(policy.PolicyId));
         ValidateText(policy.PolicyVersion, nameof(policy.PolicyVersion));
         if (policy.Sha256.Length != 64 ||
@@ -31,6 +94,13 @@ public static class SupportPublicationPolicyValidator
                     "Publication policy cannot supersede its own version.",
                     nameof(policy));
             }
+        }
+
+        if (policy.SupersedesPolicySha256 is not null)
+        {
+            ValidateSha256(
+                policy.SupersedesPolicySha256,
+                "Superseded publication policy SHA-256");
         }
 
         if (policy.Decisions.Any(static decision => decision is null) ||
@@ -99,5 +169,16 @@ public static class SupportPublicationPolicyValidator
     private static void ValidateText(string value, string parameterName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+    }
+
+    private static void ValidateSha256(string value, string fieldName)
+    {
+        if (value.Length != 64 ||
+            value.Any(static character =>
+                character is not ((>= '0' and <= '9') or (>= 'a' and <= 'f'))))
+        {
+            throw new ArgumentException(
+                $"{fieldName} must be 64 lowercase hexadecimal characters.");
+        }
     }
 }

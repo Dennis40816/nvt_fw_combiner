@@ -101,13 +101,15 @@ public sealed record SupportPublicationPolicySnapshot
         string policyVersion,
         string sha256,
         IEnumerable<SupportPublicationDecision> decisions,
-        string? supersedesPolicyVersion = null)
+        string? supersedesPolicyVersion = null,
+        string? supersedesPolicySha256 = null)
     {
         PolicyId = policyId;
         PolicyVersion = policyVersion;
         Sha256 = sha256;
         Decisions = SupportSnapshot.Copy(decisions);
         SupersedesPolicyVersion = supersedesPolicyVersion;
+        SupersedesPolicySha256 = supersedesPolicySha256;
     }
 
     /// <summary>Stable policy identity.</summary>
@@ -124,6 +126,9 @@ public sealed record SupportPublicationPolicySnapshot
 
     /// <summary>Optional previous policy version superseded by this snapshot.</summary>
     public string? SupersedesPolicyVersion { get; }
+
+    /// <summary>Reviewed SHA-256 of the exact previous policy snapshot.</summary>
+    public string? SupersedesPolicySha256 { get; }
 }
 
 /// <summary>One explicitly declared fact scope for evidence reuse.</summary>

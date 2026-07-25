@@ -8,20 +8,89 @@ namespace NvtFwCombiner.Infrastructure.Support;
 /// <summary>Loads the owner publication policy after its bytes match the reviewed hash.</summary>
 internal static partial class BuiltInSupportPublicationPolicy
 {
-    private const string RelativePath =
-        "docs/contracts/support-publication-policy-v1.json";
     private const string ExpectedSha256 =
         "e0e9c2dec7a5a3875806d2558d775d094420b305edb7fe63a6e7001290d634ae";
+    internal static IReadOnlyList<PinnedSupportPublicationPolicyFile>
+        HistoryFiles
+    { get; } =
+        Array.AsReadOnly<PinnedSupportPublicationPolicyFile>(
+        [
+            new(
+                "docs/contracts/support-publication-policy-v1.json",
+                ExpectedSha256),
+        ]);
 
     internal static SupportPublicationPolicySnapshot Load()
     {
-        string path = Path.Combine(
-            AppContext.BaseDirectory,
-            RelativePath.Replace('/', Path.DirectorySeparatorChar));
-        return Load(File.ReadAllBytes(path), ExpectedSha256);
+        return LoadFromDirectory(AppContext.BaseDirectory, HistoryFiles);
     }
 
     internal static SupportPublicationPolicySnapshot Load(
+        ReadOnlySpan<byte> bytes,
+        string expectedSha256)
+    {
+        return LoadHistory(
+        [
+            new PinnedSupportPublicationPolicyDocument(
+                bytes.ToArray(),
+                expectedSha256),
+        ]);
+    }
+
+    internal static SupportPublicationPolicySnapshot LoadFromDirectory(
+        string baseDirectory,
+        IReadOnlyList<PinnedSupportPublicationPolicyFile> history)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseDirectory);
+        ArgumentNullException.ThrowIfNull(history);
+        PinnedSupportPublicationPolicyDocument[] documents =
+        [
+            .. history.Select(source =>
+                new PinnedSupportPublicationPolicyDocument(
+                    File.ReadAllBytes(ResolveHistoryPath(
+                        baseDirectory,
+                        source.RelativePath)),
+                    source.ExpectedSha256)),
+        ];
+        return LoadHistory(documents);
+    }
+
+    internal static SupportPublicationPolicySnapshot LoadHistory(
+        IReadOnlyList<PinnedSupportPublicationPolicyDocument> documents)
+    {
+        ArgumentNullException.ThrowIfNull(documents);
+        if (documents.Count == 0)
+        {
+            throw new ArgumentException(
+                "At least one pinned publication policy document is required.",
+                nameof(documents));
+        }
+
+        SupportPublicationPolicySnapshot? previous = null;
+        foreach (PinnedSupportPublicationPolicyDocument source in documents)
+        {
+            SupportPublicationPolicySnapshot snapshot = Parse(
+                source.Bytes.Span,
+                source.ExpectedSha256);
+            try
+            {
+                SupportPublicationPolicyValidator.Validate(snapshot, previous);
+            }
+            catch (ArgumentException exception)
+            {
+                throw new InvalidDataException(
+                    "Built-in support publication policy violates snapshot invariants.",
+                    exception);
+            }
+
+            previous = snapshot;
+        }
+
+        return previous ?? throw new InvalidOperationException(
+            "Pinned publication policy history did not produce a snapshot.");
+    }
+
+    private static SupportPublicationPolicySnapshot Parse(
         ReadOnlySpan<byte> bytes,
         string expectedSha256)
     {
@@ -31,7 +100,8 @@ internal static partial class BuiltInSupportPublicationPolicy
             "Built-in support publication policy",
             "Built-in support publication policy has an invalid empty document.",
             SupportPublicationPolicyJsonContext.Default.PolicyDocument);
-        if (!StringComparer.Ordinal.Equals(document.SchemaVersion, "1.0") ||
+        bool isInvalid =
+            !StringComparer.Ordinal.Equals(document.SchemaVersion, "1.0") ||
             !StringComparer.Ordinal.Equals(
                 document.PolicyId,
                 "support-publication-policy") ||
@@ -39,30 +109,20 @@ internal static partial class BuiltInSupportPublicationPolicy
             !IsSemanticVersion(document.PolicyVersion) ||
             (document.SupersedesPolicyVersion is not null &&
                 !IsSemanticVersion(document.SupersedesPolicyVersion)) ||
+            ((document.SupersedesPolicyVersion is null) !=
+                (document.SupersedesPolicySha256 is null)) ||
             document.Decisions is null ||
-            document.Decisions.Count == 0)
-        {
-            throw Invalid(
-                "schemaVersion, policyId, issuedOn, policyVersion, supersedesPolicyVersion, or decisions");
-        }
-
-        var snapshot = new SupportPublicationPolicySnapshot(
+            document.Decisions.Count == 0;
+        return isInvalid
+            ? throw Invalid(
+                "schemaVersion, policyId, issuedOn, policyVersion, supersession identity, or decisions")
+            : new SupportPublicationPolicySnapshot(
             document.PolicyId,
             document.PolicyVersion,
             PinnedJsonCatalogLoader.ComputeCanonicalSha256(bytes),
-            document.Decisions.Select(CreateDecision),
-            document.SupersedesPolicyVersion);
-        try
-        {
-            SupportPublicationPolicyValidator.Validate(snapshot);
-            return snapshot;
-        }
-        catch (ArgumentException exception)
-        {
-            throw new InvalidDataException(
-                "Built-in support publication policy violates snapshot invariants.",
-                exception);
-        }
+            document.Decisions!.Select(CreateDecision),
+            document.SupersedesPolicyVersion,
+            document.SupersedesPolicySha256);
     }
 
     private static SupportPublicationDecision CreateDecision(DecisionDocument source)
@@ -117,6 +177,28 @@ internal static partial class BuiltInSupportPublicationPolicy
         return new InvalidDataException(
             $"Built-in support publication policy has invalid {field}.");
     }
+
+    private static string ResolveHistoryPath(
+        string baseDirectory,
+        string relativePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+        string root = Path.GetFullPath(baseDirectory);
+        string path = Path.GetFullPath(Path.Combine(
+            root,
+            relativePath.Replace('/', Path.DirectorySeparatorChar)));
+        string relative = Path.GetRelativePath(root, path);
+        bool escapesRoot =
+            Path.IsPathRooted(relative) ||
+            StringComparer.Ordinal.Equals(relative, "..") ||
+            relative.StartsWith(
+                $"..{Path.DirectorySeparatorChar}",
+                StringComparison.Ordinal);
+        return escapesRoot
+            ? throw new InvalidDataException(
+                "Publication policy history path must stay inside its deployment root.")
+            : path;
+    }
 }
 
 /// <summary>Generated metadata for the hash-pinned publication policy.</summary>
@@ -138,8 +220,18 @@ internal sealed record PolicyDocument(
     [property: JsonPropertyName("issuedOn")] string IssuedOn,
     [property: JsonPropertyName("supersedesPolicyVersion")]
     string? SupersedesPolicyVersion,
+    [property: JsonPropertyName("supersedesPolicySha256")]
+    string? SupersedesPolicySha256,
     [property: JsonPropertyName("decisions")]
     IReadOnlyList<DecisionDocument>? Decisions);
+
+internal sealed record PinnedSupportPublicationPolicyDocument(
+    ReadOnlyMemory<byte> Bytes,
+    string ExpectedSha256);
+
+internal sealed record PinnedSupportPublicationPolicyFile(
+    string RelativePath,
+    string ExpectedSha256);
 
 internal sealed record DecisionDocument(
     [property: JsonPropertyName("decisionId")] string DecisionId,

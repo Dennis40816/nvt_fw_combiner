@@ -17,12 +17,23 @@
     "policyVersion": { "$ref": "#/$defs/semver" },
     "issuedOn": { "$ref": "#/$defs/isoDate" },
     "supersedesPolicyVersion": { "$ref": "#/$defs/semver" },
+    "supersedesPolicySha256": { "$ref": "#/$defs/sha256" },
     "decisions": {
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/decision" }
     }
   },
+  "allOf": [
+    {
+      "if": { "required": ["supersedesPolicyVersion"] },
+      "then": { "required": ["supersedesPolicySha256"] }
+    },
+    {
+      "if": { "required": ["supersedesPolicySha256"] },
+      "then": { "required": ["supersedesPolicyVersion"] }
+    }
+  ],
   "$defs": {
     "id": {
       "type": "string",
@@ -36,6 +47,10 @@
       "type": "string",
       "format": "date",
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
     },
     "publicationStatus": {
       "enum": ["supported", "candidate", "internal", "test-only", "unclassified"]

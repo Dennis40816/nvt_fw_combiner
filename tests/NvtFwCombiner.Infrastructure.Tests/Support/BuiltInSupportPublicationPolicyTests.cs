@@ -34,34 +34,38 @@ public sealed class BuiltInSupportPublicationPolicyTests
     [Fact]
     public void PolicyIsDeployedAndDeclaredForPublish()
     {
-        string relativePath = Path.Combine(
-            "docs",
-            "contracts",
-            "support-publication-policy-v1.json");
-        string deployedPath = Path.Combine(
-            AppContext.BaseDirectory,
-            relativePath);
         string projectPath = RepositoryPaths.FromRepositoryRoot(
             "src",
             "NvtFwCombiner.Infrastructure",
             "NvtFwCombiner.Infrastructure.csproj");
-        XElement content = Assert.Single(
-            XDocument.Load(projectPath).Descendants(),
-            element =>
-                element.Name.LocalName == "Content" &&
-                NormalizePath((string?)element.Attribute("Include")) ==
-                    "docs/contracts/support-publication-policy-v1.json");
+        XDocument project = XDocument.Load(projectPath);
+        Assert.NotEmpty(BuiltInSupportPublicationPolicy.HistoryFiles);
+        foreach (PinnedSupportPublicationPolicyFile source in
+                 BuiltInSupportPublicationPolicy.HistoryFiles)
+        {
+            string deployedPath = Path.Combine(
+                AppContext.BaseDirectory,
+                source.RelativePath.Replace(
+                    '/',
+                    Path.DirectorySeparatorChar));
+            XElement content = Assert.Single(
+                project.Descendants(),
+                element =>
+                    element.Name.LocalName == "Content" &&
+                    NormalizePath((string?)element.Attribute("Include")) ==
+                        source.RelativePath);
 
-        Assert.True(File.Exists(deployedPath), deployedPath);
-        Assert.Equal(
-            "docs/contracts/support-publication-policy-v1.json",
-            NormalizePath((string?)content.Attribute("Link")));
-        Assert.Equal(
-            "PreserveNewest",
-            (string?)content.Attribute("CopyToOutputDirectory"));
-        Assert.Equal(
-            "PreserveNewest",
-            (string?)content.Attribute("CopyToPublishDirectory"));
+            Assert.True(File.Exists(deployedPath), deployedPath);
+            Assert.Equal(
+                source.RelativePath,
+                NormalizePath((string?)content.Attribute("Link")));
+            Assert.Equal(
+                "PreserveNewest",
+                (string?)content.Attribute("CopyToOutputDirectory"));
+            Assert.Equal(
+                "PreserveNewest",
+                (string?)content.Attribute("CopyToPublishDirectory"));
+        }
     }
 
     /// <summary>A one-byte mutation fails before status materialization.</summary>
@@ -95,22 +99,98 @@ public sealed class BuiltInSupportPublicationPolicyTests
         AssertInvalidPolicy(wrongCase.ToJsonString(), "JSON is invalid");
     }
 
-    /// <summary>Policy and decision supersession metadata remains immutable.</summary>
+    /// <summary>Policy and decision supersession load only through an ordered hash-pinned history.</summary>
     [Fact]
     public void RetainsValidSupersessionMetadata()
     {
-        byte[] bytes = Encoding.UTF8.GetBytes(
-            CreatePolicyObject("1.0.0", "prior-decision").ToJsonString());
+        byte[] priorBytes = Encoding.UTF8.GetBytes(
+            CreatePolicyObject(
+                policyVersion: "1.0.0",
+                decisionId: "prior-decision").ToJsonString());
+        string priorSha256 =
+            PinnedJsonCatalogLoader.ComputeCanonicalSha256(priorBytes);
+        byte[] currentBytes = Encoding.UTF8.GetBytes(
+            CreatePolicyObject(
+                supersedesPolicyVersion: "1.0.0",
+                supersedesPolicySha256: priorSha256,
+                supersedesDecisionIds: ["prior-decision"]).ToJsonString());
+        string currentSha256 =
+            PinnedJsonCatalogLoader.ComputeCanonicalSha256(currentBytes);
+        using TempWorkspace workspace =
+            TempWorkspace.Create("nfc-support-policy-history");
+        _ = workspace.Write("prior.json", priorBytes);
+        _ = workspace.Write("current.json", currentBytes);
 
         SupportPublicationPolicySnapshot policy =
-            BuiltInSupportPublicationPolicy.Load(
-                bytes,
-                PinnedJsonCatalogLoader.ComputeCanonicalSha256(bytes));
+            BuiltInSupportPublicationPolicy.LoadFromDirectory(
+                workspace.Root,
+            [
+                new PinnedSupportPublicationPolicyFile(
+                    "prior.json",
+                    priorSha256),
+                new PinnedSupportPublicationPolicyFile(
+                    "current.json",
+                    currentSha256),
+            ]);
 
         Assert.Equal("1.0.0", policy.SupersedesPolicyVersion);
+        Assert.Equal(priorSha256, policy.SupersedesPolicySha256);
         Assert.Equal(
             ["prior-decision"],
             Assert.Single(policy.Decisions).SupersedesDecisionIds);
+    }
+
+    /// <summary>A predecessor with matching labels but different bytes cannot prove lineage.</summary>
+    [Fact]
+    public void RejectsSupersessionWhenPriorHashDoesNotMatchCurrentDeclaration()
+    {
+        byte[] priorBytes = Encoding.UTF8.GetBytes(
+            CreatePolicyObject(
+                policyVersion: "1.0.0",
+                decisionId: "prior-decision").ToJsonString());
+        string priorSha256 =
+            PinnedJsonCatalogLoader.ComputeCanonicalSha256(priorBytes);
+        byte[] currentBytes = Encoding.UTF8.GetBytes(
+            CreatePolicyObject(
+                supersedesPolicyVersion: "1.0.0",
+                supersedesPolicySha256: new string('f', 64),
+                supersedesDecisionIds: ["prior-decision"]).ToJsonString());
+        using TempWorkspace workspace =
+            TempWorkspace.Create("nfc-support-policy-history-mismatch");
+        _ = workspace.Write("prior.json", priorBytes);
+        _ = workspace.Write("current.json", currentBytes);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            BuiltInSupportPublicationPolicy.LoadFromDirectory(
+                workspace.Root,
+            [
+                new PinnedSupportPublicationPolicyFile(
+                    "prior.json",
+                    priorSha256),
+                new PinnedSupportPublicationPolicyFile(
+                    "current.json",
+                    PinnedJsonCatalogLoader.ComputeCanonicalSha256(currentBytes)),
+            ]));
+
+        Assert.Contains(
+            "snapshot invariants",
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>History files cannot escape the configured deployment root.</summary>
+    [Fact]
+    public void RejectsHistoryPathOutsideDeploymentRoot()
+    {
+        using TempWorkspace workspace =
+            TempWorkspace.Create("nfc-support-policy-history-path");
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            BuiltInSupportPublicationPolicy.LoadFromDirectory(
+                workspace.Root,
+                [new PinnedSupportPublicationPolicyFile(
+                    "../outside.json",
+                    new string('a', 64))]));
     }
 
     /// <summary>Semantic, provenance, and supersession violations fail closed.</summary>
@@ -191,12 +271,15 @@ public sealed class BuiltInSupportPublicationPolicyTests
     }
 
     private static JsonObject CreatePolicyObject(
+        string policyVersion = "2.0.0",
+        string decisionId = "current-decision",
         string? supersedesPolicyVersion = null,
-        params string[] supersedesDecisionIds)
+        string? supersedesPolicySha256 = null,
+        string[]? supersedesDecisionIds = null)
     {
         var decision = new JsonObject
         {
-            ["decisionId"] = "current-decision",
+            ["decisionId"] = decisionId,
             ["routeId"] =
                 "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k",
             ["status"] = "candidate",
@@ -208,7 +291,7 @@ public sealed class BuiltInSupportPublicationPolicyTests
                 ["rationale"] = "test",
             },
         };
-        if (supersedesDecisionIds.Length != 0)
+        if (supersedesDecisionIds is { Length: > 0 })
         {
             decision["supersedesDecisionIds"] =
                 new JsonArray(supersedesDecisionIds.Select(
@@ -219,13 +302,17 @@ public sealed class BuiltInSupportPublicationPolicyTests
         {
             ["schemaVersion"] = "1.0",
             ["policyId"] = "support-publication-policy",
-            ["policyVersion"] = "2.0.0",
+            ["policyVersion"] = policyVersion,
             ["issuedOn"] = "2026-07-25",
             ["decisions"] = new JsonArray(decision),
         };
         if (supersedesPolicyVersion is not null)
         {
             policy["supersedesPolicyVersion"] = supersedesPolicyVersion;
+        }
+        if (supersedesPolicySha256 is not null)
+        {
+            policy["supersedesPolicySha256"] = supersedesPolicySha256;
         }
 
         return policy;

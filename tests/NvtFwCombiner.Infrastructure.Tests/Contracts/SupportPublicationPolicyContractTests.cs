@@ -68,6 +68,25 @@ public sealed class SupportPublicationPolicyContractTests
         Assert.False(result.IsValid);
     }
 
+    /// <summary>Policy lineage requires both an exact predecessor version and SHA-256.</summary>
+    [Theory]
+    [InlineData("version-only")]
+    [InlineData("hash-only")]
+    public void PolicySchemaRejectsPartialSupersessionIdentity(string mutation)
+    {
+        JsonObject policy = ReadPolicy();
+        if (mutation == "version-only")
+        {
+            policy["supersedesPolicyVersion"] = "0.9.0";
+        }
+        else
+        {
+            policy["supersedesPolicySha256"] = new string('a', 64);
+        }
+
+        Assert.False(EvaluatePolicy(policy).IsValid);
+    }
+
     /// <summary>Verifies source semantics reject duplicate decision and route identities.</summary>
     [Theory]
     [InlineData("decision-id")]

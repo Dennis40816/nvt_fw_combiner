@@ -23,7 +23,13 @@ fields, derive routes from display labels, or use wildcards.
 `decisionId` is immutable. A changed decision receives a new id and policy
 version and may name the decisions it supersedes. Readers reject duplicate
 decision ids, duplicate route ids, whitespace-only provenance, unknown fields,
-invalid statuses, and unresolved route references.
+invalid statuses, and unresolved route references. A policy that declares
+`supersedesPolicyVersion` must declare `supersedesPolicySha256` and be
+validated with the hash-pinned prior snapshot of the same `policyId`, version,
+and SHA-256. Every `supersedesDecisionIds` entry must exist in that verified
+prior snapshot; syntax alone never proves lineage. Infrastructure loads the
+oldest required packaged policy first and validates the ordered chain before
+Application materializes the current snapshot.
 
 The checked-in bytes are the reviewable source. Runtime loading must verify the
 pinned SHA-256 before deserializing an immutable snapshot. A hash mismatch,
