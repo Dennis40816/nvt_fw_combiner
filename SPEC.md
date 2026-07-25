@@ -823,14 +823,20 @@ CI ownership and serial critical-path work.
 
 The maintainability program must reduce these sources of divergence without
 changing firmware bytes opportunistically, weakening human/evidence gates,
-redesigning the accepted Hex Editor, or moving the whole refactor into one
-release.
+redesigning the accepted Hex Editor, or moving the whole refactor as one
+unreviewed implementation slice. Ordered internal stages remain mandatory even
+though only the final integrated program enters release workflow.
 
 ### 15.2 Solution
 
 `0.10.0` defines the target architecture, canonical terminology, promotion
 workflow, migration invariants, and validation standards. Production changes
-then move through small vertical slices across later `0.10.x` releases.
+then move through small, reviewed vertical slices on the non-release `0.10.x`
+program integration branch. Owner-bounded exact-version stage branches such as
+`0.10.1` are internal integration boundaries and do not publish independently.
+Only the completed `0.10.x` program integration enters the final release
+workflow under ADR 0038; the release owner selects its exact version and
+publication only after the program gate passes.
 
 The target architecture starts from the selected IC and user-facing IC Count,
 resolves one immutable capability snapshot, compiles one composition, and
@@ -1157,10 +1163,12 @@ version.
     dependency graph. Each ticket names its risk, authority, affected routes,
     acceptance behavior, narrow tests, final gate, reviewers, evidence gaps,
     and `Blocked by` dependencies.
-50. Version allocation happens only after the ticket graph is approved. The
-    owner selects a bounded dependency-ready frontier for the next release;
-    subsequent releases repeat the same selection rather than receiving
-    speculative buckets in advance.
+50. Stage allocation happens only after the ticket graph is approved. The
+    owner selects a bounded dependency-ready frontier for the next internal
+    stage, which merges by reviewed PR into `0.10.x` without publishing.
+    Subsequent stages repeat that selection rather than receiving speculative
+    buckets in advance; only the completed program reaches final release
+    allocation.
 
 ### 15.5 Testing Decisions
 

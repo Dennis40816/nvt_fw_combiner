@@ -39,7 +39,8 @@ commit.
   `v0.9.16`: publish the approved IC-first architecture, terminology, FlashMap
   evidence provenance, ADR lifecycle, validation standards, and #170–#197
   dependency plan. It starts no production refactor and makes no firmware or
-  support-promotion claim.
+  support-promotion claim. This is the historical publication denominator;
+  the active program later added deferred Presentation tickets #207 and #208.
 
 The untagged `0.9.17` and `0.9.18` planning proposals were superseded before
 release. They are not valid tag or branch names; their former certification and
@@ -78,7 +79,9 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.16` starts only from the official reviewed `v0.9.15` release tag. It owns only the exceptional CRC/header-authority, Replace/AB UI correctness, TP inspection, and NT51929 golden hot-fix; it does not certify an AB route or absorb the former NT51950 AB certification assignment.
 - `0.10.0` starts only from the official reviewed `v0.9.16` release tag. It is
   a planning and governance release; later `0.10.x` version allocation follows
-  the approved #170–#197 dependency graph rather than this tag.
+  the approved dependency graph rather than this tag. Its published #170–#197
+  snapshot predates the deferred #207/#208 Presentation split recorded in the
+  current dependency plan.
 
 The former `0.9.17`/`0.9.18` delivery roadmap remains historical evidence only.
 Active post-`0.10.x` sequencing is maintained in the
@@ -133,7 +136,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.14` | AB re-admission and targeted UI correctness | Deliver separately gated typed AB production authority, the minimum AB authoring UI, IC details, and owner-approved hover, modal/action-rail, and empty Replace coverage fixes. |
 | `v0.9.15` | AB function open, delivery readiness, and review automation | Open NT51919/NT51929/NT51932 plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 AB routes. Direct-golden debt blocks support certification, not function availability. Shared viewport/Changes/Button Presentation work is deferred pending a new owner-selected milestone. |
 | `v0.9.16` | Exceptional CRC/header-authority hot-fix | Classify owner-approved CRC write windows, correct Replace/AB UI behavior and TP inspection, and lock the NT51929 single Normal CtrlRAM golden; former NT51950 AB certification work moved to `0.11.0`. |
-| `v0.10.0` | Maintainability planning and governance | Publish the approved IC-first architecture, terminology, FlashMap provenance, ADR lifecycle, validation standards, and dependency-gated #170–#197 execution plan without changing firmware behavior or support truth. |
+| `v0.10.0` | Maintainability planning and governance | Publish the approved IC-first architecture, terminology, FlashMap provenance, ADR lifecycle, validation standards, and historical dependency-gated #170–#197 execution-plan snapshot without changing firmware behavior or support truth; the active plan later adds deferred #207/#208 Presentation tickets. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate

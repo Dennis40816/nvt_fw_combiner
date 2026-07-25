@@ -85,10 +85,12 @@ user-facing release-note entry
 rollback or compatibility impact
 ```
 
-Admit the PR only when its exact head is reviewed, its target is the exact version
-branch, P0/P1 findings are closed, required CI/tests are green, and R3 evidence is
-not hidden behind a TODO. Merge-tree equivalence must be checked when the host
-creates a merge commit.
+Admit the PR only when its exact head is reviewed, its target is the
+owner-approved integration branch, P0/P1 findings are closed, required CI/tests
+are green, and R3 evidence is not hidden behind a TODO. Normally that target is
+the exact-version branch. Under ADR 0038 it may instead be `0.10.x` for a
+bounded program-wide slice or the completed subordinate stage. Merge-tree
+equivalence must be checked when the host creates a merge commit.
 
 ## Require Complete Release Notes
 

@@ -16,6 +16,11 @@ owner-updated FlashMap workbook provenance. It does not change production
 firmware behavior, supported routes, processor authority, IC promotion, or
 golden outputs.
 
+This is a historical `0.10.0` publication snapshot. The owner later split
+deferred Presentation work into #207 and #208; the current 30-ticket
+denominator and exact blockers live in
+`docs/governance/0.10.x-ticket-dependency-plan.md`.
+
 The final PR/main candidate must still pass protected CI, exact-head independent
 and Codex review, package/provenance generation, downloaded-asset verification,
 and release-owner approval. Visible clean-Windows UI smoke and release-workflow

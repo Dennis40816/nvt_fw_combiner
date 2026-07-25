@@ -74,7 +74,13 @@ public sealed partial class RepositoryBoundaryTests
             "Dependency depth is a topological planning aid, not a release number.",
             dependencyPlan,
             StringComparison.Ordinal);
+    }
 
+    /// <summary>Locks the exact published 30-ticket title, depth, and blocker inventory.</summary>
+    [Fact]
+    public void DependencyPlanMirrorsExactlyThirtyPublishedIssues()
+    {
+        string dependencyPlan = ReadText("docs/governance/0.10.x-ticket-dependency-plan.md");
         string[] expectedIssueRows =
         [
             "| #170 | 0 | [0.10.x][01] Establish executable Support Matrix baseline | — |",
@@ -122,7 +128,9 @@ public sealed partial class RepositoryBoundaryTests
         [
             .. dependencyPlan[inventoryStart..inventoryEnd]
                 .Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                .Where(line => line.StartsWith("| #", StringComparison.Ordinal)),
+                .Where(IsMarkdownTableLine)
+                .Skip(2)
+                .Select(line => $"| {string.Join(" | ", SplitMarkdownTableRow(line))} |"),
         ];
 
         Assert.Equal(30, actualIssueRows.Length);
@@ -133,6 +141,42 @@ public sealed partial class RepositoryBoundaryTests
                 .Distinct(StringComparer.Ordinal)
                 .Count());
         Assert.Equal(expectedIssueRows, actualIssueRows);
+    }
+
+    /// <summary>Locks the owner-approved internal-stage and final-release boundary.</summary>
+    [Fact]
+    public void MaintainabilityStagesIntegrateBeforeTheFinalReleaseWorkflow()
+    {
+        string rootInstructions = ReadText("AGENTS.md");
+        string decision = ReadText("docs/adr/0038-0.10.x-program-integration-branch.md");
+        string specification = ReadText("SPEC.md");
+        string workingDesign = ReadText("docs/architecture/0.10.x-maintainability-working-design.md");
+        string branchGovernance = ReadText("docs/governance/branch-version-and-release-governance.md");
+
+        Assert.Contains(
+            "subordinate exact-version stages merge by reviewed PR into the non-release `0.10.x` program branch",
+            rootInstructions,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Only the final owner-approved `0.10.x` integration PR targets `main`",
+            decision,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Owner-bounded exact-version stage branches such as\n`0.10.1` are internal integration boundaries",
+            specification,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Only the completed `0.10.x` program integration enters the final release",
+            specification,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "| Final `0.10.x` integration | Program release frontier |",
+            workingDesign,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Under ADR 0038 it may instead be `0.10.x`",
+            branchGovernance,
+            StringComparison.Ordinal);
     }
 
     /// <summary>Separates reviewed AB function availability from direct-golden and support-certification debt.</summary>
