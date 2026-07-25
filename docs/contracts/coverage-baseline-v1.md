@@ -41,12 +41,13 @@ existing baseline remains visible and non-decreasing while the maintainability
 program raises coverage where it changes product code.
 
 The non-UI production metric counts physical source files, so it cannot be
-reduced by moving compiled C# into an excluded directory. Repository validation
-rejects explicit or evaluated `Compile` items outside a production project's
-owned source tree, and source-generating `Analyzer` items introduced directly,
-through imported MSBuild, or by a package; either requires a reviewed
-architecture change. Evaluated checks require restored project assets and fail
-closed when those assets are absent.
+reduced by moving compiled C# into an excluded directory. Structure validation
+rejects explicit `Compile` and `Analyzer` items. After the canonical .NET lane
+restores, its single owner rejects evaluated `Compile` items outside a
+production project's owned source tree and source-generating `Analyzer` items
+introduced through imported MSBuild or a package; either requires a reviewed
+architecture change. The evaluated check fails closed when restored project
+assets are absent and never races the structure lane for restore ownership.
 Generated/cache directories remain forbidden tracked content, and the existing
 .NET/Ruff format checks prevent layout-only compression from becoming a metric
 escape hatch. Tests are excluded from the size metric, but deleting or weakening
