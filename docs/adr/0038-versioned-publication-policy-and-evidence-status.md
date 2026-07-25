@@ -99,4 +99,3 @@ The completed #170 baseline must prove:
 6. a policy hash or schema mismatch rejects the source before materialization;
 7. packaged headless query output uses the same projection; and
 8. no Presentation or UI-selection behavior changes in this ticket.
-

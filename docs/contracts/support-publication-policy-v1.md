@@ -69,4 +69,3 @@ They never alter existing composition execution.
 
 See [ADR 0038](../adr/0038-versioned-publication-policy-and-evidence-status.md)
 for the architecture decision and migration gates.
-
