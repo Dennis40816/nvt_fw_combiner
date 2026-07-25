@@ -417,6 +417,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
             MODULE.handle_external_termination(),
             patch.object(MODULE, "PROCESS_CANCELLATION_REQUESTED", cancellation),
             patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+            patch.object(
+                MODULE,
+                "reset_coverage_directory",
+                return_value=ROOT / "artifacts" / "test-dotnet-coverage",
+            ),
             patch.object(MODULE, "run", side_effect=interrupt_first_command),
             patch.object(MODULE, "stop_idle_build_workers") as stop_idle_workers,
             self.assertRaises(MODULE.VerificationTerminationRequested),

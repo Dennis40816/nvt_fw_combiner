@@ -439,7 +439,7 @@ def parse_python_coverage_report(
     if not isinstance(files, dict):
         raise ValueError(f"{report_path} must contain a coverage.py files object")
 
-    summaries: list[CoverageSummary] = []
+    summaries_by_path: dict[str, CoverageSummary] = {}
     for filename, item in files.items():
         if not isinstance(filename, str) or not isinstance(item, dict):
             raise ValueError(f"{report_path} has an invalid file entry")
@@ -458,18 +458,23 @@ def parse_python_coverage_report(
             summary.get("covered_branches"),
             summary.get("num_branches"),
         )
-        if not all(isinstance(value, int) for value in values):
+        if not all(
+            isinstance(value, int) and not isinstance(value, bool) for value in values
+        ):
             raise ValueError(
                 f"{report_path} file {filename} has invalid summary values"
             )
-        summaries.append(
-            CoverageSummary(
-                CoverageMeasure(values[0], values[1]),
-                CoverageMeasure(values[2], values[3]),
+        if relative_path in summaries_by_path:
+            raise ValueError(
+                f"{report_path} contains duplicate source aliases for {relative_path}"
             )
+        summaries_by_path[relative_path] = CoverageSummary(
+            CoverageMeasure(values[0], values[1]),
+            CoverageMeasure(values[2], values[3]),
         )
-    if not summaries:
+    if not summaries_by_path:
         raise ValueError(f"{report_path} has no CRC worker source coverage")
+    summaries = tuple(summaries_by_path.values())
     summary = CoverageSummary(
         CoverageMeasure(
             sum(item.lines.covered for item in summaries),

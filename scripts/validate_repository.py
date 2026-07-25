@@ -19,7 +19,7 @@ from canonical_golden_validation import (
     validate_canonical_golden,
     validate_standard_merge_release_allowlist,
 )
-from code_size_policy import review_code_size_policy
+from code_size_policy import is_physical_source_file, review_code_size_policy
 from coverage_policy import load_baseline
 from diagnostic_golden_validation import validate_diagnostic_golden_separation
 from external_tool_policy import (
@@ -1016,12 +1016,15 @@ def validate_evaluated_production_source_ownership(
                 f"production project has an invalid evaluated Compile item: {relative}"
             )
             continue
-        try:
-            Path(full_path).resolve().relative_to(owned_directory)
-        except ValueError:
+        source_path = Path(full_path)
+        if not is_physical_source_file(
+            source_path,
+            owned_directory,
+            frozenset({".cs"}),
+        ):
             errors.append(
-                "production project must not add an evaluated Compile item outside "
-                f"its owned source tree: {relative} -> {full_path}"
+                "production project must compile only physical C# inside its measured "
+                f"source tree: {relative} -> {full_path}"
             )
     for analyzer in items["Analyzer"]:
         if analyzer.get("IsImplicitlyDefined") == "true":

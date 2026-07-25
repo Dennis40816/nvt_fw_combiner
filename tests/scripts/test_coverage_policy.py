@@ -166,6 +166,51 @@ class CoveragePolicyTests(unittest.TestCase):
         self.assertEqual(summary(8, 10, 3, 4), inventory.overall)
         self.assertEqual(summary(8, 10, 3, 4), inventory.modules["nfc_crc_worker"])
 
+    def test_rejects_boolean_python_summary_values(self) -> None:
+        summary_values = {
+            "covered_lines": 1,
+            "num_statements": 1,
+            "covered_branches": 0,
+            "num_branches": 0,
+        }
+        for field in tuple(summary_values):
+            with self.subTest(field=field):
+                malformed = dict(summary_values)
+                malformed[field] = True
+                report = {
+                    "files": {
+                        "src/nfc_crc_worker/core.py": {"summary": malformed},
+                    }
+                }
+                path = self.write(f"{field}.json", json.dumps(report))
+
+                with self.assertRaisesRegex(ValueError, "invalid summary values"):
+                    parse_python_coverage_report(path, self.root)
+
+    def test_rejects_duplicate_python_source_aliases(self) -> None:
+        source = self.write(
+            "tools/crc-worker/src/nfc_crc_worker/core.py",
+            "def crc():\n    return 0\n",
+        )
+        source_summary = {
+            "covered_lines": 2,
+            "num_statements": 2,
+            "covered_branches": 0,
+            "num_branches": 0,
+        }
+        report = {
+            "files": {
+                source.as_posix(): {"summary": source_summary},
+                "tools/crc-worker/src/nfc_crc_worker/core.py": {
+                    "summary": source_summary
+                },
+            }
+        }
+        path = self.write("duplicate-aliases.json", json.dumps(report))
+
+        with self.assertRaisesRegex(ValueError, "duplicate source aliases"):
+            parse_python_coverage_report(path, self.root)
+
     def test_rejects_out_of_repository_coverage_source(self) -> None:
         external = self.root.parent / "external" / "src" / "nfc_crc_worker" / "core.py"
         report = {

@@ -82,10 +82,23 @@ DEFAULT_LIMITS = CodeSizeLimits(
 )
 
 
-def _is_included(path: Path, root: Path) -> bool:
-    relative_parts = path.relative_to(root).parts[:-1]
-    return not any(
-        part.casefold() in EXCLUDED_DIRECTORY_NAMES for part in relative_parts
+def is_physical_source_file(
+    path: Path,
+    root: Path,
+    suffixes: frozenset[str],
+) -> bool:
+    """Return whether a real source file belongs to the measured physical tree."""
+
+    try:
+        relative = path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return (
+        path.is_file()
+        and path.suffix.casefold() in suffixes
+        and not any(
+            part.casefold() in EXCLUDED_DIRECTORY_NAMES for part in relative.parts[:-1]
+        )
     )
 
 
@@ -96,9 +109,7 @@ def _matching_files(root: Path, directory: str, suffixes: frozenset[str]) -> lis
     return sorted(
         path
         for path in search_root.rglob("*")
-        if path.is_file()
-        and path.suffix.casefold() in suffixes
-        and _is_included(path, root)
+        if is_physical_source_file(path, root, suffixes)
     )
 
 

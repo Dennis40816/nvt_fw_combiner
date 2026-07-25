@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tempfile
 import unittest
 import xml.etree.ElementTree as element_tree
 from pathlib import Path
@@ -19,6 +20,14 @@ from validate_repository import (  # noqa: E402
 
 
 class ProductionSourceOwnershipTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.project_directory = Path(self.temporary_directory.name) / "Product"
+        self.project_directory.mkdir()
+
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
     def validate(self, relative: str, document: str) -> list[str]:
         errors: list[str] = []
         validate_production_source_ownership(
@@ -67,7 +76,61 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
         )
 
         self.assertEqual(1, len(errors))
-        self.assertIn("evaluated Compile item", errors[0])
+        self.assertIn("physical C#", errors[0])
+
+    def test_accepts_physical_csharp_inside_production_project(self) -> None:
+        source = self.project_directory / "Thing.cs"
+        source.write_text("internal sealed class Thing {}\n", encoding="utf-8")
+        errors: list[str] = []
+
+        validate_evaluated_production_source_ownership(
+            "src/Product/Product.csproj",
+            self.project_directory,
+            {
+                "Compile": [{"FullPath": str(source)}],
+                "Analyzer": [],
+            },
+            errors,
+        )
+
+        self.assertEqual([], errors)
+
+    def test_rejects_in_project_non_csharp_compile_item(self) -> None:
+        source = self.project_directory / "Thing.txt"
+        source.write_text("compiled as C#\n", encoding="utf-8")
+        errors: list[str] = []
+
+        validate_evaluated_production_source_ownership(
+            "src/Product/Product.csproj",
+            self.project_directory,
+            {
+                "Compile": [{"FullPath": str(source)}],
+                "Analyzer": [],
+            },
+            errors,
+        )
+
+        self.assertEqual(1, len(errors))
+        self.assertIn("physical C#", errors[0])
+
+    def test_rejects_in_project_generated_compile_item(self) -> None:
+        source = self.project_directory / "obj" / "Generated.cs"
+        source.parent.mkdir()
+        source.write_text("internal sealed class Generated {}\n", encoding="utf-8")
+        errors: list[str] = []
+
+        validate_evaluated_production_source_ownership(
+            "src/Product/Product.csproj",
+            self.project_directory,
+            {
+                "Compile": [{"FullPath": str(source)}],
+                "Analyzer": [],
+            },
+            errors,
+        )
+
+        self.assertEqual(1, len(errors))
+        self.assertIn("physical C#", errors[0])
 
     def test_rejects_package_provided_evaluated_analyzer(self) -> None:
         errors: list[str] = []
