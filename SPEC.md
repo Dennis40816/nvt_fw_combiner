@@ -800,8 +800,9 @@ The owner requested review participation. Assistant/Codex review should focus on
 
 Status: owner-approved on 2026-07-25. This section records the accepted
 architecture workshop outcome and is the source for GitHub tickets `#170`
-through `#197`. Approval does not by itself authorize a production refactor, a
-firmware fact change, support promotion, or release.
+through `#197`, plus deferred Presentation tickets `#207` and `#208`. Approval
+does not by itself authorize a production refactor, a firmware fact change,
+support promotion, or release.
 
 ### 15.1 Problem Statement
 
@@ -1289,7 +1290,7 @@ architecture. The approved sequence is:
 
 ```text
 approved specification and consistency grill
-  -> approved GitHub tickets #170-#197 and dependency edges
+  -> approved GitHub tickets #170-#197 plus #207/#208 and dependency edges
   -> allocate the dependency-ready frontier to the next 0.10.x release
   -> implement, review, verify, and delete old ownership slice by slice
 ```
@@ -1301,7 +1302,8 @@ boundary.
 
 The `0.10.0` planning conditions are satisfied: the owner approved this spec,
 the canonical firmware-coordinate vocabulary, and the dependency graph; GitHub
-tickets `#170` through `#197` are published with the canonical
+tickets `#170` through `#197`, plus deferred Presentation tickets `#207` and
+`#208`, are published with the canonical
 `ready-for-agent` label. The repository copy of the titles, dependency depths,
 and exact `Blocked by` edges is
 [`docs/governance/0.10.x-ticket-dependency-plan.md`](docs/governance/0.10.x-ticket-dependency-plan.md).

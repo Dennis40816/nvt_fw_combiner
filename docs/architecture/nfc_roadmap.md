@@ -39,10 +39,11 @@ release.
 
 ## Later `0.10.x`: dependency-allocated implementation
 
-GitHub issues #170 through #197 and their exact `Blocked by` edges control the
-implementation frontier. Dependency depth is not a release version. The owner
-allocates only dependency-ready, reviewable slices after considering risk,
-evidence, file ownership, and available reviewers.
+GitHub issues #170 through #197, plus deferred Presentation issues #207 and
+#208, and their exact `Blocked by` edges control the implementation frontier.
+Dependency depth is not a release version. The owner allocates only
+dependency-ready, reviewable slices after considering risk, evidence, file
+ownership, and available reviewers.
 
 The final `0.10.x` integration release is downstream of #197 and all applicable
 architecture, firmware-owner, golden, package, clean-Windows, protected-CI, and
@@ -64,7 +65,7 @@ its owner-approved evidence scope.
 
 ## Later owner queue
 
-Only work not already owned by #170 through #197 remains here:
+Only work not already owned by #170 through #197, #207, or #208 remains here:
 
 - saved/customized-rule persistence and import after canonical typed mapping
   authoring exists, without arbitrary scripts; and

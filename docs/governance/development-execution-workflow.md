@@ -105,7 +105,10 @@ commands/results, firmware/profile/protocol/release impact, human-review
 requirements, and unresolved evidence gaps for merge into its approved target
 integration branch.
 
-Only when the target integration branch is complete should the final handoff
-target `main`. Use the pull-request template to record the integration branch,
-source branch, target branch, phase commits, verification evidence, and
-unresolved gates.
+For a normal release branch, only when that release integration branch is
+complete should its final handoff target `main`. Under ADR 0038, a completed
+subordinate exact-version stage such as `0.10.1` instead targets `0.10.x`; that
+boundary does not enter release workflow, tag, or publish. Only the completed
+`0.10.x` program branch may make the final reviewed handoff to `main`. Use the
+pull-request template to record the integration branch, source branch, target
+branch, phase commits, verification evidence, and unresolved gates.

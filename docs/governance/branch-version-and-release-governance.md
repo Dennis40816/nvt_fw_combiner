@@ -46,7 +46,9 @@ merely because its name contains the new version.
 
 ### 0.10.x maintainability-program integration exception
 
-Owner decision, 2026-07-25: the `0.10.x` maintainability program may use one
+Owner decision, 2026-07-25, recorded in
+[ADR 0038](../adr/0038-0.10.x-program-integration-branch.md): the `0.10.x`
+maintainability program may use one
 long-lived integration branch named `0.10.x`, created from a verified
 `origin/main` SHA. This is a program-integration exception, not an exact release
 version and not a release branch.

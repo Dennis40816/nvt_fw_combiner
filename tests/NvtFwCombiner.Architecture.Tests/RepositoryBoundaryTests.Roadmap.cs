@@ -23,7 +23,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("## `0.10.0`: planning and governance baseline", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("## Later `0.10.x`: dependency-allocated implementation", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("It does not allocate or implement a production Support Matrix", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("issues #170 through #197", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains(
+            "issues #170 through #197, plus deferred Presentation issues #207 and",
+            nfcRoadmap,
+            StringComparison.Ordinal);
         Assert.Contains("Dependency depth is not a release version.", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("## `0.11.0`: AB certification and family evidence", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("NT51950 AB `1 IC` and `Cascade`", nfcRoadmap, StringComparison.Ordinal);
@@ -71,6 +74,45 @@ public sealed partial class RepositoryBoundaryTests
             "Dependency depth is a topological planning aid, not a release number.",
             dependencyPlan,
             StringComparison.Ordinal);
+
+        string[] expectedIssueRows =
+        [
+            "| #170 | 0 | [0.10.x][01] Establish executable Support Matrix baseline | — |",
+            "| #171 | 0 | [0.10.x][02] Record coverage baseline and enforce ratchets | — |",
+            "| #172 | 0 | [0.10.x][03] Add bounded concurrency to the canonical verifier | — |",
+            "| #173 | 1 | [0.10.x][04] Deliver the NT51929 Standard Merge canonical capability tracer | #170 |",
+            "| #174 | 2 | [0.10.x][05] Deliver canonical DPCMI inspection through NT51929 DP Replace | #173 |",
+            "| #175 | 3 | [0.10.x][06] Model FirmwareConfig General Parameters | #173, #174 |",
+            "| #176 | 4 | [0.10.x][07] Resolve NT51950 and NT51951 TP-prerequisite metadata | #174, #175 |",
+            "| #177 | 5 | [0.10.x][08] Migrate remaining metadata family bindings | #174, #175, #176 |",
+            "| #178 | 3 | [0.10.x][09] Isolate the DP Replace authoring session | #174 |",
+            "| #179 | 4 | [0.10.x][10] Migrate all Merge modes to isolated authoring sessions | #178 |",
+            "| #180 | 4 | [0.10.x][11] Migrate remaining Replace modes to isolated sessions | #178, #183 |",
+            "| #181 | 2 | [0.10.x][12] Unify General mapping authoring | #173 |",
+            "| #182 | 4 | [0.10.x][13] Introduce shared slot and information-card presentation | #174, #178 |",
+            "| #183 | 2 | [0.10.x][14] Unify CtrlRAM runtime readiness | #173 |",
+            "| #184 | 4 | [0.10.x][15] Deliver the pure Memory Layout projector | #173, #174, #178 |",
+            "| #185 | 5 | [0.10.x][16] Reduce MainWindowViewModel to a shallow shell | #179, #180, #181, #182, #183, #184 |",
+            "| #186 | 3 | [0.10.x][17] Introduce the TP Flash Header metadata pilot | #173, #174 |",
+            "| #187 | 4 | [0.10.x][18] Migrate legacy TP Header families | #186 |",
+            "| #188 | 5 | [0.10.x][19] Migrate NT51950 and NT51951 DiffDLM and TP-only POSTBUILD | #176, #186 |",
+            "| #189 | 4 | [0.10.x][20] Deliver symmetric NT51929-family AB Merge | #186 |",
+            "| #190 | 6 | [0.10.x][21] Deliver NT51950 and NT51951 AB Merge | #176, #188 |",
+            "| #191 | 6 | [0.10.x][22] Extract the read-only Hex Viewport | #170, #185 |",
+            "| #192 | 7 | [0.10.x][23] Reuse Hex Viewport in Report Diff and BIN Inspector | #174, #175, #185, #191 |",
+            "| #193 | 5 | [0.10.x][24] Unify output naming from the accepted inspection snapshot | #174, #175, #176 |",
+            "| #194 | 7 | [0.10.x][25] Migrate remaining headless routes to canonical resolution | #177, #179, #180, #181, #183, #187, #188, #189, #190, #193 |",
+            "| #195 | 9 | [0.10.x][26] Delete Workbench facade and parallel support catalogs | #170, #194, #207, #208 |",
+            "| #196 | 8 | [0.10.x][27] Retire the legacy profile and compiler runtime | #187, #188, #189, #190, #194 |",
+            "| #197 | 10 | [0.10.x][28] Close the 0.10.x integration gate and allocate releases | #171, #172, #195, #196 |",
+            "| #207 | 6 | [0.10.x][29] Present Support Matrix in focused Settings UI | #170, #185 |",
+            "| #208 | 8 | [0.10.x][30] Migrate desktop routes to canonical Application contracts | #185, #192, #194 |",
+        ];
+
+        foreach (string expectedIssueRow in expectedIssueRows)
+        {
+            Assert.Contains(expectedIssueRow, dependencyPlan, StringComparison.Ordinal);
+        }
     }
 
     /// <summary>Separates reviewed AB function availability from direct-golden and support-certification debt.</summary>
