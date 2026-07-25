@@ -13,8 +13,13 @@ import re
 import subprocess
 import xml.etree.ElementTree as element_tree
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
+
+if __package__:
+    from .code_size_policy import PYTHON_RUNTIME_EXCLUDED_DIRECTORIES
+else:
+    from code_size_policy import PYTHON_RUNTIME_EXCLUDED_DIRECTORIES
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -119,7 +124,7 @@ class _CoberturaClassStructure:
     """Physical lines and declared branch cardinalities for one report class."""
 
     lines: set[int]
-    branch_totals: dict[int, int]
+    branch_measures: dict[int, CoverageMeasure]
 
 
 def _document_measure(document: Any, label: str) -> CoverageMeasure:
@@ -343,10 +348,10 @@ def _coverlet_branch_identity(
     return line, identity, hits > 0
 
 
-def _cobertura_branch_total(
+def _cobertura_branch_measure(
     line_node: element_tree.Element, report: Path
-) -> int | None:
-    """Return a branch-bearing line's declared outcome count."""
+) -> CoverageMeasure | None:
+    """Return a branch-bearing line's declared covered and total outcomes."""
 
     if line_node.get("branch", "").casefold() != "true":
         return None
@@ -364,7 +369,7 @@ def _cobertura_branch_total(
             f"{report} has an invalid Cobertura branch cardinality: "
             f"{condition_coverage!r}"
         )
-    return total
+    return CoverageMeasure(covered, total)
 
 
 def _merge_cobertura_report(
@@ -406,15 +411,15 @@ def _merge_cobertura_report(
             if line_number <= 0 or hit_count < 0:
                 raise ValueError(f"{report} has an invalid Cobertura coverage line")
             structure.lines.add(line_number)
-            branch_total = _cobertura_branch_total(line_node, report)
-            if branch_total is not None:
-                existing_total = structure.branch_totals.get(line_number)
-                if existing_total is not None and existing_total != branch_total:
+            branch_measure = _cobertura_branch_measure(line_node, report)
+            if branch_measure is not None:
+                existing_measure = structure.branch_measures.get(line_number)
+                if existing_measure is not None and existing_measure != branch_measure:
                     raise ValueError(
-                        f"{report} has conflicting Cobertura branch cardinality "
+                        f"{report} has conflicting Cobertura branch evidence "
                         f"for {relative_path}:{class_name}:{line_number}"
                     )
-                structure.branch_totals[line_number] = branch_total
+                structure.branch_measures[line_number] = branch_measure
             existing = file_records.get(line_number)
             if existing is None:
                 file_records[line_number] = _CoverageLine(hit_count > 0)
@@ -436,7 +441,7 @@ def _merge_coverlet_json_branches(
     source_line_counts: dict[str, int] = {}
     for report in reports:
         structures = structures_by_report[report.parent.resolve()]
-        observed_counts: dict[tuple[str, str, int], int] = {}
+        observed_measures: dict[tuple[str, str, int], CoverageMeasure] = {}
         report_identities: set[tuple[str, str]] = set()
         with report.open(encoding="utf-8") as handle:
             document = json.load(handle)
@@ -518,9 +523,13 @@ def _merge_coverlet_json_branches(
                                     f"{report} repeats a Coverlet JSON branch identity"
                                 )
                             report_identities.add(report_identity)
-                            count_key = (relative_path, class_name, line)
-                            observed_counts[count_key] = (
-                                observed_counts.get(count_key, 0) + 1
+                            measure_key = (relative_path, class_name, line)
+                            observed_measure = observed_measures.get(
+                                measure_key, CoverageMeasure(0, 0)
+                            )
+                            observed_measures[measure_key] = CoverageMeasure(
+                                observed_measure.covered + int(hit),
+                                observed_measure.total + 1,
                             )
                             observed = source_records.get(identity)
                             source_records[identity] = CoverageMeasure(
@@ -528,16 +537,18 @@ def _merge_coverlet_json_branches(
                                 1,
                             )
         for (relative_path, class_name), structure in structures.items():
-            for line, expected_total in structure.branch_totals.items():
-                observed_total = observed_counts.get(
+            for line, expected_measure in structure.branch_measures.items():
+                observed_measure = observed_measures.get(
                     (relative_path, class_name, line),
-                    0,
+                    CoverageMeasure(0, 0),
                 )
-                if observed_total != expected_total:
+                if observed_measure != expected_measure:
                     raise ValueError(
-                        f"{report} Coverlet JSON branch cardinality does not match "
+                        f"{report} Coverlet JSON branch evidence does not match "
                         f"paired Cobertura for {relative_path}:{class_name}:{line}: "
-                        f"expected {expected_total}, observed {observed_total}"
+                        f"expected {expected_measure.covered}/"
+                        f"{expected_measure.total}, observed "
+                        f"{observed_measure.covered}/{observed_measure.total}"
                     )
 
 
@@ -610,6 +621,38 @@ def parse_dotnet_cobertura_reports(
     )
 
 
+def _canonical_python_source_path(relative_path: str) -> str:
+    """Map coverage.py's worker-relative source path to repository ownership."""
+
+    if relative_path.startswith("src/nfc_crc_worker/"):
+        return f"tools/crc-worker/{relative_path}"
+    return relative_path
+
+
+def _is_python_runtime_source_path(relative_path: str) -> bool:
+    path = PurePosixPath(relative_path)
+    return (
+        relative_path.startswith("tools/crc-worker/src/nfc_crc_worker/")
+        and path.suffix.casefold() == ".py"
+        and not any(
+            part.casefold() in PYTHON_RUNTIME_EXCLUDED_DIRECTORIES
+            for part in path.parts
+        )
+    )
+
+
+def _expected_python_runtime_sources(root: Path) -> set[str]:
+    source_root = root / "tools/crc-worker/src/nfc_crc_worker"
+    if not source_root.is_dir():
+        return set()
+    expected: set[str] = set()
+    for source_path in source_root.rglob("*.py"):
+        relative_path = _path_under_root(source_path, root, str(source_path))
+        if _is_python_runtime_source_path(relative_path):
+            expected.add(relative_path)
+    return expected
+
+
 def parse_python_coverage_report(
     report_path: Path, root: Path = ROOT
 ) -> CoverageInventory:
@@ -625,11 +668,10 @@ def parse_python_coverage_report(
     for filename, item in files.items():
         if not isinstance(filename, str) or not isinstance(item, dict):
             raise ValueError(f"{report_path} has an invalid file entry")
-        relative_path = _relative_source_path(filename, root)
-        if (
-            _is_generated_path(relative_path)
-            or _module_name(relative_path, PYTHON_LANGUAGE) is None
-        ):
+        relative_path = _canonical_python_source_path(
+            _relative_source_path(filename, root)
+        )
+        if not _is_python_runtime_source_path(relative_path):
             continue
         summary = item.get("summary")
         if not isinstance(summary, dict):
@@ -656,6 +698,14 @@ def parse_python_coverage_report(
         )
     if not summaries_by_path:
         raise ValueError(f"{report_path} has no CRC worker source coverage")
+    expected_sources = _expected_python_runtime_sources(root)
+    if set(summaries_by_path) != expected_sources:
+        missing = sorted(expected_sources - set(summaries_by_path))
+        unexpected = sorted(set(summaries_by_path) - expected_sources)
+        raise ValueError(
+            f"{report_path} CRC worker source inventory mismatch: "
+            f"missing={missing}, unexpected={unexpected}"
+        )
     summaries = tuple(summaries_by_path.values())
     summary = CoverageSummary(
         CoverageMeasure(

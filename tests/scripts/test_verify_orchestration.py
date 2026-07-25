@@ -1669,6 +1669,27 @@ class VerifyOrchestrationTests(unittest.TestCase):
         )
         verify_coverage.assert_called_once_with("python", coverage_report)
 
+    def test_python_lane_rejects_coverage_environment_overrides_before_commands(
+        self,
+    ) -> None:
+        overrides = {
+            "PYTEST_ADDOPTS": "--no-cov",
+            "COVERAGE_RCFILE": "coverage-alt.ini",
+            "COVERAGE_PROCESS_START": "coverage-alt.ini",
+        }
+        for variable, value in overrides.items():
+            with (
+                self.subTest(variable=variable),
+                patch.dict(os.environ, {variable: value}, clear=True),
+                patch.object(MODULE, "require_python_modules") as require_modules,
+                patch.object(MODULE, "run") as run_command,
+                self.assertRaisesRegex(RuntimeError, variable),
+            ):
+                MODULE.verify_python()
+
+            require_modules.assert_not_called()
+            run_command.assert_not_called()
+
     def test_python_coverage_collector_versions_must_match_baseline(self) -> None:
         expected = {"coverage": "7.14.3", "pytest-cov": "6.3.0"}
         with patch.object(

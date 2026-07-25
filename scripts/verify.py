@@ -60,6 +60,11 @@ CLEANUP_DEADLINE: ContextVar[float | None] = ContextVar(
     "verification_cleanup_deadline", default=None
 )
 INTERNAL_LANE_ENVIRONMENT_VARIABLE = "NFC_VERIFY_INTERNAL_LANE"
+PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES = (
+    "PYTEST_ADDOPTS",
+    "COVERAGE_RCFILE",
+    "COVERAGE_PROCESS_START",
+)
 
 
 class _JobObjectBasicLimitInformation(ctypes.Structure):
@@ -818,6 +823,16 @@ def require_python_distribution_versions(expected: dict[str, str]) -> None:
 
 
 def verify_python(log_path: Path | None = None) -> None:
+    coverage_overrides = [
+        name
+        for name in PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES
+        if os.environ.get(name, "").strip()
+    ]
+    if coverage_overrides:
+        raise RuntimeError(
+            "Python coverage environment overrides are forbidden: "
+            + ", ".join(coverage_overrides)
+        )
     require_python_modules(
         ("ruff", "pyright", "pylint", "pytest", "pytest_cov", "coverage")
     )

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import configparser
 import json
 import re
 import tomllib
@@ -69,6 +70,70 @@ APPROVED_COVERLET_FORMAT_SETTING = (
     "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration."
     "Format=json,cobertura"
 )
+APPROVED_PYTHON_COVERAGE_ENVIRONMENT_GUARD = """\
+PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES = (
+    "PYTEST_ADDOPTS",
+    "COVERAGE_RCFILE",
+    "COVERAGE_PROCESS_START",
+)"""
+PYTHON_COVERAGE_CONFIGURATION_SECTION_PATTERN = re.compile(
+    r"^\s*\[(?:"
+    r"coverage(?::[^\]]+)?|"
+    r"tool\.coverage(?:\.[^\]]+)?|"
+    r"run|report|paths|html|xml|json|lcov"
+    r")\]\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+PYTHON_COVERAGE_OVERRIDE_PATTERN = re.compile(
+    r"--cov-config|--no-cov|PYTEST_ADDOPTS|COVERAGE_RCFILE|COVERAGE_PROCESS_START|"
+    r"--cov=(?!nfc_crc_worker(?:[\"'\s,]|$))|--cov(?:\s|[\"'])",
+    re.IGNORECASE,
+)
+
+
+def _pytest_addopts_values(path: PurePosixPath, text: str) -> tuple[str, ...]:
+    """Read addopts from every pytest configuration surface that can govern the worker."""
+
+    if path.name.casefold() == "pyproject.toml":
+        try:
+            document = tomllib.loads(text)
+        except tomllib.TOMLDecodeError:
+            return ()
+        tool = document.get("tool")
+        pytest_configuration = tool.get("pytest") if isinstance(tool, dict) else None
+        ini_options = (
+            pytest_configuration.get("ini_options")
+            if isinstance(pytest_configuration, dict)
+            else None
+        )
+        addopts = ini_options.get("addopts") if isinstance(ini_options, dict) else None
+        if isinstance(addopts, str):
+            return (addopts,)
+        if isinstance(addopts, list) and all(
+            isinstance(option, str) for option in addopts
+        ):
+            return tuple(addopts)
+        return ()
+
+    if path.name.casefold() not in {
+        "pytest.ini",
+        ".pytest.ini",
+        "tox.ini",
+        "setup.cfg",
+    }:
+        return ()
+    configuration = configparser.ConfigParser(interpolation=None)
+    try:
+        configuration.read_string(text)
+    except configparser.Error:
+        return ()
+    sections = {section.casefold(): section for section in configuration.sections()}
+    values: list[str] = []
+    for canonical_section in ("pytest", "tool:pytest"):
+        section = sections.get(canonical_section)
+        if section is not None and configuration.has_option(section, "addopts"):
+            values.append(configuration.get(section, "addopts"))
+    return tuple(values)
 
 
 def validate_coverage_collector_pin(
@@ -150,6 +215,28 @@ def validate_coverage_collector_pin(
             "tools/crc-worker/pyproject.toml must exactly pin the approved "
             "Python coverage collector versions"
         )
+    expected_coverage_configuration = {
+        "run": {
+            "branch": True,
+            "patch": ["subprocess"],
+            "source": ["nfc_crc_worker"],
+        },
+        "report": {
+            "fail_under": 95,
+            "show_missing": True,
+            "skip_covered": False,
+        },
+    }
+    coverage_configuration = (
+        pyproject.get("tool", {}).get("coverage")
+        if isinstance(pyproject.get("tool"), dict)
+        else None
+    )
+    if coverage_configuration != expected_coverage_configuration:
+        errors.append(
+            "tools/crc-worker/pyproject.toml must keep the exact approved "
+            "Python coverage source and report configuration"
+        )
 
 
 def validate_coverage_exclusion_policy(
@@ -184,6 +271,12 @@ def validate_coverage_exclusion_policy(
             relative = str(item).replace("\\", "/")
             source_path = root / Path(*PurePosixPath(relative).parts)
         path = PurePosixPath(relative)
+        if path.name.casefold() == ".coveragerc":
+            errors.append(
+                "alternate Python coverage configuration requires an explicit "
+                f"reviewed coverage-contract exception: {relative}"
+            )
+            continue
         if path.suffix.casefold() == ".runsettings":
             errors.append(
                 "coverage runsettings require an explicit reviewed coverage-contract "
@@ -199,9 +292,36 @@ def validate_coverage_exclusion_policy(
         inspect_invocation = relative == "scripts/verify.py" or relative.startswith(
             ".github/workflows/"
         )
-        if not inspect_source and not inspect_msbuild and not inspect_invocation:
+        inspect_python_configuration = path.suffix.casefold() in {
+            ".cfg",
+            ".ini",
+            ".toml",
+        }
+        if (
+            not inspect_source
+            and not inspect_msbuild
+            and not inspect_invocation
+            and not inspect_python_configuration
+        ):
             continue
         text = source_path.read_text(encoding="utf-8-sig")
+        if any(
+            PYTHON_COVERAGE_OVERRIDE_PATTERN.search(addopts)
+            for addopts in _pytest_addopts_values(path, text)
+        ):
+            errors.append(
+                "coverage invocation filter requires an explicit reviewed "
+                f"coverage-contract exception: {relative} -> pytest addopts"
+            )
+        if (
+            inspect_python_configuration
+            and relative != "tools/crc-worker/pyproject.toml"
+            and PYTHON_COVERAGE_CONFIGURATION_SECTION_PATTERN.search(text)
+        ):
+            errors.append(
+                "alternate Python coverage configuration requires an explicit "
+                f"reviewed coverage-contract exception: {relative}"
+            )
         if inspect_source and "ExcludeFromCodeCoverage" in text:
             errors.append(
                 "production coverage exclusion requires an explicit reviewed "
@@ -233,10 +353,15 @@ def validate_coverage_exclusion_policy(
                             f"{msbuild_properties[normalized_name]}"
                         )
         inspected_invocation = text.replace(APPROVED_COVERLET_FORMAT_SETTING, "")
+        if relative == "scripts/verify.py":
+            inspected_invocation = inspected_invocation.replace(
+                APPROVED_PYTHON_COVERAGE_ENVIRONMENT_GUARD, ""
+            )
         if inspect_invocation and (
             "--settings" in inspected_invocation
             or "DataCollectionRunSettings" in inspected_invocation
             or invocation_pattern.search(inspected_invocation)
+            or PYTHON_COVERAGE_OVERRIDE_PATTERN.search(inspected_invocation)
         ):
             errors.append(
                 "coverage invocation filter requires an explicit reviewed "

@@ -205,7 +205,7 @@ class CoveragePolicyTests(unittest.TestCase):
             ),
         )
 
-        with self.assertRaisesRegex(ValueError, "branch cardinality does not match"):
+        with self.assertRaisesRegex(ValueError, "branch evidence does not match"):
             parse_dotnet_cobertura_reports(self.root / "reports", self.root)
 
     def test_rejects_coverlet_json_branch_without_a_cobertura_line(self) -> None:
@@ -260,7 +260,34 @@ class CoveragePolicyTests(unittest.TestCase):
             ),
         )
 
-        with self.assertRaisesRegex(ValueError, "branch cardinality does not match"):
+        with self.assertRaisesRegex(ValueError, "branch evidence does not match"):
+            parse_dotnet_cobertura_reports(self.root / "reports", self.root)
+
+    def test_rejects_coverlet_hits_that_disagree_with_cobertura(self) -> None:
+        report = """<coverage><packages><package><classes>
+<class name="Thing" filename="src/NvtFwCombiner.Domain/Thing.cs"><lines>
+<line number="10" hits="1" branch="True" condition-coverage="0% (0/2)" />
+</lines></class>
+</classes></package></packages></coverage>"""
+        self.write("reports/coverage.cobertura.xml", report)
+        self.write(
+            "reports/coverage.json",
+            self.coverlet_json(
+                {
+                    "Thing": {
+                        "System.Void Thing::Run()": {
+                            "Lines": {"10": 1},
+                            "Branches": [
+                                self.branch(0, 1),
+                                self.branch(1, 1),
+                            ],
+                        }
+                    }
+                }
+            ),
+        )
+
+        with self.assertRaisesRegex(ValueError, "branch evidence does not match"):
             parse_dotnet_cobertura_reports(self.root / "reports", self.root)
 
     def test_preserves_distinct_branch_identities_on_one_source_line(self) -> None:
@@ -330,6 +357,7 @@ class CoveragePolicyTests(unittest.TestCase):
             parse_dotnet_cobertura_reports(self.root / "reports", self.root)
 
     def test_parses_python_json_branch_and_line_summary(self) -> None:
+        self.write("tools/crc-worker/src/nfc_crc_worker/core.py", "pass\n")
         report = {
             "files": {
                 "src/nfc_crc_worker/core.py": {
@@ -348,7 +376,7 @@ class CoveragePolicyTests(unittest.TestCase):
                         "num_branches": 0,
                     }
                 },
-                "src/nfc_crc_worker/obj/generated.py": {
+                "src/nfc_crc_worker/__pycache__/generated.py": {
                     "summary": {
                         "covered_lines": 1,
                         "num_statements": 1,
@@ -364,6 +392,26 @@ class CoveragePolicyTests(unittest.TestCase):
 
         self.assertEqual(summary(8, 10, 3, 4), inventory.overall)
         self.assertEqual(summary(8, 10, 3, 4), inventory.modules["nfc_crc_worker"])
+
+    def test_rejects_python_report_that_omits_owned_worker_source(self) -> None:
+        self.write("tools/crc-worker/src/nfc_crc_worker/core.py", "pass\n")
+        self.write("tools/crc-worker/src/nfc_crc_worker/untested.py", "pass\n")
+        report = {
+            "files": {
+                "src/nfc_crc_worker/core.py": {
+                    "summary": {
+                        "covered_lines": 1,
+                        "num_statements": 1,
+                        "covered_branches": 0,
+                        "num_branches": 0,
+                    }
+                }
+            }
+        }
+        report_path = self.write("coverage.json", json.dumps(report))
+
+        with self.assertRaisesRegex(ValueError, "source inventory mismatch"):
+            parse_python_coverage_report(report_path, self.root)
 
     def test_rejects_boolean_python_summary_values(self) -> None:
         summary_values = {

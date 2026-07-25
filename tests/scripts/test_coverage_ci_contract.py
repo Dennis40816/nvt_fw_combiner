@@ -157,6 +157,71 @@ class CoverageCiContractTests(unittest.TestCase):
 
                     self.assertEqual(expected_errors, len(errors))
 
+    def test_collector_pin_rejects_python_coverage_omit_configuration(
+        self,
+    ) -> None:
+        valid_reference = (
+            '<PackageReference Include="coverlet.collector" PrivateAssets="all" />'
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.write_collector_fixture(root, "6.0.4", valid_reference)
+            pyproject = root / "tools/crc-worker/pyproject.toml"
+            pyproject.write_text(
+                pyproject.read_text(encoding="utf-8")
+                + '\nomit = ["src/nfc_crc_worker/untested.py"]\n',
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+
+            validate_coverage_collector_pin(load_baseline(), errors, root)
+
+            self.assertTrue(any("Python coverage source" in error for error in errors))
+
+    def test_python_coverage_override_config_is_rejected_from_pytest_addopts(
+        self,
+    ) -> None:
+        configurations = {
+            "tools/crc-worker/pytest.ini": (
+                "[pytest]\naddopts = --cov-config=coverage-alt\n"
+            ),
+            "tools/crc-worker/.pytest.ini": (
+                "[pytest]\naddopts = --cov-config=coverage-alt\n"
+            ),
+            "tools/crc-worker/tox.ini": (
+                "[pytest]\naddopts = --cov-config=coverage-alt\n"
+            ),
+            "tools/crc-worker/setup.cfg": (
+                "[tool:pytest]\naddopts = --cov-config=coverage-alt\n"
+            ),
+            "tools/crc-worker/pyproject.toml": (
+                "[tool.pytest.ini_options]\n"
+                'addopts = ["-ra", "--cov-config=coverage-alt"]\n'
+            ),
+        }
+        for relative, content in configurations.items():
+            with self.subTest(relative=relative):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    configuration = root / relative
+                    configuration.parent.mkdir(parents=True, exist_ok=True)
+                    configuration.write_text(content, encoding="utf-8")
+                    alternate_configuration = configuration.parent / "coverage-alt"
+                    alternate_configuration.write_text(
+                        "[run]\nomit = untested.py\n[report]\nfail_under = 0\n",
+                        encoding="utf-8",
+                    )
+                    errors: list[str] = []
+
+                    validate_coverage_exclusion_policy(
+                        root,
+                        [relative, alternate_configuration.relative_to(root)],
+                        errors,
+                    )
+
+                    self.assertEqual(1, len(errors))
+                    self.assertIn("pytest addopts", errors[0])
+
     def test_coverage_exclusion_policy_rejects_source_and_filter_escape_hatches(
         self,
     ) -> None:
@@ -182,8 +247,17 @@ class CoverageCiContractTests(unittest.TestCase):
                 "</PropertyGroup></Project>"
             ),
             "coverage.runsettings": "<RunSettings />",
+            "tools/crc-worker/.coveragerc": "[run]\nomit = untested.py\n",
+            "tox.ini": "[coverage:run]\nomit = untested.py\n",
             "scripts/verify.py": "dotnet test --settings coverage.xml\n",
             ".github/workflows/ci.yml": "run: dotnet test -p:Exclude=[Product]*\n",
+            ".github/workflows/python.yml": (
+                "run: pytest --cov-config=tools/crc-worker/.coveragerc\n"
+            ),
+            ".github/workflows/python-env.yml": (
+                "env:\n  COVERAGE_RCFILE: coverage-alt.ini\n"
+            ),
+            ".github/workflows/pytest-env.yml": ("env:\n  PYTEST_ADDOPTS: --no-cov\n"),
             ".github/workflows/runsettings.yml": (
                 "run: dotnet test -- "
                 "DataCollectionRunSettings.DataCollectors.DataCollector."
@@ -203,6 +277,15 @@ class CoverageCiContractTests(unittest.TestCase):
 
                     self.assertEqual(1, len(errors))
                     self.assertIn("coverage", errors[0])
+
+    def test_coverage_exclusion_policy_accepts_canonical_verifier_guard(
+        self,
+    ) -> None:
+        errors: list[str] = []
+
+        validate_coverage_exclusion_policy(ROOT, [VERIFIER], errors)
+
+        self.assertEqual([], errors)
 
     def test_coverage_exclusion_policy_accepts_normal_production_source(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -251,6 +334,16 @@ name = "fixture"
 version = "0"
 [project.optional-dependencies]
 dev = ["coverage==7.14.3", "pytest-cov==6.3.0"]
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+[tool.coverage.run]
+branch = true
+patch = ["subprocess"]
+source = ["nfc_crc_worker"]
+[tool.coverage.report]
+fail_under = 95
+show_missing = true
+skip_covered = false
 """.strip(),
             encoding="utf-8",
         )

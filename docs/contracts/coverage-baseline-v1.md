@@ -13,12 +13,14 @@ and branch counts, not test counts.
   remain distinguishable. Each pair is reconciled before union: every JSON
   branch must belong to a real Cobertura source/class and a real physical
   source line, and every Cobertura-declared branch group must have the same
-  JSON outcome count. The physical-source fallback is required for
-  compiler-generated methods whose branch-only lines Coverlet omits from its
-  Cobertura rendering.
+  JSON covered/total outcome measure. The physical-source fallback is required
+  for compiler-generated methods whose branch-only lines Coverlet omits from
+  its Cobertura rendering.
 - Python is collected from `tools/crc-worker` by the exactly pinned
   `pytest-cov` 6.3.0 / `coverage.py` 7.14.3 development dependencies in JSON
-  format.
+  format. Its report must enumerate every owned worker Python source file
+  exactly once; alternate coverage configuration and denominator filters are
+  forbidden.
 - Both report directories are recreated below ignored `artifacts/coverage/`.
   They are review evidence, not release inputs or source artifacts.
 
@@ -40,8 +42,13 @@ hidden by the aggregate total. Unapproved production
 Coverlet include/exclude filter configuration are forbidden because they can
 silently shrink the executable denominator. Any future exception is a reviewed
 coverage-contract change with real before/after reports; it is not a local
-source or project setting. Structure validation pins the central collector
-version and test-only reference, while the restored .NET gate confirms every
+source or project setting. The worker `pyproject.toml` also has one exact
+coverage source/report configuration; `.coveragerc`, alternate coverage
+sections (including coverage.py's standard `[run]`/`[report]` form),
+pytest `addopts` coverage switches, `--cov-config`, noncanonical `--cov`
+targets, and coverage RC/process environment overrides are rejected before
+worker commands start. Structure validation pins the central
+collector version and test-only reference, while the restored .NET gate confirms every
 test project receives that exact central reference. The restored inventory is
 evaluated after package-analyzer resolution in `Release`, accepts only the
 selected SDK's explicit built-in analyzer allowlist and the exact analyzer
