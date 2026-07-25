@@ -30,16 +30,18 @@ It is versioned and each decision contains:
 
 1. a stable `routeId` reference owned by the future
    `CanonicalCapabilityCatalog`; the referenced route represents its exact IC,
-   workflow, IC Count applicability, and map variant, rather than a UI label
-   or a display-list position;
+   workflow, IC Count applicability, canonical map variant, and where
+   applicable an integrity-route identifier, rather than a UI label or a
+   display-list position;
 2. one publication status: `supported`, `candidate`, `internal`, `test-only`,
    or explicitly recorded `unclassified`; and
 3. an immutable decision id plus owner-decision provenance, recorded date,
    record reference, and rationale.
 
-No policy row is a wildcard.  A new IC Count or map variant is a new canonical
-route and remains `unclassified` until an owner-approved row references its
-own `routeId`.  A missing policy row also resolves to `unclassified`.  The
+No policy row is a wildcard.  A new IC Count, map variant, or integrity route
+is a new canonical route and remains `unclassified` until an owner-approved
+row references its own `routeId`.  A missing policy row also resolves to
+`unclassified`.  The
 repository source-contract validator and the future materializer both reject
 duplicate decision ids, duplicate route ids within one policy version,
 whitespace-only provenance, malformed provenance, or a route reference that
@@ -86,8 +88,10 @@ The 0.10.1 baseline materializes this source through the Application-owned
 runtime contract path and checks its canonical SHA-256 before deserializing it;
 the reviewed hash is pinned in `BuiltInSupportPublicationPolicy`.  Bootstrap's
 `CurrentSupportMatrixCatalog` supplies exact compile-admitted V2 and CtrlRAM
-routes, explicit General Merge generic routes, and coarse IC/workflow authoring
-scopes that cannot yet be bound to an exact route.  Such routes are represented
+routes (including their canonical map and integrity-route identities; a
+CtrlRAM integrity route is the processor id plus postbuild branch), explicit
+General Merge generic routes, and coarse IC/workflow authoring scopes that
+cannot yet be bound to an exact route.  Such routes are represented
 as `AuthoringAvailability.Unknown`; the coarse source is always retained as
 `SourceScopeUnresolved`, even when an execution route exists for the same
 IC/workflow.  Every exact `Unknown` row independently retains an

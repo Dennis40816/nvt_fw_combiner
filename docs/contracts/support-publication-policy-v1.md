@@ -20,7 +20,8 @@ when its owner provenance is useful.
 
 `routeId` is an opaque stable semantic reference supplied by
 `CanonicalCapabilityCatalog`.  The catalog owns the route's IC, workflow, IC
-Count applicability, and map variant.  The policy must not copy those fields,
+Count applicability, canonical map variant, and, when postbuild behavior is
+distinct, integrity-route identity.  The policy must not copy those fields,
 derive a route from a visible label, or use a wildcard.  The future
 materializer rejects a missing or ambiguous `routeId`; a newly added route has
 no matching decision until the owner adds one.

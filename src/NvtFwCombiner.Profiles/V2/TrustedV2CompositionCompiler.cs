@@ -371,6 +371,38 @@ internal static class TrustedV2CompositionCompiler
         ]);
     }
 
+    /// <summary>Returns the trusted profile's exact eligible canonical map identifiers without selecting one.</summary>
+    internal static IReadOnlyList<string> GetMapIds(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string modeId,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        if (!TryResolveMapCandidates(
+                catalog,
+                profileId,
+                profileVersion,
+                memberId,
+                modeId,
+                out _,
+                out FirmwareImageMap[] mapCandidates,
+                out issues))
+        {
+            return [];
+        }
+
+        issues = [];
+        return Array.AsReadOnly(
+        [
+            .. mapCandidates
+                .Select(static map => map.MapId)
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ]);
+    }
+
     private static bool TryResolveMapCandidates(
         TrustedProfileBundleCatalog catalog,
         string profileId,

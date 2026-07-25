@@ -59,26 +59,106 @@ public sealed record SupportPublicationProvenance(
     string Rationale);
 
 /// <summary>One exact publication decision keyed by a stable canonical route id.</summary>
-public sealed record SupportPublicationDecision(
-    string DecisionId,
-    string RouteId,
-    SupportPublicationStatus Status,
-    SupportPublicationProvenance Provenance);
+public sealed record SupportPublicationDecision
+{
+    /// <summary>Initializes an immutable decision and its optional supersession history.</summary>
+    public SupportPublicationDecision(
+        string decisionId,
+        string routeId,
+        SupportPublicationStatus status,
+        SupportPublicationProvenance provenance,
+        IEnumerable<string>? supersedesDecisionIds = null)
+    {
+        DecisionId = decisionId;
+        RouteId = routeId;
+        Status = status;
+        Provenance = provenance;
+        SupersedesDecisionIds = SupportMatrixSnapshotCollections.Copy(supersedesDecisionIds ?? []);
+    }
+
+    /// <summary>Stable owner decision identity.</summary>
+    public string DecisionId { get; }
+
+    /// <summary>Exact canonical route governed by the decision.</summary>
+    public string RouteId { get; }
+
+    /// <summary>Owner-approved publication status for the route.</summary>
+    public SupportPublicationStatus Status { get; }
+
+    /// <summary>Traceable owner provenance for the decision.</summary>
+    public SupportPublicationProvenance Provenance { get; }
+
+    /// <summary>Prior policy decision identifiers intentionally superseded by this decision.</summary>
+    public IReadOnlyList<string> SupersedesDecisionIds { get; }
+}
 
 /// <summary>Immutable policy identity and hash supplied by an Infrastructure adapter.</summary>
-public sealed record SupportPublicationPolicySnapshot(
-    string PolicyId,
-    string PolicyVersion,
-    string Sha256,
-    IReadOnlyList<SupportPublicationDecision> Decisions);
+public sealed record SupportPublicationPolicySnapshot
+{
+    /// <summary>Initializes one owned policy snapshot rather than retaining a caller-owned decision collection.</summary>
+    public SupportPublicationPolicySnapshot(
+        string policyId,
+        string policyVersion,
+        string sha256,
+        IEnumerable<SupportPublicationDecision> decisions,
+        string? supersedesPolicyVersion = null)
+    {
+        PolicyId = policyId;
+        PolicyVersion = policyVersion;
+        Sha256 = sha256;
+        Decisions = SupportMatrixSnapshotCollections.Copy(decisions);
+        SupersedesPolicyVersion = supersedesPolicyVersion;
+    }
+
+    /// <summary>Stable policy identity.</summary>
+    public string PolicyId { get; }
+
+    /// <summary>Version of the loaded policy document.</summary>
+    public string PolicyVersion { get; }
+
+    /// <summary>Canonical SHA-256 of the loaded policy bytes.</summary>
+    public string Sha256 { get; }
+
+    /// <summary>Owned exact route decisions in the policy.</summary>
+    public IReadOnlyList<SupportPublicationDecision> Decisions { get; }
+
+    /// <summary>Optional previous policy version intentionally superseded by this snapshot.</summary>
+    public string? SupersedesPolicyVersion { get; }
+}
 
 /// <summary>One explicitly declared fact scope for evidence reuse across exact routes.</summary>
-public sealed record SupportEvidenceFactScope(
-    string FactScopeId,
-    string IcId,
-    string WorkflowId,
-    IReadOnlyList<string> IcCountVariants,
-    IReadOnlyList<string> MapVariants);
+public sealed record SupportEvidenceFactScope
+{
+    /// <summary>Initializes an owned fact scope with copied applicability variants.</summary>
+    public SupportEvidenceFactScope(
+        string factScopeId,
+        string icId,
+        string workflowId,
+        IEnumerable<string> icCountVariants,
+        IEnumerable<string> mapVariants)
+    {
+        FactScopeId = factScopeId;
+        IcId = icId;
+        WorkflowId = workflowId;
+        IcCountVariants = SupportMatrixSnapshotCollections.Copy(icCountVariants);
+        MapVariants = SupportMatrixSnapshotCollections.Copy(mapVariants);
+    }
+
+    /// <summary>Stable declared fact-scope identity.</summary>
+    public string FactScopeId { get; }
+
+    /// <summary>IC to which the scope applies.</summary>
+    public string IcId { get; }
+
+    /// <summary>Workflow to which the scope applies.</summary>
+    public string WorkflowId { get; }
+
+    /// <summary>Owned applicable IC-count variants.</summary>
+    public IReadOnlyList<string> IcCountVariants { get; }
+
+    /// <summary>Owned applicable canonical map variants.</summary>
+    public IReadOnlyList<string> MapVariants { get; }
+}
 
 /// <summary>One declared non-contract evidence candidate from the canonical evidence catalog.</summary>
 public sealed record SupportEvidenceDeclaration(
@@ -89,11 +169,33 @@ public sealed record SupportEvidenceDeclaration(
     SupportEvidenceFactScope? FactScope = null);
 
 /// <summary>Immutable identity and declarations supplied by an authoritative evidence adapter.</summary>
-public sealed record SupportEvidenceCatalogSnapshot(
-    string CatalogId,
-    string CatalogVersion,
-    string SourceReference,
-    IReadOnlyList<SupportEvidenceDeclaration> Declarations);
+public sealed record SupportEvidenceCatalogSnapshot
+{
+    /// <summary>Initializes one owned evidence catalog snapshot.</summary>
+    public SupportEvidenceCatalogSnapshot(
+        string catalogId,
+        string catalogVersion,
+        string sourceReference,
+        IEnumerable<SupportEvidenceDeclaration> declarations)
+    {
+        CatalogId = catalogId;
+        CatalogVersion = catalogVersion;
+        SourceReference = sourceReference;
+        Declarations = SupportMatrixSnapshotCollections.Copy(declarations);
+    }
+
+    /// <summary>Stable evidence-catalog identity.</summary>
+    public string CatalogId { get; }
+
+    /// <summary>Version of the evidence catalog.</summary>
+    public string CatalogVersion { get; }
+
+    /// <summary>Traceable source reference for the evidence catalog.</summary>
+    public string SourceReference { get; }
+
+    /// <summary>Owned declared evidence entries.</summary>
+    public IReadOnlyList<SupportEvidenceDeclaration> Declarations { get; }
+}
 
 /// <summary>One exact IC/workflow/IC-count/map route with independent authoring and execution facts.</summary>
 public sealed record SupportRouteDescriptor(
@@ -105,10 +207,11 @@ public sealed record SupportRouteDescriptor(
     SupportAuthoringAvailability AuthoringAvailability,
     bool ExecutionAdmitted,
     string AuthoringSourceId,
-    string ExecutionSourceId)
+    string ExecutionSourceId,
+    string IntegrityRouteId = "not-applicable")
 {
-    internal (string IcId, string WorkflowId, string IcCountVariant, string MapVariant) ExactIdentity =>
-        (IcId, WorkflowId, IcCountVariant, MapVariant);
+    internal (string IcId, string WorkflowId, string IcCountVariant, string MapVariant, string IntegrityRouteId) ExactIdentity =>
+        (IcId, WorkflowId, IcCountVariant, MapVariant, IntegrityRouteId);
 }
 
 /// <summary>A catalog declaration that cannot safely bind to an exact route.</summary>
@@ -136,14 +239,45 @@ public sealed record SupportMatrixRow(
 public sealed record SupportMatrixDiagnostic(string Code, string Subject, string Message);
 
 /// <summary>Read-only Support Matrix projection over exact routes and a hash-closed publication snapshot.</summary>
-public sealed record SupportMatrix(
-    SupportPublicationPolicySnapshot Policy,
-    SupportEvidenceCatalogSnapshot EvidenceCatalog,
-    IReadOnlyList<SupportMatrixRow> Rows,
-    IReadOnlyList<SupportMatrixDiagnostic> Diagnostics)
+public sealed record SupportMatrix
 {
+    /// <summary>Initializes one owned reporting projection.</summary>
+    public SupportMatrix(
+        SupportPublicationPolicySnapshot policy,
+        SupportEvidenceCatalogSnapshot evidenceCatalog,
+        IEnumerable<SupportMatrixRow> rows,
+        IEnumerable<SupportMatrixDiagnostic> diagnostics)
+    {
+        Policy = policy;
+        EvidenceCatalog = evidenceCatalog;
+        Rows = SupportMatrixSnapshotCollections.Copy(rows);
+        Diagnostics = SupportMatrixSnapshotCollections.Copy(diagnostics);
+    }
+
+    /// <summary>Hash-closed owner publication policy snapshot.</summary>
+    public SupportPublicationPolicySnapshot Policy { get; }
+
+    /// <summary>Exact evidence catalog snapshot used for resolution.</summary>
+    public SupportEvidenceCatalogSnapshot EvidenceCatalog { get; }
+
+    /// <summary>Owned materialized matrix rows.</summary>
+    public IReadOnlyList<SupportMatrixRow> Rows { get; }
+
+    /// <summary>Owned fail-closed diagnostics.</summary>
+    public IReadOnlyList<SupportMatrixDiagnostic> Diagnostics { get; }
+
     /// <summary>True only when every source is exactly bound and every route has a safe policy relationship.</summary>
     public bool IsMigrationReady => Diagnostics.Count == 0;
+}
+
+/// <summary>Creates private, read-only collection snapshots at public reporting boundaries.</summary>
+internal static class SupportMatrixSnapshotCollections
+{
+    internal static IReadOnlyList<T> Copy<T>(IEnumerable<T> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        return Array.AsReadOnly(values.ToArray());
+    }
 }
 
 /// <summary>Application-owned materializer that never infers publication or evidence from firmware facts.</summary>
@@ -194,7 +328,7 @@ public static class SupportMatrixMaterializer
         {
             _ = decisions.TryGetValue(route.RouteId, out SupportPublicationDecision? decision);
             SupportPublicationStatus publication = decision?.Status ?? SupportPublicationStatus.Unclassified;
-            if (publication == SupportPublicationStatus.Unclassified)
+            if (decision is null)
             {
                 diagnostics.Add(new SupportMatrixDiagnostic(
                     UnclassifiedRoute,
@@ -262,6 +396,11 @@ public static class SupportMatrixMaterializer
         ValidateText(policy.PolicyId, nameof(policy.PolicyId));
         ValidateText(policy.PolicyVersion, nameof(policy.PolicyVersion));
         ValidateText(policy.Sha256, nameof(policy.Sha256));
+        if (policy.SupersedesPolicyVersion is not null)
+        {
+            ValidateText(policy.SupersedesPolicyVersion, nameof(policy.SupersedesPolicyVersion));
+        }
+
         ArgumentNullException.ThrowIfNull(policy.Decisions);
         if (policy.Decisions.Any(static decision => decision is null) ||
             policy.Decisions.Select(static decision => decision.DecisionId).Distinct(StringComparer.Ordinal).Count() != policy.Decisions.Count ||
@@ -279,10 +418,19 @@ public static class SupportMatrixMaterializer
                 throw new ArgumentException("Publication policy decision is invalid.", nameof(policy));
             }
 
-            ValidateText(decision.Provenance.AuthorityKind, nameof(decision.Provenance.AuthorityKind));
+            if (!StringComparer.Ordinal.Equals(decision.Provenance.AuthorityKind, "owner-decision"))
+            {
+                throw new ArgumentException("Publication policy decision provenance must have authority kind 'owner-decision'.", nameof(policy));
+            }
+
             ValidateText(decision.Provenance.RecordedOn, nameof(decision.Provenance.RecordedOn));
             ValidateText(decision.Provenance.RecordRef, nameof(decision.Provenance.RecordRef));
             ValidateText(decision.Provenance.Rationale, nameof(decision.Provenance.Rationale));
+            if (decision.SupersedesDecisionIds.Any(static decisionId => string.IsNullOrWhiteSpace(decisionId)) ||
+                decision.SupersedesDecisionIds.Distinct(StringComparer.Ordinal).Count() != decision.SupersedesDecisionIds.Count)
+            {
+                throw new ArgumentException("Publication policy decision supersession ids must be non-empty and unique.", nameof(policy));
+            }
         }
     }
 
@@ -309,6 +457,7 @@ public static class SupportMatrixMaterializer
 
             ValidateText(route.AuthoringSourceId, nameof(route.AuthoringSourceId));
             ValidateText(route.ExecutionSourceId, nameof(route.ExecutionSourceId));
+            ValidateText(route.IntegrityRouteId, nameof(route.IntegrityRouteId));
         }
     }
 

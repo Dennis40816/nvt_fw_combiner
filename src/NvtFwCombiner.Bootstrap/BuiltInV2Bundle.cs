@@ -271,6 +271,31 @@ internal sealed class BuiltInV2Bundle
         }
     }
 
+    /// <summary>Reads the exact canonical map identities declared for one trusted built-in profile.</summary>
+    internal IReadOnlyList<string> GetMapIds(
+        string profileId,
+        string profileVersion,
+        string icId,
+        string experienceId,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        try
+        {
+            return TrustedV2CompositionCompiler.GetMapIds(
+                _catalog.Value,
+                profileId,
+                profileVersion,
+                icId,
+                experienceId,
+                out issues);
+        }
+        catch (Exception exception) when (IsBundleLoadFailure(exception))
+        {
+            issues = [CreateBundleLoadIssue(exception)];
+            return [];
+        }
+    }
+
     private static bool IsBundleLoadFailure(Exception exception)
     {
         return exception is IOException or

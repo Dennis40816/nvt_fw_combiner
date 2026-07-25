@@ -53,6 +53,28 @@ public sealed class SupportMatrixMaterializerTests
             diagnostic.Code == SupportMatrixMaterializer.PolicyRouteUnresolved);
     }
 
+    /// <summary>Verifies an explicit owner unclassified decision is not confused with a missing decision.</summary>
+    [Fact]
+    public void RetainsExplicitUnclassifiedDecisionWithoutReportingAMissingPolicyRow()
+    {
+        SupportRouteDescriptor route = Route();
+
+        SupportMatrix matrix = SupportMatrixMaterializer.Materialize(
+            Policy(new SupportPublicationDecision(
+                "explicit-unclassified",
+                route.RouteId,
+                SupportPublicationStatus.Unclassified,
+                Provenance())),
+            [route],
+            EvidenceCatalog());
+
+        SupportMatrixRow row = Assert.Single(matrix.Rows);
+        Assert.Equal(SupportPublicationStatus.Unclassified, row.PublicationStatus);
+        Assert.Equal("explicit-unclassified", row.PublicationDecision!.DecisionId);
+        Assert.DoesNotContain(matrix.Diagnostics, diagnostic =>
+            diagnostic.Code == SupportMatrixMaterializer.UnclassifiedRoute);
+    }
+
     /// <summary>Verifies selectable routes cannot be represented as execution-inadmissible exact routes.</summary>
     [Fact]
     public void FailsMigrationForSelectableButNonExecutableExactRoute()
@@ -233,6 +255,65 @@ public sealed class SupportMatrixMaterializerTests
             EvidenceCatalog());
 
         Assert.Equal(SupportEvidenceStatus.ContractOnly, Assert.Single(matrix.Rows).Evidence.Status);
+    }
+
+    /// <summary>Verifies a publication provenance cannot claim an authority other than the exact owner decision.</summary>
+    [Fact]
+    public void RejectsPublicationDecisionWhoseAuthorityIsNotOwnerDecision()
+    {
+        SupportRouteDescriptor route = Route();
+        SupportPublicationPolicySnapshot policy = Policy(new SupportPublicationDecision(
+            "candidate-route",
+            route.RouteId,
+            SupportPublicationStatus.Candidate,
+            new SupportPublicationProvenance("inferred", "2026-07-25", "test", "test")));
+
+        _ = Assert.Throws<ArgumentException>(() => SupportMatrixMaterializer.Materialize(
+            policy,
+            [route],
+            EvidenceCatalog()));
+    }
+
+    /// <summary>Verifies public policy, evidence, fact-scope, and result snapshots never retain caller-owned arrays.</summary>
+    [Fact]
+    public void CopiesAllPublicSnapshotCollectionsAtTheirBoundaries()
+    {
+        string[] supersededIds = ["old-decision"];
+        var decision = new SupportPublicationDecision(
+            "candidate-route",
+            "nt51950-ab-merge-single",
+            SupportPublicationStatus.Candidate,
+            Provenance(),
+            supersededIds);
+        SupportPublicationDecision[] decisions = [decision];
+        SupportPublicationPolicySnapshot policy = new(
+            "support-publication-policy",
+            "2.0.0",
+            new string('a', 64),
+            decisions,
+            "1.0.0");
+        string[] counts = ["single"];
+        string[] maps = ["nt51950-ab-merge-512k"];
+        SupportEvidenceFactScope scope = new("scope", "NT51950", "ab-merge", counts, maps);
+        SupportEvidenceDeclaration[] declarations =
+        [
+            new SupportEvidenceDeclaration("golden:route", SupportEvidenceStatus.DirectGolden, decision.RouteId),
+        ];
+        SupportEvidenceCatalogSnapshot evidence = new("evidence", "1.0.0", "test", declarations);
+        SupportMatrix matrix = SupportMatrixMaterializer.Materialize(policy, [Route()], evidence);
+
+        supersededIds[0] = "mutated-decision";
+        decisions[0] = new SupportPublicationDecision("mutated", decision.RouteId, SupportPublicationStatus.Internal, Provenance());
+        counts[0] = "cascade";
+        maps[0] = "mutated-map";
+        declarations[0] = new SupportEvidenceDeclaration("mutated", SupportEvidenceStatus.SyntheticOracle, decision.RouteId);
+
+        Assert.Equal("old-decision", policy.Decisions.Single().SupersedesDecisionIds.Single());
+        Assert.Equal("candidate-route", policy.Decisions.Single().DecisionId);
+        Assert.Equal("single", scope.IcCountVariants.Single());
+        Assert.Equal("nt51950-ab-merge-512k", scope.MapVariants.Single());
+        Assert.Equal("golden:route", evidence.Declarations.Single().DeclarationId);
+        _ = Assert.Single(matrix.Rows);
     }
 
     private static SupportRouteDescriptor Route(
