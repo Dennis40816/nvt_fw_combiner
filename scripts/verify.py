@@ -184,6 +184,8 @@ PROCESS_TERMINATION_BOUNDARIES: dict[
     subprocess.Popen[bytes], ProcessTerminationBoundary
 ] = {}
 ACTIVE_PROCESSES_LOCK = threading.Lock()
+PROCESS_HANDOFF_LOCK = threading.Lock()
+PROCESS_CANCELLATION_REQUESTED = threading.Event()
 
 
 LaneAction = Callable[[Path | None], None]
@@ -379,6 +381,14 @@ def terminate_active_processes() -> None:
         ) from errors[0]
 
 
+def cancel_active_processes_after_handoffs() -> None:
+    """Block new process creation and clean up after in-flight handoffs finish."""
+
+    PROCESS_CANCELLATION_REQUESTED.set()
+    with PROCESS_HANDOFF_LOCK:
+        terminate_active_processes()
+
+
 def process_group_options() -> dict[str, int] | dict[str, bool]:
     """Keep internal lane commands inside their parent process tree for cancellation."""
 
@@ -482,16 +492,19 @@ def start_owned_process(
 
     process: subprocess.Popen[bytes] | None = None
     try:
-        with defer_ctrl_c_during_process_handoff():
-            process = subprocess.Popen(
-                command,
-                cwd=cwd,
-                stdout=stdout,
-                stderr=stderr,
-                env=environment,
-                **process_group_options(),
-            )
-            activate_owned_process(process)
+        with PROCESS_HANDOFF_LOCK:
+            if PROCESS_CANCELLATION_REQUESTED.is_set():
+                raise RuntimeError("verification process creation was cancelled")
+            with defer_ctrl_c_during_process_handoff():
+                process = subprocess.Popen(
+                    command,
+                    cwd=cwd,
+                    stdout=stdout,
+                    stderr=stderr,
+                    env=environment,
+                    **process_group_options(),
+                )
+                activate_owned_process(process)
         return process
     except BaseException:
         if process is not None:
@@ -867,7 +880,7 @@ def parse_lane_timeout(value: str) -> int:
 
 def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     raw_arguments = tuple(sys.argv[1:] if arguments is None else arguments)
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument(
         "--all",
         action="store_true",
@@ -1017,12 +1030,16 @@ def run_lanes(
         return LaneResult(lane.name, True, monotonic() - started, log_path)
 
     if jobs == 1 or len(lanes) < 2:
+        PROCESS_CANCELLATION_REQUESTED.clear()
         try:
             return tuple(run_lane(lane) for lane in lanes)
         except KeyboardInterrupt:
-            terminate_active_processes()
+            cancel_active_processes_after_handoffs()
             raise
+        finally:
+            PROCESS_CANCELLATION_REQUESTED.clear()
 
+    PROCESS_CANCELLATION_REQUESTED.clear()
     results: dict[str, LaneResult] = {}
     executor = ThreadPoolExecutor(max_workers=min(jobs, len(lanes)))
     futures = {}
@@ -1035,7 +1052,7 @@ def run_lanes(
     except KeyboardInterrupt:
         cleanup_error: Exception | None = None
         try:
-            terminate_active_processes()
+            cancel_active_processes_after_handoffs()
         except Exception as error:
             cleanup_error = error
         finally:
@@ -1053,6 +1070,8 @@ def run_lanes(
     else:
         executor.shutdown(wait=True)
         return tuple(results[lane.name] for lane in lanes)
+    finally:
+        PROCESS_CANCELLATION_REQUESTED.clear()
 
 
 def report_lane_results(results: Sequence[LaneResult]) -> None:

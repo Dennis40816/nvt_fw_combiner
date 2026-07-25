@@ -10,6 +10,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -103,6 +104,68 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.assertEqual(
                 "passing\n", (root / "passing.log").read_text(encoding="utf-8")
             )
+
+    def test_ctrl_c_waits_for_worker_process_handoff_before_cleanup(self) -> None:
+        fake_process = MagicMock()
+        activation_finished = threading.Event()
+        cleanup_observations: list[bool] = []
+
+        def create_during_interrupt(*_args: object, **_kwargs: object) -> MagicMock:
+            self.assertIsNot(threading.current_thread(), threading.main_thread())
+            signal.raise_signal(signal.SIGINT)
+            self.assertTrue(MODULE.PROCESS_CANCELLATION_REQUESTED.wait(5))
+            return fake_process
+
+        def activate(_process: object) -> None:
+            activation_finished.set()
+
+        def cleanup() -> None:
+            cleanup_observations.append(activation_finished.is_set())
+
+        def start_process(_log_path: Path | None) -> None:
+            MODULE.start_owned_process(
+                [sys.executable, "-c", "pass"],
+                cwd=ROOT,
+                environment=None,
+            )
+
+        def await_cancellation(_log_path: Path | None) -> None:
+            self.assertTrue(MODULE.PROCESS_CANCELLATION_REQUESTED.wait(5))
+            with self.assertRaisesRegex(RuntimeError, "creation was cancelled"):
+                MODULE.start_owned_process(
+                    [sys.executable, "-c", "pass"],
+                    cwd=ROOT,
+                    environment=None,
+                )
+
+        lanes = (
+            MODULE.VerificationLane("worker", start_process),
+            MODULE.VerificationLane("peer", await_cancellation),
+        )
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.object(
+                MODULE.subprocess,
+                "Popen",
+                side_effect=create_during_interrupt,
+            ) as popen,
+            patch.object(
+                MODULE,
+                "activate_owned_process",
+                side_effect=activate,
+            ),
+            patch.object(
+                MODULE,
+                "terminate_active_processes",
+                side_effect=cleanup,
+            ),
+            self.assertRaises(KeyboardInterrupt),
+        ):
+            MODULE.run_lanes(lanes, jobs=2, log_directory=Path(temporary))
+
+        self.assertEqual([True], cleanup_observations)
+        self.assertEqual(1, popen.call_count)
+        self.assertFalse(MODULE.PROCESS_CANCELLATION_REQUESTED.is_set())
 
     def test_lane_deadline_terminates_a_hung_command(self) -> None:
         def sleeping(log_path: Path) -> None:
@@ -925,6 +988,16 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 MODULE.parse_args(["--jobs", "4"])
             with self.assertRaises(SystemExit):
                 MODULE.parse_args(["--lane-timeout-seconds", "59"])
+
+    def test_parser_rejects_public_option_abbreviations(self) -> None:
+        for arguments in (
+            ["--job=3"],
+            ["--lane-timeout=300"],
+        ):
+            with self.subTest(arguments=arguments):
+                with contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit):
+                        MODULE.parse_args(arguments)
 
     def test_internal_lane_rejects_public_gate_flags(self) -> None:
         with (
