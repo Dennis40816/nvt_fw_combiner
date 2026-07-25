@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace NvtFwCombiner.Infrastructure;
 
@@ -17,11 +18,7 @@ internal static class PinnedJsonCatalogLoader
         string emptyMessage)
         where T : class
     {
-        string actualHash = ComputeCanonicalSha256(bytes);
-        if (!StringComparer.Ordinal.Equals(actualHash, expectedSha256))
-        {
-            throw new InvalidDataException($"{catalogName} hash mismatch: {actualHash}.");
-        }
+        VerifyHash(bytes, expectedSha256, catalogName);
 
         try
         {
@@ -31,6 +28,40 @@ internal static class PinnedJsonCatalogLoader
         catch (JsonException exception)
         {
             throw new InvalidDataException($"{catalogName} JSON is invalid.", exception);
+        }
+    }
+
+    /// <summary>Loads one hash-pinned catalog through generated JSON metadata.</summary>
+    internal static T Load<T>(
+        ReadOnlySpan<byte> bytes,
+        string expectedSha256,
+        string catalogName,
+        string emptyMessage,
+        JsonTypeInfo<T> typeInfo)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(typeInfo);
+        VerifyHash(bytes, expectedSha256, catalogName);
+        try
+        {
+            return JsonSerializer.Deserialize(bytes, typeInfo) ??
+                throw new InvalidDataException(emptyMessage);
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidDataException($"{catalogName} JSON is invalid.", exception);
+        }
+    }
+
+    private static void VerifyHash(
+        ReadOnlySpan<byte> bytes,
+        string expectedSha256,
+        string catalogName)
+    {
+        string actualHash = ComputeCanonicalSha256(bytes);
+        if (!StringComparer.Ordinal.Equals(actualHash, expectedSha256))
+        {
+            throw new InvalidDataException($"{catalogName} hash mismatch: {actualHash}.");
         }
     }
 

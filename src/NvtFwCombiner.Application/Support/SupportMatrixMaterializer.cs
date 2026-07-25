@@ -33,7 +33,7 @@ public static class SupportMatrixMaterializer
         ArgumentNullException.ThrowIfNull(evidenceCatalog);
 
         SupportRouteDescriptor[] routeArray = [.. routes];
-        ValidatePolicy(policy);
+        SupportPublicationPolicyValidator.Validate(policy);
         ValidateRoutes(routeArray);
         Dictionary<string, SupportRouteDescriptor> routesById = routeArray.ToDictionary(
             static route => route.RouteId,
@@ -142,93 +142,6 @@ public static class SupportMatrixMaterializer
                 SourceScopeUnresolved,
                 scope.SourceId,
                 scope.Reason));
-        }
-    }
-
-    private static void ValidatePolicy(SupportPublicationPolicySnapshot policy)
-    {
-        ValidateText(policy.PolicyId, nameof(policy.PolicyId));
-        ValidateText(policy.PolicyVersion, nameof(policy.PolicyVersion));
-        if (policy.Sha256.Length != 64 ||
-            policy.Sha256.Any(static character =>
-                character is not ((>= '0' and <= '9') or (>= 'a' and <= 'f'))))
-        {
-            throw new ArgumentException(
-                "Publication policy SHA-256 must be 64 lowercase hexadecimal characters.",
-                nameof(policy));
-        }
-
-        if (policy.SupersedesPolicyVersion is not null)
-        {
-            ValidateText(policy.SupersedesPolicyVersion, nameof(policy.SupersedesPolicyVersion));
-            if (StringComparer.Ordinal.Equals(
-                    policy.PolicyVersion,
-                    policy.SupersedesPolicyVersion))
-            {
-                throw new ArgumentException(
-                    "Publication policy cannot supersede its own version.",
-                    nameof(policy));
-            }
-        }
-
-        if (policy.Decisions.Any(static decision => decision is null) ||
-            policy.Decisions.Select(static decision => decision.DecisionId)
-                .Distinct(StringComparer.Ordinal).Count() != policy.Decisions.Count ||
-            policy.Decisions.Select(static decision => decision.RouteId)
-                .Distinct(StringComparer.Ordinal).Count() != policy.Decisions.Count)
-        {
-            throw new ArgumentException(
-                "Publication decisions must have unique ids and route ids.",
-                nameof(policy));
-        }
-
-        HashSet<string> currentDecisionIds =
-            [.. policy.Decisions.Select(static decision => decision.DecisionId)];
-        var supersededDecisionIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (SupportPublicationDecision decision in policy.Decisions)
-        {
-            ValidateDecision(decision, currentDecisionIds, supersededDecisionIds);
-        }
-    }
-
-    private static void ValidateDecision(
-        SupportPublicationDecision decision,
-        HashSet<string> currentDecisionIds,
-        HashSet<string> supersededDecisionIds)
-    {
-        ValidateText(decision.DecisionId, nameof(decision.DecisionId));
-        if (!SupportRouteIdentity.IsCanonicalRouteId(decision.RouteId))
-        {
-            throw new ArgumentException("Publication decision route id is invalid.", nameof(decision));
-        }
-
-        if (!Enum.IsDefined(decision.Status) || decision.Provenance is null)
-        {
-            throw new ArgumentException("Publication decision is invalid.", nameof(decision));
-        }
-
-        if (!StringComparer.Ordinal.Equals(
-                decision.Provenance.AuthorityKind,
-                "owner-decision"))
-        {
-            throw new ArgumentException(
-                "Publication provenance authority must be 'owner-decision'.",
-                nameof(decision));
-        }
-
-        ValidateText(decision.Provenance.RecordedOn, nameof(decision.Provenance.RecordedOn));
-        ValidateText(decision.Provenance.RecordRef, nameof(decision.Provenance.RecordRef));
-        ValidateText(decision.Provenance.Rationale, nameof(decision.Provenance.Rationale));
-        foreach (string supersededId in decision.SupersedesDecisionIds)
-        {
-            ValidateText(supersededId, nameof(decision.SupersedesDecisionIds));
-            if (currentDecisionIds.Contains(supersededId) ||
-                !supersededDecisionIds.Add(supersededId))
-            {
-                throw new ArgumentException(
-                    "Superseded decision ids must refer uniquely to prior policy decisions.",
-                    nameof(decision));
-            }
         }
     }
 

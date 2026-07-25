@@ -15,6 +15,11 @@
       Include="..\..\docs\contracts\profile-bundle-v1.schema.json"
       LogicalName="NvtFwCombiner.Infrastructure.Bundles.Schemas.profile-bundle-v1.schema.json" />
     <Content
+      Include="..\..\docs\contracts\support-publication-policy-v1.json"
+      Link="docs\contracts\support-publication-policy-v1.json"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest" />
+    <Content
       Include="..\..\profiles\built-in\ctrlram-postbuild-v2\catalog.json"
       Link="profiles\built-in\ctrlram-postbuild-v2\catalog.json"
       CopyToOutputDirectory="PreserveNewest"

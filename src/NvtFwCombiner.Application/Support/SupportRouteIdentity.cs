@@ -49,9 +49,9 @@ public sealed record SupportRouteIdentity
     /// <summary>Stable route reference used by publication and evidence snapshots.</summary>
     public string RouteId { get; }
 
-    internal static bool IsCanonicalRouteId(string routeId)
+    internal static bool IsCanonicalId(string value)
     {
-        return IsRouteToken(routeId);
+        return IsRouteToken(value);
     }
 
     private string CreateRouteId()
