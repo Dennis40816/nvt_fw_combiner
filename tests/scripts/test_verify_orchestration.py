@@ -222,6 +222,63 @@ class VerifyOrchestrationTests(unittest.TestCase):
             time.sleep(2.25)
             self.assertFalse(orphan_output.exists())
 
+    def test_internal_lane_timeout_terminates_descendants_without_a_new_group(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            child_ready = root / "internal-child-ready"
+            orphan_output = root / "internal-orphan-output"
+            child = (
+                "from pathlib import Path; import time; "
+                f"Path({str(child_ready)!r}).write_text('ready'); "
+                "time.sleep(0.8); "
+                f"Path({str(orphan_output)!r}).write_text('orphan')"
+            )
+            parent = (
+                "import subprocess, sys, time; "
+                f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
+                "time.sleep(2)"
+            )
+
+            with (
+                patch.dict(
+                    os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"}
+                ),
+                self.assertRaises(subprocess.TimeoutExpired),
+            ):
+                MODULE.run(
+                    [sys.executable, "-c", parent],
+                    log_path=root / "internal-process-tree.log",
+                    timeout_seconds=0.2,
+                )
+            self.assertTrue(child_ready.exists())
+            time.sleep(0.9)
+            self.assertFalse(orphan_output.exists())
+
+    def test_unix_tree_discovery_failure_is_reported_after_root_termination(
+        self,
+    ) -> None:
+        fake_process = MagicMock()
+        fake_process.poll.return_value = None
+        with (
+            patch.object(MODULE.sys, "platform", "linux"),
+            patch.object(MODULE.subprocess, "run", side_effect=OSError("missing ps")),
+            patch.object(
+                MODULE.os, "killpg", side_effect=ProcessLookupError, create=True
+            ),
+            patch.object(MODULE.signal, "SIGKILL", 9, create=True),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError, "unable to inspect Unix verification process tree"
+            ):
+                MODULE.terminate_process_tree(fake_process)
+
+        fake_process.kill.assert_called_once_with()
+        fake_process.wait.assert_called_once_with(
+            timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS
+        )
+
     def test_cleanup_ceiling_is_shared_and_cannot_extend_the_current_lane_deadline(
         self,
     ) -> None:

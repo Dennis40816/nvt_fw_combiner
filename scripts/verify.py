@@ -89,6 +89,7 @@ def terminate_process_tree(process: subprocess.Popen[bytes]) -> None:
 
     if process.poll() is not None:
         return
+    discovery_error: RuntimeError | None = None
     if sys.platform == "win32":
         try:
             subprocess.run(
@@ -102,14 +103,73 @@ def terminate_process_tree(process: subprocess.Popen[bytes]) -> None:
             process.kill()
     else:
         try:
+            descendant_process_ids = unix_descendant_process_ids(process.pid)
+        except RuntimeError as error:
+            descendant_process_ids = ()
+            discovery_error = error
+        for process_id in descendant_process_ids:
+            try:
+                os.kill(process_id, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        try:
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
-            pass
+            process.kill()
     try:
         process.wait(timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait(timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS)
+    if sys.platform != "win32" and discovery_error is not None:
+        raise discovery_error
+
+
+def unix_descendant_process_ids(root_process_id: int) -> tuple[int, ...]:
+    """Return a Unix process tree in leaf-first order without a runtime dependency."""
+
+    try:
+        process_table = subprocess.run(
+            ["ps", "-eo", "pid=,ppid="],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS,
+        )
+    except OSError as error:
+        raise RuntimeError("unable to inspect Unix verification process tree") from error
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError("Unix verification process-tree inspection timed out") from error
+    if process_table.returncode != 0:
+        raise RuntimeError(
+            "Unix verification process-tree inspection failed with exit code "
+            f"{process_table.returncode}"
+        )
+
+    children_by_parent: dict[int, list[int]] = {}
+    observed_process_ids: set[int] = set()
+    for row in process_table.stdout.splitlines():
+        parts = row.split()
+        if len(parts) != 2:
+            continue
+        try:
+            process_id, parent_process_id = (int(part) for part in parts)
+        except ValueError:
+            continue
+        observed_process_ids.add(process_id)
+        children_by_parent.setdefault(parent_process_id, []).append(process_id)
+    if root_process_id not in observed_process_ids:
+        raise RuntimeError(
+            "Unix verification process-tree inspection did not include the root process"
+        )
+
+    descendants: list[int] = []
+    pending = [root_process_id]
+    while pending:
+        children = children_by_parent.get(pending.pop(), [])
+        descendants.extend(children)
+        pending.extend(children)
+    return tuple(reversed(descendants))
 
 
 def terminate_active_processes() -> None:
