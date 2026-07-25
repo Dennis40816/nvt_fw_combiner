@@ -1,4 +1,0 @@
-interface:
-  display_name: "Codebase Design"
-  short_description: "Vocabulary for deep-module design"
-  default_prompt: "Use $codebase-design to assess an NFC module interface, seam, depth, leverage, and locality."

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -69,24 +70,33 @@ class SkillInventoryValidationTests(unittest.TestCase):
         expected: set[str] | None = None,
         user_invoked: set[str] | None = None,
     ) -> list[str]:
+        expected_names = (
+            {"explicit-skill", "implicit-skill"} if expected is None else expected
+        )
+        explicit_names = {"explicit-skill"} if user_invoked is None else user_invoked
+        manifest_root = self.root / ".agents" / "skills"
+        manifest_root.mkdir(parents=True, exist_ok=True)
+        manifest = {
+            "schemaVersion": 1,
+            "skills": [
+                {
+                    "name": name,
+                    "status": "active",
+                    "scope": "repo",
+                    "invocation": "explicit" if name in explicit_names else "implicit",
+                    "authority": "test",
+                    "owner": "repository",
+                    "replaces": [],
+                }
+                for name in sorted(expected_names)
+            ],
+        }
+        (manifest_root / "manifest.json").write_text(
+            json.dumps(manifest),
+            encoding="utf-8",
+        )
         errors: list[str] = []
-        with (
-            patch.object(repository_validation, "ROOT", self.root),
-            patch.object(
-                repository_validation,
-                "EXPECTED_SKILLS",
-                (
-                    {"explicit-skill", "implicit-skill"}
-                    if expected is None
-                    else expected
-                ),
-            ),
-            patch.object(
-                repository_validation,
-                "EXPECTED_USER_INVOKED_SKILLS",
-                {"explicit-skill"} if user_invoked is None else user_invoked,
-            ),
-        ):
+        with patch.object(repository_validation, "ROOT", self.root):
             repository_validation.validate_skills(errors)
         return errors
 
@@ -124,9 +134,9 @@ class SkillInventoryValidationTests(unittest.TestCase):
 
         errors = self.validate()
 
-        self.assertTrue(any("user-invoked skill must set" in error for error in errors))
+        self.assertTrue(any("explicit skill must set" in error for error in errors))
         self.assertTrue(
-            any("model-invoked skill must not disable" in error for error in errors)
+            any("implicit skill must not disable" in error for error in errors)
         )
 
     def test_rejects_default_prompt_for_another_skill(self) -> None:
@@ -178,7 +188,9 @@ class SkillInventoryValidationTests(unittest.TestCase):
             )
         )
 
-    def test_rejects_short_description_whose_trimmed_length_is_below_bound(self) -> None:
+    def test_rejects_short_description_whose_trimmed_length_is_below_bound(
+        self,
+    ) -> None:
         name = "implicit-skill-blank"
         self.write_skill(name, short_description=" " * 25)
 
@@ -249,6 +261,97 @@ class SkillInventoryValidationTests(unittest.TestCase):
         )
 
         self.assertTrue(any("metadata is not valid YAML" in error for error in errors))
+
+
+class RepositorySkillRoutingContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.repository_root = Path(__file__).resolve().parents[2]
+        cls.skills_root = cls.repository_root / ".agents" / "skills"
+        cls.manifest = json.loads(
+            (cls.skills_root / "manifest.json").read_text(encoding="utf-8")
+        )
+        cls.entries = {entry["name"]: entry for entry in cls.manifest["skills"]}
+
+    def read_skill(self, name: str) -> str:
+        return (self.skills_root / name / "SKILL.md").read_text(encoding="utf-8")
+
+    def test_manifest_routes_exactly_seventeen_active_skills(self) -> None:
+        self.assertEqual(17, len(self.entries))
+        self.assertTrue(
+            all(entry["status"] == "active" for entry in self.entries.values())
+        )
+
+    def test_only_supervision_and_polling_are_explicit(self) -> None:
+        explicit = {
+            name
+            for name, entry in self.entries.items()
+            if entry["invocation"] == "explicit"
+        }
+        self.assertEqual(
+            {"github-review-polling", "supervised-branch-development"},
+            explicit,
+        )
+
+    def test_to_spec_produces_draft_without_ready_label(self) -> None:
+        text = self.read_skill("to-spec")
+        self.assertIn("draft specification", text)
+        self.assertIn("Never apply\n`ready-for-agent`", text)
+        self.assertIn("Open\ndecisions", text)
+
+    def test_to_tickets_accepts_headless_vertical_paths(self) -> None:
+        text = self.read_skill("to-tickets")
+        self.assertIn("headless path", text)
+        self.assertIn("is vertical without UI", text)
+        self.assertIn("owner explicitly approved", text)
+
+    def test_implement_owns_red_green_refactor_loop(self) -> None:
+        text = self.read_skill("implement")
+        for phase in ("**Red:**", "**Green:**", "**Refactor:**", "**Repeat:**"):
+            self.assertIn(phase, text)
+        self.assertEqual(["tdd"], self.entries["implement"]["replaces"])
+
+    def test_polytail_expands_only_touched_authority(self) -> None:
+        text = self.read_skill("polytail")
+        self.assertIn(
+            "scope proportional to touched authority",
+            (self.repository_root / "AGENTS.md").read_text(encoding="utf-8"),
+        )
+        self.assertIn("Expand the production-admission audit only when", text)
+
+    def test_code_review_uses_three_lenses_without_forced_subagents(self) -> None:
+        text = self.read_skill("code-review")
+        self.assertIn("**Spec correctness**", text)
+        self.assertIn("**Runtime, safety, and architecture**", text)
+        self.assertIn("**Tests and evidence**", text)
+        self.assertIn("Spawn read-only subagents only when", text)
+
+    def test_supervision_is_not_the_default_workflow(self) -> None:
+        text = self.read_skill("supervised-branch-development")
+        self.assertIn("Ordinary work uses single-writer mode", text)
+        self.assertIn("primary agent or owner is the default integrator", text)
+
+    def test_removed_meta_skills_are_not_repository_routes(self) -> None:
+        for name in (
+            "ask-matt",
+            "codebase-design",
+            "domain-modeling",
+            "grilling",
+            "handoff",
+            "prototype",
+            "research",
+            "tdd",
+        ):
+            with self.subTest(name=name):
+                self.assertNotIn(name, self.entries)
+                self.assertFalse((self.skills_root / name / "SKILL.md").exists())
+
+    def test_inventory_is_rendered_from_manifest(self) -> None:
+        expected = repository_validation.render_skill_inventory(self.manifest["skills"])
+        actual = (
+            self.repository_root / "docs" / "governance" / "agent-skill-inventory.md"
+        ).read_text(encoding="utf-8")
+        self.assertEqual(expected, actual)
 
 
 if __name__ == "__main__":

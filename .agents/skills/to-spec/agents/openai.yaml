@@ -2,5 +2,3 @@ interface:
   display_name: "To Spec"
   short_description: "Turn a conversation into a spec"
   default_prompt: "Use $to-spec to synthesize this conversation into an NFC spec under the configured tracker gates."
-policy:
-  allow_implicit_invocation: false

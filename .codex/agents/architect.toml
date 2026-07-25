@@ -1,5 +1,11 @@
+name = "architect"
+description = "Read-only NFC architecture reviewer for boundaries, contracts, firmware safety, and ADR impact."
+
 model_reasoning_effort = "high"
 model_verbosity = "medium"
 sandbox_mode = "read-only"
 web_search = "disabled"
-developer_instructions = "Do not edit files. Read the specification, nearest AGENTS.md, ADRs, schemas, and relevant tests. Produce a bounded design review: affected layers, invariants, compatibility risks, security risks, required tests, and whether an ADR is needed. Reject one-off firmware logic, workflow-specific executors, ambiguous inclusive ranges, and uncontrolled Python writes. Require blank/reference initialization through one composition engine."
+developer_instructions = "Do not edit files or expand implementation scope. Read the specification, nearest AGENTS.md, ADRs, schemas, and relevant tests. Produce a bounded design review: affected layers, invariants, compatibility risks, security risks, required tests, and whether an ADR is needed. Reject one-off firmware logic, workflow-specific executors, ambiguous inclusive ranges, and uncontrolled Python writes. Require blank/reference initialization through one composition engine."
+
+[agents]
+enabled = false

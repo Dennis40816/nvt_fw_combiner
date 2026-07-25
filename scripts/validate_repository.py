@@ -55,6 +55,7 @@ REQUIRED_FILES = {
     ".github/pull_request_template.md",
     ".github/workflows/ci.yml",
     ".github/workflows/release.yml",
+    ".agents/skills/manifest.json",
     "scripts/bootstrap.ps1",
     "scripts/bootstrap.sh",
     "scripts/install-dotnet.ps1",
@@ -112,7 +113,9 @@ REQUIRED_FILES = {
     "docs/contracts/saved-composition-rule-v1.schema.json",
     "docs/contracts/saved-composition-rule-v2.md",
     "docs/contracts/saved-composition-rule-v2.schema.json",
-    "docs/governance/codex-handoff.md",
+    "docs/governance/agent-skill-inventory.md",
+    "docs/governance/agent-skill-routing.md",
+    "docs/governance/development-execution-workflow.md",
     "docs/governance/development-tags.md",
     "docs/policies/polytail.md",
     "docs/references/verification-report.md",
@@ -216,48 +219,6 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
-}
-EXPECTED_SKILLS = {
-    "ask-matt",
-    "code-review",
-    "codebase-design",
-    "diagnosing-bugs",
-    "domain-modeling",
-    "grill-with-docs",
-    "grilling",
-    "handoff",
-    "implement",
-    "improve-codebase-architecture",
-    "nfc-architecture-change",
-    "firmware-profile-authoring",
-    "github-review-polling",
-    "crc-worker-contract",
-    "golden-regression",
-    "ui-experience-change",
-    "composition-experience-change",
-    "dotnet-bootstrap",
-    "release-readiness",
-    "research",
-    "resolving-merge-conflicts",
-    "setup-matt-pocock-skills",
-    "polytail",
-    "prototype",
-    "supervised-branch-development",
-    "tdd",
-    "to-spec",
-    "to-tickets",
-    "writing-great-skills",
-}
-EXPECTED_USER_INVOKED_SKILLS = {
-    "ask-matt",
-    "grill-with-docs",
-    "handoff",
-    "implement",
-    "improve-codebase-architecture",
-    "setup-matt-pocock-skills",
-    "to-spec",
-    "to-tickets",
-    "writing-great-skills",
 }
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {
@@ -458,7 +419,96 @@ def validate_markdown_links(files: Iterable[Path], errors: list[str]) -> None:
                 )
 
 
+def load_skill_manifest(errors: list[str]) -> list[dict[str, Any]]:
+    manifest_path = ROOT / ".agents" / "skills" / "manifest.json"
+    document = load_json(manifest_path, errors)
+    if not isinstance(document, dict) or document.get("schemaVersion") != 1:
+        errors.append("skill manifest must be an object with schemaVersion 1")
+        return []
+    skills = document.get("skills")
+    if not isinstance(skills, list):
+        errors.append("skill manifest skills must be an array")
+        return []
+
+    required_fields = {
+        "name",
+        "status",
+        "scope",
+        "invocation",
+        "authority",
+        "owner",
+        "replaces",
+    }
+    result: list[dict[str, Any]] = []
+    names: set[str] = set()
+    for index, entry in enumerate(skills):
+        label = f"skill manifest skills[{index}]"
+        if not isinstance(entry, dict) or set(entry) != required_fields:
+            errors.append(f"{label} must contain exactly {sorted(required_fields)}")
+            continue
+        name = entry.get("name")
+        if (
+            not isinstance(name, str)
+            or re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) is None
+        ):
+            errors.append(f"{label}.name must be lowercase hyphen-case")
+            continue
+        if name in names:
+            errors.append(f"skill manifest contains duplicate name: {name}")
+            continue
+        names.add(name)
+        if entry.get("status") != "active":
+            errors.append(f"{label}.status must be active")
+        if entry.get("scope") != "repo":
+            errors.append(f"{label}.scope must be repo")
+        if entry.get("invocation") not in {"implicit", "explicit"}:
+            errors.append(f"{label}.invocation must be implicit or explicit")
+        for field in ("authority", "owner"):
+            if not isinstance(entry.get(field), str) or not entry[field].strip():
+                errors.append(f"{label}.{field} must be a non-empty string")
+        replaces = entry.get("replaces")
+        if (
+            not isinstance(replaces, list)
+            or any(not isinstance(value, str) or not value for value in replaces)
+            or len(replaces) != len(set(replaces))
+        ):
+            errors.append(f"{label}.replaces must be an array of unique names")
+        result.append(entry)
+
+    if [entry["name"] for entry in result] != sorted(names):
+        errors.append("skill manifest entries must be sorted by name")
+    return result
+
+
+def render_skill_inventory(entries: list[dict[str, Any]]) -> str:
+    lines = [
+        "# Agent Skill Inventory",
+        "",
+        "Status: Generated from `.agents/skills/manifest.json`; do not edit the table manually.",
+        "",
+        "Repository validation checks this table, every active skill directory,",
+        "frontmatter, Codex metadata, and invocation policy against the manifest.",
+        "Removed generic workflows remain available from Git history or user-level",
+        "skills; they are not repository authority.",
+        "",
+        "| Skill | Invocation | Authority | Replaces |",
+        "| --- | --- | --- | --- |",
+    ]
+    for entry in entries:
+        replaces = ", ".join(entry["replaces"]) or "—"
+        lines.append(
+            f"| `{entry['name']}` | {entry['invocation']} | "
+            f"{entry['authority']} | {replaces} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
 def validate_skills(errors: list[str]) -> None:
+    manifest_entries = load_skill_manifest(errors)
+    expected_skills = {entry["name"] for entry in manifest_entries}
+    explicit_skills = {
+        entry["name"] for entry in manifest_entries if entry["invocation"] == "explicit"
+    }
     found: set[str] = set()
     for path in sorted((ROOT / ".agents" / "skills").glob("*/SKILL.md")):
         text = path.read_text(encoding="utf-8")
@@ -512,20 +562,27 @@ def validate_skills(errors: list[str]) -> None:
             continue
         validate_skill_metadata_fields(metadata, metadata_path, ROOT, name, errors)
         implicit_disabled = metadata["policy"].get("allow_implicit_invocation") is False
-        if name in EXPECTED_USER_INVOKED_SKILLS and not implicit_disabled:
+        if name in explicit_skills and not implicit_disabled:
             errors.append(
-                "user-invoked skill must set allow_implicit_invocation: false: "
+                "explicit skill must set allow_implicit_invocation: false: "
                 f"{metadata_path.relative_to(ROOT)}"
             )
-        if name not in EXPECTED_USER_INVOKED_SKILLS and implicit_disabled:
+        if name not in explicit_skills and implicit_disabled:
             errors.append(
-                "model-invoked skill must not disable implicit invocation: "
+                "implicit skill must not disable implicit invocation: "
                 f"{metadata_path.relative_to(ROOT)}"
             )
-    if found != EXPECTED_SKILLS:
+    if found != expected_skills:
         errors.append(
-            f"repository skills must be exactly {sorted(EXPECTED_SKILLS)}, got {sorted(found)}"
+            f"repository skills must match manifest {sorted(expected_skills)}, got {sorted(found)}"
         )
+    inventory_path = ROOT / "docs" / "governance" / "agent-skill-inventory.md"
+    if inventory_path.is_file():
+        expected_inventory = render_skill_inventory(manifest_entries)
+        if inventory_path.read_text(encoding="utf-8") != expected_inventory:
+            errors.append(
+                "agent-skill-inventory.md must be rendered from manifest.json"
+            )
 
 
 def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
@@ -1020,9 +1077,11 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
 
 
 def validate_agent_files(errors: list[str]) -> None:
-    if (ROOT / "AGENTS.md").stat().st_size > 32 * 1024:
-        errors.append("root AGENTS.md exceeds 32 KiB")
+    if (ROOT / "AGENTS.md").stat().st_size > 16 * 1024:
+        errors.append("root AGENTS.md exceeds 16 KiB")
     for relative in {
+        "profiles/AGENTS.md",
+        "testdata/golden/AGENTS.md",
         "src/NvtFwCombiner.Domain/AGENTS.md",
         "src/NvtFwCombiner.Application/AGENTS.md",
         "src/NvtFwCombiner.Infrastructure/AGENTS.md",
@@ -1033,6 +1092,45 @@ def validate_agent_files(errors: list[str]) -> None:
     }:
         if not (ROOT / relative).is_file():
             errors.append(f"missing scoped AGENTS.md: {relative}")
+
+    config = tomllib.loads(
+        (ROOT / ".codex" / "config.toml").read_text(encoding="utf-8")
+    )
+    if config.get("agents") != {
+        "enabled": True,
+        "max_concurrent_threads_per_session": 3,
+    }:
+        errors.append(
+            ".codex/config.toml must use only the approved global agents keys"
+        )
+
+    agents_root = ROOT / ".codex" / "agents"
+    expected_agent_files = {
+        "architect.toml",
+        "evidence_reviewer.toml",
+        "implementer.toml",
+        "reviewer.toml",
+    }
+    found_agent_files = {path.name for path in agents_root.glob("*.toml")}
+    if found_agent_files != expected_agent_files:
+        errors.append(
+            "standalone Codex agents must be exactly "
+            f"{sorted(expected_agent_files)}, got {sorted(found_agent_files)}"
+        )
+    for name in expected_agent_files & found_agent_files:
+        document = tomllib.loads((agents_root / name).read_text(encoding="utf-8"))
+        for field in ("name", "description", "developer_instructions"):
+            if not isinstance(document.get(field), str) or not document[field].strip():
+                errors.append(f".codex/agents/{name} requires non-empty {field}")
+        if document.get("agents") != {"enabled": False}:
+            errors.append(f".codex/agents/{name} must disable nested agents")
+    for read_only in ("architect.toml", "evidence_reviewer.toml", "reviewer.toml"):
+        if read_only in found_agent_files:
+            document = tomllib.loads(
+                (agents_root / read_only).read_text(encoding="utf-8")
+            )
+            if document.get("sandbox_mode") != "read-only":
+                errors.append(f".codex/agents/{read_only} must be read-only")
 
 
 def validate() -> list[str]:

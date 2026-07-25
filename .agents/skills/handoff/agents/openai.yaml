@@ -1,6 +1,0 @@
-interface:
-  display_name: "Handoff"
-  short_description: "Compact a conversation into a handoff"
-  default_prompt: "Use $handoff to write a redacted OS-temp continuation note for the next NFC session."
-policy:
-  allow_implicit_invocation: false

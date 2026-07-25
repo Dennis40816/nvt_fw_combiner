@@ -59,7 +59,13 @@ The installers read the exact stable .NET 10 SDK from [`global.json`](global.jso
 
 Codex must read root `AGENTS.md`, the nearest nested instructions, the relevant ADR/contract, and the matching skill before editing. Every non-trivial change ends with the `polytail` skill and the final canonical gate selected by `AGENTS.md`.
 
-The bounded handoff sequence is in [`docs/governance/codex-handoff.md`](docs/governance/codex-handoff.md). The development cadence, autonomous phase-commit rule, and test matrix are in [`docs/governance/development-execution-workflow.md`](docs/governance/development-execution-workflow.md). Development tag nodes are in [`docs/governance/development-tags.md`](docs/governance/development-tags.md).
+The current `0.10.x` ordering is in
+[`docs/governance/0.10.x-ticket-dependency-plan.md`](docs/governance/0.10.x-ticket-dependency-plan.md).
+The risk-adaptive development cadence, review checkpoints, retry policy, and
+test matrix are in
+[`docs/governance/development-execution-workflow.md`](docs/governance/development-execution-workflow.md).
+Development tag nodes are in
+[`docs/governance/development-tags.md`](docs/governance/development-tags.md).
 
 ## Reference and license boundary
 
