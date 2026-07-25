@@ -22,7 +22,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic
 
-from coverage_policy import verify_coverage
+if __package__:
+    from .coverage_policy import verify_coverage
+else:
+    from coverage_policy import verify_coverage
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKER_ROOT = ROOT / "tools" / "crc-worker"

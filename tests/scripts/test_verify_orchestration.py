@@ -52,6 +52,21 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(len(lanes), len({lane.name for lane in lanes}))
         self.assertTrue(all(lane.isolate_action for lane in lanes))
 
+    def test_package_import_works_without_a_scripts_pythonpath_entry(self) -> None:
+        environment = os.environ.copy()
+        environment.pop("PYTHONPATH", None)
+
+        result = subprocess.run(
+            [sys.executable, "-c", "import scripts.verify"],
+            cwd=ROOT,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+
     def test_jobs_one_runs_every_lane_once_in_declared_order(self) -> None:
         calls: list[str] = []
 
