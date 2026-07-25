@@ -39,7 +39,7 @@ public sealed class BuiltInSupportPublicationPolicyTests
             "src",
             "NvtFwCombiner.Infrastructure",
             "NvtFwCombiner.Infrastructure.csproj");
-        XDocument project = XDocument.Load(projectPath);
+        var project = XDocument.Load(projectPath);
         Assert.NotEmpty(BuiltInSupportPublicationPolicy.HistoryFiles);
         foreach (PinnedSupportPublicationPolicyFile source in
                  BuiltInSupportPublicationPolicy.HistoryFiles)
@@ -117,7 +117,7 @@ public sealed class BuiltInSupportPublicationPolicyTests
                 supersedesDecisionIds: ["prior-decision"]).ToJsonString());
         string currentSha256 =
             PinnedJsonCatalogLoader.ComputeCanonicalSha256(currentBytes);
-        using TempWorkspace workspace =
+        using var workspace =
             TempWorkspace.Create("nfc-support-policy-history");
         _ = workspace.Write("prior.json", priorBytes);
         _ = workspace.Write("current.json", currentBytes);
@@ -156,7 +156,7 @@ public sealed class BuiltInSupportPublicationPolicyTests
                 supersedesPolicyVersion: "1.0.0",
                 supersedesPolicySha256: new string('f', 64),
                 supersedesDecisionIds: ["prior-decision"]).ToJsonString());
-        using TempWorkspace workspace =
+        using var workspace =
             TempWorkspace.Create("nfc-support-policy-history-mismatch");
         _ = workspace.Write("prior.json", priorBytes);
         _ = workspace.Write("current.json", currentBytes);
@@ -183,7 +183,7 @@ public sealed class BuiltInSupportPublicationPolicyTests
     [Fact]
     public void RejectsHistoryPathOutsideDeploymentRoot()
     {
-        using TempWorkspace workspace =
+        using var workspace =
             TempWorkspace.Create("nfc-support-policy-history-path");
 
         _ = Assert.Throws<InvalidDataException>(() =>
