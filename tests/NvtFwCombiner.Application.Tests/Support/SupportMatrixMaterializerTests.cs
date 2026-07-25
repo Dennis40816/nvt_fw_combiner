@@ -300,6 +300,101 @@ public sealed class SupportMatrixMaterializerTests
                 evidence));
     }
 
+    /// <summary>Evidence declarations cannot name a route outside the exact catalog snapshot.</summary>
+    [Fact]
+    public void RejectsEvidenceForUnknownSourceRoute()
+    {
+        SupportRouteDescriptor route = Route();
+        SupportEvidenceCatalogSnapshot evidence = EvidenceCatalog(
+            new SupportEvidenceDeclaration(
+                "golden:missing-route",
+                SupportEvidenceStatus.DirectGolden,
+                "missing-route"));
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            SupportMatrixMaterializer.Materialize(
+                Policy(Decision(route.RouteId)),
+                [route],
+                evidence));
+    }
+
+    /// <summary>Derived fallback states cannot masquerade as declared evidence.</summary>
+    [Theory]
+    [InlineData(SupportEvidenceStatus.ContractOnly)]
+    [InlineData(SupportEvidenceStatus.Missing)]
+    public void RejectsDerivedEvidenceStatusDeclarations(SupportEvidenceStatus status)
+    {
+        SupportRouteDescriptor route = Route();
+        SupportEvidenceCatalogSnapshot evidence = EvidenceCatalog(
+            new SupportEvidenceDeclaration(
+                "derived:route",
+                status,
+                route.RouteId));
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            SupportMatrixMaterializer.Materialize(
+                Policy(Decision(route.RouteId)),
+                [route],
+                evidence));
+    }
+
+    /// <summary>Exact evidence cannot carry the target metadata reserved for aliases.</summary>
+    [Fact]
+    public void RejectsExactEvidenceWithAliasMetadata()
+    {
+        SupportRouteDescriptor route = Route();
+        SupportEvidenceCatalogSnapshot evidence = EvidenceCatalog(
+            new SupportEvidenceDeclaration(
+                "golden:route",
+                SupportEvidenceStatus.DirectGolden,
+                route.RouteId,
+                route.RouteId));
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            SupportMatrixMaterializer.Materialize(
+                Policy(Decision(route.RouteId)),
+                [route],
+                evidence));
+    }
+
+    /// <summary>An approved alias cannot cite a target without direct golden evidence.</summary>
+    [Fact]
+    public void RejectsAliasWithoutDirectGoldenTarget()
+    {
+        SupportRouteDescriptor source = Route();
+        SupportRouteDescriptor target = Route(
+            icId: "NT51929",
+            mapVariant: "nt51929-ab-merge-512k");
+        SupportEvidenceCatalogSnapshot evidence = EvidenceCatalog(
+            new SupportEvidenceDeclaration(
+                "alias:source",
+                SupportEvidenceStatus.ApprovedAlias,
+                source.RouteId,
+                target.RouteId,
+                Scope(source, "shared-scope")));
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            SupportMatrixMaterializer.Materialize(
+                Policy(Decision(source.RouteId)),
+                [source, target],
+                evidence));
+    }
+
+    /// <summary>Route identity rejects uppercase, empty, and punctuation-bearing token segments.</summary>
+    [Theory]
+    [InlineData("AB-merge")]
+    [InlineData("ab--merge")]
+    [InlineData("ab_merge")]
+    public void RejectsInvalidRouteIdentityToken(string workflowId)
+    {
+        _ = Assert.Throws<ArgumentException>(() =>
+            new SupportRouteIdentity(
+                "NT51950",
+                workflowId,
+                "1-ic",
+                "nt51950-ab-merge-512k"));
+    }
+
     /// <summary>The same fact-scope id cannot conceal conflicting definitions.</summary>
     [Fact]
     public void RejectsConflictingFactScopeIdentityReuse()
