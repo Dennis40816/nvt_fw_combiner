@@ -38,6 +38,7 @@ MINIMUM_LANE_TIMEOUT_SECONDS = 60
 MAXIMUM_LANE_TIMEOUT_SECONDS = 900
 CLEANUP_TIMEOUT_SECONDS = 30
 PROCESS_TERMINATION_TIMEOUT_SECONDS = 5
+UNIX_LANE_GRACEFUL_TERMINATION_SECONDS = 2
 WINDOWS_CREATE_SUSPENDED = 0x00000004
 WINDOWS_CREATE_NEW_PROCESS_GROUP = 0x00000200
 LOG_STREAM_CHUNK_BYTES = 64 * 1024
@@ -152,9 +153,7 @@ class WindowsKillOnCloseJob:
             if self._handle is None:
                 return
             kernel32 = self._kernel32()
-            if not kernel32.TerminateJobObject(
-                wintypes.HANDLE(self._handle), 1
-            ):
+            if not kernel32.TerminateJobObject(wintypes.HANDLE(self._handle), 1):
                 raise ctypes.WinError(ctypes.get_last_error())
 
     def close(self) -> None:
@@ -172,11 +171,20 @@ class ProcessTerminationBoundary:
     """Platform ownership retained until every verifier subprocess is released."""
 
     unix_process_group_id: int | None = None
+    unix_graceful_termination_seconds: float = 0
     windows_job: WindowsKillOnCloseJob | None = None
 
     def close(self) -> None:
         if self.windows_job is not None:
             self.windows_job.close()
+
+
+class VerificationTerminationRequested(KeyboardInterrupt):
+    """Cancellation raised when an external termination signal is received."""
+
+    def __init__(self, signal_number: int) -> None:
+        super().__init__(f"verification received signal {signal_number}")
+        self.signal_number = signal_number
 
 
 ACTIVE_PROCESSES: set[subprocess.Popen[bytes]] = set()
@@ -227,6 +235,24 @@ def remaining_timeout(timeout_seconds: float | None = None) -> float | None:
     return min(timeout_seconds, remaining) if timeout_seconds is not None else remaining
 
 
+def force_kill_unix_process_group(
+    process: subprocess.Popen[bytes],
+    process_group_id: int,
+) -> OSError | None:
+    """Attempt one group-wide SIGKILL, retaining a root fallback and its error."""
+
+    try:
+        os.killpg(process_group_id, signal.SIGKILL)
+    except ProcessLookupError:
+        if process.poll() is None:
+            process.kill()
+    except OSError as error:
+        if process.poll() is None:
+            process.kill()
+        return error
+    return None
+
+
 def terminate_process_tree(
     process: subprocess.Popen[bytes],
     boundary: ProcessTerminationBoundary | None = None,
@@ -237,7 +263,6 @@ def terminate_process_tree(
         with ACTIVE_PROCESSES_LOCK:
             boundary = PROCESS_TERMINATION_BOUNDARIES.get(process)
     root_is_running = process.poll() is None
-    discovery_error: RuntimeError | None = None
     tree_termination_error: RuntimeError | None = None
     if sys.platform == "win32":
         if boundary is not None and boundary.windows_job is not None:
@@ -270,91 +295,57 @@ def terminate_process_tree(
         if tree_termination_error is not None and root_is_running:
             process.kill()
     else:
-        descendant_process_ids: tuple[int, ...] = ()
-        if root_is_running:
+        process_group_id = (
+            boundary.unix_process_group_id if boundary is not None else process.pid
+        )
+        graceful_seconds = (
+            boundary.unix_graceful_termination_seconds if boundary is not None else 0
+        )
+        if graceful_seconds > 0:
             try:
-                descendant_process_ids = unix_descendant_process_ids(process.pid)
-            except RuntimeError as error:
-                discovery_error = error
-        for process_id in descendant_process_ids:
-            try:
-                os.kill(process_id, signal.SIGKILL)
+                os.killpg(process_group_id, signal.SIGTERM)
             except ProcessLookupError:
                 pass
-        process_group_id = (
-            boundary.unix_process_group_id
-            if boundary is not None
-            else process.pid
-        )
-        should_terminate_group = (
-            not root_is_running
-            or discovery_error is not None
-            or process_group_id == process.pid
-        )
-        if should_terminate_group:
-            try:
-                os.killpg(process_group_id, signal.SIGKILL)
-            except ProcessLookupError:
-                if root_is_running:
-                    process.kill()
-        elif root_is_running:
-            process.kill()
+            except OSError:
+                # Graceful shutdown is best-effort; the owned group must still
+                # reach the mandatory SIGKILL boundary below.
+                pass
+            else:
+                try:
+                    process.wait(timeout=graceful_seconds)
+                except subprocess.TimeoutExpired:
+                    pass
+        first_kill_error = force_kill_unix_process_group(process, process_group_id)
+        if first_kill_error is not None:
+            retry_kill_error = force_kill_unix_process_group(process, process_group_id)
+            if retry_kill_error is not None:
+                tree_termination_error = RuntimeError(
+                    "Unix verification process-group termination was not "
+                    "confirmed: killpg failed with "
+                    f"{type(first_kill_error).__name__}: {first_kill_error}; "
+                    "retry failed with "
+                    f"{type(retry_kill_error).__name__}: {retry_kill_error}"
+                )
     try:
         process.wait(timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
-        process.kill()
+        if sys.platform == "win32":
+            process.kill()
+        else:
+            process_group_id = (
+                boundary.unix_process_group_id if boundary is not None else process.pid
+            )
+            retry_kill_error = force_kill_unix_process_group(process, process_group_id)
+            if retry_kill_error is not None:
+                if tree_termination_error is None:
+                    tree_termination_error = RuntimeError(
+                        "Unix verification process-group termination was not "
+                        "confirmed: retry killpg failed with "
+                        f"{type(retry_kill_error).__name__}: {retry_kill_error}"
+                    )
         process.wait(timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS)
-    if sys.platform != "win32" and discovery_error is not None:
-        raise discovery_error
     if tree_termination_error is not None:
         raise tree_termination_error
-
-
-def unix_descendant_process_ids(root_process_id: int) -> tuple[int, ...]:
-    """Return a Unix process tree in leaf-first order without a runtime dependency."""
-
-    try:
-        process_table = subprocess.run(
-            ["ps", "-eo", "pid=,ppid="],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS,
-        )
-    except OSError as error:
-        raise RuntimeError("unable to inspect Unix verification process tree") from error
-    except subprocess.TimeoutExpired as error:
-        raise RuntimeError("Unix verification process-tree inspection timed out") from error
-    if process_table.returncode != 0:
-        raise RuntimeError(
-            "Unix verification process-tree inspection failed with exit code "
-            f"{process_table.returncode}"
-        )
-
-    children_by_parent: dict[int, list[int]] = {}
-    observed_process_ids: set[int] = set()
-    for row in process_table.stdout.splitlines():
-        parts = row.split()
-        if len(parts) != 2:
-            continue
-        try:
-            process_id, parent_process_id = (int(part) for part in parts)
-        except ValueError:
-            continue
-        observed_process_ids.add(process_id)
-        children_by_parent.setdefault(parent_process_id, []).append(process_id)
-    if root_process_id not in observed_process_ids:
-        raise RuntimeError(
-            "Unix verification process-tree inspection did not include the root process"
-        )
-
-    descendants: list[int] = []
-    pending = [root_process_id]
-    while pending:
-        children = children_by_parent.get(pending.pop(), [])
-        descendants.extend(children)
-        pending.extend(children)
-    return tuple(reversed(descendants))
 
 
 def terminate_active_processes() -> None:
@@ -390,13 +381,11 @@ def cancel_active_processes_after_handoffs() -> None:
 
 
 def process_group_options() -> dict[str, int] | dict[str, bool]:
-    """Keep internal lane commands inside their parent process tree for cancellation."""
+    """Give every owned command a race-free platform termination boundary."""
 
-    if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) == "1":
-        if sys.platform == "win32":
-            return {"creationflags": WINDOWS_CREATE_SUSPENDED}
-        return {}
     if sys.platform == "win32":
+        if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) == "1":
+            return {"creationflags": WINDOWS_CREATE_SUSPENDED}
         return {
             "creationflags": (
                 WINDOWS_CREATE_NEW_PROCESS_GROUP | WINDOWS_CREATE_SUSPENDED
@@ -405,7 +394,11 @@ def process_group_options() -> dict[str, int] | dict[str, bool]:
     return {"start_new_session": True}
 
 
-def register_active_process(process: subprocess.Popen[bytes]) -> None:
+def register_active_process(
+    process: subprocess.Popen[bytes],
+    *,
+    graceful_termination_seconds: float = 0,
+) -> None:
     if sys.platform == "win32":
         boundary = ProcessTerminationBoundary(
             windows_job=WindowsKillOnCloseJob.attach(process)
@@ -414,13 +407,10 @@ def register_active_process(process: subprocess.Popen[bytes]) -> None:
         try:
             process_group_id = os.getpgid(process.pid)
         except ProcessLookupError:
-            process_group_id = (
-                os.getpgrp()
-                if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) == "1"
-                else process.pid
-            )
+            process_group_id = process.pid
         boundary = ProcessTerminationBoundary(
-            unix_process_group_id=process_group_id
+            unix_process_group_id=process_group_id,
+            unix_graceful_termination_seconds=graceful_termination_seconds,
         )
     with ACTIVE_PROCESSES_LOCK:
         PROCESS_TERMINATION_BOUNDARIES[process] = boundary
@@ -442,34 +432,65 @@ def resume_active_process(process: subprocess.Popen[bytes]) -> None:
         )
 
 
-def activate_owned_process(process: subprocess.Popen[bytes]) -> None:
+def activate_owned_process(
+    process: subprocess.Popen[bytes],
+    *,
+    graceful_termination_seconds: float = 0,
+) -> None:
     """Register the termination boundary before allowing a verifier process to run."""
 
-    register_active_process(process)
+    register_active_process(
+        process,
+        graceful_termination_seconds=graceful_termination_seconds,
+    )
     resume_active_process(process)
 
 
 @contextmanager
-def defer_ctrl_c_during_process_handoff():
-    """Replay main-thread Ctrl+C only after a created process has an owner."""
+def handle_external_termination():
+    """Translate SIGTERM into the verifier's owned-process cancellation path."""
 
     if threading.current_thread() is not threading.main_thread():
         yield
         return
 
-    interrupted = False
+    def request_termination(signal_number: int, _frame: object) -> None:
+        raise VerificationTerminationRequested(signal_number)
 
-    def remember_interrupt(_signum: int, _frame: object) -> None:
-        nonlocal interrupted
-        interrupted = True
-
-    previous_handler = signal.signal(signal.SIGINT, remember_interrupt)
+    previous_handler = signal.signal(signal.SIGTERM, request_termination)
     try:
         yield
     finally:
-        signal.signal(signal.SIGINT, previous_handler)
-        if interrupted:
-            signal.raise_signal(signal.SIGINT)
+        signal.signal(signal.SIGTERM, previous_handler)
+
+
+@contextmanager
+def defer_termination_signals_during_process_handoff():
+    """Replay main-thread interrupts only after a created process has an owner."""
+
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+
+    deferred_signal: int | None = None
+
+    def remember_interrupt(signal_number: int, _frame: object) -> None:
+        nonlocal deferred_signal
+        if deferred_signal is None:
+            deferred_signal = signal_number
+
+    signal_numbers = (signal.SIGINT, signal.SIGTERM)
+    previous_handlers = {
+        signal_number: signal.signal(signal_number, remember_interrupt)
+        for signal_number in signal_numbers
+    }
+    try:
+        yield
+    finally:
+        for signal_number, previous_handler in previous_handlers.items():
+            signal.signal(signal_number, previous_handler)
+        if deferred_signal is not None:
+            signal.raise_signal(deferred_signal)
 
 
 def unregister_active_process(process: subprocess.Popen[bytes]) -> None:
@@ -487,6 +508,7 @@ def start_owned_process(
     environment: dict[str, str] | None,
     stdout: object | None = None,
     stderr: object | None = None,
+    graceful_termination_seconds: float = 0,
 ) -> subprocess.Popen[bytes]:
     """Create and register a process inside one cancellation-safe exception scope."""
 
@@ -495,7 +517,7 @@ def start_owned_process(
         with PROCESS_HANDOFF_LOCK:
             if PROCESS_CANCELLATION_REQUESTED.is_set():
                 raise RuntimeError("verification process creation was cancelled")
-            with defer_ctrl_c_during_process_handoff():
+            with defer_termination_signals_during_process_handoff():
                 process = subprocess.Popen(
                     command,
                     cwd=cwd,
@@ -504,7 +526,13 @@ def start_owned_process(
                     env=environment,
                     **process_group_options(),
                 )
-                activate_owned_process(process)
+                if graceful_termination_seconds > 0:
+                    activate_owned_process(
+                        process,
+                        graceful_termination_seconds=graceful_termination_seconds,
+                    )
+                else:
+                    activate_owned_process(process)
         return process
     except BaseException:
         if process is not None:
@@ -515,6 +543,12 @@ def start_owned_process(
         raise
 
 
+def command_timing_line(started_at: float) -> str:
+    """Render one stable duration record for the immediately preceding command."""
+
+    return f"Command timing: {monotonic() - started_at:.1f}s"
+
+
 def run(
     command: list[str],
     *,
@@ -523,23 +557,29 @@ def run(
     log_path: Path | None = None,
     mirror_log_path: Path | None = None,
     timeout_seconds: float | None = None,
+    graceful_termination_seconds: float = 0,
 ) -> None:
     if log_path is None:
+        command_started_at = monotonic()
         print(f"\n> {' '.join(command)}", flush=True)
-        process = start_owned_process(
-            command,
-            cwd=cwd,
-            environment=environment,
-        )
         try:
-            return_code = process.wait(timeout=remaining_timeout(timeout_seconds))
-        except (subprocess.TimeoutExpired, KeyboardInterrupt):
-            terminate_process_tree(process)
-            raise
+            process = start_owned_process(
+                command,
+                cwd=cwd,
+                environment=environment,
+                graceful_termination_seconds=graceful_termination_seconds,
+            )
+            try:
+                return_code = process.wait(timeout=remaining_timeout(timeout_seconds))
+            except (subprocess.TimeoutExpired, KeyboardInterrupt):
+                terminate_process_tree(process)
+                raise
+            finally:
+                unregister_active_process(process)
+            if return_code != 0:
+                raise subprocess.CalledProcessError(return_code, command)
         finally:
-            unregister_active_process(process)
-        if return_code != 0:
-            raise subprocess.CalledProcessError(return_code, command)
+            print(command_timing_line(command_started_at), flush=True)
         return
 
     _run_to_logs(
@@ -549,6 +589,7 @@ def run(
         environment=environment,
         echo=False,
         timeout_seconds=timeout_seconds,
+        graceful_termination_seconds=graceful_termination_seconds,
     )
 
 
@@ -565,14 +606,11 @@ def stream_log_tail(
         return
     for mirror_path in mirror_paths:
         mirror_path.parent.mkdir(parents=True, exist_ok=True)
-    decoder = (
-        codecs.getincrementaldecoder("utf-8")(errors="replace") if echo else None
-    )
+    decoder = codecs.getincrementaldecoder("utf-8")(errors="replace") if echo else None
     with primary_path.open("rb") as source, ExitStack() as stack:
         source.seek(start_offset)
         mirrors = tuple(
-            stack.enter_context(mirror_path.open("ab"))
-            for mirror_path in mirror_paths
+            stack.enter_context(mirror_path.open("ab")) for mirror_path in mirror_paths
         )
         while chunk := source.read(LOG_STREAM_CHUNK_BYTES):
             for mirror in mirrors:
@@ -591,6 +629,7 @@ def _run_to_logs(
     environment: dict[str, str] | None,
     echo: bool,
     timeout_seconds: float | None = None,
+    graceful_termination_seconds: float = 0,
 ) -> None:
     """Run one command while writing identical output to one or two log files."""
 
@@ -600,23 +639,34 @@ def _run_to_logs(
     primary_path = unique_paths[0]
     primary_path.parent.mkdir(parents=True, exist_ok=True)
     start_offset = primary_path.stat().st_size if primary_path.exists() else 0
+    command_started_at = monotonic()
     try:
         with primary_path.open("a", encoding="utf-8", newline="\n") as primary:
             print(f"\n> {' '.join(command)}", file=primary, flush=True)
-            process = start_owned_process(
-                command,
-                cwd=cwd,
-                stdout=primary,
-                stderr=subprocess.STDOUT,
-                environment=environment,
-            )
             try:
-                return_code = process.wait(timeout=remaining_timeout(timeout_seconds))
-            except (subprocess.TimeoutExpired, KeyboardInterrupt):
-                terminate_process_tree(process)
-                raise
+                process = start_owned_process(
+                    command,
+                    cwd=cwd,
+                    stdout=primary,
+                    stderr=subprocess.STDOUT,
+                    environment=environment,
+                    graceful_termination_seconds=graceful_termination_seconds,
+                )
+                try:
+                    return_code = process.wait(
+                        timeout=remaining_timeout(timeout_seconds)
+                    )
+                except (subprocess.TimeoutExpired, KeyboardInterrupt):
+                    terminate_process_tree(process)
+                    raise
+                finally:
+                    unregister_active_process(process)
             finally:
-                unregister_active_process(process)
+                print(
+                    command_timing_line(command_started_at),
+                    file=primary,
+                    flush=True,
+                )
         stream_log_tail(
             primary_path,
             start_offset=start_offset,
@@ -958,9 +1008,7 @@ def selected_lanes(args: argparse.Namespace) -> tuple[VerificationLane, ...]:
                 )
             )
         if not args.skip_dotnet:
-            lanes.append(
-                VerificationLane("dotnet", verify_dotnet, isolate_action=True)
-            )
+            lanes.append(VerificationLane("dotnet", verify_dotnet, isolate_action=True))
     return tuple(lanes)
 
 
@@ -984,6 +1032,7 @@ def run_isolated_lane(name: str, log_path: Path) -> None:
         [sys.executable, str(Path(__file__).resolve()), "--internal-lane", name],
         environment=environment,
         log_path=log_path,
+        graceful_termination_seconds=UNIX_LANE_GRACEFUL_TERMINATION_SECONDS,
     )
 
 
@@ -1099,6 +1148,8 @@ def run_selected_lanes(
 ) -> None:
     """Use temporary isolated logs and fail only after every selected lane reports."""
 
+    if not lanes:
+        raise RuntimeError("verification plan selected no lanes")
     with tempfile.TemporaryDirectory(prefix="nfc-verify-") as temporary:
         print(
             "Verification policy: "
@@ -1138,16 +1189,15 @@ def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
         raise SystemExit("--internal-lane requires a parent-owned process marker")
 
 
-def main() -> int:
-    args = parse_args()
+def execute_verification(args: argparse.Namespace) -> int:
+    """Validate one parsed invocation inside an installed signal boundary."""
+
     if args.internal_lane:
         validate_internal_lane_arguments(args)
         run_internal_lane(args.internal_lane)
         return 0
     if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) == "1":
-        raise SystemExit(
-            "parent-owned process marker is reserved for --internal-lane"
-        )
+        raise SystemExit("parent-owned process marker is reserved for --internal-lane")
     structure_only = args.structure_only
     if args.all and (args.skip_structure or args.skip_python or args.skip_dotnet):
         raise SystemExit("--all cannot be combined with skip flags")
@@ -1170,6 +1220,15 @@ def main() -> int:
 
     print("\nVerification passed.")
     return 0
+
+
+def main() -> int:
+    args = parse_args()
+    try:
+        with handle_external_termination():
+            return execute_verification(args)
+    except VerificationTerminationRequested as error:
+        return 128 + error.signal_number
 
 
 if __name__ == "__main__":

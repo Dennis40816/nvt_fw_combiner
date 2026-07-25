@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import importlib.util
 import io
@@ -14,7 +15,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,7 +36,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 if path.exists():
                     return timeout_seconds
                 time.sleep(0.01)
-            raise AssertionError(f"timed out waiting for child readiness marker: {path}")
+            raise AssertionError(
+                f"timed out waiting for child readiness marker: {path}"
+            )
 
         return wait_for_file
 
@@ -339,6 +342,37 @@ class VerifyOrchestrationTests(unittest.TestCase):
         terminate.assert_called_once_with(fake_process)
         unregister.assert_called_once_with(fake_process)
 
+    def test_sigterm_during_creation_is_replayed_after_process_ownership(
+        self,
+    ) -> None:
+        fake_process = MagicMock()
+
+        def create_then_terminate(*_args: object, **_kwargs: object) -> MagicMock:
+            signal.raise_signal(signal.SIGTERM)
+            return fake_process
+
+        with (
+            MODULE.handle_external_termination(),
+            patch.object(
+                MODULE.subprocess,
+                "Popen",
+                side_effect=create_then_terminate,
+            ),
+            patch.object(MODULE, "activate_owned_process") as activate,
+            patch.object(MODULE, "terminate_process_tree") as terminate,
+            patch.object(MODULE, "unregister_active_process") as unregister,
+            self.assertRaises(MODULE.VerificationTerminationRequested),
+        ):
+            MODULE.start_owned_process(
+                [sys.executable, "-c", "pass"],
+                cwd=ROOT,
+                environment=None,
+            )
+
+        activate.assert_called_once_with(fake_process)
+        terminate.assert_called_once_with(fake_process)
+        unregister.assert_called_once_with(fake_process)
+
     def test_windows_process_is_suspended_until_job_boundary_is_attached(
         self,
     ) -> None:
@@ -416,9 +450,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 self.submitted += 1
                 return future
 
-            def shutdown(
-                self, *, wait: bool, cancel_futures: bool = False
-            ) -> None:
+            def shutdown(self, *, wait: bool, cancel_futures: bool = False) -> None:
                 events.append(f"shutdown:{wait}:{cancel_futures}")
 
         executor = RecordingExecutor()
@@ -510,6 +542,121 @@ class VerifyOrchestrationTests(unittest.TestCase):
             timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS
         )
 
+    def test_unix_graceful_termination_failure_still_forces_the_owned_group(
+        self,
+    ) -> None:
+        fake_process = MagicMock()
+        fake_process.poll.return_value = None
+        boundary = MODULE.ProcessTerminationBoundary(
+            unix_process_group_id=4321,
+            unix_graceful_termination_seconds=2,
+        )
+        with (
+            patch.object(MODULE.sys, "platform", "linux"),
+            patch.object(
+                MODULE.os,
+                "killpg",
+                side_effect=[OSError("SIGTERM denied"), None],
+                create=True,
+            ) as kill_group,
+            patch.object(MODULE.signal, "SIGKILL", 9, create=True),
+        ):
+            MODULE.terminate_process_tree(fake_process, boundary)
+
+        self.assertEqual(
+            [
+                call(4321, signal.SIGTERM),
+                call(4321, 9),
+            ],
+            kill_group.call_args_list,
+        )
+        fake_process.wait.assert_called_once_with(
+            timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS
+        )
+
+    def test_unix_group_kill_retries_after_root_fallback(self) -> None:
+        fake_process = MagicMock()
+        fake_process.poll.return_value = None
+        boundary = MODULE.ProcessTerminationBoundary(unix_process_group_id=4321)
+        with (
+            patch.object(MODULE.sys, "platform", "linux"),
+            patch.object(
+                MODULE.os,
+                "killpg",
+                side_effect=[OSError("first SIGKILL denied"), None],
+                create=True,
+            ) as kill_group,
+            patch.object(MODULE.signal, "SIGKILL", 9, create=True),
+        ):
+            MODULE.terminate_process_tree(fake_process, boundary)
+
+        self.assertEqual([call(4321, 9), call(4321, 9)], kill_group.call_args_list)
+        fake_process.kill.assert_called_once_with()
+        fake_process.wait.assert_called_once_with(
+            timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS
+        )
+
+    def test_unix_group_kill_reports_first_and_retry_failures(self) -> None:
+        fake_process = MagicMock()
+        fake_process.poll.return_value = None
+        boundary = MODULE.ProcessTerminationBoundary(unix_process_group_id=4321)
+        with (
+            patch.object(MODULE.sys, "platform", "linux"),
+            patch.object(
+                MODULE.os,
+                "killpg",
+                side_effect=[
+                    OSError("first SIGKILL denied"),
+                    OSError("retry SIGKILL denied"),
+                ],
+                create=True,
+            ) as kill_group,
+            patch.object(MODULE.signal, "SIGKILL", 9, create=True),
+            self.assertRaisesRegex(
+                RuntimeError,
+                "first SIGKILL denied; retry failed with OSError: retry SIGKILL denied",
+            ),
+        ):
+            MODULE.terminate_process_tree(fake_process, boundary)
+
+        self.assertEqual([call(4321, 9), call(4321, 9)], kill_group.call_args_list)
+        self.assertEqual(2, fake_process.kill.call_count)
+        fake_process.wait.assert_called_once_with(
+            timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS
+        )
+
+    def test_unix_retry_kill_failure_is_reported_after_root_fallback(self) -> None:
+        fake_process = MagicMock()
+        fake_process.poll.return_value = None
+        fake_process.wait.side_effect = [
+            subprocess.TimeoutExpired("verification", 5),
+            0,
+        ]
+        boundary = MODULE.ProcessTerminationBoundary(unix_process_group_id=4321)
+        with (
+            patch.object(MODULE.sys, "platform", "linux"),
+            patch.object(
+                MODULE.os,
+                "killpg",
+                side_effect=[ProcessLookupError, OSError("SIGKILL denied")],
+                create=True,
+            ),
+            patch.object(MODULE.signal, "SIGKILL", 9, create=True),
+            self.assertRaisesRegex(
+                RuntimeError, "Unix verification process-group termination"
+            ),
+        ):
+            MODULE.terminate_process_tree(fake_process, boundary)
+
+        self.assertEqual(2, fake_process.kill.call_count)
+        self.assertEqual(
+            [
+                call(timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS),
+                call(timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS),
+            ],
+            fake_process.wait.call_args_list,
+        )
+
     @unittest.skipUnless(
         sys.platform == "win32", "Windows Job Object behavior is Windows-specific"
     )
@@ -529,9 +676,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
                 f"marker = Path({str(child_ready)!r}); "
                 "deadline = time.monotonic() + 5; "
-                "exec(\"while not marker.exists():\\n"
+                'exec("while not marker.exists():\\n'
                 "    assert time.monotonic() < deadline\\n"
-                "    time.sleep(0.01)\")"
+                '    time.sleep(0.01)")'
             )
 
             MODULE.run(
@@ -577,7 +724,129 @@ class VerifyOrchestrationTests(unittest.TestCase):
             time.sleep(2.25)
             self.assertFalse(orphan_output.exists())
 
-    def test_internal_lane_timeout_terminates_descendants_without_a_new_group(
+    @unittest.skipIf(
+        sys.platform == "win32", "Unix process-group behavior requires Unix"
+    )
+    def test_unix_timeout_kills_child_forked_after_cleanup_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            trigger = root / "spawn-trigger"
+            child_ready = root / "late-child-ready"
+            orphan_output = root / "late-orphan-output"
+            child = "\n".join(
+                (
+                    "from pathlib import Path",
+                    "import time",
+                    f"Path({str(child_ready)!r}).write_text('ready')",
+                    "time.sleep(0.8)",
+                    f"Path({str(orphan_output)!r}).write_text('orphan')",
+                )
+            )
+            parent = "\n".join(
+                (
+                    "from pathlib import Path",
+                    "import subprocess, sys, time",
+                    f"trigger = Path({str(trigger)!r})",
+                    "deadline = time.monotonic() + 5",
+                    "while not trigger.exists():",
+                    "    assert time.monotonic() < deadline",
+                    "    time.sleep(0.01)",
+                    f"subprocess.Popen([sys.executable, '-c', {child!r}])",
+                    "time.sleep(5)",
+                )
+            )
+            supervisor = "\n".join(
+                (
+                    "import os, subprocess, time",
+                    "from pathlib import Path",
+                    "import scripts.verify as module",
+                    f"trigger = Path({str(trigger)!r})",
+                    f"child_ready = Path({str(child_ready)!r})",
+                    "if hasattr(module, 'unix_descendant_process_ids'):",
+                    "    original_discovery = module.unix_descendant_process_ids",
+                    "    def coordinated_discovery(process_id):",
+                    "        descendants = original_discovery(process_id)",
+                    "        trigger.write_text('spawn')",
+                    "        deadline = time.monotonic() + 5",
+                    "        while not child_ready.exists():",
+                    "            assert time.monotonic() < deadline",
+                    "            time.sleep(0.01)",
+                    "        return descendants",
+                    "    module.unix_descendant_process_ids = coordinated_discovery",
+                    "else:",
+                    "    original_killpg = module.os.killpg",
+                    "    def coordinated_killpg(process_group_id, signal_number):",
+                    "        if not trigger.exists():",
+                    "            trigger.write_text('spawn')",
+                    "            deadline = time.monotonic() + 5",
+                    "            while not child_ready.exists():",
+                    "                assert time.monotonic() < deadline",
+                    "                time.sleep(0.01)",
+                    "        original_killpg(process_group_id, signal_number)",
+                    "    module.os.killpg = coordinated_killpg",
+                    "os.environ[module.INTERNAL_LANE_ENVIRONMENT_VARIABLE] = '1'",
+                    "try:",
+                    f"    module.run({[sys.executable, '-c', parent]!r}, timeout_seconds=0.2)",
+                    "except subprocess.TimeoutExpired:",
+                    "    pass",
+                )
+            )
+
+            process = subprocess.Popen(
+                [sys.executable, "-c", supervisor],
+                cwd=ROOT,
+                start_new_session=True,
+            )
+            process.wait(timeout=10)
+            self.assertTrue(child_ready.exists())
+            time.sleep(0.9)
+            self.assertFalse(orphan_output.exists())
+
+    @unittest.skipIf(sys.platform == "win32", "Unix termination behavior requires Unix")
+    def test_sigterm_cleans_detached_owned_commands(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            child_ready = root / "sigterm-child-ready"
+            orphan_output = root / "sigterm-orphan-output"
+            child = "\n".join(
+                (
+                    "from pathlib import Path",
+                    "import time",
+                    f"Path({str(child_ready)!r}).write_text('ready')",
+                    "time.sleep(0.8)",
+                    f"Path({str(orphan_output)!r}).write_text('orphan')",
+                )
+            )
+            supervisor = "\n".join(
+                (
+                    "import contextlib",
+                    "import scripts.verify as module",
+                    "handler = getattr(",
+                    "    module, 'handle_external_termination', contextlib.nullcontext",
+                    ")",
+                    "with handler():",
+                    f"    module.run({[sys.executable, '-c', child]!r})",
+                )
+            )
+            process = subprocess.Popen(
+                [sys.executable, "-c", supervisor],
+                cwd=ROOT,
+                start_new_session=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            deadline = time.monotonic() + 5
+            while not child_ready.exists():
+                self.assertIsNone(process.poll())
+                self.assertLess(time.monotonic(), deadline)
+                time.sleep(0.01)
+
+            os.killpg(process.pid, signal.SIGTERM)
+            process.wait(timeout=10)
+            time.sleep(0.9)
+            self.assertFalse(orphan_output.exists())
+
+    def test_internal_lane_timeout_terminates_descendants_in_a_new_group(
         self,
     ) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -616,28 +885,17 @@ class VerifyOrchestrationTests(unittest.TestCase):
             time.sleep(0.9)
             self.assertFalse(orphan_output.exists())
 
-    def test_unix_tree_discovery_failure_is_reported_after_root_termination(
-        self,
-    ) -> None:
-        fake_process = MagicMock()
-        fake_process.poll.return_value = None
+    def test_internal_lane_commands_use_a_dedicated_unix_process_group(self) -> None:
         with (
             patch.object(MODULE.sys, "platform", "linux"),
-            patch.object(MODULE.subprocess, "run", side_effect=OSError("missing ps")),
-            patch.object(
-                MODULE.os, "killpg", side_effect=ProcessLookupError, create=True
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"},
             ),
-            patch.object(MODULE.signal, "SIGKILL", 9, create=True),
         ):
-            with self.assertRaisesRegex(
-                RuntimeError, "unable to inspect Unix verification process tree"
-            ):
-                MODULE.terminate_process_tree(fake_process)
+            options = MODULE.process_group_options()
 
-        fake_process.kill.assert_called_once_with()
-        fake_process.wait.assert_called_once_with(
-            timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS
-        )
+        self.assertEqual({"start_new_session": True}, options)
 
     def test_unix_group_termination_survives_an_exited_root_process(self) -> None:
         fake_process = MagicMock()
@@ -695,7 +953,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 side_effect=ProcessLookupError,
                 create=True,
             ),
-            patch.object(MODULE.os, "getpgrp", return_value=4321, create=True),
         ):
             MODULE.register_active_process(fake_process)
             try:
@@ -703,7 +960,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             finally:
                 MODULE.unregister_active_process(fake_process)
 
-        self.assertEqual(4321, boundary.unix_process_group_id)
+        self.assertEqual(1234, boundary.unix_process_group_id)
 
     @unittest.skipIf(
         sys.platform == "win32", "Unix process-group behavior requires Unix"
@@ -724,9 +981,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
                 f"marker = Path({str(child_ready)!r}); "
                 "deadline = time.monotonic() + 5; "
-                "exec(\"while not marker.exists():\\n"
+                'exec("while not marker.exists():\\n'
                 "    assert time.monotonic() < deadline\\n"
-                "    time.sleep(0.01)\")"
+                '    time.sleep(0.01)")'
             )
             process = subprocess.Popen(
                 [sys.executable, "-c", parent],
@@ -740,6 +997,64 @@ class VerifyOrchestrationTests(unittest.TestCase):
             finally:
                 MODULE.unregister_active_process(process)
 
+            time.sleep(0.9)
+            self.assertFalse(orphan_output.exists())
+
+    @unittest.skipIf(
+        sys.platform == "win32", "Unix process-group behavior requires Unix"
+    )
+    def test_unix_group_kill_retry_cleans_descendants_after_root_fallback(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            child_ready = root / "retry-child-ready"
+            orphan_output = root / "retry-orphan-output"
+            child = (
+                "from pathlib import Path; import time; "
+                f"Path({str(child_ready)!r}).write_text('ready'); "
+                "time.sleep(0.8); "
+                f"Path({str(orphan_output)!r}).write_text('orphan')"
+            )
+            parent = (
+                "from pathlib import Path; import subprocess, sys, time; "
+                f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
+                f"marker = Path({str(child_ready)!r}); "
+                "deadline = time.monotonic() + 5; "
+                'exec("while not marker.exists():\\n'
+                "    assert time.monotonic() < deadline\\n"
+                '    time.sleep(0.01)"); '
+                "time.sleep(5)"
+            )
+            process = subprocess.Popen(
+                [sys.executable, "-c", parent],
+                start_new_session=True,
+            )
+            MODULE.register_active_process(process)
+            original_kill_group = os.killpg
+            kill_attempts = 0
+
+            def fail_first_group_kill(
+                process_group_id: int, signal_number: int
+            ) -> None:
+                nonlocal kill_attempts
+                kill_attempts += 1
+                if kill_attempts == 1:
+                    raise OSError("simulated transient group failure")
+                original_kill_group(process_group_id, signal_number)
+
+            try:
+                deadline = time.monotonic() + 5
+                while not child_ready.exists():
+                    self.assertIsNone(process.poll())
+                    self.assertLess(time.monotonic(), deadline)
+                    time.sleep(0.01)
+                with patch.object(MODULE.os, "killpg", fail_first_group_kill):
+                    MODULE.terminate_process_tree(process)
+            finally:
+                MODULE.unregister_active_process(process)
+
+            self.assertEqual(2, kill_attempts)
             time.sleep(0.9)
             self.assertFalse(orphan_output.exists())
 
@@ -825,6 +1140,43 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
             self.assertIn("bounded output", log_path.read_text(encoding="utf-8"))
 
+    def test_uncaptured_command_emits_its_duration(self) -> None:
+        fake_process = MagicMock()
+        fake_process.wait.return_value = 0
+        output = io.StringIO()
+        with (
+            patch.object(MODULE, "monotonic", side_effect=[10.0, 12.34]),
+            patch.object(MODULE, "start_owned_process", return_value=fake_process),
+            patch.object(MODULE, "unregister_active_process"),
+            contextlib.redirect_stdout(output),
+        ):
+            MODULE.run(["tool", "check"])
+
+        self.assertIn("Command timing: 2.3s", output.getvalue())
+
+    def test_captured_failed_command_emits_its_duration(self) -> None:
+        fake_process = MagicMock()
+        fake_process.wait.return_value = 7
+        with tempfile.TemporaryDirectory() as temporary:
+            log_path = Path(temporary) / "failed.log"
+            with (
+                patch.object(MODULE, "monotonic", side_effect=[10.0, 12.34]),
+                patch.object(MODULE, "start_owned_process", return_value=fake_process),
+                patch.object(MODULE, "unregister_active_process"),
+                self.assertRaises(subprocess.CalledProcessError),
+            ):
+                MODULE._run_to_logs(
+                    ["tool", "check"],
+                    log_paths=(log_path,),
+                    cwd=ROOT,
+                    environment=None,
+                    echo=False,
+                )
+
+            logged = log_path.read_text(encoding="utf-8")
+
+        self.assertIn("Command timing: 2.3s", logged)
+
     def test_lane_report_streams_logs_without_reading_the_complete_file(
         self,
     ) -> None:
@@ -903,6 +1255,44 @@ class VerifyOrchestrationTests(unittest.TestCase):
         )
 
         self.assertEqual(["dotnet"], [lane.name for lane in lanes])
+
+    def test_public_invocation_rejects_an_empty_verification_plan(self) -> None:
+        with (
+            patch.object(
+                sys,
+                "argv",
+                [
+                    str(SCRIPT),
+                    "--skip-structure",
+                    "--skip-python",
+                    "--skip-dotnet",
+                ],
+            ),
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""},
+            ),
+            patch.object(MODULE, "run_lanes") as run_lanes,
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
+            result = MODULE.main()
+
+        self.assertEqual(1, result)
+        run_lanes.assert_not_called()
+
+    def test_main_returns_sigterm_exit_code_after_owned_cleanup_path(self) -> None:
+        def request_sigterm(_args: argparse.Namespace) -> int:
+            signal.raise_signal(signal.SIGTERM)
+            return 0
+
+        with (
+            patch.object(MODULE, "parse_args", return_value=MagicMock()),
+            patch.object(MODULE, "execute_verification", side_effect=request_sigterm),
+        ):
+            result = MODULE.main()
+
+        self.assertEqual(128 + signal.SIGTERM, result)
 
     def test_idle_worker_cleanup_warnings_are_written_to_the_active_lane_log(
         self,
@@ -1010,9 +1400,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 os.environ,
                 {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"},
             ),
-            self.assertRaisesRegex(
-                SystemExit, "--internal-lane cannot be combined"
-            ),
+            self.assertRaisesRegex(SystemExit, "--internal-lane cannot be combined"),
         ):
             MODULE.main()
 
@@ -1066,9 +1454,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 os.environ,
                 {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"},
             ),
-            self.assertRaisesRegex(
-                SystemExit, "--internal-lane cannot be combined"
-            ),
+            self.assertRaisesRegex(SystemExit, "--internal-lane cannot be combined"),
         ):
             MODULE.main()
 
@@ -1081,19 +1467,14 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     str(SCRIPT),
                     "--internal-lane",
                     "structure",
-                    (
-                        "--lane-timeout-seconds="
-                        f"{MODULE.DEFAULT_LANE_TIMEOUT_SECONDS}"
-                    ),
+                    (f"--lane-timeout-seconds={MODULE.DEFAULT_LANE_TIMEOUT_SECONDS}"),
                 ],
             ),
             patch.dict(
                 os.environ,
                 {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"},
             ),
-            self.assertRaisesRegex(
-                SystemExit, "--internal-lane cannot be combined"
-            ),
+            self.assertRaisesRegex(SystemExit, "--internal-lane cannot be combined"),
         ):
             MODULE.main()
 
