@@ -10,6 +10,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextvars import ContextVar
@@ -39,9 +40,12 @@ LANE_DEADLINE: ContextVar[float | None] = ContextVar(
 CLEANUP_DEADLINE: ContextVar[float | None] = ContextVar(
     "verification_cleanup_deadline", default=None
 )
+INTERNAL_LANE_ENVIRONMENT_VARIABLE = "NFC_VERIFY_INTERNAL_LANE"
+ACTIVE_PROCESSES: set[subprocess.Popen[bytes]] = set()
+ACTIVE_PROCESSES_LOCK = threading.Lock()
 
 
-LaneAction = Callable[[Path], None]
+LaneAction = Callable[[Path | None], None]
 
 
 @dataclass(frozen=True)
@@ -50,6 +54,7 @@ class VerificationLane:
 
     name: str
     action: LaneAction
+    isolate_action: bool = False
 
 
 @dataclass(frozen=True)
@@ -107,6 +112,35 @@ def terminate_process_tree(process: subprocess.Popen[bytes]) -> None:
         process.wait(timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS)
 
 
+def terminate_active_processes() -> None:
+    """Terminate every detached command currently owned by interrupted verification."""
+
+    with ACTIVE_PROCESSES_LOCK:
+        active_processes = tuple(ACTIVE_PROCESSES)
+    for process in active_processes:
+        terminate_process_tree(process)
+
+
+def process_group_options() -> dict[str, int] | dict[str, bool]:
+    """Keep internal lane commands inside their parent process tree for cancellation."""
+
+    if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) == "1":
+        return {}
+    if sys.platform == "win32":
+        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    return {"start_new_session": True}
+
+
+def register_active_process(process: subprocess.Popen[bytes]) -> None:
+    with ACTIVE_PROCESSES_LOCK:
+        ACTIVE_PROCESSES.add(process)
+
+
+def unregister_active_process(process: subprocess.Popen[bytes]) -> None:
+    with ACTIVE_PROCESSES_LOCK:
+        ACTIVE_PROCESSES.discard(process)
+
+
 def run(
     command: list[str],
     *,
@@ -118,25 +152,20 @@ def run(
 ) -> None:
     if log_path is None:
         print(f"\n> {' '.join(command)}", flush=True)
-        if sys.platform == "win32":
-            process = subprocess.Popen(
-                command,
-                cwd=cwd,
-                env=environment,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-            )
-        else:
-            process = subprocess.Popen(
-                command,
-                cwd=cwd,
-                env=environment,
-                start_new_session=True,
-            )
+        process = subprocess.Popen(
+            command,
+            cwd=cwd,
+            env=environment,
+            **process_group_options(),
+        )
+        register_active_process(process)
         try:
             return_code = process.wait(timeout=remaining_timeout(timeout_seconds))
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, KeyboardInterrupt):
             terminate_process_tree(process)
             raise
+        finally:
+            unregister_active_process(process)
         if return_code != 0:
             raise subprocess.CalledProcessError(return_code, command)
         return
@@ -171,29 +200,22 @@ def _run_to_logs(
     try:
         with primary_path.open("a", encoding="utf-8", newline="\n") as primary:
             print(f"\n> {' '.join(command)}", file=primary, flush=True)
-            if sys.platform == "win32":
-                process = subprocess.Popen(
-                    command,
-                    cwd=cwd,
-                    stdout=primary,
-                    stderr=subprocess.STDOUT,
-                    env=environment,
-                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-                )
-            else:
-                process = subprocess.Popen(
-                    command,
-                    cwd=cwd,
-                    stdout=primary,
-                    stderr=subprocess.STDOUT,
-                    env=environment,
-                    start_new_session=True,
-                )
+            process = subprocess.Popen(
+                command,
+                cwd=cwd,
+                stdout=primary,
+                stderr=subprocess.STDOUT,
+                env=environment,
+                **process_group_options(),
+            )
+            register_active_process(process)
             try:
                 return_code = process.wait(timeout=remaining_timeout(timeout_seconds))
-            except subprocess.TimeoutExpired:
+            except (subprocess.TimeoutExpired, KeyboardInterrupt):
                 terminate_process_tree(process)
                 raise
+            finally:
+                unregister_active_process(process)
         output = primary_path.read_bytes()[start_offset:]
         for mirror_path in unique_paths[1:]:
             mirror_path.parent.mkdir(parents=True, exist_ok=True)
@@ -203,7 +225,7 @@ def _run_to_logs(
             print(output.decode("utf-8", errors="replace"), end="")
         if return_code != 0:
             raise subprocess.CalledProcessError(return_code, command)
-    except subprocess.TimeoutExpired:
+    except (subprocess.TimeoutExpired, KeyboardInterrupt):
         output = primary_path.read_bytes()[start_offset:]
         for mirror_path in unique_paths[1:]:
             mirror_path.parent.mkdir(parents=True, exist_ok=True)
@@ -466,6 +488,11 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--skip-dotnet", action="store_true")
     parser.add_argument("--skip-structure", action="store_true")
     parser.add_argument(
+        "--internal-lane",
+        choices=("structure", "python", "dotnet"),
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
         "--jobs",
         type=int,
         choices=range(1, MAXIMUM_VERIFY_JOBS + 1),
@@ -491,7 +518,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
 def repository_script_and_python_lane() -> LaneAction:
     """Return the sole owner for repository-script and Python verification."""
 
-    def run_lane(log_path: Path) -> None:
+    def run_lane(log_path: Path | None) -> None:
         verify_repository_scripts(log_path)
         verify_python(log_path)
 
@@ -503,15 +530,44 @@ def selected_lanes(args: argparse.Namespace) -> tuple[VerificationLane, ...]:
 
     lanes: list[VerificationLane] = []
     if not args.skip_structure:
-        lanes.append(VerificationLane("structure", verify_structure))
+        lanes.append(
+            VerificationLane("structure", verify_structure, isolate_action=True)
+        )
     if not args.structure_only:
         if not args.skip_python:
             lanes.append(
-                VerificationLane("python", repository_script_and_python_lane())
+                VerificationLane(
+                    "python", repository_script_and_python_lane(), isolate_action=True
+                )
             )
         if not args.skip_dotnet:
-            lanes.append(VerificationLane("dotnet", verify_dotnet))
+            lanes.append(
+                VerificationLane("dotnet", verify_dotnet, isolate_action=True)
+            )
     return tuple(lanes)
+
+
+def run_internal_lane(name: str) -> None:
+    """Run one public lane directly inside the parent-owned lane process tree."""
+
+    actions: dict[str, LaneAction] = {
+        "structure": verify_structure,
+        "python": repository_script_and_python_lane(),
+        "dotnet": verify_dotnet,
+    }
+    actions[name](None)
+
+
+def run_isolated_lane(name: str, log_path: Path) -> None:
+    """Give a whole lane one terminable process boundary and wall-clock deadline."""
+
+    environment = os.environ.copy()
+    environment[INTERNAL_LANE_ENVIRONMENT_VARIABLE] = "1"
+    run(
+        [sys.executable, str(Path(__file__).resolve()), "--internal-lane", name],
+        environment=environment,
+        log_path=log_path,
+    )
 
 
 def run_lanes(
@@ -539,7 +595,11 @@ def run_lanes(
         started = monotonic()
         deadline_token = LANE_DEADLINE.set(started + lane_timeout_seconds)
         try:
-            lane.action(log_path)
+            if lane.isolate_action:
+                run_isolated_lane(lane.name, log_path)
+            else:
+                lane.action(log_path)
+            remaining_timeout()
         except Exception as error:
             return LaneResult(
                 lane.name,
@@ -552,16 +612,20 @@ def run_lanes(
             LANE_DEADLINE.reset(deadline_token)
         return LaneResult(lane.name, True, monotonic() - started, log_path)
 
-    if jobs == 1 or len(lanes) < 2:
-        return tuple(run_lane(lane) for lane in lanes)
+    try:
+        if jobs == 1 or len(lanes) < 2:
+            return tuple(run_lane(lane) for lane in lanes)
 
-    results: dict[str, LaneResult] = {}
-    with ThreadPoolExecutor(max_workers=min(jobs, len(lanes))) as executor:
-        futures = {executor.submit(run_lane, lane): lane.name for lane in lanes}
-        for future in as_completed(futures):
-            result = future.result()
-            results[result.name] = result
-    return tuple(results[lane.name] for lane in lanes)
+        results: dict[str, LaneResult] = {}
+        with ThreadPoolExecutor(max_workers=min(jobs, len(lanes))) as executor:
+            futures = {executor.submit(run_lane, lane): lane.name for lane in lanes}
+            for future in as_completed(futures):
+                result = future.result()
+                results[result.name] = result
+        return tuple(results[lane.name] for lane in lanes)
+    except KeyboardInterrupt:
+        terminate_active_processes()
+        raise
 
 
 def report_lane_results(results: Sequence[LaneResult]) -> None:
@@ -605,6 +669,9 @@ def run_selected_lanes(
 
 def main() -> int:
     args = parse_args()
+    if args.internal_lane:
+        run_internal_lane(args.internal_lane)
+        return 0
     structure_only = args.structure_only
     if args.all and (args.skip_structure or args.skip_python or args.skip_dotnet):
         raise SystemExit("--all cannot be combined with skip flags")

@@ -12,7 +12,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -32,6 +32,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ["structure", "python", "dotnet"], [lane.name for lane in lanes]
         )
         self.assertEqual(len(lanes), len({lane.name for lane in lanes}))
+        self.assertTrue(all(lane.isolate_action for lane in lanes))
 
     def test_jobs_one_runs_every_lane_once_in_declared_order(self) -> None:
         calls: list[str] = []
@@ -108,6 +109,91 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         self.assertFalse(results[0].succeeded)
         self.assertIn("TimeoutExpired", results[0].error)
+
+    def test_lane_deadline_rejects_an_action_that_returns_after_its_budget(
+        self,
+    ) -> None:
+        def late_return(log_path: Path | None) -> None:
+            del log_path
+            time.sleep(0.05)
+
+        lanes = (MODULE.VerificationLane("late", late_return),)
+        with tempfile.TemporaryDirectory() as temporary:
+            results = MODULE.run_lanes(
+                lanes,
+                jobs=1,
+                log_directory=Path(temporary),
+                lane_timeout_seconds=0.01,
+            )
+
+        self.assertFalse(results[0].succeeded)
+        self.assertIn("TimeoutExpired", results[0].error)
+
+    def test_isolated_lane_runs_inside_one_parent_owned_subprocess(self) -> None:
+        def unexpected_action(log_path: Path | None) -> None:
+            del log_path
+            self.fail("isolated actions must run in the parent-owned subprocess")
+
+        lane = MODULE.VerificationLane(
+            "structure", unexpected_action, isolate_action=True
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            log_path = Path(temporary) / "structure.log"
+            with patch.object(MODULE, "run") as run_command:
+                results = MODULE.run_lanes(
+                    (lane,), jobs=1, log_directory=Path(temporary)
+                )
+
+        self.assertTrue(results[0].succeeded)
+        run_command.assert_called_once()
+        command = run_command.call_args.args[0]
+        environment = run_command.call_args.kwargs["environment"]
+        self.assertEqual("--internal-lane", command[-2])
+        self.assertEqual("structure", command[-1])
+        self.assertEqual("1", environment[MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE])
+        self.assertEqual(log_path, run_command.call_args.kwargs["log_path"])
+
+    def test_internal_lane_dispatches_the_canonical_structure_owner(self) -> None:
+        with patch.object(MODULE, "verify_structure") as verify_structure:
+            MODULE.run_internal_lane("structure")
+
+        verify_structure.assert_called_once_with(None)
+
+    def test_keyboard_interrupt_terminates_the_active_command_before_reraising(
+        self,
+    ) -> None:
+        fake_process = MagicMock()
+        fake_process.wait.side_effect = KeyboardInterrupt
+        fake_process.poll.return_value = None
+        with (
+            patch.object(MODULE.subprocess, "Popen", return_value=fake_process),
+            patch.object(MODULE, "terminate_process_tree") as terminate,
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                MODULE.run([sys.executable, "-c", "pass"])
+
+        terminate.assert_called_once_with(fake_process)
+        self.assertNotIn(fake_process, MODULE.ACTIVE_PROCESSES)
+
+    def test_interrupting_lane_orchestration_terminates_all_active_commands(
+        self,
+    ) -> None:
+        def interrupt(log_path: Path | None) -> None:
+            del log_path
+            raise KeyboardInterrupt
+
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.object(MODULE, "terminate_active_processes") as terminate,
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                MODULE.run_lanes(
+                    (MODULE.VerificationLane("interrupt", interrupt),),
+                    jobs=1,
+                    log_directory=Path(temporary),
+                )
+
+        terminate.assert_called_once_with()
 
     def test_timeout_terminates_the_entire_command_process_tree(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
