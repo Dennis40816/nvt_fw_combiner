@@ -181,26 +181,41 @@ class CoverageCiContractTests(unittest.TestCase):
     def test_python_coverage_override_config_is_rejected_from_pytest_addopts(
         self,
     ) -> None:
-        configurations = {
-            "tools/crc-worker/pytest.ini": (
-                "[pytest]\naddopts = --cov-config=coverage-alt\n"
+        configurations = (
+            (
+                "pytest-ini",
+                "tools/crc-worker/pytest.ini",
+                "[pytest]\naddopts = --cov-config=coverage-alt\n",
             ),
-            "tools/crc-worker/.pytest.ini": (
-                "[pytest]\naddopts = --cov-config=coverage-alt\n"
+            (
+                "hidden-pytest-ini",
+                "tools/crc-worker/.pytest.ini",
+                "[pytest]\naddopts = --cov-config=coverage-alt\n",
             ),
-            "tools/crc-worker/tox.ini": (
-                "[pytest]\naddopts = --cov-config=coverage-alt\n"
+            (
+                "tox-ini",
+                "tools/crc-worker/tox.ini",
+                "[pytest]\naddopts = --cov-config=coverage-alt\n",
             ),
-            "tools/crc-worker/setup.cfg": (
-                "[tool:pytest]\naddopts = --cov-config=coverage-alt\n"
+            (
+                "setup-cfg",
+                "tools/crc-worker/setup.cfg",
+                "[tool:pytest]\naddopts = --cov-config=coverage-alt\n",
             ),
-            "tools/crc-worker/pyproject.toml": (
+            (
+                "pyproject-compatibility",
+                "tools/crc-worker/pyproject.toml",
                 "[tool.pytest.ini_options]\n"
-                'addopts = ["-ra", "--cov-config=coverage-alt"]\n'
+                'addopts = ["-ra", "--cov-config=coverage-alt"]\n',
             ),
-        }
-        for relative, content in configurations.items():
-            with self.subTest(relative=relative):
+            (
+                "pyproject-native",
+                "tools/crc-worker/pyproject.toml",
+                '[tool.pytest]\naddopts = ["-ra", "--cov-config=coverage-alt"]\n',
+            ),
+        )
+        for label, relative, content in configurations:
+            with self.subTest(label=label):
                 with tempfile.TemporaryDirectory() as temporary:
                     root = Path(temporary)
                     configuration = root / relative
@@ -221,6 +236,54 @@ class CoverageCiContractTests(unittest.TestCase):
 
                     self.assertEqual(1, len(errors))
                     self.assertIn("pytest addopts", errors[0])
+
+    def test_collector_pin_rejects_an_additional_packaged_worker_root(self) -> None:
+        valid_reference = (
+            '<PackageReference Include="coverlet.collector" PrivateAssets="all" />'
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.write_collector_fixture(root, "6.0.4", valid_reference)
+            pyproject = root / "tools/crc-worker/pyproject.toml"
+            pyproject.write_text(
+                pyproject.read_text(encoding="utf-8").replace(
+                    'packages = ["src/nfc_crc_worker"]',
+                    'packages = ["src/nfc_crc_worker", "src/hidden_runtime"]',
+                ),
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+
+            validate_coverage_collector_pin(load_baseline(), errors, root)
+
+            self.assertTrue(
+                any("coverage-owned src/nfc_crc_worker" in error for error in errors)
+            )
+
+    def test_collector_pin_rejects_hatch_force_include_runtime_escape(self) -> None:
+        valid_reference = (
+            '<PackageReference Include="coverlet.collector" PrivateAssets="all" />'
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.write_collector_fixture(root, "6.0.4", valid_reference)
+            pyproject = root / "tools/crc-worker/pyproject.toml"
+            pyproject.write_text(
+                pyproject.read_text(encoding="utf-8")
+                + (
+                    "\n[tool.hatch.build.targets.wheel.force-include]\n"
+                    '"src/hidden_runtime.py" = '
+                    '"nfc_crc_worker/hidden_runtime.py"\n'
+                ),
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+
+            validate_coverage_collector_pin(load_baseline(), errors, root)
+
+            self.assertTrue(
+                any("closed Hatch build configuration" in error for error in errors)
+            )
 
     def test_coverage_exclusion_policy_rejects_source_and_filter_escape_hatches(
         self,
@@ -334,6 +397,8 @@ name = "fixture"
 version = "0"
 [project.optional-dependencies]
 dev = ["coverage==7.14.3", "pytest-cov==6.3.0"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/nfc_crc_worker"]
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers"
 [tool.coverage.run]

@@ -101,19 +101,28 @@ def _pytest_addopts_values(path: PurePosixPath, text: str) -> tuple[str, ...]:
             return ()
         tool = document.get("tool")
         pytest_configuration = tool.get("pytest") if isinstance(tool, dict) else None
+        values: list[str] = []
+        direct_addopts = (
+            pytest_configuration.get("addopts")
+            if isinstance(pytest_configuration, dict)
+            else None
+        )
         ini_options = (
             pytest_configuration.get("ini_options")
             if isinstance(pytest_configuration, dict)
             else None
         )
-        addopts = ini_options.get("addopts") if isinstance(ini_options, dict) else None
-        if isinstance(addopts, str):
-            return (addopts,)
-        if isinstance(addopts, list) and all(
-            isinstance(option, str) for option in addopts
-        ):
-            return tuple(addopts)
-        return ()
+        compatibility_addopts = (
+            ini_options.get("addopts") if isinstance(ini_options, dict) else None
+        )
+        for addopts in (direct_addopts, compatibility_addopts):
+            if isinstance(addopts, str):
+                values.append(addopts)
+            elif isinstance(addopts, list) and all(
+                isinstance(option, str) for option in addopts
+            ):
+                values.extend(addopts)
+        return tuple(values)
 
     if path.name.casefold() not in {
         "pytest.ini",
@@ -214,6 +223,23 @@ def validate_coverage_collector_pin(
         errors.append(
             "tools/crc-worker/pyproject.toml must exactly pin the approved "
             "Python coverage collector versions"
+        )
+    hatch_build = (
+        pyproject.get("tool", {}).get("hatch", {}).get("build")
+        if isinstance(pyproject.get("tool"), dict)
+        else None
+    )
+    approved_hatch_build = {
+        "targets": {
+            "wheel": {
+                "packages": ["src/nfc_crc_worker"],
+            }
+        }
+    }
+    if hatch_build != approved_hatch_build:
+        errors.append(
+            "tools/crc-worker/pyproject.toml must keep the closed Hatch build "
+            "configuration for the coverage-owned src/nfc_crc_worker runtime root"
         )
     expected_coverage_configuration = {
         "run": {

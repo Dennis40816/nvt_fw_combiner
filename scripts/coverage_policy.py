@@ -372,11 +372,67 @@ def _cobertura_branch_measure(
     return CoverageMeasure(covered, total)
 
 
+def _cobertura_report_branch_measure(
+    document: element_tree.Element,
+    report: Path,
+) -> CoverageMeasure:
+    """Return the collector's report-wide branch evidence totals."""
+
+    covered_value = document.get("branches-covered")
+    total_value = document.get("branches-valid")
+    try:
+        covered = int(covered_value) if covered_value is not None else -1
+        total = int(total_value) if total_value is not None else -1
+        return CoverageMeasure(covered, total)
+    except ValueError as error:
+        raise ValueError(
+            f"{report} has invalid report-wide Cobertura branch evidence"
+        ) from error
+
+
+def _dotnet_source_line_count(
+    relative_path: str,
+    root: Path,
+    source_line_counts: dict[str, int],
+) -> int:
+    """Verify one retained report source is a physical owned production file."""
+
+    existing = source_line_counts.get(relative_path)
+    if existing is not None:
+        return existing
+    module = _module_name(relative_path, DOTNET_LANGUAGE)
+    suffix = Path(relative_path).suffix.casefold()
+    if (
+        module is None
+        or suffix != ".cs"
+        and not (module == "PresentationAvalonia" and suffix == ".axaml")
+    ):
+        raise ValueError(
+            f"coverage report source is not an owned production file: {relative_path}"
+        )
+    source_path = root / _path_under_root(
+        root / relative_path,
+        root,
+        relative_path,
+    )
+    if not source_path.is_file():
+        raise ValueError(
+            f"coverage report source is not a current physical file: {relative_path}"
+        )
+    line_count = len(source_path.read_text(encoding="utf-8-sig").splitlines())
+    source_line_counts[relative_path] = line_count
+    return line_count
+
+
 def _merge_cobertura_report(
     report: Path,
     records_by_path: dict[str, dict[int, _CoverageLine]],
+    source_line_counts: dict[str, int],
     root: Path,
-) -> dict[tuple[str, str], _CoberturaClassStructure]:
+) -> tuple[
+    dict[tuple[str, str], _CoberturaClassStructure],
+    CoverageMeasure,
+]:
     """Merge physical lines and retain the paired report's branch structure."""
 
     document = element_tree.parse(report).getroot()
@@ -393,6 +449,11 @@ def _merge_cobertura_report(
         relative_path = _relative_source_path(filename, root, source_roots)
         if not relative_path.startswith("src/") or _is_generated_path(relative_path):
             continue
+        source_line_count = _dotnet_source_line_count(
+            relative_path,
+            root,
+            source_line_counts,
+        )
         class_name = class_node.get("name")
         if not class_name:
             raise ValueError(f"{report} has a production class without a name")
@@ -410,6 +471,11 @@ def _merge_cobertura_report(
             hit_count = int(hits)
             if line_number <= 0 or hit_count < 0:
                 raise ValueError(f"{report} has an invalid Cobertura coverage line")
+            if line_number > source_line_count:
+                raise ValueError(
+                    f"{report} coverage line exceeds physical source: "
+                    f"{relative_path}:{line_number}"
+                )
             structure.lines.add(line_number)
             branch_measure = _cobertura_branch_measure(line_node, report)
             if branch_measure is not None:
@@ -427,20 +493,23 @@ def _merge_cobertura_report(
                 file_records[line_number] = _CoverageLine(
                     existing.line_hit or hit_count > 0,
                 )
-    return structures
+    return structures, _cobertura_report_branch_measure(document, report)
 
 
 def _merge_coverlet_json_branches(
     reports: Iterable[Path],
     structures_by_report: dict[Path, dict[tuple[str, str], _CoberturaClassStructure]],
+    report_branch_measures: dict[Path, CoverageMeasure],
     branch_records_by_path: dict[str, dict[str, CoverageMeasure]],
+    source_line_counts: dict[str, int],
     root: Path,
 ) -> None:
     """Merge exact branch outcomes across paired Coverlet JSON reports."""
 
-    source_line_counts: dict[str, int] = {}
     for report in reports:
         structures = structures_by_report[report.parent.resolve()]
+        expected_report_measure = report_branch_measures[report.parent.resolve()]
+        observed_report_measure = CoverageMeasure(0, 0)
         observed_measures: dict[tuple[str, str, int], CoverageMeasure] = {}
         report_identities: set[tuple[str, str]] = set()
         with report.open(encoding="utf-8") as handle:
@@ -454,11 +523,14 @@ def _merge_coverlet_json_branches(
                 if not isinstance(filename, str) or not isinstance(classes, dict):
                     raise ValueError(f"{report} has an invalid Coverlet JSON source")
                 relative_path = _relative_source_path(filename, root)
-                if not relative_path.startswith("src/") or _is_generated_path(
-                    relative_path
-                ):
-                    continue
-                source_records = branch_records_by_path.setdefault(relative_path, {})
+                retain_source = relative_path.startswith(
+                    "src/"
+                ) and not _is_generated_path(relative_path)
+                source_records = (
+                    branch_records_by_path.setdefault(relative_path, {})
+                    if retain_source
+                    else None
+                )
                 for class_name, methods in classes.items():
                     if not isinstance(class_name, str) or not isinstance(methods, dict):
                         raise ValueError(f"{report} has an invalid Coverlet JSON class")
@@ -485,31 +557,23 @@ def _merge_coverlet_json_branches(
                                 branch,
                                 report,
                             )
+                            observed_report_measure = CoverageMeasure(
+                                observed_report_measure.covered + int(hit),
+                                observed_report_measure.total + 1,
+                            )
+                            if not retain_source:
+                                continue
                             if structure is None:
                                 raise ValueError(
                                     f"{report} branch class has no paired Cobertura "
                                     f"class: {relative_path}:{class_name}"
                                 )
                             if line not in structure.lines:
-                                source_line_count = source_line_counts.get(
-                                    relative_path
+                                source_line_count = _dotnet_source_line_count(
+                                    relative_path,
+                                    root,
+                                    source_line_counts,
                                 )
-                                if source_line_count is None:
-                                    source_path = root / _path_under_root(
-                                        root / relative_path, root, relative_path
-                                    )
-                                    source_line_count = (
-                                        len(
-                                            source_path.read_text(
-                                                encoding="utf-8-sig"
-                                            ).splitlines()
-                                        )
-                                        if source_path.is_file()
-                                        else 0
-                                    )
-                                    source_line_counts[relative_path] = (
-                                        source_line_count
-                                    )
                             else:
                                 source_line_count = line
                             if line > source_line_count:
@@ -536,6 +600,13 @@ def _merge_coverlet_json_branches(
                                 max(observed.covered if observed else 0, int(hit)),
                                 1,
                             )
+        if observed_report_measure != expected_report_measure:
+            raise ValueError(
+                f"{report} overall JSON branch evidence does not match paired "
+                f"Cobertura: expected {expected_report_measure.covered}/"
+                f"{expected_report_measure.total}, observed "
+                f"{observed_report_measure.covered}/{observed_report_measure.total}"
+            )
         for (relative_path, class_name), structure in structures.items():
             for line, expected_measure in structure.branch_measures.items():
                 observed_measure = observed_measures.get(
@@ -574,21 +645,29 @@ def parse_dotnet_cobertura_reports(
             "report in every result directory"
         )
     records_by_path: dict[str, dict[int, _CoverageLine]] = {}
+    source_line_counts: dict[str, int] = {}
     structures_by_report: dict[
         Path, dict[tuple[str, str], _CoberturaClassStructure]
     ] = {}
+    report_branch_measures: dict[Path, CoverageMeasure] = {}
     for report in reports:
-        structures_by_report[report.parent.resolve()] = _merge_cobertura_report(
+        structures, report_branch_measure = _merge_cobertura_report(
             report,
             records_by_path,
+            source_line_counts,
             root,
         )
+        report_parent = report.parent.resolve()
+        structures_by_report[report_parent] = structures
+        report_branch_measures[report_parent] = report_branch_measure
 
     branch_records_by_path: dict[str, dict[str, CoverageMeasure]] = {}
     _merge_coverlet_json_branches(
         json_reports,
         structures_by_report,
+        report_branch_measures,
         branch_records_by_path,
+        source_line_counts,
         root,
     )
     all_records: list[_CoverageLine] = []

@@ -11,16 +11,21 @@ and branch counts, not test counts.
   Coverlet JSON reports. Cobertura supplies physical line evidence; JSON branch
   outcome identities are unioned across test assemblies so complementary hits
   remain distinguishable. Each pair is reconciled before union: every JSON
-  branch must belong to a real Cobertura source/class and a real physical
-  source line, and every Cobertura-declared branch group must have the same
-  JSON covered/total outcome measure. The physical-source fallback is required
-  for compiler-generated methods whose branch-only lines Coverlet omits from
-  its Cobertura rendering.
+  branch must belong to a real Cobertura source/class and an owned physical
+  production source line (C# or Avalonia source-mapped AXAML),
+  every Cobertura-declared branch group must
+  have the same JSON covered/total outcome measure, and every JSON report must
+  match Cobertura's report-wide covered/total branch measure. The latter
+  accounts for Coverlet source-mapped lambda branches that JSON identifies
+  even when the corresponding Cobertura line is marked nonbranch. The
+  physical-source fallback is required only for compiler-generated methods
+  whose branch-only lines Coverlet omits from its Cobertura rendering.
 - Python is collected from `tools/crc-worker` by the exactly pinned
   `pytest-cov` 6.3.0 / `coverage.py` 7.14.3 development dependencies in JSON
   format. Its report must enumerate every owned worker Python source file
-  exactly once; alternate coverage configuration and denominator filters are
-  forbidden.
+  exactly once; the closed Hatch build configuration pins the wheel to that
+  same single package root without alternate inclusion/mapping mechanisms, and
+  alternate coverage configuration and denominator filters are forbidden.
 - Both report directories are recreated below ignored `artifacts/coverage/`.
   They are review evidence, not release inputs or source artifacts.
 

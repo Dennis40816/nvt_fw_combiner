@@ -64,6 +64,10 @@ class CoveragePolicyTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary_directory.name)
+        self.write(
+            "src/NvtFwCombiner.Domain/Thing.cs",
+            "\n" * 9 + "internal sealed class Thing\n{\n}\n",
+        )
 
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
@@ -108,11 +112,11 @@ class CoveragePolicyTests(unittest.TestCase):
 
     def test_parses_and_conservatively_merges_dotnet_cobertura_reports(self) -> None:
         domain_source_root = (self.root / "src/NvtFwCombiner.Domain").as_posix()
-        first = """<coverage><packages><package><classes><class name=\"Thing\" filename=\"src/NvtFwCombiner.Domain/Thing.cs\"><lines>
+        first = """<coverage branches-covered="1" branches-valid="2"><packages><package><classes><class name=\"Thing\" filename=\"src/NvtFwCombiner.Domain/Thing.cs\"><lines>
 <line number=\"10\" hits=\"1\" branch=\"True\" condition-coverage=\"50% (1/2)\"><conditions><condition number=\"1\" type=\"jump\" coverage=\"50%\" /></conditions></line>
 <line number=\"11\" hits=\"0\" />
 </lines></class></classes></package></packages></coverage>"""
-        second = f"""<coverage><sources><source>{domain_source_root}</source></sources><packages><package><classes><class name=\"Thing\" filename=\"Thing.cs\"><lines>
+        second = f"""<coverage branches-covered="1" branches-valid="2"><sources><source>{domain_source_root}</source></sources><packages><package><classes><class name=\"Thing\" filename=\"Thing.cs\"><lines>
 <line number=\"10\" hits=\"0\" branch=\"True\" condition-coverage=\"50% (1/2)\"><conditions><condition number=\"1\" type=\"jump\" coverage=\"50%\" /></conditions></line>
 </lines></class></classes></package></packages></coverage>"""
         self.write("reports/a/coverage.cobertura.xml", first)
@@ -143,7 +147,7 @@ class CoveragePolicyTests(unittest.TestCase):
                 }
             ),
         )
-        generated = """<coverage><packages><package><classes><class filename='src/NvtFwCombiner.Domain/obj/Generated.cs'><lines>
+        generated = """<coverage branches-covered="0" branches-valid="0"><packages><package><classes><class filename='src/NvtFwCombiner.Domain/obj/Generated.cs'><lines>
 <line number='1' hits='1' />
 </lines></class></classes></package></packages></coverage>"""
         self.write("reports/generated/coverage.cobertura.xml", generated)
@@ -155,7 +159,7 @@ class CoveragePolicyTests(unittest.TestCase):
         self.assertEqual(summary(1, 2, 2, 2), inventory.modules["Domain"])
 
     def test_parses_coverlet_deterministic_virtual_root_report(self) -> None:
-        report = r"""<coverage><sources><source>\</source></sources><packages><package><classes>
+        report = r"""<coverage branches-covered="0" branches-valid="0"><sources><source>\</source></sources><packages><package><classes>
 <class name="Thing" filename="/_/src/NvtFwCombiner.Domain/Thing.cs"><lines>
 <line number="10" hits="1" />
 </lines></class>
@@ -172,7 +176,7 @@ class CoveragePolicyTests(unittest.TestCase):
         self.assertEqual(summary(1, 1, 0, 0), inventory.modules["Domain"])
 
     def test_requires_paired_cobertura_and_coverlet_json_reports(self) -> None:
-        report = """<coverage><packages><package><classes>
+        report = """<coverage branches-covered="0" branches-valid="0"><packages><package><classes>
 <class name="Thing" filename="src/NvtFwCombiner.Domain/Thing.cs"><lines>
 <line number="10" hits="1" />
 </lines></class>
@@ -185,7 +189,7 @@ class CoveragePolicyTests(unittest.TestCase):
     def test_rejects_coverlet_json_that_omits_an_uncovered_branch_outcome(
         self,
     ) -> None:
-        report = """<coverage><packages><package><classes>
+        report = """<coverage branches-covered="1" branches-valid="2"><packages><package><classes>
 <class name="Thing" filename="src/NvtFwCombiner.Domain/Thing.cs"><lines>
 <line number="10" hits="1" branch="True" condition-coverage="50% (1/2)" />
 </lines></class>
@@ -209,7 +213,7 @@ class CoveragePolicyTests(unittest.TestCase):
             parse_dotnet_cobertura_reports(self.root / "reports", self.root)
 
     def test_rejects_coverlet_json_branch_without_a_cobertura_line(self) -> None:
-        report = """<coverage><packages><package><classes>
+        report = """<coverage branches-covered="1" branches-valid="2"><packages><package><classes>
 <class name="Thing" filename="src/NvtFwCombiner.Domain/Thing.cs"><lines>
 <line number="10" hits="1" />
 </lines></class>
@@ -235,8 +239,80 @@ class CoveragePolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no paired coverage/source line"):
             parse_dotnet_cobertura_reports(self.root / "reports", self.root)
 
+    def test_rejects_json_branch_on_a_cobertura_nonbranch_line(self) -> None:
+        report = """<coverage branches-covered="0" branches-valid="0"><packages><package><classes>
+<class name="Thing" filename="src/NvtFwCombiner.Domain/Thing.cs"><lines>
+<line number="10" hits="1" />
+</lines></class>
+</classes></package></packages></coverage>"""
+        self.write("reports/coverage.cobertura.xml", report)
+        self.write(
+            "reports/coverage.json",
+            self.coverlet_json(
+                {
+                    "Thing": {
+                        "System.Void Thing::Run()": {
+                            "Lines": {"10": 1},
+                            "Branches": [
+                                self.branch(0, 1),
+                                self.branch(1, 0),
+                            ],
+                        }
+                    }
+                }
+            ),
+        )
+
+        with self.assertRaisesRegex(ValueError, "overall JSON branch evidence"):
+            parse_dotnet_cobertura_reports(self.root / "reports", self.root)
+
+    def test_accepts_source_mapped_json_branch_accounted_by_cobertura_root(
+        self,
+    ) -> None:
+        report = """<coverage branches-covered="1" branches-valid="2"><packages><package><classes>
+<class name="Thing" filename="src/NvtFwCombiner.Domain/Thing.cs"><lines>
+<line number="10" hits="1" branch="False" />
+</lines></class>
+</classes></package></packages></coverage>"""
+        self.write("reports/coverage.cobertura.xml", report)
+        self.write(
+            "reports/coverage.json",
+            self.coverlet_json(
+                {
+                    "Thing": {
+                        "System.Void Thing::Run()": {
+                            "Lines": {"10": 1},
+                            "Branches": [
+                                self.branch(0, 1),
+                                self.branch(1, 0),
+                            ],
+                        }
+                    }
+                }
+            ),
+        )
+
+        inventory = parse_dotnet_cobertura_reports(
+            self.root / "reports",
+            self.root,
+        )
+
+        self.assertEqual(summary(1, 1, 1, 2), inventory.overall)
+
+    def test_rejects_cobertura_source_that_is_not_a_physical_file(self) -> None:
+        report = """<coverage branches-covered="0" branches-valid="0"><packages><package><classes>
+<class name="Missing" filename="src/NvtFwCombiner.Domain/DoesNotExist.cs"><lines>
+<line number="1" hits="1" />
+</lines></class>
+</classes></package></packages></coverage>"""
+        self.write("reports/coverage.cobertura.xml", report)
+        self.write("reports/coverage.json", "{}")
+
+        with self.assertRaisesRegex(ValueError, "not a current physical file"):
+            parse_dotnet_cobertura_reports(self.root / "reports", self.root)
+
     def test_rejects_fabricated_extra_coverlet_json_branch_outcome(self) -> None:
-        report = """<coverage><packages><package><classes>
+        report = """<coverage branches-covered="1" branches-valid="2"><packages><package><classes>
 <class name="Thing" filename="src/NvtFwCombiner.Domain/Thing.cs"><lines>
 <line number="10" hits="1" branch="True" condition-coverage="50% (1/2)" />
 </lines></class>
@@ -264,7 +340,7 @@ class CoveragePolicyTests(unittest.TestCase):
             parse_dotnet_cobertura_reports(self.root / "reports", self.root)
 
     def test_rejects_coverlet_hits_that_disagree_with_cobertura(self) -> None:
-        report = """<coverage><packages><package><classes>
+        report = """<coverage branches-covered="0" branches-valid="2"><packages><package><classes>
 <class name="Thing" filename="src/NvtFwCombiner.Domain/Thing.cs"><lines>
 <line number="10" hits="1" branch="True" condition-coverage="0% (0/2)" />
 </lines></class>
@@ -291,7 +367,7 @@ class CoveragePolicyTests(unittest.TestCase):
             parse_dotnet_cobertura_reports(self.root / "reports", self.root)
 
     def test_preserves_distinct_branch_identities_on_one_source_line(self) -> None:
-        report = """<coverage><packages><package><classes>
+        report = """<coverage branches-covered="2" branches-valid="4"><packages><package><classes>
 <class name=\"First\" filename=\"src/NvtFwCombiner.Domain/Thing.cs\"><lines>
 <line number=\"10\" hits=\"1\" branch=\"True\" condition-coverage=\"50% (1/2)\"><conditions><condition number=\"1\" type=\"jump\" coverage=\"50%\" /></conditions></line>
 </lines></class>
@@ -331,7 +407,7 @@ class CoveragePolicyTests(unittest.TestCase):
         self.assertEqual(summary(1, 1, 2, 4), inventory.overall)
 
     def test_rejects_branch_report_without_an_exact_json_identity(self) -> None:
-        report = """<coverage><packages><package><classes>
+        report = """<coverage branches-covered="1" branches-valid="2"><packages><package><classes>
 <class name="Thing" filename="src/NvtFwCombiner.Domain/Thing.cs"><lines>
 <line number="10" hits="1" branch="True" condition-coverage="50% (1/2)" />
 </lines></class>
