@@ -973,6 +973,8 @@ def verify_dotnet(log_path: Path | None = None) -> None:
             "--collect:XPlat Code Coverage",
             "--results-directory",
             str(coverage_directory),
+            "--",
+            "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
         ],
         # The full solution test command already runs CtrlRAM UI smoke tests. Keep the
         # fixture gate here for manifest and payload-hash validation only.

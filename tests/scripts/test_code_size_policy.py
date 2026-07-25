@@ -220,6 +220,32 @@ class CodeSizePolicyTests(unittest.TestCase):
             )
         )
 
+    def test_worker_runtime_owns_package_names_but_omits_cache_and_env_dirs(
+        self,
+    ) -> None:
+        for directory in ("release", "artifacts", "bin", "obj"):
+            self.write(
+                f"tools/crc-worker/src/nfc_crc_worker/{directory}/runtime.py",
+                "owned = True\n",
+            )
+        for directory in (
+            ".mypy_cache",
+            ".pytest_cache",
+            ".ruff_cache",
+            ".venv",
+            "__pycache__",
+            "venv",
+        ):
+            self.write(
+                f"tools/crc-worker/src/nfc_crc_worker/{directory}/runtime.py",
+                "ignored = True\n",
+            )
+
+        snapshot = measure_code_size(self.root)
+
+        self.assertEqual(4, snapshot.runtime_production_files)
+        self.assertEqual(4, snapshot.runtime_production_nonblank)
+
 
 if __name__ == "__main__":
     unittest.main()

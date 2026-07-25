@@ -20,6 +20,10 @@ APPROVED_SDK_ANALYZER_PATHS = frozenset(
     )
 )
 SDK_ANALYZER_TARGET_PATH = ("targets/Microsoft.NET.Sdk.Analyzers.targets").casefold()
+APPROVED_COVERLET_FORMAT_SETTING = (
+    "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration."
+    "Format=json,cobertura"
+)
 
 
 def validate_coverage_collector_pin(
@@ -178,10 +182,11 @@ def validate_coverage_exclusion_policy(
                             f"coverage-contract exception: {relative} -> "
                             f"{msbuild_properties[normalized_name]}"
                         )
+        inspected_invocation = text.replace(APPROVED_COVERLET_FORMAT_SETTING, "")
         if inspect_invocation and (
-            "--settings" in text
-            or "DataCollectionRunSettings" in text
-            or invocation_pattern.search(text)
+            "--settings" in inspected_invocation
+            or "DataCollectionRunSettings" in inspected_invocation
+            or invocation_pattern.search(inspected_invocation)
         ):
             errors.append(
                 "coverage invocation filter requires an explicit reviewed "

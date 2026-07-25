@@ -7,7 +7,15 @@ and branch counts, not test counts.
 ## Collection
 
 - .NET is collected from every solution test project by the test-only,
-  centrally pinned `coverlet.collector` 6.0.4 package in Cobertura format.
+  centrally pinned `coverlet.collector` 6.0.4 package as paired Cobertura and
+  Coverlet JSON reports. Cobertura supplies physical line evidence; JSON branch
+  outcome identities are unioned across test assemblies so complementary hits
+  remain distinguishable. Each pair is reconciled before union: every JSON
+  branch must belong to a real Cobertura source/class and a real physical
+  source line, and every Cobertura-declared branch group must have the same
+  JSON outcome count. The physical-source fallback is required for
+  compiler-generated methods whose branch-only lines Coverlet omits from its
+  Cobertura rendering.
 - Python is collected from `tools/crc-worker` by the exactly pinned
   `pytest-cov` 6.3.0 / `coverage.py` 7.14.3 development dependencies in JSON
   format.
@@ -63,6 +71,10 @@ production project's owned source tree and source-generating `Analyzer` items
 introduced through imported MSBuild or a package; either requires a reviewed
 architecture change. The evaluated check fails closed when restored project
 assets are absent and never races the structure lane for restore ownership.
+Every Python file below the CRC worker's canonical `src` root is likewise
+counted, including legitimate `release`, `artifacts`, `bin`, or `obj`
+subpackage names; only `.mypy_cache`, `.pytest_cache`, `.ruff_cache`, `.venv`,
+`__pycache__`, and `venv` cache/environment directories are omitted.
 Generated/cache directories remain forbidden tracked content, and the existing
 .NET/Ruff format checks prevent layout-only compression from becoming a metric
 escape hatch. Tests are excluded from the size metric, but deleting or weakening

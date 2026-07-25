@@ -6,7 +6,7 @@
     "dotnet": {
       "collector": "coverlet.collector",
       "version": "6.0.4",
-      "format": "cobertura"
+      "format": "json,cobertura"
     },
     "python": {
       "collector": "pytest-cov / coverage.py",
@@ -23,8 +23,8 @@
           "total": 40220
         },
         "branches": {
-          "covered": 11657,
-          "total": 15199
+          "covered": 11734,
+          "total": 15281
         }
       },
       "modules": {
@@ -34,8 +34,8 @@
             "total": 5911
           },
           "branches": {
-            "covered": 2192,
-            "total": 2633
+            "covered": 2208,
+            "total": 2635
           }
         },
         "Contracts": {
@@ -54,8 +54,8 @@
             "total": 4468
           },
           "branches": {
-            "covered": 1566,
-            "total": 1904
+            "covered": 1571,
+            "total": 1906
           }
         },
         "Profiles": {
@@ -64,7 +64,7 @@
             "total": 6389
           },
           "branches": {
-            "covered": 2459,
+            "covered": 2469,
             "total": 3048
           }
         },
@@ -84,8 +84,8 @@
             "total": 6684
           },
           "branches": {
-            "covered": 1972,
-            "total": 2638
+            "covered": 1975,
+            "total": 2640
           }
         },
         "Cli": {
@@ -104,8 +104,8 @@
             "total": 14073
           },
           "branches": {
-            "covered": 2748,
-            "total": 4103
+            "covered": 2791,
+            "total": 4179
           }
         }
       }

@@ -22,6 +22,9 @@ EXCLUDED_DIRECTORY_NAMES = frozenset(
         "release",
     }
 )
+PYTHON_RUNTIME_EXCLUDED_DIRECTORIES = frozenset(
+    {".mypy_cache", ".pytest_cache", ".ruff_cache", ".venv", "__pycache__", "venv"}
+)
 NAMESPACE_PATTERN = re.compile(
     r"^\s*namespace\s+([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*[;{]",
     re.MULTILINE,
@@ -119,6 +122,31 @@ def _nonblank_line_count(path: Path) -> int:
     )
 
 
+def _worker_runtime_files(root: Path) -> list[Path]:
+    """Measure every owned Python source below the canonical worker package root."""
+
+    search_root = root / "tools/crc-worker/src"
+    if not search_root.is_dir():
+        return []
+    resolved_root = search_root.resolve()
+    files: list[Path] = []
+    for path in search_root.rglob("*"):
+        try:
+            relative = path.resolve().relative_to(resolved_root)
+        except ValueError:
+            continue
+        if (
+            path.is_file()
+            and path.suffix.casefold() == ".py"
+            and not any(
+                part.casefold() in PYTHON_RUNTIME_EXCLUDED_DIRECTORIES
+                for part in relative.parts[:-1]
+            )
+        ):
+            files.append(path)
+    return sorted(files)
+
+
 def _runtime_production_files(root: Path) -> list[Path]:
     """Return the fixed 0.10.x non-UI/runtime source measurement set."""
 
@@ -127,11 +155,7 @@ def _runtime_production_files(root: Path) -> list[Path]:
         for path in _matching_files(root, "src", frozenset({".cs"}))
         if path.relative_to(root).parts[1:2] != ("NvtFwCombiner.Presentation.Avalonia",)
     ]
-    worker_files = _matching_files(
-        root,
-        "tools/crc-worker/src",
-        frozenset({".py"}),
-    )
+    worker_files = _worker_runtime_files(root)
     return [*csharp_files, *worker_files]
 
 

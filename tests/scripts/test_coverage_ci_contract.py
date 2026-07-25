@@ -102,7 +102,9 @@ class CoverageCiContractTests(unittest.TestCase):
 
                     validate_coverage_collector_pin(load_baseline(), errors, root)
 
-                    self.assertTrue(any("coverage collector" in error for error in errors))
+                    self.assertTrue(
+                        any("coverage collector" in error for error in errors)
+                    )
 
     def test_coverage_exclusion_policy_rejects_source_and_filter_escape_hatches(
         self,
@@ -131,6 +133,11 @@ class CoverageCiContractTests(unittest.TestCase):
             "coverage.runsettings": "<RunSettings />",
             "scripts/verify.py": "dotnet test --settings coverage.xml\n",
             ".github/workflows/ci.yml": "run: dotnet test -p:Exclude=[Product]*\n",
+            ".github/workflows/runsettings.yml": (
+                "run: dotnet test -- "
+                "DataCollectionRunSettings.DataCollectors.DataCollector."
+                "Configuration.Exclude=[Product]*\n"
+            ),
         }
         for relative, content in fixtures.items():
             with self.subTest(relative=relative):
@@ -159,11 +166,23 @@ class CoverageCiContractTests(unittest.TestCase):
                 "</Project>",
                 encoding="utf-8",
             )
+            verifier = root / "scripts/verify.py"
+            verifier.parent.mkdir()
+            verifier.write_text(
+                "dotnet test -- "
+                "DataCollectionRunSettings.DataCollectors.DataCollector."
+                "Configuration.Format=json,cobertura\n",
+                encoding="utf-8",
+            )
             errors: list[str] = []
 
             validate_coverage_exclusion_policy(
                 root,
-                ["src/Product/Thing.cs", "src/Product/Product.csproj"],
+                [
+                    "src/Product/Thing.cs",
+                    "src/Product/Product.csproj",
+                    "scripts/verify.py",
+                ],
                 errors,
             )
 

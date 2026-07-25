@@ -1619,6 +1619,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertLess(ownership_index, format_index)
         self.assertIn("--collect:XPlat Code Coverage", test_command)
         self.assertEqual(
+            "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
+            test_command[-1],
+        )
+        self.assertEqual(
             str(coverage_directory),
             test_command[test_command.index("--results-directory") + 1],
         )
