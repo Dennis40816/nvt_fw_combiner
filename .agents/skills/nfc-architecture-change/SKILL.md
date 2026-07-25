@@ -12,4 +12,7 @@ description: Review or design changes that affect NVT FW Combiner layers, depend
 5. Reject UI-owned firmware logic, infrastructure-owned business rules, and production dependencies on `refcode/`.
 6. Write or update an ADR when the change is durable, cross-cutting, difficult to reverse, or changes a public contract.
 7. Define architecture tests and narrow behavioral tests before implementation.
-8. Produce: decision, alternatives, consequences, migration path, test plan, and release impact.
+8. Produce: decision, alternatives, consequences, migration path, test plan,
+   and release impact.
+9. Require an independent architecture/contract reviewer for R2 changes. Run
+   the narrow architecture tests, `$polytail`, and the final canonical gate.

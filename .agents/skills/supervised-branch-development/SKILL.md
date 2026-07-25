@@ -46,7 +46,13 @@ Repeat this loop after every pushed phase, explicit staged-review request, test 
 6. Admit the next independent phase after local approval. Keep final merge/release gates pending until their required external reviews arrive.
 7. Re-read the branch before every verdict; never approve a stale SHA.
 
-The supervisor may use a clean detached worktree for tests. It may remove only temporary review state that it created. It must not modify, stage, commit, rebase, merge, or push the implementation branch.
+The supervisor may use a clean detached worktree only when isolation is
+necessary. Default to the existing worktree and keep one local worktree when
+the tasks are sequential. Record every worktree created, remove temporary
+worktrees immediately after their evidence is captured, and prune stale
+registrations. It may remove only temporary review state that it created. It
+must not modify, stage, commit, rebase, merge, or push the implementation
+branch.
 
 ## Treat Asynchronous Review as Non-Blocking
 

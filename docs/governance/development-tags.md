@@ -35,8 +35,16 @@ commit.
 - `v0.9.14` — AB architecture re-admission, targeted UI correctness, and release-automation milestone: re-audit the first owner-approved AB family under ADR 0032, add typed load diagnostics and the minimum AB authoring UI, add IC detail disclosure, fix file-hover hit testing, modal/action-rail layering, action-rail consistency, and empty Replace coverage semantics, reduce duplicate Actions work, and move stable tag/release creation behind one protected CI promotion.
 - `v0.9.15` — AB Code function-open, delivery-readiness, and review-automation milestone: start only from the official `v0.9.14` release commit, open the reviewed NT51919/NT51929/NT51932 route plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 in UI/CLI, complete owner-authorized AB input/output usability and reviewer-facing delivery automation, and retain code size as a non-blocking review metric. Direct-golden debt remains visible for support certification; it does not block these function-open routes. The shared Hex viewport, Changes redesign, and global Button-feedback backlog are deferred to a later owner-selected milestone.
 - `v0.9.16` — exceptional CRC/header-authority hot-fix from official `v0.9.15`: classify owner-approved CRC write windows, correct Replace/AB UI state and coverage, skip DP metadata inspection for TP firmware, and add the owner-approved NT51929 single Normal CtrlRAM golden. The former NT51950 AB certification assignment moved to the active `0.11.0` evidence track.
-- `v0.9.17` — NT51951 AB Code golden-certification closure milestone: establish independent direct evidence for its selector-free plan without borrowing NT51950 evidence or promoting support automatically.
-- `v0.9.18` — family/evidence-model unification milestone: normalize Perfect-family and LDC-TP-only evidence vocabulary, covered workflow/topology scope, excluded DP facts, support-matrix/report/review-handoff language, and the prerequisite design record for a later IC family/rule authoring UI. It does not change runtime admission, profiles, maps, processors, or golden evidence.
+- `v0.10.0` — support-neutral maintainability planning release from official
+  `v0.9.16`: publish the approved IC-first architecture, terminology, FlashMap
+  evidence provenance, ADR lifecycle, validation standards, and #170–#197
+  dependency plan. It starts no production refactor and makes no firmware or
+  support-promotion claim.
+
+The untagged `0.9.17` and `0.9.18` planning proposals were superseded before
+release. They are not valid tag or branch names; their former certification and
+family-evidence scope belongs to the active `0.11.0` roadmap after the final
+`0.10.x` integration release.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.10` are maintained in
@@ -68,14 +76,14 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.14` starts from stable `v0.9.13`/`main` commit `f9f8dbcd979ecdef43f432016787e57763819492`. It owns AB re-admission as an R3 track under ADR 0032, typed input diagnostics, the minimum AB authoring surface, IC detail disclosure, targeted hover/modal/action-rail/coverage UI fixes, canonical toolchain/CI efficiency, and protected CI-owned stable release promotion. Existing AB candidates remain hidden until their exact route, evidence, review, and firmware-owner gates close.
 - `0.9.15` starts from official `v0.9.14` tag `58f5bbf4cdbfb4e02036c8c1b40c48aa88fa21f7`, peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`. It opens the reviewed NT51919/NT51929/NT51932 AB function plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 in UI/CLI, and owns output-name/input-inspection correctness plus delivery-to-review automation. All five routes remain function-open but support certification is not promoted. Direct-golden debt is explicit support-certification evidence, not a function gate. Cross-workflow header/Evidence/Memory coverage unification, the shared viewport, Changes redesign, and global Button feedback must be reassigned to a later owner-selected milestone before implementation.
 - `0.9.16` starts only from the official reviewed `v0.9.15` release tag. It owns only the exceptional CRC/header-authority, Replace/AB UI correctness, TP inspection, and NT51929 golden hot-fix; it does not certify an AB route or absorb the former NT51950 AB certification assignment.
-- `0.9.17` starts only from the official reviewed `v0.9.16` release tag. It owns independent NT51951 AB direct-golden and firmware-owner certification closure; it cannot derive any byte rule or certification from NT51950.
-- `0.9.18` starts only from the official reviewed `v0.9.17` release tag. It owns family/evidence-model unification: Perfect-family sharing remains like-for-like only, while LDC-family sharing is TP/CtrlRAM-only and never covers a DP workflow. It is the prerequisite for, not the implementation of, a future IC family/rule authoring UI.
+- `0.10.0` starts only from the official reviewed `v0.9.16` release tag. It is
+  a planning and governance release; later `0.10.x` version allocation follows
+  the approved #170–#197 dependency graph rather than this tag.
 
-The authoritative `0.9.15`–`0.9.18` scope, delivery-to-review contract, candidate admission ledger, and family/evidence foundation live in the single [v0.9.15–v0.9.18 Delivery and Family Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md).
-
-### Post-`0.9.17` owner-decision backlog
-
-Error experience unification, IC family/rule authoring UI, Customized-plan reuse/import, and Report detail/layout/function review are planned discussion tracks. Family/rule authoring cannot be assigned until `0.9.18` has completed its model/ADR gate; the other tracks remain unassigned. Their required workshops, safety boundaries, and implementation risk are recorded in the [v0.9.15–v0.9.18 Delivery and Family Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md#post-v0918-owner-decision-queue). A future milestone must not absorb any of them until the owner selects its order and the required contract/ADR is approved.
+The former `0.9.17`/`0.9.18` delivery roadmap remains historical evidence only.
+Active post-`0.10.x` sequencing is maintained in the
+[NFC Roadmap](../architecture/nfc_roadmap.md); a release planner must not
+recreate the superseded branch names.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
@@ -125,8 +133,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.14` | AB re-admission and targeted UI correctness | Deliver separately gated typed AB production authority, the minimum AB authoring UI, IC details, and owner-approved hover, modal/action-rail, and empty Replace coverage fixes. |
 | `v0.9.15` | AB function open, delivery readiness, and review automation | Open NT51919/NT51929/NT51932 plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 AB routes. Direct-golden debt blocks support certification, not function availability. Shared viewport/Changes/Button Presentation work is deferred pending a new owner-selected milestone. |
 | `v0.9.16` | Exceptional CRC/header-authority hot-fix | Classify owner-approved CRC write windows, correct Replace/AB UI behavior and TP inspection, and lock the NT51929 single Normal CtrlRAM golden; former NT51950 AB certification work moved to `0.11.0`. |
-| `v0.9.17` | NT51951 AB golden-certification closure | Establish independent direct evidence for its selector-free plan; do not copy NT51950 memory, command, or certification evidence. |
-| `v0.9.18` | Family/evidence model unification | Normalize Perfect-family and LDC-TP-only scope before any family/rule authoring UI; no runtime or firmware evidence promotion. |
+| `v0.10.0` | Maintainability planning and governance | Publish the approved IC-first architecture, terminology, FlashMap provenance, ADR lifecycle, validation standards, and dependency-gated #170–#197 execution plan without changing firmware behavior or support truth. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -179,8 +186,7 @@ v0.9.13         urgent UI and release stabilization
 v0.9.14         separately gated AB re-admission and targeted UI correctness fixes
 v0.9.15         AB function open, input/output usability, and review automation
 v0.9.16         exceptional CRC/header-authority and UI-correctness hot-fix
-v0.9.17         NT51951 AB golden-certification closure
-v0.9.18         family/evidence model unification
+v0.10.0         maintainability planning and dependency-gated execution program
 v1.0.0          stable
 ```
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "NFC Architecture Change"
+  short_description: "Review NFC layers, boundaries, contracts, and ADRs"
+  default_prompt: "Use $nfc-architecture-change to review this NFC layer, dependency, contract, port, adapter, or ADR change."

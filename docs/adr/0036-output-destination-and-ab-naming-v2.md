@@ -3,6 +3,7 @@
 - Status: Accepted for `v0.9.15` on 2026-07-23
 - Owners: Product owner, architecture owner, firmware owner
 - Supersedes: The automatic-name and collision portions of ADR 0034
+- Amends: ADR 0035
 - Risk: R3 for AB profile admission; R2 for the all-mode output contract
 
 ## Context

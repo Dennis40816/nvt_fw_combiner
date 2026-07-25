@@ -76,6 +76,13 @@ general-replace
 
 Every range names its address-space id. Bare offsets are invalid.
 
+Positions, encoded Header addresses, instance-relative coordinates, and
+relocation distances use the canonical definitions in
+[Firmware Coordinate and Relocation Vocabulary](firmware-coordinate-vocabulary.md).
+In particular, TP BIN offset, Flash image offset, Header stored address, and
+TPB placement delta are different typed concepts; none may be reduced to an
+unqualified `offset`.
+
 ## Canonical regions
 
 ```text

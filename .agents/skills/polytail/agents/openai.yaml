@@ -1,0 +1,4 @@
+interface:
+  display_name: "Polytail"
+  short_description: "Run the mandatory NFC semantic quality gate"
+  default_prompt: "Use $polytail to audit this non-trivial NFC change before completion or approval."

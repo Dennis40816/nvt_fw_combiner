@@ -1,0 +1,4 @@
+interface:
+  display_name: "Composition Experience Change"
+  short_description: "Change NFC authoring policy and region access"
+  default_prompt: "Use $composition-experience-change to review this NFC authoring-policy or region-access change."

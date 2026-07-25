@@ -1,0 +1,4 @@
+interface:
+  display_name: "Golden Regression"
+  short_description: "Protect NFC firmware golden evidence and expected bytes"
+  default_prompt: "Use $golden-regression to review this golden vector, expected hash, provenance, or promotion change."

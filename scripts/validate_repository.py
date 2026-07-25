@@ -29,6 +29,10 @@ from external_tool_policy import (
     validate_repository_external_tool_manifests,
 )
 from repository_contract_validation import validate_v2_contract_model
+from skill_metadata_validation import (
+    parse_skill_metadata,
+    validate_skill_metadata_fields,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_FILES = {
@@ -214,6 +218,16 @@ EXPECTED_PROJECT_REFERENCES = {
     },
 }
 EXPECTED_SKILLS = {
+    "ask-matt",
+    "code-review",
+    "codebase-design",
+    "diagnosing-bugs",
+    "domain-modeling",
+    "grill-with-docs",
+    "grilling",
+    "handoff",
+    "implement",
+    "improve-codebase-architecture",
     "nfc-architecture-change",
     "firmware-profile-authoring",
     "github-review-polling",
@@ -223,8 +237,27 @@ EXPECTED_SKILLS = {
     "composition-experience-change",
     "dotnet-bootstrap",
     "release-readiness",
+    "research",
+    "resolving-merge-conflicts",
+    "setup-matt-pocock-skills",
     "polytail",
+    "prototype",
     "supervised-branch-development",
+    "tdd",
+    "to-spec",
+    "to-tickets",
+    "writing-great-skills",
+}
+EXPECTED_USER_INVOKED_SKILLS = {
+    "ask-matt",
+    "grill-with-docs",
+    "handoff",
+    "implement",
+    "improve-codebase-architecture",
+    "setup-matt-pocock-skills",
+    "to-spec",
+    "to-tickets",
+    "writing-great-skills",
 }
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {
@@ -439,6 +472,22 @@ def validate_skills(errors: list[str]) -> None:
             errors.append(f"skill frontmatter is not closed: {path.relative_to(ROOT)}")
             continue
         header = parts[1]
+        header_keys: list[str] = []
+        for line in header.splitlines():
+            if not line.strip():
+                continue
+            key_match = re.match(r"^([A-Za-z0-9_-]+):", line)
+            if key_match is None:
+                errors.append(
+                    f"invalid skill frontmatter line in {path.relative_to(ROOT)}: {line}"
+                )
+                continue
+            header_keys.append(key_match.group(1))
+        if header_keys != ["name", "description"]:
+            errors.append(
+                "skill frontmatter keys must be exactly name, description in "
+                f"{path.relative_to(ROOT)}: got {header_keys}"
+            )
         name_match = re.search(r"(?m)^name:\s*([^\s]+)\s*$", header)
         description_match = re.search(r"(?m)^description:\s*(.+?)\s*$", header)
         if name_match is None or description_match is None:
@@ -452,6 +501,27 @@ def validate_skills(errors: list[str]) -> None:
             errors.append(f"skill name/directory mismatch: {path.relative_to(ROOT)}")
         if len(description_match.group(1).strip()) < 20:
             errors.append(f"skill description is too vague: {path.relative_to(ROOT)}")
+        metadata_path = path.parent / "agents" / "openai.yaml"
+        if not metadata_path.is_file():
+            errors.append(
+                f"skill requires agents/openai.yaml: {path.relative_to(ROOT)}"
+            )
+            continue
+        metadata = parse_skill_metadata(metadata_path, ROOT, errors)
+        if metadata is None:
+            continue
+        validate_skill_metadata_fields(metadata, metadata_path, ROOT, name, errors)
+        implicit_disabled = metadata["policy"].get("allow_implicit_invocation") is False
+        if name in EXPECTED_USER_INVOKED_SKILLS and not implicit_disabled:
+            errors.append(
+                "user-invoked skill must set allow_implicit_invocation: false: "
+                f"{metadata_path.relative_to(ROOT)}"
+            )
+        if name not in EXPECTED_USER_INVOKED_SKILLS and implicit_disabled:
+            errors.append(
+                "model-invoked skill must not disable implicit invocation: "
+                f"{metadata_path.relative_to(ROOT)}"
+            )
     if found != EXPECTED_SKILLS:
         errors.append(
             f"repository skills must be exactly {sorted(EXPECTED_SKILLS)}, got {sorted(found)}"

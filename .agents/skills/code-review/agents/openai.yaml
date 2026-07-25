@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Review"
+  short_description: "Review a diff on standards and spec"
+  default_prompt: "Use $code-review to review this fixed NFC diff against repository standards, the source spec, and Polytail."

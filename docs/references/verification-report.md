@@ -1,10 +1,28 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.16 CRC/header hot-fix candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline,
+updated for the 0.10.0 planning-release candidate. Current verification evidence
+is produced by the canonical `python scripts/verify.py --structure-only` and
+`python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.16`
+Specification package version: `0.10.0`
 
-## 0.9.16 CRC/header hot-fix candidate — not published
+## 0.10.0 maintainability planning-release candidate
+
+The candidate is a support-neutral documentation, governance, terminology, and
+evidence-reference release. It records the IC-first architecture, a closed
+ticket dependency graph (#170–#197), ADR lifecycle handling, and the
+owner-updated FlashMap workbook provenance. It does not change production
+firmware behavior, supported routes, processor authority, IC promotion, or
+golden outputs.
+
+The final PR/main candidate must still pass protected CI, exact-head independent
+and Codex review, package/provenance generation, downloaded-asset verification,
+and release-owner approval. Visible clean-Windows UI smoke and release-workflow
+annotated-tag newline hardening remain explicit later `0.10.x` work; this
+candidate does not describe either as passing.
+
+## 0.9.16 CRC/header hot-fix — published stable predecessor
 
 The `0.9.16` branch starts from official stable `v0.9.15`, peeled to
 `008333a9c96ea65454a334824d349f3574373edd`. Feature PR 168 reviewed head
@@ -29,11 +47,10 @@ Local `python scripts/verify.py --all` passed at version-branch code/test head
 28 CRC-worker tests at 98.88% coverage, Domain 361, ProfileContract 359,
 Application 222, GoldenRegression 19, Architecture 106, Infrastructure 273
 with two declared Unix-only skips, Bootstrap 752, and UI Smoke 351. Release
-build completed with zero warnings and zero errors. Final exact-head review,
-protected-main CI, candidate packaging, protected promotion, downloaded-asset
-verification, and release-owner approval remain before publication. Visible
-clean-Windows UI smoke and the annotated-tag newline comparison defect remain
-explicit `0.10.0` follow-up; this report does not describe them as passing.
+build completed with zero warnings and zero errors. The historical release was
+published as stable `v0.9.16`; the visible clean-Windows UI smoke and
+annotated-tag newline comparison defect remain explicit later `0.10.x`
+follow-up work and are not described here as passing.
 
 ## 0.9.15 stable release baseline
 

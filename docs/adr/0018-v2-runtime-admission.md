@@ -4,6 +4,7 @@
 - Date: 2026-07-12
 - Owners: Product owner + architecture owner
 - Amends: ADR 0015 and composition-profile-v2
+- Amended by: ADR 0019
 
 ## Context
 

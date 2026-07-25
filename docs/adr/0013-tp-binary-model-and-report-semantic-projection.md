@@ -3,7 +3,6 @@
 - Status: Accepted
 - Date: 2026-07-10
 - Amended: 2026-07-17 for the v0.9.9 code-size convergence gate; 2026-07-24 for owner-confirmed Type A/B and DIFF-CRC field semantics
-- v0.9.9 amendment status: Proposed; architecture review required before merge
 - Risk class: R2
 
 ## Context

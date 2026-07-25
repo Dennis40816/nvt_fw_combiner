@@ -1,6 +1,6 @@
 # ADR 0028: Capability-Driven Shared Hex Viewport
 
-- Status: Proposed for a later owner-selected Presentation milestone; implementation is not authorized by this ADR
+- Status: Accepted architecture direction for #191 and #192; implementation remains R2-gated and is not authorized by this ADR alone
 - Date: 2026-07-19
 - Last amended: 2026-07-23
 - Owners: Architecture owner, UI owner

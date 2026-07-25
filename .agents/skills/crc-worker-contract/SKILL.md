@@ -18,5 +18,9 @@ description: Change or verify the external Python CRC/header worker, pure CRC ca
    - xorout `0x00000000`
 8. Add success and negative tests for protocol, traversal, absolute path, symlink/reparse escape, extra file, length change, timeout/crash, incorrect claimed diff, and one-byte out-of-range mutation.
 9. Verify `123456789 -> 0x0376E6E7` plus approved IC vectors/golden outputs.
-10. Run Python tests, C#/Python contract tests, package smoke, and `$polytail`. State protocol/version/release impact.
-11. Do not implement the reserved header transform until the owner supplies exact command and field semantics.
+10. Run Python tests, C#/Python contract tests, package smoke, `$polytail`, and
+    the required final gate. State protocol/version/release impact.
+11. Keep the pure Python worker inside its declared protocol authority.
+    Production CRC/header transforms use the approved staged external Combiner
+    path; a new worker algorithm, command, field, or write range still requires
+    exact owner evidence and tests.

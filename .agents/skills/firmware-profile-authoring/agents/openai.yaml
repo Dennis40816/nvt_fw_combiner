@@ -1,0 +1,4 @@
+interface:
+  display_name: "Firmware Profile Authoring"
+  short_description: "Author NFC IC profiles and composition facts"
+  default_prompt: "Use $firmware-profile-authoring to review this IC profile, region, mapping, processor, or naming change."

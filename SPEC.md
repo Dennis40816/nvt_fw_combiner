@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.16 hot-fix stable-release source; publication is controlled by the protected release workflow`
-> 文件版本：`0.9.16`
-> 基準日期：`2026-07-24`
+> 文件狀態：`0.10.0 maintainability-program planning release; v0.9.16 is the stable predecessor`
+> 文件版本：`0.10.0`
+> 基準日期：`2026-07-25`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,7 +30,7 @@
 
 ## 0.1 Current owner priority
 
-`0.9.16` is a focused hot-fix source derived from official `v0.9.15` peeled commit `008333a9c96ea65454a334824d349f3574373edd`. It authorizes only profile-classified Header/Header Copy and topology-applicable CtrlRAM/DLM CRC writes, corrects AB/Replace presentation state, and skips DP-only metadata inspection for TP firmware. Single-IC routes explicitly exclude cascade-only DiffDLM/DLM CRC words. Owner-supplied NT51929 single Normal CtrlRAM evidence locks the production route to four Header/Header Copy CRC words without promoting runtime support or release redistribution of the private evidence. The `0.9.15` AB function state and its certification debt otherwise remain unchanged. `0.10.0` continues to own the broader Support Matrix, error/report experience, clean-Windows UI-smoke closure, and release-workflow annotated-tag newline hardening. The canonical future sequence is [NFC Roadmap](docs/architecture/nfc_roadmap.md). Publication is permitted only after independent review, firmware-owner approval, protected CI, package verification, and release-owner approval; an omitted external gate must remain explicit rather than being described as passing.
+`0.9.16` is a focused hot-fix source derived from official `v0.9.15` peeled commit `008333a9c96ea65454a334824d349f3574373edd`. It authorizes only profile-classified Header/Header Copy and topology-applicable CtrlRAM/DLM CRC writes, corrects AB/Replace presentation state, and skips DP-only metadata inspection for TP firmware. Single-IC routes explicitly exclude cascade-only DiffDLM/DLM CRC words. Owner-supplied NT51929 single Normal CtrlRAM evidence locks the production route to four Header/Header Copy CRC words without promoting runtime support or release redistribution of the private evidence. The `0.9.15` AB function state and its certification debt otherwise remain unchanged. `0.10.0` owns architecture, terminology, evidence inventory, process, validation standards, and ticket dependency planning only. The later `0.10.x` sequence owns the dependency-allocated Support Matrix, error/report experience, clean-Windows UI-smoke closure, release-workflow annotated-tag newline hardening, and production-maintainability slices. The canonical future sequence is [NFC Roadmap](docs/architecture/nfc_roadmap.md). Publication is permitted only after independent review, firmware-owner approval, protected CI, package verification, and release-owner approval; an omitted external gate must remain explicit rather than being described as passing.
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
 - NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.
@@ -188,7 +188,7 @@ Codex 與 agent governance 主要參考：
 
 ### 3.2 品質目標
 
-| 指標 | Beta Gate | 1.0 Gate |
+| 指標 | Beta milestone target | 1.0 milestone target |
 | --- | ---: | ---: |
 | Golden cases 通過率 | 100% 已宣告案例 | 100% 支援矩陣 |
 | Domain/Application line coverage | ≥ 85% | ≥ 90% |
@@ -200,7 +200,15 @@ Codex 與 agent governance 主要參考：
 | release smoke failure | 0 | 0 |
 | P0/P1 known defects | 0 | 0 |
 
-Coverage 不是正確性的替代品；golden regression、property test、contract test、architecture test、independent staging diff 與 human firmware review 同樣是 release gate。
+The coverage percentages above are milestone targets, not currently enforced
+.NET gates. Ticket #171 must first record executed .NET/Python line and branch
+baselines, then make CI prevent overall regression and apply a non-decreasing
+changed-module ratchet. Its reviewed target is `85%` line / `80%` branch for
+new or substantially changed Domain/Application code. A repository-wide
+fail-under is promoted only after its collector, baseline, exclusions, and
+performance are reviewed. Coverage 不是正確性的替代品；golden regression、
+property test、contract test、architecture test、independent staging diff 與
+human firmware review 同樣是 release gate。
 
 ### 3.3 非目標
 
@@ -710,7 +718,27 @@ The UI must make atomicity visible: whole-only, declared-parts, or explicit-rang
 
 ### 11.4 Preview/Build separation
 
-Build automatically runs the same validation path as Preview before committing output. Build remains disabled only when required UI inputs are missing; profile compile, input validation, range policy, processor/tool readiness, and integrity disposition failures must produce a Preview/Build report instead of relying on a stale manual Preview gate.
+This is target acceptance for the later ticketed authoring-session and runtime
+readiness migration, not a claim about the `0.10.0` runtime. Once those slices
+land, Build automatically runs the same validation path as Preview before
+committing output. Preview remains available once IC/mode/IC Count context is
+sufficient to perform a meaningful diagnostic run, even when inputs,
+compilation, range policy, processor/tool readiness, or integrity disposition
+will produce a blocked Preview report. Build is then enabled only when
+capability, required-input, and runtime-dependency readiness are current.
+Evidence status is not a Build switch. Both actions revalidate at execution
+time and fail closed through that run's report when state changes after the UI
+check.
+
+Before a run, a disabled Build action shows an exclamation status on a
+hoverable/focusable outer affordance. Hover or keyboard focus uses the existing
+restrained animation to reveal the current highest-priority check-time blocker
+and `+N` when more blockers exist. This readiness hint does not create a
+report. Disabled controls are not made interactive; the wrapper/icon owns
+pointer and focus behavior. Screen readers receive the same reason, and
+reduced-motion retains the static icon/text without animation. A report is
+created only by an actual Preview or Build run and contains that run's
+validation, processor, mutation, or other runtime issues.
 
 Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings. The initial default language is English.
 
@@ -764,4 +792,518 @@ The owner requested review participation. Assistant/Codex review should focus on
 - `0.6.0–0.7.0`：unified workflow data model, General Merge/Replace, saved rules, and deferred AB work only after owner reactivation。
 - `0.8.0`：packaging/performance。
 - `0.9.0`：stable Util Tools raw-BIN Hex Editor milestone；後續 UAT 修正進入 `0.9.x`。
+- `0.10.0`：完成 IC-first maintainability architecture inventory、canonical terminology、後續 promotion 流程、驗證標準與 ticket dependency planning；不在本版本一次搬動 production ownership。
+- Subsequent `0.10.x`：依核准 dependency graph 逐一交付可獨立驗證的 vertical slices；版本號在 ticket graph 核准後分配，不由本規格預先猜測。
 - `1.0.0`：signed-off support matrix。
+
+## 15. 0.10.x Maintainability Program Specification
+
+Status: owner-approved on 2026-07-25. This section records the accepted
+architecture workshop outcome and is the source for GitHub tickets `#170`
+through `#197`. Approval does not by itself authorize a production refactor, a
+firmware fact change, support promotion, or release.
+
+### 15.1 Problem Statement
+
+NFC can perform the current workflows, but many concepts are maintained through
+separate catalogs, Workbench projections, ViewModel state, formatters, controls,
+and workflow-specific helpers. IC facts, artifact metadata, topology/count
+selection, memory presentation, output naming, input inspection, and readiness
+can therefore acquire more than one effective owner. The result is repeated
+code, stale mode state, inconsistent UI binding, ambiguous terminology, and a
+high review burden whenever an IC or workflow changes.
+
+The repository also has substantial tests and golden evidence, but it cannot
+yet produce one route-level answer to “which executable workflow variants are
+protected by direct golden, approved alias, synthetic oracle, contract-only
+coverage, or no independent evidence.” Declared test count is not measured
+line/branch coverage, and the canonical verifier retains avoidable duplicated
+CI ownership and serial critical-path work.
+
+The maintainability program must reduce these sources of divergence without
+changing firmware bytes opportunistically, weakening human/evidence gates,
+redesigning the accepted Hex Editor, or moving the whole refactor into one
+release.
+
+### 15.2 Solution
+
+`0.10.0` defines the target architecture, canonical terminology, promotion
+workflow, migration invariants, and validation standards. Production changes
+then move through small vertical slices across later `0.10.x` releases.
+
+The target architecture starts from the selected IC and user-facing IC Count,
+resolves one immutable capability snapshot, compiles one composition, and
+projects every workflow, metadata inspection, memory view, output name, UI
+state, and report from canonical referenced definitions. A concept is defined
+once and reused through typed references; resolved plans add applicability,
+readiness, and per-run state but never copy firmware ranges, fields, formatters,
+or processor authority.
+
+Each implementation slice first characterizes its current external behavior,
+makes an explicit disposition for every observed behavior, and only then
+moves one responsibility through one compatibility seam, proves the required
+byte/report/state/UI parity, and deletes the old owner only after every caller
+and evidence gate has moved. The approved ticket dependency graph—not this
+spec—determines which dependency-ready slices belong to each later `0.10.x`
+version.
+
+### 15.3 User Stories
+
+1. As a firmware operator, I want to select an IC and understandable IC Count, so that I never need to interpret internal topology terminology.
+2. As a firmware operator, I want each selected IC/count combination to expose only applicable workflows, slots, metadata, and integrity routes, so that unavailable behavior cannot appear usable.
+3. As a firmware operator, I want switching between Standard Merge, AB Merge, General Merge, DP Replace, CtrlRAM Replace, and General Replace to restore only compatible state, so that data from a previous mode cannot leak into the current page.
+4. As a firmware operator, I want stale background inspection results rejected after an IC, count, slot, or file change, so that the UI cannot publish obsolete facts.
+5. As a firmware operator, I want a missing prerequisite to say which input must be loaded, so that a topology-dependent DP inspection can say `TP input pending` instead of showing an unexplained gray value.
+6. As a firmware operator, I want each file slot to remain compact while showing Checking, Verified, Warning, or Error through consistent icons and surfaces, so that status is clear without repeated badges.
+7. As a keyboard or screen-reader user, I want the same slot reason and next action available through focus and accessible descriptions, so that hover is never the sole information channel.
+8. As a firmware operator, I want report failures and warnings to start with one plain-language outcome, impact, and action, so that technical details do not hide the primary problem.
+9. As a firmware operator, I want an oversized CtrlRAM input warning to say that trailing bytes were ignored, so that truncation behavior is immediately understandable.
+10. As a firmware operator, I want Memory Layout to use one consistent role palette and separate state effects, so that DP, TP, TP Backup, LDC, General data, Reserved data, and CtrlRAM subtypes retain stable meanings.
+11. As a firmware operator, I want unresolved placement shown as a non-geometric pending item, so that the application never draws a guessed range.
+12. As a firmware operator, I want Standard Merge to show Pending or Will Write, AB Merge to show DP AB plus TP Normal/TP Backup placement, and Replace to show Kept or Will Replace, so that the visual language matches the workflow.
+13. As a firmware operator, I want Changed and Unchanged to appear only after Preview or Build comparison, so that intent is not confused with observed bytes.
+14. As a firmware operator, I want CtrlRAM regions labeled by subtype and IC/endpoint without a redundant legend, so that multi-IC layouts remain readable.
+15. As a firmware operator, I want Header, Header Copy, and CRC details kept in technical reports rather than colored as primary Memory Layout content, so that the layout emphasizes the data I selected.
+16. As a firmware operator, I want output names derived from the accepted inspection snapshot, so that filename metadata matches the bytes actually used by execution.
+17. As a firmware operator, I want explicit output overrides and automatic names to share one safe destination policy, so that outputs may replace unrelated prior outputs but never a selected input.
+18. As a firmware operator, I want the existing Hex Editor appearance, navigation, editing, search, history, and Save As behavior preserved, so that maintainability work does not degrade a successful tool.
+19. As a report reader, I want Hex Diff to reuse the same high-performance read-only viewport foundation, so that reports and the editor share rendering quality without sharing mutation authority.
+20. As a BIN inspector user, I want metadata structures formatted through the same read-only viewer and formatter pipeline, so that identical bytes are not interpreted differently by each screen.
+21. As a CLI user, I want the same IC resolution, mapping draft, inspection, validation, naming, and composition contracts as the UI, so that automation and desktop behavior cannot diverge.
+22. As a General Merge or General Replace user, I want one Start + Length range editor with a derived read-only inclusive end, so that every surface uses the same half-open range semantics.
+23. As a Saved Rule user, I want mappings to round-trip through the same typed draft used by UI and CLI, so that saving a rule cannot silently lose unsupported semantics.
+24. As a firmware profile author, I want an IC to be the root of artifact, map, IC-count, metadata, workflow, and integrity resolution, so that related facts are discoverable through one coherent model.
+25. As a firmware profile author, I want DP represented as required Initial Code plus optional LDC and TP represented separately, so that artifact structure matches firmware meaning.
+26. As a firmware profile author, I want each artifact or part to declare zero or more metadata structures once, so that locators, fields, ranges, and formatter definitions are not copied into inspection plans.
+27. As a firmware profile author, I want DPCMI to be the sole Initial Code structure that derives DP Version and Jira, so that a legacy DP-version locator cannot become a competing physical authority.
+28. As a firmware profile author, I want FirmwareConfig General Parameters modeled once and reused for typed TP FW, Common FW, PID, and observed IC Count facts, so that each consumer does not decode the same prefix independently.
+29. As a firmware profile author, I want TP Flash Header represented as a common metadata structure with named spans, fields, series, groups, and instances, so that inspection, relocation, integrity, copy, and reporting reference the same geometry.
+30. As a firmware profile author, I want every physically declared repeated CRC field retained while applicability marks it Active, Unused, or Unknown, so that field existence is not mistaken for mutation authority.
+31. As a firmware profile author, I want family relationships to be named and fact-scoped, so that perfect-family and TP-shared-family facts can coexist without inheriting an entire IC definition.
+32. As a firmware profile author, I want symmetric AB layouts instantiated from one bank-relative definition where evidence supports it, so that A and B ranges are not duplicated.
+33. As a firmware profile author, I want irregular NT51950/NT51951 AB layouts to model only the opaque seed, required anchors, and TP paste mappings execution needs, so that the model does not invent unnecessary internal structure.
+34. As a firmware owner, I want TP BIN positions, final Flash positions, encoded Header addresses, and TP Backup placement distance to be distinct typed concepts, so that relocation cannot add an offset twice or mutate the wrong bytes.
+35. As a firmware owner, I want POSTBUILD transport scope separated from semantic write authority, so that an external processor may receive a staged bank container without gaining permission to change DP.
+36. As a firmware owner, I want TP Normal to remain immutable and TP Backup relocation/POSTBUILD to touch only explicitly declared fields, so that AB processing remains bounded by evidence.
+37. As a firmware owner, I want missing DPCMI mappings and missing independent golden routes reported as evidence gaps, so that architecture completion cannot be confused with support certification.
+38. As an application maintainer, I want one immutable resolved capability root with typed child models and one resolution token, so that children from different selections cannot be mixed.
+39. As an application maintainer, I want capability, artifact, metadata, composition, and readiness projections to reference canonical definitions, so that a convenient DTO cannot become a second firmware model.
+40. As an application maintainer, I want capability availability, evidence status, input readiness, and runtime dependency readiness modeled separately, so that one ambiguous `IsReady` flag cannot control unrelated decisions.
+41. As an application maintainer, I want a refreshable runtime dependency snapshot, so that installing or correcting an external tool does not require restarting after a cached missing result.
+42. As a UI maintainer, I want one slot-state model, one information-card anatomy, one range control, one semantic button system, and one theme-role palette, so that padding, alignment, interaction, and accessibility are not reimplemented by every mode.
+43. As a UI maintainer, I want Presentation to receive typed semantic roles rather than labels, HEX colors, or pixel widths from Bootstrap, so that localization and responsive layout do not alter firmware meaning.
+44. As a test maintainer, I want one workflow-regression matrix projected
+    from the canonical capability authority, so that selectable, executable,
+    evidenced, and published routes cannot drift across independent lists.
+45. As a test maintainer, I want an executed .NET/Python coverage baseline and non-decreasing changed-module ratchet, so that test count cannot be presented as coverage.
+46. As a test maintainer, I want a changed-input oracle for every migrated mapping family, so that a self-replacement case cannot conceal a no-op implementation.
+47. As a CI maintainer, I want the canonical verifier to run safe top-level lanes with bounded concurrency and isolated logs, so that verification is faster without becoming nondeterministic.
+48. As a CI maintainer, I want a single low-memory serial fallback and measured lane timings, so that concurrency claims remain reproducible on local Windows and CI.
+49. As a reviewer, I want each refactor ticket to move one responsibility through one named compatibility seam, so that architecture, byte, UI, and deletion consequences remain reviewable.
+50. As a reviewer, I want old owners deleted only after all callers migrate and evidence classifications do not regress, so that a cleanup cannot silently remove protection.
+51. As a release owner, I want later `0.10.x` version allocation decided from an approved dependency graph, risk, evidence, and review size, so that arbitrary version buckets do not drive architecture.
+52. As a future IC-authoring UI designer, I want trusted bundles to use typed IDs, hashes, versions, and reviewable candidates, so that UI-assisted authoring can be added later without allowing runtime self-promotion.
+53. As a migration reviewer, I want every characterized behavior classified
+    before it becomes a parity gate, so that known defects are not preserved as
+    compatibility contracts and uncertain firmware behavior is not guessed.
+54. As a repository owner, I want non-UI/test production code reduced by at
+    least 50% by the end of the 0.10.x maintainability program, so that
+    duplicated owners and compatibility paths are actually deleted rather than
+    reorganized into equally large replacement modules.
+
+### 15.4 Implementation Decisions
+
+#### Program and migration boundary
+
+1. `0.10.0` is an architecture, terminology, evidence-inventory, process, and
+   validation-planning release. It does not contain the complete production
+   restructuring.
+2. Later work is divided into independently reviewable vertical slices. Each
+   slice has one behavioral goal, one compatibility seam, one deletion
+   boundary, one narrow test set, and an explicit final verification gate.
+3. No exact `0.10.1`, `0.10.2`, or later allocation is fixed here. After this
+   spec is approved, ticket planning establishes dependencies and the owner
+   groups only dependency-ready slices into releases.
+4. A slice may introduce a compatibility adapter temporarily, but it must name
+   the callers that remain and the evidence required for deletion. A permanent
+   parallel owner is not an acceptable endpoint.
+
+#### Canonical ownership and resolution
+
+5. The selected IC is the query root. User-facing selection is always labeled
+   `IC Count`; internal topology constraints may express Single, generic
+   Cascade, exact count, or count range.
+6. Application owns one read-only `ResolvedCapability` query/session snapshot
+   with a `CapabilitySelection`, trusted provenance,
+   `CapabilityFingerprint`, and `ResolutionToken`. It references the existing
+   Domain `ResolvedFirmwareImageMap` when physical resolution is available and
+   a `CompiledComposition` when compilation has succeeded. It neither replaces
+   nor duplicates those types: `ResolvedFirmwareImageMap` remains physical
+   resolution authority and `CompiledComposition` remains sole execution
+   authority. Strongly typed children may be consumed independently but cannot
+   be mixed across roots.
+   `CanonicalCapabilityCatalog` is the one logical authority for exact
+   IC/workflow/IC Count/map-variant routes. It references canonical trusted
+   definitions and keeps route authoring availability, execution admission,
+   evidence classification, and publication/support status as four independent
+   facts. It does not copy firmware facts. A `ResolvedCapability` is its
+   selection-scoped Application projection; `SupportMatrix` is its enumerated
+   reporting/CI projection. Neither projection is an independently maintained
+   support list.
+7. `ResolvedArtifactPlan`, `ResolvedMetadataPlan`, and
+   `ResolvedCompositionCapability` retain canonical references plus
+   applicability, prerequisites, readiness, and permitted per-run state. They
+   never copy firmware ranges, artifact parts, metadata fields, formatter
+   definitions, behavior bindings, processor declarations, or integrity routes.
+8. Memory Layout is a transient pure projection from the resolved canonical
+   definition, authoring state, and optional compiled composition. It is not a
+   persisted resolved child or another map authority.
+9. Trusted IC, artifact, map, relationship, metadata, workflow, and integrity
+   definitions converge into typed, versioned, hash-closed bundles. Runtime
+   reads only the current schema; legacy conversion is explicit, offline, and
+   temporary. A future UI may create untrusted candidate bundles but cannot
+   approve or promote them.
+
+#### Application use-case boundary
+
+- `WorkbenchCompositionService` is a migration-only Bootstrap compatibility
+  facade and is deleted after every UI and CLI caller has moved.
+- NFC is not a supported .NET SDK at this stage. Bootstrap, Presentation,
+  ViewModel, and other implementation C# types do not gain compatibility
+  authority merely because they are declared `public`; they may change or be
+  deleted after repository callers, bindings, and tests migrate. The refactor
+  does not retain indefinite shims for unknown DLL consumers.
+- All executable routes ultimately converge on one current trusted-bundle/
+  profile compiler path. Legacy C# built-in profiles, legacy compilation
+  identity/admission, `LegacyRuntimeExecutable`, and their catalogs are
+  migration seams rather than a permanent second runtime. `CompiledComposition`
+  remains the sole execution artifact. An affected R3 owner is deleted only
+  after its route-level evidence gate permits it.
+- Approved external `combiner.exe` processors are not the legacy runtime being
+  retired. They remain manifest-pinned, staged, range-constrained adapters
+  whenever the current trusted profile explicitly declares them.
+- UI and CLI consume a small set of focused Application use-case contracts for
+  capability/session resolution, input inspection, Preview/Build execution,
+  and typed result/report retrieval. They do not consume a replacement
+  `IWorkbenchEverything` facade, workflow-specific execution services, or
+  Bootstrap-owned firmware DTOs.
+- Bootstrap owns DI and composition wiring only. Each migration slice names the
+  remaining facade callers and lowers the facade aggregate ratchet; the final
+  slice proves zero callers and removes the facade.
+
+#### Artifact, metadata, and firmware vocabulary
+
+10. DP is a logical artifact containing required Initial Code and an optional
+    declared LDC part. TP is a separate logical artifact. Physical placement is
+    resolved by IC, map, IC Count, and artifact instance.
+11. An artifact or part declares metadata structures once. The common
+    inspection plan contains structure references and resolved state only; a
+    common inspector and formatter read the accepted immutable snapshot.
+12. DPCMI is one Initial Code metadata structure at CMD1 Page 0 registers
+    `[0x16, 0x19)`. DP Version and Jira are derived fields, not alternate
+    locator authorities. The legacy DP-version reader is parity-only and is
+    deleted after all callers move.
+13. FirmwareConfig General Parameters use one declared prefix
+    `[0x000, 0x029)`. TP FW, Common FW, PID, and observed IC Count are typed
+    fields from that structure. Later FWConfig sections remain out of the
+    initial target model.
+14. TP Flash Header is a `tp-flash-header` metadata structure with named spans,
+    fields, repeated series, semantic groups, and resolved instances.
+    Inspection, formatting, copy, relocation, integrity, processor authority,
+    memory projection, and report classification reference it rather than
+    restating offsets.
+15. TP BIN offset, Flash image offset, Header stored address, and TP Backup
+    placement delta are distinct typed concepts. Their definitions and allowed
+    arithmetic are owned by the canonical firmware-coordinate vocabulary.
+16. Repeated CRC/header fields remain present as physical facts and are marked
+    Active, Unused, or Unknown for a resolution. Applicability never grants
+    write authority; a workflow behavior binding must reference the exact
+    field/span/group and declare its execution owner and evidence.
+17. Family relationships are named and fact-scoped. A relationship may share
+    Initial Code, TP, metadata, layout, or another approved fact without
+    inheriting the complete source IC, its support state, processor route, or
+    workflow.
+
+#### AB and external mutation boundaries
+
+18. Canonical terms are `AB Merge`, `DP AB`, `TP Normal` (`TPA`), `TP Backup`
+    (`TPB`), `A Bank`, `B Bank`, and `AB FlashCode`. “A Code” and “B Code” are
+    not canonical artifact names.
+19. Symmetric NT51929-family AB layout uses one instance-relative bank
+    definition instantiated at A and B bases. NT51950/NT51951 use
+    topology-resolved seed containers, required anchors, and named TP paste
+    mappings without modeling unused internal DP/LDC ordering.
+20. TPA remains immutable and is pasted byte-for-byte. TPB relocation uses one
+    resolved placement delta for block placement and only the explicitly
+    selected stored start-address fields.
+21. Current NT51929-family TPB placement delta is `+0x40000`; current NT51950
+    AB variants use `+0x40000`; NT51951 uses `+0x80000`. These accepted facts
+    remain subject to the normal firmware evidence and profile promotion gates.
+22. Among current AB profiles, POSTBUILD is declared only for NT51950/NT51951
+    and is TP-only. A staged A/B transport container does not grant DP mutation
+    authority. Host diff verification accepts only the exact declared TPB
+    header/address/CRC writes.
+
+#### Authoring state and shared application contracts
+
+23. Application owns the host-independent `AuthoringSessionState` model and
+    transition policy, including IC/IC Count selection, slot-definition
+    references, mapping drafts, `AuthoringRevision`, compatibility preservation,
+    and derived-state invalidation. The desktop Presentation owns exactly six
+    metadata-only in-memory instances—Standard Merge, AB Merge, General Merge,
+    DP Replace, CtrlRAM Replace, and General Replace—plus page, disclosure,
+    hover, file-picker, and localized display state. CLI creates an ephemeral
+    instance over the same Application contract; Application does not maintain
+    a process-global mutable session store.
+24. IC or IC Count changes revise the current mode session, increment an
+    authoring revision, preserve only compatible user selections, and
+    invalidate derived inspection, preview, validation, and output state.
+25. Authoring sessions do not retain complete BIN payloads. The active
+    inspection snapshot owns bounded immutable bytes; report history and Hex
+    Editor documents have separate lifetimes.
+26. An asynchronous result may publish only when its resolution token,
+    authoring revision, slot definition identity, and file identity/stamp still
+    match.
+27. Repeated file inputs use one typed `AuthoringSlotState`, inspection
+    lifecycle, normalization capability, validation projection, formatter, and
+    visual control. The selected-file lifecycle is not stored in the immutable
+    artifact definition.
+28. General Merge and General Replace use one `AuthoringMappingState`, one
+    invariant range codec, one Start + Length editor, and one typed draft shared
+    by UI, CLI, Saved Rules, validation, memory projection, and compilation.
+29. Capability availability, evidence status, input readiness, and runtime
+    dependency readiness are four independent results. Build requires an
+    available capability plus ready inputs and runtime dependencies. Evidence
+    status remains a certification/review fact.
+30. Runtime processor discovery is refreshable and cannot permanently cache a
+    missing or invalid tool for the process lifetime. Preview may emit a
+    blocked report without invoking mutation when a required dependency is
+    unavailable.
+
+#### Shared presentation
+
+31. File slots, information cards, range input, buttons, issue summaries,
+    palettes, and status icon behavior are shared Presentation capabilities.
+    Workflows declare semantic differences rather than copying layout,
+    padding, margin, alignment, localization, or accessibility behavior.
+32. `MainWindowViewModel` remains only as a shallow shell for top-level
+    navigation, current-page selection, global language/theme, and composition
+    and lifetime of focused child ViewModels. Merge, Replace, Report, History,
+    Settings, Build Result, and workflow-session presentation move behind
+    focused children. The shell does not own IC/IC Count rules, slot
+    compatibility, firmware metadata, mappings, processor readiness, report
+    parsing, or Build policy. Splitting more partial files without moving these
+    responsibilities is not a completed refactor, and a generic replacement
+    god ViewModel is forbidden.
+33. Compact fact grids use stacked, left-aligned label/value cells; responsive
+    layouts use one to three columns and expose at most four primary facts
+    before quiet inline disclosure.
+34. Empty slots show the requirement. Selected slots replace requirement
+    badges with one semantic state icon/surface. Hover, keyboard focus, and
+    assistive technology expose the same localized reason and next action.
+35. Report issues retain stable codes and technical evidence but lead with a
+    localized one-line outcome, impact, and action.
+36. Every page derives Preview and Build availability from one typed action
+    readiness projection. Before execution, disabled Build uses an exclamation
+    on a hoverable/focusable outer affordance; the existing restrained animation
+    reveals the highest-priority current check-time blocker plus `+N`. The same
+    reason is available to keyboard and assistive technology, while
+    reduced-motion keeps it static. This hint is not a report. Only an actual
+    Preview or Build run creates a report containing that run's issues.
+37. One pure Memory Layout projector emits typed ranges, roles, dispositions,
+    pending prerequisites, and diagnostics. One responsive renderer owns
+    geometry, theme colors, patterns, icons, focus, selection, and text.
+38. `MemoryContentRole` selects primary fill. Workflow intent, endpoint/bank
+    identity, diagnostics, observed change, selection, and focus use orthogonal
+    effects. Profiles and Application results never carry HEX colors or pixel
+    widths.
+39. CRC, Header, and Header Copy do not receive primary Memory Layout roles.
+    They remain trace/safety facts and appear visually only through a report
+    issue when necessary.
+40. One Presentation-owned read-only Hex Viewport accepts a bounded immutable
+    snapshot and emits source-neutral interaction intents. Hex Editor composes
+    edit/history/search/save adapters around it; Report Diff and BIN Inspector
+    remain read-only adapters.
+41. Hex extraction is not a redesign. It must preserve the current custom-drawn
+    16-byte-row appearance, features, accessibility, and equal-or-better
+    measured performance.
+42. Output naming compiles from one canonical rule and resolves tokens from the
+    same accepted inspection snapshot as execution. The normal skeleton is
+    `{IC}_{OutputType}_{VersionInfo}_{Date}.bin`; output-specific version
+    formatting and missing-token behavior are explicit.
+43. Output folder selection, explicit override, protected-path comparison, and
+    atomic commit remain host/infrastructure responsibilities separate from
+    firmware naming semantics.
+
+#### Promotion and planning workflow
+
+44. Product intent, user-visible terminology, workflow requirements, and global
+    validation policy are recorded in this canonical specification.
+45. A durable cross-cutting decision that changes layers, public boundaries,
+    ownership, dependency direction, or a difficult-to-reverse trade-off is
+    promoted to an independently reviewed ADR.
+46. A serializable request, report, profile, family, bundle, saved-rule, worker,
+    or external-tool shape is promoted as matching contract prose, schema,
+    examples, compatibility rules, and contract tests in one slice.
+47. IC ranges, topology/count applicability, metadata locators, integrity
+    behavior, processor read/write authority, and support state are promoted
+    only through trusted profiles/bundles with provenance, independent evidence,
+    and the required firmware-owner gate.
+48. UI semantics are promoted as typed Application outcomes plus localized,
+    accessible Presentation behavior and focused UI/smoke evidence; UI code
+    never becomes firmware authority.
+49. After owner approval of this spec, ticket planning creates a tracer-bullet
+    dependency graph. Each ticket names its risk, authority, affected routes,
+    acceptance behavior, narrow tests, final gate, reviewers, evidence gaps,
+    and `Blocked by` dependencies.
+50. Version allocation happens only after the ticket graph is approved. The
+    owner selects a bounded dependency-ready frontier for the next release;
+    subsequent releases repeat the same selection rather than receiving
+    speculative buckets in advance.
+
+### 15.5 Testing Decisions
+
+1. Tests assert externally observable behavior at the highest stable seam
+   available. New seams are introduced only when an existing seam cannot
+   characterize or protect the migration.
+2. Before the first production ownership move, generate `SupportMatrix` as a
+   projection of `CanonicalCapabilityCatalog`. During migration its denominator
+   is the union of current executable registries, UI-selectable catalogs, and
+   publication/support catalogs; every divergence must be explicitly
+   classified. Each route reports authoring availability, execution admission,
+   publication/support status, and one evidence classification:
+   `DirectGolden`, `ApprovedAlias`, `SyntheticOracle`, `ContractOnly`, or
+   `Missing`. UI-selectable but non-executable routes fail the gate.
+   Executable but non-selectable routes are allowed only when explicitly typed
+   as internal, candidate, or test-only rather than silently omitted.
+3. A migration slice keeps the executable route denominator stable and cannot
+   downgrade an evidence classification.
+4. The workflow-regression matrix also reports whether each route still
+   compiles through legacy, current trusted-bundle, or both paths. The final
+   convergence gate requires zero executable routes whose only or alternate
+   NFC profile/compiler authority is legacy; approved external processors are
+   classified separately.
+5. Record actual .NET and Python line/branch coverage baselines before applying
+   a non-decreasing changed-module ratchet. Test-method count and corpus size
+   are inventory data, not coverage percentages. CI then prevents overall
+   regression and applies `85%` line / `80%` branch as the minimum target for
+   new or substantially changed Domain/Application code. The global Beta/1.0
+   targets become fail-under gates only after the collector, baseline,
+   exclusions, and performance are reviewed.
+6. Standard Merge and AB byte behavior use approved full-output golden vectors
+   where available. Fact-scoped aliases remain explicit and cannot be presented
+   as direct product evidence.
+7. DP Replace and mapping-family migrations require at least one changed-input
+   oracle that would fail for a no-op executor; self-replacement alone is
+   insufficient.
+8. CtrlRAM Replace and General Replace processor migrations require command
+   closure, declared read/write authority, host staging-diff tests, and direct
+   or independently differential byte evidence before deleting the old R3
+   owner.
+9. Domain tests cover half-open ranges, typed coordinate arithmetic,
+   applicability, alias resolution, immutable snapshots, fingerprints, and
+   fail-closed unknown states.
+10. Application tests cover session restoration, IC/count changes, stale-result
+   rejection, four-way readiness, file reinspection, mapping round trips,
+   naming tokens, Preview/Build parity, and report summaries.
+11. Contract slices update prose, schema, examples, compatibility behavior, and
+    materialization tests together.
+12. Architecture tests protect dependency direction, one executor, canonical
+    definition ownership, UI/CLI convergence, absence of UI-owned firmware
+    logic, a shallow `MainWindowViewModel` shell boundary, and deletion of a
+    superseded owner after migration. Each UI migration slice proves that the
+    moved responsibility is absent from the shell and covered through the
+    focused child/state seam; a lower line count alone is not evidence.
+    Internal C# source/API baselines are not compatibility gates unless a
+    separate accepted contract explicitly promotes them.
+13. Presentation tests cover slot states, keyboard/focus/assistive descriptions,
+    information-card responsiveness, semantic theme roles, high contrast,
+    reduced motion, representative Memory Layout states, and the shared action
+    readiness affordance. They prove a disabled Build exposes the same blocker
+    through hover, focus, and accessibility; the affordance does not create a
+    report; and Preview/Build reports contain only issues from the actual run.
+14. Hex Viewport extraction requires visual/interaction parity and measured
+    scrolling, selection, search, edit, diff, allocation, and bounded-snapshot
+    performance against the current editor baseline.
+15. Verification performance work measures local Windows, PR CI, package
+    preview, and release-candidate lane timings. It does not claim a multiple
+    speedup without evidence.
+16. The canonical verifier remains the only repository verification entry
+    point. Full verification may run bounded independent lanes concurrently,
+    must retain deterministic isolated logs and one aggregate verdict, and
+    provides a serial fallback for low-memory diagnosis.
+17. Every slice runs formatting and its narrowest meaningful tests first,
+    applies Polytail, receives the required independent review, and then runs
+    the canonical final gate appropriate to its risk.
+18. R2 slices require architecture/contract review. R3 slices additionally
+    require firmware-owner review and byte-level evidence before merge or
+    support promotion.
+19. Release completion still requires protected CI, package verification,
+    clean-Windows smoke, provenance/SBOM checks, and explicit release-owner
+    approval. Refactoring never weakens these gates.
+20. Every characterized behavior receives exactly one disposition before a
+    migration parity claim: `RequiredInvariant`, `KnownDefect`,
+    `EvidenceRequired`, or `ApprovedChange`. Only `RequiredInvariant` is a pure
+    parity blocker. `KnownDefect` is protected by a regression test for the
+    corrected result and is fixed in an explicit slice; it is not copied into a
+    replacement owner. `EvidenceRequired` remains fail-closed and cannot
+    authorize a firmware change. `ApprovedChange` records the accepted old/new
+    behavior and tests the new contract.
+21. The non-UI/test production-code measurement, frozen baseline, 50% target,
+    and anti-gaming constraints are owned by
+    [`ADR 0021`](docs/adr/0021-code-size-ratchet-and-convergence.md).
+    Ticket #171 must make that exact measurement executable through the existing
+    canonical verifier before it can become a repository gate; until then it is
+    an approved program target and the current validator policy remains in
+    force. Ticket #197 applies the target as the final `0.10.x` integration
+    gate without weakening behavior, architecture, firmware, security,
+    coverage, or release evidence.
+
+### 15.6 Out of Scope
+
+- Performing the complete production refactor in `0.10.0`.
+- Preassigning every design area to a guessed `0.10.x` version before ticket
+  dependencies and review sizes are approved.
+- Changing any firmware range, offset, operation order, CRC/header algorithm,
+  processor authority, or golden expected output through this planning spec.
+- Promoting NT51920/NT51931 DPCMI facts or any route that still lacks required
+  owner evidence.
+- Treating a perfect-family or TP-shared-family relationship as permission to
+  inherit all facts, support, topology, processors, or workflows.
+- Replacing the unified composition engine with workflow-specific executors.
+- Creating a separate TP Header catalog, DP Version locator, Memory Layout map,
+  UI firmware model, or report-only firmware authority.
+- Redesigning or reducing the current Hex Editor feature set.
+- Shipping a trusted-bundle authoring UI in the near term; only the model needed
+  to enable a later reviewed UI is included.
+- Using parallel verification to reorder dependent build/test steps or conceal
+  nondeterministic tests.
+- Moving, overwriting, or redefining the stable `v0.9.15`/`v0.9.16` release
+  lineage, tags, or assets.
+
+### 15.7 Further Notes
+
+The architecture workshop has no remaining owner-design question. Exact
+version allocation remains a downstream owner decision rather than unresolved
+architecture. The approved sequence is:
+
+```text
+approved specification and consistency grill
+  -> approved GitHub tickets #170-#197 and dependency edges
+  -> allocate the dependency-ready frontier to the next 0.10.x release
+  -> implement, review, verify, and delete old ownership slice by slice
+```
+
+Known NT51920/NT51931 DPCMI mapping gaps and the identified direct-golden/
+processor evidence gaps remain explicit evidence tasks. They do not reopen the
+IC-first architecture, and they block only the affected promotion or deletion
+boundary.
+
+The `0.10.0` planning conditions are satisfied: the owner approved this spec,
+the canonical firmware-coordinate vocabulary, and the dependency graph; GitHub
+tickets `#170` through `#197` are published with the canonical
+`ready-for-agent` label. The repository copy of the titles, dependency depths,
+and exact `Blocked by` edges is
+[`docs/governance/0.10.x-ticket-dependency-plan.md`](docs/governance/0.10.x-ticket-dependency-plan.md).
+Those edges still determine the implementation frontier, and publication does
+not authorize a ticket to bypass its evidence, review, branch, or release gate.

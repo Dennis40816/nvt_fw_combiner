@@ -18,6 +18,10 @@ Build a deterministic firmware-image composition tool. Correct byte behavior, on
 - `profiles/` — IC facts and declarative composition behavior.
 - `src/` — production code; `tests/` and `testdata/` — executable evidence.
 - `.agents/skills/polytail/` — mandatory anti-slop completion/review workflow.
+- `docs/governance/agent-skill-routing.md` — authority and composition rules for
+  repository-native and imported workflow skills.
+- `docs/governance/agent-skill-inventory.md` — reviewed skill inventory,
+  invocation policy, upstream provenance, and adoption disposition.
 
 ## Canonical commands
 
@@ -150,6 +154,16 @@ After editing:
 3. Apply the final gate defined by the test ladder: `--all` for `R1`-`R3`; `--structure-only` is permitted only for qualifying `R0` documentation/governance changes.
 4. Report commands/results, firmware/profile/protocol/release impact, and missing private evidence.
 5. For branch work, prepare PR-ready notes: summary, changed files, risk class, tests, required reviewers, and merge target.
+
+## Skill routing
+
+- Repository-native NFC skills own firmware semantics and repository gates.
+  Imported workflow skills organize work but never override those authorities.
+- User-invoked skills are explicit workflows. Invoking one does not expand file,
+  branch, process, network, GitHub, release, or firmware authority beyond the
+  user's request and this file.
+- Apply `docs/governance/agent-skill-routing.md` when skills overlap. GitHub
+  issue workflows also require `docs/governance/agent-issue-tracker.md`.
 
 ## Definition of done
 

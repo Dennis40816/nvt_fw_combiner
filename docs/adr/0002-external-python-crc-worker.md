@@ -1,6 +1,6 @@
 # ADR 0002: Use a constrained external Python worker for CRC and approved header transforms
 
-- Status: Proposed for repository bootstrap
+- Status: Accepted for the constrained Python worker; legacy Combiner production transforms remain governed by ADR 0006 and ADR 0015
 - Date: 2026-06-25
 - Last amended: 2026-06-25
 - Owners: Product owner + firmware reviewer + security reviewer

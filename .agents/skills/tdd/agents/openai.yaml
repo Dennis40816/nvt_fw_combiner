@@ -1,0 +1,4 @@
+interface:
+  display_name: "TDD"
+  short_description: "Test-driven red-green-refactor"
+  default_prompt: "Use $tdd to drive this approved behavior through a narrow red-green loop at a public NFC seam."
