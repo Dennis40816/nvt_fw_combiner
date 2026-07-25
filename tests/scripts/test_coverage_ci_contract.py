@@ -25,7 +25,9 @@ class CoverageCiContractTests(unittest.TestCase):
             workflow.index("  structure:") : workflow.index("  python-worker:")
         ]
 
-        self.assertIn("./scripts/install-dotnet.sh --scope repository", structure_job)
+        self.assertIn(
+            "bash ./scripts/install-dotnet.sh --scope repository", structure_job
+        )
         self.assertIn("./.dotnet/dotnet restore NvtFwCombiner.slnx", structure_job)
         self.assertLess(
             structure_job.index("./.dotnet/dotnet restore NvtFwCombiner.slnx"),

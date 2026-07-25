@@ -28,7 +28,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install pinned repository .NET SDK for evaluated project policy
-        run: ./scripts/install-dotnet.sh --scope repository
+        run: bash ./scripts/install-dotnet.sh --scope repository
       - name: Restore solution for evaluated project policy
         run: ./.dotnet/dotnet restore NvtFwCombiner.slnx
       - name: Validate structure, policy, contracts, and provenance
