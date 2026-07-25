@@ -543,6 +543,50 @@ class VerifyOrchestrationTests(unittest.TestCase):
             timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS
         )
 
+    def test_unix_registration_uses_the_childs_actual_process_group(self) -> None:
+        fake_process = MagicMock()
+        fake_process.pid = 1234
+        with (
+            patch.object(MODULE.sys, "platform", "linux"),
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"},
+            ),
+            patch.object(MODULE.os, "getpgid", return_value=4321, create=True),
+        ):
+            MODULE.register_active_process(fake_process)
+            try:
+                boundary = MODULE.PROCESS_TERMINATION_BOUNDARIES[fake_process]
+            finally:
+                MODULE.unregister_active_process(fake_process)
+
+        self.assertEqual(4321, boundary.unix_process_group_id)
+
+    def test_unix_registration_falls_back_after_the_child_root_exits(self) -> None:
+        fake_process = MagicMock()
+        fake_process.pid = 1234
+        with (
+            patch.object(MODULE.sys, "platform", "linux"),
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"},
+            ),
+            patch.object(
+                MODULE.os,
+                "getpgid",
+                side_effect=ProcessLookupError,
+                create=True,
+            ),
+            patch.object(MODULE.os, "getpgrp", return_value=4321, create=True),
+        ):
+            MODULE.register_active_process(fake_process)
+            try:
+                boundary = MODULE.PROCESS_TERMINATION_BOUNDARIES[fake_process]
+            finally:
+                MODULE.unregister_active_process(fake_process)
+
+        self.assertEqual(4321, boundary.unix_process_group_id)
+
     @unittest.skipIf(
         sys.platform == "win32", "Unix process-group behavior requires Unix"
     )

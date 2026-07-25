@@ -398,11 +398,14 @@ def register_active_process(process: subprocess.Popen[bytes]) -> None:
             windows_job=WindowsKillOnCloseJob.attach(process)
         )
     else:
-        process_group_id = (
-            os.getpgrp()
-            if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) == "1"
-            else process.pid
-        )
+        try:
+            process_group_id = os.getpgid(process.pid)
+        except ProcessLookupError:
+            process_group_id = (
+                os.getpgrp()
+                if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) == "1"
+                else process.pid
+            )
         boundary = ProcessTerminationBoundary(
             unix_process_group_id=process_group_id
         )
