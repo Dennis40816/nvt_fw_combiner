@@ -22,6 +22,9 @@ EXCLUDED_DIRECTORY_NAMES = frozenset(
         "release",
     }
 )
+PYTHON_RUNTIME_EXCLUDED_DIRECTORIES = frozenset(
+    {".mypy_cache", ".pytest_cache", ".ruff_cache", ".venv", "__pycache__", "venv"}
+)
 NAMESPACE_PATTERN = re.compile(
     r"^\s*namespace\s+([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*[;{]",
     re.MULTILINE,
@@ -40,6 +43,8 @@ class CodeSizeLimits:
     partial_type_default_max: int
     partial_type_exact_ratchets: dict[str, int]
     partial_type_named_maximums: dict[str, int] = field(default_factory=dict)
+    runtime_production_baseline: int | None = None
+    runtime_production_target: int | None = None
 
 
 @dataclass(frozen=True)
@@ -61,6 +66,8 @@ class CodeSizeSnapshot:
     duplicate_json_copies: int
     duplicate_json_nonblank: int
     partial_types: tuple[PartialTypeAggregate, ...]
+    runtime_production_files: int
+    runtime_production_nonblank: int
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
@@ -73,13 +80,28 @@ DEFAULT_LIMITS = CodeSizeLimits(
         "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 4_501,
         "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 2_506,
     },
+    runtime_production_baseline=45_214,
+    runtime_production_target=22_607,
 )
 
 
-def _is_included(path: Path, root: Path) -> bool:
-    relative_parts = path.relative_to(root).parts[:-1]
-    return not any(
-        part.casefold() in EXCLUDED_DIRECTORY_NAMES for part in relative_parts
+def is_physical_source_file(
+    path: Path,
+    root: Path,
+    suffixes: frozenset[str],
+) -> bool:
+    """Return whether a real source file belongs to the measured physical tree."""
+
+    try:
+        relative = path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return (
+        path.is_file()
+        and path.suffix.casefold() in suffixes
+        and not any(
+            part.casefold() in EXCLUDED_DIRECTORY_NAMES for part in relative.parts[:-1]
+        )
     )
 
 
@@ -90,9 +112,7 @@ def _matching_files(root: Path, directory: str, suffixes: frozenset[str]) -> lis
     return sorted(
         path
         for path in search_root.rglob("*")
-        if path.is_file()
-        and path.suffix.casefold() in suffixes
-        and _is_included(path, root)
+        if is_physical_source_file(path, root, suffixes)
     )
 
 
@@ -102,11 +122,49 @@ def _nonblank_line_count(path: Path) -> int:
     )
 
 
+def _worker_runtime_files(root: Path) -> list[Path]:
+    """Measure every owned Python source below the canonical worker package root."""
+
+    search_root = root / "tools/crc-worker/src"
+    if not search_root.is_dir():
+        return []
+    resolved_root = search_root.resolve()
+    files: list[Path] = []
+    for path in search_root.rglob("*"):
+        try:
+            relative = path.resolve().relative_to(resolved_root)
+        except ValueError:
+            continue
+        if (
+            path.is_file()
+            and path.suffix.casefold() == ".py"
+            and not any(
+                part.casefold() in PYTHON_RUNTIME_EXCLUDED_DIRECTORIES
+                for part in relative.parts[:-1]
+            )
+        ):
+            files.append(path)
+    return sorted(files)
+
+
+def _runtime_production_files(root: Path) -> list[Path]:
+    """Return the fixed 0.10.x non-UI/runtime source measurement set."""
+
+    csharp_files = [
+        path
+        for path in _matching_files(root, "src", frozenset({".cs"}))
+        if path.relative_to(root).parts[1:2] != ("NvtFwCombiner.Presentation.Avalonia",)
+    ]
+    worker_files = _worker_runtime_files(root)
+    return [*csharp_files, *worker_files]
+
+
 def measure_code_size(root: Path) -> CodeSizeSnapshot:
     """Measure production source, exact JSON duplication, and partial aggregates."""
 
     source_files = _matching_files(root, "src", frozenset({".cs", ".axaml"}))
     source_line_counts = {path: _nonblank_line_count(path) for path in source_files}
+    runtime_source_files = _runtime_production_files(root)
 
     duplicate_candidates = [
         *_matching_files(root, "profiles", frozenset({".json"})),
@@ -150,6 +208,10 @@ def measure_code_size(root: Path) -> CodeSizeSnapshot:
         duplicate_json_copies=sum(len(paths) - 1 for paths in duplicate_groups),
         duplicate_json_nonblank=duplicate_json_nonblank,
         partial_types=partial_types,
+        runtime_production_files=len(runtime_source_files),
+        runtime_production_nonblank=sum(
+            _nonblank_line_count(path) for path in runtime_source_files
+        ),
     )
 
 
@@ -192,6 +254,20 @@ def review_code_size_policy(
         limits.duplicate_json_nonblank,
         findings,
     )
+
+    if limits.runtime_production_baseline is not None:
+        delta = (
+            snapshot.runtime_production_nonblank - limits.runtime_production_baseline
+        )
+        target = limits.runtime_production_target
+        target_text = f"; final target <= {target}" if target is not None else ""
+        findings.append(
+            "runtime production metric: "
+            f"{snapshot.runtime_production_files} files / "
+            f"{snapshot.runtime_production_nonblank} nonblank lines "
+            f"(baseline {limits.runtime_production_baseline}, delta {delta:+d}"
+            f"{target_text})"
+        )
 
     aggregates = {aggregate.name: aggregate for aggregate in snapshot.partial_types}
     for name, expected in limits.partial_type_exact_ratchets.items():

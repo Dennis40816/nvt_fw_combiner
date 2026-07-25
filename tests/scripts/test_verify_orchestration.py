@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, call, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "verify.py"
+sys.path.insert(0, str(SCRIPT.parent))
 SPEC = importlib.util.spec_from_file_location("verify", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -50,6 +51,84 @@ class VerifyOrchestrationTests(unittest.TestCase):
         )
         self.assertEqual(len(lanes), len({lane.name for lane in lanes}))
         self.assertTrue(all(lane.isolate_action for lane in lanes))
+
+    def test_package_import_works_without_a_scripts_pythonpath_entry(self) -> None:
+        environment = os.environ.copy()
+        environment.pop("PYTHONPATH", None)
+
+        result = subprocess.run(
+            [sys.executable, "-c", "import scripts.verify"],
+            cwd=ROOT,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+
+    def test_coverage_reset_rejects_symlinked_repository_ancestor(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "repo"
+            external = temporary_root / "external"
+            root.mkdir()
+            report_directory = external / "coverage/python"
+            report_directory.mkdir(parents=True)
+            sentinel = report_directory / "keep.txt"
+            sentinel.write_text("keep", encoding="utf-8")
+            try:
+                (root / "artifacts").symlink_to(external, target_is_directory=True)
+            except OSError as error:
+                self.skipTest(f"directory symlinks are unavailable: {error}")
+
+            with (
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "COVERAGE_ROOT", root / "artifacts/coverage"),
+                self.assertRaisesRegex(RuntimeError, "symbolic link"),
+            ):
+                MODULE.reset_coverage_directory("python")
+
+            self.assertTrue(sentinel.is_file())
+
+    @unittest.skipUnless(
+        sys.platform == "win32" and hasattr(Path, "is_junction"),
+        "Windows junction contract",
+    )
+    def test_coverage_reset_rejects_repository_internal_junction(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            target = root / "docs"
+            report_directory = target / "coverage/python"
+            report_directory.mkdir(parents=True)
+            sentinel = report_directory / "keep.txt"
+            sentinel.write_text("keep", encoding="utf-8")
+            junction = root / "artifacts"
+            created = subprocess.run(
+                [
+                    "cmd.exe",
+                    "/d",
+                    "/c",
+                    "mklink",
+                    "/J",
+                    str(junction),
+                    str(target),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(0, created.returncode, created.stderr or created.stdout)
+            self.assertTrue(junction.is_junction())
+
+            with (
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "COVERAGE_ROOT", junction / "coverage"),
+                self.assertRaisesRegex(RuntimeError, "junction"),
+            ):
+                MODULE.reset_coverage_directory("python")
+
+            self.assertTrue(sentinel.is_file())
 
     def test_jobs_one_runs_every_lane_once_in_declared_order(self) -> None:
         calls: list[str] = []
@@ -416,6 +495,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
             MODULE.handle_external_termination(),
             patch.object(MODULE, "PROCESS_CANCELLATION_REQUESTED", cancellation),
             patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+            patch.object(
+                MODULE,
+                "reset_coverage_directory",
+                return_value=ROOT / "artifacts" / "test-dotnet-coverage",
+            ),
             patch.object(MODULE, "run", side_effect=interrupt_first_command),
             patch.object(MODULE, "stop_idle_build_workers") as stop_idle_workers,
             self.assertRaises(MODULE.VerificationTerminationRequested),
@@ -1471,7 +1555,13 @@ class VerifyOrchestrationTests(unittest.TestCase):
             with (
                 patch.dict(os.environ, {"NFC_DOTNET_BUILD_LOG": str(ci_log)}),
                 patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "reset_coverage_directory",
+                    return_value=root / "coverage",
+                ),
                 patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(MODULE, "verify_coverage"),
                 patch.object(MODULE, "stop_idle_build_workers"),
             ):
                 MODULE.verify_dotnet(root / "dotnet.log")
@@ -1487,12 +1577,149 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(ci_log, build_calls[0]["mirror_log_path"])
         self.assertEqual("build output\n", ci_log_text)
 
+    def test_dotnet_lane_owns_restore_source_evaluation_and_coverage_in_order(
+        self,
+    ) -> None:
+        commands: list[list[str]] = []
+        with tempfile.TemporaryDirectory() as temporary:
+            coverage_directory = Path(temporary) / "dotnet"
+            with (
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "reset_coverage_directory",
+                    return_value=coverage_directory,
+                ),
+                patch.object(
+                    MODULE,
+                    "run",
+                    side_effect=lambda command, **_kwargs: commands.append(command),
+                ),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+                patch.object(MODULE, "stop_idle_build_workers"),
+            ):
+                MODULE.verify_dotnet()
+
+        restore_index = commands.index(["dotnet", "restore", str(MODULE.SOLUTION)])
+        ownership_index = commands.index(
+            [
+                sys.executable,
+                "scripts/validate_repository.py",
+                "--evaluated-source-ownership-only",
+            ]
+        )
+        format_index = next(
+            index
+            for index, command in enumerate(commands)
+            if len(command) > 1 and command[1] == "format"
+        )
+        test_command = next(command for command in commands if "test" in command)
+
+        self.assertLess(restore_index, ownership_index)
+        self.assertLess(ownership_index, format_index)
+        self.assertIn("--collect:XPlat Code Coverage", test_command)
+        self.assertEqual(
+            "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
+            test_command[-1],
+        )
+        self.assertEqual(
+            str(coverage_directory),
+            test_command[test_command.index("--results-directory") + 1],
+        )
+        verify_coverage.assert_called_once_with("dotnet", coverage_directory)
+
+    def test_python_lane_emits_one_json_report_before_policy_validation(self) -> None:
+        commands: list[list[str]] = []
+        python_collection = {
+            "coveragePyVersion": "7.14.3",
+            "pytestCovVersion": "6.3.0",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            coverage_directory = Path(temporary) / "python"
+            coverage_report = coverage_directory / "coverage.json"
+            with (
+                patch.object(MODULE, "require_python_modules"),
+                patch.object(
+                    MODULE,
+                    "load_baseline",
+                    return_value={"collection": {"python": python_collection}},
+                ),
+                patch.object(
+                    MODULE,
+                    "require_python_distribution_versions",
+                ) as require_versions,
+                patch.object(
+                    MODULE,
+                    "reset_coverage_directory",
+                    return_value=coverage_directory,
+                ),
+                patch.object(
+                    MODULE,
+                    "run",
+                    side_effect=lambda command, **_kwargs: commands.append(command),
+                ),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+            ):
+                MODULE.verify_python()
+
+        pytest_command = next(command for command in commands if "pytest" in command)
+        self.assertIn(f"--cov-report=json:{coverage_report}", pytest_command)
+        require_versions.assert_called_once_with(
+            {"coverage": "7.14.3", "pytest-cov": "6.3.0"}
+        )
+        verify_coverage.assert_called_once_with("python", coverage_report)
+
+    def test_python_lane_rejects_coverage_environment_overrides_before_commands(
+        self,
+    ) -> None:
+        overrides = {
+            "PYTEST_ADDOPTS": "--no-cov",
+            "COVERAGE_RCFILE": "coverage-alt.ini",
+            "COVERAGE_PROCESS_START": "coverage-alt.ini",
+        }
+        for variable, value in overrides.items():
+            with (
+                self.subTest(variable=variable),
+                patch.dict(os.environ, {variable: value}, clear=True),
+                patch.object(MODULE, "require_python_modules") as require_modules,
+                patch.object(MODULE, "run") as run_command,
+                self.assertRaisesRegex(RuntimeError, variable),
+            ):
+                MODULE.verify_python()
+
+            require_modules.assert_not_called()
+            run_command.assert_not_called()
+
+    def test_python_coverage_collector_versions_must_match_baseline(self) -> None:
+        expected = {"coverage": "7.14.3", "pytest-cov": "6.3.0"}
+        with patch.object(
+            MODULE.importlib_metadata,
+            "version",
+            side_effect=lambda distribution: expected[distribution],
+        ):
+            MODULE.require_python_distribution_versions(expected)
+
+        with (
+            patch.object(
+                MODULE.importlib_metadata,
+                "version",
+                side_effect=lambda distribution: (
+                    "7.14.2" if distribution == "coverage" else expected[distribution]
+                ),
+            ),
+            self.assertRaisesRegex(
+                RuntimeError,
+                "coverage expected 7.14.3, found 7.14.2",
+            ),
+        ):
+            MODULE.require_python_distribution_versions(expected)
+
     def test_parser_defaults_to_bounded_parallelism_and_rejects_excessive_jobs(
         self,
     ) -> None:
         parsed = MODULE.parse_args([])
         self.assertEqual(3, parsed.jobs)
-        self.assertEqual(300, parsed.lane_timeout_seconds)
+        self.assertEqual(600, parsed.lane_timeout_seconds)
         with contextlib.redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
                 MODULE.parse_args(["--jobs", "4"])

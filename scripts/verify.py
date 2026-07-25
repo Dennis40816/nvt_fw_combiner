@@ -19,8 +19,14 @@ from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar
 from ctypes import wintypes
 from dataclasses import dataclass
+from importlib import metadata as importlib_metadata
 from pathlib import Path
 from time import monotonic
+
+if __package__:
+    from .coverage_policy import load_baseline, verify_coverage
+else:
+    from coverage_policy import load_baseline, verify_coverage
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKER_ROOT = ROOT / "tools" / "crc-worker"
@@ -31,13 +37,14 @@ CTRL_RAM_REPLACE_FIXTURE_VERIFIER = (
 CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentinel.py"
 IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 REPOSITORY_SCRIPT_TESTS = ROOT / "tests" / "scripts"
+COVERAGE_ROOT = ROOT / "artifacts" / "coverage"
 WINDOWS_PROCESS_ORCHESTRATION_TEST = (
     "tests.scripts.test_verify_orchestration."
     "VerifyOrchestrationTests.test_windows_owned_job_kills_descendants_after_root_exit"
 )
 DEFAULT_VERIFY_JOBS = 3
 MAXIMUM_VERIFY_JOBS = 3
-DEFAULT_LANE_TIMEOUT_SECONDS = 300
+DEFAULT_LANE_TIMEOUT_SECONDS = 600
 MINIMUM_LANE_TIMEOUT_SECONDS = 60
 MAXIMUM_LANE_TIMEOUT_SECONDS = 900
 CLEANUP_TIMEOUT_SECONDS = 30
@@ -53,6 +60,11 @@ CLEANUP_DEADLINE: ContextVar[float | None] = ContextVar(
     "verification_cleanup_deadline", default=None
 )
 INTERNAL_LANE_ENVIRONMENT_VARIABLE = "NFC_VERIFY_INTERNAL_LANE"
+PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES = (
+    "PYTEST_ADDOPTS",
+    "COVERAGE_RCFILE",
+    "COVERAGE_PROCESS_START",
+)
 
 
 class _JobObjectBasicLimitInformation(ctypes.Structure):
@@ -734,6 +746,52 @@ def verify_repository_scripts(log_path: Path | None = None) -> None:
     )
 
 
+def validated_disposable_directory(directory: Path, root: Path) -> Path:
+    """Resolve a disposable directory without following repository-internal links."""
+
+    lexical_root = root.absolute()
+    lexical_directory = directory.absolute()
+    try:
+        relative = lexical_directory.relative_to(lexical_root)
+    except ValueError as error:
+        raise RuntimeError(
+            f"refusing to delete a directory outside the repository: {directory}"
+        ) from error
+    if not relative.parts:
+        raise RuntimeError("refusing to delete the repository root")
+
+    candidate = lexical_root
+    for part in relative.parts:
+        candidate /= part
+        is_junction = getattr(candidate, "is_junction", None)
+        if candidate.is_symlink() or (is_junction is not None and is_junction()):
+            raise RuntimeError(
+                f"refusing to delete through a symbolic link or junction: {candidate}"
+            )
+
+    resolved_root = lexical_root.resolve()
+    resolved_directory = lexical_directory.resolve(strict=False)
+    try:
+        resolved_directory.relative_to(resolved_root)
+    except ValueError as error:
+        raise RuntimeError(
+            f"refusing to delete a directory outside the repository: {directory}"
+        ) from error
+    return lexical_directory
+
+
+def reset_coverage_directory(language: str) -> Path:
+    """Create one known disposable report directory below ignored artifacts."""
+
+    if language not in {"dotnet", "python"}:
+        raise ValueError(f"unsupported coverage directory: {language}")
+    directory = validated_disposable_directory(COVERAGE_ROOT / language, ROOT)
+    if directory.exists():
+        shutil.rmtree(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
 def require_python_modules(names: tuple[str, ...]) -> None:
     missing = [name for name in names if importlib.util.find_spec(name) is None]
     if missing:
@@ -745,8 +803,47 @@ def require_python_modules(names: tuple[str, ...]) -> None:
         )
 
 
+def require_python_distribution_versions(expected: dict[str, str]) -> None:
+    """Require the active environment to match the recorded collector versions."""
+
+    mismatches: list[str] = []
+    for distribution, expected_version in sorted(expected.items()):
+        try:
+            actual_version = importlib_metadata.version(distribution)
+        except importlib_metadata.PackageNotFoundError:
+            actual_version = "<missing>"
+        if actual_version != expected_version:
+            mismatches.append(
+                f"{distribution} expected {expected_version}, found {actual_version}"
+            )
+    if mismatches:
+        raise RuntimeError(
+            "Python coverage collector version mismatch: " + "; ".join(mismatches)
+        )
+
+
 def verify_python(log_path: Path | None = None) -> None:
-    require_python_modules(("ruff", "pyright", "pylint", "pytest", "coverage"))
+    coverage_overrides = [
+        name
+        for name in PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES
+        if os.environ.get(name, "").strip()
+    ]
+    if coverage_overrides:
+        raise RuntimeError(
+            "Python coverage environment overrides are forbidden: "
+            + ", ".join(coverage_overrides)
+        )
+    require_python_modules(
+        ("ruff", "pyright", "pylint", "pytest", "pytest_cov", "coverage")
+    )
+    python_collection = load_baseline()["collection"]["python"]
+    require_python_distribution_versions(
+        {
+            "coverage": python_collection["coveragePyVersion"],
+            "pytest-cov": python_collection["pytestCovVersion"],
+        }
+    )
+    coverage_report = reset_coverage_directory("python") / "coverage.json"
     commands = (
         [
             sys.executable,
@@ -768,10 +865,12 @@ def verify_python(log_path: Path | None = None) -> None:
             "--cov=nfc_crc_worker",
             "--cov-branch",
             "--cov-report=term-missing",
+            f"--cov-report=json:{coverage_report}",
         ],
     )
     for command in commands:
         run(command, cwd=WORKER_ROOT, log_path=log_path)
+    verify_coverage("python", coverage_report)
 
 
 def resolve_dotnet() -> str:
@@ -864,6 +963,7 @@ def write_cleanup_warning(message: str, log_path: Path | None) -> None:
 
 def verify_dotnet(log_path: Path | None = None) -> None:
     dotnet = resolve_dotnet()
+    coverage_directory = reset_coverage_directory("dotnet")
     environment = os.environ.copy()
     # Verification is a batch task, not an interactive build session. Avoid retaining MSBuild nodes after it ends.
     environment["MSBUILDDISABLENODEREUSE"] = "1"
@@ -871,9 +971,26 @@ def verify_dotnet(log_path: Path | None = None) -> None:
     commands = (
         [dotnet, "--version"],
         [dotnet, "restore", str(SOLUTION)],
+        [
+            sys.executable,
+            "scripts/validate_repository.py",
+            "--evaluated-source-ownership-only",
+        ],
         [dotnet, "format", str(SOLUTION), "--verify-no-changes", "--no-restore"],
         [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
-        [dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"],
+        [
+            dotnet,
+            "test",
+            str(SOLUTION),
+            "-c",
+            "Release",
+            "--no-build",
+            "--collect:XPlat Code Coverage",
+            "--results-directory",
+            str(coverage_directory),
+            "--",
+            "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
+        ],
         # The full solution test command already runs CtrlRAM UI smoke tests. Keep the
         # fixture gate here for manifest and payload-hash validation only.
         [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"],
@@ -895,6 +1012,7 @@ def verify_dotnet(log_path: Path | None = None) -> None:
                     )
             else:
                 run(command, environment=environment, log_path=log_path)
+        verify_coverage("dotnet", coverage_directory)
     finally:
         # Avalonia/Roslyn may start compiler servers even with node reuse disabled.
         # Stop only servers from the repository-selected SDK after every verification run.
@@ -1256,7 +1374,7 @@ def execute_verification(args: argparse.Namespace) -> int:
             jobs=args.jobs,
             lane_timeout_seconds=args.lane_timeout_seconds,
         )
-    except (RuntimeError, subprocess.CalledProcessError) as exc:
+    except (RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
         print(f"\nVERIFICATION FAILED: {exc}", file=sys.stderr)
         return 1
 
