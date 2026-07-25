@@ -245,11 +245,14 @@ def _relative_source_path(
 ) -> str:
     """Resolve a reported source path to one verified repository-relative key."""
 
+    normalized = filename.replace("\\", "/").removeprefix("./")
+    if normalized.startswith("/_/"):
+        return _path_under_root(root / normalized.removeprefix("/_/"), root, filename)
+
     candidate = Path(filename)
     if candidate.is_absolute():
         return _path_under_root(candidate, root, filename)
 
-    normalized = filename.replace("\\", "/").removeprefix("./")
     if normalized.startswith(
         ("src/", "tests/", "tools/", "profiles/", "docs/", "scripts/")
     ):

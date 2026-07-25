@@ -104,6 +104,22 @@ class CoveragePolicyTests(unittest.TestCase):
         self.assertEqual(summary(1, 2, 2, 2), inventory.overall)
         self.assertEqual(summary(1, 2, 2, 2), inventory.modules["Domain"])
 
+    def test_parses_coverlet_deterministic_virtual_root_report(self) -> None:
+        report = r"""<coverage><sources><source>\</source></sources><packages><package><classes>
+<class name="Thing" filename="/_/src/NvtFwCombiner.Domain/Thing.cs"><lines>
+<line number="10" hits="1" />
+</lines></class>
+<class name="Generated" filename="/_/src/NvtFwCombiner.Domain/obj/Generated.g.cs"><lines>
+<line number="1" hits="1" />
+</lines></class>
+</classes></package></packages></coverage>"""
+        self.write("reports/coverage.cobertura.xml", report)
+
+        inventory = parse_dotnet_cobertura_reports(self.root / "reports", self.root)
+
+        self.assertEqual(summary(1, 1, 0, 0), inventory.overall)
+        self.assertEqual(summary(1, 1, 0, 0), inventory.modules["Domain"])
+
     def test_preserves_distinct_branch_identities_on_one_source_line(self) -> None:
         report = """<coverage><packages><package><classes>
 <class name=\"First\" filename=\"src/NvtFwCombiner.Domain/Thing.cs\"><lines>
@@ -235,10 +251,23 @@ class CoveragePolicyTests(unittest.TestCase):
             "src/../../outside.cs",
             r"src\..\..\outside.cs",
             "./src/../../outside.cs",
+            "/_/src/../../outside.cs",
         ):
             with self.subTest(spelling=spelling):
                 with self.assertRaisesRegex(ValueError, "outside the repository root"):
                     _relative_source_path(spelling, self.root)
+
+    def test_resolves_coverlet_deterministic_virtual_root(self) -> None:
+        actual = _relative_source_path(
+            "/_/src/NvtFwCombiner.Infrastructure/obj/Generated.g.cs",
+            self.root,
+            ("\\",),
+        )
+
+        self.assertEqual(
+            "src/NvtFwCombiner.Infrastructure/obj/Generated.g.cs",
+            actual,
+        )
 
     def test_counts_zero_context_substitution_once(self) -> None:
         diff = """@@ -10,3 +10,4 @@
