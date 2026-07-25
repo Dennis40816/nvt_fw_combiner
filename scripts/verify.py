@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import codecs
 import ctypes
 import importlib.util
 import os
@@ -14,6 +15,7 @@ import tempfile
 import threading
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar
 from ctypes import wintypes
 from dataclasses import dataclass
@@ -38,6 +40,7 @@ CLEANUP_TIMEOUT_SECONDS = 30
 PROCESS_TERMINATION_TIMEOUT_SECONDS = 5
 WINDOWS_CREATE_SUSPENDED = 0x00000004
 WINDOWS_CREATE_NEW_PROCESS_GROUP = 0x00000200
+LOG_STREAM_CHUNK_BYTES = 64 * 1024
 LANE_DEADLINE: ContextVar[float | None] = ContextVar(
     "verification_lane_deadline", default=None
 )
@@ -432,15 +435,31 @@ def resume_active_process(process: subprocess.Popen[bytes]) -> None:
 def activate_owned_process(process: subprocess.Popen[bytes]) -> None:
     """Register the termination boundary before allowing a verifier process to run."""
 
+    register_active_process(process)
+    resume_active_process(process)
+
+
+@contextmanager
+def defer_ctrl_c_during_process_handoff():
+    """Replay main-thread Ctrl+C only after a created process has an owner."""
+
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+
+    interrupted = False
+
+    def remember_interrupt(_signum: int, _frame: object) -> None:
+        nonlocal interrupted
+        interrupted = True
+
+    previous_handler = signal.signal(signal.SIGINT, remember_interrupt)
     try:
-        register_active_process(process)
-        resume_active_process(process)
-    except BaseException:
-        try:
-            terminate_process_tree(process)
-        finally:
-            unregister_active_process(process)
-        raise
+        yield
+    finally:
+        signal.signal(signal.SIGINT, previous_handler)
+        if interrupted:
+            signal.raise_signal(signal.SIGINT)
 
 
 def unregister_active_process(process: subprocess.Popen[bytes]) -> None:
@@ -449,6 +468,38 @@ def unregister_active_process(process: subprocess.Popen[bytes]) -> None:
         boundary = PROCESS_TERMINATION_BOUNDARIES.pop(process, None)
     if boundary is not None:
         boundary.close()
+
+
+def start_owned_process(
+    command: list[str],
+    *,
+    cwd: Path,
+    environment: dict[str, str] | None,
+    stdout: object | None = None,
+    stderr: object | None = None,
+) -> subprocess.Popen[bytes]:
+    """Create and register a process inside one cancellation-safe exception scope."""
+
+    process: subprocess.Popen[bytes] | None = None
+    try:
+        with defer_ctrl_c_during_process_handoff():
+            process = subprocess.Popen(
+                command,
+                cwd=cwd,
+                stdout=stdout,
+                stderr=stderr,
+                env=environment,
+                **process_group_options(),
+            )
+            activate_owned_process(process)
+        return process
+    except BaseException:
+        if process is not None:
+            try:
+                terminate_process_tree(process)
+            finally:
+                unregister_active_process(process)
+        raise
 
 
 def run(
@@ -462,13 +513,11 @@ def run(
 ) -> None:
     if log_path is None:
         print(f"\n> {' '.join(command)}", flush=True)
-        process = subprocess.Popen(
+        process = start_owned_process(
             command,
             cwd=cwd,
-            env=environment,
-            **process_group_options(),
+            environment=environment,
         )
-        activate_owned_process(process)
         try:
             return_code = process.wait(timeout=remaining_timeout(timeout_seconds))
         except (subprocess.TimeoutExpired, KeyboardInterrupt):
@@ -488,6 +537,37 @@ def run(
         echo=False,
         timeout_seconds=timeout_seconds,
     )
+
+
+def stream_log_tail(
+    primary_path: Path,
+    *,
+    start_offset: int,
+    mirror_paths: Sequence[Path] = (),
+    echo: bool,
+) -> None:
+    """Stream an appended log segment to mirrors and optional console output."""
+
+    if not mirror_paths and not echo:
+        return
+    for mirror_path in mirror_paths:
+        mirror_path.parent.mkdir(parents=True, exist_ok=True)
+    decoder = (
+        codecs.getincrementaldecoder("utf-8")(errors="replace") if echo else None
+    )
+    with primary_path.open("rb") as source, ExitStack() as stack:
+        source.seek(start_offset)
+        mirrors = tuple(
+            stack.enter_context(mirror_path.open("ab"))
+            for mirror_path in mirror_paths
+        )
+        while chunk := source.read(LOG_STREAM_CHUNK_BYTES):
+            for mirror in mirrors:
+                mirror.write(chunk)
+            if decoder is not None:
+                sys.stdout.write(decoder.decode(chunk))
+        if decoder is not None:
+            sys.stdout.write(decoder.decode(b"", final=True))
 
 
 def _run_to_logs(
@@ -510,15 +590,13 @@ def _run_to_logs(
     try:
         with primary_path.open("a", encoding="utf-8", newline="\n") as primary:
             print(f"\n> {' '.join(command)}", file=primary, flush=True)
-            process = subprocess.Popen(
+            process = start_owned_process(
                 command,
                 cwd=cwd,
                 stdout=primary,
                 stderr=subprocess.STDOUT,
-                env=environment,
-                **process_group_options(),
+                environment=environment,
             )
-            activate_owned_process(process)
             try:
                 return_code = process.wait(timeout=remaining_timeout(timeout_seconds))
             except (subprocess.TimeoutExpired, KeyboardInterrupt):
@@ -526,23 +604,21 @@ def _run_to_logs(
                 raise
             finally:
                 unregister_active_process(process)
-        output = primary_path.read_bytes()[start_offset:]
-        for mirror_path in unique_paths[1:]:
-            mirror_path.parent.mkdir(parents=True, exist_ok=True)
-            with mirror_path.open("ab") as mirror:
-                mirror.write(output)
-        if echo:
-            print(output.decode("utf-8", errors="replace"), end="")
+        stream_log_tail(
+            primary_path,
+            start_offset=start_offset,
+            mirror_paths=unique_paths[1:],
+            echo=echo,
+        )
         if return_code != 0:
             raise subprocess.CalledProcessError(return_code, command)
     except (subprocess.TimeoutExpired, KeyboardInterrupt):
-        output = primary_path.read_bytes()[start_offset:]
-        for mirror_path in unique_paths[1:]:
-            mirror_path.parent.mkdir(parents=True, exist_ok=True)
-            with mirror_path.open("ab") as mirror:
-                mirror.write(output)
-        if echo:
-            print(output.decode("utf-8", errors="replace"), end="")
+        stream_log_tail(
+            primary_path,
+            start_offset=start_offset,
+            mirror_paths=unique_paths[1:],
+            echo=echo,
+        )
         raise
 
 
@@ -790,6 +866,7 @@ def parse_lane_timeout(value: str) -> int:
 
 
 def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
+    raw_arguments = tuple(sys.argv[1:] if arguments is None else arguments)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--all",
@@ -829,7 +906,17 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
             f"default: {DEFAULT_LANE_TIMEOUT_SECONDS})."
         ),
     )
-    return parser.parse_args(arguments)
+    args = parser.parse_args(raw_arguments)
+    args.jobs_was_supplied = any(
+        argument == "--jobs" or argument.startswith("--jobs=")
+        for argument in raw_arguments
+    )
+    args.lane_timeout_was_supplied = any(
+        argument == "--lane-timeout-seconds"
+        or argument.startswith("--lane-timeout-seconds=")
+        for argument in raw_arguments
+    )
+    return args
 
 
 def repository_script_and_python_lane() -> LaneAction:
@@ -974,7 +1061,11 @@ def report_lane_results(results: Sequence[LaneResult]) -> None:
     for result in results:
         print(f"\n=== {result.name} lane ({result.duration_seconds:.1f}s) ===")
         if result.log_path.is_file():
-            print(result.log_path.read_text(encoding="utf-8", errors="replace"), end="")
+            stream_log_tail(
+                result.log_path,
+                start_offset=0,
+                echo=True,
+            )
         if not result.succeeded:
             print(f"[lane failed] {result.error}")
     summary = ", ".join(
@@ -1007,9 +1098,31 @@ def run_selected_lanes(
         raise RuntimeError(f"verification lanes failed: {', '.join(failures)}")
 
 
+def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
+    """Reject public verifier policy from the parent-owned lane entry point."""
+
+    if (
+        args.all
+        or args.structure_only
+        or args.skip_structure
+        or args.skip_python
+        or args.skip_dotnet
+        or args.jobs_was_supplied
+        or args.lane_timeout_was_supplied
+        or args.jobs != DEFAULT_VERIFY_JOBS
+        or args.lane_timeout_seconds != DEFAULT_LANE_TIMEOUT_SECONDS
+    ):
+        raise SystemExit(
+            "--internal-lane cannot be combined with public verification flags"
+        )
+    if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) != "1":
+        raise SystemExit("--internal-lane requires a parent-owned process marker")
+
+
 def main() -> int:
     args = parse_args()
     if args.internal_lane:
+        validate_internal_lane_arguments(args)
         run_internal_lane(args.internal_lane)
         return 0
     structure_only = args.structure_only

@@ -6,6 +6,7 @@ import contextlib
 import importlib.util
 import io
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -220,6 +221,60 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         terminate.assert_called_once_with(fake_process)
         self.assertNotIn(fake_process, MODULE.ACTIVE_PROCESSES)
+
+    def test_interrupt_before_registration_terminates_the_unowned_process(
+        self,
+    ) -> None:
+        fake_process = MagicMock()
+        with (
+            patch.object(MODULE.subprocess, "Popen", return_value=fake_process),
+            patch.object(
+                MODULE,
+                "activate_owned_process",
+                side_effect=KeyboardInterrupt,
+            ),
+            patch.object(MODULE, "terminate_process_tree") as terminate,
+            patch.object(MODULE, "unregister_active_process") as unregister,
+            self.assertRaises(KeyboardInterrupt),
+        ):
+            MODULE.start_owned_process(
+                [sys.executable, "-c", "pass"],
+                cwd=ROOT,
+                environment=None,
+            )
+
+        terminate.assert_called_once_with(fake_process)
+        unregister.assert_called_once_with(fake_process)
+
+    def test_ctrl_c_during_creation_is_replayed_after_process_ownership(
+        self,
+    ) -> None:
+        fake_process = MagicMock()
+
+        def create_then_interrupt(*_args: object, **_kwargs: object) -> MagicMock:
+            signal.raise_signal(signal.SIGINT)
+            return fake_process
+
+        with (
+            patch.object(
+                MODULE.subprocess,
+                "Popen",
+                side_effect=create_then_interrupt,
+            ),
+            patch.object(MODULE, "activate_owned_process") as activate,
+            patch.object(MODULE, "terminate_process_tree") as terminate,
+            patch.object(MODULE, "unregister_active_process") as unregister,
+            self.assertRaises(KeyboardInterrupt),
+        ):
+            MODULE.start_owned_process(
+                [sys.executable, "-c", "pass"],
+                cwd=ROOT,
+                environment=None,
+            )
+
+        activate.assert_called_once_with(fake_process)
+        terminate.assert_called_once_with(fake_process)
+        unregister.assert_called_once_with(fake_process)
 
     def test_windows_process_is_suspended_until_job_boundary_is_attached(
         self,
@@ -689,6 +744,94 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertIn("before\ufffdafter", output.getvalue())
         self.assertIn("Verification lane summary:", output.getvalue())
 
+    def test_single_lane_capture_does_not_reread_the_complete_log(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            log_path = Path(temporary) / "single.log"
+            with patch.object(
+                Path,
+                "read_bytes",
+                side_effect=AssertionError("complete log reread"),
+            ):
+                MODULE._run_to_logs(
+                    [sys.executable, "-c", "print('bounded output')"],
+                    log_paths=(log_path,),
+                    cwd=ROOT,
+                    environment=None,
+                    echo=False,
+                )
+
+            self.assertIn("bounded output", log_path.read_text(encoding="utf-8"))
+
+    def test_lane_report_streams_logs_without_reading_the_complete_file(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            log_path = Path(temporary) / "python.log"
+            log_path.write_bytes(b"before\xffafter\n")
+            output = io.StringIO()
+            with (
+                patch.object(
+                    Path,
+                    "read_text",
+                    side_effect=AssertionError("complete log read"),
+                ),
+                contextlib.redirect_stdout(output),
+            ):
+                MODULE.report_lane_results(
+                    [MODULE.LaneResult("python", True, 1.0, log_path)]
+                )
+
+        self.assertIn("before\ufffdafter", output.getvalue())
+        self.assertIn("Verification lane summary:", output.getvalue())
+
+    def test_stream_log_tail_mirrors_only_appended_bytes_across_utf8_chunks(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            primary = root / "primary.log"
+            mirror = root / "mirror.log"
+            historical = b"historical|"
+            appended = "before-\u20ac-after".encode()
+            primary.write_bytes(historical + appended)
+            mirror.write_bytes(b"mirror-prefix|")
+            output = io.StringIO()
+            with (
+                patch.object(MODULE, "LOG_STREAM_CHUNK_BYTES", 2),
+                contextlib.redirect_stdout(output),
+            ):
+                MODULE.stream_log_tail(
+                    primary,
+                    start_offset=len(historical),
+                    mirror_paths=(mirror,),
+                    echo=True,
+                )
+
+            mirrored = mirror.read_bytes()
+
+        self.assertEqual(b"mirror-prefix|" + appended, mirrored)
+        self.assertEqual(appended.decode(), output.getvalue())
+
+    def test_stream_log_tail_preserves_replacement_for_split_invalid_utf8(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            primary = Path(temporary) / "invalid.log"
+            invalid = b"before-\xe2\x82-after"
+            primary.write_bytes(invalid)
+            output = io.StringIO()
+            with (
+                patch.object(MODULE, "LOG_STREAM_CHUNK_BYTES", 2),
+                contextlib.redirect_stdout(output),
+            ):
+                MODULE.stream_log_tail(
+                    primary,
+                    start_offset=0,
+                    echo=True,
+                )
+
+        self.assertEqual(invalid.decode("utf-8", errors="replace"), output.getvalue())
+
     def test_skip_python_leaves_repository_script_tests_out_of_dotnet_only_lane(
         self,
     ) -> None:
@@ -782,6 +925,88 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 MODULE.parse_args(["--jobs", "4"])
             with self.assertRaises(SystemExit):
                 MODULE.parse_args(["--lane-timeout-seconds", "59"])
+
+    def test_internal_lane_rejects_public_gate_flags(self) -> None:
+        with (
+            patch.object(
+                sys,
+                "argv",
+                [str(SCRIPT), "--all", "--internal-lane", "structure"],
+            ),
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"},
+            ),
+            self.assertRaisesRegex(
+                SystemExit, "--internal-lane cannot be combined"
+            ),
+        ):
+            MODULE.main()
+
+    def test_internal_lane_requires_the_parent_owned_marker(self) -> None:
+        with (
+            patch.object(
+                sys,
+                "argv",
+                [str(SCRIPT), "--internal-lane", "structure"],
+            ),
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""},
+            ),
+            self.assertRaisesRegex(
+                SystemExit, "--internal-lane requires a parent-owned process"
+            ),
+        ):
+            MODULE.main()
+
+    def test_internal_lane_rejects_explicit_default_jobs(self) -> None:
+        with (
+            patch.object(
+                sys,
+                "argv",
+                [
+                    str(SCRIPT),
+                    "--internal-lane",
+                    "structure",
+                    "--jobs",
+                    str(MODULE.DEFAULT_VERIFY_JOBS),
+                ],
+            ),
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"},
+            ),
+            self.assertRaisesRegex(
+                SystemExit, "--internal-lane cannot be combined"
+            ),
+        ):
+            MODULE.main()
+
+    def test_internal_lane_rejects_explicit_default_lane_timeout(self) -> None:
+        with (
+            patch.object(
+                sys,
+                "argv",
+                [
+                    str(SCRIPT),
+                    "--internal-lane",
+                    "structure",
+                    (
+                        "--lane-timeout-seconds="
+                        f"{MODULE.DEFAULT_LANE_TIMEOUT_SECONDS}"
+                    ),
+                ],
+            ),
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"},
+            ),
+            self.assertRaisesRegex(
+                SystemExit, "--internal-lane cannot be combined"
+            ),
+        ):
+            MODULE.main()
 
 
 if __name__ == "__main__":
