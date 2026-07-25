@@ -9,9 +9,10 @@ For NFC repository work, apply [Agent Skill Routing](../../../docs/governance/ag
 
 Break a plan, spec, or conversation into a set of **tickets** — tracer-bullet vertical slices, each declaring the tickets that **block** it.
 
-Use `docs/governance/agent-issue-tracker.md`. If a required label or native
-blocking capability is missing, complete and present the approved ticket set
-but stop before GitHub mutation.
+Use `docs/governance/agent-issue-tracker.md`. If a required label is missing,
+complete and present the approved ticket set but stop before GitHub mutation.
+Native blocking capability is optional: when it is unavailable, publish the
+approved text-only `Blocked by` references instead.
 
 ## Process
 
