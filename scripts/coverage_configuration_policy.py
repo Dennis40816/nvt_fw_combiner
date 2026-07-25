@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import tomllib
 import xml.etree.ElementTree as element_tree
@@ -19,6 +20,50 @@ APPROVED_SDK_ANALYZER_PATHS = frozenset(
         "codestyle/cs/Microsoft.CodeAnalysis.CSharp.CodeStyle.Fixes.dll",
     )
 )
+APPROVED_PACKAGE_ANALYZERS = frozenset(
+    (
+        package.casefold(),
+        version,
+        relative_path.casefold(),
+    )
+    for package, version, relative_path in (
+        (
+            "Avalonia",
+            "12.0.5",
+            "analyzers/dotnet/cs/Avalonia.Analyzers.CSharp.dll",
+        ),
+        (
+            "Avalonia",
+            "12.0.5",
+            "analyzers/dotnet/cs/Avalonia.Analyzers.CodeFixes.CSharp.dll",
+        ),
+        (
+            "Avalonia",
+            "12.0.5",
+            "analyzers/dotnet/cs/Avalonia.Analyzers.VisualBasic.dll",
+        ),
+        (
+            "Avalonia",
+            "12.0.5",
+            "analyzers/dotnet/cs/Avalonia.Generators.dll",
+        ),
+        (
+            "CommunityToolkit.Mvvm",
+            "8.4.2",
+            "analyzers/dotnet/roslyn5.0/cs/CommunityToolkit.Mvvm.CodeFixers.dll",
+        ),
+        (
+            "CommunityToolkit.Mvvm",
+            "8.4.2",
+            "analyzers/dotnet/roslyn5.0/cs/CommunityToolkit.Mvvm.SourceGenerators.dll",
+        ),
+        (
+            "Humanizer.Core",
+            "3.0.1",
+            "analyzers/dotnet/roslyn3.8/cs/Humanizer.Analyzers.dll",
+        ),
+    )
+)
 SDK_ANALYZER_TARGET_PATH = ("targets/Microsoft.NET.Sdk.Analyzers.targets").casefold()
 APPROVED_COVERLET_FORMAT_SETTING = (
     "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration."
@@ -34,16 +79,21 @@ def validate_coverage_collector_pin(
     dotnet_collection = baseline["collection"]["dotnet"]
     collector = dotnet_collection["collector"]
     expected_version = dotnet_collection["version"]
-    package_versions = [
+    collector_package_versions = [
         element
         for element in element_tree.parse(root / "Directory.Packages.props")
         .getroot()
         .iter("PackageVersion")
-        if element.attrib.get("Include", "").casefold() == collector.casefold()
+        if any(
+            element.attrib.get(attribute, "").casefold() == collector.casefold()
+            for attribute in ("Include", "Update")
+        )
     ]
     if (
-        len(package_versions) != 1
-        or package_versions[0].attrib.get("Version") != expected_version
+        len(collector_package_versions) != 1
+        or collector_package_versions[0].attrib.get("Include", "").casefold()
+        != collector.casefold()
+        or collector_package_versions[0].attrib.get("Version") != expected_version
     ):
         errors.append(
             "Directory.Packages.props must exactly pin the baseline .NET "
@@ -221,6 +271,36 @@ def is_approved_sdk_analyzer(analyzer: dict[str, Any], msbuild_sdks_path: Path) 
     )
 
 
+def is_approved_package_analyzer(
+    analyzer: dict[str, Any], repository_root: Path
+) -> bool:
+    """Accept only the exact analyzer assets already owned by pinned packages."""
+
+    package_id = analyzer.get("NuGetPackageId")
+    package_version = analyzer.get("NuGetPackageVersion")
+    full_path = analyzer.get("FullPath")
+    if not all(
+        isinstance(value, str) and value
+        for value in (package_id, package_version, full_path)
+    ):
+        return False
+    try:
+        resolved_repository_root = repository_root.resolve(strict=True)
+        package_root = (
+            repository_root / ".packages" / package_id.casefold() / package_version
+        ).resolve(strict=True)
+        package_root.relative_to(resolved_repository_root)
+        analyzer_path = Path(full_path).resolve(strict=True)
+        relative_path = analyzer_path.relative_to(package_root).as_posix().casefold()
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return (
+        analyzer_path.is_file()
+        and (package_id.casefold(), package_version, relative_path)
+        in APPROVED_PACKAGE_ANALYZERS
+    )
+
+
 def validate_evaluated_test_coverage_collector(
     relative: str,
     items: dict[str, list[dict[str, Any]]],
@@ -259,4 +339,35 @@ def validate_evaluated_test_coverage_collector(
         errors.append(
             "test project must receive exactly one centrally defined coverage collector "
             f"with PrivateAssets=all: {relative} -> {collector}"
+        )
+
+
+def validate_restored_test_coverage_collector_version(
+    relative: str,
+    assets_file: Path,
+    collector: str,
+    expected_version: str,
+    errors: list[str],
+) -> None:
+    """Require restored assets to contain exactly the approved collector version."""
+
+    try:
+        document = json.loads(assets_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        errors.append(f"could not read restored package assets for {relative}: {exc}")
+        return
+    libraries = document.get("libraries") if isinstance(document, dict) else None
+    if not isinstance(libraries, dict):
+        errors.append(f"restored package assets are invalid for {relative}")
+        return
+    resolved_versions = [
+        identity.partition("/")[2]
+        for identity in libraries
+        if isinstance(identity, str)
+        and identity.partition("/")[0].casefold() == collector.casefold()
+    ]
+    if resolved_versions != [expected_version]:
+        errors.append(
+            "test project must resolve the baseline coverage collector version: "
+            f"{relative} -> {collector} {expected_version}, got {resolved_versions}"
         )

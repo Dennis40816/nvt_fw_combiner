@@ -22,6 +22,7 @@ import validate_repository as repository_validator  # noqa: E402
 from validate_repository import (  # noqa: E402
     evaluate_project_items,
     is_solution_test_project,
+    validate_evaluated_nonproduction_source_ownership,
     validate_evaluated_production_source_ownership,
     validate_production_source_ownership,
 )
@@ -88,6 +89,25 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
         )
 
         self.assertEqual([], errors)
+
+    def test_rejects_nonproduction_project_compiling_production_source(
+        self,
+    ) -> None:
+        root = Path(self.temporary_directory.name)
+        source = root / "src/Product/Thing.cs"
+        source.parent.mkdir(parents=True)
+        source.write_text("internal sealed class Thing {}\n", encoding="utf-8")
+        errors: list[str] = []
+
+        validate_evaluated_nonproduction_source_ownership(
+            "tests/Product.Tests/Product.Tests.csproj",
+            {"Compile": [{"FullPath": str(source)}]},
+            root,
+            errors,
+        )
+
+        self.assertEqual(1, len(errors))
+        self.assertIn("duplicate production source", errors[0])
 
     def test_rejects_imported_compile_source_outside_production_project(self) -> None:
         errors: list[str] = []
@@ -243,6 +263,77 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
 
         self.assertEqual([], errors)
 
+    def test_accepts_only_the_exact_pinned_package_analyzer_asset(self) -> None:
+        root = Path(self.temporary_directory.name)
+        analyzer = (
+            root
+            / ".packages/avalonia/12.0.5/analyzers/dotnet/cs"
+            / "Avalonia.Generators.dll"
+        )
+        analyzer.parent.mkdir(parents=True)
+        analyzer.write_bytes(b"pinned generator")
+        item = {
+            "Identity": str(analyzer),
+            "FullPath": str(analyzer),
+            "NuGetPackageId": "Avalonia",
+            "NuGetPackageVersion": "12.0.5",
+        }
+        errors: list[str] = []
+
+        validate_evaluated_production_source_ownership(
+            "src/Product/Product.csproj",
+            self.project_directory,
+            {"Compile": [], "Analyzer": [item]},
+            self.sdks_directory,
+            errors,
+            root,
+        )
+
+        self.assertEqual([], errors)
+
+    def test_rejects_allowlisted_package_analyzer_through_external_link(
+        self,
+    ) -> None:
+        base = Path(self.temporary_directory.name)
+        repository_root = base / "repository"
+        linked_version = repository_root / ".packages/avalonia/12.0.5"
+        linked_version.parent.mkdir(parents=True)
+        external_version = base / "external/avalonia/12.0.5"
+        analyzer = external_version / "analyzers/dotnet/cs" / "Avalonia.Generators.dll"
+        analyzer.parent.mkdir(parents=True)
+        analyzer.write_bytes(b"external generator")
+        try:
+            linked_version.symlink_to(external_version, target_is_directory=True)
+        except OSError as exc:
+            self.skipTest(f"directory links are unavailable: {exc}")
+        errors: list[str] = []
+
+        validate_evaluated_production_source_ownership(
+            "src/Product/Product.csproj",
+            self.project_directory,
+            {
+                "Compile": [],
+                "Analyzer": [
+                    {
+                        "Identity": str(
+                            linked_version / analyzer.relative_to(external_version)
+                        ),
+                        "FullPath": str(
+                            linked_version / analyzer.relative_to(external_version)
+                        ),
+                        "NuGetPackageId": "Avalonia",
+                        "NuGetPackageVersion": "12.0.5",
+                    }
+                ],
+            },
+            self.sdks_directory,
+            errors,
+            repository_root,
+        )
+
+        self.assertEqual(1, len(errors))
+        self.assertIn("evaluated analyzer", errors[0])
+
     def test_requires_restored_assets_before_evaluating_production_items(self) -> None:
         errors: list[str] = []
         result = evaluate_project_items(
@@ -297,6 +388,54 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
             "-property:Configuration=Release",
             run_command.call_args.args[0],
         )
+        self.assertIn(
+            "-target:ResolveLockFileAnalyzers",
+            run_command.call_args.args[0],
+        )
+
+    def test_restored_contracts_evaluate_non_test_support_projects(self) -> None:
+        root = Path(self.temporary_directory.name)
+        source = root / "src/Product/Thing.cs"
+        source.parent.mkdir(parents=True)
+        source.write_text("internal sealed class Thing {}\n", encoding="utf-8")
+        support_project = "tests/Product.Support/Product.Support.csproj"
+        evaluated = repository_validator.EvaluatedProjectItems(
+            {
+                "Compile": [{"FullPath": str(source)}],
+                "Analyzer": [],
+                "PackageReference": [],
+            },
+            self.sdks_directory,
+        )
+        baseline = {
+            "collection": {
+                "dotnet": {
+                    "collector": "coverlet.collector",
+                    "version": "6.0.4",
+                }
+            }
+        }
+        errors: list[str] = []
+
+        with (
+            patch.object(repository_validator, "ROOT", root),
+            patch.object(
+                repository_validator,
+                "EXPECTED_PROJECT_REFERENCES",
+                {support_project: set()},
+            ),
+            patch.object(repository_validator, "load_baseline", return_value=baseline),
+            patch.object(
+                repository_validator,
+                "evaluate_project_items",
+                return_value=evaluated,
+            ) as evaluate,
+        ):
+            repository_validator.validate_restored_project_contracts(errors)
+
+        evaluate.assert_called_once_with(root / support_project, errors)
+        self.assertEqual(1, len(errors))
+        self.assertIn("duplicate production source", errors[0])
 
     def test_accepts_centrally_defined_test_coverage_collector(self) -> None:
         errors: list[str] = []

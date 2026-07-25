@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
-import sys
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -15,6 +16,7 @@ sys.path.insert(0, str(SCRIPTS))
 from coverage_configuration_policy import (  # noqa: E402
     validate_coverage_collector_pin,
     validate_coverage_exclusion_policy,
+    validate_restored_test_coverage_collector_version,
 )
 from coverage_policy import load_baseline  # noqa: E402
 
@@ -105,6 +107,55 @@ class CoverageCiContractTests(unittest.TestCase):
                     self.assertTrue(
                         any("coverage collector" in error for error in errors)
                     )
+
+    def test_collector_pin_rejects_central_update_override(self) -> None:
+        valid_reference = (
+            '<PackageReference Include="coverlet.collector" PrivateAssets="all" />'
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.write_collector_fixture(root, "6.0.4", valid_reference)
+            (root / "Directory.Packages.props").write_text(
+                """
+<Project><ItemGroup>
+  <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+  <PackageVersion Update="coverlet.collector" Version="6.0.5" />
+</ItemGroup></Project>
+""".strip(),
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+
+            validate_coverage_collector_pin(load_baseline(), errors, root)
+
+            self.assertTrue(any("coverage collector" in error for error in errors))
+
+    def test_restored_collector_version_must_match_the_baseline(self) -> None:
+        for resolved_version, expected_errors in (("6.0.4", 0), ("6.0.5", 1)):
+            with self.subTest(resolved_version=resolved_version):
+                with tempfile.TemporaryDirectory() as temporary:
+                    assets_file = Path(temporary) / "project.assets.json"
+                    assets_file.write_text(
+                        json.dumps(
+                            {
+                                "libraries": {
+                                    f"coverlet.collector/{resolved_version}": {}
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+                    errors: list[str] = []
+
+                    validate_restored_test_coverage_collector_version(
+                        "tests/Product.Tests/Product.Tests.csproj",
+                        assets_file,
+                        "coverlet.collector",
+                        "6.0.4",
+                        errors,
+                    )
+
+                    self.assertEqual(expected_errors, len(errors))
 
     def test_coverage_exclusion_policy_rejects_source_and_filter_escape_hatches(
         self,

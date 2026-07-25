@@ -22,10 +22,12 @@ from canonical_golden_validation import (
 )
 from code_size_policy import is_physical_source_file, review_code_size_policy
 from coverage_configuration_policy import (
+    is_approved_package_analyzer,
     is_approved_sdk_analyzer,
     validate_coverage_collector_pin,
     validate_coverage_exclusion_policy,
     validate_evaluated_test_coverage_collector,
+    validate_restored_test_coverage_collector_version,
 )
 from coverage_policy import load_baseline
 from diagnostic_golden_validation import validate_diagnostic_golden_separation
@@ -979,6 +981,7 @@ def evaluate_project_items(
                 str(project_path),
                 "-nologo",
                 "-property:Configuration=Release",
+                "-target:ResolveLockFileAnalyzers",
                 "-getProperty:MSBuildSDKsPath",
                 "-getItem:Compile",
                 "-getItem:Analyzer",
@@ -1041,6 +1044,7 @@ def validate_evaluated_production_source_ownership(
     items: dict[str, list[dict[str, Any]]],
     msbuild_sdks_path: Path,
     errors: list[str],
+    repository_root: Path = ROOT,
 ) -> None:
     """Reject imported or packaged sources that escape the owned production tree."""
 
@@ -1065,12 +1069,42 @@ def validate_evaluated_production_source_ownership(
                 f"source tree: {relative} -> {full_path}"
             )
     for analyzer in items["Analyzer"]:
-        if is_approved_sdk_analyzer(analyzer, msbuild_sdks_path):
+        if is_approved_sdk_analyzer(
+            analyzer, msbuild_sdks_path
+        ) or is_approved_package_analyzer(analyzer, repository_root):
             continue
         identity = analyzer.get("Identity", "<implicit>")
         errors.append(
             "production project must not add an evaluated analyzer without an "
             f"explicit architecture decision: {relative} -> {identity}"
+        )
+
+
+def validate_evaluated_nonproduction_source_ownership(
+    relative: str,
+    items: dict[str, list[dict[str, Any]]],
+    repository_root: Path,
+    errors: list[str],
+) -> None:
+    """Reject duplicate compilation of measured production sources."""
+
+    if relative.startswith("src/"):
+        return
+    production_root = (repository_root / "src").resolve()
+    for compile_item in items["Compile"]:
+        full_path = compile_item.get("FullPath")
+        if not isinstance(full_path, str):
+            errors.append(
+                f"non-production project has an invalid evaluated Compile item: {relative}"
+            )
+            continue
+        try:
+            Path(full_path).resolve().relative_to(production_root)
+        except ValueError:
+            continue
+        errors.append(
+            "non-production project must not compile a duplicate production source: "
+            f"{relative} -> {full_path}"
         )
 
 
@@ -1083,11 +1117,10 @@ def validate_restored_project_contracts(errors: list[str]) -> None:
         errors.append(f"coverage baseline validation failed: {exc}")
         return
     collector = baseline["collection"]["dotnet"]["collector"]
+    collector_version = baseline["collection"]["dotnet"]["version"]
     for relative in sorted(EXPECTED_PROJECT_REFERENCES):
         project_path = ROOT / relative
         is_test_project = is_solution_test_project(relative)
-        if not relative.startswith("src/") and not is_test_project:
-            continue
         evaluated = evaluate_project_items(project_path, errors)
         if evaluated is None:
             continue
@@ -1098,6 +1131,14 @@ def validate_restored_project_contracts(errors: list[str]) -> None:
                 evaluated.items,
                 evaluated.msbuild_sdks_path,
                 errors,
+                ROOT,
+            )
+        else:
+            validate_evaluated_nonproduction_source_ownership(
+                relative,
+                evaluated.items,
+                ROOT,
+                errors,
             )
         if is_test_project:
             validate_evaluated_test_coverage_collector(
@@ -1105,6 +1146,13 @@ def validate_restored_project_contracts(errors: list[str]) -> None:
                 evaluated.items,
                 collector,
                 ROOT,
+                errors,
+            )
+            validate_restored_test_coverage_collector_version(
+                relative,
+                project_path.parent / "obj" / "project.assets.json",
+                collector,
+                collector_version,
                 errors,
             )
 

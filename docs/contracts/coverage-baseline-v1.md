@@ -43,9 +43,13 @@ coverage-contract change with real before/after reports; it is not a local
 source or project setting. Structure validation pins the central collector
 version and test-only reference, while the restored .NET gate confirms every
 test project receives that exact central reference. The restored inventory is
-evaluated in `Release`, accepts only the selected SDK's explicit built-in
-analyzer allowlist, and treats C# extensions case-insensitively when measuring
-changed modules. The Python lane also confirms the active `coverage.py` and
+evaluated after package-analyzer resolution in `Release`, accepts only the
+selected SDK's explicit built-in analyzer allowlist and the exact analyzer
+assets already supplied by pinned Avalonia, CommunityToolkit.Mvvm, and
+Humanizer.Core packages, and treats C# extensions case-insensitively when
+measuring changed modules. Every test project's restored asset graph must
+resolve the baseline Coverlet version. The Python lane also confirms the active
+`coverage.py` and
 `pytest-cov` distribution versions before collecting evidence. Coverage report
 directories are disposable only when their complete repository-relative path
 contains no symbolic-link or junction hop and resolves inside the repository.
