@@ -2,3 +2,5 @@ interface:
   display_name: "GitHub Review Polling"
   short_description: "Poll exact-head Codex review responses without aggregation lag"
   default_prompt: "Use $github-review-polling to monitor an exact GitHub PR head for a new Codex review response."
+policy:
+  allow_implicit_invocation: false

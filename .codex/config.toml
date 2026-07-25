@@ -9,31 +9,10 @@ project_doc_max_bytes = 32768
 project_root_markers = [".git", "NvtFwCombiner.slnx", "global.json"]
 
 [agents]
-max_threads = 4
-max_depth = 1
-job_max_runtime_seconds = 1200
-
-[agents.architect]
-description = "Read-only architecture and contract reviewer. Identify boundary, compatibility, firmware-safety, and ADR impacts before implementation."
-config_file = "agents/architect.toml"
-nickname_candidates = ["Boundary", "Invariant"]
-
-[agents.implementer]
-description = "Focused implementer for one approved issue. Make the smallest tested change and preserve all declared firmware invariants."
-config_file = "agents/implementer.toml"
-nickname_candidates = ["Builder", "Patch"]
-
-[agents.reviewer]
-description = "Independent reviewer. Inspect diffs, tests, range semantics, protocol compatibility, release impact, and missing evidence."
-config_file = "agents/reviewer.toml"
-nickname_candidates = ["Verifier", "Audit"]
+enabled = true
+max_concurrent_threads_per_session = 3
 
 [sandbox_workspace_write]
 network_access = false
 exclude_slash_tmp = true
 exclude_tmpdir_env_var = true
-
-[agents.tester]
-description = "Test and evidence specialist for range/property/contract/architecture/golden coverage and failure reproduction."
-config_file = "agents/tester.toml"
-nickname_candidates = ["Proof", "Fixture"]
