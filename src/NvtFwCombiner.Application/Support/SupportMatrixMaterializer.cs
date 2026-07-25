@@ -88,12 +88,14 @@ public static class SupportMatrixMaterializer
         SupportPublicationStatus publication,
         List<SupportMatrixDiagnostic> diagnostics)
     {
-        if (decision is null)
+        if (publication == SupportPublicationStatus.Unclassified)
         {
             diagnostics.Add(new SupportMatrixDiagnostic(
                 UnclassifiedRoute,
                 route.RouteId,
-                "Exact route has no owner-approved publication decision."));
+                decision is null
+                    ? "Exact route has no owner-approved publication decision."
+                    : "Owner policy explicitly leaves the exact route unclassified."));
         }
 
         if (route.AuthoringAvailability == SupportAuthoringAvailability.Unknown)

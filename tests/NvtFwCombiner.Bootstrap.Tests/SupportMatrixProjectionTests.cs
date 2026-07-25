@@ -42,7 +42,7 @@ public sealed class SupportMatrixProjectionTests
             static row =>
             {
                 Assert.Equal(
-                    SupportAuthoringAvailability.Unavailable,
+                    SupportAuthoringAvailability.Available,
                     row.Route.AuthoringAvailability);
                 Assert.True(row.Route.ExecutionAdmitted);
                 Assert.Equal(
@@ -61,8 +61,6 @@ public sealed class SupportMatrixProjectionTests
         SupportMatrix matrix = WorkbenchCompositionService.GetSupportMatrix();
         SupportMatrixRow generalMerge = Assert.Single(matrix.Rows, static row =>
             row.Route.RouteId == "nt51919-general-merge-generic");
-        SupportMatrixRow genericReplace = Assert.Single(matrix.Rows, static row =>
-            row.Route.RouteId == "nt51919-general-replace-generic");
         SupportMatrixRow exactReplace = Assert.Single(matrix.Rows, static row =>
             row.Route.RouteId ==
                 "nt51926-general-replace-1-ic-" +
@@ -79,27 +77,30 @@ public sealed class SupportMatrixProjectionTests
             SupportEvidenceStatus.ContractOnly,
             generalMerge.Evidence.Status);
 
-        Assert.Equal(
-            SupportAuthoringAvailability.Available,
-            genericReplace.Route.AuthoringAvailability);
-        Assert.False(genericReplace.Route.ExecutionAdmitted);
-        Assert.Equal(
-            SupportPublicationStatus.TestOnly,
-            genericReplace.PublicationStatus);
-        Assert.Equal(
-            SupportEvidenceStatus.Missing,
-            genericReplace.Evidence.Status);
-        Assert.Contains(matrix.Diagnostics, diagnostic =>
-            diagnostic.Code == SupportMatrixMaterializer.SelectableNotExecutable &&
-            diagnostic.Subject == genericReplace.Route.RouteId);
+        Assert.DoesNotContain(matrix.Rows, static row =>
+            row.Route.RouteId == "nt51919-general-replace-generic");
+        Assert.Contains(matrix.Diagnostics, static diagnostic =>
+            diagnostic.Code == SupportMatrixMaterializer.PolicyRouteUnresolved &&
+            diagnostic.Subject == "nt51919-general-replace-generic");
+        Assert.Contains(matrix.Diagnostics, static diagnostic =>
+            diagnostic.Code == SupportMatrixMaterializer.SourceScopeUnresolved &&
+            diagnostic.Subject ==
+                "support-source:NT51919:general-replace:authoring");
 
         Assert.Equal(
-            SupportAuthoringAvailability.Available,
+            SupportAuthoringAvailability.Unknown,
             exactReplace.Route.AuthoringAvailability);
         Assert.True(exactReplace.Route.ExecutionAdmitted);
         Assert.Equal(
             SupportPublicationStatus.Unclassified,
             exactReplace.PublicationStatus);
+        Assert.Contains(matrix.Diagnostics, diagnostic =>
+            diagnostic.Code == SupportMatrixMaterializer.AuthoringRouteUnresolved &&
+            diagnostic.Subject == exactReplace.Route.RouteId);
+        Assert.Contains(matrix.Diagnostics, static diagnostic =>
+            diagnostic.Code == SupportMatrixMaterializer.SourceScopeUnresolved &&
+            diagnostic.Subject ==
+                "support-source:NT51926:general-replace:authoring");
     }
 
     /// <summary>CtrlRAM uses exact typed postbuild selectors even when its map is topology-invariant.</summary>
@@ -165,15 +166,37 @@ public sealed class SupportMatrixProjectionTests
             first.Rows.Select(static row => row.Route.Identity)
                 .Distinct()
                 .Count());
-        Assert.DoesNotContain(first.Diagnostics, diagnostic =>
-            diagnostic.Code ==
-                SupportMatrixMaterializer.AuthoringRouteUnresolved);
-        Assert.DoesNotContain(first.Diagnostics, diagnostic =>
-            diagnostic.Code ==
-                SupportMatrixMaterializer.PolicyRouteUnresolved);
-        Assert.DoesNotContain(first.Diagnostics, diagnostic =>
-            diagnostic.Code ==
-                SupportMatrixMaterializer.SourceScopeUnresolved);
+        Assert.Equal(
+            ["nt51919-general-replace-generic"],
+            first.Diagnostics
+                .Where(static diagnostic =>
+                    diagnostic.Code ==
+                        SupportMatrixMaterializer.PolicyRouteUnresolved)
+                .Select(static diagnostic => diagnostic.Subject));
+        Assert.Equal(
+            [
+                .. IcSupportCatalog.All
+                    .Where(static entry =>
+                        entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace))
+                    .Select(static entry =>
+                        $"support-source:{entry.IcId}:general-replace:authoring")
+                    .Order(StringComparer.Ordinal),
+            ],
+            first.Diagnostics
+                .Where(static diagnostic =>
+                    diagnostic.Code ==
+                        SupportMatrixMaterializer.SourceScopeUnresolved)
+                .Select(static diagnostic => diagnostic.Subject));
+        Assert.Equal(
+            [
+                "nt51926-general-replace-1-ic-" +
+                "nt51926-general-replace-full-flash-256k",
+            ],
+            first.Diagnostics
+                .Where(static diagnostic =>
+                    diagnostic.Code ==
+                        SupportMatrixMaterializer.AuthoringRouteUnresolved)
+                .Select(static diagnostic => diagnostic.Subject));
         Assert.Contains(first.Rows, static row =>
             row.PublicationStatus ==
                 SupportPublicationStatus.Unclassified);

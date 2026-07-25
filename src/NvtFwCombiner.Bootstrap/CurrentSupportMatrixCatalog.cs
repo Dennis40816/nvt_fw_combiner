@@ -59,22 +59,6 @@ internal static partial class CurrentSupportMatrixCatalog
         List<SupportRouteDescriptor> routes,
         List<SupportUnresolvedScope> unresolved)
     {
-        foreach (IcSupportEntry entry in IcSupportCatalog.All.Where(
-                     static entry =>
-                         entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace)))
-        {
-            routes.Add(Route(
-                new SupportRouteIdentity(
-                    entry.IcId,
-                    IcWorkflowIds.GeneralReplace,
-                    "not-applicable",
-                    "generic"),
-                entry.IcId,
-                IcWorkflowIds.GeneralReplace,
-                executionAdmitted: false,
-                "execution-unavailable:general-replace-generic"));
-        }
-
         IReadOnlyList<Domain.Firmware.FirmwareImageMap> maps =
             WorkbenchCompositionService.GetNt51926GeneralReplaceSupportMaps(
                 out Domain.Composition.IcNumberInputMode?
@@ -129,18 +113,51 @@ internal static partial class CurrentSupportMatrixCatalog
         bool executionAdmitted,
         string executionSourceId)
     {
-        bool authoringAvailable =
-            IcSupportCatalog.SupportsWorkflow(icId, workflowId);
+        (SupportAuthoringAvailability authoringAvailability, string authoringSourceId) =
+            ResolveAuthoring(icId, workflowId);
         return new SupportRouteDescriptor(
             identity,
-            authoringAvailable
-                ? SupportAuthoringAvailability.Available
-                : SupportAuthoringAvailability.Unavailable,
+            authoringAvailability,
             executionAdmitted,
-            authoringAvailable
-                ? $"ic-support:{icId}:{workflowId}"
-                : $"authoring-unavailable:{icId}:{workflowId}",
+            authoringSourceId,
             executionSourceId);
+    }
+
+    private static (SupportAuthoringAvailability Availability, string SourceId)
+        ResolveAuthoring(string icId, string workflowId)
+    {
+        if (StringComparer.Ordinal.Equals(workflowId, IcWorkflowIds.AbMerge))
+        {
+            bool available =
+                AbMergeWorkbenchCompositionService.IsAbMergeSupported(icId);
+            return available
+                ? (
+                    SupportAuthoringAvailability.Available,
+                    $"ab-merge-profile-inventory:{icId}")
+                : (
+                    SupportAuthoringAvailability.Unavailable,
+                    $"ab-merge-profile-unavailable:{icId}");
+        }
+
+        bool catalogAvailable =
+            IcSupportCatalog.SupportsWorkflow(icId, workflowId);
+        if (catalogAvailable &&
+            StringComparer.Ordinal.Equals(
+                workflowId,
+                IcWorkflowIds.GeneralReplace))
+        {
+            return (
+                SupportAuthoringAvailability.Unknown,
+                $"ic-support:{icId}:{workflowId}:unbound-exact-route");
+        }
+
+        return catalogAvailable
+            ? (
+                SupportAuthoringAvailability.Available,
+                $"ic-support:{icId}:{workflowId}")
+            : (
+                SupportAuthoringAvailability.Unavailable,
+                $"authoring-unavailable:{icId}:{workflowId}");
     }
 
     private static void AddUnboundAuthoringScopes(
@@ -149,8 +166,12 @@ internal static partial class CurrentSupportMatrixCatalog
     {
         HashSet<(string IcId, string WorkflowId)> covered =
         [
-            .. routes.Select(static route =>
-                (route.Identity.IcId, route.Identity.WorkflowId)),
+            .. routes
+                .Where(static route =>
+                    route.AuthoringAvailability !=
+                        SupportAuthoringAvailability.Unknown)
+                .Select(static route =>
+                    (route.Identity.IcId, route.Identity.WorkflowId)),
         ];
         foreach (IcSupportEntry entry in IcSupportCatalog.All)
         {

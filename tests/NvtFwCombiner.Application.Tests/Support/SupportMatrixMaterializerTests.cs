@@ -115,7 +115,7 @@ public sealed class SupportMatrixMaterializerTests
             diagnostic.Code == SupportMatrixMaterializer.PolicyRouteUnresolved);
     }
 
-    /// <summary>An explicit unclassified decision is retained rather than treated as missing.</summary>
+    /// <summary>An explicit unclassified decision is retained and remains migration-blocking.</summary>
     [Fact]
     public void RetainsExplicitUnclassifiedDecision()
     {
@@ -132,8 +132,11 @@ public sealed class SupportMatrixMaterializerTests
 
         SupportMatrixRow row = Assert.Single(matrix.Rows);
         Assert.Equal(SupportPublicationStatus.Unclassified, row.PublicationStatus);
-        Assert.DoesNotContain(matrix.Diagnostics, diagnostic =>
-            diagnostic.Code == SupportMatrixMaterializer.UnclassifiedRoute);
+        Assert.Same(matrix.Policy.Decisions.Single(), row.PublicationDecision);
+        Assert.Contains(matrix.Diagnostics, diagnostic =>
+            diagnostic.Code == SupportMatrixMaterializer.UnclassifiedRoute &&
+            diagnostic.Subject == route.RouteId);
+        Assert.False(matrix.IsMigrationReady);
     }
 
     /// <summary>Selectable routes cannot be represented as execution-inadmissible.</summary>
