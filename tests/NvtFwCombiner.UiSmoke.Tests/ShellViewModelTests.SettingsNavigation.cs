@@ -1,4 +1,5 @@
 using System.Text;
+using NvtFwCombiner.Application.Support;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -39,6 +40,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.Empty(viewModel.SettingsOverviewRows);
         Assert.Empty(viewModel.SettingsCapabilityRows);
+        Assert.Empty(viewModel.SettingsSupportMatrixRows);
 
         viewModel.ShowSettingsCommand.Execute(null);
 
@@ -54,6 +56,19 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("CtrlRAM Replace available ICs", capability.Title);
         Assert.Equal("13 ICs", capability.Value);
         Assert.Equal("Available", capability.Status);
+        SupportMatrix matrix = WorkbenchCompositionService.GetSupportMatrix();
+        Assert.Equal(matrix.Rows.Count, viewModel.SettingsSupportMatrixRows.Count);
+        SupportMatrixSettingsRowViewModel matrixRow = viewModel.SettingsSupportMatrixRows
+            .Single(row => row.RouteId == matrix.Rows[0].Route.RouteId);
+        Assert.Equal(matrix.Rows[0].Route.IcId, matrixRow.IcId);
+        Assert.Equal(matrix.Rows[0].Route.WorkflowId, matrixRow.WorkflowId);
+        Assert.Equal("Migration review", viewModel.SettingsSupportMatrixStatus);
+        Assert.Contains("SHA-256", viewModel.SettingsSupportMatrixPolicyDetail, StringComparison.Ordinal);
+        Assert.Contains("migration diagnostics", viewModel.SettingsSupportMatrixDiagnostics, StringComparison.Ordinal);
+        Assert.Contains("authoring", matrixRow.AccessibleName, StringComparison.Ordinal);
+        Assert.Contains("Publication provenance", matrixRow.TraceabilityHelpText, StringComparison.Ordinal);
+        Assert.Contains(matrixRow.PublicationTooltip, matrixRow.TraceabilityHelpText, StringComparison.Ordinal);
+        Assert.Contains(matrixRow.EvidenceTooltip, matrixRow.TraceabilityHelpText, StringComparison.Ordinal);
         Assert.Equal(["System", "Light", "Dark"], viewModel.ThemeChoices);
 
         viewModel.SelectedTheme = "Dark";
@@ -71,6 +86,10 @@ public sealed partial class ShellViewModelTests
             row.Value == "13 ICs" &&
             row.Status == "可用" &&
             row.Description.Contains("golden 驗證狀態", StringComparison.Ordinal));
+        Assert.Equal("支援矩陣", viewModel.SettingsSupportMatrixTitle);
+        Assert.Equal("IC 數", viewModel.SettingsSupportMatrixIcCountHeader);
+        Assert.Contains(viewModel.SettingsSupportMatrixRows, row =>
+            row.AuthoringLabel is "未解析" or "可建立" or "不可建立");
 
         viewModel.ShowMergeCommand.Execute(null);
 

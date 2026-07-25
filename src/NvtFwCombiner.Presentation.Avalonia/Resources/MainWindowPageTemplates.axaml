@@ -205,6 +205,59 @@
   </Border>
 </DataTemplate>
 
+<DataTemplate x:Key="SettingsSupportMatrixRowTemplate" DataType="vm:SupportMatrixSettingsRowViewModel">
+  <Border
+      Classes="settingRow"
+      AutomationProperties.HelpText="{Binding TraceabilityHelpText}"
+      AutomationProperties.Name="{Binding AccessibleName}"
+      ToolTip.Tip="{Binding RouteId}">
+    <Grid
+        ColumnDefinitions="88,132,76,150,72,72,96,112"
+        ColumnSpacing="{DynamicResource NfcSpace8}">
+      <TextBlock Classes="technicalDetail" Text="{Binding IcId}" />
+      <TextBlock Grid.Column="1" Classes="technicalDetail" Text="{Binding WorkflowId}" TextWrapping="Wrap" />
+      <TextBlock Grid.Column="2" Classes="technicalDetail" Text="{Binding IcCountVariant}" TextWrapping="Wrap" />
+      <TextBlock Grid.Column="3" Classes="technicalDetail" Text="{Binding MapVariant}" TextWrapping="Wrap" />
+      <Label
+          Grid.Column="4"
+          Classes="reportBadge"
+          Classes.info="{Binding IsAuthoringInfo}"
+          Classes.review="{Binding IsAuthoringReview}"
+          Classes.success="{Binding IsAuthoringSuccess}"
+          AutomationProperties.Name="{Binding AuthoringLabel}"
+          Content="{Binding AuthoringMark}"
+          ToolTip.Tip="{Binding AuthoringLabel}" />
+      <Label
+          Grid.Column="5"
+          Classes="reportBadge"
+          Classes.info="{Binding IsExecutionInfo}"
+          Classes.review="{Binding IsExecutionReview}"
+          Classes.success="{Binding IsExecutionSuccess}"
+          AutomationProperties.Name="{Binding ExecutionLabel}"
+          Content="{Binding ExecutionMark}"
+          ToolTip.Tip="{Binding ExecutionLabel}" />
+      <Label
+          Grid.Column="6"
+          Classes="reportBadge"
+          Classes.info="{Binding IsPublicationInfo}"
+          Classes.review="{Binding IsPublicationReview}"
+          Classes.success="{Binding IsPublicationSuccess}"
+          AutomationProperties.HelpText="{Binding PublicationTooltip}"
+          Content="{Binding PublicationLabel}"
+          ToolTip.Tip="{Binding PublicationTooltip}" />
+      <Label
+          Grid.Column="7"
+          Classes="reportBadge"
+          Classes.info="{Binding IsEvidenceInfo}"
+          Classes.review="{Binding IsEvidenceReview}"
+          Classes.success="{Binding IsEvidenceSuccess}"
+          AutomationProperties.HelpText="{Binding EvidenceTooltip}"
+          Content="{Binding EvidenceLabel}"
+          ToolTip.Tip="{Binding EvidenceTooltip}" />
+    </Grid>
+  </Border>
+</DataTemplate>
+
 <DataTemplate x:Key="SettingsPageTemplate" DataType="vm:MainWindowViewModel">
   <StackPanel Spacing="{DynamicResource NfcSpace16}">
     <StackPanel Spacing="{DynamicResource NfcSpace4}">
@@ -269,6 +322,51 @@
         </Border>
       </StackPanel>
     </Grid>
+
+    <Border Classes="panelSurface roomyPanel">
+      <StackPanel Spacing="{DynamicResource NfcSpace12}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+          <StackPanel Spacing="{DynamicResource NfcSpace4}">
+            <TextBlock Classes="strongText" Text="{Binding SettingsSupportMatrixTitle}" />
+            <TextBlock Classes="supportingText" Text="{Binding SettingsSupportMatrixDescription}" TextWrapping="Wrap" />
+          </StackPanel>
+          <Label
+              Grid.Column="1"
+              Classes="reportBadge"
+              Classes.review="{Binding IsSettingsSupportMatrixReview}"
+              Classes.success="{Binding IsSettingsSupportMatrixSuccess}"
+              Content="{Binding SettingsSupportMatrixStatus}"
+              ToolTip.Tip="{Binding SettingsSupportMatrixDiagnostics}" />
+        </Grid>
+
+        <TextBlock Classes="technicalDetail" Text="{Binding SettingsSupportMatrixPolicyDetail}" TextWrapping="Wrap" />
+        <TextBlock Classes="captionText" Text="{Binding SettingsSupportMatrixDiagnostics}" TextWrapping="Wrap" />
+
+        <ScrollViewer
+            HorizontalScrollBarVisibility="Auto"
+            MaxHeight="320"
+            VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="{DynamicResource NfcSpace4}">
+            <Grid
+                ColumnDefinitions="88,132,76,150,72,72,96,112"
+                ColumnSpacing="{DynamicResource NfcSpace8}">
+              <TextBlock Classes="fieldLabel" Text="{Binding SettingsSupportMatrixIcHeader}" />
+              <TextBlock Grid.Column="1" Classes="fieldLabel" Text="{Binding SettingsSupportMatrixWorkflowHeader}" />
+              <TextBlock Grid.Column="2" Classes="fieldLabel" Text="{Binding SettingsSupportMatrixIcCountHeader}" />
+              <TextBlock Grid.Column="3" Classes="fieldLabel" Text="{Binding SettingsSupportMatrixMapHeader}" />
+              <TextBlock Grid.Column="4" Classes="fieldLabel" Text="{Binding SettingsSupportMatrixAuthoringHeader}" />
+              <TextBlock Grid.Column="5" Classes="fieldLabel" Text="{Binding SettingsSupportMatrixExecutionHeader}" />
+              <TextBlock Grid.Column="6" Classes="fieldLabel" Text="{Binding SettingsSupportMatrixPublicationHeader}" />
+              <TextBlock Grid.Column="7" Classes="fieldLabel" Text="{Binding SettingsSupportMatrixEvidenceHeader}" />
+            </Grid>
+
+            <ItemsControl
+                ItemTemplate="{StaticResource SettingsSupportMatrixRowTemplate}"
+                ItemsSource="{Binding SettingsSupportMatrixRows}" />
+          </StackPanel>
+        </ScrollViewer>
+      </StackPanel>
+    </Border>
   </StackPanel>
 </DataTemplate>
 

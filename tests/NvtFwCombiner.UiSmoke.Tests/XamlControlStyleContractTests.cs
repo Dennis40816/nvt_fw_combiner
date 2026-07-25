@@ -134,6 +134,30 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("CommandParameter=\"{Binding FilePath}\"", slotCard, StringComparison.Ordinal);
     }
 
+    /// <summary>Ensures Settings presents the single Bootstrap Support Matrix projection with accessible state badges.</summary>
+    [Fact]
+    public void SettingsSupportMatrixUsesSharedBadgesAndReadOnlyRouteProjection()
+    {
+        string templates = ReadPresentationFile("Resources/MainWindowPageTemplates.axaml");
+
+        Assert.Contains("x:Key=\"SettingsSupportMatrixRowTemplate\"", templates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding SettingsSupportMatrixRows}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleName}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding TraceabilityHelpText}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"reportBadge\"", templates, StringComparison.Ordinal);
+        Assert.Contains("Classes.success=\"{Binding IsAuthoringSuccess}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("Classes.review=\"{Binding IsExecutionReview}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("Classes.info=\"{Binding IsPublicationInfo}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("Classes.success=\"{Binding IsEvidenceSuccess}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding PublicationTooltip}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding EvidenceTooltip}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding PublicationTooltip}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding EvidenceTooltip}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("Classes.review=\"{Binding IsSettingsSupportMatrixReview}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("HorizontalScrollBarVisibility=\"Auto\"", templates, StringComparison.Ordinal);
+        Assert.Contains("VerticalScrollBarVisibility=\"Auto\"", templates, StringComparison.Ordinal);
+    }
+
     /// <summary>The full-path hover card stays offset from the filename and leaves its routed click intact.</summary>
     [Fact]
     public void FileRevealHoverCardShowsTheAbsolutePathWithoutCompetingForThePointer()
