@@ -271,6 +271,51 @@ internal sealed class BuiltInV2Bundle
         }
     }
 
+    /// <summary>Reads exact canonical map references declared by one trusted profile.</summary>
+    internal IReadOnlyList<FirmwareImageMap> GetMapVariants(
+        string profileId,
+        string profileVersion,
+        string icId,
+        string experienceId,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        return GetMapVariants(
+            profileId,
+            profileVersion,
+            icId,
+            experienceId,
+            out _,
+            out issues);
+    }
+
+    /// <summary>Reads one profile's IC Count input mode and exact canonical map references.</summary>
+    internal IReadOnlyList<FirmwareImageMap> GetMapVariants(
+        string profileId,
+        string profileVersion,
+        string icId,
+        string experienceId,
+        out IcNumberInputMode? icNumberInputMode,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        try
+        {
+            return TrustedV2CompositionCompiler.GetMapVariants(
+                _catalog.Value,
+                profileId,
+                profileVersion,
+                icId,
+                experienceId,
+                out icNumberInputMode,
+                out issues);
+        }
+        catch (Exception exception) when (IsBundleLoadFailure(exception))
+        {
+            icNumberInputMode = null;
+            issues = [CreateBundleLoadIssue(exception)];
+            return [];
+        }
+    }
+
     private static bool IsBundleLoadFailure(Exception exception)
     {
         return exception is IOException or

@@ -371,6 +371,71 @@ internal static class TrustedV2CompositionCompiler
         ]);
     }
 
+    /// <summary>Returns exact eligible canonical map references without selecting one.</summary>
+    internal static IReadOnlyList<FirmwareImageMap> GetMapVariants(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string modeId,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        return GetMapVariants(
+            catalog,
+            profileId,
+            profileVersion,
+            memberId,
+            modeId,
+            out _,
+            out issues);
+    }
+
+    /// <summary>Returns the profile IC Count input mode with its exact eligible map references.</summary>
+    internal static IReadOnlyList<FirmwareImageMap> GetMapVariants(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string modeId,
+        out IcNumberInputMode? icNumberInputMode,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        if (!TryResolveMapCandidates(
+                catalog,
+                profileId,
+                profileVersion,
+                memberId,
+                modeId,
+                out TrustedProfileBundleCatalog.ProfileSelection? selection,
+                out FirmwareImageMap[] mapCandidates,
+                out issues))
+        {
+            icNumberInputMode = null;
+            return [];
+        }
+
+        if (!catalog.TryResolveSelection(
+                selection!,
+                out TrustedCompositionProfileCatalogEntry? profileEntry))
+        {
+            icNumberInputMode = null;
+            issues =
+            [
+                new CompositionIssue(
+                    SelectionUnresolved,
+                    "The selected trusted V2 profile could not be resolved from its catalog."),
+            ];
+            return [];
+        }
+
+        icNumberInputMode = profileEntry.Profile.IcNumberInputMode;
+        issues = [];
+        return Array.AsReadOnly(
+        [
+            .. mapCandidates.OrderBy(static map => map.MapId, StringComparer.Ordinal),
+        ]);
+    }
+
     private static bool TryResolveMapCandidates(
         TrustedProfileBundleCatalog catalog,
         string profileId,

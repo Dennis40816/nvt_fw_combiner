@@ -9,15 +9,15 @@ public sealed class SupportMatrixMaterializerTests
     [Fact]
     public void RouteIdentityDerivesStableExactPolicyReference()
     {
-        var single = new SupportRouteIdentity(
+        var oneIc = new SupportRouteIdentity(
             "NT51950",
             "ab-merge",
-            "single",
+            "1-ic",
             "nt51950-ab-merge-512k");
-        var cascade = new SupportRouteIdentity(
+        var twoPlusIc = new SupportRouteIdentity(
             "NT51950",
             "ab-merge",
-            "cascade",
+            "2-plus-ic",
             "nt51950-ab-merge-1024k");
         var generic = new SupportRouteIdentity(
             "NT51919",
@@ -26,11 +26,11 @@ public sealed class SupportMatrixMaterializerTests
             "generic");
 
         Assert.Equal(
-            "nt51950-ab-merge-single-nt51950-ab-merge-512k",
-            single.RouteId);
+            "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k",
+            oneIc.RouteId);
         Assert.Equal(
-            "nt51950-ab-merge-cascade-nt51950-ab-merge-1024k",
-            cascade.RouteId);
+            "nt51950-ab-merge-2-plus-ic-nt51950-ab-merge-1024k",
+            twoPlusIc.RouteId);
         Assert.Equal("nt51919-general-merge-generic", generic.RouteId);
     }
 
@@ -41,26 +41,26 @@ public sealed class SupportMatrixMaterializerTests
         var first = new SupportRouteIdentity(
             "NT51926",
             "ctrlram-replace",
-            "single",
+            "1-ic",
             "nt51926-ctrlram-fw200-single",
             "nfc.nt51926.ctrlram-postbuild-v1:SingleChip");
         var same = new SupportRouteIdentity(
             "NT51926",
             "ctrlram-replace",
-            "single",
+            "1-ic",
             "nt51926-ctrlram-fw200-single",
             "nfc.nt51926.ctrlram-postbuild-v1:SingleChip");
         var different = new SupportRouteIdentity(
             "NT51926",
             "ctrlram-replace",
-            "single",
+            "1-ic",
             "nt51926-ctrlram-fw200-single",
             "nfc.nt51926.ctrlram-postbuild-v1:Cascade");
 
         Assert.Equal(first.RouteId, same.RouteId);
         Assert.NotEqual(first.RouteId, different.RouteId);
         Assert.Matches(
-            "^nt51926-ctrlram-replace-single-nt51926-ctrlram-fw200-single-integrity-[0-9a-f]{16}$",
+            "^nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-single-integrity-[0-9a-f]{16}$",
             first.RouteId);
     }
 

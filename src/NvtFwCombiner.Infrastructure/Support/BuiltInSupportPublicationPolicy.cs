@@ -11,7 +11,7 @@ internal static partial class BuiltInSupportPublicationPolicy
     private const string RelativePath =
         "docs/contracts/support-publication-policy-v1.json";
     private const string ExpectedSha256 =
-        "2a51e5f01f39991f892bca9e54006b507b84311119f82ba7716ec940e1fb23b5";
+        "e0e9c2dec7a5a3875806d2558d775d094420b305edb7fe63a6e7001290d634ae";
 
     internal static SupportPublicationPolicySnapshot Load()
     {
