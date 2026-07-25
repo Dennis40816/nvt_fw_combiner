@@ -20,6 +20,7 @@ from canonical_golden_validation import (
     validate_standard_merge_release_allowlist,
 )
 from code_size_policy import review_code_size_policy
+from coverage_policy import load_baseline
 from diagnostic_golden_validation import validate_diagnostic_golden_separation
 from external_tool_policy import (
     ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS,
@@ -66,6 +67,7 @@ REQUIRED_FILES = {
     "scripts/validate_repository.py",
     "scripts/canonical_golden_validation.py",
     "scripts/code_size_policy.py",
+    "scripts/coverage_policy.py",
     "scripts/diagnostic_golden_validation.py",
     "scripts/external_tool_policy.py",
     "scripts/repository_contract_validation.py",
@@ -94,6 +96,8 @@ REQUIRED_FILES = {
     "docs/architecture/saved-rule-promotion.md",
     "docs/architecture/terminal-log-and-diagnostics.md",
     "docs/contracts/composition-profile-v1.schema.json",
+    "docs/contracts/coverage-baseline-v1.json",
+    "docs/contracts/coverage-baseline-v1.md",
     "docs/contracts/canonical-golden-manifest-v1.md",
     "docs/contracts/composition-profile-v2.md",
     "docs/contracts/composition-profile-v2.schema.json",
@@ -847,6 +851,26 @@ def normalize_project_reference(project: Path, include: str) -> str:
     )
 
 
+def validate_production_source_ownership(
+    relative: str, project_root: ET.Element, errors: list[str]
+) -> None:
+    """Keep production source physical, owned, and inside the measured tree."""
+
+    if not relative.startswith("src/"):
+        return
+    for element in project_root.iter("Compile"):
+        include = element.attrib.get("Include")
+        if include:
+            errors.append(
+                f"production project must not add an explicit Compile include outside its owned source tree: {relative} -> {include}"
+            )
+    for element in project_root.iter("Analyzer"):
+        include = element.attrib.get("Include", "<implicit>")
+        errors.append(
+            f"production project must not add a source-generating analyzer without an explicit architecture decision: {relative} -> {include}"
+        )
+
+
 def validate_solution_and_dependencies(errors: list[str]) -> None:
     solution_root = ET.parse(ROOT / "NvtFwCombiner.slnx").getroot()
     solution_projects = {
@@ -874,6 +898,7 @@ def validate_solution_and_dependencies(errors: list[str]) -> None:
                 errors.append(
                     f"production/test project includes refcode: {relative} -> {include}"
                 )
+        validate_production_source_ownership(relative, root, errors)
 
 
 def validate_contract_model(errors: list[str]) -> None:
@@ -948,8 +973,17 @@ def validate_workflows(errors: list[str]) -> None:
     if "python scripts/verify.py --skip-python --skip-structure" not in ci:
         errors.append("CI dotnet job must run the canonical .NET verifier")
     verifier = (ROOT / "scripts/verify.py").read_text(encoding="utf-8")
-    if '[dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"]' not in verifier:
-        errors.append("canonical verifier must run the full .NET solution test suite")
+    required_dotnet_coverage_markers = (
+        '            "test",',
+        "            str(SOLUTION),",
+        '            "--no-build",',
+        '"--collect:XPlat Code Coverage",',
+        '"--results-directory",',
+    )
+    if any(marker not in verifier for marker in required_dotnet_coverage_markers):
+        errors.append(
+            "canonical verifier must run the full .NET solution test suite with coverage collection"
+        )
     if "verify_ctrlram_replace_fixture.py" not in verifier:
         errors.append(
             "canonical verifier must include the CtrlRAM Replace fixture gate"
@@ -1055,6 +1089,10 @@ def validate() -> list[str]:
     validate_version_license_and_sdk(errors)
     validate_solution_and_dependencies(errors)
     validate_contract_model(errors)
+    try:
+        load_baseline(ROOT / "docs/contracts/coverage-baseline-v1.json")
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        errors.append(f"coverage baseline validation failed: {exc}")
     validate_workflows(errors)
     validate_packaging_policy(files, errors)
     validate_agent_files(errors)

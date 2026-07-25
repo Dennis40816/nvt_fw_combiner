@@ -10,13 +10,18 @@ import subprocess
 import sys
 from pathlib import Path
 
+from coverage_policy import verify_coverage
+
 ROOT = Path(__file__).resolve().parents[1]
 WORKER_ROOT = ROOT / "tools" / "crc-worker"
 SOLUTION = ROOT / "NvtFwCombiner.slnx"
-CTRL_RAM_REPLACE_FIXTURE_VERIFIER = ROOT / "scripts" / "verify_ctrlram_replace_fixture.py"
+CTRL_RAM_REPLACE_FIXTURE_VERIFIER = (
+    ROOT / "scripts" / "verify_ctrlram_replace_fixture.py"
+)
 CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentinel.py"
 IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 REPOSITORY_SCRIPT_TESTS = ROOT / "tests" / "scripts"
+COVERAGE_ROOT = ROOT / "artifacts" / "coverage"
 
 
 def run(
@@ -79,6 +84,16 @@ def verify_repository_scripts() -> None:
     )
 
 
+def reset_coverage_directory(language: str) -> Path:
+    """Create one known disposable report directory below gitignored artifacts/."""
+
+    directory = COVERAGE_ROOT / language
+    if directory.exists():
+        shutil.rmtree(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
 def require_python_modules(names: tuple[str, ...]) -> None:
     missing = [name for name in names if importlib.util.find_spec(name) is None]
     if missing:
@@ -92,8 +107,18 @@ def require_python_modules(names: tuple[str, ...]) -> None:
 
 def verify_python() -> None:
     require_python_modules(("ruff", "pyright", "pylint", "pytest", "coverage"))
+    coverage_report = reset_coverage_directory("python") / "coverage.json"
     commands = (
-        [sys.executable, "-m", "ruff", "format", "--check", "src", "tests", "packaging"],
+        [
+            sys.executable,
+            "-m",
+            "ruff",
+            "format",
+            "--check",
+            "src",
+            "tests",
+            "packaging",
+        ],
         [sys.executable, "-m", "ruff", "check", "src", "tests", "packaging"],
         [sys.executable, "-m", "pyright", "src", "tests", "packaging"],
         [sys.executable, "-m", "pylint", "src/nfc_crc_worker"],
@@ -104,10 +129,12 @@ def verify_python() -> None:
             "--cov=nfc_crc_worker",
             "--cov-branch",
             "--cov-report=term-missing",
+            f"--cov-report=json:{coverage_report}",
         ],
     )
     for command in commands:
         run(command, cwd=WORKER_ROOT)
+    verify_coverage("python", coverage_report)
 
 
 def resolve_dotnet() -> str:
@@ -133,21 +160,33 @@ def stop_idle_build_workers() -> None:
 
     powershell = shutil.which("powershell") or shutil.which("pwsh")
     if powershell is None:
-        print("warning: PowerShell was unavailable; idle Avalonia build worker cleanup was skipped.")
+        print(
+            "warning: PowerShell was unavailable; idle Avalonia build worker cleanup was skipped."
+        )
         return
 
     print(f"\n> {powershell} -File {IDLE_BUILD_WORKER_STOPPER}", flush=True)
     result = subprocess.run(
-        [powershell, "-NoProfile", "-File", str(IDLE_BUILD_WORKER_STOPPER), "-RepositoryRoot", str(ROOT)],
+        [
+            powershell,
+            "-NoProfile",
+            "-File",
+            str(IDLE_BUILD_WORKER_STOPPER),
+            "-RepositoryRoot",
+            str(ROOT),
+        ],
         cwd=ROOT,
         check=False,
     )
     if result.returncode != 0:
-        print(f"warning: idle Avalonia build worker cleanup returned exit code {result.returncode}.")
+        print(
+            f"warning: idle Avalonia build worker cleanup returned exit code {result.returncode}."
+        )
 
 
 def verify_dotnet() -> None:
     dotnet = resolve_dotnet()
+    coverage_directory = reset_coverage_directory("dotnet")
     environment = os.environ.copy()
     # Verification is a batch task, not an interactive build session. Avoid retaining MSBuild nodes after it ends.
     environment["MSBUILDDISABLENODEREUSE"] = "1"
@@ -157,7 +196,17 @@ def verify_dotnet() -> None:
         [dotnet, "restore", str(SOLUTION)],
         [dotnet, "format", str(SOLUTION), "--verify-no-changes", "--no-restore"],
         [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
-        [dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"],
+        [
+            dotnet,
+            "test",
+            str(SOLUTION),
+            "-c",
+            "Release",
+            "--no-build",
+            "--collect:XPlat Code Coverage",
+            "--results-directory",
+            str(coverage_directory),
+        ],
         # The full solution test command already runs CtrlRAM UI smoke tests. Keep the
         # fixture gate here for manifest and payload-hash validation only.
         [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"],
@@ -169,6 +218,7 @@ def verify_dotnet() -> None:
                 run_with_log(command, Path(build_log), environment=environment)
             else:
                 run(command, environment=environment)
+        verify_coverage("dotnet", coverage_directory)
     finally:
         # Avalonia/Roslyn may start compiler servers even with node reuse disabled.
         # Stop only servers from the repository-selected SDK after every verification run.
@@ -199,8 +249,12 @@ def main() -> int:
     structure_only = args.structure_only
     if args.all and (args.skip_structure or args.skip_python or args.skip_dotnet):
         raise SystemExit("--all cannot be combined with skip flags")
-    if structure_only and (args.all or args.skip_structure or args.skip_python or args.skip_dotnet):
-        raise SystemExit("--structure-only cannot be combined with other selection flags")
+    if structure_only and (
+        args.all or args.skip_structure or args.skip_python or args.skip_dotnet
+    ):
+        raise SystemExit(
+            "--structure-only cannot be combined with other selection flags"
+        )
 
     try:
         if not args.skip_structure:
@@ -211,7 +265,7 @@ def main() -> int:
                 verify_python()
             if not args.skip_dotnet:
                 verify_dotnet()
-    except (RuntimeError, subprocess.CalledProcessError) as exc:
+    except (RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
         print(f"\nVERIFICATION FAILED: {exc}", file=sys.stderr)
         return 1
 

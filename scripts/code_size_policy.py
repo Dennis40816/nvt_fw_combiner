@@ -40,6 +40,8 @@ class CodeSizeLimits:
     partial_type_default_max: int
     partial_type_exact_ratchets: dict[str, int]
     partial_type_named_maximums: dict[str, int] = field(default_factory=dict)
+    runtime_production_baseline: int | None = None
+    runtime_production_target: int | None = None
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,8 @@ class CodeSizeSnapshot:
     duplicate_json_copies: int
     duplicate_json_nonblank: int
     partial_types: tuple[PartialTypeAggregate, ...]
+    runtime_production_files: int
+    runtime_production_nonblank: int
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
@@ -73,6 +77,8 @@ DEFAULT_LIMITS = CodeSizeLimits(
         "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 4_501,
         "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 2_506,
     },
+    runtime_production_baseline=45_214,
+    runtime_production_target=22_607,
 )
 
 
@@ -102,11 +108,28 @@ def _nonblank_line_count(path: Path) -> int:
     )
 
 
+def _runtime_production_files(root: Path) -> list[Path]:
+    """Return the fixed 0.10.x non-UI/runtime source measurement set."""
+
+    csharp_files = [
+        path
+        for path in _matching_files(root, "src", frozenset({".cs"}))
+        if path.relative_to(root).parts[1:2] != ("NvtFwCombiner.Presentation.Avalonia",)
+    ]
+    worker_files = _matching_files(
+        root,
+        "tools/crc-worker/src",
+        frozenset({".py"}),
+    )
+    return [*csharp_files, *worker_files]
+
+
 def measure_code_size(root: Path) -> CodeSizeSnapshot:
     """Measure production source, exact JSON duplication, and partial aggregates."""
 
     source_files = _matching_files(root, "src", frozenset({".cs", ".axaml"}))
     source_line_counts = {path: _nonblank_line_count(path) for path in source_files}
+    runtime_source_files = _runtime_production_files(root)
 
     duplicate_candidates = [
         *_matching_files(root, "profiles", frozenset({".json"})),
@@ -150,6 +173,10 @@ def measure_code_size(root: Path) -> CodeSizeSnapshot:
         duplicate_json_copies=sum(len(paths) - 1 for paths in duplicate_groups),
         duplicate_json_nonblank=duplicate_json_nonblank,
         partial_types=partial_types,
+        runtime_production_files=len(runtime_source_files),
+        runtime_production_nonblank=sum(
+            _nonblank_line_count(path) for path in runtime_source_files
+        ),
     )
 
 
@@ -192,6 +219,20 @@ def review_code_size_policy(
         limits.duplicate_json_nonblank,
         findings,
     )
+
+    if limits.runtime_production_baseline is not None:
+        delta = (
+            snapshot.runtime_production_nonblank - limits.runtime_production_baseline
+        )
+        target = limits.runtime_production_target
+        target_text = f"; final target <= {target}" if target is not None else ""
+        findings.append(
+            "runtime production metric: "
+            f"{snapshot.runtime_production_files} files / "
+            f"{snapshot.runtime_production_nonblank} nonblank lines "
+            f"(baseline {limits.runtime_production_baseline}, delta {delta:+d}"
+            f"{target_text})"
+        )
 
     aggregates = {aggregate.name: aggregate for aggregate in snapshot.partial_types}
     for name, expected in limits.partial_type_exact_ratchets.items():

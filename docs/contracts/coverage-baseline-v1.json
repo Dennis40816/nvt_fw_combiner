@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.0",
+  "baselineCommit": "462590e8b993b8e42d088bc07377571a4bb9f25d",
+  "changeBaseRevision": "462590e8b993b8e42d088bc07377571a4bb9f25d",
+  "collection": {
+    "dotnet": {
+      "collector": "coverlet.collector",
+      "version": "6.0.4",
+      "format": "cobertura"
+    },
+    "python": {
+      "collector": "pytest-cov / coverage.py",
+      "format": "coverage-json"
+    }
+  },
+  "languages": {
+    "dotnet": {
+      "overall": {
+        "lines": {
+          "covered": 33153,
+          "total": 40209
+        },
+        "branches": {
+          "covered": 11641,
+          "total": 15199
+        }
+      },
+      "modules": {
+        "Domain": {
+          "lines": {
+            "covered": 5500,
+            "total": 5911
+          },
+          "branches": {
+            "covered": 2192,
+            "total": 2633
+          }
+        },
+        "Application": {
+          "lines": {
+            "covered": 4162,
+            "total": 4468
+          },
+          "branches": {
+            "covered": 1566,
+            "total": 1904
+          }
+        }
+      }
+    },
+    "python": {
+      "overall": {
+        "lines": {
+          "covered": 139,
+          "total": 140
+        },
+        "branches": {
+          "covered": 37,
+          "total": 38
+        }
+      },
+      "modules": {
+        "nfc_crc_worker": {
+          "lines": {
+            "covered": 139,
+            "total": 140
+          },
+          "branches": {
+            "covered": 37,
+            "total": 38
+          }
+        }
+      }
+    }
+  },
+  "changedModuleRatchets": {
+    "Domain": {
+      "baselineNonblankLines": 10783,
+      "lineMinimumPercent": 85,
+      "branchMinimumPercent": 80
+    },
+    "Application": {
+      "baselineNonblankLines": 7834,
+      "lineMinimumPercent": 85,
+      "branchMinimumPercent": 80
+    }
+  }
+}
