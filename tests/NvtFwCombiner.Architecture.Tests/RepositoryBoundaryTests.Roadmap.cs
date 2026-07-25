@@ -109,10 +109,30 @@ public sealed partial class RepositoryBoundaryTests
             "| #208 | 8 | [0.10.x][30] Migrate desktop routes to canonical Application contracts | #185, #192, #194 |",
         ];
 
-        foreach (string expectedIssueRow in expectedIssueRows)
-        {
-            Assert.Contains(expectedIssueRow, dependencyPlan, StringComparison.Ordinal);
-        }
+        int inventoryStart = dependencyPlan.IndexOf(
+            "## Exact published issue inventory",
+            StringComparison.Ordinal);
+        int inventoryEnd = dependencyPlan.IndexOf(
+            "\n## ",
+            inventoryStart + "## Exact published issue inventory".Length,
+            StringComparison.Ordinal);
+        Assert.True(inventoryStart >= 0 && inventoryEnd > inventoryStart);
+
+        string[] actualIssueRows =
+        [
+            .. dependencyPlan[inventoryStart..inventoryEnd]
+                .Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Where(line => line.StartsWith("| #", StringComparison.Ordinal)),
+        ];
+
+        Assert.Equal(30, actualIssueRows.Length);
+        Assert.Equal(
+            30,
+            actualIssueRows
+                .Select(line => line.Split('|', StringSplitOptions.TrimEntries)[1])
+                .Distinct(StringComparer.Ordinal)
+                .Count());
+        Assert.Equal(expectedIssueRows, actualIssueRows);
     }
 
     /// <summary>Separates reviewed AB function availability from direct-golden and support-certification debt.</summary>
