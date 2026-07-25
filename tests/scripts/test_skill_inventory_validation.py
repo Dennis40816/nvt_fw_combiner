@@ -30,6 +30,7 @@ class SkillInventoryValidationTests(unittest.TestCase):
         implicit_invocation: bool | None = None,
         include_metadata: bool = True,
         prompt_name: str | None = None,
+        short_description: str | None = None,
     ) -> None:
         skill_root = self.root / ".agents" / "skills" / name
         skill_root.mkdir(parents=True)
@@ -52,10 +53,11 @@ class SkillInventoryValidationTests(unittest.TestCase):
         metadata_root = skill_root / "agents"
         metadata_root.mkdir()
         referenced_name = prompt_name or name
+        description = short_description or f"Exercise the {name} workflow"
         (metadata_root / "openai.yaml").write_text(
             "interface:\n"
             f'  display_name: "{name}"\n'
-            f'  short_description: "Exercise the {name} workflow"\n'
+            f'  short_description: "{description}"\n'
             f'  default_prompt: "Use ${referenced_name} for this workflow."\n'
             f"{policy}",
             encoding="utf-8",
@@ -138,6 +140,30 @@ class SkillInventoryValidationTests(unittest.TestCase):
                 for error in errors
             )
         )
+
+    def test_rejects_default_prompt_matching_only_a_skill_prefix(self) -> None:
+        self.write_skill("research", prompt_name="research-extra")
+
+        errors = self.validate(expected={"research"}, user_invoked=set())
+
+        self.assertTrue(
+            any("default_prompt must reference $research" in error for error in errors)
+        )
+
+    def test_rejects_short_description_outside_codex_bounds(self) -> None:
+        for description in ("x" * 24, "x" * 65):
+            with self.subTest(length=len(description)):
+                name = f"implicit-skill-{len(description)}"
+                self.write_skill(name, short_description=description)
+
+                errors = self.validate(expected={name}, user_invoked=set())
+
+                self.assertTrue(
+                    any(
+                        "short_description must contain 25 to 64 characters" in error
+                        for error in errors
+                    )
+                )
 
     def test_rejects_malformed_openai_yaml_before_field_validation(self) -> None:
         self.write_skill("implicit-skill")

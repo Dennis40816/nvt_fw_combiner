@@ -92,3 +92,43 @@ def parse_skill_metadata(
     if not is_valid:
         return None
     return metadata
+
+
+def validate_skill_metadata_fields(
+    metadata: dict[str, dict[str, str | bool]],
+    metadata_path: Path,
+    repository_root: Path,
+    skill_name: str,
+    errors: list[str],
+) -> None:
+    """Append semantic metadata errors after successful closed-schema parsing."""
+
+    interface = metadata["interface"]
+    for field in ("display_name", "short_description", "default_prompt"):
+        value = interface.get(field)
+        if not isinstance(value, str) or not value:
+            errors.append(
+                f"skill metadata requires {field}: {metadata_path.relative_to(repository_root)}"
+            )
+    short_description = interface.get("short_description")
+    if (
+        isinstance(short_description, str)
+        and not 25 <= len(short_description.strip()) <= 64
+    ):
+        errors.append(
+            "skill metadata short_description must contain 25 to 64 characters: "
+            f"{metadata_path.relative_to(repository_root)}"
+        )
+    default_prompt = interface.get("default_prompt")
+    if (
+        isinstance(default_prompt, str)
+        and re.search(
+            rf"\${re.escape(skill_name)}(?![A-Za-z0-9_-])",
+            default_prompt,
+        )
+        is None
+    ):
+        errors.append(
+            "skill metadata default_prompt must reference "
+            f"{'$'}{skill_name}: {metadata_path.relative_to(repository_root)}"
+        )

@@ -3,6 +3,7 @@
 - Status: Accepted for `v0.9.14` planning; implementation remains R3-gated
 - Date: 2026-07-22
 - Owners: Product owner, architecture owner, firmware owner
+- Amends: ADR 0015
 
 ## Context
 

@@ -29,7 +29,10 @@ from external_tool_policy import (
     validate_repository_external_tool_manifests,
 )
 from repository_contract_validation import validate_v2_contract_model
-from skill_metadata_validation import parse_skill_metadata
+from skill_metadata_validation import (
+    parse_skill_metadata,
+    validate_skill_metadata_fields,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_FILES = {
@@ -507,19 +510,7 @@ def validate_skills(errors: list[str]) -> None:
         metadata = parse_skill_metadata(metadata_path, ROOT, errors)
         if metadata is None:
             continue
-        interface = metadata["interface"]
-        for field in ("display_name", "short_description", "default_prompt"):
-            value = interface.get(field)
-            if not isinstance(value, str) or not value:
-                errors.append(
-                    f"skill metadata requires {field}: {metadata_path.relative_to(ROOT)}"
-                )
-        default_prompt = interface.get("default_prompt")
-        if isinstance(default_prompt, str) and f"{'$'}{name}" not in default_prompt:
-            errors.append(
-                "skill metadata default_prompt must reference "
-                f"{'$'}{name}: {metadata_path.relative_to(ROOT)}"
-            )
+        validate_skill_metadata_fields(metadata, metadata_path, ROOT, name, errors)
         implicit_disabled = metadata["policy"].get("allow_implicit_invocation") is False
         if name in EXPECTED_USER_INVOKED_SKILLS and not implicit_disabled:
             errors.append(

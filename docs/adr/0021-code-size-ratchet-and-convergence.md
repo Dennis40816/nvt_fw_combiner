@@ -78,7 +78,8 @@ Owner decision, 2026-07-25: the `0.10.x` maintainability program has a separate
 production-runtime reduction objective. This amendment is the single canonical
 definition of that measurement:
 
-- baseline commit: `946c217e`;
+- baseline release: stable `v0.9.16`, peeled commit
+  `462590e8b993b8e42d088bc07377571a4bb9f25d`;
 - counted C#: nonblank physical lines in `src/**/*.cs`, excluding
   `src/NvtFwCombiner.Presentation.Avalonia/**` and generated/build directories;
 - counted Python: nonblank physical lines in
