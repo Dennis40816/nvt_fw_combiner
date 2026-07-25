@@ -1033,6 +1033,22 @@ class VerifyOrchestrationTests(unittest.TestCase):
         ):
             MODULE.main()
 
+    def test_public_lane_rejects_the_parent_owned_marker(self) -> None:
+        with (
+            patch.object(sys, "argv", [str(SCRIPT), "--structure-only"]),
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"},
+            ),
+            patch.object(MODULE, "run_selected_lanes") as run_selected,
+            self.assertRaisesRegex(
+                SystemExit, "process marker is reserved for --internal-lane"
+            ),
+        ):
+            MODULE.main()
+
+        run_selected.assert_not_called()
+
     def test_internal_lane_rejects_explicit_default_jobs(self) -> None:
         with (
             patch.object(

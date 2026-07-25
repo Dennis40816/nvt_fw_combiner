@@ -1144,6 +1144,10 @@ def main() -> int:
         validate_internal_lane_arguments(args)
         run_internal_lane(args.internal_lane)
         return 0
+    if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) == "1":
+        raise SystemExit(
+            "parent-owned process marker is reserved for --internal-lane"
+        )
     structure_only = args.structure_only
     if args.all and (args.skip_structure or args.skip_python or args.skip_dotnet):
         raise SystemExit("--all cannot be combined with skip flags")
