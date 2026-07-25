@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import importlib.util
 import os
 import shutil
@@ -14,6 +15,7 @@ import threading
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextvars import ContextVar
+from ctypes import wintypes
 from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic
@@ -34,6 +36,8 @@ MINIMUM_LANE_TIMEOUT_SECONDS = 60
 MAXIMUM_LANE_TIMEOUT_SECONDS = 900
 CLEANUP_TIMEOUT_SECONDS = 30
 PROCESS_TERMINATION_TIMEOUT_SECONDS = 5
+WINDOWS_CREATE_SUSPENDED = 0x00000004
+WINDOWS_CREATE_NEW_PROCESS_GROUP = 0x00000200
 LANE_DEADLINE: ContextVar[float | None] = ContextVar(
     "verification_lane_deadline", default=None
 )
@@ -41,7 +45,141 @@ CLEANUP_DEADLINE: ContextVar[float | None] = ContextVar(
     "verification_cleanup_deadline", default=None
 )
 INTERNAL_LANE_ENVIRONMENT_VARIABLE = "NFC_VERIFY_INTERNAL_LANE"
+
+
+class _JobObjectBasicLimitInformation(ctypes.Structure):
+    _fields_ = [
+        ("PerProcessUserTimeLimit", ctypes.c_longlong),
+        ("PerJobUserTimeLimit", ctypes.c_longlong),
+        ("LimitFlags", wintypes.DWORD),
+        ("MinimumWorkingSetSize", ctypes.c_size_t),
+        ("MaximumWorkingSetSize", ctypes.c_size_t),
+        ("ActiveProcessLimit", wintypes.DWORD),
+        ("Affinity", ctypes.c_size_t),
+        ("PriorityClass", wintypes.DWORD),
+        ("SchedulingClass", wintypes.DWORD),
+    ]
+
+
+class _IoCounters(ctypes.Structure):
+    _fields_ = [
+        ("ReadOperationCount", ctypes.c_ulonglong),
+        ("WriteOperationCount", ctypes.c_ulonglong),
+        ("OtherOperationCount", ctypes.c_ulonglong),
+        ("ReadTransferCount", ctypes.c_ulonglong),
+        ("WriteTransferCount", ctypes.c_ulonglong),
+        ("OtherTransferCount", ctypes.c_ulonglong),
+    ]
+
+
+class _JobObjectExtendedLimitInformation(ctypes.Structure):
+    _fields_ = [
+        ("BasicLimitInformation", _JobObjectBasicLimitInformation),
+        ("IoInfo", _IoCounters),
+        ("ProcessMemoryLimit", ctypes.c_size_t),
+        ("JobMemoryLimit", ctypes.c_size_t),
+        ("PeakProcessMemoryUsed", ctypes.c_size_t),
+        ("PeakJobMemoryUsed", ctypes.c_size_t),
+    ]
+
+
+class WindowsKillOnCloseJob:
+    """Own a Windows process tree after its root process exits."""
+
+    JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9
+    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+
+    def __init__(self, handle: int) -> None:
+        self._handle: int | None = handle
+        self._lock = threading.Lock()
+
+    @classmethod
+    def attach(cls, process: subprocess.Popen[bytes]) -> WindowsKillOnCloseJob:
+        kernel32 = cls._kernel32()
+        job_handle = kernel32.CreateJobObjectW(None, None)
+        if not job_handle:
+            raise ctypes.WinError(ctypes.get_last_error())
+
+        try:
+            information = _JobObjectExtendedLimitInformation()
+            information.BasicLimitInformation.LimitFlags = (
+                cls.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+            )
+            if not kernel32.SetInformationJobObject(
+                job_handle,
+                cls.JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
+                ctypes.byref(information),
+                ctypes.sizeof(information),
+            ):
+                raise ctypes.WinError(ctypes.get_last_error())
+
+            process_handle = wintypes.HANDLE(int(process._handle))
+            if not kernel32.AssignProcessToJobObject(job_handle, process_handle):
+                raise ctypes.WinError(ctypes.get_last_error())
+            return cls(int(job_handle))
+        except BaseException:
+            kernel32.CloseHandle(job_handle)
+            raise
+
+    @staticmethod
+    def _kernel32():
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
+        kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+        kernel32.SetInformationJobObject.argtypes = [
+            wintypes.HANDLE,
+            ctypes.c_int,
+            ctypes.c_void_p,
+            wintypes.DWORD,
+        ]
+        kernel32.SetInformationJobObject.restype = wintypes.BOOL
+        kernel32.AssignProcessToJobObject.argtypes = [
+            wintypes.HANDLE,
+            wintypes.HANDLE,
+        ]
+        kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
+        kernel32.TerminateJobObject.argtypes = [wintypes.HANDLE, wintypes.UINT]
+        kernel32.TerminateJobObject.restype = wintypes.BOOL
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        return kernel32
+
+    def terminate(self) -> None:
+        with self._lock:
+            if self._handle is None:
+                return
+            kernel32 = self._kernel32()
+            if not kernel32.TerminateJobObject(
+                wintypes.HANDLE(self._handle), 1
+            ):
+                raise ctypes.WinError(ctypes.get_last_error())
+
+    def close(self) -> None:
+        with self._lock:
+            if self._handle is None:
+                return
+            kernel32 = self._kernel32()
+            if not kernel32.CloseHandle(wintypes.HANDLE(self._handle)):
+                raise ctypes.WinError(ctypes.get_last_error())
+            self._handle = None
+
+
+@dataclass(frozen=True)
+class ProcessTerminationBoundary:
+    """Platform ownership retained until every verifier subprocess is released."""
+
+    unix_process_group_id: int | None = None
+    windows_job: WindowsKillOnCloseJob | None = None
+
+    def close(self) -> None:
+        if self.windows_job is not None:
+            self.windows_job.close()
+
+
 ACTIVE_PROCESSES: set[subprocess.Popen[bytes]] = set()
+PROCESS_TERMINATION_BOUNDARIES: dict[
+    subprocess.Popen[bytes], ProcessTerminationBoundary
+] = {}
 ACTIVE_PROCESSES_LOCK = threading.Lock()
 
 
@@ -84,37 +222,77 @@ def remaining_timeout(timeout_seconds: float | None = None) -> float | None:
     return min(timeout_seconds, remaining) if timeout_seconds is not None else remaining
 
 
-def terminate_process_tree(process: subprocess.Popen[bytes]) -> None:
+def terminate_process_tree(
+    process: subprocess.Popen[bytes],
+    boundary: ProcessTerminationBoundary | None = None,
+) -> None:
     """Terminate a timed-out verifier command together with every descendant."""
 
-    if process.poll() is not None:
-        return
+    if boundary is None:
+        with ACTIVE_PROCESSES_LOCK:
+            boundary = PROCESS_TERMINATION_BOUNDARIES.get(process)
+    root_is_running = process.poll() is None
     discovery_error: RuntimeError | None = None
+    tree_termination_error: RuntimeError | None = None
     if sys.platform == "win32":
-        try:
-            subprocess.run(
-                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
-                check=False,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS,
-            )
-        except subprocess.TimeoutExpired:
+        if boundary is not None and boundary.windows_job is not None:
+            try:
+                boundary.windows_job.terminate()
+            except OSError as error:
+                tree_termination_error = RuntimeError(
+                    "Windows verification process-tree termination was not "
+                    f"confirmed: Job Object termination failed with {error}"
+                )
+        else:
+            try:
+                result = subprocess.run(
+                    ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                    check=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS,
+                )
+                if result.returncode != 0:
+                    tree_termination_error = RuntimeError(
+                        "Windows verification process-tree termination was not "
+                        f"confirmed: taskkill returned exit code {result.returncode}"
+                    )
+            except (OSError, subprocess.TimeoutExpired) as error:
+                tree_termination_error = RuntimeError(
+                    "Windows verification process-tree termination was not "
+                    f"confirmed: taskkill failed with {type(error).__name__}: {error}"
+                )
+        if tree_termination_error is not None and root_is_running:
             process.kill()
     else:
-        try:
-            descendant_process_ids = unix_descendant_process_ids(process.pid)
-        except RuntimeError as error:
-            descendant_process_ids = ()
-            discovery_error = error
+        descendant_process_ids: tuple[int, ...] = ()
+        if root_is_running:
+            try:
+                descendant_process_ids = unix_descendant_process_ids(process.pid)
+            except RuntimeError as error:
+                discovery_error = error
         for process_id in descendant_process_ids:
             try:
                 os.kill(process_id, signal.SIGKILL)
             except ProcessLookupError:
                 pass
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
+        process_group_id = (
+            boundary.unix_process_group_id
+            if boundary is not None
+            else process.pid
+        )
+        should_terminate_group = (
+            not root_is_running
+            or discovery_error is not None
+            or process_group_id == process.pid
+        )
+        if should_terminate_group:
+            try:
+                os.killpg(process_group_id, signal.SIGKILL)
+            except ProcessLookupError:
+                if root_is_running:
+                    process.kill()
+        elif root_is_running:
             process.kill()
     try:
         process.wait(timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS)
@@ -123,6 +301,8 @@ def terminate_process_tree(process: subprocess.Popen[bytes]) -> None:
         process.wait(timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS)
     if sys.platform != "win32" and discovery_error is not None:
         raise discovery_error
+    if tree_termination_error is not None:
+        raise tree_termination_error
 
 
 def unix_descendant_process_ids(root_process_id: int) -> tuple[int, ...]:
@@ -176,29 +356,96 @@ def terminate_active_processes() -> None:
     """Terminate every detached command currently owned by interrupted verification."""
 
     with ACTIVE_PROCESSES_LOCK:
-        active_processes = tuple(ACTIVE_PROCESSES)
-    for process in active_processes:
-        terminate_process_tree(process)
+        active_processes = tuple(
+            (process, PROCESS_TERMINATION_BOUNDARIES.get(process))
+            for process in ACTIVE_PROCESSES
+        )
+    errors: list[Exception] = []
+    for process, boundary in active_processes:
+        try:
+            if boundary is None:
+                terminate_process_tree(process)
+            else:
+                terminate_process_tree(process, boundary)
+        except Exception as error:
+            errors.append(error)
+    if errors:
+        details = "; ".join(f"{type(error).__name__}: {error}" for error in errors)
+        raise RuntimeError(
+            f"failed to terminate {len(errors)} active process tree(s): {details}"
+        ) from errors[0]
 
 
 def process_group_options() -> dict[str, int] | dict[str, bool]:
     """Keep internal lane commands inside their parent process tree for cancellation."""
 
     if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) == "1":
+        if sys.platform == "win32":
+            return {"creationflags": WINDOWS_CREATE_SUSPENDED}
         return {}
     if sys.platform == "win32":
-        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+        return {
+            "creationflags": (
+                WINDOWS_CREATE_NEW_PROCESS_GROUP | WINDOWS_CREATE_SUSPENDED
+            )
+        }
     return {"start_new_session": True}
 
 
 def register_active_process(process: subprocess.Popen[bytes]) -> None:
+    if sys.platform == "win32":
+        boundary = ProcessTerminationBoundary(
+            windows_job=WindowsKillOnCloseJob.attach(process)
+        )
+    else:
+        process_group_id = (
+            os.getpgrp()
+            if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) == "1"
+            else process.pid
+        )
+        boundary = ProcessTerminationBoundary(
+            unix_process_group_id=process_group_id
+        )
     with ACTIVE_PROCESSES_LOCK:
+        PROCESS_TERMINATION_BOUNDARIES[process] = boundary
         ACTIVE_PROCESSES.add(process)
+
+
+def resume_active_process(process: subprocess.Popen[bytes]) -> None:
+    """Start a Windows process only after its kill-on-close Job Object is attached."""
+
+    if sys.platform != "win32":
+        return
+    ntdll = ctypes.WinDLL("ntdll")
+    ntdll.NtResumeProcess.argtypes = [wintypes.HANDLE]
+    ntdll.NtResumeProcess.restype = wintypes.LONG
+    status = ntdll.NtResumeProcess(wintypes.HANDLE(int(process._handle)))
+    if status < 0:
+        raise OSError(
+            f"NtResumeProcess failed with NTSTATUS 0x{status & 0xFFFFFFFF:08x}"
+        )
+
+
+def activate_owned_process(process: subprocess.Popen[bytes]) -> None:
+    """Register the termination boundary before allowing a verifier process to run."""
+
+    try:
+        register_active_process(process)
+        resume_active_process(process)
+    except BaseException:
+        try:
+            terminate_process_tree(process)
+        finally:
+            unregister_active_process(process)
+        raise
 
 
 def unregister_active_process(process: subprocess.Popen[bytes]) -> None:
     with ACTIVE_PROCESSES_LOCK:
         ACTIVE_PROCESSES.discard(process)
+        boundary = PROCESS_TERMINATION_BOUNDARIES.pop(process, None)
+    if boundary is not None:
+        boundary.close()
 
 
 def run(
@@ -218,7 +465,7 @@ def run(
             env=environment,
             **process_group_options(),
         )
-        register_active_process(process)
+        activate_owned_process(process)
         try:
             return_code = process.wait(timeout=remaining_timeout(timeout_seconds))
         except (subprocess.TimeoutExpired, KeyboardInterrupt):
@@ -268,7 +515,7 @@ def _run_to_logs(
                 env=environment,
                 **process_group_options(),
             )
-            register_active_process(process)
+            activate_owned_process(process)
             try:
                 return_code = process.wait(timeout=remaining_timeout(timeout_seconds))
             except (subprocess.TimeoutExpired, KeyboardInterrupt):
@@ -420,12 +667,19 @@ def stop_idle_build_workers(
     ]
     if log_path is None:
         print(f"\n> {' '.join(command)}", flush=True)
-        result = subprocess.run(
-            command,
-            cwd=ROOT,
-            check=False,
-            timeout=remaining_timeout(timeout_seconds),
-        )
+        try:
+            result = subprocess.run(
+                command,
+                cwd=ROOT,
+                check=False,
+                timeout=remaining_timeout(timeout_seconds),
+            )
+        except subprocess.TimeoutExpired:
+            write_cleanup_warning(
+                "warning: idle Avalonia build worker cleanup exceeded its timeout.",
+                log_path,
+            )
+            return
     else:
         try:
             _run_to_logs(
@@ -672,20 +926,43 @@ def run_lanes(
             LANE_DEADLINE.reset(deadline_token)
         return LaneResult(lane.name, True, monotonic() - started, log_path)
 
-    try:
-        if jobs == 1 or len(lanes) < 2:
+    if jobs == 1 or len(lanes) < 2:
+        try:
             return tuple(run_lane(lane) for lane in lanes)
+        except KeyboardInterrupt:
+            terminate_active_processes()
+            raise
 
-        results: dict[str, LaneResult] = {}
-        with ThreadPoolExecutor(max_workers=min(jobs, len(lanes))) as executor:
-            futures = {executor.submit(run_lane, lane): lane.name for lane in lanes}
-            for future in as_completed(futures):
-                result = future.result()
-                results[result.name] = result
-        return tuple(results[lane.name] for lane in lanes)
+    results: dict[str, LaneResult] = {}
+    executor = ThreadPoolExecutor(max_workers=min(jobs, len(lanes)))
+    futures = {}
+    try:
+        for lane in lanes:
+            futures[executor.submit(run_lane, lane)] = lane.name
+        for future in as_completed(futures):
+            result = future.result()
+            results[result.name] = result
     except KeyboardInterrupt:
-        terminate_active_processes()
+        cleanup_error: Exception | None = None
+        try:
+            terminate_active_processes()
+        except Exception as error:
+            cleanup_error = error
+        finally:
+            for future in futures:
+                future.cancel()
+            executor.shutdown(wait=True, cancel_futures=True)
+        if cleanup_error is not None:
+            raise cleanup_error
         raise
+    except BaseException:
+        for future in futures:
+            future.cancel()
+        executor.shutdown(wait=True, cancel_futures=True)
+        raise
+    else:
+        executor.shutdown(wait=True)
+        return tuple(results[lane.name] for lane in lanes)
 
 
 def report_lane_results(results: Sequence[LaneResult]) -> None:

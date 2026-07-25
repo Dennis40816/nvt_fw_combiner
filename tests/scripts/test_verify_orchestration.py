@@ -25,6 +25,18 @@ SPEC.loader.exec_module(MODULE)
 
 
 class VerifyOrchestrationTests(unittest.TestCase):
+    @staticmethod
+    def timeout_after_file_exists(path: Path, timeout_seconds: float = 0.2):
+        def wait_for_file(_requested_timeout: float | None = None) -> float:
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                if path.exists():
+                    return timeout_seconds
+                time.sleep(0.01)
+            raise AssertionError(f"timed out waiting for child readiness marker: {path}")
+
+        return wait_for_file
+
     def test_full_plan_assigns_each_verification_owner_once(self) -> None:
         lanes = MODULE.selected_lanes(MODULE.parse_args(["--all"]))
 
@@ -153,11 +165,39 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual("1", environment[MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE])
         self.assertEqual(log_path, run_command.call_args.kwargs["log_path"])
 
-    def test_internal_lane_dispatches_the_canonical_structure_owner(self) -> None:
-        with patch.object(MODULE, "verify_structure") as verify_structure:
-            MODULE.run_internal_lane("structure")
-
-        verify_structure.assert_called_once_with(None)
+    def test_internal_lanes_dispatch_each_canonical_owner_exactly_once(self) -> None:
+        calls: list[str] = []
+        with (
+            patch.object(
+                MODULE,
+                "verify_structure",
+                side_effect=lambda _log_path: calls.append("structure"),
+            ),
+            patch.object(
+                MODULE,
+                "verify_repository_scripts",
+                side_effect=lambda _log_path: calls.append("repository-scripts"),
+            ),
+            patch.object(
+                MODULE,
+                "verify_python",
+                side_effect=lambda _log_path: calls.append("python"),
+            ),
+            patch.object(
+                MODULE,
+                "verify_dotnet",
+                side_effect=lambda _log_path: calls.append("dotnet"),
+            ),
+        ):
+            expected_calls = {
+                "structure": ["structure"],
+                "python": ["repository-scripts", "python"],
+                "dotnet": ["dotnet"],
+            }
+            for lane_name, expected in expected_calls.items():
+                calls.clear()
+                MODULE.run_internal_lane(lane_name)
+                self.assertEqual(expected, calls, lane_name)
 
     def test_keyboard_interrupt_terminates_the_active_command_before_reraising(
         self,
@@ -167,6 +207,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
         fake_process.poll.return_value = None
         with (
             patch.object(MODULE.subprocess, "Popen", return_value=fake_process),
+            patch.object(
+                MODULE.WindowsKillOnCloseJob,
+                "attach",
+                return_value=MagicMock(),
+            ),
+            patch.object(MODULE, "resume_active_process"),
             patch.object(MODULE, "terminate_process_tree") as terminate,
         ):
             with self.assertRaises(KeyboardInterrupt):
@@ -174,6 +220,41 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         terminate.assert_called_once_with(fake_process)
         self.assertNotIn(fake_process, MODULE.ACTIVE_PROCESSES)
+
+    def test_windows_process_is_suspended_until_job_boundary_is_attached(
+        self,
+    ) -> None:
+        fake_process = MagicMock()
+        fake_job = MagicMock()
+        events: list[str] = []
+
+        def attach(_process: object):
+            events.append("attach")
+            return fake_job
+
+        def resume(_process: object) -> None:
+            events.append("resume")
+
+        with (
+            patch.object(MODULE.sys, "platform", "win32"),
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""},
+            ),
+            patch.object(
+                MODULE.WindowsKillOnCloseJob,
+                "attach",
+                side_effect=attach,
+            ),
+            patch.object(MODULE, "resume_active_process", side_effect=resume),
+        ):
+            creation_flags = MODULE.process_group_options()["creationflags"]
+            MODULE.activate_owned_process(fake_process)
+            MODULE.unregister_active_process(fake_process)
+
+        self.assertNotEqual(0, creation_flags & MODULE.WINDOWS_CREATE_SUSPENDED)
+        self.assertEqual(["attach", "resume"], events)
+        fake_job.close.assert_called_once_with()
 
     def test_interrupting_lane_orchestration_terminates_all_active_commands(
         self,
@@ -195,6 +276,155 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         terminate.assert_called_once_with()
 
+    def test_parallel_interrupt_terminates_commands_before_waiting_for_workers(
+        self,
+    ) -> None:
+        events: list[str] = []
+        futures = (MagicMock(), MagicMock())
+        futures[0].result.side_effect = KeyboardInterrupt
+
+        class RecordingExecutor:
+            def __init__(self) -> None:
+                self.submitted = 0
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                self.shutdown(wait=True)
+
+            def submit(self, *_args: object):
+                future = futures[self.submitted]
+                self.submitted += 1
+                return future
+
+            def shutdown(
+                self, *, wait: bool, cancel_futures: bool = False
+            ) -> None:
+                events.append(f"shutdown:{wait}:{cancel_futures}")
+
+        executor = RecordingExecutor()
+        lanes = (
+            MODULE.VerificationLane("first", lambda _log_path: None),
+            MODULE.VerificationLane("second", lambda _log_path: None),
+        )
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.object(MODULE, "ThreadPoolExecutor", return_value=executor),
+            patch.object(MODULE, "as_completed", return_value=[futures[0]]),
+            patch.object(
+                MODULE,
+                "terminate_active_processes",
+                side_effect=lambda: events.append("terminate"),
+            ),
+            self.assertRaises(KeyboardInterrupt),
+        ):
+            MODULE.run_lanes(
+                lanes,
+                jobs=2,
+                log_directory=Path(temporary),
+            )
+
+        self.assertLess(events.index("terminate"), events.index("shutdown:True:True"))
+        for future in futures:
+            future.cancel.assert_called_once_with()
+
+    def test_active_process_cleanup_attempts_every_tree_before_reporting_failure(
+        self,
+    ) -> None:
+        first_process = MagicMock()
+        second_process = MagicMock()
+        attempted: list[object] = []
+
+        def terminate(process: object) -> None:
+            attempted.append(process)
+            if process is first_process:
+                raise RuntimeError("first tree cleanup failed")
+
+        with (
+            patch.object(MODULE, "ACTIVE_PROCESSES", [first_process, second_process]),
+            patch.object(MODULE, "terminate_process_tree", side_effect=terminate),
+            self.assertRaisesRegex(RuntimeError, "1 active process tree"),
+        ):
+            MODULE.terminate_active_processes()
+
+        self.assertEqual([first_process, second_process], attempted)
+
+    def test_windows_tree_termination_rejects_nonzero_taskkill_result(self) -> None:
+        fake_process = MagicMock()
+        fake_process.poll.return_value = None
+        with (
+            patch.object(MODULE.sys, "platform", "win32"),
+            patch.object(
+                MODULE.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess([], 1),
+            ),
+            self.assertRaisesRegex(
+                RuntimeError, "Windows verification process-tree termination"
+            ),
+        ):
+            MODULE.terminate_process_tree(fake_process)
+
+        fake_process.kill.assert_called_once_with()
+        fake_process.wait.assert_called_once_with(
+            timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS
+        )
+
+    def test_windows_tree_termination_rejects_taskkill_launch_failure(self) -> None:
+        fake_process = MagicMock()
+        fake_process.poll.return_value = None
+        with (
+            patch.object(MODULE.sys, "platform", "win32"),
+            patch.object(
+                MODULE.subprocess,
+                "run",
+                side_effect=OSError("taskkill unavailable"),
+            ),
+            self.assertRaisesRegex(
+                RuntimeError, "Windows verification process-tree termination"
+            ),
+        ):
+            MODULE.terminate_process_tree(fake_process)
+
+        fake_process.kill.assert_called_once_with()
+        fake_process.wait.assert_called_once_with(
+            timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS
+        )
+
+    @unittest.skipUnless(
+        sys.platform == "win32", "Windows Job Object behavior is Windows-specific"
+    )
+    def test_windows_owned_job_kills_descendants_after_root_exit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            child_ready = root / "job-child-ready"
+            orphan_output = root / "job-orphan-output"
+            child = (
+                "from pathlib import Path; import time; "
+                f"Path({str(child_ready)!r}).write_text('ready'); "
+                "time.sleep(0.8); "
+                f"Path({str(orphan_output)!r}).write_text('orphan')"
+            )
+            parent = (
+                "from pathlib import Path; import subprocess, sys, time; "
+                f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
+                f"marker = Path({str(child_ready)!r}); "
+                "deadline = time.monotonic() + 5; "
+                "exec(\"while not marker.exists():\\n"
+                "    assert time.monotonic() < deadline\\n"
+                "    time.sleep(0.01)\")"
+            )
+
+            MODULE.run(
+                [sys.executable, "-c", parent],
+                timeout_seconds=5,
+            )
+
+            self.assertTrue(child_ready.exists())
+            time.sleep(0.9)
+            self.assertFalse(orphan_output.exists())
+
     def test_timeout_terminates_the_entire_command_process_tree(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -212,7 +442,14 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 "time.sleep(5)"
             )
 
-            with self.assertRaises(subprocess.TimeoutExpired):
+            with (
+                patch.object(
+                    MODULE,
+                    "remaining_timeout",
+                    side_effect=self.timeout_after_file_exists(child_ready),
+                ),
+                self.assertRaises(subprocess.TimeoutExpired),
+            ):
                 MODULE.run(
                     [sys.executable, "-c", parent],
                     log_path=root / "process-tree.log",
@@ -244,6 +481,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
             with (
                 patch.dict(
                     os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"}
+                ),
+                patch.object(
+                    MODULE,
+                    "remaining_timeout",
+                    side_effect=self.timeout_after_file_exists(child_ready),
                 ),
                 self.assertRaises(subprocess.TimeoutExpired),
             ):
@@ -278,6 +520,66 @@ class VerifyOrchestrationTests(unittest.TestCase):
         fake_process.wait.assert_called_once_with(
             timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS
         )
+
+    def test_unix_group_termination_survives_an_exited_root_process(self) -> None:
+        fake_process = MagicMock()
+        fake_process.poll.return_value = 0
+        boundary = MODULE.ProcessTerminationBoundary(unix_process_group_id=4321)
+        with (
+            patch.object(MODULE.sys, "platform", "linux"),
+            patch.object(
+                MODULE,
+                "PROCESS_TERMINATION_BOUNDARIES",
+                {fake_process: boundary},
+            ),
+            patch.object(MODULE.os, "killpg", create=True) as kill_group,
+            patch.object(MODULE.signal, "SIGKILL", 9, create=True),
+        ):
+            MODULE.terminate_process_tree(fake_process)
+
+        kill_group.assert_called_once_with(4321, 9)
+        fake_process.kill.assert_not_called()
+        fake_process.wait.assert_called_once_with(
+            timeout=MODULE.PROCESS_TERMINATION_TIMEOUT_SECONDS
+        )
+
+    @unittest.skipIf(
+        sys.platform == "win32", "Unix process-group behavior requires Unix"
+    )
+    def test_unix_owned_group_kills_descendants_after_root_exit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            child_ready = root / "group-child-ready"
+            orphan_output = root / "group-orphan-output"
+            child = (
+                "from pathlib import Path; import time; "
+                f"Path({str(child_ready)!r}).write_text('ready'); "
+                "time.sleep(0.8); "
+                f"Path({str(orphan_output)!r}).write_text('orphan')"
+            )
+            parent = (
+                "from pathlib import Path; import subprocess, sys, time; "
+                f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
+                f"marker = Path({str(child_ready)!r}); "
+                "deadline = time.monotonic() + 5; "
+                "exec(\"while not marker.exists():\\n"
+                "    assert time.monotonic() < deadline\\n"
+                "    time.sleep(0.01)\")"
+            )
+            process = subprocess.Popen(
+                [sys.executable, "-c", parent],
+                start_new_session=True,
+            )
+            MODULE.register_active_process(process)
+            try:
+                process.wait(timeout=5)
+                self.assertTrue(child_ready.exists())
+                MODULE.terminate_process_tree(process)
+            finally:
+                MODULE.unregister_active_process(process)
+
+            time.sleep(0.9)
+            self.assertFalse(orphan_output.exists())
 
     def test_cleanup_ceiling_is_shared_and_cannot_extend_the_current_lane_deadline(
         self,
@@ -372,6 +674,26 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         self.assertIn(
             "warning: idle Avalonia build worker cleanup exceeded its timeout.", logged
+        )
+
+    def test_idle_worker_cleanup_timeout_without_lane_log_remains_best_effort(
+        self,
+    ) -> None:
+        with (
+            patch.object(MODULE.sys, "platform", "win32"),
+            patch.object(MODULE.shutil, "which", return_value="powershell"),
+            patch.object(
+                MODULE.subprocess,
+                "run",
+                side_effect=subprocess.TimeoutExpired("cleanup", 30),
+            ),
+            patch.object(MODULE, "write_cleanup_warning") as write_warning,
+        ):
+            MODULE.stop_idle_build_workers(None, timeout_seconds=30)
+
+        write_warning.assert_called_once_with(
+            "warning: idle Avalonia build worker cleanup exceeded its timeout.",
+            None,
         )
 
     def test_dotnet_build_mirrors_the_ci_upload_log_once(self) -> None:
