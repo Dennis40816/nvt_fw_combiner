@@ -6,8 +6,10 @@ import contextlib
 import importlib.util
 import io
 import os
+import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -107,16 +109,51 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertFalse(results[0].succeeded)
         self.assertIn("TimeoutExpired", results[0].error)
 
-    def test_cleanup_ceiling_cannot_extend_the_current_lane_deadline(self) -> None:
-        deadline_token = MODULE.LANE_DEADLINE.set(MODULE.monotonic() + 0.5)
-        try:
-            timeout = MODULE.remaining_timeout(MODULE.CLEANUP_TIMEOUT_SECONDS)
-        finally:
-            MODULE.LANE_DEADLINE.reset(deadline_token)
+    def test_timeout_terminates_the_entire_command_process_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            child_ready = root / "child-ready"
+            orphan_output = root / "orphan-output"
+            child = (
+                "from pathlib import Path; import time; "
+                f"Path({str(child_ready)!r}).write_text('ready'); "
+                "time.sleep(2); "
+                f"Path({str(orphan_output)!r}).write_text('orphan')"
+            )
+            parent = (
+                "import subprocess, sys, time; "
+                f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
+                "time.sleep(5)"
+            )
 
-        self.assertIsNotNone(timeout)
-        self.assertGreater(timeout, 0)
-        self.assertLessEqual(timeout, 0.5)
+            with self.assertRaises(subprocess.TimeoutExpired):
+                MODULE.run(
+                    [sys.executable, "-c", parent],
+                    log_path=root / "process-tree.log",
+                    timeout_seconds=0.5,
+                )
+            self.assertTrue(child_ready.exists())
+            time.sleep(2.25)
+            self.assertFalse(orphan_output.exists())
+
+    def test_cleanup_ceiling_is_shared_and_cannot_extend_the_current_lane_deadline(
+        self,
+    ) -> None:
+        lane_token = MODULE.LANE_DEADLINE.set(200)
+        cleanup_token = MODULE.CLEANUP_DEADLINE.set(130)
+        try:
+            with patch.object(MODULE, "monotonic", return_value=100):
+                first_timeout = MODULE.remaining_timeout(MODULE.CLEANUP_TIMEOUT_SECONDS)
+            with patch.object(MODULE, "monotonic", return_value=120):
+                second_timeout = MODULE.remaining_timeout(
+                    MODULE.CLEANUP_TIMEOUT_SECONDS
+                )
+        finally:
+            MODULE.CLEANUP_DEADLINE.reset(cleanup_token)
+            MODULE.LANE_DEADLINE.reset(lane_token)
+
+        self.assertEqual(30, first_timeout)
+        self.assertEqual(10, second_timeout)
 
     def test_report_uses_declared_lane_order_and_one_aggregate_summary(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -147,6 +184,52 @@ class VerifyOrchestrationTests(unittest.TestCase):
         )
         self.assertIn("[lane failed] RuntimeError: simulated", report)
         self.assertEqual(1, report.count("Verification lane summary:"))
+
+    def test_report_replaces_invalid_log_bytes_without_losing_lane_summary(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            log_path = root / "python.log"
+            log_path.write_bytes(b"before\xffafter\n")
+            result = MODULE.LaneResult("python", True, 1.0, log_path)
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                MODULE.report_lane_results([result])
+
+        self.assertIn("before\ufffdafter", output.getvalue())
+        self.assertIn("Verification lane summary:", output.getvalue())
+
+    def test_skip_python_leaves_repository_script_tests_out_of_dotnet_only_lane(
+        self,
+    ) -> None:
+        lanes = MODULE.selected_lanes(
+            MODULE.parse_args(["--skip-python", "--skip-structure"])
+        )
+
+        self.assertEqual(["dotnet"], [lane.name for lane in lanes])
+
+    def test_idle_worker_cleanup_warnings_are_written_to_the_active_lane_log(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            log_path = Path(temporary) / "dotnet.log"
+            with (
+                patch.object(MODULE.sys, "platform", "win32"),
+                patch.object(MODULE.shutil, "which", return_value="powershell"),
+                patch.object(
+                    MODULE,
+                    "_run_to_logs",
+                    side_effect=subprocess.TimeoutExpired("cleanup", 30),
+                ),
+            ):
+                MODULE.stop_idle_build_workers(log_path, timeout_seconds=30)
+
+            logged = log_path.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "warning: idle Avalonia build worker cleanup exceeded its timeout.", logged
+        )
 
     def test_dotnet_build_mirrors_the_ci_upload_log_once(self) -> None:
         calls: list[tuple[list[str], dict[str, object]]] = []

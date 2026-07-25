@@ -6,6 +6,7 @@ import argparse
 import importlib.util
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -31,8 +32,12 @@ DEFAULT_LANE_TIMEOUT_SECONDS = 300
 MINIMUM_LANE_TIMEOUT_SECONDS = 60
 MAXIMUM_LANE_TIMEOUT_SECONDS = 900
 CLEANUP_TIMEOUT_SECONDS = 30
+PROCESS_TERMINATION_TIMEOUT_SECONDS = 5
 LANE_DEADLINE: ContextVar[float | None] = ContextVar(
     "verification_lane_deadline", default=None
+)
+CLEANUP_DEADLINE: ContextVar[float | None] = ContextVar(
+    "verification_cleanup_deadline", default=None
 )
 
 
@@ -59,15 +64,47 @@ class LaneResult:
 
 
 def remaining_timeout(timeout_seconds: float | None = None) -> float | None:
-    """Return a command timeout bounded by the current lane deadline."""
+    """Return a command timeout bounded by every active verification deadline."""
 
-    deadline = LANE_DEADLINE.get()
-    if deadline is None:
+    deadlines = tuple(
+        deadline
+        for deadline in (LANE_DEADLINE.get(), CLEANUP_DEADLINE.get())
+        if deadline is not None
+    )
+    if not deadlines:
         return timeout_seconds
-    remaining = deadline - monotonic()
+    remaining = min(deadline - monotonic() for deadline in deadlines)
     if remaining <= 0:
         raise subprocess.TimeoutExpired("verification lane", 0)
     return min(timeout_seconds, remaining) if timeout_seconds is not None else remaining
+
+
+def terminate_process_tree(process: subprocess.Popen[bytes]) -> None:
+    """Terminate a timed-out verifier command together with every descendant."""
+
+    if process.poll() is not None:
+        return
+    if sys.platform == "win32":
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS,
+            )
+        except subprocess.TimeoutExpired:
+            process.kill()
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    try:
+        process.wait(timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=PROCESS_TERMINATION_TIMEOUT_SECONDS)
 
 
 def run(
@@ -81,13 +118,27 @@ def run(
 ) -> None:
     if log_path is None:
         print(f"\n> {' '.join(command)}", flush=True)
-        subprocess.run(
-            command,
-            cwd=cwd,
-            check=True,
-            env=environment,
-            timeout=remaining_timeout(timeout_seconds),
-        )
+        if sys.platform == "win32":
+            process = subprocess.Popen(
+                command,
+                cwd=cwd,
+                env=environment,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            )
+        else:
+            process = subprocess.Popen(
+                command,
+                cwd=cwd,
+                env=environment,
+                start_new_session=True,
+            )
+        try:
+            return_code = process.wait(timeout=remaining_timeout(timeout_seconds))
+        except subprocess.TimeoutExpired:
+            terminate_process_tree(process)
+            raise
+        if return_code != 0:
+            raise subprocess.CalledProcessError(return_code, command)
         return
 
     _run_to_logs(
@@ -120,18 +171,28 @@ def _run_to_logs(
     try:
         with primary_path.open("a", encoding="utf-8", newline="\n") as primary:
             print(f"\n> {' '.join(command)}", file=primary, flush=True)
-            process = subprocess.Popen(
-                command,
-                cwd=cwd,
-                stdout=primary,
-                stderr=subprocess.STDOUT,
-                env=environment,
-            )
+            if sys.platform == "win32":
+                process = subprocess.Popen(
+                    command,
+                    cwd=cwd,
+                    stdout=primary,
+                    stderr=subprocess.STDOUT,
+                    env=environment,
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                )
+            else:
+                process = subprocess.Popen(
+                    command,
+                    cwd=cwd,
+                    stdout=primary,
+                    stderr=subprocess.STDOUT,
+                    env=environment,
+                    start_new_session=True,
+                )
             try:
                 return_code = process.wait(timeout=remaining_timeout(timeout_seconds))
             except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
+                terminate_process_tree(process)
                 raise
         output = primary_path.read_bytes()[start_offset:]
         for mirror_path in unique_paths[1:]:
@@ -261,8 +322,9 @@ def stop_idle_build_workers(
 
     powershell = shutil.which("powershell") or shutil.which("pwsh")
     if powershell is None:
-        print(
-            "warning: PowerShell was unavailable; idle Avalonia build worker cleanup was skipped."
+        write_cleanup_warning(
+            "warning: PowerShell was unavailable; idle Avalonia build worker cleanup was skipped.",
+            log_path,
         )
         return
 
@@ -296,12 +358,27 @@ def stop_idle_build_workers(
         except subprocess.CalledProcessError as error:
             result = error
         except subprocess.TimeoutExpired:
-            print("warning: idle Avalonia build worker cleanup exceeded its timeout.")
+            write_cleanup_warning(
+                "warning: idle Avalonia build worker cleanup exceeded its timeout.",
+                log_path,
+            )
             return
     if result.returncode != 0:
-        print(
-            f"warning: idle Avalonia build worker cleanup returned exit code {result.returncode}."
+        write_cleanup_warning(
+            f"warning: idle Avalonia build worker cleanup returned exit code {result.returncode}.",
+            log_path,
         )
+
+
+def write_cleanup_warning(message: str, log_path: Path | None) -> None:
+    """Keep optional cleanup diagnostics inside the active lane log when one exists."""
+
+    if log_path is None:
+        print(message)
+        return
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("a", encoding="utf-8", newline="\n") as log:
+        print(message, file=log)
 
 
 def verify_dotnet(log_path: Path | None = None) -> None:
@@ -340,13 +417,20 @@ def verify_dotnet(log_path: Path | None = None) -> None:
     finally:
         # Avalonia/Roslyn may start compiler servers even with node reuse disabled.
         # Stop only servers from the repository-selected SDK after every verification run.
-        run(
-            [dotnet, "build-server", "shutdown"],
-            environment=environment,
-            log_path=log_path,
-            timeout_seconds=CLEANUP_TIMEOUT_SECONDS,
-        )
-        stop_idle_build_workers(log_path, timeout_seconds=CLEANUP_TIMEOUT_SECONDS)
+        cleanup_timeout = remaining_timeout(CLEANUP_TIMEOUT_SECONDS)
+        if cleanup_timeout is None:
+            cleanup_timeout = CLEANUP_TIMEOUT_SECONDS
+        cleanup_deadline_token = CLEANUP_DEADLINE.set(monotonic() + cleanup_timeout)
+        try:
+            run(
+                [dotnet, "build-server", "shutdown"],
+                environment=environment,
+                log_path=log_path,
+                timeout_seconds=CLEANUP_TIMEOUT_SECONDS,
+            )
+            stop_idle_build_workers(log_path, timeout_seconds=CLEANUP_TIMEOUT_SECONDS)
+        finally:
+            CLEANUP_DEADLINE.reset(cleanup_deadline_token)
 
 
 def parse_lane_timeout(value: str) -> int:
@@ -404,13 +488,12 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(arguments)
 
 
-def repository_script_and_python_lane(skip_python: bool) -> LaneAction:
-    """Return the one owner for repository-script and optional Python verification."""
+def repository_script_and_python_lane() -> LaneAction:
+    """Return the sole owner for repository-script and Python verification."""
 
     def run_lane(log_path: Path) -> None:
         verify_repository_scripts(log_path)
-        if not skip_python:
-            verify_python(log_path)
+        verify_python(log_path)
 
     return run_lane
 
@@ -422,11 +505,10 @@ def selected_lanes(args: argparse.Namespace) -> tuple[VerificationLane, ...]:
     if not args.skip_structure:
         lanes.append(VerificationLane("structure", verify_structure))
     if not args.structure_only:
-        lanes.append(
-            VerificationLane(
-                "python", repository_script_and_python_lane(args.skip_python)
+        if not args.skip_python:
+            lanes.append(
+                VerificationLane("python", repository_script_and_python_lane())
             )
-        )
         if not args.skip_dotnet:
             lanes.append(VerificationLane("dotnet", verify_dotnet))
     return tuple(lanes)
@@ -488,7 +570,7 @@ def report_lane_results(results: Sequence[LaneResult]) -> None:
     for result in results:
         print(f"\n=== {result.name} lane ({result.duration_seconds:.1f}s) ===")
         if result.log_path.is_file():
-            print(result.log_path.read_text(encoding="utf-8"), end="")
+            print(result.log_path.read_text(encoding="utf-8", errors="replace"), end="")
         if not result.succeeded:
             print(f"[lane failed] {result.error}")
     summary = ", ".join(
