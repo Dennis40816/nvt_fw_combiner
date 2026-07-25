@@ -1,6 +1,6 @@
 ---
 name: to-tickets
-description: Break a plan, spec, or the current conversation into a set of tracer-bullet tickets, each declaring its blocking edges, published to the configured tracker — edges as text in one file per ticket locally, or native blocking links on a real tracker.
+description: Break a plan, spec, or the current conversation into tracer-bullet tickets with blocking edges, published as local text files or tracker-native/textual references.
 ---
 
 For NFC repository work, apply [Agent Skill Routing](../../../docs/governance/agent-skill-routing.md) before acting.
@@ -9,9 +9,10 @@ For NFC repository work, apply [Agent Skill Routing](../../../docs/governance/ag
 
 Break a plan, spec, or conversation into a set of **tickets** — tracer-bullet vertical slices, each declaring the tickets that **block** it.
 
-Use `docs/governance/agent-issue-tracker.md`. If a required label or native
-blocking capability is missing, complete and present the approved ticket set
-but stop before GitHub mutation.
+Use `docs/governance/agent-issue-tracker.md`. If a required label is missing,
+complete and present the approved ticket set but stop before GitHub mutation.
+Native blocking capability is optional: when it is unavailable, publish the
+approved text-only `Blocked by` references instead.
 
 ## Process
 
