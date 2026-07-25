@@ -89,7 +89,6 @@ internal sealed class BuiltInV2Registration
 {
     private readonly Lazy<V2CompositionPlanCompileResult> _summaryCompilation;
     private readonly BuiltInV2Bundle _bundle;
-    private readonly string _profileVersion;
 
     internal BuiltInV2Registration(
         string icId,
@@ -106,7 +105,7 @@ internal sealed class BuiltInV2Registration
 
         IcId = icId;
         ProfileId = profileId;
-        _profileVersion = profileVersion;
+        ProfileVersion = profileVersion;
         _bundle = bundle;
         CompositionKind = compositionKind;
         WorkflowId = workflowId ?? (compositionKind == CompositionKind.Merge
@@ -128,9 +127,11 @@ internal sealed class BuiltInV2Registration
 
     internal string ProfileId { get; }
 
+    internal string ProfileVersion { get; }
+
     private CompositionKind CompositionKind { get; }
 
-    private string WorkflowId { get; }
+    internal string WorkflowId { get; }
 
     private bool IsStandardMerge => WorkflowId == IcWorkflowIds.StandardMerge;
 
@@ -164,7 +165,7 @@ internal sealed class BuiltInV2Registration
 
     internal IReadOnlyList<long> GetMapCapacities(out IReadOnlyList<CompositionIssue> issues)
     {
-        return _bundle.GetMapCapacities(ProfileId, _profileVersion, IcId, WorkflowId, out issues);
+        return _bundle.GetMapCapacities(ProfileId, ProfileVersion, IcId, WorkflowId, out issues);
     }
 
     internal bool TryGetContainerPolicy(
@@ -332,14 +333,14 @@ internal sealed class BuiltInV2Registration
         return IsAbMerge
             ? _bundle.CompileAbMergeFunctionOpen(
                 ProfileId,
-                _profileVersion,
+                ProfileVersion,
                 IcId,
                 requestedMapCapacity,
                 requestedTopology,
                 $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.")
             : _bundle.CompileExecutable(
                 ProfileId,
-                _profileVersion,
+                ProfileVersion,
                 IcId,
                 WorkflowId,
                 requestedMapCapacity,

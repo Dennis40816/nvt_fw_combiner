@@ -31,10 +31,19 @@ source-contract validator and the future policy reader reject duplicate
 decision ids, duplicate route ids, and whitespace-only provenance values even
 though JSON Schema cannot express property-level uniqueness.
 
-The checked-in document is the reviewable source for the first policy slice.
-It is not yet a runtime-loaded or release-pinned artifact.  A later R2 slice
-must materialize and hash-close it with the selected capability catalog before
-Settings, CLI, CI, or release output treats it as live policy.
+The checked-in document is both the reviewable source and, in the 0.10.1
+baseline, a copied runtime contract artifact.  Infrastructure verifies its
+canonical SHA-256 before deserializing it into an immutable policy snapshot.
+`WorkbenchCompositionService.GetSupportMatrix()` then joins that snapshot only
+with exact Bootstrap route declarations.  A hash mismatch, unknown field,
+invalid status, duplicate decision, or duplicate route id blocks
+materialization.
+
+The baseline deliberately reports unresolved policy coverage rather than
+inferring a publication status.  Until every current route and authoring scope
+has an exact canonical binding and an owner decision, `IsMigrationReady` is
+false.  This is a reporting/CI result only: it never changes existing UI
+selection, compiler admission, or firmware execution.
 
 ## Independence from execution and evidence
 
@@ -55,18 +64,29 @@ resolved.
 
 For one requested canonical `routeId`, the fixed precedence is exactly the
 table order: `DirectGolden` > `ApprovedAlias` > `SyntheticOracle` >
-`ContractOnly` > `Missing`.  Direct-golden, synthetic-oracle, and admitted
-capability-contract declarations are eligible only when they name the requested
-route id exactly.  An alias is eligible only when it names the requested route
-as `sourceRouteId`, names an explicit `targetRouteId`, and its fact scope is
-proven applicable to the selected IC Count and map variant.  A mismatched
-route or scope is ignored, not downgraded to an alias result.
+`ContractOnly` > `Missing`.  The resolver accepts direct-golden and
+synthetic-oracle declarations only from its evidence-catalog snapshot and only
+when `sourceRouteId` is an exact route in that same snapshot.  An alias is
+eligible only when it names the requested route as `sourceRouteId`, names an
+explicit target route with a declared direct-golden source, and carries a fact
+scope proven applicable to the selected IC, workflow, IC Count, and map
+variant.  An unresolved target or mismatched route or scope is rejected before
+classification; it is not downgraded to an alias result.  `ContractOnly` is not
+caller-declared evidence: the resolver derives it only from the exact admitted
+execution contract for the requested route.
 
 Every selected evidence declaration contributes its stable declaration id to
 the resolved result; an alias also records its target route id and fact-scope
 id.  The resolver retains the strongest eligible classification.  A policy row
 can therefore be `test-only` with `DirectGolden`, or `supported` with an
 evidence gate still visible; status and evidence answer different questions.
+
+The 0.10.1 baseline supplies an explicit empty evidence-catalog snapshot.  It
+therefore emits only `ContractOnly` for exact execution-admitted routes and
+`Missing` otherwise.  It does not infer `DirectGolden` from `GoldenVerified`,
+profile promotion, a test name, a filename, or a whole-file hash.  A later
+canonical golden/alias/oracle adapter must supply reviewed declarations to the
+same resolver before any stronger class can appear.
 
 See [ADR 0038](../adr/0038-versioned-publication-policy-and-evidence-status.md)
 for the architecture decision and migration gates.

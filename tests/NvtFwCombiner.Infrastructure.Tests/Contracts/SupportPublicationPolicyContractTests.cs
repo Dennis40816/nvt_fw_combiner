@@ -86,68 +86,6 @@ public sealed class SupportPublicationPolicyContractTests
         _ = Assert.Throws<InvalidDataException>(() => ValidateSourceSemantics(policy));
     }
 
-    /// <summary>Verifies evidence classification has one total, non-downgrading precedence order.</summary>
-    [Theory]
-    [InlineData(true, false, false, false, "DirectGolden")]
-    [InlineData(false, true, false, false, "ApprovedAlias")]
-    [InlineData(false, false, true, false, "SyntheticOracle")]
-    [InlineData(false, false, false, true, "ContractOnly")]
-    [InlineData(false, false, false, false, "Missing")]
-    [InlineData(true, true, false, false, "DirectGolden")]
-    [InlineData(true, false, true, false, "DirectGolden")]
-    [InlineData(true, false, false, true, "DirectGolden")]
-    [InlineData(false, true, true, false, "ApprovedAlias")]
-    [InlineData(false, true, false, true, "ApprovedAlias")]
-    [InlineData(false, false, true, true, "SyntheticOracle")]
-    [InlineData(true, true, true, true, "DirectGolden")]
-    [InlineData(false, true, true, true, "ApprovedAlias")]
-    public void EvidenceStatusUsesFixedStrongestEligiblePrecedence(
-        bool hasDirectGolden,
-        bool hasApprovedAlias,
-        bool hasSyntheticOracle,
-        bool hasContract,
-        string expected)
-    {
-        string actual = ResolveEvidenceStatus(
-            hasDirectGolden,
-            hasApprovedAlias,
-            hasSyntheticOracle,
-            hasContract);
-
-        Assert.Equal(expected, actual);
-    }
-
-    /// <summary>Verifies a mismatched route or alias fact scope never becomes eligible evidence.</summary>
-    [Theory]
-    [InlineData("nt51919-general-merge-generic", "nt51919-general-merge-generic", true, true)]
-    [InlineData("nt51919-general-merge-generic", "nt51919-general-replace-generic", true, false)]
-    [InlineData("nt51919-general-merge-generic", "nt51919-general-merge-generic", false, false)]
-    public void AliasEvidenceRequiresExactRouteAndApplicableFactScope(
-        string requestedRouteId,
-        string sourceRouteId,
-        bool factScopeApplies,
-        bool expectedEligible)
-    {
-        bool actual = IsAliasEvidenceEligible(
-            requestedRouteId,
-            sourceRouteId,
-            "nt51929-general-merge-generic",
-            factScopeApplies);
-
-        Assert.Equal(expectedEligible, actual);
-    }
-
-    /// <summary>Verifies direct, synthetic, and contract evidence require the exact canonical route.</summary>
-    [Theory]
-    [InlineData("nt51919-general-merge-generic", "nt51919-general-merge-generic", true)]
-    [InlineData("nt51919-general-merge-generic", "nt51919-general-replace-generic", false)]
-    public void ExactEvidenceRequiresExactCanonicalRoute(string requestedRouteId, string declarationRouteId, bool expectedEligible)
-    {
-        bool actual = IsExactEvidenceEligible(requestedRouteId, declarationRouteId);
-
-        Assert.Equal(expectedEligible, actual);
-    }
-
     private static EvaluationResults EvaluatePolicy(JsonObject policy)
     {
         using var document = JsonDocument.Parse(policy.ToJsonString());
@@ -208,36 +146,4 @@ public sealed class SupportPublicationPolicyContractTests
             : text;
     }
 
-    private static string ResolveEvidenceStatus(
-        bool hasDirectGolden,
-        bool hasApprovedAlias,
-        bool hasSyntheticOracle,
-        bool hasContract)
-    {
-        return hasDirectGolden
-            ? "DirectGolden"
-            : hasApprovedAlias
-                ? "ApprovedAlias"
-                : hasSyntheticOracle
-                    ? "SyntheticOracle"
-                    : hasContract
-                        ? "ContractOnly"
-                        : "Missing";
-    }
-
-    private static bool IsAliasEvidenceEligible(
-        string requestedRouteId,
-        string sourceRouteId,
-        string? targetRouteId,
-        bool factScopeApplies)
-    {
-        return StringComparer.Ordinal.Equals(requestedRouteId, sourceRouteId) &&
-        !string.IsNullOrWhiteSpace(targetRouteId) &&
-        factScopeApplies;
-    }
-
-    private static bool IsExactEvidenceEligible(string requestedRouteId, string declarationRouteId)
-    {
-        return StringComparer.Ordinal.Equals(requestedRouteId, declarationRouteId);
-    }
 }

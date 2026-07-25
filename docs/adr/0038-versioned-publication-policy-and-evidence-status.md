@@ -81,11 +81,36 @@ class from a filename, test name, profile-promotion field, or whole-file hash.
 The fixed order means a weaker source cannot downgrade a stronger one while
 the matrix is enumerated.
 
-The checked-in policy document is the reviewable source for the first
-implementation slice.  A later R2 materialization slice must include it in a
-hash-closed trusted bundle or equivalent release-pinned policy snapshot before
-runtime Settings consumes it.  Until then it has no runtime, UI, or release
-admission effect.
+The 0.10.1 baseline materializes this source through the Application-owned
+`SupportMatrixMaterializer`.  Infrastructure copies the source document to the
+runtime contract path and checks its canonical SHA-256 before deserializing it;
+the reviewed hash is pinned in `BuiltInSupportPublicationPolicy`.  Bootstrap's
+`CurrentSupportMatrixCatalog` supplies exact compile-admitted V2 and CtrlRAM
+routes, explicit General Merge generic routes, and coarse IC/workflow authoring
+scopes that cannot yet be bound to an exact route.  Such routes are represented
+as `AuthoringAvailability.Unknown`; the coarse source is always retained as
+`SourceScopeUnresolved`, even when an execution route exists for the same
+IC/workflow.  Every exact `Unknown` row independently retains an
+`AuthoringRouteUnresolved` diagnostic, including execution-only AB routes with
+no IC/workflow catalog source.  The public
+`WorkbenchCompositionService.GetSupportMatrix()` is the shared reporting seam
+for the later Settings and CLI consumers.
+
+This first materialization is intentionally a migration baseline, not a
+support-promotion pass.  It records `ContractOnly` only from exact execution
+contracts.  Its explicit evidence catalog is empty: it has no declared direct
+golden, alias, or synthetic-oracle source.  The Application resolver validates
+every future declaration against the same exact route snapshot: exact evidence
+must name its source route; an alias must name a resolvable direct-golden target
+route and a fact scope covering its source IC, workflow, IC Count, and map
+variant.  It does not reinterpret `GoldenVerified`, profile promotion, test
+names, filenames, or hashes as direct golden evidence.  It remains
+`IsMigrationReady == false` while
+the owner policy omits current exact routes, the NT51919 General Replace policy
+row has no exact source binding, or the IC/workflow authoring catalog remains
+too coarse to name an IC Count and map variant.  The retained diagnostics are
+the required fail-closed CI/reporting result; they never alter execution,
+authoring, UI visibility, or release admission.
 
 ## Consequences
 
@@ -112,17 +137,20 @@ admission effect.
 
 ## Migration and verification
 
-The policy-source slice introduces no runtime reader.  The eventual
-materializer and `CanonicalCapabilityCatalog` slice must prove:
+The materializer and the later `CanonicalCapabilityCatalog` convergence must
+prove:
 
 1. every policy `routeId` resolves exactly once in its catalog snapshot;
 2. every current catalog route without a row is `unclassified`;
 3. no policy value changes authoring availability or execution admission;
 4. evidence source precedence produces only the five declared values, rejects
-   wrong-route/wrong-scope aliases, and retains the strongest eligible
-   declaration; and
+   wrong-route, unresolved-target, and wrong-scope aliases, and retains the
+   strongest eligible declaration; and
 5. policy/evidence changes are recorded in the SupportMatrix and CI output
-   with policy and evidence provenance.
+   with policy and evidence provenance; and
+6. a hash mismatch rejects the policy before any row can materialize.
 
-The implementation requires independent architecture/contract review before a
-runtime reader or trusted-bundle materialization is merged.
+The current baseline has narrow Application, Infrastructure, and Bootstrap
+projection tests for those facts.  It requires independent architecture/contract
+review before merge.  Rendering a Settings table remains a consumer change; it
+must read this projection rather than create another status catalog.
