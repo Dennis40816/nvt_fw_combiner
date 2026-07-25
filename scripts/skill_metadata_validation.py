@@ -113,7 +113,10 @@ def validate_skill_metadata_fields(
     short_description = interface.get("short_description")
     if (
         isinstance(short_description, str)
-        and not 25 <= len(short_description) <= 64
+        and not (
+            25 <= len(short_description.strip())
+            and len(short_description) <= 64
+        )
     ):
         errors.append(
             "skill metadata short_description must contain 25 to 64 characters: "

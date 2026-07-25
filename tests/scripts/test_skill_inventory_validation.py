@@ -178,6 +178,19 @@ class SkillInventoryValidationTests(unittest.TestCase):
             )
         )
 
+    def test_rejects_short_description_whose_trimmed_length_is_below_bound(self) -> None:
+        name = "implicit-skill-blank"
+        self.write_skill(name, short_description=" " * 25)
+
+        errors = self.validate(expected={name}, user_invoked=set())
+
+        self.assertTrue(
+            any(
+                "short_description must contain 25 to 64 characters" in error
+                for error in errors
+            )
+        )
+
     def test_rejects_malformed_openai_yaml_before_field_validation(self) -> None:
         self.write_skill("implicit-skill")
         metadata_path = (
