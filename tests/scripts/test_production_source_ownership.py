@@ -12,8 +12,12 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
+from coverage_configuration_policy import (  # noqa: E402
+    validate_evaluated_test_coverage_collector,
+)
 from validate_repository import (  # noqa: E402
     evaluate_project_items,
+    is_solution_test_project,
     validate_evaluated_production_source_ownership,
     validate_production_source_ownership,
 )
@@ -34,6 +38,25 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
             relative, element_tree.fromstring(document), errors
         )
         return errors
+
+    def test_solution_test_project_identity_does_not_depend_on_project_property(
+        self,
+    ) -> None:
+        self.assertTrue(
+            is_solution_test_project(
+                "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj"
+            )
+        )
+        self.assertFalse(
+            is_solution_test_project(
+                "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj"
+            )
+        )
+        self.assertFalse(
+            is_solution_test_project(
+                "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj"
+            )
+        )
 
     def test_rejects_external_production_compile_include(self) -> None:
         errors = self.validate(
@@ -162,6 +185,58 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
         self.assertIsNone(result)
         self.assertEqual(1, len(errors))
         self.assertIn("requires restored assets", errors[0])
+
+    def test_accepts_centrally_defined_test_coverage_collector(self) -> None:
+        errors: list[str] = []
+
+        validate_evaluated_test_coverage_collector(
+            "tests/Product.Tests/Product.Tests.csproj",
+            {
+                "PackageReference": [
+                    {
+                        "Identity": "coverlet.collector",
+                        "PrivateAssets": "all",
+                        "DefiningProjectFullPath": str(ROOT / "Directory.Build.props"),
+                    }
+                ]
+            },
+            "coverlet.collector",
+            ROOT,
+            errors,
+        )
+
+        self.assertEqual([], errors)
+
+    def test_rejects_missing_or_locally_overridden_test_coverage_collector(
+        self,
+    ) -> None:
+        fixtures = (
+            [],
+            [
+                {
+                    "Identity": "coverlet.collector",
+                    "PrivateAssets": "all",
+                    "DefiningProjectFullPath": str(
+                        ROOT / "tests/Product.Tests/Product.Tests.csproj"
+                    ),
+                    "VersionOverride": "6.0.5",
+                }
+            ],
+        )
+        for references in fixtures:
+            with self.subTest(references=references):
+                errors: list[str] = []
+
+                validate_evaluated_test_coverage_collector(
+                    "tests/Product.Tests/Product.Tests.csproj",
+                    {"PackageReference": references},
+                    "coverlet.collector",
+                    ROOT,
+                    errors,
+                )
+
+                self.assertEqual(1, len(errors))
+                self.assertIn("centrally defined coverage collector", errors[0])
 
 
 if __name__ == "__main__":

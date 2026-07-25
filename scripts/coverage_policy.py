@@ -1,4 +1,4 @@
-"""Parse real coverage reports and enforce the 0.10.1 coverage policy.
+"""Parse real coverage reports and enforce the 0.10.x coverage policy.
 
 This module is deliberately library-only. ``scripts/verify.py`` remains the
 sole public verification entry point and owns report collection and policy

@@ -2,12 +2,24 @@
 
 from __future__ import annotations
 
+import tempfile
 import unittest
 from pathlib import Path
+import sys
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS = ROOT / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+
+from coverage_configuration_policy import (  # noqa: E402
+    validate_coverage_collector_pin,
+    validate_coverage_exclusion_policy,
+)
+from coverage_policy import load_baseline  # noqa: E402
+
 CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+MAIN_PACKAGE_WORKFLOW = ROOT / ".github" / "workflows" / "main-package.yml"
 VERIFIER = ROOT / "scripts" / "verify.py"
 
 
@@ -17,6 +29,13 @@ class CoverageCiContractTests(unittest.TestCase):
         dotnet_job = workflow[workflow.index("  dotnet:") :]
 
         self.assertIn("fetch-depth: 0", dotnet_job)
+
+    def test_package_job_fetches_the_fixed_coverage_baseline_revision(self) -> None:
+        workflow = MAIN_PACKAGE_WORKFLOW.read_text(encoding="utf-8")
+        package_job = workflow[workflow.index("  package:") :]
+
+        self.assertIn("python ./scripts/verify.py --all", package_job)
+        self.assertIn("fetch-depth: 0", package_job)
 
     def test_structure_job_does_not_restore_or_own_evaluated_project_policy(
         self,
@@ -52,6 +71,134 @@ class CoverageCiContractTests(unittest.TestCase):
         self.assertIn("name: dotnet-coverage", workflow)
         self.assertIn("path: artifacts/coverage/dotnet/", workflow)
         self.assertEqual(3, workflow.count("retention-days: 3"))
+
+    def test_collector_pin_matches_the_baseline_and_test_reference(self) -> None:
+        errors: list[str] = []
+
+        validate_coverage_collector_pin(load_baseline(), errors, ROOT)
+
+        self.assertEqual([], errors)
+
+    def test_collector_pin_rejects_version_and_test_reference_drift(self) -> None:
+        valid_reference = (
+            '<PackageReference Include="coverlet.collector" PrivateAssets="all" />'
+        )
+        for central_version, reference in (
+            ("6.0.5", valid_reference),
+            ("6.0.4", ""),
+            (
+                "6.0.4",
+                '<PackageReference Include="coverlet.collector" PrivateAssets="none" />',
+            ),
+        ):
+            with self.subTest(
+                central_version=central_version,
+                has_reference=bool(reference),
+            ):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    self.write_collector_fixture(root, central_version, reference)
+                    errors: list[str] = []
+
+                    validate_coverage_collector_pin(load_baseline(), errors, root)
+
+                    self.assertTrue(any("coverage collector" in error for error in errors))
+
+    def test_coverage_exclusion_policy_rejects_source_and_filter_escape_hatches(
+        self,
+    ) -> None:
+        fixtures = {
+            "src/Product/Hidden.cs": (
+                "using System.Diagnostics.CodeAnalysis;\n"
+                "[ExcludeFromCodeCoverage]\ninternal sealed class Hidden {}\n"
+            ),
+            "filters/ExcludeByFile.props": (
+                "<Project><PropertyGroup><ExcludeByFile>**/Hidden.cs</ExcludeByFile>"
+                "</PropertyGroup></Project>"
+            ),
+            "filters/Exclude.props": (
+                "<Project><PropertyGroup><exclude>[Product]*</exclude>"
+                "</PropertyGroup></Project>"
+            ),
+            "filters/Include.props": (
+                "<Project><PropertyGroup><iNcLuDe>[Product]*</iNcLuDe>"
+                "</PropertyGroup></Project>"
+            ),
+            "filters/SkipAutoProps.props": (
+                "<Project><PropertyGroup><skipautoprops>true</skipautoprops>"
+                "</PropertyGroup></Project>"
+            ),
+            "coverage.runsettings": "<RunSettings />",
+            "scripts/verify.py": "dotnet test --settings coverage.xml\n",
+            ".github/workflows/ci.yml": "run: dotnet test -p:Exclude=[Product]*\n",
+        }
+        for relative, content in fixtures.items():
+            with self.subTest(relative=relative):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    target = root / relative
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text(content, encoding="utf-8")
+                    errors: list[str] = []
+
+                    validate_coverage_exclusion_policy(root, [relative], errors)
+
+                    self.assertEqual(1, len(errors))
+                    self.assertIn("coverage", errors[0])
+
+    def test_coverage_exclusion_policy_accepts_normal_production_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "src/Product/Thing.cs"
+            source.parent.mkdir(parents=True)
+            source.write_text("internal sealed class Thing {}\n", encoding="utf-8")
+            project = root / "src/Product/Product.csproj"
+            project.write_text(
+                '<Project><ItemGroup><Compile Include="Thing.cs" /></ItemGroup>'
+                "<PropertyGroup><SkipAutoProps>false</SkipAutoProps></PropertyGroup>"
+                "</Project>",
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+
+            validate_coverage_exclusion_policy(
+                root,
+                ["src/Product/Thing.cs", "src/Product/Product.csproj"],
+                errors,
+            )
+
+            self.assertEqual([], errors)
+
+    @staticmethod
+    def write_collector_fixture(
+        root: Path, central_version: str, reference: str
+    ) -> None:
+        (root / "tools/crc-worker").mkdir(parents=True)
+        (root / "tools/crc-worker/pyproject.toml").write_text(
+            """
+[project]
+name = "fixture"
+version = "0"
+[project.optional-dependencies]
+dev = ["coverage==7.14.3", "pytest-cov==6.3.0"]
+""".strip(),
+            encoding="utf-8",
+        )
+        (root / "Directory.Packages.props").write_text(
+            (
+                "<Project><ItemGroup><PackageVersion "
+                f'Include="coverlet.collector" Version="{central_version}" />'
+                "</ItemGroup></Project>"
+            ),
+            encoding="utf-8",
+        )
+        (root / "Directory.Build.props").write_text(
+            (
+                "<Project><ItemGroup Condition=\"'$(IsTestProject)' == 'true'\">"
+                f"{reference}</ItemGroup></Project>"
+            ),
+            encoding="utf-8",
+        )
 
 
 if __name__ == "__main__":

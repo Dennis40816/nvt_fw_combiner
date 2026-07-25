@@ -27,14 +27,23 @@ compared as integer fractions, so a changed number of executable lines cannot
 hide a regression by rounding.
 
 The baseline records every production assembly, so a missing report cannot be
-hidden by the aggregate total. For `Domain` and `Application`, it additionally
-records the nonblank production-line count. A module is substantially changed
-at the earlier of 20 changed lines or 10% of its baseline nonblank lines. The
-change count is calculated from zero-context Git hunks relative to the fixed
-baseline: an added, removed, or substituted physical source line counts once;
-untracked new C# files, including blank physical lines, are included. On a
-substantial change the module must not regress from its own baseline and must
-meet at least 85% line and 80% branch coverage.
+hidden by the aggregate total. Unapproved production
+`ExcludeFromCodeCoverage` attributes, repository `.runsettings` files, and
+Coverlet include/exclude filter configuration are forbidden because they can
+silently shrink the executable denominator. Any future exception is a reviewed
+coverage-contract change with real before/after reports; it is not a local
+source or project setting. Structure validation pins the central collector
+version and test-only reference, while the restored .NET gate confirms every
+test project receives that exact central reference.
+
+For `Domain` and `Application`, the baseline additionally records the nonblank
+production-line count. A module is substantially changed at the earlier of 20
+changed lines or 10% of its baseline nonblank lines. The change count is
+calculated from zero-context Git hunks relative to the fixed baseline: an added,
+removed, or substituted physical source line counts once; untracked new C#
+files, including blank physical lines, are included. On a substantial change
+the module must not regress from its own baseline and must meet at least 85%
+line and 80% branch coverage.
 
 This is deliberately not a premature repository-wide 85%/80% fail-under. The
 existing baseline remains visible and non-decreasing while the maintainability
@@ -60,3 +69,7 @@ Changing the JSON is a policy decision, not generated output. A proposed change
 must include the real reports, a reviewable explanation of the source or
 collector change, focused parser/policy tests, and the canonical verification
 gate. It must not be used to mask lost coverage.
+
+The verifier does not rewrite this fixed floor or require every passing
+improvement to promote it. Raising the recorded floor is a separate reviewed
+policy decision with the same report provenance and no-regression evidence.

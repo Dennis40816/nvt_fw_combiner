@@ -20,6 +20,11 @@ from canonical_golden_validation import (
     validate_standard_merge_release_allowlist,
 )
 from code_size_policy import is_physical_source_file, review_code_size_policy
+from coverage_configuration_policy import (
+    validate_coverage_collector_pin,
+    validate_coverage_exclusion_policy,
+    validate_evaluated_test_coverage_collector,
+)
 from coverage_policy import load_baseline
 from diagnostic_golden_validation import validate_diagnostic_golden_separation
 from external_tool_policy import (
@@ -909,6 +914,17 @@ def normalize_project_reference(project: Path, include: str) -> str:
     )
 
 
+def is_solution_test_project(relative: str) -> bool:
+    """Classify solution test projects without trusting mutable project properties."""
+
+    path = PurePosixPath(relative)
+    return (
+        bool(path.parts)
+        and path.parts[0] == "tests"
+        and path.stem.endswith(".Tests")
+    )
+
+
 def validate_production_source_ownership(
     relative: str, project_root: ET.Element, errors: list[str]
 ) -> None:
@@ -934,13 +950,13 @@ def validate_production_source_ownership(
 def evaluate_project_items(
     project_path: Path, errors: list[str]
 ) -> dict[str, list[dict[str, Any]]] | None:
-    """Read evaluated Compile and Analyzer items, including imported package targets."""
+    """Read evaluated source and package items, including imported package targets."""
 
     assets_file = project_path.parent / "obj" / "project.assets.json"
     relative = project_path.relative_to(ROOT).as_posix()
     if not assets_file.is_file():
         errors.append(
-            f"production MSBuild evaluation requires restored assets: {relative}"
+            f"repository MSBuild evaluation requires restored assets: {relative}"
         )
         return None
     executable_name = "dotnet.exe" if sys.platform == "win32" else "dotnet"
@@ -955,6 +971,7 @@ def evaluate_project_items(
                 "-nologo",
                 "-getItem:Compile",
                 "-getItem:Analyzer",
+                "-getItem:PackageReference",
             ],
             cwd=ROOT,
             capture_output=True,
@@ -963,35 +980,35 @@ def evaluate_project_items(
         )
     except OSError as exc:
         errors.append(
-            f"could not start production MSBuild evaluation for {relative}: {exc}"
+            f"could not start repository MSBuild evaluation for {relative}: {exc}"
         )
         return None
     if result.returncode != 0:
         detail = result.stderr.strip() or result.stdout.strip()
         errors.append(
-            f"could not evaluate production MSBuild items for {relative}: {detail}"
+            f"could not evaluate repository MSBuild items for {relative}: {detail}"
         )
         return None
     try:
         document = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
         errors.append(
-            "could not parse evaluated production MSBuild items for "
+            "could not parse evaluated repository MSBuild items for "
             f"{relative}: {exc.msg}"
         )
         return None
     items = document.get("Items") if isinstance(document, dict) else None
     if not isinstance(items, dict):
-        errors.append(f"evaluated production MSBuild items are invalid for {relative}")
+        errors.append(f"evaluated repository MSBuild items are invalid for {relative}")
         return None
     typed_items: dict[str, list[dict[str, Any]]] = {}
-    for kind in ("Compile", "Analyzer"):
+    for kind in ("Compile", "Analyzer", "PackageReference"):
         value = items.get(kind)
         if not isinstance(value, list) or not all(
             isinstance(item, dict) for item in value
         ):
             errors.append(
-                f"evaluated production MSBuild {kind} items are invalid for {relative}"
+                f"evaluated repository MSBuild {kind} items are invalid for {relative}"
             )
             return None
         typed_items[kind] = value
@@ -1036,48 +1053,38 @@ def validate_evaluated_production_source_ownership(
         )
 
 
-def validate_restored_production_source_ownership(errors: list[str]) -> None:
-    """Evaluate every production project after the canonical .NET owner restores."""
+def validate_restored_project_contracts(errors: list[str]) -> None:
+    """Evaluate source ownership and test collectors after the .NET owner restores."""
 
+    try:
+        baseline = load_baseline(ROOT / "docs/contracts/coverage-baseline-v1.json")
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        errors.append(f"coverage baseline validation failed: {exc}")
+        return
+    collector = baseline["collection"]["dotnet"]["collector"]
     for relative in sorted(EXPECTED_PROJECT_REFERENCES):
-        if not relative.startswith("src/"):
-            continue
         project_path = ROOT / relative
+        is_test_project = is_solution_test_project(relative)
+        if not relative.startswith("src/") and not is_test_project:
+            continue
         items = evaluate_project_items(project_path, errors)
-        if items is not None:
+        if items is None:
+            continue
+        if relative.startswith("src/"):
             validate_evaluated_production_source_ownership(
                 relative,
                 project_path.parent,
                 items,
                 errors,
             )
-
-
-def validate_coverage_collector_pin(errors: list[str]) -> None:
-    """Keep the baseline's coverage collector identities reproducible in CI."""
-
-    pyproject = tomllib.loads(
-        (ROOT / "tools/crc-worker/pyproject.toml").read_text(encoding="utf-8")
-    )
-    development_dependencies = (
-        pyproject.get("project", {}).get("optional-dependencies", {}).get("dev")
-    )
-    expected = {"coverage==7.14.3", "pytest-cov==6.3.0"}
-    collector_dependencies = (
-        {
-            dependency
-            for dependency in development_dependencies
-            if isinstance(dependency, str)
-            and dependency.casefold().startswith(("coverage", "pytest-cov"))
-        }
-        if isinstance(development_dependencies, list)
-        else set()
-    )
-    if collector_dependencies != expected:
-        errors.append(
-            "tools/crc-worker/pyproject.toml must exactly pin the approved "
-            "Python coverage collector versions"
-        )
+        if is_test_project:
+            validate_evaluated_test_coverage_collector(
+                relative,
+                items,
+                collector,
+                ROOT,
+                errors,
+            )
 
 
 def validate_solution_and_dependencies(errors: list[str]) -> None:
@@ -1201,6 +1208,16 @@ def validate_workflows(errors: list[str]) -> None:
     dotnet_job = ci[ci.index("  dotnet:") :] if "  dotnet:" in ci else ""
     if "fetch-depth: 0" not in dotnet_job:
         errors.append("CI dotnet job must fetch the fixed coverage baseline revision")
+    main_package = (ROOT / ".github/workflows/main-package.yml").read_text(
+        encoding="utf-8"
+    )
+    if (
+        "python ./scripts/verify.py --all" in main_package
+        and "fetch-depth: 0" not in main_package
+    ):
+        errors.append(
+            "main package workflow must fetch the fixed coverage baseline revision"
+        )
     for marker in (
         "name: python-coverage",
         "path: artifacts/coverage/python/",
@@ -1340,6 +1357,7 @@ def validate() -> list[str]:
     files = repository_files()
     validate_required_files(errors)
     validate_forbidden_tracked_content(files, errors)
+    validate_coverage_exclusion_policy(ROOT, files, errors)
     validate_structured_files(files, errors)
     validate_python_syntax(files, errors)
     validate_markdown_links(files, errors)
@@ -1355,11 +1373,13 @@ def validate() -> list[str]:
     validate_version_license_and_sdk(errors)
     validate_solution_and_dependencies(errors)
     validate_contract_model(errors)
+    baseline: dict[str, Any] | None = None
     try:
-        load_baseline(ROOT / "docs/contracts/coverage-baseline-v1.json")
+        baseline = load_baseline(ROOT / "docs/contracts/coverage-baseline-v1.json")
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         errors.append(f"coverage baseline validation failed: {exc}")
-    validate_coverage_collector_pin(errors)
+    if baseline is not None:
+        validate_coverage_collector_pin(baseline, errors, ROOT)
     validate_workflows(errors)
     validate_packaging_policy(files, errors)
     validate_agent_files(errors)
@@ -1376,12 +1396,12 @@ def main(arguments: list[str] | None = None) -> int:
             )
             return 2
         errors: list[str] = []
-        validate_restored_production_source_ownership(errors)
+        validate_restored_project_contracts(errors)
         if errors:
             for error in sorted(set(errors)):
                 print(f"ERROR: {error}", file=sys.stderr)
             return 1
-        print("Restored production source ownership validation passed.")
+        print("Restored source ownership and test coverage collector validation passed.")
         return 0
 
     for finding in review_code_size_policy(ROOT):
