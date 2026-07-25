@@ -37,6 +37,8 @@ class CodeSizePolicyTests(unittest.TestCase):
         partial_max: int = 100,
         exact_partials: dict[str, int] | None = None,
         named_partial_maximums: dict[str, int] | None = None,
+        runtime_baseline: int | None = None,
+        runtime_target: int | None = None,
     ) -> CodeSizeLimits:
         return CodeSizeLimits(
             production_nonblank=production,
@@ -44,6 +46,8 @@ class CodeSizePolicyTests(unittest.TestCase):
             partial_type_default_max=partial_max,
             partial_type_exact_ratchets=exact_partials or {},
             partial_type_named_maximums=named_partial_maximums or {},
+            runtime_production_baseline=runtime_baseline,
+            runtime_production_target=runtime_target,
         )
 
     def review(self, limits: CodeSizeLimits) -> list[str]:
@@ -190,6 +194,31 @@ class CodeSizePolicyTests(unittest.TestCase):
 
         self.assertEqual(2, workbench.file_count)
         self.assertEqual(6, workbench.nonblank_lines)
+
+    def test_measures_only_non_ui_runtime_csharp_and_worker_python(self) -> None:
+        self.write("src/Product/Program.cs", "one\n\ntwo\n")
+        self.write(
+            "src/NvtFwCombiner.Presentation.Avalonia/View.cs",
+            "excluded\nfrom-runtime-metric\n",
+        )
+        self.write("src/Product/View.axaml", "counted-by-existing-metric\n")
+        self.write("tools/crc-worker/src/worker.py", "worker\n\nline\n")
+        self.write("tools/crc-worker/src/__pycache__/cached.py", "ignored\n")
+
+        snapshot = measure_code_size(self.root)
+        findings = self.review(
+            self.limits(production=5, runtime_baseline=4, runtime_target=2)
+        )
+
+        self.assertEqual(2, snapshot.runtime_production_files)
+        self.assertEqual(4, snapshot.runtime_production_nonblank)
+        self.assertTrue(
+            any(
+                "runtime production metric: 2 files / 4 nonblank lines "
+                "(baseline 4, delta +0; final target <= 2)" in finding
+                for finding in findings
+            )
+        )
 
 
 if __name__ == "__main__":
