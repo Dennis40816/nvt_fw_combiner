@@ -40,15 +40,18 @@ public sealed class SupportPublicationPolicyContractTests
                     "test-only"),
                 (
                     "route-7-nt51950-8-ab-merge-4-1-ic-21-" +
-                        "nt51950-ab-merge-512k-integrity-de1df72be12d1b57",
+                        "nt51950-ab-merge-512k-integrity-" +
+                        "de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab",
                     "candidate"),
                 (
                     "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-" +
-                        "nt51950-ab-merge-1024k-integrity-de1df72be12d1b57",
+                        "nt51950-ab-merge-1024k-integrity-" +
+                        "de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab",
                     "candidate"),
                 (
                     "route-7-nt51951-8-ab-merge-13-selector-free-22-" +
-                        "nt51951-ab-merge-1024k-integrity-6435dea0731a432f",
+                        "nt51951-ab-merge-1024k-integrity-" +
+                        "6435dea0731a432f950b22ae880dab32329ef1f04bb449f8a2556552791f5622",
                     "candidate"),
             ],
             Decisions(policy));

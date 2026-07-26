@@ -12,7 +12,7 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateMerge();
         Assert.Equal(
-            "669860799db585ab3d2064debf4b0a64d2192c1a2a972e431f1d23c09e305bb5",
+            "2504b2afade952c5e2f9ade9323396454f7d65484654704d0c4c268816c997d5",
             composition.CompilationFingerprint);
 
         Assert.Equal("profile-a", composition.ProfileId);

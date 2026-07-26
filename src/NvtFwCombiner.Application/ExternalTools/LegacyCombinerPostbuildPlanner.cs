@@ -14,6 +14,23 @@ public static partial class LegacyCombinerPostbuildPlanner
         ArgumentNullException.ThrowIfNull(profile);
 
         LegacyCombinerPostbuildPlanSelector selector = ResolveSelector(profile, icNumberSelection);
+        return CreatePlan(profile, selector);
+    }
+
+    /// <summary>Creates a command plan from one exact selector owned by the supplied profile.</summary>
+    public static LegacyCombinerPostbuildCommandPlan CreatePlan(
+        LegacyCombinerPostbuildProfile profile,
+        LegacyCombinerPostbuildPlanSelector selector)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullException.ThrowIfNull(selector);
+        if (!profile.PlanSelectors.Contains(selector))
+        {
+            throw new ArgumentException(
+                "The selected postbuild plan selector must belong to the supplied profile.",
+                nameof(selector));
+        }
+
         LegacyCombinerPostbuildBranch branch = selector.Branch;
         IReadOnlyList<LegacyCombinerPostbuildCommand> commands = branch switch
         {
@@ -21,7 +38,7 @@ public static partial class LegacyCombinerPostbuildPlanner
             LegacyCombinerPostbuildBranch.TwoChip => profile.TwoChipCommands!,
             LegacyCombinerPostbuildBranch.ThreeChip => profile.ThreeChipCommands!,
             LegacyCombinerPostbuildBranch.Cascade => profile.CascadeCommands,
-            _ => throw new ArgumentOutOfRangeException(nameof(icNumberSelection), "Unsupported postbuild branch."),
+            _ => throw new ArgumentOutOfRangeException(nameof(selector), "Unsupported postbuild branch."),
         };
         return new LegacyCombinerPostbuildCommandPlan(profile, selector, commands);
     }

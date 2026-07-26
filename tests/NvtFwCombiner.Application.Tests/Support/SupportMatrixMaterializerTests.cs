@@ -81,7 +81,7 @@ public sealed partial class SupportMatrixMaterializerTests
         Assert.NotEqual(first.RouteId, different.RouteId);
         Assert.Matches(
             "^route-7-nt51926-15-ctrlram-replace-4-1-ic-28-" +
-            "nt51926-ctrlram-fw200-single-integrity-[0-9a-f]{16}$",
+            "nt51926-ctrlram-fw200-single-integrity-[0-9a-f]{64}$",
             first.RouteId);
     }
 

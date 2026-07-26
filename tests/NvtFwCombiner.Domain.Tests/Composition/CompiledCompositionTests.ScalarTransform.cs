@@ -12,7 +12,7 @@ public sealed partial class CompiledCompositionTests
 
         Assert.NotNull(composition.IntegrityFingerprint);
         Assert.Equal(
-            "b9e6b7a2128f16631bac175e9b302e27b69ceecca2536bbc9a888d8f1258cc2c",
+            "7f6978447437adac3da4a8eee08b9027a5ca65d47b165b309ffb8ba061fcf174",
             composition.CompilationFingerprint);
     }
 

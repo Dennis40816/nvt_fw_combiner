@@ -68,9 +68,10 @@ public sealed partial class CompositionRunRequestV2Tests
     [Fact]
     public void RuntimeReferenceCandidateHasStableCompilationFingerprint()
     {
+        CompiledComposition candidate = CreateRuntimeReferenceCandidate();
         Assert.Equal(
-            "4abd207b9d82473e7b9224387bf8ed32e84fbaccd89acd7a97ad94640f298625",
-            CreateRuntimeReferenceCandidate().CompilationFingerprint);
+            "2033ebd60caa4c4c058088533be283b044da14f463b2012ea3a998b3a10dbe3b",
+            candidate.CompilationFingerprint);
     }
 
     /// <summary>Verifies the conditional processor capability is explicit fingerprint-bound authority.</summary>

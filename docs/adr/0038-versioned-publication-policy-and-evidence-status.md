@@ -39,10 +39,14 @@ that route. A missing policy row also resolves to `unclassified`.
 The canonical route renderer length-frames the IC, workflow, IC Count, and map
 axes before joining them, so hyphens inside one axis cannot collide with an
 adjacent axis. Consumers still treat `routeId` as opaque. Integrity identity is
-derived from the canonical compiled operation representation rather than a
-second offset/range model. It covers both external-processor operations and
-host-side `transform-scalar` relocation, including the relocation fields and
-delta already owned by the compiled plan.
+represented in `routeId` by its complete lowercase 64-hex SHA-256 digest;
+truncated digests are not route identities. AB integrity derives from the
+canonical compiled operation representation rather than a second offset/range
+model. It covers both external-processor operations and host-side
+`transform-scalar` relocation, including the relocation fields and delta
+already owned by the compiled plan. CtrlRAM integrity derives from the selected
+canonical postbuild plan and binds its selector, commands, blocks, staged
+sources, permitted writes, and map capacity.
 
 The policy JSON is the only authority for publication status. It cannot set
 authoring availability, execution admission, profile selection, firmware
@@ -72,9 +76,12 @@ does not copy firmware facts or grant execution. During migration its
 denominator is the union of selectable, executable, and publication sources.
 Every unresolved or divergent source remains a fail-closed diagnostic.
 
-The completed #170 baseline loads the policy only after its canonical bytes
-match the reviewed SHA-256, materializes it against the same current route
-snapshot, and exposes a fresh immutable query through
+The completed #170 baseline loads the policy only after its exact raw bytes
+match the reviewed SHA-256; line-ending, whitespace, and encoding
+normalization are not permitted. Application then validates semantic-version
+and ISO `yyyy-MM-dd` provenance-date syntax independently of the Infrastructure
+adapter, materializes the policy against the same current route snapshot, and
+exposes a fresh immutable query through
 `WorkbenchCompositionService.GetSupportMatrix()`. Infrastructure declares the
 policy as both build and publish content at the same relative path used by the
 loader. Tests prove the deployed file exists, the publish metadata remains

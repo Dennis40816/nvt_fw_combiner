@@ -118,7 +118,7 @@ public sealed record SupportPublicationPolicySnapshot
     /// <summary>Loaded policy version.</summary>
     public string PolicyVersion { get; }
 
-    /// <summary>Canonical SHA-256 of the loaded source bytes.</summary>
+    /// <summary>SHA-256 of the exact loaded source bytes.</summary>
     public string Sha256 { get; }
 
     /// <summary>Owned exact-route decisions.</summary>

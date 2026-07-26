@@ -111,6 +111,41 @@ public sealed partial class SupportMatrixMaterializerTests
                 EvidenceCatalog()));
     }
 
+    /// <summary>Application owns policy version and provenance-date syntax for every adapter.</summary>
+    [Theory]
+    [InlineData("policy-version")]
+    [InlineData("superseded-version")]
+    [InlineData("recorded-on")]
+    public void RejectsAdapterIndependentPolicySyntax(string mutation)
+    {
+        SupportRouteDescriptor route = Route();
+        SupportPublicationPolicySnapshot? prior =
+            mutation == "superseded-version"
+                ? Policy(Decision(route.RouteId))
+                : null;
+        SupportPublicationProvenance provenance = mutation == "recorded-on"
+            ? new SupportPublicationProvenance(
+                "owner-decision",
+                "2026-02-30",
+                "owner-chat:test",
+                "test")
+            : Provenance();
+        SupportPublicationPolicySnapshot policy = new(
+            "support-publication-policy",
+            mutation == "policy-version" ? "01.0.0" : "2.0.0",
+            new string('b', 64),
+            [new SupportPublicationDecision(
+                "candidate-route-v2",
+                route.RouteId,
+                SupportPublicationStatus.Candidate,
+                provenance)],
+            mutation == "superseded-version" ? "01.0.0" : null,
+            mutation == "superseded-version" ? prior!.Sha256 : null);
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            SupportPublicationPolicyValidator.Validate(policy, prior));
+    }
+
     /// <summary>Policy hash and supersession relationships fail closed.</summary>
     [Theory]
     [InlineData("invalid-hash")]

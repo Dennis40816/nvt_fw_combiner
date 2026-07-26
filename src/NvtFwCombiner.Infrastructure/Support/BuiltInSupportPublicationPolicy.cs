@@ -1,15 +1,14 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using NvtFwCombiner.Application.Support;
 
 namespace NvtFwCombiner.Infrastructure.Support;
 
 /// <summary>Loads the owner publication policy after its bytes match the reviewed hash.</summary>
-internal static partial class BuiltInSupportPublicationPolicy
+internal static class BuiltInSupportPublicationPolicy
 {
     private const string ExpectedSha256 =
-        "18be74ba5f56ebdd66da419dc258c6432108205639bdce62c684f9b3adff0b51";
+        "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2";
     internal static IReadOnlyList<PinnedSupportPublicationPolicyFile>
         HistoryFiles
     { get; } =
@@ -95,7 +94,7 @@ internal static partial class BuiltInSupportPublicationPolicy
         ReadOnlySpan<byte> bytes,
         string expectedSha256)
     {
-        PolicyDocument document = PinnedJsonCatalogLoader.Load(
+        PolicyDocument document = PinnedJsonCatalogLoader.LoadExact(
             bytes,
             expectedSha256,
             "Built-in support publication policy",
@@ -107,9 +106,6 @@ internal static partial class BuiltInSupportPublicationPolicy
                 document.PolicyId,
                 "support-publication-policy") ||
             !IsIsoDate(document.IssuedOn) ||
-            !IsSemanticVersion(document.PolicyVersion) ||
-            (document.SupersedesPolicyVersion is not null &&
-                !IsSemanticVersion(document.SupersedesPolicyVersion)) ||
             ((document.SupersedesPolicyVersion is null) !=
                 (document.SupersedesPolicySha256 is null)) ||
             document.Decisions is null ||
@@ -120,7 +116,7 @@ internal static partial class BuiltInSupportPublicationPolicy
             : new SupportPublicationPolicySnapshot(
             document.PolicyId,
             document.PolicyVersion,
-            PinnedJsonCatalogLoader.ComputeCanonicalSha256(bytes),
+            PinnedJsonCatalogLoader.ComputeSha256(bytes),
             document.Decisions!.Select(CreateDecision),
             document.SupersedesPolicyVersion,
             document.SupersedesPolicySha256);
@@ -130,9 +126,7 @@ internal static partial class BuiltInSupportPublicationPolicy
     {
         ProvenanceDocument provenance =
             source.Provenance ?? throw Invalid("decision provenance");
-        return !IsIsoDate(provenance.RecordedOn)
-            ? throw Invalid("decision provenance date")
-            : new SupportPublicationDecision(
+        return new SupportPublicationDecision(
             source.DecisionId,
             source.RouteId,
             source.Status switch
@@ -162,16 +156,6 @@ internal static partial class BuiltInSupportPublicationPolicy
                 DateTimeStyles.None,
                 out _);
     }
-
-    private static bool IsSemanticVersion(string? value)
-    {
-        return value is not null && SemanticVersionPattern().IsMatch(value);
-    }
-
-    [GeneratedRegex(
-        "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex SemanticVersionPattern();
 
     private static InvalidDataException Invalid(string field)
     {

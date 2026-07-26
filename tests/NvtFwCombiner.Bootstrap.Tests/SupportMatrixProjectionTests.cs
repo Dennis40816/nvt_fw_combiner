@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class SupportMatrixProjectionTests
 {
     private const string ExpectedPolicySha256 =
-        "18be74ba5f56ebdd66da419dc258c6432108205639bdce62c684f9b3adff0b51";
+        "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2";
 
     /// <summary>NT51950/951 AB publication decisions bind only to their exact map/count pairs.</summary>
     [Fact]
@@ -61,7 +61,8 @@ public sealed class SupportMatrixProjectionTests
                         "22:legacy-combiner-1.13.0|fingerprint:" +
                         "f859b871f87deb06e77b82bcb0dd0055638a23989a44be5344d6e1856cad385d",
                     "route-7-nt51950-8-ab-merge-4-1-ic-21-" +
-                        "nt51950-ab-merge-512k-integrity-de1df72be12d1b57"),
+                        "nt51950-ab-merge-512k-integrity-" +
+                        "de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab"),
                 (
                     "NT51950",
                     "transform-scalar:28:relocate-tpb-diff-for-b-bank|" +
@@ -69,7 +70,8 @@ public sealed class SupportMatrixProjectionTests
                         "22:legacy-combiner-1.13.0|fingerprint:" +
                         "f859b871f87deb06e77b82bcb0dd0055638a23989a44be5344d6e1856cad385d",
                     "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-" +
-                        "nt51950-ab-merge-1024k-integrity-de1df72be12d1b57"),
+                        "nt51950-ab-merge-1024k-integrity-" +
+                        "de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab"),
                 (
                     "NT51951",
                     "transform-scalar:28:relocate-tpb-diff-for-b-bank|" +
@@ -77,7 +79,8 @@ public sealed class SupportMatrixProjectionTests
                         "22:legacy-combiner-1.13.0|fingerprint:" +
                         "513690905d39f26ac8afb63a63d4efb9f24e9c0cc9bdbfc2df7028d6b655c252",
                     "route-7-nt51951-8-ab-merge-13-selector-free-22-" +
-                        "nt51951-ab-merge-1024k-integrity-6435dea0731a432f"),
+                        "nt51951-ab-merge-1024k-integrity-" +
+                        "6435dea0731a432f950b22ae880dab32329ef1f04bb449f8a2556552791f5622"),
             ],
             [
                 .. matrix.Rows
@@ -193,22 +196,26 @@ public sealed class SupportMatrixProjectionTests
         "NT51927",
         "2-ic",
         "nt51927-ctrlram-fw132-twochip-full-flash",
-        "nfc.nt51927.ctrlram-postbuild-v1:legacy-combiner-1.13.0:TwoChip")]
+        "nfc.nt51927.ctrlram-postbuild-v1:legacy-combiner-1.13.0:TwoChip|" +
+        "fingerprint:377e425b48b614b28362f38f4f62308ec79959a76727e4397d3055312e72a245")]
     [InlineData(
         "NT51928",
         "3-ic",
         "nt51928-ctrlram-fw140-threechip-full-flash",
-        "nfc.nt51928.ctrlram-postbuild-v1:legacy-combiner-1.13.0:ThreeChip")]
+        "nfc.nt51928.ctrlram-postbuild-v1:legacy-combiner-1.13.0:ThreeChip|" +
+        "fingerprint:7c8e24d9289f342ab1827dd1cc6b726af979b161f9a44a972f67a80eb3506c1e")]
     [InlineData(
         "NT51929",
         "2-8-ic",
         "nt51929-ctrlram-fw1x-cascade-full-flash",
-        "nfc.nt51929.ctrlram-postbuild-v1:legacy-combiner-1.13.0:Cascade")]
+        "nfc.nt51929.ctrlram-postbuild-v1:legacy-combiner-1.13.0:Cascade|" +
+        "fingerprint:7c191d49bec204a5a2b3dd28e69ffc3f53365e96772d0e0d87d34bd93e4a137e")]
     [InlineData(
         "NT51930",
         "2-13-ic",
         "nt51930-ctrlram-fw130-cascade3-full-flash",
-        "nfc.nt51930.ctrlram-postbuild-fw1.x:legacy-combiner-1.13.0:Cascade")]
+        "nfc.nt51930.ctrlram-postbuild-fw1.x:legacy-combiner-1.13.0:Cascade|" +
+        "fingerprint:de79bb73ff5246816eea66d274e3e310138bf9ac181430b8d3a1e4911a318029")]
     public void CtrlRamRowsRetainExactPostbuildIcCount(
         string icId,
         string icCountVariant,

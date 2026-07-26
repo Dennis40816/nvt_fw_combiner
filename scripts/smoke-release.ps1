@@ -33,7 +33,7 @@ $ApprovedSupportPublicationPolicyPackageContracts = @(
     [pscustomobject]@{
         path = 'docs/contracts/support-publication-policy-v1.json'
         role = 'publicationPolicy'
-        sha256 = '18be74ba5f56ebdd66da419dc258c6432108205639bdce62c684f9b3adff0b51'
+        sha256 = '365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2'
     }
 )
 if (@($ApprovedSupportPublicationPolicyPackageContracts).Count -eq 0) {

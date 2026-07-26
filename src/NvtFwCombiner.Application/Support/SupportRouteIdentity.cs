@@ -93,6 +93,6 @@ public sealed record SupportRouteIdentity
 
     private static string IntegrityRouteHash(string value)
     {
-        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)))[..16];
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
     }
 }

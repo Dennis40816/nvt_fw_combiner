@@ -8,8 +8,8 @@ namespace NvtFwCombiner.Domain.Composition;
 
 public sealed partial class CompiledComposition
 {
-    private const string LegacyFingerprintFormat = "nfc.compiled-composition.legacy.v2";
-    private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v4";
+    private const string LegacyFingerprintFormat = "nfc.compiled-composition.legacy.v3";
+    private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v5";
     private const string IntegrityFingerprintFormat =
         "nfc.compiled-composition.integrity.v1";
 

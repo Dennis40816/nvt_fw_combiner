@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Infrastructure.Tests.Support;
 public sealed class BuiltInSupportPublicationPolicyTests
 {
     private const string ExpectedSha256 =
-        "18be74ba5f56ebdd66da419dc258c6432108205639bdce62c684f9b3adff0b51";
+        "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2";
 
     /// <summary>The shipped policy loads only through its reviewed SHA-256.</summary>
     [Fact]
@@ -29,7 +29,8 @@ public sealed class BuiltInSupportPublicationPolicyTests
         Assert.Contains(policy.Decisions, decision =>
             decision.RouteId ==
                 "route-7-nt51950-8-ab-merge-4-1-ic-21-" +
-                    "nt51950-ab-merge-512k-integrity-de1df72be12d1b57" &&
+                    "nt51950-ab-merge-512k-integrity-" +
+                    "de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab" &&
             decision.Status == SupportPublicationStatus.Candidate);
     }
 
@@ -83,6 +84,24 @@ public sealed class BuiltInSupportPublicationPolicyTests
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             BuiltInSupportPublicationPolicy.Load(policy, ExpectedSha256));
+
+        Assert.Contains("hash mismatch", exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Runtime accepts only the exact bytes pinned by package and release manifests.</summary>
+    [Fact]
+    public void RejectsLineEndingRewriteAgainstRawPolicyHash()
+    {
+        byte[] policy = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+            "docs",
+            "contracts",
+            "support-publication-policy-v1.json"));
+        byte[] rewritten = Encoding.UTF8.GetBytes(
+            Encoding.UTF8.GetString(policy).ReplaceLineEndings("\r\n"));
+
+        Assert.NotEqual(policy, rewritten);
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            BuiltInSupportPublicationPolicy.Load(rewritten, ExpectedSha256));
 
         Assert.Contains("hash mismatch", exception.Message, StringComparison.Ordinal);
     }

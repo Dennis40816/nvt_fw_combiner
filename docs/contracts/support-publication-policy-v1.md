@@ -22,11 +22,15 @@ fields, derive routes from display labels, or use wildcards.
 
 The current canonical renderer length-frames each non-integrity axis before
 joining it, preventing a hyphen inside one value from creating the same id as a
-different axis tuple. Integrity identity covers both external processors and
-host-side scalar relocation and hashes the canonical compiled operation
-semantics; it does not maintain a second copy of offsets, ranges, scalar fields,
-or processor authority. Readers must not parse either representation to recover
-firmware facts.
+different axis tuple. When integrity applies, the route suffix is the complete
+lowercase 64-hex SHA-256 digest of the canonical integrity identity; truncation
+is forbidden. AB integrity identity covers external processors and host-side
+scalar relocation by referencing the canonical compiled operation semantics.
+CtrlRAM integrity identity binds the selected canonical postbuild plan,
+including selector, command, block, staged-source, permitted-write, and map
+capacity semantics. Neither route maintains a second copy of offsets, ranges,
+scalar fields, or processor authority. Readers must not parse either
+representation to recover firmware facts.
 
 `decisionId` is immutable. A changed decision receives a new id and policy
 version and may name the decisions it supersedes. Readers reject duplicate
@@ -40,9 +44,12 @@ oldest required packaged policy first and validates the ordered chain before
 Application materializes the current snapshot.
 
 The checked-in bytes are the reviewable source. Runtime loading must verify the
-pinned SHA-256 before deserializing an immutable snapshot. A hash mismatch,
-schema error, duplicate identity, invalid supersession, or unresolved route
-blocks materialization.
+pinned SHA-256 over the exact raw bytes before deserializing an immutable
+snapshot. Line-ending, whitespace, or encoding normalization is forbidden.
+Application validation independently enforces the policy semantic-version and
+ISO `yyyy-MM-dd` provenance-date syntax after deserialization, so adapter
+choice cannot bypass those rules. A hash mismatch, schema error, duplicate
+identity, invalid supersession, or unresolved route blocks materialization.
 
 ## Independence from execution and evidence
 

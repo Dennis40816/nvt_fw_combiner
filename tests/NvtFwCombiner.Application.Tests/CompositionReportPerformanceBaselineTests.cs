@@ -16,7 +16,7 @@ public sealed class CompositionReportPerformanceBaselineTests
     private const int DifferenceCount = 10_000;
     private const int BaselineJsonCharacterCount = 11_720_545;
     private const string BaselineOutputSha256 = "e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4";
-    private const string BaselineReportJsonSha256 = "77031021a24b74786eac5730ece15eae3540316a98f2e1ec101f89cc424da342";
+    private const string BaselineReportJsonSha256 = "8e708551c10a4d406f82e8bc4525ed66e2bf089769b0a6bf9ade8b093dbe0046";
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 18, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset CompletedAtUtc = StartedAtUtc.AddSeconds(1);
     private static readonly JsonSerializerOptions ReportJsonOptions = new()

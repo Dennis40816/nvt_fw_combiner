@@ -1,7 +1,10 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
+
 namespace NvtFwCombiner.Application.Support;
 
 /// <summary>Validates publication snapshot invariants independently from adapters.</summary>
-public static class SupportPublicationPolicyValidator
+public static partial class SupportPublicationPolicyValidator
 {
     /// <summary>
     /// Validates one ordered policy history and keeps decision identities immutable
@@ -121,7 +124,9 @@ public static class SupportPublicationPolicyValidator
                 nameof(policy));
         }
 
-        ValidateText(policy.PolicyVersion, nameof(policy.PolicyVersion));
+        ValidateSemanticVersion(
+            policy.PolicyVersion,
+            nameof(policy.PolicyVersion));
         if (policy.Sha256.Length != 64 ||
             policy.Sha256.Any(static character =>
                 character is not ((>= '0' and <= '9') or (>= 'a' and <= 'f'))))
@@ -133,7 +138,7 @@ public static class SupportPublicationPolicyValidator
 
         if (policy.SupersedesPolicyVersion is not null)
         {
-            ValidateText(
+            ValidateSemanticVersion(
                 policy.SupersedesPolicyVersion,
                 nameof(policy.SupersedesPolicyVersion));
             if (StringComparer.Ordinal.Equals(
@@ -200,7 +205,9 @@ public static class SupportPublicationPolicyValidator
                 nameof(decision));
         }
 
-        ValidateText(decision.Provenance.RecordedOn, nameof(decision.Provenance.RecordedOn));
+        ValidateIsoDate(
+            decision.Provenance.RecordedOn,
+            nameof(decision.Provenance.RecordedOn));
         ValidateText(decision.Provenance.RecordRef, nameof(decision.Provenance.RecordRef));
         ValidateText(decision.Provenance.Rationale, nameof(decision.Provenance.Rationale));
         foreach (string supersededId in decision.SupersedesDecisionIds)
@@ -251,6 +258,39 @@ public static class SupportPublicationPolicyValidator
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
     }
+
+    private static void ValidateSemanticVersion(
+        string value,
+        string parameterName)
+    {
+        if (value is null || !SemanticVersionPattern().IsMatch(value))
+        {
+            throw new ArgumentException(
+                "Publication policy versions must use semantic version syntax.",
+                parameterName);
+        }
+    }
+
+    private static void ValidateIsoDate(string value, string parameterName)
+    {
+        if (value is null ||
+            !DateOnly.TryParseExact(
+                value,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out _))
+        {
+            throw new ArgumentException(
+                "Publication provenance dates must use a valid ISO yyyy-MM-dd date.",
+                parameterName);
+        }
+    }
+
+    [GeneratedRegex(
+        "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex SemanticVersionPattern();
 
     private static void ValidateSha256(string value, string fieldName)
     {

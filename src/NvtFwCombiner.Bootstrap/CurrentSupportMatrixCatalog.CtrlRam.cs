@@ -52,9 +52,10 @@ internal static partial class CurrentSupportMatrixCatalog
                 continue;
             }
 
-            string integrityRouteId =
-                $"{postbuildProfile.ProcessorId}:" +
-                $"{postbuildProfile.ToolBindingId}:{route.Key.Branch}";
+            LegacyCombinerPostbuildCommandPlan plan =
+                LegacyCombinerPostbuildPlanner.CreatePlan(
+                    postbuildProfile,
+                    selector);
             foreach (FirmwareImageMap map in maps)
             {
                 TopologyRequirement mapRequirement =
@@ -72,6 +73,14 @@ internal static partial class CurrentSupportMatrixCatalog
                     continue;
                 }
 
+                string planFingerprint =
+                    LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
+                        plan,
+                        map.CapacityBytes);
+                string integrityRouteId =
+                    $"{postbuildProfile.ProcessorId}:" +
+                    $"{postbuildProfile.ToolBindingId}:{route.Key.Branch}|" +
+                    $"fingerprint:{planFingerprint}";
                 routes.Add(Route(
                     new SupportRouteIdentity(
                         route.Key.IcId,
