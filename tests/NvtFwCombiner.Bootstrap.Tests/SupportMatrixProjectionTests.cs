@@ -136,8 +136,6 @@ public sealed class SupportMatrixProjectionTests
         Assert.Equal(
             SupportEvidenceStatus.Missing,
             generalReplace.Evidence.Status);
-        Assert.DoesNotContain(matrix.Diagnostics, static diagnostic =>
-            diagnostic.Code == SupportMatrixMaterializer.PolicyRouteUnresolved);
         Assert.Contains(matrix.Diagnostics, static diagnostic =>
             diagnostic.Code == SupportMatrixMaterializer.SourceScopeUnresolved &&
             diagnostic.Subject ==
@@ -262,11 +260,6 @@ public sealed class SupportMatrixProjectionTests
             first.Rows.Select(static row => row.Route.Identity)
                 .Distinct()
                 .Count());
-        Assert.DoesNotContain(
-            first.Diagnostics,
-            static diagnostic =>
-                diagnostic.Code ==
-                    SupportMatrixMaterializer.PolicyRouteUnresolved);
         Assert.Equal(
             [
                 .. IcSupportCatalog.All

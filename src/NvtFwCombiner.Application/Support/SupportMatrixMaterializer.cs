@@ -12,9 +12,6 @@ public static class SupportMatrixMaterializer
     /// <summary>Diagnostic code for a hidden executable route lacking a safe policy state.</summary>
     public const string ExecutableNotSelectable = "support-matrix.executable-not-selectable";
 
-    /// <summary>Diagnostic code for a policy row without an exact route.</summary>
-    public const string PolicyRouteUnresolved = "support-matrix.policy-route-unresolved";
-
     /// <summary>Diagnostic code for a source too coarse to create an exact route.</summary>
     public const string SourceScopeUnresolved = "support-matrix.source-scope-unresolved";
 
@@ -39,6 +36,21 @@ public static class SupportMatrixMaterializer
         Dictionary<string, SupportRouteDescriptor> routesById = routeArray.ToDictionary(
             static route => route.RouteId,
             StringComparer.Ordinal);
+        string[] unresolvedPolicyRoutes =
+        [
+            .. policy.Decisions
+                .Where(decision => !routesById.ContainsKey(decision.RouteId))
+                .Select(static decision => decision.RouteId)
+                .Order(StringComparer.Ordinal),
+        ];
+        if (unresolvedPolicyRoutes.Length != 0)
+        {
+            throw new ArgumentException(
+                "Every publication policy route must resolve exactly once: " +
+                string.Join(", ", unresolvedPolicyRoutes),
+                nameof(policy));
+        }
+
         var evidenceResolver =
             SupportEvidenceResolver.Create(evidenceCatalog, routesById);
         var decisions = policy.Decisions.ToDictionary(
@@ -62,15 +74,6 @@ public static class SupportMatrixMaterializer
                 publication,
                 decision,
                 evidenceResolver.Resolve(route)));
-        }
-
-        foreach (SupportPublicationDecision decision in policy.Decisions.Where(
-                     decision => !routesById.ContainsKey(decision.RouteId)))
-        {
-            diagnostics.Add(new SupportMatrixDiagnostic(
-                PolicyRouteUnresolved,
-                decision.RouteId,
-                "Publication policy route does not resolve to one exact route."));
         }
 
         AddUnresolvedScopeDiagnostics(unresolvedScopes ?? [], diagnostics);

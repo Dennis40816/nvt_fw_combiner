@@ -113,9 +113,9 @@ public sealed partial class SupportMatrixMaterializerTests
         Assert.Equal("golden:vector", row.Evidence.SourceDeclarationId);
     }
 
-    /// <summary>Unmatched policy rows and unclassified routes fail closed.</summary>
+    /// <summary>An unmatched publication policy route blocks materialization.</summary>
     [Fact]
-    public void FailsMigrationForUnclassifiedRouteAndUnresolvedPolicyRoute()
+    public void RejectsUnresolvedPolicyRoute()
     {
         SupportPublicationPolicySnapshot policy = Policy(
             new SupportPublicationDecision(
@@ -124,16 +124,13 @@ public sealed partial class SupportMatrixMaterializerTests
                 SupportPublicationStatus.TestOnly,
                 Provenance()));
 
-        SupportMatrix matrix = SupportMatrixMaterializer.Materialize(
-            policy,
-            [Route()],
-            EvidenceCatalog());
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            SupportMatrixMaterializer.Materialize(
+                policy,
+                [Route()],
+                EvidenceCatalog()));
 
-        Assert.False(matrix.IsMigrationReady);
-        Assert.Contains(matrix.Diagnostics, diagnostic =>
-            diagnostic.Code == SupportMatrixMaterializer.UnclassifiedRoute);
-        Assert.Contains(matrix.Diagnostics, diagnostic =>
-            diagnostic.Code == SupportMatrixMaterializer.PolicyRouteUnresolved);
+        Assert.Contains("unresolved-route", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>An explicit unclassified decision is retained and remains migration-blocking.</summary>

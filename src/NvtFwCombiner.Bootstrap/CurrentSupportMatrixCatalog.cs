@@ -4,7 +4,10 @@ using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
-/// <summary>Projects current registration facts into one non-authorizing matrix.</summary>
+/// <summary>
+/// Temporary #170 characterization bridge over retiring catalogs.
+/// CanonicalCapabilityCatalog replaces it before #195 removes this projection.
+/// </summary>
 internal static partial class CurrentSupportMatrixCatalog
 {
     private static readonly SupportEvidenceCatalogSnapshot BaselineEvidence =
