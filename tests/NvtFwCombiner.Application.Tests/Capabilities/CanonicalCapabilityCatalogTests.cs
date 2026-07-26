@@ -61,6 +61,24 @@ public sealed class CanonicalCapabilityCatalogTests
             resolution.Capability.CapabilityFingerprint);
     }
 
+    /// <summary>A caller can resolve the sole map variant without restating map facts.</summary>
+    [Fact]
+    public void ResolveUniqueRouteUsesThePublishedSelectionAxes()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueueCapabilitySource(
+                CapabilityCatalogLoadResult.Success(CreateCandidate())));
+        _ = catalog.Reload(TestContext.Current.CancellationToken);
+
+        CapabilityResolutionResult resolution = catalog.ResolveUniqueRoute(
+            "NT51929",
+            "standard-merge",
+            "selector-free");
+
+        Assert.True(resolution.Succeeded);
+        Assert.Equal(Route.RouteId, resolution.Capability!.Identity.RouteId);
+    }
+
     /// <summary>Every successful publication receives a fresh token even for identical source bytes.</summary>
     [Fact]
     public void RepeatedSuccessfulReloadPublishesFreshResolutionToken()

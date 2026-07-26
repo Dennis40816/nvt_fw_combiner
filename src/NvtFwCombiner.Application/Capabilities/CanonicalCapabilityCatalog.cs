@@ -24,6 +24,9 @@ public static class CapabilityCatalogIssueCodes
     /// <summary>The requested exact route is absent from the current snapshot.</summary>
     public const string RouteUnavailable = "capability.route.unavailable";
 
+    /// <summary>Selection axes do not identify one exact map variant.</summary>
+    public const string RouteAmbiguous = "capability.route.ambiguous";
+
     /// <summary>The exact route is intentionally unavailable for authoring.</summary>
     public const string AuthoringUnavailable = "capability.authoring.unavailable";
 
@@ -174,6 +177,49 @@ public sealed class CanonicalCapabilityCatalog
                 CapabilityCatalogIssueCodes.CatalogUnavailable,
                 "No valid canonical capability catalog is loaded.")
             : Resolve(snapshot, routeId);
+    }
+
+    /// <summary>
+    /// Resolves the sole published map variant for selection axes that do not
+    /// restate a firmware map fact.
+    /// </summary>
+    public CapabilityResolutionResult ResolveUniqueRoute(
+        string icId,
+        string workflowId,
+        string icCountVariant)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(icCountVariant);
+        CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
+        if (snapshot is null)
+        {
+            return Failure(
+                CapabilityCatalogIssueCodes.CatalogUnavailable,
+                "No valid canonical capability catalog is loaded.");
+        }
+
+        ResolvedCapability[] matches =
+        [
+            .. snapshot.Capabilities.Where(capability =>
+                StringComparer.Ordinal.Equals(capability.Identity.IcId, icId) &&
+                StringComparer.Ordinal.Equals(
+                    capability.Identity.WorkflowId,
+                    workflowId) &&
+                StringComparer.Ordinal.Equals(
+                    capability.Identity.IcCountVariant,
+                    icCountVariant)),
+        ];
+        return matches.Length switch
+        {
+            0 => Failure(
+                CapabilityCatalogIssueCodes.RouteUnavailable,
+                "The requested selection is not present in the current catalog."),
+            > 1 => Failure(
+                CapabilityCatalogIssueCodes.RouteAmbiguous,
+                "The requested selection resolves to more than one map variant."),
+            _ => Resolve(snapshot, matches[0].Identity.RouteId),
+        };
     }
 
     private static CapabilityResolutionResult Resolve(

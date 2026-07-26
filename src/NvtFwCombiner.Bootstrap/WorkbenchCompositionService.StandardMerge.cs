@@ -5,7 +5,9 @@ public static partial class WorkbenchCompositionService
     /// <summary>Returns true when the selected IC has a built-in standard merge profile.</summary>
     public static bool IsStandardMergeSupported(string icId)
     {
-        return FindStandardMergeProfileSummaryByIc(icId) is { CompileSucceeded: true };
+        return IsCanonicalStandardMergePilot(icId)
+            ? ResolveCanonicalStandardMergeCapability(icId).Succeeded
+            : FindStandardMergeProfileSummaryByIc(icId) is { CompileSucceeded: true };
     }
 
     /// <summary>Gets the built-in standard merge profile id for the selected IC, if any.</summary>

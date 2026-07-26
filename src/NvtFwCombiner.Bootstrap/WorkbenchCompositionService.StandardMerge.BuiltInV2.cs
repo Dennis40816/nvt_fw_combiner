@@ -10,6 +10,24 @@ public static partial class WorkbenchCompositionService
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        return IsCanonicalStandardMergePilot(icId)
+            ? TryCompileCanonicalStandardMerge(
+                icId,
+                out composition,
+                out issues)
+            : TryCompileStandardMergeThroughMigrationAdapter(
+                icId,
+                dpInputLength,
+                out composition,
+                out issues);
+    }
+
+    private static bool TryCompileStandardMergeThroughMigrationAdapter(
+        string icId,
+        long? dpInputLength,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
         if (!BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
                 icId,
                 out BuiltInV2Registration? registration))
