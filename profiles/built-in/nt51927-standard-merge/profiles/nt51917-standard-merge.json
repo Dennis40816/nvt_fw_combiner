@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "profileId": "nt51917-standard-merge-gen-flash-alias",
-  "profileVersion": "0.5.0",
+  "profileVersion": "0.6.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -16,9 +16,9 @@
     "displayNameKey": "profile.nt51917.standard-merge"
   },
   "mapBinding": {
-    "familyId": "nt51927",
-    "familyVersion": "1.0.0",
-    "familyContentHash": "4eb967a44906205202e1a6d07418637562a6576dc2943ce7cb2b6b518d064360",
+    "familyId": "nt51917-nt51927-nt51928-canonical-container",
+    "familyVersion": "1.1.0",
+    "familyContentHash": "c427fa0086114906cd0b4d094a6b134054b400c5133e7e2e8e3281bb9403270e",
     "mapIds": [
       "nt51917-standard-merge-256k"
     ],

@@ -85,7 +85,8 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
     private static FirmwareFamilyDocument Document(
         FirmwareMetadataLocatorDocument? locator = null,
         FirmwareTopologyRequirementDocument? topology = null,
-        bool includePredicate = true)
+        bool includePredicate = true,
+        bool includeRelations = false)
     {
         FirmwareMetadataPredicateDocument[] predicates = includePredicate
             ?
@@ -118,7 +119,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
                     ["capability-evidence"]),
             ],
             [RegionSet()],
-            [MetadataSet(locator ?? AbsoluteLocator())],
+            [MetadataSet(locator ?? AbsoluteLocator(includeRelations), includeRelations)],
             [Map(topology ?? new FirmwareTopologyRequirementDocument("none"), predicates)],
             [],
             ["family-evidence"]);
@@ -157,28 +158,41 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             ["region-evidence"]);
     }
 
-    private static FirmwareMetadataSetDocument MetadataSet(FirmwareMetadataLocatorDocument locator)
+    private static FirmwareMetadataSetDocument MetadataSet(
+        FirmwareMetadataLocatorDocument locator,
+        bool includeRelations)
     {
+        FirmwareMetadataFieldRelationDocument[] relations = includeRelations
+            ?
+            [
+                new FirmwareMetadataFieldRelationDocument(
+                    "firmware-version-complement",
+                    "bitwise-complement",
+                    "firmware-version",
+                    "firmware-version-bar"),
+            ]
+            : [];
         return new FirmwareMetadataSetDocument(
             "metadata",
             [
                 new FirmwareMetadataStructureDocument(
                     "config",
                     "tp-firmware",
-                    Number("4"),
+                    Number(includeRelations ? "6" : "4"),
                     locator,
-                    Fields(),
+                    Fields(includeRelations),
                     [
                         new FirmwareByteAssertionDocument(Number("0"), "aa"),
                         new FirmwareByteAssertionDocument(Number("2"), "02", "0f"),
-                    ]),
+                    ],
+                    relations),
             ],
             ["metadata-evidence"]);
     }
 
-    private static FirmwareMetadataFieldDocument[] Fields()
+    private static FirmwareMetadataFieldDocument[] Fields(bool includeRelations)
     {
-        return
+        List<FirmwareMetadataFieldDocument> fields =
         [
             new FirmwareMetadataFieldDocument("raw", Number("0"), Number("1"), "bytes"),
             new FirmwareMetadataFieldDocument("label", Number("1"), Number("1"), "printable-ascii"),
@@ -196,6 +210,24 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
                 "signed-integer",
                 "big"),
         ];
+        if (includeRelations)
+        {
+            fields.Add(new FirmwareMetadataFieldDocument(
+                "firmware-version",
+                Number("4"),
+                Number("1"),
+                "unsigned-integer",
+                "little",
+                SourceName: "u8FWVersion"));
+            fields.Add(new FirmwareMetadataFieldDocument(
+                "firmware-version-bar",
+                Number("5"),
+                Number("1"),
+                "unsigned-integer",
+                "little"));
+        }
+
+        return [.. fields];
     }
 
     private static FirmwareImageMapDocument Map(
@@ -217,12 +249,12 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             ["map-evidence"]);
     }
 
-    private static FirmwareMetadataLocatorDocument AbsoluteLocator()
+    private static FirmwareMetadataLocatorDocument AbsoluteLocator(bool includeRelations = false)
     {
         return new FirmwareMetadataLocatorDocument(
             "absolute-range",
             "config-region",
-            Range: AddressedRange(0, 4));
+            Range: AddressedRange(0, includeRelations ? 6 : 4));
     }
 
     private static FirmwareMetadataLocatorDocument MarkerLocator(

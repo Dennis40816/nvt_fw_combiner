@@ -220,6 +220,23 @@ public sealed partial class RepositoryBoundaryTests
                     "composition-profile-v2.9.schema.json",
                     Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
+            else if (bundle.Attribute("Include")?.Value is
+                         "nt51927-standard-merge" or
+                         "nt51928-standard-merge")
+            {
+                Assert.Equal(
+                    "firmware-family-v1-relations.schema.json",
+                    Assert.Single(bundle.Elements("FirmwareFamilySchemaFile")).Value);
+                if (bundle.Attribute("Include")?.Value == "nt51928-standard-merge")
+                {
+                    Assert.Equal(
+                        "nt51927-standard-merge\\families\\nt51927-nt51928.json",
+                        Assert.Single(bundle.Elements("CanonicalFirmwareFamilySource")).Value);
+                    Assert.Equal(
+                        "families\\nt51927-nt51928.json",
+                        Assert.Single(bundle.Elements("CanonicalFirmwareFamilyDestination")).Value);
+                }
+            }
             else
             {
                 Assert.Empty(bundle.Elements());
@@ -244,8 +261,17 @@ public sealed partial class RepositoryBoundaryTests
             Assert.Single(document.Descendants("ItemDefinitionGroup")
                 .Descendants("BuiltInProfileBundle"))
                 .Element("CompositionProfileSchemaFile")?.Value);
+        Assert.Equal(
+            "firmware-family-v1.schema.json",
+            Assert.Single(document.Descendants("ItemDefinitionGroup")
+                .Descendants("BuiltInProfileBundle"))
+                .Element("FirmwareFamilySchemaFile")?.Value);
         Assert.Contains(
             "$(ProfileContractRoot)\\%(BuiltInProfileBundle.CompositionProfileSchemaFile)",
+            project,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "$(ProfileContractRoot)\\%(BuiltInProfileBundle.FirmwareFamilySchemaFile)",
             project,
             StringComparison.Ordinal);
         Assert.DoesNotContain("ProfileSchemaSourceRoot", project, StringComparison.Ordinal);
@@ -273,10 +299,37 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(
             "families\\nt51930.json",
             candidate.Element("CanonicalFirmwareFamilyDestination")?.Value);
-        Assert.Equal(2, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
+        Assert.Equal(5, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
             !string.IsNullOrWhiteSpace(element.Value)));
-        Assert.Equal(2, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
+        Assert.Equal(5, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
             !string.IsNullOrWhiteSpace(element.Value)));
+
+        foreach (string bundleId in new[]
+                 {
+                     "nt51917-nt51927-general-merge-logical-candidate",
+                     "nt51928-general-merge-logical-candidate",
+                     "nt51928-standard-merge",
+                 })
+        {
+            XElement sharedPartsConsumer = Assert.Single(
+                document.Descendants("BuiltInProfileBundle"),
+                bundle => StringComparer.Ordinal.Equals(
+                    bundle.Attribute("Include")?.Value,
+                    bundleId));
+            Assert.Equal(
+                "nt51927-standard-merge\\families\\nt51927-nt51928.json",
+                sharedPartsConsumer.Element("CanonicalFirmwareFamilySource")?.Value);
+            Assert.Equal(
+                "families\\nt51927-nt51928.json",
+                sharedPartsConsumer.Element("CanonicalFirmwareFamilyDestination")?.Value);
+            Assert.False(File.Exists(Path.Combine(
+                Root.FullName,
+                "profiles",
+                "built-in",
+                bundleId,
+                "families",
+                "nt51927-nt51928.json")));
+        }
 
         string canonicalFamilyPath = Path.Combine(
             Root.FullName,

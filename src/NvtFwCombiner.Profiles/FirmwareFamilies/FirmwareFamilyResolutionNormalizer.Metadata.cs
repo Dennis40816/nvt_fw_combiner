@@ -102,13 +102,41 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 $"{path}.assertions[{index}]");
         }
 
+        IReadOnlyList<FirmwareMetadataFieldRelationDocument> relationDocuments =
+            document.Relations ?? [];
+        var relations = new FirmwareMetadataFieldRelation[relationDocuments.Count];
+        for (int index = 0; index < relationDocuments.Count; index++)
+        {
+            relations[index] = NormalizeRelation(
+                relationDocuments[index],
+                $"{path}.relations[{index}]");
+        }
+
         return TranslateInvariant(path, () => new FirmwareMetadataStructure(
                 document.StructureId,
                 document.ArtifactBindingId,
                 ReadInt64(document.Length, 1, long.MaxValue, $"{path}.length"),
                 NormalizeLocator(document.Locator, $"{path}.locator"),
                 fields,
-                assertions));
+                assertions,
+                relations));
+    }
+
+    private static FirmwareMetadataFieldRelation NormalizeRelation(
+        FirmwareMetadataFieldRelationDocument document,
+        string path)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        FirmwareMetadataFieldRelationKind kind = document.Kind switch
+        {
+            "bitwise-complement" => FirmwareMetadataFieldRelationKind.BitwiseComplement,
+            _ => throw Error($"{path}.kind", "Unknown metadata field relation kind."),
+        };
+        return TranslateInvariant(path, () => new FirmwareMetadataFieldRelation(
+            document.RelationId,
+            kind,
+            document.SourceFieldId,
+            document.RelatedFieldId));
     }
 
     private static FirmwareMetadataField NormalizeField(
@@ -148,7 +176,8 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 ReadInt32(document.WidthBytes, 1, int.MaxValue, $"{path}.widthBytes"),
                 encoding,
                 byteOrder,
-                bitSlice);
+                bitSlice,
+                document.SourceName);
         });
     }
 

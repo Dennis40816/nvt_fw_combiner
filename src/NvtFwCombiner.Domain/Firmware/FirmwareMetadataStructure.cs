@@ -2,11 +2,12 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace NvtFwCombiner.Domain.Firmware;
 
-/// <summary>Immutable declaration of one located and asserted firmware metadata structure.</summary>
+/// <summary>Immutable declaration of one located firmware metadata structure.</summary>
 public sealed class FirmwareMetadataStructure
 {
     private readonly FirmwareMetadataField[] _fields;
     private readonly FirmwareMetadataByteAssertion[] _assertions;
+    private readonly FirmwareMetadataFieldRelation[] _relations;
 
     /// <summary>Creates a checked structure declaration without reading artifact bytes.</summary>
     public FirmwareMetadataStructure(
@@ -15,7 +16,8 @@ public sealed class FirmwareMetadataStructure
         long lengthBytes,
         FirmwareMetadataLocator locator,
         IEnumerable<FirmwareMetadataField> fields,
-        IEnumerable<FirmwareMetadataByteAssertion> assertions)
+        IEnumerable<FirmwareMetadataByteAssertion> assertions,
+        IEnumerable<FirmwareMetadataFieldRelation>? relations = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(structureId);
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
@@ -59,6 +61,20 @@ public sealed class FirmwareMetadataStructure
         }
 
         Array.Sort(_assertions, CompareAssertions);
+        _relations = Composition.ImmutableReferenceSnapshot.Create(
+            relations ?? [],
+            "Metadata structures cannot contain null relations.");
+        if (_relations.Select(static relation => relation.RelationId)
+            .Distinct(StringComparer.Ordinal).Count() != _relations.Length)
+        {
+            throw new ArgumentException(
+                "Metadata relation ids must be ordinally unique within a structure.",
+                nameof(relations));
+        }
+
+        ValidateRelations(_fields, _relations);
+        Array.Sort(_relations, static (left, right) =>
+            StringComparer.Ordinal.Compare(left.RelationId, right.RelationId));
         ValidateLocatorShape(locator, lengthBytes, _assertions.Length);
 
         StructureId = structureId;
@@ -67,6 +83,7 @@ public sealed class FirmwareMetadataStructure
         Locator = locator;
         Fields = Array.AsReadOnly(_fields);
         Assertions = Array.AsReadOnly(_assertions);
+        Relations = Array.AsReadOnly(_relations);
     }
 
     /// <summary>Family-wide canonical structure identifier.</summary>
@@ -86,6 +103,9 @@ public sealed class FirmwareMetadataStructure
 
     /// <summary>Assertions in deterministic structure-relative range order.</summary>
     public IReadOnlyList<FirmwareMetadataByteAssertion> Assertions { get; }
+
+    /// <summary>Typed validation relations in deterministic relation-id order.</summary>
+    public IReadOnlyList<FirmwareMetadataFieldRelation> Relations { get; }
 
     /// <summary>Atomically validates and decodes one already-located exact structure slice.</summary>
     public bool TryDecode(
@@ -109,6 +129,7 @@ public sealed class FirmwareMetadataStructure
         }
 
         List<FirmwareDecodedMetadataFact> facts = [];
+        var values = new Dictionary<string, FirmwareMetadataValue>(StringComparer.Ordinal);
         foreach (FirmwareMetadataField field in _fields)
         {
             int start = checked((int)field.Range.Start);
@@ -124,10 +145,59 @@ public sealed class FirmwareMetadataStructure
                 StructureId,
                 field.FieldId,
                 value));
+            values.Add(field.FieldId, value);
         }
 
-        result = new FirmwareDecodedMetadataStructure(ArtifactBindingId, StructureId, facts);
+        FirmwareDecodedMetadataRelation[] relations =
+        [
+            .. _relations.Select(relation =>
+            {
+                FirmwareMetadataField source = _fields.Single(field =>
+                    StringComparer.Ordinal.Equals(field.FieldId, relation.SourceFieldId));
+                return new FirmwareDecodedMetadataRelation(
+                    relation.RelationId,
+                    relation.Kind,
+                    relation.SourceFieldId,
+                    relation.RelatedFieldId,
+                    relation.Evaluate(values, source.WidthBytes));
+            }),
+        ];
+        result = new FirmwareDecodedMetadataStructure(
+            ArtifactBindingId,
+            StructureId,
+            facts,
+            relations);
         return true;
+    }
+
+    private static void ValidateRelations(
+        IReadOnlyList<FirmwareMetadataField> fields,
+        IReadOnlyList<FirmwareMetadataFieldRelation> relations)
+    {
+        var fieldsById =
+            fields.ToDictionary(static field => field.FieldId, StringComparer.Ordinal);
+        foreach (FirmwareMetadataFieldRelation relation in relations)
+        {
+            if (!fieldsById.TryGetValue(relation.SourceFieldId, out FirmwareMetadataField? source) ||
+                !fieldsById.TryGetValue(relation.RelatedFieldId, out FirmwareMetadataField? related))
+            {
+                throw new ArgumentException(
+                    $"Metadata relation '{relation.RelationId}' references an unknown field.",
+                    nameof(relations));
+            }
+
+            if (relation.Kind == FirmwareMetadataFieldRelationKind.BitwiseComplement &&
+                (source.Encoding != FirmwareMetadataEncoding.UnsignedInteger ||
+                 related.Encoding != FirmwareMetadataEncoding.UnsignedInteger ||
+                 source.BitSlice is not null ||
+                 related.BitSlice is not null ||
+                 source.WidthBytes != related.WidthBytes))
+            {
+                throw new ArgumentException(
+                    $"Metadata relation '{relation.RelationId}' requires unsliced equal-width unsigned fields.",
+                    nameof(relations));
+            }
+        }
     }
 
     private static void ValidateLocatorShape(
@@ -151,10 +221,11 @@ public sealed class FirmwareMetadataStructure
                 break;
             case FirmwareMarkerRelativeLocator marker:
                 _ = checked(marker.ResultOffset + lengthBytes);
-                if (assertionCount == 0)
+                if (assertionCount == 0 &&
+                    marker.Selection.Kind != FirmwareMarkerSelectionKind.Unique)
                 {
                     throw new ArgumentException(
-                        "Marker-relative metadata structures require an assertion.",
+                        "Non-unique marker-relative metadata structures require an assertion.",
                         nameof(locator));
                 }
 

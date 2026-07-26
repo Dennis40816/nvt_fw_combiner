@@ -132,7 +132,8 @@ public sealed class FirmwareMetadataStructureResolution
         string metadataStructureId,
         FirmwareMetadataStructureResolutionStatus status,
         FirmwareMetadataStructureResolutionFailure? failure,
-        FirmwareResolvedMetadataStructure? resolved)
+        FirmwareResolvedMetadataStructure? resolved,
+        int? observedMarkerMatchCount)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
@@ -170,12 +171,24 @@ public sealed class FirmwareMetadataStructureResolution
             throw new ArgumentException("A missing artifact is pending, not rejected.");
         }
 
+        bool isMarkerCardinalityRejection =
+            status == FirmwareMetadataStructureResolutionStatus.Rejected &&
+            failure == FirmwareMetadataStructureResolutionFailure.MarkerCardinalityMismatch;
+        if (observedMarkerMatchCount < 0 ||
+            isMarkerCardinalityRejection != (observedMarkerMatchCount is not null))
+        {
+            throw new ArgumentException(
+                "Marker-cardinality rejection requires its exact nonnegative observed match count, " +
+                "and no other outcome may carry one.");
+        }
+
         MapId = mapId;
         ArtifactBindingId = artifactBindingId;
         MetadataStructureId = metadataStructureId;
         Status = status;
         Failure = failure;
         Resolved = resolved;
+        ObservedMarkerMatchCount = observedMarkerMatchCount;
     }
 
     /// <summary>Candidate image-map identifier.</summary>
@@ -196,6 +209,9 @@ public sealed class FirmwareMetadataStructureResolution
     /// <summary>Successful locator and decode payload; null unless resolved.</summary>
     public FirmwareResolvedMetadataStructure? Resolved { get; }
 
+    /// <summary>Exact observed match count for marker-cardinality rejection.</summary>
+    public int? ObservedMarkerMatchCount { get; }
+
     internal static FirmwareMetadataStructureResolution Pending(
         string mapId,
         FirmwareMetadataStructure structure)
@@ -206,13 +222,15 @@ public sealed class FirmwareMetadataStructureResolution
             structure.StructureId,
             FirmwareMetadataStructureResolutionStatus.Pending,
             FirmwareMetadataStructureResolutionFailure.MissingArtifact,
-            resolved: null);
+            resolved: null,
+            observedMarkerMatchCount: null);
     }
 
     internal static FirmwareMetadataStructureResolution Rejected(
         string mapId,
         FirmwareMetadataStructure structure,
-        FirmwareMetadataStructureResolutionFailure failure)
+        FirmwareMetadataStructureResolutionFailure failure,
+        int? observedMarkerMatchCount = null)
     {
         return new FirmwareMetadataStructureResolution(
             mapId,
@@ -220,7 +238,8 @@ public sealed class FirmwareMetadataStructureResolution
             structure.StructureId,
             FirmwareMetadataStructureResolutionStatus.Rejected,
             failure,
-            resolved: null);
+            resolved: null,
+            observedMarkerMatchCount);
     }
 
     internal static FirmwareMetadataStructureResolution Success(
@@ -233,6 +252,7 @@ public sealed class FirmwareMetadataStructureResolution
             resolved.DecodedStructure.MetadataStructureId,
             FirmwareMetadataStructureResolutionStatus.Resolved,
             failure: null,
-            resolved);
+            resolved,
+            observedMarkerMatchCount: null);
     }
 }

@@ -137,6 +137,216 @@ public sealed class FirmwareMetadataStructureDecodingTests
         Assert.Equal("0001", fact.Value.BytesValue?.Hex);
     }
 
+    /// <summary>Verifies typed field relations report validation without discarding decoded facts.</summary>
+    [Fact]
+    public void TryDecodeEvaluatesBitwiseComplementRelation()
+    {
+        FirmwareMetadataField[] fields =
+        [
+            new FirmwareMetadataField(
+                "firmware-version",
+                0,
+                1,
+                FirmwareMetadataEncoding.UnsignedInteger,
+                FirmwareMetadataByteOrder.LittleEndian),
+            new FirmwareMetadataField(
+                "firmware-version-bar",
+                1,
+                1,
+                FirmwareMetadataEncoding.UnsignedInteger,
+                FirmwareMetadataByteOrder.LittleEndian),
+        ];
+        FirmwareMetadataStructure structure = Structure(
+            lengthBytes: 2,
+            fields: fields,
+            relations:
+            [
+                new FirmwareMetadataFieldRelation(
+                    "firmware-version-complement",
+                    FirmwareMetadataFieldRelationKind.BitwiseComplement,
+                    "firmware-version",
+                    "firmware-version-bar"),
+            ]);
+
+        Assert.True(structure.TryDecode([0x5A, 0xA5], out FirmwareDecodedMetadataStructure? valid));
+        FirmwareDecodedMetadataRelation validRelation = Assert.Single(valid.Relations);
+        Assert.Equal("firmware-version-complement", validRelation.RelationId);
+        Assert.True(validRelation.IsSatisfied);
+
+        Assert.True(structure.TryDecode([0x5A, 0xA4], out FirmwareDecodedMetadataStructure? invalid));
+        Assert.False(Assert.Single(invalid.Relations).IsSatisfied);
+        Assert.Equal(2, invalid.Facts.Count);
+    }
+
+    /// <summary>Verifies complement relations require two distinct unsliced equal-width unsigned fields.</summary>
+    [Fact]
+    public void ConstructorRejectsInvalidBitwiseComplementRelation()
+    {
+        FirmwareMetadataField unsigned = new(
+            "unsigned",
+            0,
+            1,
+            FirmwareMetadataEncoding.UnsignedInteger,
+            FirmwareMetadataByteOrder.LittleEndian);
+        FirmwareMetadataField bytes = BytesField("bytes", 1, 1);
+        FirmwareMetadataField sliced = new(
+            "sliced",
+            1,
+            1,
+            FirmwareMetadataEncoding.UnsignedInteger,
+            FirmwareMetadataByteOrder.LittleEndian,
+            new FirmwareMetadataBitSlice(0, 1));
+
+        _ = Assert.Throws<ArgumentException>(() => Structure(
+            lengthBytes: 2,
+            fields: [unsigned, bytes],
+            relations:
+            [
+                new FirmwareMetadataFieldRelation(
+                    "invalid-kind",
+                    FirmwareMetadataFieldRelationKind.BitwiseComplement,
+                    "unsigned",
+                    "bytes"),
+            ]));
+        _ = Assert.Throws<ArgumentException>(() => Structure(
+            lengthBytes: 2,
+            fields: [unsigned, sliced],
+            relations:
+            [
+                new FirmwareMetadataFieldRelation(
+                    "invalid-slice",
+                    FirmwareMetadataFieldRelationKind.BitwiseComplement,
+                    "unsigned",
+                    "sliced"),
+            ]));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new FirmwareMetadataFieldRelation(
+                "unknown-kind",
+                (FirmwareMetadataFieldRelationKind)int.MaxValue,
+                "unsigned",
+                "related"));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new FirmwareMetadataFieldRelation(
+                "self-relation",
+                FirmwareMetadataFieldRelationKind.BitwiseComplement,
+                "unsigned",
+                "unsigned"));
+        _ = Assert.Throws<ArgumentException>(() => Structure(
+            lengthBytes: 2,
+            fields: [unsigned],
+            relations:
+            [
+                new FirmwareMetadataFieldRelation(
+                    "unknown-source",
+                    FirmwareMetadataFieldRelationKind.BitwiseComplement,
+                    "missing",
+                    "unsigned"),
+            ]));
+        _ = Assert.Throws<ArgumentException>(() => Structure(
+            lengthBytes: 2,
+            fields: [unsigned],
+            relations:
+            [
+                new FirmwareMetadataFieldRelation(
+                    "unknown-related",
+                    FirmwareMetadataFieldRelationKind.BitwiseComplement,
+                    "unsigned",
+                    "missing"),
+            ]));
+        FirmwareMetadataField word = new(
+            "word",
+            0,
+            2,
+            FirmwareMetadataEncoding.UnsignedInteger,
+            FirmwareMetadataByteOrder.LittleEndian);
+        _ = Assert.Throws<ArgumentException>(() => Structure(
+            lengthBytes: 2,
+            fields: [unsigned, word],
+            relations:
+            [
+                new FirmwareMetadataFieldRelation(
+                    "different-width",
+                    FirmwareMetadataFieldRelationKind.BitwiseComplement,
+                    "unsigned",
+                    "word"),
+            ]));
+        FirmwareMetadataFieldRelation first = new(
+            "duplicate",
+            FirmwareMetadataFieldRelationKind.BitwiseComplement,
+            "unsigned",
+            "word");
+        FirmwareMetadataFieldRelation second = new(
+            "duplicate",
+            FirmwareMetadataFieldRelationKind.BitwiseComplement,
+            "word",
+            "unsigned");
+        _ = Assert.Throws<ArgumentException>(() => Structure(
+            lengthBytes: 2,
+            fields: [unsigned, word],
+            relations: [first, second]));
+    }
+
+    /// <summary>Verifies decoded relation and structure payloads retain identity and reject ambiguity.</summary>
+    [Fact]
+    public void DecodedRelationAndStructureRejectInvalidBoundaries()
+    {
+        var relation = new FirmwareDecodedMetadataRelation(
+            "version-complement",
+            FirmwareMetadataFieldRelationKind.BitwiseComplement,
+            "version",
+            "version-bar",
+            isSatisfied: true);
+        var version = new FirmwareDecodedMetadataFact(
+            "tp-firmware",
+            "firmware-config",
+            "version",
+            FirmwareMetadataValue.FromUnsignedInteger(0x5A));
+        var versionBar = new FirmwareDecodedMetadataFact(
+            "tp-firmware",
+            "firmware-config",
+            "version-bar",
+            FirmwareMetadataValue.FromUnsignedInteger(0xA5));
+        var structure = new FirmwareDecodedMetadataStructure(
+            "tp-firmware",
+            "firmware-config",
+            [version, versionBar],
+            [relation]);
+
+        Assert.Equal(FirmwareMetadataFieldRelationKind.BitwiseComplement, relation.Kind);
+        Assert.Equal("version", relation.SourceFieldId);
+        Assert.Equal("version-bar", relation.RelatedFieldId);
+        Assert.Same(relation, Assert.Single(structure.Relations));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new FirmwareDecodedMetadataRelation(
+                "unknown-kind",
+                (FirmwareMetadataFieldRelationKind)int.MaxValue,
+                "version",
+                "version-bar",
+                isSatisfied: false));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new FirmwareDecodedMetadataStructure(
+                "tp-firmware",
+                "firmware-config",
+                [
+                    new FirmwareDecodedMetadataFact(
+                        "other-artifact",
+                        "firmware-config",
+                        "version",
+                        FirmwareMetadataValue.FromUnsignedInteger(0x5A)),
+                ]));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new FirmwareDecodedMetadataStructure(
+                "tp-firmware",
+                "firmware-config",
+                [version, version]));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new FirmwareDecodedMetadataStructure(
+                "tp-firmware",
+                "firmware-config",
+                [version, versionBar],
+                [relation, relation]));
+    }
+
     /// <summary>Verifies decoded values cannot be directly forged outside the Domain assembly.</summary>
     [Fact]
     public void DecodedResultConstructorsAreNotPublic()
@@ -148,7 +358,8 @@ public sealed class FirmwareMetadataStructureDecodingTests
     private static FirmwareMetadataStructure Structure(
         long lengthBytes = 8,
         IEnumerable<FirmwareMetadataField>? fields = null,
-        IEnumerable<FirmwareMetadataByteAssertion>? assertions = null)
+        IEnumerable<FirmwareMetadataByteAssertion>? assertions = null,
+        IEnumerable<FirmwareMetadataFieldRelation>? relations = null)
     {
         return new FirmwareMetadataStructure(
             "firmware-config",
@@ -158,7 +369,8 @@ public sealed class FirmwareMetadataStructureDecodingTests
                 new FirmwareAddressedRange("flash", new ByteRange(0, lengthBytes)),
                 "root"),
             fields ?? Fields(),
-            assertions ?? []);
+            assertions ?? [],
+            relations ?? []);
     }
 
     private static FirmwareMetadataField[] Fields()

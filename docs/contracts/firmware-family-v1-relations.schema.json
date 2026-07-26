@@ -1,0 +1,700 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+  "title": "NVT FW Combiner Firmware Family 1.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "familyId",
+    "familyVersion",
+    "members",
+    "capabilities",
+    "regionSets",
+    "metadataSets",
+    "imageMaps",
+    "factAliases",
+    "evidenceRefs"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.1" },
+    "familyId": { "$ref": "#/$defs/id" },
+    "familyVersion": { "$ref": "#/$defs/semver" },
+    "members": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/member" }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/capabilityFact" }
+    },
+    "regionSets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/regionSet" }
+    },
+    "metadataSets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/metadataSet" }
+    },
+    "imageMaps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/imageMap" }
+    },
+    "factAliases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/factAlias" }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "icId": {
+      "type": "string",
+      "pattern": "^NT[0-9A-Z-]+$"
+    },
+    "byteRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "length"],
+      "properties": {
+        "start": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "addressedRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["addressSpaceId", "start", "length"],
+      "properties": {
+        "addressSpaceId": { "$ref": "#/$defs/id" },
+        "start": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "scalar": {
+      "oneOf": [
+        { "type": "integer" },
+        { "type": "string", "minLength": 1 }
+      ]
+    },
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memberId", "displayName"],
+      "properties": {
+        "memberId": { "$ref": "#/$defs/icId" },
+        "displayName": { "type": "string", "minLength": 1 }
+      }
+    },
+    "capabilityFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capabilityFactId",
+        "capabilityId",
+        "memberId",
+        "mapId",
+        "applicability",
+        "state",
+        "reason",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "capabilityFactId": { "$ref": "#/$defs/id" },
+        "capabilityId": { "$ref": "#/$defs/id" },
+        "memberId": { "$ref": "#/$defs/icId" },
+        "mapId": { "$ref": "#/$defs/id" },
+        "applicability": { "$ref": "#/$defs/aliasApplicability" },
+        "state": {
+          "enum": ["confirmed-present", "confirmed-absent", "unknown"]
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "regionSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["regionSetId", "addressSpaceId", "regions", "evidenceRefs"],
+      "properties": {
+        "regionSetId": { "$ref": "#/$defs/id" },
+        "addressSpaceId": { "$ref": "#/$defs/id" },
+        "regions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/region" }
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regionId",
+        "owner",
+        "kind",
+        "range",
+        "writeConstraint",
+        "alignment"
+      ],
+      "properties": {
+        "regionId": { "$ref": "#/$defs/id" },
+        "parentRegionId": { "$ref": "#/$defs/id" },
+        "owner": {
+          "enum": [
+            "system",
+            "dp",
+            "tp",
+            "ldc",
+            "register",
+            "customer",
+            "shared",
+            "reserved",
+            "unknown"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "image",
+            "code",
+            "header",
+            "data",
+            "command",
+            "firmware-config",
+            "ctrlram",
+            "customer-information",
+            "checksum",
+            "padding",
+            "reserved",
+            "unmapped"
+          ]
+        },
+        "range": { "$ref": "#/$defs/byteRange" },
+        "writeConstraint": {
+          "enum": ["forbidden", "whole-region", "declared-subregions", "explicit-range"]
+        },
+        "alignment": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "topologyRequirement": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "none" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "single" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "minimumChipCount"],
+          "properties": {
+            "kind": { "const": "cascade" },
+            "minimumChipCount": { "type": "integer", "minimum": 2 },
+            "maximumChipCount": { "type": "integer", "minimum": 2 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "chipCount"],
+          "properties": {
+            "kind": { "const": "exact-count" },
+            "chipCount": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "metadataPredicate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metadataStructureId", "fieldId", "operator", "expectedValues"],
+      "properties": {
+        "metadataStructureId": { "$ref": "#/$defs/id" },
+        "fieldId": { "$ref": "#/$defs/id" },
+        "operator": { "enum": ["equals", "not-equals", "one-of"] },
+        "expectedValues": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/scalar" }
+        }
+      }
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memberIds", "modeIds", "topologyRequirement", "capacityBytes"],
+      "properties": {
+        "memberIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/icId" }
+        },
+        "modeIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "topologyRequirement": { "$ref": "#/$defs/topologyRequirement" },
+        "capacityBytes": { "type": "integer", "minimum": 1 },
+        "commonFirmwareCategoryIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "metadataPredicates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/metadataPredicate" }
+        }
+      }
+    },
+    "imageMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mapId",
+        "addressSpaceId",
+        "applicability",
+        "coveragePolicy",
+        "regionSetIds",
+        "metadataSetIds",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "mapId": { "$ref": "#/$defs/id" },
+        "addressSpaceId": { "$ref": "#/$defs/id" },
+        "applicability": { "$ref": "#/$defs/applicability" },
+        "coveragePolicy": { "const": "complete-with-explicit-gaps" },
+        "regionSetIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "metadataSetIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "metadataSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metadataSetId", "structures", "evidenceRefs"],
+      "properties": {
+        "metadataSetId": { "$ref": "#/$defs/id" },
+        "structures": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/metadataStructure" }
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "metadataStructure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["structureId", "artifactBindingId", "length", "locator", "fields", "assertions"],
+      "properties": {
+        "structureId": { "$ref": "#/$defs/id" },
+        "artifactBindingId": { "$ref": "#/$defs/id" },
+        "length": { "type": "integer", "minimum": 1 },
+        "locator": { "$ref": "#/$defs/locator" },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/metadataField" }
+        },
+        "assertions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/byteAssertion" }
+        },
+        "relations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/metadataFieldRelation" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "locator": {
+                "properties": {
+                  "kind": { "const": "marker-relative" },
+                  "selection": {
+                    "properties": { "kind": { "const": "terminal-match" } },
+                    "required": ["kind"]
+                  }
+                },
+                "required": ["kind", "selection"]
+              }
+            },
+            "required": ["locator"]
+          },
+          "then": {
+            "properties": { "assertions": { "minItems": 1 } }
+          }
+        }
+      ]
+    },
+    "metadataField": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fieldId", "offset", "widthBytes", "encoding"],
+          "properties": {
+            "fieldId": { "$ref": "#/$defs/id" },
+            "sourceName": { "$ref": "#/$defs/sourceName" },
+            "offset": { "type": "integer", "minimum": 0 },
+            "widthBytes": { "type": "integer", "minimum": 1 },
+            "encoding": { "const": "bytes" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fieldId", "offset", "widthBytes", "encoding"],
+          "properties": {
+            "fieldId": { "$ref": "#/$defs/id" },
+            "sourceName": { "$ref": "#/$defs/sourceName" },
+            "offset": { "type": "integer", "minimum": 0 },
+            "widthBytes": { "type": "integer", "minimum": 1 },
+            "encoding": { "const": "printable-ascii" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fieldId", "offset", "widthBytes", "encoding", "byteOrder"],
+          "properties": {
+            "fieldId": { "$ref": "#/$defs/id" },
+            "sourceName": { "$ref": "#/$defs/sourceName" },
+            "offset": { "type": "integer", "minimum": 0 },
+            "widthBytes": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "encoding": { "const": "unsigned-integer" },
+            "byteOrder": { "enum": ["little", "big"] },
+            "bitSlice": { "$ref": "#/$defs/bitSlice" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fieldId", "offset", "widthBytes", "encoding", "byteOrder"],
+          "properties": {
+            "fieldId": { "$ref": "#/$defs/id" },
+            "sourceName": { "$ref": "#/$defs/sourceName" },
+            "offset": { "type": "integer", "minimum": 0 },
+            "widthBytes": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "encoding": { "const": "signed-integer" },
+            "byteOrder": { "enum": ["little", "big"] }
+          }
+        }
+      ]
+    },
+    "metadataFieldRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relationId", "kind", "sourceFieldId", "relatedFieldId"],
+      "properties": {
+        "relationId": { "$ref": "#/$defs/id" },
+        "kind": { "const": "bitwise-complement" },
+        "sourceFieldId": { "$ref": "#/$defs/id" },
+        "relatedFieldId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "sourceName": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "bitSlice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["leastSignificantBit", "bitCount"],
+      "properties": {
+        "leastSignificantBit": { "type": "integer", "minimum": 0, "maximum": 31 },
+        "bitCount": { "type": "integer", "minimum": 1, "maximum": 32 }
+      }
+    },
+    "byteAssertion": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["offset", "expectedHex"],
+          "properties": {
+            "offset": { "type": "integer", "minimum": 0 },
+            "expectedHex": { "$ref": "#/$defs/hexBytes" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["offset", "expectedHex", "maskHex"],
+          "properties": {
+            "offset": { "type": "integer", "minimum": 0 },
+            "expectedHex": { "$ref": "#/$defs/hexBytes" },
+            "maskHex": {
+              "type": "string",
+              "pattern": "^(?!0+(?![\\s\\S]))(?!f+(?![\\s\\S]))(?:[0-9a-f]{2})+(?![\\s\\S])"
+            }
+          }
+        }
+      ]
+    },
+    "hexBytes": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{2})+(?![\\s\\S])"
+    },
+    "markerSelection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "unique" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "terminal", "expectedMatchCount"],
+          "properties": {
+            "kind": { "const": "terminal-match" },
+            "terminal": { "enum": ["lowest-address", "highest-address"] },
+            "expectedMatchCount": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "locator": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "range", "allowedResultRegionId"],
+          "properties": {
+            "kind": { "const": "absolute-range" },
+            "range": { "$ref": "#/$defs/addressedRange" },
+            "allowedResultRegionId": { "$ref": "#/$defs/id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "regionId", "offset", "allowedResultRegionId"],
+          "properties": {
+            "kind": { "const": "region-relative" },
+            "regionId": { "$ref": "#/$defs/id" },
+            "offset": { "type": "integer", "minimum": 0 },
+            "allowedResultRegionId": { "$ref": "#/$defs/id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "searchRange",
+            "markerHex",
+            "selection",
+            "resultOffset",
+            "allowedResultRegionId"
+          ],
+          "properties": {
+            "kind": { "const": "marker-relative" },
+            "searchRange": { "$ref": "#/$defs/addressedRange" },
+            "markerHex": { "$ref": "#/$defs/hexBytes" },
+            "selection": { "$ref": "#/$defs/markerSelection" },
+            "resultOffset": { "type": "integer" },
+            "allowedResultRegionId": { "$ref": "#/$defs/id" }
+          }
+        }
+      ]
+    },
+    "aliasApplicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modeIds", "topologyRequirement", "capacityBytes"],
+      "properties": {
+        "modeIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "topologyRequirement": { "$ref": "#/$defs/topologyRequirement" },
+        "capacityBytes": { "type": "integer", "minimum": 1 },
+        "commonFirmwareCategoryIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "metadataPredicates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/metadataPredicate" }
+        }
+      }
+    },
+    "factAlias": {
+      "oneOf": [
+        { "$ref": "#/$defs/regionSetAlias" },
+        { "$ref": "#/$defs/metadataSetAlias" },
+        { "$ref": "#/$defs/capabilityAlias" }
+      ]
+    },
+    "regionSetAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aliasId",
+        "factKind",
+        "targetMemberId",
+        "targetMapId",
+        "targetRegionSetId",
+        "sourceMemberId",
+        "sourceMapId",
+        "sourceRegionSetId",
+        "applicability",
+        "reason",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "aliasId": { "$ref": "#/$defs/id" },
+        "factKind": { "const": "region-set" },
+        "targetMemberId": { "$ref": "#/$defs/icId" },
+        "targetMapId": { "$ref": "#/$defs/id" },
+        "targetRegionSetId": { "$ref": "#/$defs/id" },
+        "sourceMemberId": { "$ref": "#/$defs/icId" },
+        "sourceMapId": { "$ref": "#/$defs/id" },
+        "sourceRegionSetId": { "$ref": "#/$defs/id" },
+        "applicability": { "$ref": "#/$defs/aliasApplicability" },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "metadataSetAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aliasId",
+        "factKind",
+        "targetMemberId",
+        "targetMapId",
+        "targetMetadataSetId",
+        "sourceMemberId",
+        "sourceMapId",
+        "sourceMetadataSetId",
+        "applicability",
+        "reason",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "aliasId": { "$ref": "#/$defs/id" },
+        "factKind": { "const": "metadata-set" },
+        "targetMemberId": { "$ref": "#/$defs/icId" },
+        "targetMapId": { "$ref": "#/$defs/id" },
+        "targetMetadataSetId": { "$ref": "#/$defs/id" },
+        "sourceMemberId": { "$ref": "#/$defs/icId" },
+        "sourceMapId": { "$ref": "#/$defs/id" },
+        "sourceMetadataSetId": { "$ref": "#/$defs/id" },
+        "applicability": { "$ref": "#/$defs/aliasApplicability" },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "capabilityAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aliasId",
+        "factKind",
+        "targetMemberId",
+        "targetMapId",
+        "targetCapabilityFactId",
+        "sourceMemberId",
+        "sourceMapId",
+        "sourceCapabilityFactId",
+        "applicability",
+        "reason",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "aliasId": { "$ref": "#/$defs/id" },
+        "factKind": { "const": "capability" },
+        "targetMemberId": { "$ref": "#/$defs/icId" },
+        "targetMapId": { "$ref": "#/$defs/id" },
+        "targetCapabilityFactId": { "$ref": "#/$defs/id" },
+        "sourceMemberId": { "$ref": "#/$defs/icId" },
+        "sourceMapId": { "$ref": "#/$defs/id" },
+        "sourceCapabilityFactId": { "$ref": "#/$defs/id" },
+        "applicability": { "$ref": "#/$defs/aliasApplicability" },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    }
+  }
+}
