@@ -38,7 +38,9 @@ internal static class BuiltInProfileMaterializationTestSupport
                 maximumManifestBytes: 16384,
                 maximumJsonDepth: 32,
                 new ProfileBundleEntrySnapshotLimits(16, 131072, 262144, 8)));
-        return TrustedProfileBundleCatalogProjection.Create(bundle.CreateDocumentProjection());
+        return TrustedProfileBundleCatalogProjection.Create(
+            bundle.CreateDocumentProjection(),
+            BuiltInCanonicalMetadataDefinitionResolver.Instance);
     }
 
     internal static string ResolveManifestEntrySource(string bundleDirectory, JsonElement entry)

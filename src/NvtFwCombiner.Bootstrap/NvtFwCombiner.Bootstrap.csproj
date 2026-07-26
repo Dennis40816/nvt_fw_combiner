@@ -55,6 +55,9 @@
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51950-nt51951-general-merge-logical-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
+      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
+      <CanonicalFirmwareFamilySource>nt51950-nt51951-standard-merge\families\nt51950-nt51951-dp-perspective.json</CanonicalFirmwareFamilySource>
+      <CanonicalFirmwareFamilyDestination>families\nt51950-nt51951-dp-perspective.json</CanonicalFirmwareFamilyDestination>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51920-ctrlram-replace-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
@@ -118,7 +121,9 @@
     <BuiltInProfileBundle Include="nt51930-standard-merge" />
     <BuiltInProfileBundle Include="nt51931-dp-replace" />
     <BuiltInProfileBundle Include="nt51931-standard-merge" />
-    <BuiltInProfileBundle Include="nt51950-nt51951-standard-merge" />
+    <BuiltInProfileBundle Include="nt51950-nt51951-standard-merge">
+      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
+    </BuiltInProfileBundle>
   </ItemGroup>
   <Target Name="MaterializeBuiltInProfileBundles" BeforeTargets="AssignTargetPaths">
     <RemoveDir Directories="$(BuiltInProfileMaterializedRoot);$(BuiltInProfilePublishedRoot)" />

@@ -222,7 +222,8 @@ public sealed partial class RepositoryBoundaryTests
             }
             else if (bundle.Attribute("Include")?.Value is
                          "nt51927-standard-merge" or
-                         "nt51928-standard-merge")
+                         "nt51928-standard-merge" or
+                         "nt51950-nt51951-standard-merge")
             {
                 Assert.Equal(
                     "firmware-family-v1-relations.schema.json",
@@ -299,9 +300,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(
             "families\\nt51930.json",
             candidate.Element("CanonicalFirmwareFamilyDestination")?.Value);
-        Assert.Equal(5, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
+        Assert.Equal(6, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
             !string.IsNullOrWhiteSpace(element.Value)));
-        Assert.Equal(5, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
+        Assert.Equal(6, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
             !string.IsNullOrWhiteSpace(element.Value)));
 
         foreach (string bundleId in new[]
@@ -330,6 +331,25 @@ public sealed partial class RepositoryBoundaryTests
                 "families",
                 "nt51927-nt51928.json")));
         }
+
+        XElement dpPerspectiveConsumer = Assert.Single(
+            document.Descendants("BuiltInProfileBundle"),
+            static bundle => StringComparer.Ordinal.Equals(
+                bundle.Attribute("Include")?.Value,
+                "nt51950-nt51951-general-merge-logical-candidate"));
+        Assert.Equal(
+            "nt51950-nt51951-standard-merge\\families\\nt51950-nt51951-dp-perspective.json",
+            dpPerspectiveConsumer.Element("CanonicalFirmwareFamilySource")?.Value);
+        Assert.Equal(
+            "families\\nt51950-nt51951-dp-perspective.json",
+            dpPerspectiveConsumer.Element("CanonicalFirmwareFamilyDestination")?.Value);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51950-nt51951-general-merge-logical-candidate",
+            "families",
+            "nt51950-nt51951-dp-perspective.json")));
 
         string canonicalFamilyPath = Path.Combine(
             Root.FullName,

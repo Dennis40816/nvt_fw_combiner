@@ -17,17 +17,38 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         FirmwareImageMap? map = _imageMaps.FirstOrDefault(candidate =>
             StringComparer.Ordinal.Equals(candidate.MapId, mapId)) ?? throw new KeyNotFoundException($"Unknown firmware image map '{mapId}'.");
-        if (!TryResolveStructure(mapId, metadataStructureId, out FirmwareMetadataStructure? structure))
-        {
-            throw new KeyNotFoundException(
-                $"Image map '{mapId}' does not select metadata structure '{metadataStructureId}'.");
-        }
+        FirmwareMetadataStructure structure =
+            TryResolveStructure(
+                mapId,
+                metadataStructureId,
+                out FirmwareMetadataStructure? selectedStructure)
+                ? selectedStructure
+                : throw new KeyNotFoundException(
+                    $"Image map '{mapId}' does not select metadata structure '{metadataStructureId}'.");
 
+        return ResolveMetadataStructureCore(map, structure, inputs);
+    }
+
+    private FirmwareMetadataStructureResolution ResolveMetadataStructureCore(
+        FirmwareImageMap map,
+        FirmwareMetadataStructure structure,
+        FirmwareMapResolutionInputs inputs)
+    {
         FirmwareArtifactPayload? artifact = inputs.Artifacts.FirstOrDefault(candidate =>
             StringComparer.Ordinal.Equals(candidate.ArtifactId, structure.ArtifactBindingId));
         if (artifact is null)
         {
-            return FirmwareMetadataStructureResolution.Pending(mapId, structure);
+            return FirmwareMetadataStructureResolution.Pending(map.MapId, structure);
+        }
+
+        if (structure.Locator is FirmwareMetadataFieldSelectedLocator selected)
+        {
+            return ResolveMetadataSelectedStructure(
+                map,
+                structure,
+                selected,
+                artifact,
+                inputs);
         }
 
         if (!TryResolveLocator(
@@ -39,7 +60,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             out int? observedMarkerMatchCount))
         {
             return FirmwareMetadataStructureResolution.Rejected(
-                mapId,
+                map.MapId,
                 structure,
                 failure,
                 observedMarkerMatchCount);
@@ -52,14 +73,110 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             artifact.Bytes.Slice(start, length),
             out FirmwareDecodedMetadataStructure? decoded)
             ? FirmwareMetadataStructureResolution.Rejected(
-                mapId,
+                map.MapId,
                 structure,
                 FirmwareMetadataStructureResolutionFailure.StructureDecodeFailed)
             : FirmwareMetadataStructureResolution.Success(
             new FirmwareResolvedMetadataStructure(
-                mapId,
+                map.MapId,
                 artifact.Identity,
                 locatorOutcome,
+                decoded));
+    }
+
+    private FirmwareMetadataStructureResolution ResolveMetadataSelectedStructure(
+        FirmwareImageMap map,
+        FirmwareMetadataStructure structure,
+        FirmwareMetadataFieldSelectedLocator locator,
+        FirmwareArtifactPayload artifact,
+        FirmwareMapResolutionInputs inputs)
+    {
+        if (!TryResolveStructure(
+            map.MapId,
+            locator.PrerequisiteStructureId,
+            out FirmwareMetadataStructure? prerequisiteStructure))
+        {
+            throw new InvalidOperationException(
+                $"Validated metadata prerequisite '{locator.PrerequisiteStructureId}' is unavailable.");
+        }
+
+        var prerequisite = new FirmwareMetadataPrerequisite(
+            prerequisiteStructure.ArtifactBindingId,
+            prerequisiteStructure.StructureId,
+            locator.PrerequisiteFieldId);
+        FirmwareMetadataStructureResolution prerequisiteResolution =
+            ResolveMetadataStructureCore(map, prerequisiteStructure, inputs);
+        if (prerequisiteResolution.Status == FirmwareMetadataStructureResolutionStatus.Pending)
+        {
+            return FirmwareMetadataStructureResolution.PendingForPrerequisite(
+                map.MapId,
+                structure,
+                prerequisite);
+        }
+
+        if (prerequisiteResolution.Status == FirmwareMetadataStructureResolutionStatus.Rejected)
+        {
+            return FirmwareMetadataStructureResolution.Rejected(
+                map.MapId,
+                structure,
+                FirmwareMetadataStructureResolutionFailure.PrerequisiteRejected,
+                prerequisite: prerequisite);
+        }
+
+        FirmwareDecodedMetadataFact? selectedFact =
+            prerequisiteResolution.Resolved!.DecodedStructure.Facts.FirstOrDefault(candidate =>
+                StringComparer.Ordinal.Equals(candidate.FieldId, locator.PrerequisiteFieldId));
+        if (selectedFact?.Value.UnsignedIntegerValue is not { } selectedValue ||
+            !locator.TrySelect(selectedValue, out FirmwareMetadataFieldSelectedBranch? branch))
+        {
+            return FirmwareMetadataStructureResolution.Rejected(
+                map.MapId,
+                structure,
+                FirmwareMetadataStructureResolutionFailure.PrerequisiteValueUnsupported,
+                prerequisite: prerequisite);
+        }
+
+        long resultStart = checked(branch.AnchorRange.Range.Start + locator.ResultOffset);
+        if (resultStart < branch.AnchorRange.Range.Start)
+        {
+            return FirmwareMetadataStructureResolution.Rejected(
+                map.MapId,
+                structure,
+                FirmwareMetadataStructureResolutionFailure.ResolvedRangeOutOfBounds);
+        }
+
+        ByteRange resolvedRange = new(resultStart, structure.LengthBytes);
+        FirmwareRegion allowedRegion = FindRegion(map, locator.AllowedResultRegionId);
+        if (!branch.AnchorRange.Range.Contains(resolvedRange) ||
+            !allowedRegion.Range.Contains(resolvedRange) ||
+            !ArtifactContains(artifact, resolvedRange))
+        {
+            return FirmwareMetadataStructureResolution.Rejected(
+                map.MapId,
+                structure,
+                FirmwareMetadataStructureResolutionFailure.ResolvedRangeOutOfBounds);
+        }
+
+        int start = checked((int)resolvedRange.Start);
+        int length = checked((int)resolvedRange.Length);
+        if (!structure.TryDecode(
+            artifact.Bytes.Slice(start, length),
+            out FirmwareDecodedMetadataStructure? decoded))
+        {
+            return FirmwareMetadataStructureResolution.Rejected(
+                map.MapId,
+                structure,
+                FirmwareMetadataStructureResolutionFailure.StructureDecodeFailed);
+        }
+
+        var outcome = new FirmwareMetadataLocatorOutcome(
+            FirmwareMetadataLocatorKind.MetadataFieldSelected,
+            new FirmwareAddressedRange(map.AddressSpaceId, resolvedRange));
+        return FirmwareMetadataStructureResolution.Success(
+            new FirmwareResolvedMetadataStructure(
+                map.MapId,
+                artifact.Identity,
+                outcome,
                 decoded));
     }
 
@@ -105,6 +222,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                     out outcome,
                     out failure,
                     out observedMarkerMatchCount);
+            case FirmwareMetadataFieldSelectedLocator:
+                throw new InvalidOperationException(
+                    "Metadata-selected locators require prerequisite resolution.");
             default:
                 throw new ArgumentOutOfRangeException(
                     nameof(structure),

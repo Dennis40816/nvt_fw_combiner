@@ -5,7 +5,7 @@ using NvtFwCombiner.Domain.Firmware;
 namespace NvtFwCombiner.Domain.Tests.Firmware;
 
 /// <summary>Tests candidate-scoped locator evaluation against immutable artifact payloads.</summary>
-public sealed class FirmwareMetadataStructureResolutionTests
+public sealed partial class FirmwareMetadataStructureResolutionTests
 {
     private const string FamilyHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
@@ -416,9 +416,10 @@ public sealed class FirmwareMetadataStructureResolutionTests
         _ = Assert.IsType<ArgumentException>(startOnly.InnerException);
     }
 
-    private static FirmwareFamilyResolutionDefinition Definition(FirmwareMetadataStructure structure)
+    private static FirmwareFamilyResolutionDefinition Definition(
+        params FirmwareMetadataStructure[] structures)
     {
-        FirmwareMetadataSet metadataSet = MetadataSet("metadata", structure);
+        FirmwareMetadataSet metadataSet = MetadataSet("metadata", structures);
         return Definition([Map("map", [metadataSet])], [metadataSet]);
     }
 
@@ -481,9 +482,12 @@ public sealed class FirmwareMetadataStructureResolutionTests
 
     private static FirmwareMetadataSet MetadataSet(
         string metadataSetId,
-        FirmwareMetadataStructure structure)
+        params FirmwareMetadataStructure[] structures)
     {
-        return new FirmwareMetadataSet(metadataSetId, [structure], ["metadata-evidence"]);
+        return new FirmwareMetadataSet(
+            metadataSetId,
+            structures,
+            ["metadata-evidence"]);
     }
 
     private static FirmwareMetadataStructure Structure(

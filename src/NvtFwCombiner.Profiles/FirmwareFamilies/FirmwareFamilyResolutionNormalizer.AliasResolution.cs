@@ -7,7 +7,8 @@ public static partial class FirmwareFamilyResolutionNormalizer
 {
     private static FirmwareFamilyResolutionDefinition NormalizeMapBoundFacts(
         FirmwareFamilyDocument document,
-        string familyContentHash)
+        string familyContentHash,
+        IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver)
     {
         IReadOnlyList<FirmwareFamilyMemberDocument> members = RequireList(document.Members, "members");
         Dictionary<string, FirmwareFamilyMemberDocument> membersById = IndexUnique(
@@ -18,7 +19,8 @@ public static partial class FirmwareFamilyResolutionNormalizer
         Dictionary<string, FirmwareRegionSet> regionSetsById = NormalizeRegionSets(
             RequireList(document.RegionSets, "regionSets"));
         Dictionary<string, FirmwareMetadataSet> metadataSetsById = NormalizeMetadataSets(
-            RequireList(document.MetadataSets, "metadataSets"));
+            RequireList(document.MetadataSets, "metadataSets"),
+            metadataDefinitionResolver);
         ValidateGlobalStructureIds(metadataSetsById.Values);
 
         MapInput[] maps = CreateMaps(

@@ -3,6 +3,12 @@
 The executable schema is [`firmware-family-v1.schema.json`](firmware-family-v1.schema.json).
 It is the canonical source for physical firmware facts shared by Normal, AB, Merge, Replace,
 General, saved-rule, and future Register workflows.
+Bundles that require typed field relations or exact cross-family metadata-definition references use
+the build-selected strict extension
+[`firmware-family-v1-relations.schema.json`](firmware-family-v1-relations.schema.json); it retains the
+same schema id and base ownership rules. The durable ownership, trust, and
+prerequisite-resolution decision is recorded in
+[ADR 0040](../adr/0040-canonical-metadata-definition-references-and-prerequisites.md).
 
 ## Ownership
 
@@ -58,6 +64,23 @@ across a family, and field ids are ordinally unique within a structure. Every me
 declares `metadataStructureId`, so predicate resolution uses the exact
 `(artifactBindingId, metadataStructureId, fieldId)` source rather than a global field-name lookup.
 A map predicate may reference only a structure selected through that map's metadata sets.
+
+A located metadata structure is a binding instance: `structureId`, `artifactBindingId`, and
+`locator`. Its locator-independent logical definition (`length`, `fields`, `assertions`, and
+`relations`) is either declared inline exactly once or supplied by one `definitionReference`; the
+two forms are mutually exclusive. A reference pins exact provider `familyId`, `familyVersion`,
+`familyContentHash`, and logical `structureId`. Bootstrap resolves only owner-approved provider
+bundles, and Profiles retains the provider's same immutable definition object. A missing, stale,
+ambiguous, or non-allow-listed reference rejects the family; consumers never copy the provider's
+offsets or field table.
+
+`metadata-field-selected` is the closed dependent-locator form. It names one structure selected by
+the same map, one unsigned prerequisite field, non-overlapping inclusive value branches, and one
+checked signed result offset from each branch's addressed anchor. Every anchor uses the map address
+space; the complete result must remain inside both the anchor and `allowedResultRegionId`.
+Unsupported prerequisite values reject without a fallback. Missing prerequisite artifacts remain
+typed pending requirements, rejected prerequisites block their dependents, and the complete
+structure dependency graph must be acyclic.
 
 ## Typed metadata
 

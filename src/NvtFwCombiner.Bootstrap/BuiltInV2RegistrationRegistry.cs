@@ -23,8 +23,8 @@ internal static class BuiltInV2RegistrationRegistry
             new BuiltInV2Registration("NT51930", "nt51930-standard-merge-flashmap", "0.5.1", BuiltInV2BundleRegistry.All["nt51930-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51931", "nt51931-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51931-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51932", "nt51932-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51950", "nt51950-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51951", "nt51951-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51950", "nt51950-standard-merge-dp-perspective", "0.6.0", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51951", "nt51951-standard-merge-dp-perspective", "0.6.0", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Merge),
         ]);
 
     internal static ReadOnlyDictionary<string, BuiltInV2Registration> StandardMergeByIc { get; } =
@@ -80,8 +80,8 @@ internal static class BuiltInV2RegistrationRegistry
                 new("NT51930", "nt51930-dp-replace-flashmap", "0.1.0", BuiltInV2BundleRegistry.All["nt51930-standard-merge"], CompositionKind.Replace),
                 new("NT51931", "nt51931-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51931-dp-replace"], CompositionKind.Replace),
                 new("NT51932", "nt51932-dp-replace-gen-flash", "0.1.1", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
-                new("NT51950", "nt51950-dp-replace-dp-perspective", "0.6.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
-                new("NT51951", "nt51951-dp-replace-dp-perspective", "0.6.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
+                new("NT51950", "nt51950-dp-replace-dp-perspective", "0.7.0", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
+                new("NT51951", "nt51951-dp-replace-dp-perspective", "0.7.0", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
             }.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
     }
 }

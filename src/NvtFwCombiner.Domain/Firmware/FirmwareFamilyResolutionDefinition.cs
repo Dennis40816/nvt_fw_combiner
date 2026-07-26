@@ -294,8 +294,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         foreach (FirmwareMetadataStructure structure in structures)
         {
-            ValidateLocator(map, structure);
+            ValidateLocator(map, structure, structuresById);
         }
+        ValidateMetadataDependencyGraph(map, structuresById);
 
         foreach (FirmwareMetadataPredicate predicate in map.Applicability.MetadataPredicates)
         {
@@ -324,7 +325,10 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         }
     }
 
-    private static void ValidateLocator(FirmwareImageMap map, FirmwareMetadataStructure structure)
+    private static void ValidateLocator(
+        FirmwareImageMap map,
+        FirmwareMetadataStructure structure,
+        Dictionary<string, FirmwareMetadataStructure> structuresById)
     {
         var regionsById = map.Regions.ToDictionary(
             static region => region.RegionId,
@@ -355,11 +359,11 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                         nameof(structure));
                 }
 
-                long start = checked(baseRegion.Range.Start + relative.Offset);
-                ByteRange resultRange = new(start, structure.LengthBytes);
-                EnsureContains(baseRegion, resultRange, structure, map, "region-relative result");
-                EnsureContains(allowedResultRegion, resultRange, structure, map, "region-relative result");
-                if (!mapRange.Contains(resultRange))
+                long relativeStart = checked(baseRegion.Range.Start + relative.Offset);
+                ByteRange relativeResultRange = new(relativeStart, structure.LengthBytes);
+                EnsureContains(baseRegion, relativeResultRange, structure, map, "region-relative result");
+                EnsureContains(allowedResultRegion, relativeResultRange, structure, map, "region-relative result");
+                if (!mapRange.Contains(relativeResultRange))
                 {
                     throw new ArgumentException(
                         $"Metadata structure '{structure.StructureId}' escapes map '{map.MapId}'.",
@@ -371,10 +375,103 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 ValidateAddressedRange(map, structure, marker.SearchRange, mapRange);
                 ValidateMarkerEnvelope(marker, structure.LengthBytes);
                 break;
+            case FirmwareMetadataFieldSelectedLocator selected:
+                if (!structuresById.TryGetValue(
+                        selected.PrerequisiteStructureId,
+                        out FirmwareMetadataStructure? prerequisite))
+                {
+                    throw new ArgumentException(
+                        $"Metadata structure '{structure.StructureId}' references unknown prerequisite " +
+                        $"'{selected.PrerequisiteStructureId}' in map '{map.MapId}'.",
+                        nameof(structure));
+                }
+
+                FirmwareMetadataField prerequisiteField =
+                    prerequisite.Fields.FirstOrDefault(field =>
+                        StringComparer.Ordinal.Equals(
+                            field.FieldId,
+                            selected.PrerequisiteFieldId)) ??
+                    throw new ArgumentException(
+                        $"Metadata structure '{structure.StructureId}' references unknown prerequisite field " +
+                        $"'{selected.PrerequisiteFieldId}' in map '{map.MapId}'.",
+                        nameof(structure));
+                if (prerequisiteField.Encoding !=
+                    FirmwareMetadataEncoding.UnsignedInteger)
+                {
+                    throw new ArgumentException(
+                        $"Metadata structure '{structure.StructureId}' prerequisite field must be unsigned.",
+                        nameof(structure));
+                }
+
+                foreach (FirmwareMetadataFieldSelectedBranch branch in
+                         selected.Branches)
+                {
+                    ValidateAddressedRange(
+                        map,
+                        structure,
+                        branch.AnchorRange,
+                        mapRange);
+                    long start = checked(
+                        branch.AnchorRange.Range.Start +
+                        selected.ResultOffset);
+                    ByteRange resultRange = new(start, structure.LengthBytes);
+                    if (!branch.AnchorRange.Range.Contains(resultRange))
+                    {
+                        throw new ArgumentException(
+                            $"Metadata structure '{structure.StructureId}' selected result escapes its anchor " +
+                            $"in map '{map.MapId}'.",
+                            nameof(structure));
+                    }
+
+                    EnsureContains(
+                        allowedResultRegion,
+                        resultRange,
+                        structure,
+                        map,
+                        "metadata-selected result");
+                }
+
+                break;
             default:
                 throw new ArgumentOutOfRangeException(
                     nameof(structure),
                     "Unknown firmware metadata locator type.");
+        }
+    }
+
+    private static void ValidateMetadataDependencyGraph(
+        FirmwareImageMap map,
+        IReadOnlyDictionary<string, FirmwareMetadataStructure> structuresById)
+    {
+        var visiting = new HashSet<string>(StringComparer.Ordinal);
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string structureId in structuresById.Keys)
+        {
+            Visit(structureId);
+        }
+
+        void Visit(string structureId)
+        {
+            if (visited.Contains(structureId))
+            {
+                return;
+            }
+
+            if (!visiting.Add(structureId))
+            {
+                throw new ArgumentException(
+                    $"Metadata dependency graph contains a cycle at '{structureId}' in map '{map.MapId}'.",
+                    nameof(structuresById));
+            }
+
+            FirmwareMetadataStructure structure = structuresById[structureId];
+            if (structure.Locator is FirmwareMetadataFieldSelectedLocator selected)
+            {
+                Visit(selected.PrerequisiteStructureId);
+            }
+
+            _ = visiting.Remove(structureId);
+            _ = visited.Add(structureId);
         }
     }
 

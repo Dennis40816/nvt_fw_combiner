@@ -51,7 +51,8 @@ public static partial class FirmwareFamilyResolutionNormalizer
     }
 
     private static Dictionary<string, FirmwareMetadataSet> NormalizeMetadataSets(
-        IReadOnlyList<FirmwareMetadataSetDocument> documents)
+        IReadOnlyList<FirmwareMetadataSetDocument> documents,
+        IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver)
     {
         Dictionary<string, FirmwareMetadataSetDocument> documentsById = IndexUnique(
             documents,
@@ -69,7 +70,8 @@ public static partial class FirmwareFamilyResolutionNormalizer
             {
                 structures[index] = NormalizeStructure(
                     structureDocuments[index],
-                    $"{path}.structures[{index}]");
+                    $"{path}.structures[{index}]",
+                    metadataDefinitionResolver);
             }
 
             TranslateInvariant(path, () => normalized.Add(
@@ -82,8 +84,47 @@ public static partial class FirmwareFamilyResolutionNormalizer
 
     private static FirmwareMetadataStructure NormalizeStructure(
         FirmwareMetadataStructureDocument document,
-        string path)
+        string path,
+        IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver)
     {
+        FirmwareMetadataLocator locator = NormalizeLocator(
+            document.Locator,
+            $"{path}.locator");
+        if (document.DefinitionReference is { } referenceDocument)
+        {
+            if (document.Length.ValueKind != System.Text.Json.JsonValueKind.Undefined ||
+                document.Fields is not null ||
+                document.Assertions is not null ||
+                document.Relations is not null)
+            {
+                throw Error(
+                    path,
+                    "A referenced metadata definition cannot repeat inline definition facts.");
+            }
+
+            var reference = new FirmwareMetadataStructureDefinitionReference(
+                referenceDocument.FamilyId,
+                referenceDocument.FamilyVersion,
+                referenceDocument.FamilyContentHash,
+                referenceDocument.StructureId);
+            FirmwareMetadataStructureDefinition definition =
+                metadataDefinitionResolver is not null &&
+                metadataDefinitionResolver.TryResolve(
+                    reference,
+                    out FirmwareMetadataStructureDefinition? resolvedDefinition) &&
+                resolvedDefinition is not null
+                    ? resolvedDefinition
+                    : throw Error(
+                        $"{path}.definitionReference",
+                        "Exact trusted metadata definition could not be resolved.");
+
+            return TranslateInvariant(path, () => new FirmwareMetadataStructure(
+                    document.StructureId,
+                    document.ArtifactBindingId,
+                    definition,
+                    locator));
+        }
+
         IReadOnlyList<FirmwareMetadataFieldDocument> fieldDocuments =
             RequireList(document.Fields, $"{path}.fields");
         var fields = new FirmwareMetadataField[fieldDocuments.Count];
@@ -116,7 +157,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 document.StructureId,
                 document.ArtifactBindingId,
                 ReadInt64(document.Length, 1, long.MaxValue, $"{path}.length"),
-                NormalizeLocator(document.Locator, $"{path}.locator"),
+                locator,
                 fields,
                 assertions,
                 relations));
@@ -229,8 +270,54 @@ public static partial class FirmwareFamilyResolutionNormalizer
                         long.MaxValue,
                         $"{path}.resultOffset"),
                     document.AllowedResultRegionId),
+                "metadata-field-selected" => new FirmwareMetadataFieldSelectedLocator(
+                    Require(
+                        document.PrerequisiteStructureId,
+                        $"{path}.prerequisiteStructureId"),
+                    Require(
+                        document.PrerequisiteFieldId,
+                        $"{path}.prerequisiteFieldId"),
+                    NormalizeMetadataSelectedBranches(
+                        RequireList(document.Branches, $"{path}.branches"),
+                        $"{path}.branches"),
+                    ReadInt64(
+                        Require(document.ResultOffset, $"{path}.resultOffset"),
+                        long.MinValue,
+                        long.MaxValue,
+                        $"{path}.resultOffset"),
+                    document.AllowedResultRegionId),
                 _ => throw Error($"{path}.kind", "Unknown metadata locator kind."),
             });
+    }
+
+    private static FirmwareMetadataFieldSelectedBranch[]
+        NormalizeMetadataSelectedBranches(
+            IReadOnlyList<FirmwareMetadataFieldSelectedBranchDocument> documents,
+            string path)
+    {
+        var branches =
+            new FirmwareMetadataFieldSelectedBranch[documents.Count];
+        for (int index = 0; index < documents.Count; index++)
+        {
+            FirmwareMetadataFieldSelectedBranchDocument document =
+                documents[index];
+            branches[index] = new FirmwareMetadataFieldSelectedBranch(
+                ReadUInt64(
+                    document.MinimumValue,
+                    0,
+                    ulong.MaxValue,
+                    $"{path}[{index}].minimumValue"),
+                ReadUInt64(
+                    document.MaximumValue,
+                    0,
+                    ulong.MaxValue,
+                    $"{path}[{index}].maximumValue"),
+                NormalizeAddressedRange(
+                    document.AnchorRange,
+                    $"{path}[{index}].anchorRange"));
+        }
+
+        return branches;
     }
 
     private static FirmwareMarkerSelection NormalizeMarkerSelection(

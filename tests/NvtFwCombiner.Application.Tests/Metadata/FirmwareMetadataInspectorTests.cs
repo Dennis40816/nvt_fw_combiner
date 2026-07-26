@@ -212,6 +212,37 @@ public sealed class FirmwareMetadataInspectorTests
         Assert.False(DpcmiMetadataProjector.TryProject(inspected, out _));
     }
 
+    /// <summary>A publication token change alone invalidates an otherwise identical inspection snapshot.</summary>
+    [Fact]
+    public void PublicationGateRejectsChangedResolutionToken()
+    {
+        DpcmiFixture fixture = CreateDpcmiFixture();
+        var definition = new MetadataPlanDefinition(
+        [
+            CreateDpcmiEntry(fixture),
+        ]);
+        ResolvedMetadataPlan original = definition.Resolve(
+            new ResolutionToken("catalog:1"));
+        ResolvedMetadataPlan reloaded = definition.Resolve(
+            new ResolutionToken("catalog:2"));
+        var artifact = new FirmwareArtifactPayload(
+            CompositionAddressSpaceIds.DpReplacement,
+            new byte[0x80]);
+        MetadataInspectionSnapshot snapshot = FirmwareMetadataInspector.Inspect(
+            new MetadataInspectionRequest(original, 5, [artifact]));
+
+        Assert.True(MetadataInspectionPublicationGate.IsCurrent(
+            snapshot,
+            original,
+            5,
+            [artifact]));
+        Assert.False(MetadataInspectionPublicationGate.IsCurrent(
+            snapshot,
+            reloaded,
+            5,
+            [artifact]));
+    }
+
     private static ResolvedMetadataPlan CreateDpcmiPlan(byte? expectedFirstByte = null)
     {
         DpcmiFixture fixture = CreateDpcmiFixture(expectedFirstByte);

@@ -9,7 +9,8 @@ public static partial class FirmwareFamilyResolutionNormalizer
     /// <summary>Normalizes direct and aliased family facts without inferring maps, workflows, or execution support.</summary>
     public static FirmwareFamilyResolutionDefinition Normalize(
         FirmwareFamilyDocument document,
-        string familyContentHash)
+        string familyContentHash,
+        IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyContentHash);
@@ -17,7 +18,10 @@ public static partial class FirmwareFamilyResolutionNormalizer
             ? true
             : throw Error("schemaVersion", "Expected firmware-family schema version '1.1'.");
 
-        return NormalizeMapBoundFacts(document, familyContentHash);
+        return NormalizeMapBoundFacts(
+            document,
+            familyContentHash,
+            metadataDefinitionResolver);
     }
 
     private static FirmwareMapApplicability NormalizeApplicability(

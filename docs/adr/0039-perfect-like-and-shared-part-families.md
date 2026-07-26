@@ -6,6 +6,7 @@
 - Owners: Product owner + architecture owner + firmware owner
 - Risk: R2 architecture contract; each firmware binding remains R3
 - Amends: ADR 0015, ADR 0017, ADR 0025, and ADR 0032
+- Amended by: ADR 0040
 
 ## Context
 
