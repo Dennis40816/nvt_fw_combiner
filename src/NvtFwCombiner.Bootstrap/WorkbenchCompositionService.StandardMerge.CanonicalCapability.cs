@@ -6,7 +6,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private const string CanonicalStandardMergePilotIcId = "NT51929";
     private const string SelectorFreeIcCountVariant = "selector-free";
 
     private static readonly CanonicalCapabilityCatalog
@@ -27,20 +26,22 @@ public static partial class WorkbenchCompositionService
             SelectorFreeIcCountVariant);
     }
 
-    private static bool IsCanonicalStandardMergePilot(string icId)
-    {
-        return StringComparer.Ordinal.Equals(
-            icId,
-            CanonicalStandardMergePilotIcId);
-    }
-
-    private static bool TryCompileCanonicalStandardMerge(
+    private static bool TryCompilePublishedStandardMergeCapability(
         string icId,
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
         CapabilityResolutionResult resolution =
             ResolveCanonicalStandardMergeCapability(icId);
+        if (StringComparer.Ordinal.Equals(
+                resolution.Issue?.Code,
+                CapabilityCatalogIssueCodes.RouteUnavailable))
+        {
+            composition = null;
+            issues = [];
+            return false;
+        }
+
         composition = resolution.Capability?.CompiledComposition;
         issues = resolution.Issue is null
             ? []

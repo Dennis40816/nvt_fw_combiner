@@ -24,20 +24,31 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompositionOperation.", applicationCapabilitySources, StringComparison.Ordinal);
     }
 
-    /// <summary>The pilot bridge delegates firmware facts to the existing V2 compiler.</summary>
+    /// <summary>Canonical routing is IC-neutral and delegates legacy facts through one named adapter.</summary>
     [Fact]
-    public void Nt51929PilotUsesOneWayFactFreeMigrationAdapter()
+    public void CanonicalRouteUsesIcNeutralOneWayFactFreeMigrationAdapter()
     {
         string source = ReadText(
             "src/NvtFwCombiner.Bootstrap/CanonicalCapabilityCatalogMigrationSource.cs");
         string routing = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+        string canonicalRouting = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.CanonicalCapability.cs");
+        string cli = ReadText(
+            "src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
         string presentation = ReadPresentationSources();
 
         Assert.Contains("BuiltInV2RegistrationRegistry.StandardMergeByIc", source, StringComparison.Ordinal);
         Assert.Contains("registration.TryCompile", source, StringComparison.Ordinal);
         Assert.Contains("composition.CompilationFingerprint", source, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMergeThroughMigrationAdapter", routing, StringComparison.Ordinal);
+        Assert.Contains("CapabilityCatalogIssueCodes.RouteUnavailable", canonicalRouting, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51929", routing, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51929", canonicalRouting, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsCanonicalStandardMergePilot", routing, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsCanonicalStandardMergePilot", canonicalRouting, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.TryCompileStandardMerge(", cli, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.IsStandardMergeSupported", presentation, StringComparison.Ordinal);
         Assert.DoesNotContain("new ByteRange(", source, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionOperation.", source, StringComparison.Ordinal);
         Assert.DoesNotContain("0x", source, StringComparison.OrdinalIgnoreCase);

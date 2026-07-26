@@ -60,7 +60,7 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
             Assert.Single(loaded.Issues).Code);
     }
 
-    /// <summary>Workbench compilation consumes the same published capability and token.</summary>
+    /// <summary>Workbench availability and compilation consume the same published capability and token.</summary>
     [Fact]
     public void Nt51929CompilationUsesPublishedCanonicalSnapshot()
     {
@@ -68,6 +68,11 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
             WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
                 TestContext.Current.CancellationToken);
         CapabilityResolutionResult resolution =
+            WorkbenchCompositionService.ResolveCanonicalStandardMergeCapability(
+                "NT51929");
+        bool available = WorkbenchCompositionService.IsStandardMergeSupported(
+            "NT51929");
+        CapabilityResolutionResult afterAvailability =
             WorkbenchCompositionService.ResolveCanonicalStandardMergeCapability(
                 "NT51929");
 
@@ -82,9 +87,13 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
 
         Assert.True(reload.Succeeded);
         Assert.True(resolution.Succeeded);
+        Assert.True(available);
         Assert.True(recognized);
         Assert.Empty(issues);
         Assert.Same(resolution.Capability!.CompiledComposition, composition);
+        Assert.Equal(
+            resolution.Capability.ResolutionToken,
+            afterAvailability.Capability!.ResolutionToken);
         Assert.Equal(
             resolution.Capability.ResolutionToken,
             afterCompile.Capability!.ResolutionToken);

@@ -1,3 +1,5 @@
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
@@ -5,9 +7,12 @@ public static partial class WorkbenchCompositionService
     /// <summary>Returns true when the selected IC has a built-in standard merge profile.</summary>
     public static bool IsStandardMergeSupported(string icId)
     {
-        return IsCanonicalStandardMergePilot(icId)
-            ? ResolveCanonicalStandardMergeCapability(icId).Succeeded
-            : FindStandardMergeProfileSummaryByIc(icId) is { CompileSucceeded: true };
+        return TryCompilePublishedStandardMergeCapability(
+            icId,
+            out CompiledComposition? composition,
+            out _)
+            ? composition is not null
+            : FindStandardMergeProfileSummaryByIc(icId)?.CompileSucceeded == true;
     }
 
     /// <summary>Gets the built-in standard merge profile id for the selected IC, if any.</summary>

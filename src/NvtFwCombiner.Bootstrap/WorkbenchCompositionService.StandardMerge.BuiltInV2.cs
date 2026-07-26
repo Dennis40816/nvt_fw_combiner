@@ -10,12 +10,11 @@ public static partial class WorkbenchCompositionService
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        return IsCanonicalStandardMergePilot(icId)
-            ? TryCompileCanonicalStandardMerge(
+        return TryCompilePublishedStandardMergeCapability(
                 icId,
                 out composition,
-                out issues)
-            : TryCompileStandardMergeThroughMigrationAdapter(
+                out issues) ||
+            TryCompileStandardMergeThroughMigrationAdapter(
                 icId,
                 dpInputLength,
                 out composition,
