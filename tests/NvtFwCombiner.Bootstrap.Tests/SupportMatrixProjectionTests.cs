@@ -144,23 +144,28 @@ public sealed class SupportMatrixProjectionTests
     [InlineData(
         "NT51927",
         "2-ic",
-        "nt51927-ctrlram-fw132-twochip-full-flash")]
+        "nt51927-ctrlram-fw132-twochip-full-flash",
+        "nfc.nt51927.ctrlram-postbuild-v1:legacy-combiner-1.13.0:TwoChip")]
     [InlineData(
         "NT51928",
         "3-ic",
-        "nt51928-ctrlram-fw140-threechip-full-flash")]
+        "nt51928-ctrlram-fw140-threechip-full-flash",
+        "nfc.nt51928.ctrlram-postbuild-v1:legacy-combiner-1.13.0:ThreeChip")]
     [InlineData(
         "NT51929",
         "2-8-ic",
-        "nt51929-ctrlram-fw1x-cascade-full-flash")]
+        "nt51929-ctrlram-fw1x-cascade-full-flash",
+        "nfc.nt51929.ctrlram-postbuild-v1:legacy-combiner-1.13.0:Cascade")]
     [InlineData(
         "NT51930",
         "2-13-ic",
-        "nt51930-ctrlram-fw130-cascade3-full-flash")]
+        "nt51930-ctrlram-fw130-cascade3-full-flash",
+        "nfc.nt51930.ctrlram-postbuild-fw1.x:legacy-combiner-1.13.0:Cascade")]
     public void CtrlRamRowsRetainExactPostbuildIcCount(
         string icId,
         string icCountVariant,
-        string mapVariant)
+        string mapVariant,
+        string expectedIntegrityRouteId)
     {
         SupportMatrix matrix = WorkbenchCompositionService.GetSupportMatrix();
 
@@ -172,8 +177,8 @@ public sealed class SupportMatrixProjectionTests
             candidate.Route.Identity.MapVariant == mapVariant);
 
         Assert.True(row.Route.ExecutionAdmitted);
-        Assert.NotEqual(
-            "not-applicable",
+        Assert.Equal(
+            expectedIntegrityRouteId,
             row.Route.Identity.IntegrityRouteId);
     }
 

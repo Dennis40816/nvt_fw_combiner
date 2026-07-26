@@ -132,6 +132,75 @@ public sealed partial class SupportMatrixMaterializerTests
         SupportPublicationPolicyValidator.Validate(policy, prior);
     }
 
+    /// <summary>A stable decision id cannot silently acquire different owner-approved contents.</summary>
+    [Theory]
+    [InlineData("route")]
+    [InlineData("status")]
+    [InlineData("provenance")]
+    public void RejectsChangedDecisionThatReusesPriorIdentity(string mutation)
+    {
+        SupportRouteDescriptor route = Route();
+        SupportPublicationDecision priorDecision = new(
+            "stable-decision",
+            route.RouteId,
+            SupportPublicationStatus.TestOnly,
+            Provenance());
+        SupportPublicationPolicySnapshot prior = Policy(priorDecision);
+        SupportPublicationDecision currentDecision = mutation switch
+        {
+            "route" => new(
+                priorDecision.DecisionId,
+                "nt51919-general-merge-generic",
+                priorDecision.Status,
+                priorDecision.Provenance),
+            "status" => new(
+                priorDecision.DecisionId,
+                priorDecision.RouteId,
+                SupportPublicationStatus.Candidate,
+                priorDecision.Provenance),
+            "provenance" => new(
+                priorDecision.DecisionId,
+                priorDecision.RouteId,
+                priorDecision.Status,
+                priorDecision.Provenance with { Rationale = "changed" }),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(mutation),
+                mutation,
+                "Unknown decision mutation."),
+        };
+        SupportPublicationPolicySnapshot policy = new(
+            "support-publication-policy",
+            "2.0.0",
+            new string('b', 64),
+            [currentDecision],
+            prior.PolicyVersion,
+            prior.Sha256);
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            SupportPublicationPolicyValidator.Validate(policy, prior));
+    }
+
+    /// <summary>An unchanged owner decision may retain its stable identity across policy versions.</summary>
+    [Fact]
+    public void AcceptsUnchangedDecisionIdentityFromPriorPolicy()
+    {
+        SupportPublicationDecision decision = new(
+            "stable-decision",
+            Route().RouteId,
+            SupportPublicationStatus.TestOnly,
+            Provenance());
+        SupportPublicationPolicySnapshot prior = Policy(decision);
+        SupportPublicationPolicySnapshot policy = new(
+            "support-publication-policy",
+            "2.0.0",
+            new string('b', 64),
+            [decision],
+            prior.PolicyVersion,
+            prior.Sha256);
+
+        SupportPublicationPolicyValidator.Validate(policy, prior);
+    }
+
     /// <summary>A same-id and same-version snapshot cannot replace the exact pinned predecessor.</summary>
     [Fact]
     public void RejectsPriorPolicyWithDifferentSha256()

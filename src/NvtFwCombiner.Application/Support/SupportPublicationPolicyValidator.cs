@@ -3,6 +3,43 @@ namespace NvtFwCombiner.Application.Support;
 /// <summary>Validates publication snapshot invariants independently from adapters.</summary>
 public static class SupportPublicationPolicyValidator
 {
+    /// <summary>
+    /// Validates one ordered policy history and keeps decision identities immutable
+    /// across the complete chain, including versions where a decision is absent.
+    /// </summary>
+    public static void ValidateHistory(
+        IReadOnlyList<SupportPublicationPolicySnapshot> policies)
+    {
+        ArgumentNullException.ThrowIfNull(policies);
+        if (policies.Count == 0)
+        {
+            throw new ArgumentException(
+                "Publication policy history must contain at least one snapshot.",
+                nameof(policies));
+        }
+
+        var canonicalDecisionsById =
+            new Dictionary<string, SupportPublicationDecision>(
+                StringComparer.Ordinal);
+        SupportPublicationPolicySnapshot? previous = null;
+        foreach (SupportPublicationPolicySnapshot policy in policies)
+        {
+            Validate(policy, previous);
+            ValidateDecisionIdentityReuse(
+                policy.Decisions,
+                canonicalDecisionsById,
+                nameof(policies));
+            foreach (SupportPublicationDecision decision in policy.Decisions)
+            {
+                _ = canonicalDecisionsById.TryAdd(
+                    decision.DecisionId,
+                    decision);
+            }
+
+            previous = policy;
+        }
+    }
+
     /// <summary>Rejects an invalid or ambiguous publication snapshot.</summary>
     public static void Validate(
         SupportPublicationPolicySnapshot policy,
@@ -56,11 +93,18 @@ public static class SupportPublicationPolicyValidator
                 nameof(supersededPolicy));
         }
 
-        HashSet<string> priorDecisionIds =
-            [.. supersededPolicy.Decisions.Select(static decision => decision.DecisionId)];
+        var priorDecisionsById =
+            supersededPolicy.Decisions.ToDictionary(
+                static decision => decision.DecisionId,
+                StringComparer.Ordinal);
+        ValidateDecisionIdentityReuse(
+            policy.Decisions,
+            priorDecisionsById,
+            nameof(policy));
+
         if (policy.Decisions
             .SelectMany(static decision => decision.SupersedesDecisionIds)
-            .Any(supersededId => !priorDecisionIds.Contains(supersededId)))
+            .Any(supersededId => !priorDecisionsById.ContainsKey(supersededId)))
         {
             throw new ArgumentException(
                 "Every superseded decision id must exist in the supplied prior policy.",
@@ -162,6 +206,37 @@ public static class SupportPublicationPolicyValidator
                 throw new ArgumentException(
                     "Superseded decision ids must refer uniquely to prior policy decisions.",
                     nameof(decision));
+            }
+        }
+    }
+
+    private static bool HasSameDecisionContents(
+        SupportPublicationDecision current,
+        SupportPublicationDecision prior)
+    {
+        return StringComparer.Ordinal.Equals(current.RouteId, prior.RouteId) &&
+            current.Status == prior.Status &&
+            Equals(current.Provenance, prior.Provenance) &&
+            current.SupersedesDecisionIds.SequenceEqual(
+                prior.SupersedesDecisionIds,
+                StringComparer.Ordinal);
+    }
+
+    private static void ValidateDecisionIdentityReuse(
+        IEnumerable<SupportPublicationDecision> decisions,
+        Dictionary<string, SupportPublicationDecision> priorDecisionsById,
+        string parameterName)
+    {
+        foreach (SupportPublicationDecision decision in decisions)
+        {
+            if (priorDecisionsById.TryGetValue(
+                    decision.DecisionId,
+                    out SupportPublicationDecision? priorDecision) &&
+                !HasSameDecisionContents(decision, priorDecision))
+            {
+                throw new ArgumentException(
+                    "A publication decision id cannot be reused with changed contents.",
+                    parameterName);
             }
         }
     }

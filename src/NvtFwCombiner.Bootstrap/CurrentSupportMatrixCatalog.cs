@@ -28,11 +28,14 @@ internal static partial class CurrentSupportMatrixCatalog
         AddGeneralReplaceRoutes(routes, unresolved);
         AddCtrlRamRoutes(routes, unresolved);
         AddUnboundAuthoringScopes(routes, unresolved);
+        LoadedSupportPublicationPolicy policy =
+            BuiltInSupportPublicationPolicy.Load();
         return SupportMatrixMaterializer.Materialize(
-            BuiltInSupportPublicationPolicy.Load(),
+            policy.Current,
             routes,
             BaselineEvidence,
-            unresolved);
+            unresolved,
+            supersededPolicy: policy.SupersededPolicy);
     }
 
     private static void AddGeneralMergeRoutes(

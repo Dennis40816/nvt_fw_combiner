@@ -20,7 +20,7 @@ internal static partial class BuiltInSupportPublicationPolicy
                 ExpectedSha256),
         ]);
 
-    internal static SupportPublicationPolicySnapshot Load()
+    internal static LoadedSupportPublicationPolicy Load()
     {
         return LoadFromDirectory(AppContext.BaseDirectory, HistoryFiles);
     }
@@ -34,10 +34,10 @@ internal static partial class BuiltInSupportPublicationPolicy
             new PinnedSupportPublicationPolicyDocument(
                 bytes.ToArray(),
                 expectedSha256),
-        ]);
+        ]).Current;
     }
 
-    internal static SupportPublicationPolicySnapshot LoadFromDirectory(
+    internal static LoadedSupportPublicationPolicy LoadFromDirectory(
         string baseDirectory,
         IReadOnlyList<PinnedSupportPublicationPolicyFile> history)
     {
@@ -55,7 +55,7 @@ internal static partial class BuiltInSupportPublicationPolicy
         return LoadHistory(documents);
     }
 
-    internal static SupportPublicationPolicySnapshot LoadHistory(
+    internal static LoadedSupportPublicationPolicy LoadHistory(
         IReadOnlyList<PinnedSupportPublicationPolicyDocument> documents)
     {
         ArgumentNullException.ThrowIfNull(documents);
@@ -66,28 +66,29 @@ internal static partial class BuiltInSupportPublicationPolicy
                 nameof(documents));
         }
 
-        SupportPublicationPolicySnapshot? previous = null;
+        var snapshots =
+            new List<SupportPublicationPolicySnapshot>(documents.Count);
         foreach (PinnedSupportPublicationPolicyDocument source in documents)
         {
-            SupportPublicationPolicySnapshot snapshot = Parse(
+            snapshots.Add(Parse(
                 source.Bytes.Span,
-                source.ExpectedSha256);
-            try
-            {
-                SupportPublicationPolicyValidator.Validate(snapshot, previous);
-            }
-            catch (ArgumentException exception)
-            {
-                throw new InvalidDataException(
-                    "Built-in support publication policy violates snapshot invariants.",
-                    exception);
-            }
-
-            previous = snapshot;
+                source.ExpectedSha256));
         }
 
-        return previous ?? throw new InvalidOperationException(
-            "Pinned publication policy history did not produce a snapshot.");
+        try
+        {
+            SupportPublicationPolicyValidator.ValidateHistory(snapshots);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new InvalidDataException(
+                "Built-in support publication policy violates snapshot invariants.",
+                exception);
+        }
+
+        return new LoadedSupportPublicationPolicy(
+            snapshots[^1],
+            snapshots.Count > 1 ? snapshots[^2] : null);
     }
 
     private static SupportPublicationPolicySnapshot Parse(
@@ -228,6 +229,10 @@ internal sealed record PolicyDocument(
 internal sealed record PinnedSupportPublicationPolicyDocument(
     ReadOnlyMemory<byte> Bytes,
     string ExpectedSha256);
+
+internal sealed record LoadedSupportPublicationPolicy(
+    SupportPublicationPolicySnapshot Current,
+    SupportPublicationPolicySnapshot? SupersededPolicy);
 
 internal sealed record PinnedSupportPublicationPolicyFile(
     string RelativePath,

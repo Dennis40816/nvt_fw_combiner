@@ -24,7 +24,7 @@ internal static partial class CurrentSupportMatrixCatalog
             LegacyCombinerPostbuildPlanSelector? selector =
                 postbuildProfile?.PlanSelectors.SingleOrDefault(
                     candidate => candidate.Branch == route.Key.Branch);
-            if (selector is null)
+            if (postbuildProfile is null || selector is null)
             {
                 unresolved.Add(Unresolved(
                     route.Key.IcId,
@@ -53,7 +53,8 @@ internal static partial class CurrentSupportMatrixCatalog
             }
 
             string integrityRouteId =
-                $"{route.Key.PostbuildProcessorId}:{route.Key.Branch}";
+                $"{postbuildProfile.ProcessorId}:" +
+                $"{postbuildProfile.ToolBindingId}:{route.Key.Branch}";
             foreach (FirmwareImageMap map in maps)
             {
                 TopologyRequirement mapRequirement =

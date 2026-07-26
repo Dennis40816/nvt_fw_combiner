@@ -17,9 +17,11 @@ public sealed class BuiltInSupportPublicationPolicyTests
     [Fact]
     public void LoadsCheckedInPolicyThroughPinnedHash()
     {
-        SupportPublicationPolicySnapshot policy =
+        LoadedSupportPublicationPolicy loaded =
             BuiltInSupportPublicationPolicy.Load();
+        SupportPublicationPolicySnapshot policy = loaded.Current;
 
+        Assert.Null(loaded.SupersededPolicy);
         Assert.Equal("support-publication-policy", policy.PolicyId);
         Assert.Equal("1.0.0", policy.PolicyVersion);
         Assert.Equal(ExpectedSha256, policy.Sha256);
@@ -122,7 +124,7 @@ public sealed class BuiltInSupportPublicationPolicyTests
         _ = workspace.Write("prior.json", priorBytes);
         _ = workspace.Write("current.json", currentBytes);
 
-        SupportPublicationPolicySnapshot policy =
+        LoadedSupportPublicationPolicy loaded =
             BuiltInSupportPublicationPolicy.LoadFromDirectory(
                 workspace.Root,
             [
@@ -133,12 +135,85 @@ public sealed class BuiltInSupportPublicationPolicyTests
                     "current.json",
                     currentSha256),
             ]);
+        SupportPublicationPolicySnapshot policy = loaded.Current;
+        SupportPublicationPolicySnapshot superseded =
+            Assert.IsType<SupportPublicationPolicySnapshot>(
+                loaded.SupersededPolicy);
+        SupportMatrix matrix = SupportMatrixMaterializer.Materialize(
+            policy,
+        [
+            new SupportRouteDescriptor(
+                new SupportRouteIdentity(
+                    "NT51950",
+                    "ab-merge",
+                    "1-ic",
+                    "nt51950-ab-merge-512k"),
+                SupportAuthoringAvailability.Available,
+                ExecutionAdmitted: true,
+                "test-authoring",
+                "test-execution"),
+        ],
+            new SupportEvidenceCatalogSnapshot(
+                "test-evidence",
+                "1.0.0",
+                "test",
+                []),
+            supersededPolicy: superseded);
 
         Assert.Equal("1.0.0", policy.SupersedesPolicyVersion);
         Assert.Equal(priorSha256, policy.SupersedesPolicySha256);
+        Assert.Equal(priorSha256, superseded.Sha256);
         Assert.Equal(
             ["prior-decision"],
             Assert.Single(policy.Decisions).SupersedesDecisionIds);
+        Assert.True(matrix.IsMigrationReady);
+    }
+
+    /// <summary>A decision id remains immutable even after an intermediate policy omits it.</summary>
+    [Fact]
+    public void RejectsChangedDecisionIdentityReintroducedAfterOmission()
+    {
+        JsonObject first = CreatePolicyObject(
+            policyVersion: "1.0.0",
+            decisionId: "stable-decision");
+        byte[] firstBytes = Encoding.UTF8.GetBytes(first.ToJsonString());
+        string firstSha256 =
+            PinnedJsonCatalogLoader.ComputeCanonicalSha256(firstBytes);
+
+        JsonObject second = CreatePolicyObject(
+            policyVersion: "2.0.0",
+            decisionId: "replacement-decision",
+            supersedesPolicyVersion: "1.0.0",
+            supersedesPolicySha256: firstSha256,
+            supersedesDecisionIds: ["stable-decision"]);
+        byte[] secondBytes = Encoding.UTF8.GetBytes(second.ToJsonString());
+        string secondSha256 =
+            PinnedJsonCatalogLoader.ComputeCanonicalSha256(secondBytes);
+
+        JsonObject third = CreatePolicyObject(
+            policyVersion: "3.0.0",
+            decisionId: "stable-decision",
+            supersedesPolicyVersion: "2.0.0",
+            supersedesPolicySha256: secondSha256);
+        JsonObject reintroducedDecision = Assert.IsType<JsonObject>(
+            Assert.IsType<JsonArray>(third["decisions"])[0]);
+        reintroducedDecision["status"] = "supported";
+        byte[] thirdBytes = Encoding.UTF8.GetBytes(third.ToJsonString());
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            BuiltInSupportPublicationPolicy.LoadHistory(
+            [
+                PinnedDocument(firstBytes, firstSha256),
+                PinnedDocument(secondBytes, secondSha256),
+                PinnedDocument(
+                    thirdBytes,
+                    PinnedJsonCatalogLoader.ComputeCanonicalSha256(thirdBytes)),
+            ]));
+
+        Assert.Contains(
+            "snapshot invariants",
+            exception.Message,
+            StringComparison.Ordinal);
     }
 
     /// <summary>A predecessor with matching labels but different bytes cannot prove lineage.</summary>
@@ -269,6 +344,13 @@ public sealed class BuiltInSupportPublicationPolicyTests
             StringComparison.Ordinal)
             ? normalized[repositoryPrefix.Length..]
             : normalized;
+    }
+
+    private static PinnedSupportPublicationPolicyDocument PinnedDocument(
+        byte[] bytes,
+        string expectedSha256)
+    {
+        return new PinnedSupportPublicationPolicyDocument(bytes, expectedSha256);
     }
 
     private static JsonObject CreatePolicyObject(
