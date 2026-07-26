@@ -700,6 +700,12 @@ Top-level navigation uses top tabs.
 - Merge。
 - Replace。
 
+A compact right-side Message Center affordance is a shell utility, not a fourth
+top-level product tab. It opens two separately modeled views: immutable
+Preview/Build Run Reports and refreshable System Information/Diagnostics.
+Sharing the entry, container, visual hierarchy, and localization never merges
+their contracts, persistence, or lifecycle.
+
 Reports and diagnostics are secondary surfaces. Preview/Build reports and diagnostics open in a report modal; Settings may expose diagnostics configuration/export. Saved Rules is hidden in the first UI release until the saved-rule workflow is implemented and reviewed. CLI saved-rule validation and General Merge rule consumption do not create a first-level Saved Rules navigation entry. These surfaces are not first-level navigation entries unless explicitly expanded by the owner.
 
 ### 11.2 Merge page
@@ -942,6 +948,15 @@ version.
    resolution authority and `CompiledComposition` remains sole execution
    authority. Strongly typed children may be consumed independently but cannot
    be mixed across roots.
+   `CapabilityFingerprint` deterministically identifies only the selected
+   canonical firmware resolution, inspection, and compilation semantics,
+   including applicable map, artifact, metadata, workflow, integrity, and
+   selection facts. It excludes authoring policy, evidence, publication, and
+   current-machine runtime dependency state. Those inputs retain their own
+   version/hash provenance. Every catalog publication creates a new
+   `ResolutionToken`, even when the firmware fingerprint is unchanged, so
+   action availability and presentation are re-evaluated without discarding
+   reusable firmware-inspection cache entries.
    `CanonicalCapabilityCatalog` is the one logical authority for exact
    IC/workflow/IC Count/map-variant routes. It references canonical trusted
    definitions and keeps route authoring availability, execution admission,
@@ -963,6 +978,126 @@ version.
    reads only the current schema; legacy conversion is explicit, offline, and
    temporary. A future UI may create untrusted candidate bundles but cannot
    approve or promote them.
+
+#### Capability authority, admission, and portable onboarding
+
+- Application owns the runtime `CanonicalCapabilityCatalog` query and join
+  policy. Profiles owns trusted firmware-definition normalization, map
+  resolution, and canonical compilation. Infrastructure reads and hash-validates
+  trusted bundles, authoring policy, evidence, and publication data through
+  ports. Bootstrap performs DI/composition wiring only. UI and CLI query
+  Application and never maintain a private IC list or deserialize profile JSON.
+- The catalog joins typed references to independently owned facts. The trusted
+  bundle index trusts exact bytes; composition profiles declare firmware
+  behavior; exact-route authoring policy declares one shared
+  `Available`/`Unavailable` result for UI and CLI; evidence classifies regression
+  authority; publication policy classifies the support claim. UI and CLI cannot
+  override or diverge from that result. Presence in any one source never implies
+  a fact owned by another source. A missing authoring-policy entry is a
+  fail-closed materialization error, not an implicit `Unavailable`. During
+  migration only a named legacy adapter may report that omission as `Missing`;
+  it cannot expose Build, and the route cannot become canonical until the policy
+  is explicit.
+- Normal Merge/Replace authoring selectors and normal CLI list/help output
+  enumerate only exact routes whose shared authoring policy is `Available`.
+  `Unavailable` routes are not shown as disabled clutter on authoring pages and
+  cannot execute when requested directly; CLI returns a stable typed
+  unavailable issue. Support Matrix remains the complete transparency surface
+  and lists both values with policy provenance/reason so an intentional
+  `Unavailable` cannot be confused with missing data.
+- Every canonical exact route also has one explicit versioned
+  `PublicationStatus`, such as `Supported`, `Candidate`, `Internal`, or
+  `TestOnly`. Missing publication policy is a fail-closed materialization error,
+  never an implicit `Internal` or `Unsupported`. A migration adapter may
+  temporarily project legacy `Unclassified` but cannot create a public support
+  claim. `Unclassified` is not a target publication value: every route must
+  receive one of the four explicit decisions before it becomes canonical, and
+  the legacy enum/value is deleted after route migration reaches zero.
+  `EvidenceStatus.Missing` remains a valid explicit evidence result and is not
+  treated as missing publication data.
+- Stable `RouteId` identifies only the logical exact route: IC, workflow,
+  IC Count variant, and map variant. Integrity/processor, artifact/metadata,
+  operation, and other firmware-semantic revisions do not create duplicate
+  logical rows; they participate in `CapabilityFingerprint`. Authoring,
+  publication, and evidence decisions pin both `RouteId` and the expected
+  fingerprint. A fingerprint change makes every prior decision stale and
+  non-authoritative until explicitly reviewed/superseded. In particular, an old
+  `Available` authoring decision cannot keep Build enabled for changed firmware
+  semantics; authoring, support, and evidence never carry forward
+  automatically.
+- Execution admission is not a hand-authored catalog boolean. The canonical
+  compiler proves it by producing a valid `CompiledComposition` that is eligible
+  for engine execution. Runtime dependency readiness is a separate refreshable
+  environment result and never mutates trusted facts. Build availability is
+  derived from shared authoring availability, execution admission, input
+  readiness, and runtime dependency readiness; evidence and publication status
+  remain certification/release facts.
+- A valid current-fingerprint route may resolve `EvidenceStatus.Missing` and
+  still Build when authoring, execution, input, and runtime-dependency gates are
+  ready. That result produces a critical certification inconsistency for
+  Support Matrix/System Information and blocks support promotion, CI/release,
+  and formal certification; it does not become a hidden byte-execution switch.
+  A new `Supported` decision must pin the current fingerprint and satisfy the
+  route/risk-specific evidence and human gate—there is no single global evidence
+  rank suitable for every workflow. Malformed, required-but-absent, or
+  hash-invalid evidence/policy source data is instead a catalog integrity
+  failure and follows the last-known-good/cold-start fail-closed rules.
+- By the end of `0.10.x`, adding an IC that uses the existing closed vocabulary
+  is data-only onboarding: a versioned trusted bundle declares IC identity,
+  fact-scoped relationships, maps and IC Count applicability, artifacts,
+  metadata structures, workflow profiles, and evidence references; the
+  package's versioned hash-pinned trust index admits the reviewed bytes.
+  Deterministic validation, resolution, compilation, fingerprints, conformance
+  tests, and golden vectors must be host- and language-neutral. They cannot
+  depend on Avalonia, Workbench DTOs, C# reflection, or private UI state.
+- IC bundles cannot supply executable code, scripts, dynamic assemblies, or
+  arbitrary processor implementations. New firmware semantics require a
+  reviewed version of the closed schema/domain vocabulary. Approved external
+  processors remain manifest-pinned host adapters selected only by canonical
+  compiled declarations.
+- A later IC-authoring UI may create, validate, and export an untrusted
+  candidate. It cannot mutate the live catalog or promote itself. Independent
+  review, CI/evidence, and the required firmware-owner gate promote exact bytes
+  by updating the hash-pinned trust index; runtime then atomically publishes a
+  new immutable catalog snapshot. `Trusted`, `execution-admitted`, and
+  `published/supported` remain independent conditions. An exact-route key is
+  unique: duplicate entries or conflicting definition identities/hashes never
+  use load order, version preference, or last-write-wins. They reject the new
+  snapshot. A running process retains its last-known-good snapshot; a cold start
+  with no valid snapshot blocks every Build and exposes a typed catalog
+  diagnostic through Application to both UI and CLI.
+- Catalog publication is explicit and deterministic. A process materializes the
+  trusted catalog at startup and may replace it only through one Application
+  `Reload Catalog` command. Runtime filesystem watching and implicit hot reload
+  are forbidden. Reload validates a complete candidate catalog before one
+  atomic publication; failure retains the last-known-good snapshot and updates
+  the separate system diagnostic. A later authoring UI may request this same
+  command only after its reviewed trust-index promotion has completed
+  atomically. Each CLI process loads the current trusted catalog at startup.
+
+#### NT51929 Standard Merge canonical tracer
+
+- The first ownership-migration tracer is exactly `NT51929 + Standard Merge`.
+  It proves the IC-neutral Application catalog/query/command seam, canonical
+  resolution snapshot, existing `CompiledComposition` execution boundary, CLI
+  route, report trace, output naming inputs, and one temporary Workbench
+  delegation without changing desktop layout.
+- The approved fixed output/map length is `0x40000`, not `0x80000`: DP occupies
+  `[0x0000, 0x6000)`, `[0x6000, 0x7000)` is the explicit gap, and TP occupies
+  `[0x7000, 0x40000)`. The compiled workflow contains exactly `copy-tp` and
+  `copy-dp`, with no processor stage. `0x80000` belongs to NT51929 AB Merge and
+  must not leak into this tracer.
+- Processor behavior is route-specific. NT51929 Standard Merge has no
+  POSTBUILD; NT51929 CtrlRAM Replace uses the approved legacy Combiner
+  POSTBUILD for its applicable Single/Cascade routes; NT51929 AB Merge has no
+  external processor but relocates its declared TP Backup scalar fields. A
+  catalog must never infer one of these facts from the IC identity alone.
+- The tracer has no NT51929-specific contract type, service, or executable
+  branch. Current NT51929 Standard Merge Workbench callers delegate to the same
+  Application seam used by CLI. Every other route stays behind a named
+  route-scoped migration adapter with a deletion criterion; there is no
+  fallback or second executable NT51929 Standard Merge owner. NT51929 DP Replace
+  with DPCMI and the remaining headless routes are later migration slices.
 
 #### Application use-case boundary
 
@@ -1071,10 +1206,11 @@ version.
 28. General Merge and General Replace use one `AuthoringMappingState`, one
     invariant range codec, one Start + Length editor, and one typed draft shared
     by UI, CLI, Saved Rules, validation, memory projection, and compilation.
-29. Capability availability, evidence status, input readiness, and runtime
-    dependency readiness are four independent results. Build requires an
-    available capability plus ready inputs and runtime dependencies. Evidence
-    status remains a certification/review fact.
+29. Shared `AuthoringAvailability`, compiler-proved `ExecutionAdmission`,
+    `EvidenceStatus`, `PublicationStatus`, `InputReadiness`, and refreshable
+    `RuntimeDependencyReadiness` are independent results. Build requires
+    `Available` authoring, admitted execution, ready inputs, and ready runtime
+    dependencies. Evidence/publication remain certification/release facts.
 30. Runtime processor discovery is refreshable and cannot permanently cache a
     missing or invalid tool for the process lifetime. Preview may emit a
     blocked report without invoking mutation when a required dependency is
@@ -1103,6 +1239,21 @@ version.
     assistive technology expose the same localized reason and next action.
 35. Report issues retain stable codes and technical evidence but lead with a
     localized one-line outcome, impact, and action.
+    The shell Message Center presents Run Reports/History and System
+    Information/Diagnostics as separate sections. Run Reports remain immutable
+    execution audit snapshots and retain their existing report JSON/history
+    authority. System information is a refreshable Application-owned status
+    snapshot for catalog/trust, application version, runtime dependencies, and
+    current typed diagnostics; it is never inserted into run report JSON or
+    report history. Normal system facts do not create notification badges.
+    Blocking system diagnostics badge the Message Center and may also produce a
+    concise global blocker that links to the exact diagnostic. System status is
+    re-probed at process start and keeps only a contract-bounded in-memory list
+    of recent transitions for the current session. Resolved issues stop
+    contributing to the active badge but may remain in that bounded list.
+    System events are not persisted automatically. An explicit
+    `Export Diagnostics` action may write a versioned, privacy-filtered
+    diagnostic JSON for support; it is not a Build Report.
 36. Every page derives Preview and Build availability from one typed action
     readiness projection. Before execution, disabled Build uses an exclamation
     on a hoverable/focusable outer affordance; the existing restrained animation
@@ -1136,6 +1287,17 @@ version.
     firmware naming semantics.
 
 #### Promotion and planning workflow
+
+Before an implementation goal or ticket rewrite is approved, unresolved
+architecture and terminology are closed through the explicit repository
+`grilling` workflow. `grill-with-docs` applies the same one-decision-at-a-time
+discipline and writes every accepted result immediately to its canonical
+specification/architecture owner through the current
+`nfc-architecture-change` and `to-spec` authorities. The former standalone
+`domain-modeling` workflow is not restored; its terminology consistency,
+concrete IC/IC Count stress cases, and canonical-document ownership rules are
+part of `grill-with-docs`. Ticket bodies and dependency edges are synchronized
+after the grill closes so issues do not become a competing draft specification.
 
 44. Product intent, user-visible terminology, workflow requirements, and global
     validation policy are recorded in this canonical specification.
@@ -1174,8 +1336,15 @@ version.
    publication/support status, and one evidence classification:
    `DirectGolden`, `ApprovedAlias`, `SyntheticOracle`, `ContractOnly`, or
    `Missing`. UI-selectable but non-executable routes fail the gate.
-   Executable but non-selectable routes are allowed only when explicitly typed
-   as internal, candidate, or test-only rather than silently omitted.
+   Executable but authoring-unavailable routes remain explicit rows with
+   authoring-policy provenance and an independent publication classification
+   rather than being silently omitted.
+   An authoring/publication/evidence decision whose expected fingerprint does
+   not match the current route is stale. Stale authoring cannot expose Build,
+   and stale publication/evidence cannot satisfy their gates.
+   `Supported` plus a valid `EvidenceStatus.Missing` row is a critical
+   certification inconsistency: it blocks CI/release/support promotion but does
+   not alter the independent Build expression.
 3. A migration slice keeps the executable route denominator stable and cannot
    downgrade an evidence classification.
 4. The workflow-regression matrix also reports whether each route still
@@ -1204,8 +1373,11 @@ version.
    applicability, alias resolution, immutable snapshots, fingerprints, and
    fail-closed unknown states.
 10. Application tests cover session restoration, IC/count changes, stale-result
-   rejection, four-way readiness, file reinspection, mapping round trips,
-   naming tokens, Preview/Build parity, and report summaries.
+    rejection, per-child `NotApplicable`/`PendingInput`/`Blocked`/`Ready`
+    outcomes, file reinspection, mapping round trips,
+    naming tokens, Preview/Build parity, report summaries, catalog cold-start
+    diagnostics, last-known-good refresh behavior, and the separation between
+    refreshable system status and immutable run reports.
 11. Contract slices update prose, schema, examples, compatibility behavior, and
     materialization tests together.
 12. Architecture tests protect dependency direction, one executor, canonical
@@ -1222,6 +1394,13 @@ version.
     readiness affordance. They prove a disabled Build exposes the same blocker
     through hover, focus, and accessibility; the affordance does not create a
     report; and Preview/Build reports contain only issues from the actual run.
+    Message Center tests prove Run Reports and System Information use separate
+    models/lifecycles, normal system facts do not create badge noise, a fatal
+    cold-start diagnostic remains readable and focusable, and the same blocker
+    is reachable from the global hint and disabled Build affordance. They also
+    prove session-event bounds, resolved-badge clearing, restart re-probe,
+    privacy-filtered diagnostic export, and absence of automatic persistence
+    into Report History.
 14. Hex Viewport extraction requires visual/interaction parity and measured
     scrolling, selection, search, edit, diff, allocation, and bounded-snapshot
     performance against the current editor baseline.
@@ -1276,6 +1455,8 @@ version.
 - Redesigning or reducing the current Hex Editor feature set.
 - Shipping a trusted-bundle authoring UI in the near term; only the model needed
   to enable a later reviewed UI is included.
+- Loading executable IC plugins, arbitrary scripts, or dynamic assemblies from
+  an IC bundle.
 - Using parallel verification to reorder dependent build/test steps or conceal
   nondeterministic tests.
 - Moving, overwriting, or redefining the stable `v0.9.15`/`v0.9.16` release
@@ -1283,9 +1464,12 @@ version.
 
 ### 15.7 Further Notes
 
-The architecture workshop has no remaining owner-design question. Exact
-version allocation remains a downstream owner decision rather than unresolved
-architecture. The approved sequence is:
+The program-level architecture workshop is approved. Before implementation of
+the first canonical tracer, a focused consistency grill is reopened for its
+remaining policy/terminology details. Confirmed results in this section are
+normative immediately; unresolved details cannot be guessed in code or copied
+into ticket acceptance criteria. Exact version allocation remains a downstream
+owner decision rather than unresolved architecture. The approved sequence is:
 
 ```text
 approved specification and consistency grill
@@ -1298,6 +1482,13 @@ Known NT51920/NT51931 DPCMI mapping gaps and the identified direct-golden/
 processor evidence gaps remain explicit evidence tasks. They do not reopen the
 IC-first architecture, and they block only the affected promotion or deletion
 boundary.
+
+The tracer's authoring-policy model is closed: each exact route declares
+`Available` or `Unavailable`, and UI and CLI must always expose the same result.
+There is no authoring-surface override or test-only authoring state.
+`Internal`, `Candidate`, and `TestOnly` remain publication classifications and
+cannot be reused to change authoring availability. Omission is `Missing` and
+fail-closed, never another spelling of `Unavailable`.
 
 The `0.10.0` planning conditions are satisfied: the owner approved this spec,
 the canonical firmware-coordinate vocabulary, and the dependency graph; GitHub

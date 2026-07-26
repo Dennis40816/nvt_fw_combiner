@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-11
+- Last amended: 2026-07-26
 - Owners: Product owner + architecture owner + firmware reviewers
 - Supersedes: ADR 0008 catalog-join ownership after compatibility migration
 - Amends: ADR 0003, ADR 0004, ADR 0005, ADR 0006, and ADR 0007
@@ -88,6 +89,34 @@ and implements external adapters. Bootstrap wires bundle loading, Profiles resol
 and Application use cases without owning firmware facts. Application reads artifacts, executes
 generic metadata/validation stages, runs Preview/Build, and renders reports. Presentation and CLI
 only project the Bootstrap facade.
+
+The 2026-07-26 amendment names the Application-owned read model
+`CanonicalCapabilityCatalog`. Profiles remains the only authority that normalizes, resolves, and
+compiles canonical family/profile definitions. Infrastructure loads and hash-validates trusted
+data through ports, while Bootstrap remains dependency injection only. The catalog is a
+read-only query/session snapshot over those compiled results; it does not redefine firmware
+facts, replace `CompiledComposition`, or become a second compiler.
+
+Each exact route has a stable `RouteId` composed only from IC, workflow, IC Count variant, and map
+variant. Integrity, processor, artifact, metadata, operation, and other executable semantics are
+part of the separate `CapabilityFingerprint`. Authoring, publication, and evidence decisions bind
+both values. A fingerprint change makes prior decisions stale and requires review; it never
+silently inherits authority.
+
+Authoring is one shared `Available` or `Unavailable` decision for UI and CLI. Publication is the
+separate explicit policy `Supported`, `Candidate`, `Internal`, or `TestOnly`; missing publication
+policy is a materialization error. Evidence is independently classified as `DirectGolden`,
+`ApprovedAlias`, `SyntheticOracle`, `ContractOnly`, or `Missing`. `Missing` evidence can coexist
+with an authoring-ready route and does not by itself prevent deterministic BIN Build, but
+`Supported` plus `Missing` is a certification inconsistency that blocks promotion, CI,
+certification, and release.
+
+The catalog loads at startup and changes only through an explicit Application `Reload Catalog`
+use case. A complete candidate is validated before atomic publication. Duplicate exact routes,
+conflicting content hashes, corrupt content, or stale/missing policy reject the candidate; there
+is no last-writer-wins behavior. A running process retains its last-known-good snapshot after a
+failed reload. Cold start without a valid snapshot blocks every Build through one typed diagnostic
+shared by UI and CLI.
 
 ### Canonical firmware resolution
 
@@ -232,6 +261,12 @@ that every IC/workflow is authorable, compilable, executable, or supported.
 - Preview approval is bound to every executable input and policy decision.
 - Future IC and profile additions are reviewed data changes rather than workflow-specific code.
 
+Within the vocabulary implemented by the end of `0.10.x`, onboarding is a versioned,
+hash-closed data bundle plus a package trust-index entry. Runtime scripts, executable plugins,
+dynamic assemblies, and UI-generated trusted content are outside this boundary. A future IC
+authoring UI may produce only an untrusted candidate; independent review, CI, firmware evidence,
+and trust promotion remain required before publication.
+
 ### Negative / trade-offs
 
 - The migration crosses Domain, Profiles, Contracts, Infrastructure, Application, Bootstrap, UI,
@@ -257,6 +292,9 @@ that every IC/workflow is authorable, compilable, executable, or supported.
 5. Migrate metadata, postbuild, UI/CLI/report projections and current Normal/Replace profiles.
 6. Delete old catalogs and adapters only after byte, naming, operation, processor, and UI/CLI parity.
 7. Implement AB behavior on a separate R3 feature branch with its own evidence gates.
+8. Materialize the canonical capability catalog route by route, beginning with the owner-approved
+   NT51929 Standard Merge tracer, and remove migration-only `Unclassified`, duplicate support
+   identities, and compatibility projections only after every canonical route has explicit policy.
 
 ## Verification
 
@@ -271,4 +309,7 @@ that every IC/workflow is authorable, compilable, executable, or supported.
 - Full current Normal golden bytes, naming, operation trace, and processor trace parity.
 - Evidence-gated AB relocation/CRC/order golden and negative tests.
 - Architecture tests enforcing one compiler/executor and firmware-free UI/CLI/Bootstrap layers.
+- Catalog tests for stable route identity, fingerprint staleness, policy/evidence independence,
+  duplicate rejection, explicit reload, atomic publication, last-known-good retention, and
+  cold-start fail-closed diagnostics shared by UI and CLI.
 - Polytail, `python scripts/verify.py --all`, Codex review, and required human firmware review.
