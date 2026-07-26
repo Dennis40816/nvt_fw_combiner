@@ -233,7 +233,7 @@ public static partial class WorkbenchCompositionService
         ResolvedMetadataPlan? plan = resolution.Capability?.MetadataPlan;
         bool declaresDpcmi = plan?.Entries.Any(entry =>
             StringComparer.Ordinal.Equals(
-                entry.Definition.StructureDefinition.StructureId,
+                entry.Definition.StructureDefinition.Definition.DefinitionId,
                 DpcmiMetadataContract.StructureId)) == true;
         if (!declaresDpcmi)
         {

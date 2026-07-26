@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51927-standard-merge-family",
-  "bundleVersion": "0.10.1-fwconfig.1",
+  "bundleVersion": "0.10.1-fwconfig.2",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "7bf01f522c7a9ddfb9a6b54abc2b65ac84d90a59464b6266edfb1da5d4dd6f05",
+  "contentHash": "9423b7d003cae3decc50cc5a2c6a4fd19aaa291e828eede07f184d559948474a",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -18,7 +18,7 @@
       "kind": "schema",
       "path": "schemas/firmware-family-v1.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "1dbb8165e8b769ade209076fafe74010660bd4f1391942c3067884ff58250468"
+      "contentHash": "52521712087ce1cf3bc7178407c3616308a2179ea4f008dea9ee72d3e9fcebff"
     },
     {
       "entryId": "nt51927-nt51928-family",

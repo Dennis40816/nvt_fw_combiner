@@ -342,7 +342,7 @@
     "metadataStructure": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["structureId", "artifactBindingId", "length", "locator", "fields", "assertions"],
+      "required": ["structureId", "artifactBindingId", "locator"],
       "properties": {
         "structureId": { "$ref": "#/$defs/id" },
         "artifactBindingId": { "$ref": "#/$defs/id" },
@@ -360,8 +360,28 @@
           "type": "array",
           "uniqueItems": true,
           "items": { "$ref": "#/$defs/metadataFieldRelation" }
+        },
+        "definitionReference": {
+          "$ref": "#/$defs/metadataStructureDefinitionReference"
         }
       },
+      "oneOf": [
+        {
+          "required": ["length", "fields", "assertions"],
+          "not": { "required": ["definitionReference"] }
+        },
+        {
+          "required": ["definitionReference"],
+          "not": {
+            "anyOf": [
+              { "required": ["length"] },
+              { "required": ["fields"] },
+              { "required": ["assertions"] },
+              { "required": ["relations"] }
+            ]
+          }
+        }
+      ],
       "allOf": [
         {
           "if": {
@@ -384,6 +404,25 @@
           }
         }
       ]
+    },
+    "metadataStructureDefinitionReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "familyId",
+        "familyVersion",
+        "familyContentHash",
+        "structureId"
+      ],
+      "properties": {
+        "familyId": { "$ref": "#/$defs/id" },
+        "familyVersion": { "type": "string", "minLength": 1 },
+        "familyContentHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "structureId": { "$ref": "#/$defs/id" }
+      }
     },
     "metadataField": {
       "oneOf": [
@@ -556,8 +595,42 @@
             "resultOffset": { "type": "integer" },
             "allowedResultRegionId": { "$ref": "#/$defs/id" }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "prerequisiteStructureId",
+            "prerequisiteFieldId",
+            "branches",
+            "resultOffset",
+            "allowedResultRegionId"
+          ],
+          "properties": {
+            "kind": { "const": "metadata-field-selected" },
+            "prerequisiteStructureId": { "$ref": "#/$defs/id" },
+            "prerequisiteFieldId": { "$ref": "#/$defs/id" },
+            "branches": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/metadataFieldSelectedBranch" }
+            },
+            "resultOffset": { "type": "integer" },
+            "allowedResultRegionId": { "$ref": "#/$defs/id" }
+          }
         }
       ]
+    },
+    "metadataFieldSelectedBranch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimumValue", "maximumValue", "anchorRange"],
+      "properties": {
+        "minimumValue": { "type": "integer", "minimum": 0 },
+        "maximumValue": { "type": "integer", "minimum": 0 },
+        "anchorRange": { "$ref": "#/$defs/addressedRange" }
+      }
     },
     "aliasApplicability": {
       "type": "object",

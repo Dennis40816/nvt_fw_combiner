@@ -50,6 +50,35 @@ public enum MetadataInspectionState
     Value,
 }
 
+/// <summary>Closed readiness state published to every Application client.</summary>
+public enum ResolvedChildReadiness
+{
+    /// <summary>The selected capability does not declare this child.</summary>
+    NotApplicable,
+
+    /// <summary>One declared input must be loaded before resolution can continue.</summary>
+    PendingInput,
+
+    /// <summary>All inputs exist, but one declared contract rejects them.</summary>
+    Blocked,
+
+    /// <summary>The child resolved from the current immutable inputs.</summary>
+    Ready,
+}
+
+/// <summary>Closed prerequisite action offered consistently to UI and CLI.</summary>
+public enum ResolvedPrerequisiteActionKind
+{
+    /// <summary>Load the exact declared artifact slot before retrying inspection.</summary>
+    LoadArtifactFirst,
+}
+
+/// <summary>Typed next action for one pending child resolution.</summary>
+public sealed record ResolvedPrerequisiteAction(
+    ResolvedPrerequisiteActionKind Kind,
+    string ArtifactBindingId,
+    string SlotId);
+
 /// <summary>
 /// One profile binding that references canonical map, metadata-set, structure,
 /// and field definitions without copying their firmware semantics.
@@ -283,25 +312,103 @@ public sealed class ResolvedMetadataPlan
 public sealed record MetadataInspectionResult(
     ResolvedMetadataPlanEntry PlanEntry,
     MetadataInspectionState State,
-    FirmwareMetadataStructureResolution? Resolution);
+    FirmwareMetadataStructureResolution? Resolution,
+    ResolvedChildReadiness Readiness,
+    ResolvedPrerequisiteAction? NextAction);
+
+/// <summary>One immutable metadata inspection request and authoring revision.</summary>
+public sealed class MetadataInspectionRequest
+{
+    private readonly FirmwareArtifactPayload[] _artifacts;
+
+    /// <summary>Creates one checked request over immutable artifact snapshots.</summary>
+    public MetadataInspectionRequest(
+        ResolvedMetadataPlan plan,
+        long authoringRevision,
+        IEnumerable<FirmwareArtifactPayload> artifacts)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentOutOfRangeException.ThrowIfNegative(authoringRevision);
+        ArgumentNullException.ThrowIfNull(artifacts);
+        _artifacts = [.. artifacts];
+        if (_artifacts.Any(static artifact => artifact is null) ||
+            _artifacts.Select(static artifact => artifact.ArtifactId)
+                .Distinct(StringComparer.Ordinal).Count() != _artifacts.Length)
+        {
+            throw new ArgumentException(
+                "Metadata inspection artifacts must be non-null and uniquely bound.",
+                nameof(artifacts));
+        }
+
+        Plan = plan;
+        AuthoringRevision = authoringRevision;
+        Artifacts = Array.AsReadOnly(_artifacts);
+    }
+
+    /// <summary>Exact publication-bound metadata plan.</summary>
+    public ResolvedMetadataPlan Plan { get; }
+
+    /// <summary>Monotonic authoring revision for selection and artifact state.</summary>
+    public long AuthoringRevision { get; }
+
+    /// <summary>Immutable artifact payload snapshots.</summary>
+    public IReadOnlyList<FirmwareArtifactPayload> Artifacts { get; }
+}
 
 /// <summary>Immutable result of inspecting one resolved plan against artifact snapshots.</summary>
 public sealed class MetadataInspectionSnapshot
 {
+    private readonly FirmwareArtifactIdentity[] _artifactIdentities;
     private readonly MetadataInspectionResult[] _results;
 
     internal MetadataInspectionSnapshot(
         ResolutionToken resolutionToken,
         IEnumerable<MetadataInspectionResult> results)
+        : this(
+            resolutionToken,
+            authoringRevision: 0,
+            artifactIdentities: [],
+            results)
     {
+    }
+
+    internal MetadataInspectionSnapshot(
+        ResolutionToken resolutionToken,
+        long authoringRevision,
+        IEnumerable<FirmwareArtifactIdentity> artifactIdentities,
+        IEnumerable<MetadataInspectionResult> results)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(authoringRevision);
+        ArgumentNullException.ThrowIfNull(artifactIdentities);
         ArgumentNullException.ThrowIfNull(results);
+        _artifactIdentities = [.. artifactIdentities];
+        if (_artifactIdentities.Any(static identity => identity is null) ||
+            _artifactIdentities.Select(static identity => identity.ArtifactId)
+                .Distinct(StringComparer.Ordinal).Count() !=
+            _artifactIdentities.Length)
+        {
+            throw new ArgumentException(
+                "Inspection artifact identities must be non-null and unique.",
+                nameof(artifactIdentities));
+        }
+
+        Array.Sort(_artifactIdentities, static (left, right) =>
+            StringComparer.Ordinal.Compare(left.ArtifactId, right.ArtifactId));
         _results = [.. results];
         ResolutionToken = resolutionToken;
+        AuthoringRevision = authoringRevision;
+        ArtifactIdentities = Array.AsReadOnly(_artifactIdentities);
         Results = Array.AsReadOnly(_results);
     }
 
     /// <summary>Capability publication token used for this inspection.</summary>
     public ResolutionToken ResolutionToken { get; }
+
+    /// <summary>Authoring revision evaluated by this snapshot.</summary>
+    public long AuthoringRevision { get; }
+
+    /// <summary>Exact artifact identities evaluated by this snapshot.</summary>
+    public IReadOnlyList<FirmwareArtifactIdentity> ArtifactIdentities { get; }
 
     /// <summary>Entry results in canonical plan order.</summary>
     public IReadOnlyList<MetadataInspectionResult> Results { get; }
@@ -315,12 +422,25 @@ public static class FirmwareMetadataInspector
         ResolvedMetadataPlan plan,
         IEnumerable<FirmwareArtifactPayload> artifacts)
     {
-        ArgumentNullException.ThrowIfNull(plan);
-        ArgumentNullException.ThrowIfNull(artifacts);
-        FirmwareArtifactPayload[] artifactSnapshot = [.. artifacts];
+        return Inspect(new MetadataInspectionRequest(
+            plan,
+            authoringRevision: 0,
+            artifacts));
+    }
+
+    /// <summary>Evaluates one revision-bound request against immutable artifacts.</summary>
+    public static MetadataInspectionSnapshot Inspect(MetadataInspectionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ResolvedMetadataPlan plan = request.Plan;
+        FirmwareArtifactPayload[] artifactSnapshot = [.. request.Artifacts];
         if (plan.Entries.Count == 0)
         {
-            return new MetadataInspectionSnapshot(plan.ResolutionToken, []);
+            return new MetadataInspectionSnapshot(
+                plan.ResolutionToken,
+                request.AuthoringRevision,
+                artifactSnapshot.Select(static artifact => artifact.Identity),
+                []);
         }
 
         MetadataPlanEntry first = plan.Entries[0].Definition;
@@ -337,14 +457,30 @@ public static class FirmwareMetadataInspector
             first.ResolvedMap.CapacityBytes,
             requestedTopology,
             artifactSnapshot);
-        MetadataInspectionResult[] results =
+        (ResolvedMetadataPlanEntry Entry, MetadataInspectionState State,
+            FirmwareMetadataStructureResolution Resolution)[] evaluations =
         [
             .. plan.Entries.Select(entry => Evaluate(entry, inputs)),
         ];
-        return new MetadataInspectionSnapshot(plan.ResolutionToken, results);
+        MetadataInspectionResult[] results =
+        [
+            .. evaluations.Select(evaluation => CreateResult(
+                evaluation.Entry,
+                evaluation.State,
+                evaluation.Resolution,
+                plan.Entries)),
+        ];
+        return new MetadataInspectionSnapshot(
+            plan.ResolutionToken,
+            request.AuthoringRevision,
+            artifactSnapshot.Select(static artifact => artifact.Identity),
+            results);
     }
 
-    private static MetadataInspectionResult Evaluate(
+    private static (
+        ResolvedMetadataPlanEntry Entry,
+        MetadataInspectionState State,
+        FirmwareMetadataStructureResolution Resolution) Evaluate(
         ResolvedMetadataPlanEntry entry,
         FirmwareMapResolutionInputs inputs)
     {
@@ -370,7 +506,59 @@ public static class FirmwareMetadataInspector
             _ => throw new InvalidOperationException(
                 "Unknown firmware metadata structure resolution status."),
         };
-        return new MetadataInspectionResult(entry, state, resolution);
+        return (entry, state, resolution);
+    }
+
+    private static MetadataInspectionResult CreateResult(
+        ResolvedMetadataPlanEntry entry,
+        MetadataInspectionState state,
+        FirmwareMetadataStructureResolution resolution,
+        IReadOnlyList<ResolvedMetadataPlanEntry> planEntries)
+    {
+        ResolvedChildReadiness readiness = state switch
+        {
+            MetadataInspectionState.NotDeclared =>
+                ResolvedChildReadiness.NotApplicable,
+            MetadataInspectionState.Loading or
+                MetadataInspectionState.WaitingForArtifact =>
+                ResolvedChildReadiness.PendingInput,
+            MetadataInspectionState.Value =>
+                ResolvedChildReadiness.Ready,
+            MetadataInspectionState.BlockedByArtifact or
+                MetadataInspectionState.Unknown or
+                MetadataInspectionState.Invalid =>
+                ResolvedChildReadiness.Blocked,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(state),
+                state,
+                "Unknown metadata inspection state."),
+        };
+        ResolvedPrerequisiteAction? nextAction = null;
+        if (readiness == ResolvedChildReadiness.PendingInput &&
+            resolution.Prerequisite is { } prerequisite)
+        {
+            ResolvedMetadataPlanEntry? prerequisiteEntry =
+                planEntries.FirstOrDefault(candidate =>
+                    StringComparer.Ordinal.Equals(
+                        candidate.Definition.StructureDefinition.StructureId,
+                        prerequisite.StructureId) &&
+                    StringComparer.Ordinal.Equals(
+                        candidate.Definition.SpaceId,
+                        prerequisite.ArtifactBindingId));
+            string slotId = prerequisiteEntry?.Definition.SlotId ??
+                            prerequisite.ArtifactBindingId;
+            nextAction = new ResolvedPrerequisiteAction(
+                ResolvedPrerequisiteActionKind.LoadArtifactFirst,
+                prerequisite.ArtifactBindingId,
+                slotId);
+        }
+
+        return new MetadataInspectionResult(
+            entry,
+            state,
+            resolution,
+            readiness,
+            nextAction);
     }
 }
 
@@ -426,7 +614,7 @@ public static class DpcmiMetadataProjector
         [
             .. snapshot.Results.Where(result =>
                 StringComparer.Ordinal.Equals(
-                    result.PlanEntry.Definition.StructureDefinition.StructureId,
+                    result.PlanEntry.Definition.StructureDefinition.Definition.DefinitionId,
                     DpcmiMetadataContract.StructureId)),
         ];
         if (matches.Length != 1 ||

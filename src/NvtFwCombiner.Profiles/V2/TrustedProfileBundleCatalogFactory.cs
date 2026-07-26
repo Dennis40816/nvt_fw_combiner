@@ -49,7 +49,9 @@ internal static class TrustedProfileBundleCatalogFactory
     private const string LogicalProfileMemberMissing = "profile-bundle.catalog.logical-member-missing";
 
     /// <summary>Normalizes one complete trusted source atomically without map resolution or plan compilation.</summary>
-    internal static TrustedProfileBundleCatalog Create(TrustedProfileBundleCatalogSource source)
+    internal static TrustedProfileBundleCatalog Create(
+        TrustedProfileBundleCatalogSource source,
+        IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver = null)
     {
         ArgumentNullException.ThrowIfNull(source);
         ProfileBundleIdentity bundleIdentity = new(
@@ -58,7 +60,9 @@ internal static class TrustedProfileBundleCatalogFactory
             source.BundleContentHash,
             source.TrustAnchorBindingId);
         ValidateUniqueSourceEntryIds(source);
-        TrustedFirmwareFamilyCatalogEntry[] families = NormalizeFamilies(source.Families);
+        TrustedFirmwareFamilyCatalogEntry[] families = NormalizeFamilies(
+            source.Families,
+            metadataDefinitionResolver);
         ValidateUniqueFamilyIdentities(families);
         TrustedCompositionProfileCatalogEntry[] profiles = NormalizeProfiles(source.Profiles, families);
         ValidateUniqueProfileIdentities(profiles);
@@ -88,7 +92,8 @@ internal static class TrustedProfileBundleCatalogFactory
     }
 
     private static TrustedFirmwareFamilyCatalogEntry[] NormalizeFamilies(
-        IReadOnlyList<TrustedFirmwareFamilyJsonSource> sources)
+        IReadOnlyList<TrustedFirmwareFamilyJsonSource> sources,
+        IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver)
     {
         TrustedFirmwareFamilyJsonSource[] ordered = [.. sources];
         Array.Sort(ordered, static (left, right) =>
@@ -102,7 +107,10 @@ internal static class TrustedProfileBundleCatalogFactory
             {
                 families[index] = new TrustedFirmwareFamilyCatalogEntry(
                     source.Identity,
-                    FirmwareFamilyResolutionNormalizer.Normalize(document, source.Identity.ContentHash),
+                    FirmwareFamilyResolutionNormalizer.Normalize(
+                        document,
+                        source.Identity.ContentHash,
+                        metadataDefinitionResolver),
                     document.Members.Select(static member => member.MemberId));
             }
             catch (FirmwareFamilyNormalizationException exception)

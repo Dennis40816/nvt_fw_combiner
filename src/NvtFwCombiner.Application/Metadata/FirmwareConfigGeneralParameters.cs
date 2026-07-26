@@ -176,7 +176,7 @@ public static class FirmwareConfigGeneralParametersProjector
         [
             .. snapshot.Results.Where(result =>
                 StringComparer.Ordinal.Equals(
-                    result.PlanEntry.Definition.StructureDefinition.StructureId,
+                    result.PlanEntry.Definition.StructureDefinition.Definition.DefinitionId,
                     FirmwareConfigGeneralParametersContract.StructureId)),
         ];
         return matches.Length == 1 ? matches[0] : null;

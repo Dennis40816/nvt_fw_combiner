@@ -4,6 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Profiles.FirmwareFamilies;
 using NvtFwCombiner.Profiles.V2;
 using V2CompositionProfileDefinition = NvtFwCombiner.Profiles.V2.CompositionProfileDefinition;
 
@@ -14,7 +15,7 @@ internal static class BuiltInV2BundleRegistry
     internal static FrozenDictionary<string, BuiltInV2Bundle> All { get; } =
         new (string Directory, string ContentHash)[]
         {
-            ("nt51917-nt51927-general-merge-logical-candidate", "1bcf770daaddc7c962ddceeea41b1211c2f494576ea732063dc0ade294aa477b"),
+            ("nt51917-nt51927-general-merge-logical-candidate", "ab5eaaf312b749853940c3777c1b1609fa52118a9edf66f5ae0a51aef9c91242"),
             ("nt51917-ctrlram-replace-alias-candidate", "8992dbc5483054c5dc16e545444b1f94446c698c68b1abe7946efdb4d4ffb26b"),
             ("nt51919-nt51929-nt51932-ab-merge", "93902043b6e4ea4c8a2023a7f02c798e4497de3523b21115797e9b302ce22292"),
             ("nt51919-nt51929-nt51932-general-merge-logical-candidate", "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283"),
@@ -29,11 +30,11 @@ internal static class BuiltInV2BundleRegistry
             ("nt51926-ctrlram-replace-candidate", "4e77aef1aca3f388ef4c1526d88cd2f89f51132e76cfe0fccf774ccf786078e7"),
             ("nt51927-ctrlram-replace-candidate", "d0c8a8775a35a01b52b8d8f32a93af0ac798067e2577d2420ab0dd65dd815d0f"),
             ("nt51927-dp-replace", "c805ce9881786131a299675ec84ff272cd3effc74310fc783965abb1a8400568"),
-            ("nt51927-standard-merge", "7bf01f522c7a9ddfb9a6b54abc2b65ac84d90a59464b6266edfb1da5d4dd6f05"),
+            ("nt51927-standard-merge", "9423b7d003cae3decc50cc5a2c6a4fd19aaa291e828eede07f184d559948474a"),
             ("nt51928-ctrlram-replace-candidate", "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634"),
-            ("nt51928-general-merge-logical-candidate", "9e336d9759a0391f1427e9fad850f13c07bd134e776244cadf548f3bd0fe4e60"),
+            ("nt51928-general-merge-logical-candidate", "d44bf4240cf72f4bbef4b0dd84607971b68ed62b1f0f8407ebd44720d249676b"),
             ("nt51928-dp-replace", "2bc3c74cb886c14d8550887770ba986368dcec28661c9bb5701f42567436e6eb"),
-            ("nt51928-standard-merge", "a4dbbce07d37053e556fda4550c3c1d01b929dda7e0b37b9852ca573cf2220d6"),
+            ("nt51928-standard-merge", "f6fe383af8eb19680a7224c692ee5bebd5a34f316ba8d41eb85d0f711c73f722"),
             ("nt51929-ctrlram-replace-candidate", "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365"),
             ("nt51929-dp-replace", "37f4db17de259f28ff54b9b02ef60bdbd604dcdb2a218f46d137c9e58f0feee5"),
             ("nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09"),
@@ -48,8 +49,8 @@ internal static class BuiltInV2BundleRegistry
             ("nt51950-ab-merge", "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206"),
             ("nt51950-ctrlram-replace-candidate", "d3f745c68d948e7e3a3a07d5717de2114742f881444076d93d2232343f98049e"),
             ("nt51951-ctrlram-replace-candidate", "f48429f505f71fbe7c258780dc1ef848c1d9a402d79906c1e24b3a1097192728"),
-            ("nt51950-nt51951-general-merge-logical-candidate", "1da78f9a6d8aae1e7fbbda0f5977272b5c9902194ab102f2232586edd77eb121"),
-            ("nt51950-nt51951-standard-merge", "65987f6b1e41feaca92e7b258bca282df9ae133f90db6877ba6b97c04d91f0f4"),
+            ("nt51950-nt51951-general-merge-logical-candidate", "c26187044ce83e735418a2882999191402459f9397c59ded722e2fb69c250dea"),
+            ("nt51950-nt51951-standard-merge", "b7a40ccc5b5256631bb2588b25c5286378778b3c9e5506713faefd648039c9fc"),
         }.ToFrozenDictionary(
             static bundle => bundle.Directory,
             static bundle => new BuiltInV2Bundle(bundle.Directory, bundle.ContentHash),
@@ -75,6 +76,31 @@ internal sealed class BuiltInV2Bundle
     internal string RelativeRoot { get; }
 
     internal string ContentHash { get; }
+
+    internal bool TryResolveMetadataDefinition(
+        FirmwareMetadataStructureDefinitionReference reference,
+        out FirmwareMetadataStructureDefinition? definition)
+    {
+        ArgumentNullException.ThrowIfNull(reference);
+        TrustedFirmwareFamilyCatalogEntry? family = _catalog.Value.Families.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.Family.FamilyId, reference.FamilyId) &&
+            StringComparer.Ordinal.Equals(candidate.Family.FamilyVersion, reference.FamilyVersion) &&
+            StringComparer.Ordinal.Equals(
+                candidate.Family.FamilyContentHash,
+                reference.FamilyContentHash));
+        FirmwareMetadataStructureDefinition[] matches = family?.Family.MetadataSets
+            .SelectMany(static set => set.Structures)
+            .Where(structure => StringComparer.Ordinal.Equals(
+                structure.Definition.DefinitionId,
+                reference.StructureId))
+            .Select(static structure => structure.Definition)
+            .ToArray() ?? [];
+        definition = matches.Length > 0 &&
+                     matches.All(candidate => ReferenceEquals(candidate, matches[0]))
+            ? matches[0]
+            : null;
+        return definition is not null;
+    }
 
     internal static string FormatCapacities(IEnumerable<long> capacities)
     {
@@ -459,6 +485,8 @@ internal sealed class BuiltInV2Bundle
                 maximumManifestBytes: 16384,
                 maximumJsonDepth: 32,
                 new ProfileBundleEntrySnapshotLimits(16, 131072, 262144, 8)));
-        return TrustedProfileBundleCatalogProjection.Create(bundle.CreateDocumentProjection());
+        return TrustedProfileBundleCatalogProjection.Create(
+            bundle.CreateDocumentProjection(),
+            BuiltInCanonicalMetadataDefinitionResolver.Instance);
     }
 }

@@ -36,7 +36,9 @@ internal static class V2StandardMergeGoldenTestSupport
     {
         AssertSchemaSnapshotsMatchManifest(bundleRoot);
         TrustedProfileBundle bundle = LoadBundle(bundleRoot, bundleContentHash);
-        return TrustedProfileBundleCatalogProjection.Create(bundle.CreateDocumentProjection());
+        return TrustedProfileBundleCatalogProjection.Create(
+            bundle.CreateDocumentProjection(),
+            BuiltInCanonicalMetadataDefinitionResolver.Instance);
     }
 
     private static TrustedProfileBundle LoadBundle(string bundleRoot, string bundleContentHash)

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "profileId": "nt51950-standard-merge-dp-perspective",
-  "profileVersion": "0.5.1",
+  "profileVersion": "0.6.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -17,8 +17,8 @@
   },
   "mapBinding": {
     "familyId": "nt51950-nt51951-dp-perspective",
-    "familyVersion": "1.0.0",
-    "familyContentHash": "0bd613266308f512e87a07f62727d8ba9bdb4f73dde0c7adc001ab17f119d60f",
+    "familyVersion": "1.1.0",
+    "familyContentHash": "2dd48cbca5566ea739815b18847a2e3874984a8edc6d966f4d3bd4bc1cfac1a2",
     "mapIds": [
       "nt51950-standard-merge-256k",
       "nt51950-standard-merge-512k",
@@ -29,7 +29,10 @@
       "tp-overlay",
       "customer-info"
     ],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": [
+      "firmware-config-standard-merge",
+      "nt51950-dpcmi-standard-merge"
+    ],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -100,7 +103,22 @@
       "selector": { "kind": "map-region", "regionId": "tp-overlay" }
     }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "firmware-config-standard-merge-inspection",
+      "spaceId": "tp-input",
+      "structureId": "firmware-config-standard-merge",
+      "fieldIds": ["observed-ic-count"],
+      "purposes": ["map-resolution", "validation"]
+    },
+    {
+      "bindingId": "nt51950-dpcmi-standard-merge-inspection",
+      "spaceId": "dp-input",
+      "structureId": "nt51950-dpcmi-standard-merge",
+      "fieldIds": ["jira-low", "dp-major", "dp-minor", "jira-high"],
+      "purposes": ["validation", "output-naming", "display", "version"]
+    }
+  ],
   "regionAccessRules": [
     {
       "regionId": "dp-container",
@@ -139,6 +157,8 @@
   "evidenceRefs": [
     "dp-perspective-51950-51951-owner-map",
     "standard-merge-51950-256k-golden",
-    "legacy-v2-dp-perspective-parity-matrix"
+    "legacy-v2-dp-perspective-parity-matrix",
+    "ic-flashmap-20260725-51950-tp-firmware-config",
+    "ic-flashmap-20260725-51950-dp-perspective"
   ]
 }

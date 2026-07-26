@@ -5,6 +5,7 @@
 - Accepted: 2026-07-12 by the product and architecture owner
 - Owners: Product owner + architecture owner + firmware reviewers
 - Amends: ADR 0015
+- Amended by: ADR 0040
 - Preserves: ADR 0012
 
 ## Context
