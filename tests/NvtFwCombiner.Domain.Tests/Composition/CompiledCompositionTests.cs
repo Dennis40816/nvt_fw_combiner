@@ -12,7 +12,7 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateMerge();
         Assert.Equal(
-            "669860799db585ab3d2064debf4b0a64d2192c1a2a972e431f1d23c09e305bb5",
+            "2504b2afade952c5e2f9ade9323396454f7d65484654704d0c4c268816c997d5",
             composition.CompilationFingerprint);
 
         Assert.Equal("profile-a", composition.ProfileId);
@@ -24,6 +24,7 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal("output.bin", composition.DefaultOutputFileName);
         Assert.Equal(CompiledIcNumberPolicy.NotApplicable, composition.IcNumberPolicy);
         Assert.Equal(CompiledCompositionEligibility.LegacyRuntimeExecutable, composition.Eligibility);
+        Assert.Null(composition.IntegrityFingerprint);
         LegacyProfileCompilationAuthority authority = Assert.IsType<LegacyProfileCompilationAuthority>(
             composition.Authority);
         Assert.Equal("0.2", authority.ModelVersion);
@@ -266,13 +267,25 @@ public sealed partial class CompiledCompositionTests
             CreateProcessorComposition(writeSectionSourceStart: 1),
             CreateProcessorComposition(stagedSourceStart: 1),
             CreateProcessorComposition(stagedFirmwareStart: 1),
+            CreateProcessorComposition(stagedArtifactId: "artifact-b"),
+            CreateProcessorComposition(
+                stagedArtifactSourceSpaceId: "output-image"),
+            CreateProcessorComposition(stagedArtifactSourceStart: 1),
             CreateProcessorComposition(outputAssertion: new ExternalProcessorOutputAssertion(new ByteRange(2, 1), [0xA2])),
             CreateProcessorComposition(outputAssertion: new ExternalProcessorOutputAssertion(new ByteRange(1, 1), [0xA1])),
         ];
 
         Assert.All(
             variants,
-            variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
+            variant =>
+            {
+                Assert.NotEqual(
+                    baseline.CompilationFingerprint,
+                    variant.CompilationFingerprint);
+                Assert.NotEqual(
+                    baseline.IntegrityFingerprint,
+                    variant.IntegrityFingerprint);
+            });
     }
 
     private static CompiledComposition CreateMerge(
@@ -420,6 +433,9 @@ public sealed partial class CompiledCompositionTests
         long writeSectionSourceStart = 0,
         long stagedSourceStart = 0,
         long stagedFirmwareStart = 0,
+        string stagedArtifactId = "artifact-a",
+        string stagedArtifactSourceSpaceId = "source",
+        long stagedArtifactSourceStart = 0,
         ExternalProcessorOutputAssertion? outputAssertion = null)
     {
         var invocation = new ExternalProcessorInvocation(
@@ -438,6 +454,12 @@ public sealed partial class CompiledCompositionTests
                     writeSectionId,
                     new ByteRange(writeStart, 2),
                     new ByteRange(writeSectionSourceStart, 2)),
+            ],
+            [
+                new ExternalProcessorStagedArtifactBinding(
+                    stagedArtifactId,
+                    stagedArtifactSourceSpaceId,
+                    new ByteRange(stagedArtifactSourceStart, 1)),
             ],
             outputAssertions: outputAssertion is null ? [] : [outputAssertion]);
         var identity = new LegacyCompiledCompositionIdentity(

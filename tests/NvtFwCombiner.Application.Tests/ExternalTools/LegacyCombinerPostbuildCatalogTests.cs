@@ -264,6 +264,55 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             section.SectionId == TpHeaderSectionIds.FlashHeaderCrc);
     }
 
+    /// <summary>The canonical integrity identity covers selected commands, staging, assembly, and capacity.</summary>
+    [Fact]
+    public void PostbuildPlanIntegrityFingerprintBindsExecutionSemantics()
+    {
+        LegacyCombinerPostbuildCommandPlan baseline =
+            CreateIntegrityFingerprintPlan();
+        LegacyCombinerPostbuildCommandPlan same =
+            CreateIntegrityFingerprintPlan();
+        string fingerprint =
+            LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
+                baseline,
+                0x40000);
+
+        Assert.Equal(
+            fingerprint,
+            LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
+                same,
+                0x40000));
+        Assert.Matches("^[0-9a-f]{64}$", fingerprint);
+        Assert.NotEqual(
+            fingerprint,
+            LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
+                CreateIntegrityFingerprintPlan(modeArgument: "CRC_Enable"),
+                0x40000));
+        Assert.NotEqual(
+            fingerprint,
+            LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
+                CreateIntegrityFingerprintPlan(stagedArtifactId: "artifact-b"),
+                0x40000));
+        Assert.NotEqual(
+            fingerprint,
+            LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
+                CreateIntegrityFingerprintPlan(firmwareStart: 0x24),
+                0x40000));
+        Assert.NotEqual(
+            fingerprint,
+            LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
+                CreateIntegrityFingerprintPlan(
+                    assemblyKind:
+                        LegacyCombinerPostbuildAssemblyKind
+                            .RefreshedTpThenStandardMerge),
+                0x40000));
+        Assert.NotEqual(
+            fingerprint,
+            LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
+                baseline,
+                0x80000));
+    }
+
     /// <summary>Locks General Replace postbuild refresh writes to firmware-owned header/integrity ranges.</summary>
     [Fact]
     public void PostbuildPlannerInPlaceRefreshExcludesStagedFileBlocks()
@@ -390,6 +439,46 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             .. LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRangeSections(plan, capacity)
                 .Select(section => section.Range),
         ];
+    }
+
+    private static LegacyCombinerPostbuildCommandPlan
+        CreateIntegrityFingerprintPlan(
+            string modeArgument = "CRC_Disable",
+            string stagedArtifactId = "artifact-a",
+            long firmwareStart = 0x20,
+            LegacyCombinerPostbuildAssemblyKind assemblyKind =
+                LegacyCombinerPostbuildAssemblyKind.InPlaceFirmwareImage)
+    {
+        var command = new LegacyCombinerPostbuildCommand(
+            "postbuild",
+            LegacyCombinerCommandFamily.NormalMode,
+            modeArgument,
+            null,
+            [
+                new LegacyCombinerBlockArgument(
+                    "ctrlram",
+                    LegacyCombinerBlockSourceKind.StagedArtifact,
+                    "ctrlram.bin",
+                    0,
+                    new ByteRange(firmwareStart, 4),
+                    stagedArtifactId),
+            ]);
+        var profile = new LegacyCombinerPostbuildProfile(
+            "processor",
+            "NT51999",
+            "tool-binding",
+            "firmware.bin",
+            [command],
+            [command],
+            "test evidence",
+            assemblyKind: assemblyKind,
+            firmwareConfigWriteRoute:
+                LegacyCombinerFirmwareConfigWriteRoute.Unavailable);
+        return LegacyCombinerPostbuildPlanner.CreatePlan(
+            profile,
+            profile.PlanSelectors.Single(static selector =>
+                selector.Kind ==
+                    LegacyCombinerPostbuildPlanSelectorKind.SingleChip));
     }
 
 

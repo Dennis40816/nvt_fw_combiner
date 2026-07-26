@@ -29,6 +29,21 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/catalog.json',
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
+$ApprovedSupportPublicationPolicyPackageContracts = @(
+    [pscustomobject]@{
+        path = 'docs/contracts/support-publication-policy-v1.json'
+        role = 'publicationPolicy'
+        sha256 = '365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2'
+    }
+)
+if (@($ApprovedSupportPublicationPolicyPackageContracts).Count -eq 0) {
+    throw 'At least one support publication policy package contract is required.'
+}
+$ApprovedSupportPublicationPolicyPackagePaths = @(
+    $ApprovedSupportPublicationPolicyPackageContracts |
+        ForEach-Object { [string]$_.path } |
+        Sort-Object
+)
 
 function Get-LowerSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -198,14 +213,19 @@ try {
     }
 
     $packageRoot = $topLevelDirectories[0].FullName
-    foreach ($requiredPath in @(
-        'NvtFwCombiner.exe',
-        'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
-        'RELEASE-MANIFEST.json',
-        'SHA256SUMS.txt',
-        'README.txt',
-        'LICENSE.txt',
-        'THIRD-PARTY-NOTICES.txt')) {
+    $RequiredPackagePaths = @(
+        @(
+            'NvtFwCombiner.exe',
+            'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
+            'RELEASE-MANIFEST.json',
+            'SHA256SUMS.txt',
+            'README.txt',
+            'LICENSE.txt',
+            'THIRD-PARTY-NOTICES.txt'
+        ) +
+        $ApprovedSupportPublicationPolicyPackagePaths
+    )
+    foreach ($requiredPath in $RequiredPackagePaths) {
         if (-not (Test-Path -LiteralPath (Join-Path $packageRoot $requiredPath) -PathType Leaf)) {
             throw "Release package is missing required file '$requiredPath'."
         }
@@ -232,6 +252,37 @@ try {
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
     if ($null -eq $manifest.files -or $manifest.files.Count -eq 0) {
         throw 'Release manifest has no file entries.'
+    }
+
+    $DeclaredSupportPublicationPolicyEntries = @(
+        $manifest.files | Where-Object {
+            ([string]$_.path) -in $ApprovedSupportPublicationPolicyPackagePaths -or
+            $_.role -eq 'publicationPolicy'
+        }
+    )
+    if ($DeclaredSupportPublicationPolicyEntries.Count -ne
+            @($ApprovedSupportPublicationPolicyPackageContracts).Count) {
+        throw 'Release manifest support publication policy identity is inconsistent.'
+    }
+    foreach ($Contract in $ApprovedSupportPublicationPolicyPackageContracts) {
+        $Entries = @(
+            $DeclaredSupportPublicationPolicyEntries |
+                Where-Object { $_.path -eq $Contract.path }
+        )
+        if ($Entries.Count -ne 1 -or
+            $Entries[0].role -ne $Contract.role -or
+            $Entries[0].sha256 -ne $Contract.sha256) {
+            throw 'Release manifest support publication policy identity is inconsistent.'
+        }
+
+        $PolicyPath = Join-Path `
+            $packageRoot `
+            ([string]$Contract.path).Replace(
+                '/',
+                [IO.Path]::DirectorySeparatorChar)
+        if ((Get-LowerSha256 -Path $PolicyPath) -ne [string]$Contract.sha256) {
+            throw 'Release package support publication policy does not match the approved SHA-256.'
+        }
     }
 
     $DeclaredExternalToolEntries = @(

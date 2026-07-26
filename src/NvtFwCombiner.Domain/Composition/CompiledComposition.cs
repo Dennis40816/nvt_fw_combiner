@@ -28,6 +28,7 @@ public sealed partial class CompiledComposition
         Authority = new LegacyProfileCompilationAuthority();
         V2Details = null;
         ValidationRequirements = CopyValidationRequirements(validationRequirements);
+        IntegrityFingerprint = CalculateIntegrityFingerprint(plan);
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
 
@@ -68,6 +69,7 @@ public sealed partial class CompiledComposition
         Authority = new ProfileBundleV2CompilationAuthority();
         V2Details = identity.Details;
         ValidationRequirements = CopyValidationRequirements(identity.Details.Provenance.ValidationRequirements);
+        IntegrityFingerprint = CalculateIntegrityFingerprint(plan);
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
 
@@ -146,6 +148,12 @@ public sealed partial class CompiledComposition
 
     /// <summary>Canonical lowercase SHA-256 over the complete compiled policy and plan.</summary>
     public string CompilationFingerprint { get; }
+
+    /// <summary>
+    /// Canonical lowercase SHA-256 over profile-declared external processors and
+    /// host-side scalar relocation operations; null when neither is present.
+    /// </summary>
+    public string? IntegrityFingerprint { get; }
 
     /// <summary>Creates an artifact from the existing typed profile compiler without bundle or map claims.</summary>
     internal static CompiledComposition CreateLegacy(

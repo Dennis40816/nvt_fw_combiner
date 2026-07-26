@@ -53,5 +53,23 @@ public sealed partial class CompiledComposition
             AppendRange(builder, $"{bindingPrefix}.source-range", binding.SourceRange);
             AppendRange(builder, $"{bindingPrefix}.firmware-range", binding.FirmwareRange);
         }
+
+        AppendInteger(builder, $"{prefix}.staged-artifact.count", invocation.StagedArtifactBindings.Count);
+        for (int index = 0; index < invocation.StagedArtifactBindings.Count; index++)
+        {
+            ExternalProcessorStagedArtifactBinding binding =
+                invocation.StagedArtifactBindings[index];
+            string bindingPrefix =
+                FormattableString.Invariant($"{prefix}.staged-artifact.{index}");
+            AppendField(builder, $"{bindingPrefix}.id", binding.ArtifactId);
+            AppendField(
+                builder,
+                $"{bindingPrefix}.source-space",
+                binding.SourceSpaceId);
+            AppendRange(
+                builder,
+                $"{bindingPrefix}.source-range",
+                binding.SourceRange);
+        }
     }
 }

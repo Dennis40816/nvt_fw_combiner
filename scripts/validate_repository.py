@@ -45,6 +45,13 @@ from skill_metadata_validation import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS = {
+    (
+        "docs/contracts/support-publication-policy-v1.json",
+        "publicationPolicy",
+        "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2",
+    )
+}
 REQUIRED_FILES = {
     "README.md",
     "LICENSE",
@@ -1341,6 +1348,7 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
         APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS,
         errors,
     )
+    validate_support_publication_policy_package_contracts(ROOT, errors)
 
     for script_name in ("package.ps1", "smoke-release.ps1"):
         text = (ROOT / "scripts" / script_name).read_text(encoding="utf-8")
@@ -1363,6 +1371,92 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
                 f"{script_name} external tool allowlist differs from the approved package paths: "
                 f"{', '.join(str(path) for path in sorted(declared_paths))}"
             )
+
+
+def validate_support_publication_policy_package_contracts(
+    root: Path, errors: list[str]
+) -> None:
+    """Keep runtime, packager, and smoke bound to one exact policy identity."""
+
+    contract_pattern = re.compile(
+        r"\$ApprovedSupportPublicationPolicyPackageContracts\s*=\s*@\((.*?)\)\s*(?:\r?\n)",
+        flags=re.DOTALL,
+    )
+    entry_pattern = re.compile(
+        r"\[pscustomobject\]@\{\s*"
+        r"path\s*=\s*'([^']+)'\s*"
+        r"role\s*=\s*'([^']+)'\s*"
+        r"sha256\s*=\s*'([^']+)'\s*"
+        r"\}",
+        flags=re.DOTALL,
+    )
+    for script_name in ("package.ps1", "smoke-release.ps1"):
+        text = (root / "scripts" / script_name).read_text(encoding="utf-8")
+        match = contract_pattern.search(text)
+        if match is None:
+            errors.append(
+                f"{script_name} must declare a fixed "
+                "ApprovedSupportPublicationPolicyPackageContracts array"
+            )
+            continue
+
+        entries = entry_pattern.findall(match.group(1))
+        declared_contracts = set(entries)
+        if not entries:
+            errors.append(
+                f"{script_name} support publication policy package contract "
+                "must not be empty"
+            )
+        if match.group(1).count("[pscustomobject]@{") != len(entries):
+            errors.append(
+                f"{script_name} has a malformed support publication policy "
+                "package contract"
+            )
+        if declared_contracts != APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS:
+            errors.append(
+                f"{script_name} support publication policy package contract "
+                "differs from the approved path, role, and SHA-256"
+            )
+
+    runtime_path = (
+        root
+        / "src/NvtFwCombiner.Infrastructure/Support/"
+        "BuiltInSupportPublicationPolicy.cs"
+    )
+    runtime = runtime_path.read_text(encoding="utf-8")
+    runtime_sha = re.search(
+        r'private const string ExpectedSha256\s*=\s*"([0-9a-f]{64})";',
+        runtime,
+    )
+    runtime_policy_path = re.search(
+        r'new\(\s*"([^"]+)",\s*ExpectedSha256\)',
+        runtime,
+        flags=re.DOTALL,
+    )
+    expected_path, _, expected_sha = next(
+        iter(APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS)
+    )
+    if (
+        runtime_sha is None
+        or runtime_policy_path is None
+        or runtime_sha.group(1) != expected_sha
+        or runtime_policy_path.group(1) != expected_path
+    ):
+        errors.append(
+            "BuiltInSupportPublicationPolicy runtime identity differs from the "
+            "approved release package contract"
+        )
+
+    policy_path = root / expected_path
+    if not policy_path.is_file():
+        errors.append(
+            f"approved support publication policy file is missing: {expected_path}"
+        )
+    elif hashlib.sha256(policy_path.read_bytes()).hexdigest() != expected_sha:
+        errors.append(
+            "approved support publication policy bytes differ from the "
+            "release package SHA-256"
+        )
 
 
 def validate_agent_files(errors: list[str]) -> None:

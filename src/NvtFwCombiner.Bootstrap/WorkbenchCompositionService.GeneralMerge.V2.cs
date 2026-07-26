@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private const string GeneralMergeV2CandidateProfileVersion = "0.1.0";
+    internal const string GeneralMergeV2CandidateProfileVersion = "0.1.0";
     private const string GeneralMergeV2CandidateFallbackProfileId = "general-merge-logical-output-candidate";
     private const string GeneralMergeV2CandidateMemberNotAdmitted = "general-merge.v2-candidate.member-not-admitted";
     private const string GeneralMergeV2CandidateInputLengthUnsupported = "general-merge.v2-candidate.input-length-unsupported";
