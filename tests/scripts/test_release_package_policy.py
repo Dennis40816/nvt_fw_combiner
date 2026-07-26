@@ -649,7 +649,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn(
             "Release package is missing required file "
             f"'{SUPPORT_POLICY_RELATIVE_PATH.as_posix()}'.",
-            result.stdout + result.stderr,
+            normalize_console_output(result.stdout + result.stderr),
         )
 
     @unittest.skipUnless(
@@ -664,7 +664,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn(
             "Release package is missing required file "
             f"'{SUPPORT_POLICY_RELATIVE_PATH.as_posix()}'.",
-            result.stdout + result.stderr,
+            normalize_console_output(result.stdout + result.stderr),
         )
 
     @unittest.skipUnless(
