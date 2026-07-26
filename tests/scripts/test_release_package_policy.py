@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -14,9 +16,21 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS = ROOT / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+
+import validate_repository as repository_validation  # noqa: E402
+
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
 SMOKE_SCRIPT = ROOT / "scripts" / "smoke-release.ps1"
 PROBE_RELATIVE_PATH = Path("external-tools/release-package-policy-probe.txt")
+SUPPORT_POLICY_RELATIVE_PATH = Path(
+    "docs/contracts/support-publication-policy-v1.json"
+)
+SUPPORT_POLICY_ROLE = "publicationPolicy"
+SUPPORT_POLICY_SHA256 = (
+    "eeffb9be1afba4bc834b17fea63f08d628e170847cc4d0e5f50cdd2f39e9009b"
+)
 APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/README.md",
     "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
@@ -176,6 +190,86 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             )
         )
 
+    def test_support_policy_package_contract_matches_runtime_and_release_scripts(
+        self,
+    ) -> None:
+        errors: list[str] = []
+
+        repository_validation.validate_support_publication_policy_package_contracts(
+            ROOT, errors
+        )
+
+        self.assertEqual([], errors)
+
+    def test_repository_validator_rejects_support_policy_contract_drift(self) -> None:
+        mutations = {
+            "empty": (
+                PACKAGE_SCRIPT,
+                lambda text: re.sub(
+                    r"\$ApprovedSupportPublicationPolicyPackageContracts\s*=\s*@\("
+                    r".*?\)\s*\n",
+                    "$ApprovedSupportPublicationPolicyPackageContracts = @()\n",
+                    text,
+                    count=1,
+                    flags=re.DOTALL,
+                ),
+            ),
+            "repath": (
+                PACKAGE_SCRIPT,
+                lambda text: text.replace(
+                    SUPPORT_POLICY_RELATIVE_PATH.as_posix(),
+                    "docs/contracts/repathed-support-policy.json",
+                    1,
+                ),
+            ),
+            "wrong-role": (
+                SMOKE_SCRIPT,
+                lambda text: text.replace(
+                    "role = 'publicationPolicy'",
+                    "role = 'reference'",
+                    1,
+                ),
+            ),
+            "wrong-hash": (
+                SMOKE_SCRIPT,
+                lambda text: text.replace(
+                    SUPPORT_POLICY_SHA256,
+                    "0" * 64,
+                    1,
+                ),
+            ),
+        }
+
+        for name, (script_path, mutate) in mutations.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory(
+                prefix="nvt-support-policy-contract-validator-"
+            ) as temporary_directory:
+                temporary_root = Path(temporary_directory)
+                for source in (
+                    PACKAGE_SCRIPT,
+                    SMOKE_SCRIPT,
+                    ROOT / SUPPORT_POLICY_RELATIVE_PATH,
+                    ROOT
+                    / "src/NvtFwCombiner.Infrastructure/Support/"
+                    "BuiltInSupportPublicationPolicy.cs",
+                ):
+                    destination = temporary_root / source.relative_to(ROOT)
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(source, destination)
+
+                copied_script = temporary_root / script_path.relative_to(ROOT)
+                copied_script.write_text(
+                    mutate(copied_script.read_text(encoding="utf-8")),
+                    encoding="utf-8",
+                )
+                errors: list[str] = []
+
+                repository_validation.validate_support_publication_policy_package_contracts(
+                    temporary_root, errors
+                )
+
+                self.assertTrue(errors, name)
+
     def test_console_output_normalization_removes_powershell_formatting(self) -> None:
         output = "\x1b[31mowner-approved maximum\x1b[0m\n| 58076715 bytes"
 
@@ -243,6 +337,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         )
         self.assertIn(
             "Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected",
+            result.stdout,
+        )
+        self.assertIn(
+            "Support publication policy package dry-run passed: exact path, role, and SHA-256 pinned; empty contract and wrong published hash rejected",
             result.stdout,
         )
         self.assertIn(
@@ -479,6 +577,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
             for required_file in (
                 "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                SUPPORT_POLICY_RELATIVE_PATH.as_posix(),
                 "RELEASE-MANIFEST.json",
                 "SHA256SUMS.txt",
                 "README.txt",
@@ -540,6 +639,64 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             result.stdout + result.stderr,
         )
 
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_missing_support_policy(self) -> None:
+        result = self.run_smoke_with_support_policy(include_policy=False)
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release package is missing required file "
+            f"'{SUPPORT_POLICY_RELATIVE_PATH.as_posix()}'.",
+            result.stdout + result.stderr,
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_repathed_support_policy(self) -> None:
+        result = self.run_smoke_with_support_policy(
+            relative_path=Path("support-publication-policy-v1.json")
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release package is missing required file "
+            f"'{SUPPORT_POLICY_RELATIVE_PATH.as_posix()}'.",
+            result.stdout + result.stderr,
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_wrong_support_policy_role(self) -> None:
+        result = self.run_smoke_with_support_policy(role="reference")
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release manifest support publication policy identity is inconsistent.",
+            result.stdout + result.stderr,
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_self_consistent_wrong_support_policy_hash(
+        self,
+    ) -> None:
+        payload = b'{"changed":"but self-consistent"}\n'
+        result = self.run_smoke_with_support_policy(
+            payload=payload,
+            manifest_sha256=hashlib.sha256(payload).hexdigest(),
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release manifest support publication policy identity is inconsistent.",
+            result.stdout + result.stderr,
+        )
+
     def run_smoke_with_manifested_external_tool(
         self, relative_path: Path
     ) -> subprocess.CompletedProcess[str]:
@@ -566,15 +723,18 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             staged_probe = package_root / relative_path
             staged_probe.parent.mkdir(parents=True, exist_ok=True)
             staged_probe.write_bytes(b"negative release-policy probe\n")
+            manifest_entries: list[dict[str, object]] = []
+            self.add_valid_support_policy(package_root, manifest_entries)
+            manifest_entries.append(
+                {
+                    "path": relative_path.as_posix(),
+                    "size": staged_probe.stat().st_size,
+                    "sha256": "0" * 64,
+                    "role": "externalTool",
+                }
+            )
             manifest = {
-                "files": [
-                    {
-                        "path": relative_path.as_posix(),
-                        "size": staged_probe.stat().st_size,
-                        "sha256": "0" * 64,
-                        "role": "externalTool",
-                    }
-                ]
+                "files": manifest_entries
             }
             (package_root / "RELEASE-MANIFEST.json").write_text(
                 json.dumps(manifest),
@@ -621,6 +781,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 required_path.write_bytes(b"release-policy fixture\n")
 
             manifest_entries = []
+            self.add_valid_support_policy(package_root, manifest_entries)
             for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
                 external_path = package_root / relative_path
                 external_path.parent.mkdir(parents=True, exist_ok=True)
@@ -658,6 +819,96 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn(
             "Release manifest has no materialized built-in profile files.",
             result.stdout + result.stderr,
+        )
+
+    def run_smoke_with_support_policy(
+        self,
+        *,
+        include_policy: bool = True,
+        relative_path: Path = SUPPORT_POLICY_RELATIVE_PATH,
+        role: str = SUPPORT_POLICY_ROLE,
+        payload: bytes | None = None,
+        manifest_sha256: str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-release-support-policy-test-"
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            package_name = "NvtFwCombiner-v0.0.0-win-x64"
+            package_root = temporary_root / package_name
+            package_root.mkdir()
+
+            for required_file in (
+                "NvtFwCombiner.exe",
+                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                "SHA256SUMS.txt",
+                "README.txt",
+                "LICENSE.txt",
+                "THIRD-PARTY-NOTICES.txt",
+            ):
+                required_path = package_root / required_file
+                required_path.parent.mkdir(parents=True, exist_ok=True)
+                required_path.write_bytes(b"release-policy fixture\n")
+
+            manifest_entries: list[dict[str, object]] = []
+            if include_policy:
+                policy_payload = (
+                    (ROOT / SUPPORT_POLICY_RELATIVE_PATH).read_bytes()
+                    if payload is None
+                    else payload
+                )
+                policy_path = package_root / relative_path
+                policy_path.parent.mkdir(parents=True, exist_ok=True)
+                policy_path.write_bytes(policy_payload)
+                manifest_entries.append(
+                    {
+                        "path": relative_path.as_posix(),
+                        "size": len(policy_payload),
+                        "sha256": manifest_sha256
+                        or hashlib.sha256(policy_payload).hexdigest(),
+                        "role": role,
+                    }
+                )
+
+            (package_root / "RELEASE-MANIFEST.json").write_text(
+                json.dumps({"files": manifest_entries}),
+                encoding="utf-8",
+            )
+            package_path = temporary_root / f"{package_name}.zip"
+            with zipfile.ZipFile(
+                package_path, "w", compression=zipfile.ZIP_DEFLATED
+            ) as archive:
+                for path in sorted(package_root.rglob("*")):
+                    if path.is_file():
+                        archive.write(path, path.relative_to(temporary_root))
+
+            return self.run_powershell(
+                SMOKE_SCRIPT,
+                "-PackagePath",
+                str(package_path),
+                "-SkipUiLaunch",
+            )
+
+    def add_valid_support_policy(
+        self,
+        package_root: Path,
+        manifest_entries: list[dict[str, object]],
+    ) -> None:
+        policy_payload = (ROOT / SUPPORT_POLICY_RELATIVE_PATH).read_bytes()
+        self.assertEqual(
+            SUPPORT_POLICY_SHA256,
+            hashlib.sha256(policy_payload).hexdigest(),
+        )
+        policy_path = package_root / SUPPORT_POLICY_RELATIVE_PATH
+        policy_path.parent.mkdir(parents=True, exist_ok=True)
+        policy_path.write_bytes(policy_payload)
+        manifest_entries.append(
+            {
+                "path": SUPPORT_POLICY_RELATIVE_PATH.as_posix(),
+                "size": len(policy_payload),
+                "sha256": SUPPORT_POLICY_SHA256,
+                "role": SUPPORT_POLICY_ROLE,
+            }
         )
 
 
