@@ -20,6 +20,11 @@
       CopyToOutputDirectory="PreserveNewest"
       CopyToPublishDirectory="PreserveNewest" />
     <Content
+      Include="..\..\docs\contracts\canonical-capability-policy-v1.json"
+      Link="docs\contracts\canonical-capability-policy-v1.json"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest" />
+    <Content
       Include="..\..\profiles\built-in\ctrlram-postbuild-v2\catalog.json"
       Link="profiles\built-in\ctrlram-postbuild-v2\catalog.json"
       CopyToOutputDirectory="PreserveNewest"
