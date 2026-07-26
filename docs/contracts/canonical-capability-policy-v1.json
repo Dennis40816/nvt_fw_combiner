@@ -59,7 +59,7 @@
         "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-27-nt51929-standard-merge-256k",
         "capabilityFingerprint": "a3ea6e35bf90e326fdb0aae7093ab603cda3003384ba56ed22dc1bd5c9a1c42c",
         "value": "direct-golden",
-        "sourceReference": "canonical-golden:nt51929-dp-replace"
+        "sourceReference": "canonical-golden:nt51929-gen-flash"
       }
     }
   ]
