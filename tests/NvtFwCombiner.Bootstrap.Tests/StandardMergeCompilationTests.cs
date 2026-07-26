@@ -129,7 +129,9 @@ public sealed class StandardMergeCompilationTests
     {
         foreach (string icId in WorkbenchCompositionService.GetSupportedIcIds())
         {
-            Assert.True(WorkbenchCompositionService.IsStandardMergeSupported(icId));
+            Assert.True(
+                WorkbenchCompositionService.IsStandardMergeSupported(icId),
+                $"Expected Standard Merge availability for selectable IC '{icId}'.");
             Assert.StartsWith(
                 "0x",
                 WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId),

@@ -146,6 +146,7 @@ public sealed class StandardMergeCliCommandTests
             outputPath,
         ]);
 
+        Assert.True(WorkbenchCompositionService.IsStandardMergeSupported("NT51929"));
         Assert.Equal(0, result.ExitCode);
         Assert.True(File.Exists(outputPath));
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
