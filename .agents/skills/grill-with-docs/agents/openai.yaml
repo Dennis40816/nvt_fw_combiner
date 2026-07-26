@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grill With Docs"
+  short_description: "Sharpen NFC decisions and canonical documentation"
+  default_prompt: "Use $grill-with-docs to close NFC owner decisions one at a time and record them canonically."

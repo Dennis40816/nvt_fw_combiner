@@ -32,6 +32,12 @@ CRC/header behavior, evidence, support, release authority, or permissions.
 - Implement approved scope with `$implement`, including its
   red-green-refactor loop.
 - Review one fixed diff with `$code-review` and scoped `$polytail`.
+- Use `$grilling` when the owner explicitly requests a decision interview.
+- Use `$grill-with-docs` whenever an NFC specification, architecture, or
+  terminology discussion still has owner decisions. It composes `$grilling`,
+  `$nfc-architecture-change`, and `$to-spec`, records each accepted result in
+  the existing canonical owner, and completes its consistency audit before
+  tickets or an implementation goal.
 - Draft specifications with `$to-spec`; only an owner can approve them.
 - Split only owner-approved specifications with `$to-tickets`; headless
   Application/CLI use-case paths are valid vertical slices.
@@ -49,3 +55,8 @@ invocation in `agents/openai.yaml`; `implicit` entries must remain discoverable.
 GitHub mutations follow `agent-issue-tracker.md`. Delegation or skill invocation
 never expands the user's filesystem, process, GitHub, release, or firmware
 authority.
+
+The former standalone `$domain-modeling` skill is not active. Its terminology
+consistency, concrete IC/workflow/IC Count stress cases, and canonical-document
+ownership disciplines are part of `$grill-with-docs`; firmware facts still
+route through `$firmware-profile-authoring`.

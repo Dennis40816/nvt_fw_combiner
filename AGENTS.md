@@ -83,6 +83,13 @@ organize work. Explicit skill invocation does not broaden filesystem, process,
 GitHub, release, or firmware authority. Apply `.agents/skills/polytail/` to
 non-trivial R1-R3 changes with scope proportional to touched authority.
 
+Before a specification, architecture, terminology, or planning change becomes
+an implementation goal or ticket rewrite, use `$grill-with-docs` while owner
+decisions remain. Ask one decision at a time, record each accepted result in its
+canonical owner, complete the document consistency audit, and only then run
+`$to-tickets`. Use explicit `$grilling` when the owner requests a generic
+decision interview. Do not restore a separate `domain-modeling` workflow.
+
 A change is done only when its approved behavior is complete, tests and final
 gate pass, production semantics have one owner, documentation/contracts agree,
 temporary adapters have deletion criteria, private/generated data is absent,

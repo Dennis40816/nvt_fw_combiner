@@ -276,8 +276,8 @@ class RepositorySkillRoutingContractTests(unittest.TestCase):
     def read_skill(self, name: str) -> str:
         return (self.skills_root / name / "SKILL.md").read_text(encoding="utf-8")
 
-    def test_manifest_routes_exactly_seventeen_active_skills(self) -> None:
-        self.assertEqual(17, len(self.entries))
+    def test_manifest_routes_exactly_nineteen_active_skills(self) -> None:
+        self.assertEqual(19, len(self.entries))
         self.assertTrue(
             all(entry["status"] == "active" for entry in self.entries.values())
         )
@@ -289,7 +289,11 @@ class RepositorySkillRoutingContractTests(unittest.TestCase):
             if entry["invocation"] == "explicit"
         }
         self.assertEqual(
-            {"github-review-polling", "supervised-branch-development"},
+            {
+                "github-review-polling",
+                "grilling",
+                "supervised-branch-development",
+            },
             explicit,
         )
 
@@ -336,7 +340,6 @@ class RepositorySkillRoutingContractTests(unittest.TestCase):
             "ask-matt",
             "codebase-design",
             "domain-modeling",
-            "grilling",
             "handoff",
             "prototype",
             "research",

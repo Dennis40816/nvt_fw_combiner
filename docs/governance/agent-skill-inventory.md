@@ -14,9 +14,11 @@ skills; they are not repository authority.
 | `crc-worker-contract` | implicit | crc-worker | — |
 | `diagnosing-bugs` | implicit | diagnosis | — |
 | `dotnet-bootstrap` | implicit | bootstrap | — |
-| `firmware-profile-authoring` | implicit | firmware-profile | domain-modeling |
+| `firmware-profile-authoring` | implicit | firmware-profile | — |
 | `github-review-polling` | explicit | github-review | — |
 | `golden-regression` | implicit | golden-evidence | — |
+| `grill-with-docs` | implicit | decision-documentation | domain-modeling |
+| `grilling` | explicit | decision-interview | — |
 | `implement` | implicit | implementation | tdd |
 | `nfc-architecture-change` | implicit | architecture | codebase-design, improve-codebase-architecture |
 | `polytail` | implicit | quality-gate | — |

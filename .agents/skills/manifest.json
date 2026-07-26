@@ -53,7 +53,7 @@
       "invocation": "implicit",
       "authority": "firmware-profile",
       "owner": "repository",
-      "replaces": ["domain-modeling"]
+      "replaces": []
     },
     {
       "name": "github-review-polling",
@@ -70,6 +70,24 @@
       "scope": "repo",
       "invocation": "implicit",
       "authority": "golden-evidence",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "grill-with-docs",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "decision-documentation",
+      "owner": "repository",
+      "replaces": ["domain-modeling"]
+    },
+    {
+      "name": "grilling",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "explicit",
+      "authority": "decision-interview",
       "owner": "repository",
       "replaces": []
     },
