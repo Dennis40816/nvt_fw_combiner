@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "profileId": "nt51919-dp-replace-gen-flash-alias",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.1.1",
   "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "single-selector",
@@ -10,8 +10,8 @@
     "inputPolicy": "fixed", "topologyAuthoring": "hidden", "displayNameKey": "profile.nt51919.dp-replace"
   },
   "mapBinding": {
-    "familyId": "nt51929-nt51932", "familyVersion": "1.1.0",
-    "familyContentHash": "956c2403a17854bb4f26255eb0d6300cedf96b4f0b15f75758bdcbf0cf407169",
+    "familyId": "nt51929-nt51932", "familyVersion": "1.2.0",
+    "familyContentHash": "fa3a33524d1e0c9f497382f84a44a8be56576503d61c1a93a372b7d8e78ecaa3",
     "mapIds": ["nt51919-standard-merge-256k"], "requiredRegionIds": ["dp-code"],
     "requiredMetadataStructureIds": [], "requiredCapabilityIds": []
   },

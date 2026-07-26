@@ -1,5 +1,9 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles;
 using System.Text.RegularExpressions;
 
@@ -130,11 +134,15 @@ public static partial class WorkbenchCompositionService
         WorkbenchCtrlRamInspectionDisplay? ctrlRamDisplay = ctrlRamRequest is { } request
             ? CreateCtrlRamInspectionDisplay(icId, request.NumberToken, postbuildProfile)
             : null;
+        (WorkbenchDpVersionMetadata? Version, WorkbenchCmiDpCodeMetadata? Cmi)
+            dpMetadata = shouldProjectDpMetadata
+                ? ReadDpMetadata(icId, image, cmiFirmwareConfig?.ChipNumber)
+                : (null, null);
         return new WorkbenchFirmwareInspection(
             detectedIcId ?? DetectFirmwareIcHintFromHeader(image),
             ReadFirmwareConfigMetadata(firmwareConfig, postbuildProfile),
-            shouldProjectDpMetadata ? ReadDpVersionMetadata(icId, image) : null,
-            shouldProjectDpMetadata ? ReadCmiDpCodeMetadata(icId, image, cmiFirmwareConfig?.ChipNumber) : null,
+            dpMetadata.Version,
+            dpMetadata.Cmi,
             ReadFirmwareContextSuggestion(icId, firmwareConfig),
             ctrlRamDisplay,
             artifactKind);
@@ -160,9 +168,7 @@ public static partial class WorkbenchCompositionService
 
     private static WorkbenchDpVersionMetadata? ReadDpVersionMetadata(string icId, ReadOnlySpan<byte> image)
     {
-        return GenFlashVersionCatalog.TryReadDpVersion(icId, image, out GenFlashDpVersionMetadata metadata)
-            ? new WorkbenchDpVersionMetadata(metadata.VersionToken)
-            : null;
+        return ReadDpMetadata(icId, image, firmwareConfigChipNumber: null).Version;
     }
 
     private static WorkbenchCmiDpCodeMetadata? ReadCmiDpCodeMetadata(
@@ -170,17 +176,81 @@ public static partial class WorkbenchCompositionService
         ReadOnlySpan<byte> image,
         byte? firmwareConfigChipNumber)
     {
-        return GenFlashVersionCatalog.TryReadCmiDpCode(
-            icId,
-            image,
-            firmwareConfigChipNumber,
-            out CmiDpCodeMetadata metadata)
-                ? new WorkbenchCmiDpCodeMetadata(
-                    metadata.MajorVersionByte,
-                    metadata.MinorVersionNibble,
-                    metadata.JiraNumber,
-                    metadata.Register16Offset)
+        return ReadDpMetadata(icId, image, firmwareConfigChipNumber).Cmi;
+    }
+
+    private static (
+        WorkbenchDpVersionMetadata? Version,
+        WorkbenchCmiDpCodeMetadata? Cmi)
+        ReadDpMetadata(
+            string icId,
+            ReadOnlySpan<byte> image,
+            byte? firmwareConfigChipNumber)
+    {
+        if (TryReadCanonicalDpcmi(icId, image, out DpcmiMetadataFacts? dpcmi))
+        {
+            return dpcmi is null
+                ? (null, null)
+                : (
+                    new WorkbenchDpVersionMetadata(dpcmi.VersionToken),
+                    new WorkbenchCmiDpCodeMetadata(
+                        dpcmi.MajorVersion,
+                        dpcmi.MinorVersion,
+                        dpcmi.JiraNumber,
+                        checked((int)dpcmi.ResolvedRange.Start)));
+        }
+
+        WorkbenchDpVersionMetadata? version =
+            GenFlashVersionCatalog.TryReadDpVersion(
+                icId,
+                image,
+                out GenFlashDpVersionMetadata versionMetadata)
+                ? new WorkbenchDpVersionMetadata(versionMetadata.VersionToken)
                 : null;
+        WorkbenchCmiDpCodeMetadata? cmi =
+            GenFlashVersionCatalog.TryReadCmiDpCode(
+                icId,
+                image,
+                firmwareConfigChipNumber,
+                out CmiDpCodeMetadata cmiMetadata)
+                ? new WorkbenchCmiDpCodeMetadata(
+                    cmiMetadata.MajorVersionByte,
+                    cmiMetadata.MinorVersionNibble,
+                    cmiMetadata.JiraNumber,
+                    cmiMetadata.Register16Offset)
+                : null;
+        return (version, cmi);
+    }
+
+    private static bool TryReadCanonicalDpcmi(
+        string icId,
+        ReadOnlySpan<byte> image,
+        out DpcmiMetadataFacts? facts)
+    {
+        facts = null;
+        CapabilityResolutionResult resolution = ResolveCanonicalDpReplaceCapability(
+            IcSupportCatalog.NormalizeIcId(icId));
+        ResolvedMetadataPlan? plan = resolution.Capability?.MetadataPlan;
+        bool declaresDpcmi = plan?.Entries.Any(entry =>
+            StringComparer.Ordinal.Equals(
+                entry.Definition.StructureDefinition.StructureId,
+                DpcmiMetadataContract.StructureId)) == true;
+        if (!declaresDpcmi)
+        {
+            return false;
+        }
+
+        MetadataInspectionSnapshot snapshot = FirmwareMetadataInspector.Inspect(
+            plan!,
+            [new FirmwareArtifactPayload(CompositionAddressSpaceIds.DpReplacement, image)]);
+        if (DpcmiMetadataProjector.TryProject(snapshot, out DpcmiMetadataFacts projected))
+        {
+            facts = projected;
+        }
+
+        // A declared canonical DPCMI route owns both success and failure. Never
+        // fall back to a second physical-offset interpretation for that route.
+        return true;
     }
 
     private static WorkbenchFirmwareConfigMetadata? ReadFirmwareConfigMetadata(

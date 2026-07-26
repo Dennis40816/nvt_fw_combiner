@@ -8,12 +8,14 @@ internal sealed class V2CompositionPreparationRequest
 {
     internal V2CompositionPreparationRequest(
         TrustedProfileBundleCatalog.ProfileSelection selection,
-        FirmwareMapResolutionInputs resolutionInputs)
+        FirmwareMapResolutionInputs resolutionInputs,
+        bool resolveSelectionMetadataOnly = false)
     {
         ArgumentNullException.ThrowIfNull(selection);
         ArgumentNullException.ThrowIfNull(resolutionInputs);
         Selection = selection;
         ResolutionInputs = resolutionInputs;
+        ResolveSelectionMetadataOnly = resolveSelectionMetadataOnly;
     }
 
     /// <summary>Exact catalog-minted profile selection.</summary>
@@ -21,6 +23,9 @@ internal sealed class V2CompositionPreparationRequest
 
     /// <summary>Immutable Domain-owned map resolution selections and artifact snapshots.</summary>
     internal FirmwareMapResolutionInputs ResolutionInputs { get; }
+
+    /// <summary>Whether non-predicate metadata remains deferred to an explicit inspection plan.</summary>
+    internal bool ResolveSelectionMetadataOnly { get; }
 }
 
 /// <summary>Closed non-executable preparation outcome before V2 composition-plan lowering exists.</summary>
@@ -200,9 +205,13 @@ internal static class V2CompositionPreparationService
         }
 
         var profileMapIds = profile.Profile.MapBinding.MapIds.ToHashSet(StringComparer.Ordinal);
-        FirmwareMapResolutionResult mapResolution = profile.Family.Family.ResolveMapWithin(
-            request.ResolutionInputs,
-            profileMapIds);
+        FirmwareMapResolutionResult mapResolution = request.ResolveSelectionMetadataOnly
+            ? profile.Family.Family.ResolveMapWithinForSelection(
+                request.ResolutionInputs,
+                profileMapIds)
+            : profile.Family.Family.ResolveMapWithin(
+                request.ResolutionInputs,
+                profileMapIds);
         switch (mapResolution.Status)
         {
             case FirmwareMapResolutionStatus.Pending:

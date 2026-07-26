@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51929-dp-replace-family",
-  "bundleVersion": "0.9.11-dp-replace.1",
+  "bundleVersion": "0.10.1-dpcmi.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "072ba46232d3052f4c6f914266135c89d19816243a2416d3516317d707be1c07",
+  "contentHash": "37f4db17de259f28ff54b9b02ef60bdbd604dcdb2a218f46d137c9e58f0feee5",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,28 +25,28 @@
       "kind": "composition-profile",
       "path": "profiles/nt51919-dp-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "96eaffe9fc90862cbfb6a6ed6817ea210814b5cf92fdfe4e1af789ea75f1e6dc"
+      "contentHash": "c6cedbf57c2a051bf91e69548b54d3caa930e887f5971f29541343b072505082"
     },
     {
       "entryId": "nt51929-nt51932-family",
       "kind": "firmware-family",
       "path": "families/nt51929-nt51932.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "956c2403a17854bb4f26255eb0d6300cedf96b4f0b15f75758bdcbf0cf407169"
+      "contentHash": "fa3a33524d1e0c9f497382f84a44a8be56576503d61c1a93a372b7d8e78ecaa3"
     },
     {
       "entryId": "nt51929-dp-replace-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-dp-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "cc19a4d1c8f430c067659ba727d79759dde38e8d80c43cb92b0ff26d0c213a15"
+      "contentHash": "bf16a3edb0a51dcd9ba67a9a6578e397e14c8496b717528c1cdd2f07cdf7d403"
     },
     {
       "entryId": "nt51932-dp-replace-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51932-dp-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "8498e4a405a9bc9363c8677ca1496518ac1296fec30ddb461f4fe12b42bec179"
+      "contentHash": "6ae83e4c79aa972a1859420953b22981ad75dfeb3be27165ccae2f098a99f042"
     }
   ]
 }

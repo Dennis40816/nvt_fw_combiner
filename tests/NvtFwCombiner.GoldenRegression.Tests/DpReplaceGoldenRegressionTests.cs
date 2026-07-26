@@ -181,6 +181,63 @@ public sealed class DpReplaceGoldenRegressionTests
                 .Select(static operation => operation.GetProperty("OperationId").GetString()));
     }
 
+    /// <summary>NT51929 changed-input evidence proves DP Replace is non-no-op and preserves every byte outside its declared DP partition.</summary>
+    [Fact]
+    public async Task Nt51929ChangedDpInputMutatesOnlyDeclaredDpPartition()
+    {
+        string goldenRoot = CanonicalGoldenTestData.Root;
+        using JsonDocument manifestDocument =
+            CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("ic").GetString() == "51929")
+            .Clone();
+        byte[] reference = ReadManifestFile(
+            goldenRoot,
+            goldenCase.GetProperty("expectedOutput"));
+        byte[] replacement = ReadManifestFile(
+            goldenRoot,
+            goldenCase.GetProperty("inputs").GetProperty("dp-input"));
+        const int changedOffset = 0x123;
+        replacement[changedOffset] ^= 0x5A;
+
+        using var workspace = TempWorkspace.Create(
+            "nvt-fw-combiner-dp-replace-changed-51929");
+        string outputPath = workspace.PathFor("nt51929-dp-replace-changed.bin");
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51929",
+            "single",
+            "DP",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["replace-base"] = workspace.Write("reference-flash.bin", reference),
+                ["replace-dp"] = workspace.Write("changed-dp.bin", replacement),
+            },
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        byte[] actual = await File.ReadAllBytesAsync(
+            outputPath,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(replacement[changedOffset], actual[changedOffset]);
+        Assert.NotEqual(reference[changedOffset], actual[changedOffset]);
+        Assert.Equal(
+            [changedOffset],
+            Enumerable.Range(0, 0x6000)
+                .Where(index => actual[index] != reference[index]));
+        Assert.Equal(reference.AsSpan(0x6000).ToArray(), actual.AsSpan(0x6000).ToArray());
+        using var reportDocument = JsonDocument.Parse(result.ReportJson);
+        JsonElement report = reportDocument.RootElement;
+        Assert.Equal("nt51929-dp-replace-gen-flash", report.GetProperty("ProfileId").GetString());
+        Assert.Equal(
+            ["replace-dp-code"],
+            report.GetProperty("Operations")
+                .EnumerateArray()
+                .Select(static operation => operation.GetProperty("OperationId").GetString()));
+    }
+
     private static JsonElement FindDpPerspectiveCase(JsonElement manifest, string ic, string variant)
     {
         return manifest.GetProperty("cases")

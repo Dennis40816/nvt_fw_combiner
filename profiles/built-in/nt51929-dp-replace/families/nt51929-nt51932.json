@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51929-nt51932",
-  "familyVersion": "1.1.0",
+  "familyVersion": "1.2.0",
   "members": [
     {
       "memberId": "NT51919",
@@ -46,6 +46,42 @@
           "alignment": 1
         },
         {
+          "regionId": "initial-code-before-cmd1-page0-anchor",
+          "parentRegionId": "dp-code",
+          "owner": "dp",
+          "kind": "code",
+          "range": {
+            "start": 0,
+            "length": 16388
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "initial-code-cmd1-page0-anchor",
+          "parentRegionId": "dp-code",
+          "owner": "dp",
+          "kind": "command",
+          "range": {
+            "start": 16388,
+            "length": 25
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "initial-code-after-cmd1-page0-anchor",
+          "parentRegionId": "dp-code",
+          "owner": "dp",
+          "kind": "code",
+          "range": {
+            "start": 16413,
+            "length": 8163
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
           "regionId": "unmapped-gap",
           "parentRegionId": "flash-image",
           "owner": "unknown",
@@ -76,7 +112,67 @@
       ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "nt51929-initial-code-metadata",
+      "structures": [
+        {
+          "structureId": "dpcmi",
+          "artifactBindingId": "dp-replacement",
+          "length": 3,
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "initial-code-cmd1-page0-anchor",
+            "offset": 22,
+            "allowedResultRegionId": "initial-code-cmd1-page0-anchor"
+          },
+          "fields": [
+            {
+              "fieldId": "jira-low",
+              "offset": 0,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dp-major",
+              "offset": 1,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dp-minor",
+              "offset": 2,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little",
+              "bitSlice": {
+                "leastSignificantBit": 4,
+                "bitCount": 4
+              }
+            },
+            {
+              "fieldId": "jira-high",
+              "offset": 2,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little",
+              "bitSlice": {
+                "leastSignificantBit": 0,
+                "bitCount": 4
+              }
+            }
+          ],
+          "assertions": []
+        }
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51929-golden",
+        "owner-handoff-nt51929-dpcmi-2026-07-10"
+      ]
+    }
+  ],
   "imageMaps": [
     {
       "mapId": "nt51919-standard-merge-256k",
@@ -124,10 +220,13 @@
       "regionSetIds": [
         "nt51929-nt51932-standard-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51929-initial-code-metadata"
+      ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51929-golden",
-        "dp-replace-owner-decision-2026-07-20"
+        "dp-replace-owner-decision-2026-07-20",
+        "owner-handoff-nt51929-dpcmi-2026-07-10"
       ]
     },
     {
@@ -188,6 +287,7 @@
     "gen-flash-bin-v2-51929-golden",
     "gen-flash-bin-v2-51932-golden",
     "standard-merge-alias-51919-to-51929",
-    "dp-replace-owner-decision-2026-07-20"
+    "dp-replace-owner-decision-2026-07-20",
+    "owner-handoff-nt51929-dpcmi-2026-07-10"
   ]
 }

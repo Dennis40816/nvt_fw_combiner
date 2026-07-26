@@ -1,6 +1,9 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Capabilities;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -16,7 +19,8 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
         CapabilityCatalogLoadResult loaded =
             source.Load(TestContext.Current.CancellationToken);
         CanonicalCapabilityDefinition definition =
-            Assert.Single(loaded.Candidate!.Definitions);
+            loaded.Candidate!.Definitions.Single(candidate =>
+                candidate.Identity.WorkflowId == "standard-merge");
         CompiledComposition composition = definition.CompiledComposition;
 
         Assert.True(loaded.Succeeded);
@@ -31,6 +35,49 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
         Assert.All(
             composition.Plan.OrderedOperations,
             static operation => Assert.Null(operation.ExternalProcessorInvocation));
+        Assert.Empty(definition.MetadataPlan.Entries);
+    }
+
+    /// <summary>The NT51929 DP Replace route references one canonical DPCMI declaration and selected DP slot.</summary>
+    [Fact]
+    public void SourceMaterializesNt51929DpReplaceDpcmiPlan()
+    {
+        var source = new CanonicalCapabilityCatalogMigrationSource();
+
+        CapabilityCatalogLoadResult loaded =
+            source.Load(TestContext.Current.CancellationToken);
+        CanonicalCapabilityDefinition definition =
+            loaded.Candidate!.Definitions.Single(candidate =>
+                candidate.Identity.WorkflowId == "dp-replace");
+        MetadataPlanEntry entry = Assert.Single(definition.MetadataPlan.Entries);
+
+        Assert.True(loaded.Succeeded);
+        Assert.Equal("NT51929", definition.Identity.IcId);
+        Assert.Equal("nt51929-standard-merge-256k", definition.Identity.MapVariant);
+        Assert.Equal("dpcmi-inspection", entry.BindingId);
+        Assert.Equal("dp-replacement", entry.SpaceId);
+        Assert.Equal("dp-replacement", entry.SlotId);
+        Assert.Equal(DpcmiMetadataContract.StructureId, entry.StructureDefinition.StructureId);
+        FirmwareRegionRelativeLocator locator =
+            Assert.IsType<FirmwareRegionRelativeLocator>(entry.StructureDefinition.Locator);
+        Assert.Equal("initial-code-cmd1-page0-anchor", locator.RegionId);
+        Assert.Equal(DpcmiMetadataContract.FirstRegister, locator.Offset);
+        Assert.Equal(
+            [
+                DpcmiMetadataContract.MajorVersionFieldId,
+                DpcmiMetadataContract.MinorVersionFieldId,
+                DpcmiMetadataContract.JiraHighFieldId,
+                DpcmiMetadataContract.JiraLowFieldId,
+            ],
+            entry.FieldIds);
+        Assert.Equal(
+            [
+                MetadataInspectionPurpose.Validation,
+                MetadataInspectionPurpose.OutputNaming,
+                MetadataInspectionPurpose.Display,
+                MetadataInspectionPurpose.Version,
+            ],
+            entry.Purposes);
     }
 
     /// <summary>A stale policy fingerprint rejects the complete candidate.</summary>
@@ -39,7 +86,8 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
     {
         CanonicalCapabilityPolicySnapshot current =
             BuiltInCanonicalCapabilityPolicy.Load();
-        CanonicalCapabilityPolicyRoute route = Assert.Single(current.Routes);
+        CanonicalCapabilityPolicyRoute route = current.Routes.Single(candidate =>
+            candidate.Identity.WorkflowId == "standard-merge");
         string staleFingerprint = new('0', 64);
         CanonicalCapabilityPolicyRoute staleRoute = route with
         {
@@ -97,6 +145,85 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
         Assert.Equal(
             resolution.Capability.ResolutionToken,
             afterCompile.Capability!.ResolutionToken);
+    }
+
+    /// <summary>NT51929 DP Replace compilation and metadata inspection share one published capability snapshot.</summary>
+    [Fact]
+    public void Nt51929DpReplaceUsesPublishedCanonicalSnapshotAndDpcmiAuthority()
+    {
+        CapabilityCatalogReloadResult reload =
+            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+                TestContext.Current.CancellationToken);
+        CapabilityResolutionResult resolution =
+            WorkbenchCompositionService.ResolveCanonicalDpReplaceCapability(
+                "NT51929");
+        bool recognized = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+            "NT51929",
+            0x40000,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        byte[] dp = new byte[0x6000];
+        dp[0] = 0x5A;
+        dp[0x67] = 0xFE;
+        dp[0x68] = 0xED;
+        dp[0x401A] = 0x2E;
+        dp[0x401B] = 0x03;
+        dp[0x401C] = 0xA4;
+        using var workspace = TempWorkspace.Create(
+            "nvt-fw-combiner-canonical-dpcmi");
+        string dpPath = workspace.Write("replacement-dp.bin", dp);
+
+        WorkbenchDpVersionMetadata? version =
+            WorkbenchCompositionService.TryReadDpVersionMetadata(
+                "NT51929",
+                dpPath);
+        WorkbenchCmiDpCodeMetadata? cmi =
+            WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
+                "NT51929",
+                dpPath);
+        WorkbenchOutputFileNameSuggestion outputName =
+            WorkbenchCompositionService.CreateFlashCodeOutputFileName(
+                "NT51929",
+                [new WorkbenchOutputNameCandidate(
+                    WorkbenchOutputNameCandidateKind.Dp,
+                    dpPath)],
+                new DateOnly(2026, 7, 26));
+
+        Assert.True(reload.Succeeded);
+        Assert.True(resolution.Succeeded);
+        Assert.True(recognized);
+        Assert.Empty(issues);
+        Assert.Same(resolution.Capability!.CompiledComposition, composition);
+        Assert.Equal(resolution.Capability.ResolutionToken, resolution.Capability.MetadataPlan.ResolutionToken);
+        Assert.Equal("030A", version!.Value.VersionToken);
+        Assert.Equal((byte)0x03, cmi!.Value.MajorVersionByte);
+        Assert.Equal((byte)0x0A, cmi.Value.MinorVersionNibble);
+        Assert.Equal((ushort)0x42E, cmi.Value.JiraNumber);
+        Assert.Equal(0x401A, cmi.Value.Register16Offset);
+        Assert.Equal("030A", outputName.DpVersionToken);
+        Assert.Equal(
+            "NT51929_FlashCode_D030ATxxxx_20260726.bin",
+            outputName.FileName);
+    }
+
+    /// <summary>A declared but truncated DPCMI does not fall back to the competing legacy DP-version bytes.</summary>
+    [Fact]
+    public void Nt51929DpcmiFailureDoesNotFallBackToLegacyDpVersionReader()
+    {
+        byte[] truncated = new byte[0x100];
+        truncated[0x67] = 0xFE;
+        truncated[0x68] = 0xED;
+        using var workspace = TempWorkspace.Create(
+            "nvt-fw-combiner-canonical-dpcmi-truncated");
+        string path = workspace.Write("truncated-dp.bin", truncated);
+
+        Assert.Null(WorkbenchCompositionService.TryReadDpVersionMetadata(
+            "NT51929",
+            path));
+        Assert.Null(WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
+            "NT51929",
+            path));
     }
 
     /// <summary>Non-pilot routes remain executable only through the named migration adapter.</summary>

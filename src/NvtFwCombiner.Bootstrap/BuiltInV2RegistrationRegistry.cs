@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles;
@@ -69,16 +70,16 @@ internal static class BuiltInV2RegistrationRegistry
             new BuiltInV2Registration[]
             {
                 new("NT51917", "nt51917-dp-replace-gen-flash-alias", "0.1.0", BuiltInV2BundleRegistry.All["nt51927-dp-replace"], CompositionKind.Replace),
-                new("NT51919", "nt51919-dp-replace-gen-flash-alias", "0.1.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
+                new("NT51919", "nt51919-dp-replace-gen-flash-alias", "0.1.1", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
                 new("NT51920", "nt51920-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51920-dp-replace"], CompositionKind.Replace),
                 new("NT51923", "nt51923-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51923-dp-replace"], CompositionKind.Replace),
                 new("NT51926", "nt51926-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51923-dp-replace"], CompositionKind.Replace),
                 new("NT51927", "nt51927-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51927-dp-replace"], CompositionKind.Replace),
                 new("NT51928", "nt51928-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51928-dp-replace"], CompositionKind.Replace),
-                new("NT51929", "nt51929-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
+                new("NT51929", "nt51929-dp-replace-gen-flash", "0.2.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
                 new("NT51930", "nt51930-dp-replace-flashmap", "0.1.0", BuiltInV2BundleRegistry.All["nt51930-standard-merge"], CompositionKind.Replace),
                 new("NT51931", "nt51931-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51931-dp-replace"], CompositionKind.Replace),
-                new("NT51932", "nt51932-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
+                new("NT51932", "nt51932-dp-replace-gen-flash", "0.1.1", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
                 new("NT51950", "nt51950-dp-replace-dp-perspective", "0.6.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
                 new("NT51951", "nt51951-dp-replace-dp-perspective", "0.6.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
             }.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
@@ -321,6 +322,15 @@ internal sealed class BuiltInV2Registration
                 IsDpReplace ? CompiledIcNumberPolicy.SingleSelector : null,
                 CompileSucceeded: false,
                 Array.AsReadOnly(compilation.Issues.Select(static issue => issue.Code).ToArray()));
+    }
+
+    internal MetadataPlanDefinition CreateMetadataPlan(
+        CompiledComposition composition)
+    {
+        return _bundle.CreateMetadataPlan(
+            ProfileId,
+            ProfileVersion,
+            composition);
     }
 
     private V2CompositionPlanCompileResult CompileSummary()

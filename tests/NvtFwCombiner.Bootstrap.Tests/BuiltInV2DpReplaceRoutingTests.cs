@@ -11,14 +11,14 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     /// <summary>Every canonical Gen Flash map exposes only its owner-approved DP partition.</summary>
     [Theory]
     [InlineData("NT51917", 0x40000, "nt51917-dp-replace-gen-flash-alias", "c805ce9881786131a299675ec84ff272cd3effc74310fc783965abb1a8400568", 0x3C000, 0x4000)]
-    [InlineData("NT51919", 0x40000, "nt51919-dp-replace-gen-flash-alias", "072ba46232d3052f4c6f914266135c89d19816243a2416d3516317d707be1c07", 0x00000, 0x6000)]
+    [InlineData("NT51919", 0x40000, "nt51919-dp-replace-gen-flash-alias", "37f4db17de259f28ff54b9b02ef60bdbd604dcdb2a218f46d137c9e58f0feee5", 0x00000, 0x6000)]
     [InlineData("NT51920", 0x40000, "nt51920-dp-replace-gen-flash", "54fe891836a8e899f3ac27c3dd32e35678032b3f0c886d6a2f2659369c7185a9", 0x3E000, 0x2000)]
     [InlineData("NT51923", 0x40000, "nt51923-dp-replace-gen-flash", "4c822759f79167ab16331bb9590b89f3d7874ec518660ca098e545ae432569a0", 0x3E000, 0x2000)]
     [InlineData("NT51926", 0x40000, "nt51926-dp-replace-gen-flash", "4c822759f79167ab16331bb9590b89f3d7874ec518660ca098e545ae432569a0", 0x3E000, 0x2000)]
     [InlineData("NT51927", 0x40000, "nt51927-dp-replace-gen-flash", "c805ce9881786131a299675ec84ff272cd3effc74310fc783965abb1a8400568", 0x3C000, 0x4000)]
-    [InlineData("NT51929", 0x40000, "nt51929-dp-replace-gen-flash", "072ba46232d3052f4c6f914266135c89d19816243a2416d3516317d707be1c07", 0x00000, 0x6000)]
+    [InlineData("NT51929", 0x40000, "nt51929-dp-replace-gen-flash", "37f4db17de259f28ff54b9b02ef60bdbd604dcdb2a218f46d137c9e58f0feee5", 0x00000, 0x6000)]
     [InlineData("NT51931", 0x40000, "nt51931-dp-replace-gen-flash", "eae8c593556e9cb5d639d2f05c94f8144d091767e490e746cd5cdeb2b5384c9c", 0x3E000, 0x2000)]
-    [InlineData("NT51932", 0x40000, "nt51932-dp-replace-gen-flash", "072ba46232d3052f4c6f914266135c89d19816243a2416d3516317d707be1c07", 0x00000, 0x6000)]
+    [InlineData("NT51932", 0x40000, "nt51932-dp-replace-gen-flash", "37f4db17de259f28ff54b9b02ef60bdbd604dcdb2a218f46d137c9e58f0feee5", 0x00000, 0x6000)]
     public void GenFlashDpReplaceUsesCanonicalDpPartition(
         string icId,
         long baseCapacity,

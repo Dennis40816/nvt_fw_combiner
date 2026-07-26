@@ -11,7 +11,7 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void DpVersionRulesAreContiguousAndInsideDeclaredDpRange()
     {
-        string[] ruleIds = ["51917", "51919", "51920", "51923", "51926", "51927", "51928", "51929", "51931", "51932"];
+        string[] ruleIds = ["51917", "51919", "51920", "51923", "51926", "51927", "51928", "51931", "51932"];
         foreach (string ruleId in ruleIds)
         {
             Assert.True(GenFlashVersionCatalog.TryGetDpVersionRule(ruleId, out GenFlashDpVersionRule rule));
@@ -31,7 +31,6 @@ public sealed class GenFlashVersionCatalogTests
     [InlineData("51926", "0102")]
     [InlineData("51927", "5401")]
     [InlineData("51928", "8211")]
-    [InlineData("51929", "0200")]
     [InlineData("51931", "8D60")]
     [InlineData("51932", "8201")]
     public void GoldenDpInputsExposeExpectedGenFlashVersion(string ic, string expectedToken)
@@ -56,7 +55,7 @@ public sealed class GenFlashVersionCatalogTests
         image[0x67] = 0x12;
 
         Assert.False(GenFlashVersionCatalog.TryReadDpVersion(
-            "NT51929",
+            "NT51919",
             image,
             out _));
     }
@@ -65,7 +64,7 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void CmiDpCodeRulesFitInsideExpectedPayloadLengths()
     {
-        string[] ruleIds = ["51923", "51926", "51927", "51929", "51930", "51932", "51950", "51951"];
+        string[] ruleIds = ["51919", "51923", "51926", "51927", "51930", "51932", "51950", "51951"];
         foreach (string ruleId in ruleIds)
         {
             Assert.True(GenFlashVersionCatalog.TryGetCmiDpCodeRule(ruleId, out CmiDpCodeRule rule));
@@ -231,20 +230,19 @@ public sealed class GenFlashVersionCatalogTests
         AssertCmiMajorMatchesLegacyVersion("NT51927", image, 0x3C01C, 313, 0x54, "AUTO_PRJ-313");
     }
 
-    /// <summary>Guards the owner-handoff NT51929 CMI triple without committing its private firmware payload.</summary>
+    /// <summary>NT51929 has no legacy offset rule after its DPCMI authority migrates to the canonical profile.</summary>
     [Fact]
-    public void OwnerHandoffNt51929CmiMajorMatchesLegacyDpVersion()
+    public void Nt51929HasNoLegacyDpVersionOrCmiRule()
     {
         byte[] image = new byte[0x40000];
-        image[0x067] = 0x01;
-        image[0x068] = 0x02;
         image[0x401A] = 0x52;
         image[0x401B] = 0x01;
         image[0x401C] = 0x02;
 
-        AssertCmiMajorMatchesLegacyVersion("NT51929", image, 0x401A, 594, 0x01, "AUTO_PRJ-594");
-        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode("NT51929", image, out CmiDpCodeMetadata cmi));
-        Assert.Equal(0, cmi.MinorVersionNibble);
+        Assert.False(GenFlashVersionCatalog.TryGetDpVersionRule("NT51929", out _));
+        Assert.False(GenFlashVersionCatalog.TryGetCmiDpCodeRule("NT51929", out _));
+        Assert.False(GenFlashVersionCatalog.TryReadDpVersion("NT51929", image, out _));
+        Assert.False(GenFlashVersionCatalog.TryReadCmiDpCode("NT51929", image, out _));
     }
 
     /// <summary>Reads the owner-confirmed NT51930 FlashCode CMI register triple without guessing a legacy DP offset.</summary>

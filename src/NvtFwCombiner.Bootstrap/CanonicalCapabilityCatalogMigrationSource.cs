@@ -1,6 +1,8 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Capabilities;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -63,19 +65,29 @@ internal sealed class CanonicalCapabilityCatalogMigrationSource :
     private static CanonicalCapabilityDefinition Materialize(
         CanonicalCapabilityPolicyRoute route)
     {
-        if (!BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
-                route.Identity.IcId,
-                out BuiltInV2Registration? registration) ||
-            !StringComparer.Ordinal.Equals(
-                registration.WorkflowId,
-                route.Identity.WorkflowId))
-        {
+        BuiltInV2Registration registration =
+            ResolveRegistration(route.Identity) ??
             throw new InvalidDataException(
                 $"No migration compiler registration matches route '{route.Identity.RouteId}'.");
-        }
+
+        IReadOnlyList<FirmwareImageMap> mapVariants =
+            registration.GetMapVariants(
+                out _,
+                out IReadOnlyList<CompositionIssue> mapIssues);
+        FirmwareImageMap selectedMap = (mapIssues.Count == 0
+            ? mapVariants.SingleOrDefault(map =>
+                StringComparer.Ordinal.Equals(
+                    map.MapId,
+                    route.Identity.MapVariant))
+            : null) ??
+            throw new InvalidDataException(
+                $"No trusted map matches route '{route.Identity.RouteId}': " +
+                string.Join(
+                    ", ",
+                    mapIssues.Select(static issue => issue.Code)));
 
         registration.TryCompile(
-            inputLength: null,
+            inputLength: selectedMap.CapacityBytes,
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
         if (composition is null || issues.Count != 0)
@@ -101,7 +113,30 @@ internal sealed class CanonicalCapabilityCatalogMigrationSource :
             composition,
             route.Authoring,
             route.Publication,
-            route.Evidence);
+            route.Evidence,
+            registration.CreateMetadataPlan(composition));
+    }
+
+    private static BuiltInV2Registration? ResolveRegistration(
+        CapabilityRouteIdentity identity)
+    {
+        BuiltInV2Registration? registration =
+            identity.WorkflowId switch
+            {
+                IcWorkflowIds.StandardMerge =>
+                    BuiltInV2RegistrationRegistry.StandardMergeByIc
+                        .GetValueOrDefault(identity.IcId),
+                IcWorkflowIds.DpReplace =>
+                    BuiltInV2RegistrationRegistry.DpReplaceByIc.Value
+                        .GetValueOrDefault(identity.IcId),
+                _ => null,
+            };
+        return registration is not null &&
+            StringComparer.Ordinal.Equals(
+                registration.WorkflowId,
+                identity.WorkflowId)
+                ? registration
+                : null;
     }
 
     private static CapabilityCatalogLoadResult Failure(

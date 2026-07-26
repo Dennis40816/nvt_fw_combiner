@@ -119,6 +119,24 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             : throw new KeyNotFoundException($"Unknown firmware image map '{mapId}'.");
     }
 
+    /// <summary>Returns only metadata structures that participate in candidate map selection.</summary>
+    internal IReadOnlyList<FirmwareMetadataStructure> GetMapResolutionStructuresForMap(string mapId)
+    {
+        FirmwareImageMap map = _imageMaps.FirstOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.MapId, mapId)) ??
+            throw new KeyNotFoundException($"Unknown firmware image map '{mapId}'.");
+        IReadOnlyList<FirmwareMetadataStructure> structures = GetStructuresForMap(mapId);
+        var predicateStructureIds = new HashSet<string>(
+            map.Applicability.MetadataPredicates.Select(
+                static predicate => predicate.MetadataStructureId),
+            StringComparer.Ordinal);
+        return Array.AsReadOnly(
+        [
+            .. structures.Where(structure =>
+                predicateStructureIds.Contains(structure.StructureId)),
+        ]);
+    }
+
     /// <summary>Resolves a structure only through metadata sets selected by the candidate map.</summary>
     public bool TryResolveStructure(
         string mapId,

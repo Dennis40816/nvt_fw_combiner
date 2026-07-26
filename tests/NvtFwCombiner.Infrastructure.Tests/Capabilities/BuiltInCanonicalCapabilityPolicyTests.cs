@@ -16,7 +16,11 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
     {
         CanonicalCapabilityPolicySnapshot policy =
             BuiltInCanonicalCapabilityPolicy.Load();
-        CanonicalCapabilityPolicyRoute route = Assert.Single(policy.Routes);
+        CanonicalCapabilityPolicyRoute route = Assert.Single(
+            policy.Routes,
+            static candidate => StringComparer.Ordinal.Equals(
+                candidate.Identity.WorkflowId,
+                "standard-merge"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
         Assert.Equal("1.0.0", policy.CatalogVersion);
