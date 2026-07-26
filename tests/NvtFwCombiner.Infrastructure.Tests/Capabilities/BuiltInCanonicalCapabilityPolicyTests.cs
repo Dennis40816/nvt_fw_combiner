@@ -133,6 +133,73 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
         Assert.Contains("publication pin", exception.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Every closed policy discriminator and root identity fails closed when changed.</summary>
+    [Theory]
+    [InlineData("schema")]
+    [InlineData("catalog-id")]
+    [InlineData("catalog-version")]
+    [InlineData("date")]
+    [InlineData("empty-routes")]
+    [InlineData("duplicate-route")]
+    [InlineData("authoring-value")]
+    [InlineData("publication-value")]
+    [InlineData("evidence-value")]
+    [InlineData("evidence-pin")]
+    public void RejectsInvalidPolicySemantics(string mutation)
+    {
+        JsonObject policy = ParsePolicy();
+        JsonArray routes = Assert.IsType<JsonArray>(policy["routes"]);
+        JsonObject route = Assert.IsType<JsonObject>(routes[0]);
+        switch (mutation)
+        {
+            case "schema":
+                policy["schemaVersion"] = "2.0";
+                break;
+            case "catalog-id":
+                policy["catalogId"] = "other";
+                break;
+            case "catalog-version":
+                policy["catalogVersion"] = "2.0.0";
+                break;
+            case "date":
+                policy["issuedOn"] = "2026-99-99";
+                break;
+            case "empty-routes":
+                policy["routes"] = new JsonArray();
+                break;
+            case "duplicate-route":
+                routes.Add(route.DeepClone());
+                break;
+            case "authoring-value":
+                Assert.IsType<JsonObject>(route["authoring"])["value"] =
+                    "unknown";
+                break;
+            case "publication-value":
+                Assert.IsType<JsonObject>(route["publication"])["value"] =
+                    "unknown";
+                break;
+            case "evidence-value":
+                Assert.IsType<JsonObject>(route["evidence"])["value"] =
+                    "unknown";
+                break;
+            case "evidence-pin":
+                Assert.IsType<JsonObject>(route["evidence"])
+                    ["capabilityFingerprint"] = new string('0', 64);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(mutation),
+                    mutation,
+                    "Unknown mutation.");
+        }
+
+        byte[] bytes = Encoding.UTF8.GetBytes(policy.ToJsonString());
+        _ = Assert.Throws<InvalidDataException>(() =>
+            BuiltInCanonicalCapabilityPolicy.Load(
+                bytes,
+                PinnedJsonCatalogLoader.ComputeSha256(bytes)));
+    }
+
     private static byte[] ReadPolicy()
     {
         return File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(

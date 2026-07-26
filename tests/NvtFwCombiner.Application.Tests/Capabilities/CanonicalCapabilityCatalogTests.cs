@@ -210,6 +210,89 @@ public sealed class CanonicalCapabilityCatalogTests
             Assert.Single(reload.Snapshot!.CertificationIssues).Code);
     }
 
+    /// <summary>An explicit unavailable authoring decision blocks the exact route.</summary>
+    [Fact]
+    public void ResolveRejectsUnavailableAuthoring()
+    {
+        CanonicalCapabilityDefinition definition = CreateDefinition(
+            CreateCompiledComposition(),
+            authoringAvailability:
+                CapabilityAuthoringAvailability.Unavailable);
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueueCapabilitySource(
+                CapabilityCatalogLoadResult.Success(
+                    new CanonicalCapabilityCatalogCandidate(
+                        "canonical-capability-catalog",
+                        "1.0.0",
+                        new string('a', 64),
+                        [definition]))));
+        _ = catalog.Reload(TestContext.Current.CancellationToken);
+
+        CapabilityResolutionResult resolution = catalog.Resolve(Route.RouteId);
+
+        Assert.False(resolution.Succeeded);
+        Assert.Equal(
+            CapabilityCatalogIssueCodes.AuthoringUnavailable,
+            resolution.Issue!.Code);
+    }
+
+    /// <summary>Selection without a map variant fails closed when more than one map is published.</summary>
+    [Fact]
+    public void ResolveUniqueRouteRejectsAmbiguousMapVariants()
+    {
+        var alternateRoute = new CapabilityRouteIdentity(
+            "NT51929",
+            "standard-merge",
+            "selector-free",
+            "nt51929-standard-merge-alternate");
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueueCapabilitySource(
+                CapabilityCatalogLoadResult.Success(
+                    new CanonicalCapabilityCatalogCandidate(
+                        "canonical-capability-catalog",
+                        "1.0.0",
+                        new string('a', 64),
+                        [
+                            CreateDefinition(CreateCompiledComposition()),
+                            CreateDefinition(
+                                CreateCompiledComposition(),
+                                alternateRoute),
+                        ]))));
+        _ = catalog.Reload(TestContext.Current.CancellationToken);
+
+        CapabilityResolutionResult resolution = catalog.ResolveUniqueRoute(
+            "NT51929",
+            "standard-merge",
+            "selector-free");
+
+        Assert.False(resolution.Succeeded);
+        Assert.Equal(
+            CapabilityCatalogIssueCodes.RouteAmbiguous,
+            resolution.Issue!.Code);
+    }
+
+    /// <summary>An empty candidate is rejected before it can replace the current snapshot.</summary>
+    [Fact]
+    public void ReloadRejectsEmptyCandidate()
+    {
+        var candidate = new CanonicalCapabilityCatalogCandidate(
+            "canonical-capability-catalog",
+            "1.0.0",
+            new string('a', 64),
+            []);
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueueCapabilitySource(
+                CapabilityCatalogLoadResult.Success(candidate)));
+
+        CapabilityCatalogReloadResult reload =
+            catalog.Reload(TestContext.Current.CancellationToken);
+
+        Assert.False(reload.Succeeded);
+        Assert.Equal(
+            CapabilityCatalogIssueCodes.InvalidCandidate,
+            Assert.Single(reload.Issues).Code);
+    }
+
     private static CanonicalCapabilityCatalogCandidate CreateCandidate()
     {
         CanonicalCapabilityDefinition definition = CreateDefinition(CreateCompiledComposition());
@@ -222,31 +305,35 @@ public sealed class CanonicalCapabilityCatalogTests
 
     private static CanonicalCapabilityDefinition CreateDefinition(
         CompiledComposition composition,
+        CapabilityRouteIdentity? route = null,
         string? authoringFingerprint = null,
         string? publicationFingerprint = null,
         string? evidenceFingerprint = null,
+        CapabilityAuthoringAvailability authoringAvailability =
+            CapabilityAuthoringAvailability.Available,
         CapabilityEvidenceStatus evidenceStatus =
             CapabilityEvidenceStatus.DirectGolden)
     {
         string fingerprint = composition.CompilationFingerprint;
+        CapabilityRouteIdentity effectiveRoute = route ?? Route;
         return new CanonicalCapabilityDefinition(
-            Route,
+            effectiveRoute,
             composition,
             new PinnedCapabilityDecision<CapabilityAuthoringAvailability>(
                 "nt51929-standard-merge-authoring",
-                Route.RouteId,
+                effectiveRoute.RouteId,
                 authoringFingerprint ?? fingerprint,
-                CapabilityAuthoringAvailability.Available,
+                authoringAvailability,
                 "owner-approved:#173"),
             new PinnedCapabilityDecision<CapabilityPublicationStatus>(
                 "nt51929-standard-merge-publication",
-                Route.RouteId,
+                effectiveRoute.RouteId,
                 publicationFingerprint ?? fingerprint,
                 CapabilityPublicationStatus.Supported,
                 "owner-approved:#173"),
             new PinnedCapabilityDecision<CapabilityEvidenceStatus>(
                 "nt51929-standard-merge-golden",
-                Route.RouteId,
+                effectiveRoute.RouteId,
                 evidenceFingerprint ?? fingerprint,
                 evidenceStatus,
                 "canonical-golden:nt51929-gen-flash"));
