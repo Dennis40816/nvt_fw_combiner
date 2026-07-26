@@ -99,6 +99,28 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                     AppendField(builder, $"{factPrefix}.field-id", fact.FieldId);
                     AppendMetadataValue(builder, $"{factPrefix}.value", fact.Value);
                 }
+
+                if (decoded.Relations.Count > 0)
+                {
+                    FirmwareDecodedMetadataRelation[] relations =
+                    [
+                        .. decoded.Relations.OrderBy(
+                            static relation => relation.RelationId,
+                            StringComparer.Ordinal),
+                    ];
+                    AppendInteger(builder, $"{prefix}.decoded.relation.count", relations.Length);
+                    for (int relationIndex = 0; relationIndex < relations.Length; relationIndex++)
+                    {
+                        FirmwareDecodedMetadataRelation relation = relations[relationIndex];
+                        string relationPrefix =
+                            FormattableString.Invariant($"{prefix}.decoded.relation.{relationIndex}");
+                        AppendField(builder, $"{relationPrefix}.id", relation.RelationId);
+                        AppendEnum(builder, $"{relationPrefix}.kind", relation.Kind);
+                        AppendField(builder, $"{relationPrefix}.source-field-id", relation.SourceFieldId);
+                        AppendField(builder, $"{relationPrefix}.related-field-id", relation.RelatedFieldId);
+                        AppendInteger(builder, $"{relationPrefix}.satisfied", relation.IsSatisfied ? 1 : 0);
+                    }
+                }
             }
         }
 

@@ -12,13 +12,13 @@ internal static class BuiltInV2RegistrationRegistry
     internal static ReadOnlyCollection<BuiltInV2Registration> StandardMerge { get; } =
         Array.AsReadOnly(
         [
-            new BuiltInV2Registration("NT51917", "nt51917-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51917", "nt51917-standard-merge-gen-flash-alias", "0.6.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51919", "nt51919-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51920", "nt51920-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51920-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51923", "nt51923-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51926", "nt51926-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51927", "nt51927-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51928", "nt51928-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51928-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51927", "nt51927-standard-merge-gen-flash", "0.6.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51928", "nt51928-standard-merge-gen-flash", "0.6.0", BuiltInV2BundleRegistry.All["nt51928-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51929", "nt51929-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51930", "nt51930-standard-merge-flashmap", "0.5.1", BuiltInV2BundleRegistry.All["nt51930-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51931", "nt51931-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51931-standard-merge"], CompositionKind.Merge),
@@ -49,13 +49,13 @@ internal static class BuiltInV2RegistrationRegistry
     internal static ReadOnlyDictionary<string, GeneralMergeV2CandidateRegistration> GeneralMergeByIc { get; } = new(
         new GeneralMergeV2CandidateRegistration[]
         {
-            new("NT51917", "nt51927", "nt51917-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51917-nt51927-general-merge-logical-candidate"]),
+            new("NT51917", "nt51917-nt51927-nt51928-canonical-container", "nt51917-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51917-nt51927-general-merge-logical-candidate"]),
             new("NT51919", "nt51929-nt51932", "nt51919-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-general-merge-logical-candidate"]),
             new("NT51920", "nt51920", "nt51920-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51920-general-merge-logical-candidate"]),
             new("NT51923", "nt51923-nt51926", "nt51923-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51923-nt51926-general-merge-logical-candidate"]),
             new("NT51926", "nt51923-nt51926", "nt51926-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51923-nt51926-general-merge-logical-candidate"]),
-            new("NT51927", "nt51927", "nt51927-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51917-nt51927-general-merge-logical-candidate"]),
-            new("NT51928", "nt51928", "nt51928-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51928-general-merge-logical-candidate"]),
+            new("NT51927", "nt51917-nt51927-nt51928-canonical-container", "nt51927-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51917-nt51927-general-merge-logical-candidate"]),
+            new("NT51928", "nt51917-nt51927-nt51928-canonical-container", "nt51928-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51928-general-merge-logical-candidate"]),
             new("NT51929", "nt51929-nt51932", "nt51929-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-general-merge-logical-candidate"]),
             new("NT51930", "nt51930", "nt51930-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51930-general-merge-logical-candidate"]),
             new("NT51931", "nt51931", "nt51931-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51931-general-merge-logical-candidate"]),

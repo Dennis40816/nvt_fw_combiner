@@ -17,9 +17,9 @@ public sealed class CanonicalV2StandardMergeGoldenTests
     [InlineData("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "NT51926", "nt51926-standard-merge-gen-flash", "51926", "nt51926-standard-merge-gen-flash.bin", 0x40000, 0x40000, false, true)]
     [InlineData("nt51930-standard-merge", "50f9b7f84879088c72ba6da8f23860d92d7819eff5dd0a4772e4b3bc28f0921a", "NT51930", "nt51930-standard-merge-flashmap", "51930", "nt51930-standard-merge-flashmap.bin", 0x6000, 0x40000, false, true)]
     [InlineData("nt51931-standard-merge", "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f", "NT51931", "nt51931-standard-merge-gen-flash", "51931", "nt51931-standard-merge-gen-flash.bin", 0x40000, 0x80000, false, true)]
-    [InlineData("nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1", "NT51917", "nt51917-standard-merge-gen-flash-alias", "51927", "nt51917-standard-merge-gen-flash-alias.bin", 0x40000, 0x200000, true, true)]
-    [InlineData("nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1", "NT51927", "nt51927-standard-merge-gen-flash", "51927", "nt51927-standard-merge-gen-flash.bin", 0x40000, 0x200000, false, true)]
-    [InlineData("nt51928-standard-merge", "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af", "NT51928", "nt51928-standard-merge-gen-flash", "51928", "nt51928-standard-merge-gen-flash.bin", 0x40000, 0x80000, false, true)]
+    [InlineData("nt51927-standard-merge", "7bf01f522c7a9ddfb9a6b54abc2b65ac84d90a59464b6266edfb1da5d4dd6f05", "NT51917", "nt51917-standard-merge-gen-flash-alias", "51927", "nt51917-standard-merge-gen-flash-alias.bin", 0x40000, 0x200000, true, true)]
+    [InlineData("nt51927-standard-merge", "7bf01f522c7a9ddfb9a6b54abc2b65ac84d90a59464b6266edfb1da5d4dd6f05", "NT51927", "nt51927-standard-merge-gen-flash", "51927", "nt51927-standard-merge-gen-flash.bin", 0x40000, 0x200000, false, true)]
+    [InlineData("nt51928-standard-merge", "a4dbbce07d37053e556fda4550c3c1d01b929dda7e0b37b9852ca573cf2220d6", "NT51928", "nt51928-standard-merge-gen-flash", "51928", "nt51928-standard-merge-gen-flash.bin", 0x40000, 0x80000, false, true)]
     public async Task TrustedV2BundleMatchesDeclaredPlanAndOwnerApprovedGoldenBytes(
         string bundleDirectory,
         string bundleContentHash,
@@ -35,7 +35,12 @@ public sealed class CanonicalV2StandardMergeGoldenTests
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(bundleDirectory, bundleContentHash),
             profileId,
-            icId == "NT51930" ? "0.5.1" : "0.5.0",
+            icId switch
+            {
+                "NT51930" => "0.5.1",
+                "NT51917" or "NT51927" or "NT51928" => "0.6.0",
+                _ => "0.5.0",
+            },
             icId);
 
         Assert.Equal(profileId, v2.ProfileId);
@@ -66,7 +71,9 @@ public sealed class CanonicalV2StandardMergeGoldenTests
     private static void AssertRegionSetProvenance(CompiledComposition composition, bool expectsAlias)
     {
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
-        FirmwareFactProvenance provenance = Assert.Single(details.Provenance.ResolvedMap.FactProvenance);
+        FirmwareFactProvenance provenance = Assert.Single(
+            details.Provenance.ResolvedMap.FactProvenance,
+            static candidate => candidate.EffectiveKey.FactKind == FirmwareFactKind.RegionSet);
         if (expectsAlias)
         {
             (string EffectiveMapId, string EffectiveFactId, string SourceMemberId, string SourceMapId, string SourceFactId, string AliasId) = composition.IcId switch

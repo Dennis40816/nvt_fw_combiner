@@ -66,9 +66,14 @@ public sealed class FirmwareMetadataField
         int widthBytes,
         FirmwareMetadataEncoding encoding,
         FirmwareMetadataByteOrder? byteOrder = null,
-        FirmwareMetadataBitSlice? bitSlice = null)
+        FirmwareMetadataBitSlice? bitSlice = null,
+        string? sourceName = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
+        if (sourceName is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
+        }
         if (!Enum.IsDefined(encoding))
         {
             throw new ArgumentOutOfRangeException(nameof(encoding), encoding, "Unknown metadata encoding.");
@@ -87,6 +92,7 @@ public sealed class FirmwareMetadataField
         Encoding = encoding;
         ByteOrder = byteOrder;
         BitSlice = bitSlice;
+        SourceName = sourceName;
         ValueKind = ToValueKind(encoding);
         EffectiveBitCount = encoding is FirmwareMetadataEncoding.UnsignedInteger or FirmwareMetadataEncoding.SignedInteger
             ? bitSlice?.BitCount ?? checked(widthBytes * 8)
@@ -110,6 +116,9 @@ public sealed class FirmwareMetadataField
 
     /// <summary>Optional unsigned integer bit projection.</summary>
     public FirmwareMetadataBitSlice? BitSlice { get; }
+
+    /// <summary>Optional retained source declaration name used for provenance and diagnostics.</summary>
+    public string? SourceName { get; }
 
     /// <summary>Domain scalar kind produced by this declaration.</summary>
     public FirmwareMetadataValueKind ValueKind { get; }

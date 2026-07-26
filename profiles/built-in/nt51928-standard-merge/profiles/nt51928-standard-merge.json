@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "profileId": "nt51928-standard-merge-gen-flash",
-  "profileVersion": "0.5.0",
+  "profileVersion": "0.6.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -16,9 +16,9 @@
     "displayNameKey": "profile.nt51928.standard-merge"
   },
   "mapBinding": {
-    "familyId": "nt51928",
-    "familyVersion": "1.0.0",
-    "familyContentHash": "07e052cba22ed82c709469b57b71d1d41cbd41fbd3cff24060770f675620105f",
+    "familyId": "nt51917-nt51927-nt51928-canonical-container",
+    "familyVersion": "1.1.0",
+    "familyContentHash": "c427fa0086114906cd0b4d094a6b134054b400c5133e7e2e8e3281bb9403270e",
     "mapIds": [
       "nt51928-standard-merge-512k"
     ],
@@ -27,7 +27,9 @@
       "dp-code",
       "ldc-code"
     ],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": [
+      "firmware-config-general-parameters"
+    ],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -169,7 +171,38 @@
       }
     }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "firmware-config-general-parameters-inspection",
+      "spaceId": "tp-input",
+      "structureId": "firmware-config-general-parameters",
+      "fieldIds": [
+        "tp-firmware-version",
+        "tp-firmware-version-complement",
+        "sensor-count-x",
+        "sensor-count-y",
+        "display-resolution-x",
+        "display-resolution-y",
+        "maximum-operable-fingers",
+        "report-irq-type",
+        "tp-firmware-subversion",
+        "tp-resolution-x",
+        "tp-resolution-y",
+        "observed-ic-count",
+        "outermost-ic-master-enable",
+        "common-firmware-major-version",
+        "common-firmware-minor-version",
+        "common-firmware-additional-version",
+        "pid"
+      ],
+      "purposes": [
+        "validation",
+        "output-naming",
+        "display",
+        "version"
+      ]
+    }
+  ],
   "regionAccessRules": [
     {
       "regionId": "tp-code",

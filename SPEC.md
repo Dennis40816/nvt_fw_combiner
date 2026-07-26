@@ -45,8 +45,8 @@
 - Post-commit background report preparation is an explicit `0.9.10` requirement. A successful Build publishes the atomically committed output identity as soon as the BIN is usable, while complete JSON, Hex Diff, and history projection continue off the dispatcher. Preview and uncommitted failures publish no artifact, and the run retains command ownership until the complete report is ready.
 
 - AB Code architecture was re-admitted under ADR 0032 in `v0.9.14`. The `0.9.15` release scope exposes only the declared NT51919/NT51929/NT51932, NT51950 `1 IC`/`Cascade`, and selector-free NT51951 function-open profiles through the shared Application boundary. Typed profile authority, exact ranges, relocation/integrity contracts, direct golden evidence, and firmware-owner approval still gate support certification and release; metadata cannot admit, select, or promote a route.
-- NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919 may inherit the NT51929/NT51932 canonical AB facts only through owner-approved fact-scoped bindings and parity tests. This direction does not infer ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
-- The first `v0.9.14` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect family whose AB layout is version-independent and whose route does not depend on IC Number. Its required/expected 512 KiB DP_AB execution span exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB have independent required/expected 256 KiB execution spans, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning. A shorter input remains Build-blocking because it does not cover the compiled required end. An oversized input is accepted only through the profile-declared declared-prefix policy, emits a warning, preserves its actual identity in the report, and ignores trailing bytes without mutating the source.
+- NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919/NT51929/NT51932 consume one owner-declared perfect-like-family firmware definition; requested-member evidence and publication remain explicit. This direction does not infer NT51950/NT51951 ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
+- The first `v0.9.14` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect-like family whose AB layout is version-independent and whose route does not depend on IC Number. Its required/expected 512 KiB DP_AB execution span exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB have independent required/expected 256 KiB execution spans, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning. A shorter input remains Build-blocking because it does not cover the compiled required end. An oversized input is accepted only through the profile-declared declared-prefix policy, emits a warning, preserves its actual identity in the report, and ignores trailing bytes without mutating the source.
 - Firmware ranges, aliases, metadata locators, capability evidence, workflow profiles, and execution promotion must converge through the versioned family/profile bundle and one compiled composition boundary defined by ADR 0015. Migration preserves current promotion stages and blockers; map coverage never grants Build authority.
 - Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
@@ -291,9 +291,11 @@ Change risk class：
 | output naming | `output` + metadata bindings/version extractors |
 | expected compare policy | `validations[]` |
 
-The reference's "last `NVT`" behavior is legacy evidence only. The canonical FWConfig Backup rule for
-all executable profiles is exactly one complete `00 4E 56 54` marker, with the Backup start at its
-terminal `T - 0xFFF`; zero or multiple markers fail closed.
+The reference's "last `NVT`" behavior is legacy evidence only. The canonical
+FWConfig Backup rule for all executable profiles is exactly one complete
+`00 4E 56 54` marker, with the Backup start at its terminal `T - 0xFFF`.
+Zero or multiple markers fail closed with
+`Expected exactly one NVT marker (00 4E 56 54), but found {count}.`
 
 ### 4.2 Legacy combiner.exe CRC/Header path
 
@@ -882,10 +884,10 @@ version.
 25. As a firmware profile author, I want DP represented as required Initial Code plus optional LDC and TP represented separately, so that artifact structure matches firmware meaning.
 26. As a firmware profile author, I want each artifact or part to declare zero or more metadata structures once, so that locators, fields, ranges, and formatter definitions are not copied into inspection plans.
 27. As a firmware profile author, I want DPCMI to be the sole Initial Code structure that derives DP Version and Jira, so that a legacy DP-version locator cannot become a competing physical authority.
-28. As a firmware profile author, I want FirmwareConfig General Parameters modeled once and reused for typed TP FW, Common FW, PID, and observed IC Count facts, so that each consumer does not decode the same prefix independently.
+28. As a firmware profile author, I want the all-IC FirmwareConfig General Parameters structure modeled once and reused for typed TP FW, Common FW, PID, observed IC Count, sensor totals, Display/TP resolution, maximum-finger, report-IRQ, and outermost-IC-master facts, so that each consumer does not decode the same prefix independently.
 29. As a firmware profile author, I want TP Flash Header represented as a common metadata structure with named spans, fields, series, groups, and instances, so that inspection, relocation, integrity, copy, and reporting reference the same geometry.
 30. As a firmware profile author, I want every physically declared repeated CRC field retained while applicability marks it Active, Unused, or Unknown, so that field existence is not mistaken for mutation authority.
-31. As a firmware profile author, I want family relationships to be named and fact-scoped, so that perfect-family and TP-shared-family facts can coexist without inheriting an entire IC definition.
+31. As a firmware profile author, I want perfect-like families to own one complete firmware definition while Initial-Code/TP shared families remain named and part-scoped, so identical ICs do not duplicate semantics and partial sharing cannot leak unrelated facts.
 32. As a firmware profile author, I want symmetric AB layouts instantiated from one bank-relative definition where evidence supports it, so that A and B ranges are not duplicated.
 33. As a firmware profile author, I want irregular NT51950/NT51951 AB layouts to model only the opaque seed, required anchors, and TP paste mappings execution needs, so that the model does not invent unnecessary internal structure.
 34. As a firmware owner, I want TP BIN positions, final Flash positions, encoded Header addresses, and TP Backup placement distance to be distinct typed concepts, so that relocation cannot add an offset twice or mutate the wrong bytes.
@@ -1044,9 +1046,10 @@ version.
   failure and follows the last-known-good/cold-start fail-closed rules.
 - By the end of `0.10.x`, adding an IC that uses the existing closed vocabulary
   is data-only onboarding: a versioned trusted bundle declares IC identity,
-  fact-scoped relationships, maps and IC Count applicability, artifacts,
-  metadata structures, workflow profiles, and evidence references; the
-  package's versioned hash-pinned trust index admits the reviewed bytes.
+  perfect-like membership or shared-part relationships, maps and IC Count
+  applicability, artifacts, metadata structures, workflow profiles, and
+  evidence references; the package's versioned hash-pinned trust index admits
+  the reviewed bytes.
   Deterministic validation, resolution, compilation, fingerprints, conformance
   tests, and golden vectors must be host- and language-neutral. They cannot
   depend on Avalonia, Workbench DTOs, C# reflection, or private UI state.
@@ -1138,10 +1141,13 @@ version.
     `[0x16, 0x19)`. DP Version and Jira are derived fields, not alternate
     locator authorities. The legacy DP-version reader is parity-only and is
     deleted after all callers move.
-13. FirmwareConfig General Parameters use one declared prefix
-    `[0x000, 0x029)`. TP FW, Common FW, PID, and observed IC Count are typed
-    fields from that structure. Later FWConfig sections remain out of the
-    initial target model.
+13. FirmwareConfig is one all-IC structure. Its General Parameters use one
+    declared prefix `[0x000, 0x029)`. TP FW, Common FW, PID, observed IC Count,
+    X/Y sensor totals, Display and TP resolution, maximum operable fingers,
+    report IRQ type, and whether the outermost IC is used as Master are typed
+    fields from that structure. Runtime requires exactly one NVT marker and
+    reports the observed marker count when that invariant fails. Later FWConfig
+    sections remain out of the initial target model.
 14. TP Flash Header is a `tp-flash-header` metadata structure with named spans,
     fields, repeated series, semantic groups, and resolved instances.
     Inspection, formatting, copy, relocation, integrity, processor authority,
@@ -1154,10 +1160,11 @@ version.
     Active, Unused, or Unknown for a resolution. Applicability never grants
     write authority; a workflow behavior binding must reference the exact
     field/span/group and declare its execution owner and evidence.
-17. Family relationships are named and fact-scoped. A relationship may share
-    Initial Code, TP, metadata, layout, or another approved fact without
-    inheriting the complete source IC, its support state, processor route, or
-    workflow.
+17. A perfect-like family owns one complete modeled firmware definition and
+    forbids member-specific semantic overrides; member identity, evidence, and
+    publication remain separate. Partial relationships are named and
+    part-scoped: sharing Initial Code or TP also shares metadata owned by that
+    part without inheriting LDC, another part, support, or publication.
 
 #### AB and external mutation boundaries
 
@@ -1447,8 +1454,9 @@ after the grill closes so issues do not become a competing draft specification.
   processor authority, or golden expected output through this planning spec.
 - Promoting NT51920/NT51931 DPCMI facts or any route that still lacks required
   owner evidence.
-- Treating a perfect-family or TP-shared-family relationship as permission to
-  inherit all facts, support, topology, processors, or workflows.
+- Inferring perfect-like membership, or treating an Initial-Code/TP shared
+  relationship as permission to inherit another part, support, publication,
+  topology, processor, or workflow fact.
 - Replacing the unified composition engine with workflow-specific executors.
 - Creating a separate TP Header catalog, DP Version locator, Memory Layout map,
   UI firmware model, or report-only firmware authority.

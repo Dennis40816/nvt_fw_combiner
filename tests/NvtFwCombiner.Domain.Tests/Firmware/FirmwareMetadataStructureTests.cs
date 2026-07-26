@@ -127,17 +127,24 @@ public sealed class FirmwareMetadataStructureTests
             assertions: [FirmwareMetadataByteAssertion.Exact(0, [1])]));
     }
 
-    /// <summary>Verifies marker-relative structures require at least one trusted assertion.</summary>
+    /// <summary>Verifies an exact-one marker is sufficient location evidence, while terminal selection needs an assertion.</summary>
     [Fact]
-    public void ConstructorRequiresMarkerAssertion()
+    public void ConstructorAllowsUniqueMarkerWithoutAssertionButRequiresTerminalAssertion()
     {
-        _ = Assert.Throws<ArgumentException>(() => Structure(
+        FirmwareMetadataStructure unique = Structure(
             locator: MarkerLocator(),
+            assertions: []);
+        var terminalSelection = new FirmwareTerminalMarkerSelection(
+            FirmwareMarkerTerminal.HighestAddress,
+            expectedMatchCount: 1);
+        _ = Assert.Throws<ArgumentException>(() => Structure(
+            locator: MarkerLocator(selection: terminalSelection),
             assertions: []));
         FirmwareMetadataStructure asserted = Structure(
-            locator: MarkerLocator(),
+            locator: MarkerLocator(selection: terminalSelection),
             assertions: [FirmwareMetadataByteAssertion.Exact(0, [1])]);
 
+        Assert.Empty(unique.Assertions);
         _ = Assert.Single(asserted.Assertions);
     }
 
@@ -212,12 +219,14 @@ public sealed class FirmwareMetadataStructureTests
             "root");
     }
 
-    private static FirmwareMarkerRelativeLocator MarkerLocator(long resultOffset = 0)
+    private static FirmwareMarkerRelativeLocator MarkerLocator(
+        long resultOffset = 0,
+        FirmwareMarkerSelection? selection = null)
     {
         return new FirmwareMarkerRelativeLocator(
             new FirmwareAddressedRange("flash", new ByteRange(0, 8)),
             [0xAA],
-            new FirmwareUniqueMarkerSelection(),
+            selection ?? new FirmwareUniqueMarkerSelection(),
             resultOffset,
             "root");
     }

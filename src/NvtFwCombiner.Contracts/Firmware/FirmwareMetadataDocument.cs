@@ -19,13 +19,27 @@ public sealed record FirmwareMetadataSetDocument(
 /// <param name="Locator">Closed locator declaration shape.</param>
 /// <param name="Fields">Typed field declarations.</param>
 /// <param name="Assertions">Structure-relative byte assertions.</param>
+/// <param name="Relations">Optional typed relationships between declared fields.</param>
 public sealed record FirmwareMetadataStructureDocument(
     string StructureId,
     string ArtifactBindingId,
     JsonElement Length,
     FirmwareMetadataLocatorDocument Locator,
     IReadOnlyList<FirmwareMetadataFieldDocument> Fields,
-    IReadOnlyList<FirmwareByteAssertionDocument> Assertions);
+    IReadOnlyList<FirmwareByteAssertionDocument> Assertions,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<FirmwareMetadataFieldRelationDocument>? Relations = null);
+
+/// <summary>DTO for one typed relationship between fields in a metadata structure.</summary>
+/// <param name="RelationId">Stable relation identifier.</param>
+/// <param name="Kind">Closed relation-kind token.</param>
+/// <param name="SourceFieldId">Canonical source-field identifier.</param>
+/// <param name="RelatedFieldId">Canonical related-field identifier.</param>
+public sealed record FirmwareMetadataFieldRelationDocument(
+    string RelationId,
+    string Kind,
+    string SourceFieldId,
+    string RelatedFieldId);
 
 /// <summary>DTO for one closed metadata field declaration.</summary>
 /// <param name="FieldId">Stable field identifier.</param>
@@ -34,6 +48,7 @@ public sealed record FirmwareMetadataStructureDocument(
 /// <param name="Encoding">Closed field encoding token.</param>
 /// <param name="ByteOrder">Integer byte-order token when declared.</param>
 /// <param name="BitSlice">Optional unsigned integer projection.</param>
+/// <param name="SourceName">Optional retained source declaration name.</param>
 public sealed record FirmwareMetadataFieldDocument(
     string FieldId,
     JsonElement Offset,
@@ -42,7 +57,9 @@ public sealed record FirmwareMetadataFieldDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? ByteOrder = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    FirmwareMetadataBitSliceDocument? BitSlice = null);
+    FirmwareMetadataBitSliceDocument? BitSlice = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SourceName = null);
 
 /// <summary>DTO for one unsigned integer bit projection.</summary>
 /// <param name="LeastSignificantBit">First selected normalized carrier bit.</param>

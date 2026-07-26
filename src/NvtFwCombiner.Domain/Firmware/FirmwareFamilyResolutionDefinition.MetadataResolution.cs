@@ -35,9 +35,14 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             structure,
             artifact,
             out FirmwareMetadataLocatorOutcome? locatorOutcome,
-            out FirmwareMetadataStructureResolutionFailure failure))
+            out FirmwareMetadataStructureResolutionFailure failure,
+            out int? observedMarkerMatchCount))
         {
-            return FirmwareMetadataStructureResolution.Rejected(mapId, structure, failure);
+            return FirmwareMetadataStructureResolution.Rejected(
+                mapId,
+                structure,
+                failure,
+                observedMarkerMatchCount);
         }
 
         ByteRange resolvedRange = locatorOutcome.ResolvedRange.Range;
@@ -63,10 +68,12 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FirmwareMetadataStructure structure,
         FirmwareArtifactPayload artifact,
         [NotNullWhen(true)] out FirmwareMetadataLocatorOutcome? outcome,
-        out FirmwareMetadataStructureResolutionFailure failure)
+        out FirmwareMetadataStructureResolutionFailure failure,
+        out int? observedMarkerMatchCount)
     {
         outcome = null;
         failure = FirmwareMetadataStructureResolutionFailure.ArtifactRangeOutOfBounds;
+        observedMarkerMatchCount = null;
         switch (structure.Locator)
         {
             case FirmwareAbsoluteRangeLocator absolute:
@@ -96,7 +103,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                     marker,
                     artifact,
                     out outcome,
-                    out failure);
+                    out failure,
+                    out observedMarkerMatchCount);
             default:
                 throw new ArgumentOutOfRangeException(
                     nameof(structure),
@@ -131,10 +139,12 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FirmwareMarkerRelativeLocator marker,
         FirmwareArtifactPayload artifact,
         [NotNullWhen(true)] out FirmwareMetadataLocatorOutcome? outcome,
-        out FirmwareMetadataStructureResolutionFailure failure)
+        out FirmwareMetadataStructureResolutionFailure failure,
+        out int? observedMarkerMatchCount)
     {
         outcome = null;
         failure = FirmwareMetadataStructureResolutionFailure.ArtifactRangeOutOfBounds;
+        observedMarkerMatchCount = null;
         if (!ArtifactContains(artifact, marker.SearchRange.Range))
         {
             return false;
@@ -144,6 +154,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         if (!TrySelectMarker(marker.Selection, matches, out long selectedMarkerStart))
         {
             failure = FirmwareMetadataStructureResolutionFailure.MarkerCardinalityMismatch;
+            observedMarkerMatchCount = matches.Count;
             return false;
         }
 

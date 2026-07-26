@@ -221,8 +221,30 @@ public sealed class FirmwareMetadataStructureResolutionTests
 
             Assert.Equal(FirmwareMetadataStructureResolutionStatus.Rejected, result.Status);
             Assert.Equal(FirmwareMetadataStructureResolutionFailure.MarkerCardinalityMismatch, result.Failure);
+            Assert.Equal(
+                selection is FirmwareTerminalMarkerSelection ? 1 : searchBytes.Count(value => value == 0xAA),
+                result.ObservedMarkerMatchCount);
             Assert.Null(result.Resolved);
         }
+    }
+
+    /// <summary>Marker-cardinality count is required exactly for that rejection kind.</summary>
+    [Fact]
+    public void MarkerCardinalityCountCannotBeMissingOrAttachedToAnotherFailure()
+    {
+        FirmwareMetadataStructure structure = Structure(Absolute(0, 2, "allowed"));
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            FirmwareMetadataStructureResolution.Rejected(
+                "map",
+                structure,
+                FirmwareMetadataStructureResolutionFailure.MarkerCardinalityMismatch));
+        _ = Assert.Throws<ArgumentException>(() =>
+            FirmwareMetadataStructureResolution.Rejected(
+                "map",
+                structure,
+                FirmwareMetadataStructureResolutionFailure.StructureDecodeFailed,
+                observedMarkerMatchCount: 1));
     }
 
     /// <summary>Verifies marker-selected ranges must stay nonnegative and inside the allowed region.</summary>
