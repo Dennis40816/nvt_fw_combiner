@@ -22,8 +22,12 @@ public sealed class CanonicalCapabilityCatalogTests
     }
 
     /// <summary>Every policy and evidence decision must pin the current capability fingerprint.</summary>
-    [Fact]
-    public void DefinitionRejectsDecisionPinnedToAnotherFingerprint()
+    [Theory]
+    [InlineData("authoring")]
+    [InlineData("publication")]
+    [InlineData("evidence")]
+    public void DefinitionRejectsDecisionPinnedToAnotherFingerprint(
+        string decisionKind)
     {
         CompiledComposition composition = CreateCompiledComposition();
         string staleFingerprint = new('0', 64);
@@ -31,9 +35,17 @@ public sealed class CanonicalCapabilityCatalogTests
         ArgumentException exception = Assert.Throws<ArgumentException>(() =>
             CreateDefinition(
                 composition,
-                authoringFingerprint: staleFingerprint));
+                authoringFingerprint:
+                    decisionKind == "authoring" ? staleFingerprint : null,
+                publicationFingerprint:
+                    decisionKind == "publication" ? staleFingerprint : null,
+                evidenceFingerprint:
+                    decisionKind == "evidence" ? staleFingerprint : null));
 
-        Assert.Contains("authoring decision", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            $"{decisionKind} decision",
+            exception.Message,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>A complete candidate publishes one immutable snapshot and resolvable capability.</summary>
@@ -171,6 +183,33 @@ public sealed class CanonicalCapabilityCatalogTests
             Assert.Single(result.Issues).Code);
     }
 
+    /// <summary>Missing evidence stays resolvable while certification reports the inconsistency.</summary>
+    [Fact]
+    public void MissingEvidenceDoesNotRewriteBuildAdmission()
+    {
+        CanonicalCapabilityDefinition definition = CreateDefinition(
+            CreateCompiledComposition(),
+            evidenceStatus: CapabilityEvidenceStatus.Missing);
+        var candidate = new CanonicalCapabilityCatalogCandidate(
+            "canonical-capability-catalog",
+            "1.0.0",
+            new string('a', 64),
+            [definition]);
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueueCapabilitySource(
+                CapabilityCatalogLoadResult.Success(candidate)));
+
+        CapabilityCatalogReloadResult reload =
+            catalog.Reload(TestContext.Current.CancellationToken);
+        CapabilityResolutionResult resolution = catalog.Resolve(Route.RouteId);
+
+        Assert.True(reload.Succeeded);
+        Assert.True(resolution.Succeeded);
+        Assert.Equal(
+            CapabilityCatalogIssueCodes.SupportedWithoutEvidence,
+            Assert.Single(reload.Snapshot!.CertificationIssues).Code);
+    }
+
     private static CanonicalCapabilityCatalogCandidate CreateCandidate()
     {
         CanonicalCapabilityDefinition definition = CreateDefinition(CreateCompiledComposition());
@@ -183,7 +222,11 @@ public sealed class CanonicalCapabilityCatalogTests
 
     private static CanonicalCapabilityDefinition CreateDefinition(
         CompiledComposition composition,
-        string? authoringFingerprint = null)
+        string? authoringFingerprint = null,
+        string? publicationFingerprint = null,
+        string? evidenceFingerprint = null,
+        CapabilityEvidenceStatus evidenceStatus =
+            CapabilityEvidenceStatus.DirectGolden)
     {
         string fingerprint = composition.CompilationFingerprint;
         return new CanonicalCapabilityDefinition(
@@ -198,14 +241,14 @@ public sealed class CanonicalCapabilityCatalogTests
             new PinnedCapabilityDecision<CapabilityPublicationStatus>(
                 "nt51929-standard-merge-publication",
                 Route.RouteId,
-                fingerprint,
+                publicationFingerprint ?? fingerprint,
                 CapabilityPublicationStatus.Supported,
                 "owner-approved:#173"),
             new PinnedCapabilityDecision<CapabilityEvidenceStatus>(
                 "nt51929-standard-merge-golden",
                 Route.RouteId,
-                fingerprint,
-                CapabilityEvidenceStatus.DirectGolden,
+                evidenceFingerprint ?? fingerprint,
+                evidenceStatus,
                 "canonical-golden:nt51929-gen-flash"));
     }
 

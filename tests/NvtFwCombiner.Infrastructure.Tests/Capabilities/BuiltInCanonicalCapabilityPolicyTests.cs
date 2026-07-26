@@ -115,6 +115,24 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
         Assert.Contains("routeId", exception.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>A missing publication decision is a policy integrity error, not implicit unavailability.</summary>
+    [Fact]
+    public void RejectsMissingPublicationDecision()
+    {
+        JsonObject policy = ParsePolicy();
+        JsonObject route = Assert.IsType<JsonObject>(
+            Assert.IsType<JsonArray>(policy["routes"])[0]);
+        Assert.True(route.Remove("publication"));
+        byte[] bytes = Encoding.UTF8.GetBytes(policy.ToJsonString());
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            BuiltInCanonicalCapabilityPolicy.Load(
+                bytes,
+                PinnedJsonCatalogLoader.ComputeSha256(bytes)));
+
+        Assert.Contains("publication pin", exception.Message, StringComparison.Ordinal);
+    }
+
     private static byte[] ReadPolicy()
     {
         return File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
