@@ -4,6 +4,90 @@ namespace NvtFwCombiner.Application.Tests.Support;
 
 public sealed partial class SupportMatrixMaterializerTests
 {
+    /// <summary>Policy-contract identifiers must begin with a lowercase letter.</summary>
+    [Theory]
+    [InlineData("policy")]
+    [InlineData("decision")]
+    [InlineData("route")]
+    public void RejectsPublicationIdentifierWithoutLeadingLetter(string mutation)
+    {
+        SupportRouteDescriptor route = Route();
+        SupportPublicationPolicySnapshot policy = new(
+            mutation == "policy" ? "1-policy" : "support-publication-policy",
+            "1.0.0",
+            new string('a', 64),
+            [new SupportPublicationDecision(
+                mutation == "decision" ? "1-decision" : "candidate-route",
+                mutation == "route" ? "1-route" : route.RouteId,
+                SupportPublicationStatus.Candidate,
+                Provenance())]);
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            SupportPublicationPolicyValidator.Validate(policy));
+    }
+
+    /// <summary>Superseded identifiers obey the same leading-letter contract.</summary>
+    [Fact]
+    public void RejectsSupersededDecisionIdentifierWithoutLeadingLetter()
+    {
+        SupportRouteDescriptor route = Route();
+        SupportPublicationPolicySnapshot prior = Policy(
+            new SupportPublicationDecision(
+                "1-prior-decision",
+                route.RouteId,
+                SupportPublicationStatus.TestOnly,
+                Provenance()));
+        SupportPublicationPolicySnapshot policy = new(
+            "support-publication-policy",
+            "2.0.0",
+            new string('b', 64),
+            [new SupportPublicationDecision(
+                "candidate-route-v2",
+                route.RouteId,
+                SupportPublicationStatus.Candidate,
+                Provenance(),
+                ["1-prior-decision"])],
+            prior.PolicyVersion,
+            prior.Sha256);
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            SupportPublicationPolicyValidator.Validate(policy, prior));
+    }
+
+    /// <summary>Numeric non-leading segments remain valid across the complete policy lineage.</summary>
+    [Fact]
+    public void AcceptsPublicationIdentifiersWithNumericNonLeadingSegments()
+    {
+        string routeId = new SupportRouteIdentity(
+            "NT51950",
+            "ab-merge",
+            "1-ic",
+            "map-1").RouteId;
+        SupportPublicationPolicySnapshot prior = new(
+            "support-1",
+            "1.0.0",
+            new string('a', 64),
+            [new SupportPublicationDecision(
+                "prior-1",
+                routeId,
+                SupportPublicationStatus.TestOnly,
+                Provenance())]);
+        SupportPublicationPolicySnapshot policy = new(
+            "support-1",
+            "2.0.0",
+            new string('b', 64),
+            [new SupportPublicationDecision(
+                "candidate-1",
+                routeId,
+                SupportPublicationStatus.Candidate,
+                Provenance(),
+                ["prior-1"])],
+            prior.PolicyVersion,
+            prior.Sha256);
+
+        SupportPublicationPolicyValidator.Validate(policy, prior);
+    }
+
     /// <summary>Publication provenance must be an owner decision.</summary>
     [Fact]
     public void RejectsNonOwnerPublicationAuthority()

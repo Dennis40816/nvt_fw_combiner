@@ -51,7 +51,8 @@ public sealed record SupportRouteIdentity
 
     internal static bool IsCanonicalId(string value)
     {
-        return IsRouteToken(value);
+        return IsRouteToken(value) &&
+            value[0] is >= 'a' and <= 'z';
     }
 
     private string CreateRouteId()

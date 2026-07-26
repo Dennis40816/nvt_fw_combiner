@@ -114,7 +114,13 @@ public static class SupportPublicationPolicyValidator
 
     private static void ValidateSnapshot(SupportPublicationPolicySnapshot policy)
     {
-        ValidateText(policy.PolicyId, nameof(policy.PolicyId));
+        if (!SupportRouteIdentity.IsCanonicalId(policy.PolicyId))
+        {
+            throw new ArgumentException(
+                "Publication policy id must be a canonical id.",
+                nameof(policy));
+        }
+
         ValidateText(policy.PolicyVersion, nameof(policy.PolicyVersion));
         if (policy.Sha256.Length != 64 ||
             policy.Sha256.Any(static character =>
