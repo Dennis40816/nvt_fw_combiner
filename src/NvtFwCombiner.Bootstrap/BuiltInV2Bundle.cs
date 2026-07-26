@@ -1,9 +1,11 @@
 using System.Collections.Frozen;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles;
 using NvtFwCombiner.Profiles.V2;
+using V2CompositionProfileDefinition = NvtFwCombiner.Profiles.V2.CompositionProfileDefinition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -33,7 +35,7 @@ internal static class BuiltInV2BundleRegistry
             ("nt51928-dp-replace", "2bc3c74cb886c14d8550887770ba986368dcec28661c9bb5701f42567436e6eb"),
             ("nt51928-standard-merge", "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af"),
             ("nt51929-ctrlram-replace-candidate", "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365"),
-            ("nt51929-dp-replace", "072ba46232d3052f4c6f914266135c89d19816243a2416d3516317d707be1c07"),
+            ("nt51929-dp-replace", "37f4db17de259f28ff54b9b02ef60bdbd604dcdb2a218f46d137c9e58f0feee5"),
             ("nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09"),
             ("nt51930-general-merge-logical-candidate", "0baa3c4829da28540fd93be7b8afae23ce5a23521361976a2dddf2267e18b9e3"),
             ("nt51930-ctrlram-replace-candidate", "9750eaa60fc76f4368ea27279f4e3900af10ce3a252783b7f95fd8d6a0f7af57"),
@@ -314,6 +316,119 @@ internal sealed class BuiltInV2Bundle
             issues = [CreateBundleLoadIssue(exception)];
             return [];
         }
+    }
+
+    /// <summary>
+    /// Projects one trusted profile's metadata bindings into Application plan
+    /// references without copying locators, fields, ranges, or formatter facts.
+    /// </summary>
+    internal MetadataPlanDefinition CreateMetadataPlan(
+        string profileId,
+        string profileVersion,
+        CompiledComposition composition)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
+        ArgumentNullException.ThrowIfNull(composition);
+        if (!StringComparer.Ordinal.Equals(composition.ProfileId, profileId) ||
+            !StringComparer.Ordinal.Equals(
+                composition.ProfileVersion,
+                profileVersion) ||
+            composition.V2Details?.Provenance.ResolvedMap is not { } resolvedMap)
+        {
+            throw new InvalidDataException(
+                "Metadata plans require the exact compiled trusted profile and resolved map.");
+        }
+
+        TrustedCompositionProfileCatalogEntry profileEntry =
+            _catalog.Value.Profiles.Single(entry =>
+                StringComparer.Ordinal.Equals(
+                    entry.Profile.ProfileId,
+                    profileId) &&
+                StringComparer.Ordinal.Equals(
+                    entry.Profile.ProfileVersion,
+                    profileVersion));
+        V2CompositionProfileDefinition profile =
+            profileEntry.Profile;
+        FirmwareFamilyResolutionDefinition family =
+            profileEntry.Family.Family;
+        MetadataPlanEntry[] entries =
+        [
+            .. profile.MetadataBindings.Select(binding =>
+                CreateMetadataPlanEntry(
+                    family,
+                    resolvedMap,
+                    profile,
+                    binding)),
+        ];
+        return entries.Length == 0
+            ? MetadataPlanDefinition.Empty
+            : new MetadataPlanDefinition(entries);
+    }
+
+    private static MetadataPlanEntry CreateMetadataPlanEntry(
+        FirmwareFamilyResolutionDefinition family,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        V2CompositionProfileDefinition profile,
+        CompositionProfileMetadataBinding binding)
+    {
+        if (!family.TryResolveStructure(
+                resolvedMap.ImageMap.MapId,
+                binding.StructureId,
+                out FirmwareMetadataStructure? structure))
+        {
+            throw new InvalidDataException(
+                $"Metadata binding '{binding.BindingId}' references a structure not selected by the compiled map.");
+        }
+
+        FirmwareMapFactBinding<FirmwareMetadataSet>[] metadataBindings =
+        [
+            .. resolvedMap.ImageMap.MetadataSetBindings.Where(
+                candidate => candidate.Value.Structures.Any(
+                    candidateStructure =>
+                        ReferenceEquals(candidateStructure, structure))),
+        ];
+        if (metadataBindings.Length != 1)
+        {
+            throw new InvalidDataException(
+                $"Metadata binding '{binding.BindingId}' does not resolve to exactly one canonical map fact.");
+        }
+
+        InputArtifactProfileSpace space = profile.Spaces
+            .OfType<InputArtifactProfileSpace>()
+            .Single(candidate => StringComparer.Ordinal.Equals(
+                candidate.SpaceId,
+                binding.SpaceId));
+        return new MetadataPlanEntry(
+            binding.BindingId,
+            binding.SpaceId,
+            space.SlotId,
+            family,
+            resolvedMap,
+            metadataBindings[0],
+            structure,
+            binding.FieldIds,
+            binding.Purposes.Select(ToInspectionPurpose));
+    }
+
+    private static MetadataInspectionPurpose ToInspectionPurpose(
+        CompositionProfileMetadataPurpose purpose)
+    {
+        return purpose switch
+        {
+            CompositionProfileMetadataPurpose.MapResolution =>
+                MetadataInspectionPurpose.MapResolution,
+            CompositionProfileMetadataPurpose.Validation =>
+                MetadataInspectionPurpose.Validation,
+            CompositionProfileMetadataPurpose.OutputNaming =>
+                MetadataInspectionPurpose.OutputNaming,
+            CompositionProfileMetadataPurpose.Display =>
+                MetadataInspectionPurpose.Display,
+            CompositionProfileMetadataPurpose.Version =>
+                MetadataInspectionPurpose.Version,
+            _ => throw new InvalidDataException(
+                "Unknown trusted profile metadata purpose."),
+        };
     }
 
     private static bool IsBundleLoadFailure(Exception exception)

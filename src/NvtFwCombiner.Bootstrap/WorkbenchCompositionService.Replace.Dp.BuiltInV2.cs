@@ -12,6 +12,15 @@ public static partial class WorkbenchCompositionService
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        if (TryCompilePublishedDpReplaceCapability(
+                icId,
+                baseCapacity,
+                out composition,
+                out issues))
+        {
+            return true;
+        }
+
         if (!BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.TryGetValue(
                 icId,
                 out BuiltInV2Registration? registration))

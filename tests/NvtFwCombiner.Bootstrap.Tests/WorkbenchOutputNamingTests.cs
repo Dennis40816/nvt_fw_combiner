@@ -40,7 +40,7 @@ public sealed class WorkbenchOutputNamingTests
     [InlineData("NT51926", "nt51926-fw200-single-auto-prj-597-20260718", "0202", "FF00")]
     [InlineData("NT51926", "nt51926-fw200-cascade3-auto-prj-597-20260718", "0202", "0000")]
     [InlineData("NT51927", "nt51927-fw141-single-auto-prj-529-20260717", "0400", "0100")]
-    [InlineData("NT51929", "nt51929-fw200-single-auto-prj-594-20260717", "0602", "0500")]
+    [InlineData("NT51929", "nt51929-fw200-single-auto-prj-594-20260717", "0600", "0500")]
     [InlineData("NT51930", "nt51930-fw130-cascade3-auto-prj-302-inx-20260718", "0500", "0305")]
     [InlineData("NT51931", "nt51931-fw130-cascade6-auto-prj-158-20260718", "8D60", "8300")]
     [InlineData("NT51932", "nt51932-fw200-cascade3-auto-prj-525-20260718", "0200", "8800")]

@@ -11,7 +11,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
 {
     private const string FamilyHash = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
-    /// <summary>Verifies exact family identity, effective region graph, and successful metadata outcomes admit a profile.</summary>
+    /// <summary>Verifies exact family identity, effective regions, and declared metadata admit a profile.</summary>
     [Fact]
     public void ValidateAdmitsExactMapIdentityEffectiveRegionAndResolvedMetadata()
     {
@@ -83,7 +83,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
         Assert.Contains("missing-region", result.Issues[0].Message, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies metadata requirements require successful decode outcomes, not merely a map declaration.</summary>
+    /// <summary>Verifies metadata requirements must be declared by the selected canonical map.</summary>
     [Fact]
     public void ValidateRejectsMissingRequiredMetadataStructure()
     {

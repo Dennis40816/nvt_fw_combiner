@@ -23,7 +23,8 @@ internal static class CompositionProfileMapAdmissionValidator
     private const string RequiredCapabilityAmbiguous = "profile.v2.map.required-capability-ambiguous";
 
     /// <summary>
-    /// Validates only map identity and effective physical/decoded facts. This result grants no execution authority.
+    /// Validates map identity, effective physical facts, and canonical metadata declarations.
+    /// This result neither executes inspection metadata nor grants execution authority.
     /// </summary>
     internal static CompositionProfileMapAdmissionResult Validate(
         CompositionProfileDefinition profile,
@@ -55,12 +56,15 @@ internal static class CompositionProfileMapAdmissionValidator
             "region",
             issues);
 
-        var resolvedMetadataStructureIds = resolvedMap.ResolvedMetadataStructures
-            .Select(static structure => structure.DecodedStructure.MetadataStructureId)
+        var declaredMetadataStructureIds = binding.RequiredMetadataStructureIds
+            .Where(structureId => IsMetadataStructureDeclared(
+                family,
+                resolvedMap,
+                structureId))
             .ToHashSet(StringComparer.Ordinal);
         AddMissingIssues(
             binding.RequiredMetadataStructureIds,
-            resolvedMetadataStructureIds,
+            declaredMetadataStructureIds,
             RequiredMetadataStructureMissing,
             "metadata structure",
             issues);
@@ -223,6 +227,17 @@ internal static class CompositionProfileMapAdmissionValidator
 
         return [.. admitted];
     }
+
+    internal static bool IsMetadataStructureDeclared(
+        FirmwareFamilyResolutionDefinition family,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        string structureId)
+    {
+        return family.TryResolveStructure(
+            resolvedMap.ImageMap.MapId,
+            structureId,
+            out _);
+    }
 }
 
 /// <summary>Immutable, non-executable outcome of admitting a v2 profile to one resolved map.</summary>
@@ -337,11 +352,12 @@ internal sealed class CompositionProfileMapAdmission
         var regionIds = resolvedMap.ImageMap.Regions
             .Select(static region => region.RegionId)
             .ToHashSet(StringComparer.Ordinal);
-        var metadataStructureIds = resolvedMap.ResolvedMetadataStructures
-            .Select(static structure => structure.DecodedStructure.MetadataStructureId)
-            .ToHashSet(StringComparer.Ordinal);
         if (binding.RequiredRegionIds.Any(requiredId => !regionIds.Contains(requiredId)) ||
-            binding.RequiredMetadataStructureIds.Any(requiredId => !metadataStructureIds.Contains(requiredId)))
+            binding.RequiredMetadataStructureIds.Any(requiredId =>
+                !CompositionProfileMapAdmissionValidator.IsMetadataStructureDeclared(
+                    family,
+                    resolvedMap,
+                    requiredId)))
         {
             throw new ArgumentException("Admission map does not satisfy every required physical or metadata fact.");
         }

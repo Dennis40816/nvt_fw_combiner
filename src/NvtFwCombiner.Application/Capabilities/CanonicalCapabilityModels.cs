@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Capabilities;
@@ -12,7 +13,8 @@ public sealed record CanonicalCapabilityDefinition
         CompiledComposition compiledComposition,
         PinnedCapabilityDecision<CapabilityAuthoringAvailability> authoring,
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
-        PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence)
+        PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
+        MetadataPlanDefinition? metadataPlan = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(compiledComposition);
@@ -33,6 +35,7 @@ public sealed record CanonicalCapabilityDefinition
         Identity = identity;
         CompiledComposition = compiledComposition;
         CapabilityFingerprint = compiledComposition.CompilationFingerprint;
+        MetadataPlan = metadataPlan ?? MetadataPlanDefinition.Empty;
         ValidateDecision(authoring, "authoring decision");
         ValidateDecision(publication, "publication decision");
         ValidateDecision(evidence, "evidence decision");
@@ -49,6 +52,9 @@ public sealed record CanonicalCapabilityDefinition
 
     /// <summary>Firmware-semantic revision derived by the compiler.</summary>
     public string CapabilityFingerprint { get; }
+
+    /// <summary>Canonical reference-only metadata plan selected by this route.</summary>
+    public MetadataPlanDefinition MetadataPlan { get; }
 
     /// <summary>Shared UI/CLI authoring decision.</summary>
     public PinnedCapabilityDecision<CapabilityAuthoringAvailability> Authoring { get; }
@@ -150,6 +156,7 @@ public sealed record ResolvedCapability(
     PinnedCapabilityDecision<CapabilityAuthoringAvailability> Authoring,
     PinnedCapabilityDecision<CapabilityPublicationStatus> Publication,
     PinnedCapabilityDecision<CapabilityEvidenceStatus> Evidence,
+    ResolvedMetadataPlan MetadataPlan,
     ResolutionToken ResolutionToken)
 {
     /// <summary>Compiler-proved execution admission.</summary>
@@ -183,6 +190,7 @@ public sealed record CanonicalCapabilityCatalogSnapshot
                 definition.Authoring,
                 definition.Publication,
                 definition.Evidence,
+                definition.MetadataPlan.Resolve(resolutionToken),
                 resolutionToken);
             if (!byRouteId.TryAdd(definition.Identity.RouteId, resolved))
             {

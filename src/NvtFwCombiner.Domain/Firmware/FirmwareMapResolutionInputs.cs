@@ -36,7 +36,7 @@ public sealed record FirmwareArtifactIdentity
     }
 }
 
-/// <summary>One immutable firmware artifact payload used only during map resolution.</summary>
+/// <summary>One immutable firmware artifact payload used by map resolution or declared metadata inspection.</summary>
 public sealed class FirmwareArtifactPayload
 {
     private readonly byte[] _bytes;

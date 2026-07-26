@@ -29,9 +29,9 @@ internal static partial class V2CompositionPlanCompiler
             AddUnsupported(issues, "supported profiles require a typed reject output renderer admitted for the declared experience");
         }
 
-        if (profile.MetadataBindings.Count != 0 || profile.Validations.Count != 0)
+        if (profile.Validations.Count != 0)
         {
-            AddUnsupported(issues, "metadata bindings and validations are not lowered in this slice");
+            AddUnsupported(issues, "validations are not lowered in this slice");
         }
 
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);

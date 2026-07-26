@@ -5,7 +5,10 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     /// <summary>Resolves exactly one candidate map from immutable selections and private artifact snapshots.</summary>
     public FirmwareMapResolutionResult ResolveMap(FirmwareMapResolutionInputs inputs)
     {
-        return ResolveMapCore(inputs, candidateMapIds: null);
+        return ResolveMapCore(
+            inputs,
+            candidateMapIds: null,
+            selectionMetadataOnly: false);
     }
 
     /// <summary>Resolves only physical maps named by an already trusted workflow profile binding.</summary>
@@ -16,12 +19,30 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         ArgumentNullException.ThrowIfNull(candidateMapIds);
         ArgumentOutOfRangeException.ThrowIfZero(candidateMapIds.Count, nameof(candidateMapIds));
 
-        return ResolveMapCore(inputs, candidateMapIds);
+        return ResolveMapCore(
+            inputs,
+            candidateMapIds,
+            selectionMetadataOnly: false);
+    }
+
+    /// <summary>Resolves one trusted profile map using only metadata required by map-selection predicates.</summary>
+    internal FirmwareMapResolutionResult ResolveMapWithinForSelection(
+        FirmwareMapResolutionInputs inputs,
+        IReadOnlySet<string> candidateMapIds)
+    {
+        ArgumentNullException.ThrowIfNull(candidateMapIds);
+        ArgumentOutOfRangeException.ThrowIfZero(candidateMapIds.Count, nameof(candidateMapIds));
+
+        return ResolveMapCore(
+            inputs,
+            candidateMapIds,
+            selectionMetadataOnly: true);
     }
 
     private FirmwareMapResolutionResult ResolveMapCore(
         FirmwareMapResolutionInputs inputs,
-        IReadOnlySet<string>? candidateMapIds)
+        IReadOnlySet<string>? candidateMapIds,
+        bool selectionMetadataOnly)
     {
         ArgumentNullException.ThrowIfNull(inputs);
         var uniqueCandidates = new List<ResolvedFirmwareImageMap>();
@@ -34,7 +55,10 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 continue;
             }
 
-            CandidateResolution candidate = EvaluateCandidate(map, inputs);
+            CandidateResolution candidate = EvaluateCandidate(
+                map,
+                inputs,
+                selectionMetadataOnly);
             switch (candidate.Result)
             {
                 case FirmwareApplicabilityResult.Match:
@@ -61,7 +85,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
     private CandidateResolution EvaluateCandidate(
         FirmwareImageMap map,
-        FirmwareMapResolutionInputs inputs)
+        FirmwareMapResolutionInputs inputs,
+        bool selectionMetadataOnly)
     {
         FirmwareMapApplicabilityEvaluation staticEvaluation = map.Applicability.Evaluate(inputs);
         if (staticEvaluation.Result == FirmwareApplicabilityResult.NoMatch)
@@ -89,9 +114,13 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             }
         }
 
+        IReadOnlyList<FirmwareMetadataStructure> metadataStructures =
+            selectionMetadataOnly
+                ? GetMapResolutionStructuresForMap(map.MapId)
+                : GetStructuresForMap(map.MapId);
         FirmwareMetadataStructureResolution[] structureResolutions =
         [
-            .. GetStructuresForMap(map.MapId)
+            .. metadataStructures
                 .Select(structure => ResolveMetadataStructure(map.MapId, structure.StructureId, inputs)),
         ];
         if (structureResolutions.Any(static resolution =>
@@ -143,7 +172,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             inputs,
             map,
             resolvedStructures,
-            predicateOutcomes));
+            predicateOutcomes,
+            selectionMetadataOnly));
     }
 
     private sealed record CandidateResolution(
