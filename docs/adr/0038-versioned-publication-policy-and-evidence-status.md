@@ -36,6 +36,14 @@ No row is a wildcard. A new IC Count, map variant, or integrity route creates a
 new route and remains `unclassified` until an owner-approved decision references
 that route. A missing policy row also resolves to `unclassified`.
 
+The canonical route renderer length-frames the IC, workflow, IC Count, and map
+axes before joining them, so hyphens inside one axis cannot collide with an
+adjacent axis. Consumers still treat `routeId` as opaque. Integrity identity is
+derived from the canonical compiled operation representation rather than a
+second offset/range model. It covers both external-processor operations and
+host-side `transform-scalar` relocation, including the relocation fields and
+delta already owned by the compiled plan.
+
 The policy JSON is the only authority for publication status. It cannot set
 authoring availability, execution admission, profile selection, firmware
 ranges, processor authority, UI visibility, or evidence classification. The
@@ -72,6 +80,12 @@ policy as both build and publish content at the same relative path used by the
 loader. Tests prove the deployed file exists, the publish metadata remains
 closed, and the public query does not alter firmware execution or UI state.
 Settings disclosure remains deferred to #207.
+
+The owner-approved NT51919 General Replace decision is retained as one exact
+publication-inventory row while its authoring binding remains `unknown` and
+execution remains unadmitted. The row therefore resolves the policy reference
+without opening the workflow or hiding the existing unresolved-source
+diagnostic.
 
 ## Consequences
 

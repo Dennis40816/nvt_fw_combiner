@@ -29,7 +29,7 @@ SUPPORT_POLICY_RELATIVE_PATH = Path(
 )
 SUPPORT_POLICY_ROLE = "publicationPolicy"
 SUPPORT_POLICY_SHA256 = (
-    "eeffb9be1afba4bc834b17fea63f08d628e170847cc4d0e5f50cdd2f39e9009b"
+    "18be74ba5f56ebdd66da419dc258c6432108205639bdce62c684f9b3adff0b51"
 )
 APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/README.md",

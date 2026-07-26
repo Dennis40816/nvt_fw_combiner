@@ -20,6 +20,14 @@ catalog. Its identity includes IC, workflow, IC Count applicability, map
 variant, and any distinct integrity route. The policy does not repeat those
 fields, derive routes from display labels, or use wildcards.
 
+The current canonical renderer length-frames each non-integrity axis before
+joining it, preventing a hyphen inside one value from creating the same id as a
+different axis tuple. Integrity identity covers both external processors and
+host-side scalar relocation and hashes the canonical compiled operation
+semantics; it does not maintain a second copy of offsets, ranges, scalar fields,
+or processor authority. Readers must not parse either representation to recover
+firmware facts.
+
 `decisionId` is immutable. A changed decision receives a new id and policy
 version and may name the decisions it supersedes. Readers reject duplicate
 decision ids, duplicate route ids, whitespace-only provenance, unknown fields,

@@ -7,7 +7,6 @@ namespace NvtFwCombiner.Application.Support;
 public sealed record SupportRouteIdentity
 {
     private const string NotApplicable = "not-applicable";
-    private const string GenericMap = "generic";
 
     /// <summary>Initializes one exact route and derives its stable policy identity.</summary>
     public SupportRouteIdentity(
@@ -58,17 +57,20 @@ public sealed record SupportRouteIdentity
     private string CreateRouteId()
     {
         string icToken = RequireRouteToken(IcId.ToLowerInvariant(), nameof(IcId));
-        string prefix = $"{icToken}-{WorkflowId}";
         string routeId =
-            IcCountVariant == NotApplicable && MapVariant == GenericMap
-                ? $"{prefix}-{GenericMap}"
-                : $"{prefix}-{IcCountVariant}-{MapVariant}";
+            $"route-{FrameAxis(icToken)}-{FrameAxis(WorkflowId)}-" +
+            $"{FrameAxis(IcCountVariant)}-{FrameAxis(MapVariant)}";
         if (IntegrityRouteId != NotApplicable)
         {
             routeId = $"{routeId}-integrity-{IntegrityRouteHash(IntegrityRouteId)}";
         }
 
         return RequireRouteToken(routeId, nameof(RouteId));
+    }
+
+    private static string FrameAxis(string value)
+    {
+        return FormattableString.Invariant($"{value.Length}-{value}");
     }
 
     private static string RequireRouteToken(string value, string parameterName)

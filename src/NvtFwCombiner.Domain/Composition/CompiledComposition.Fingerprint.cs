@@ -10,6 +10,42 @@ public sealed partial class CompiledComposition
 {
     private const string LegacyFingerprintFormat = "nfc.compiled-composition.legacy.v2";
     private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v4";
+    private const string IntegrityFingerprintFormat =
+        "nfc.compiled-composition.integrity.v1";
+
+    private static string? CalculateIntegrityFingerprint(CompositionPlan plan)
+    {
+        CompositionOperation[] operations =
+        [
+            .. plan.OrderedOperations.Where(static operation =>
+                operation.Kind is
+                    CompositionOperationKind.RunExternalProcessor or
+                    CompositionOperationKind.TransformScalar),
+        ];
+        if (operations.Length == 0)
+        {
+            return null;
+        }
+
+        var builder = new StringBuilder();
+        AppendField(builder, "format", IntegrityFingerprintFormat);
+        AppendInteger(builder, "integrity-operation.count", operations.Length);
+        for (int index = 0; index < operations.Length; index++)
+        {
+            CompositionOperation operation = operations[index];
+            string prefix =
+                FormattableString.Invariant($"integrity-operation.{index}");
+            AppendOperationExecutionSemantics(builder, operation, prefix);
+            AppendProcessor(
+                builder,
+                prefix,
+                operation.ExternalProcessorInvocation);
+        }
+
+        return Convert.ToHexString(
+                SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())))
+            .ToLowerInvariant();
+    }
 
     private static string CalculateCompilationFingerprint(CompiledComposition composition)
     {
@@ -202,6 +238,19 @@ public sealed partial class CompiledComposition
         int index)
     {
         string prefix = FormattableString.Invariant($"plan.operation.{index}");
+        AppendOperationExecutionSemantics(builder, operation, prefix);
+        AppendField(builder, $"{prefix}.reason", operation.Reason);
+        AppendField(builder, $"{prefix}.provenance.kind", operation.Provenance.Kind);
+        AppendField(builder, $"{prefix}.provenance.source-id", operation.Provenance.SourceId ?? string.Empty);
+        AppendField(builder, $"{prefix}.provenance.source-version", operation.Provenance.SourceVersion ?? string.Empty);
+        AppendProcessor(builder, prefix, operation.ExternalProcessorInvocation);
+    }
+
+    private static void AppendOperationExecutionSemantics(
+        StringBuilder builder,
+        CompositionOperation operation,
+        string prefix)
+    {
         AppendField(builder, $"{prefix}.id", operation.OperationId);
         AppendInteger(builder, $"{prefix}.sequence", operation.Sequence);
         AppendEnum(builder, $"{prefix}.kind", operation.Kind);
@@ -216,11 +265,6 @@ public sealed partial class CompiledComposition
             operation.FillByte?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
         AppendField(builder, $"{prefix}.patch-bytes", Convert.ToHexString(operation.PatchBytes.Span).ToLowerInvariant());
         AppendScalarTransform(builder, prefix, operation.ScalarTransform);
-        AppendField(builder, $"{prefix}.reason", operation.Reason);
-        AppendField(builder, $"{prefix}.provenance.kind", operation.Provenance.Kind);
-        AppendField(builder, $"{prefix}.provenance.source-id", operation.Provenance.SourceId ?? string.Empty);
-        AppendField(builder, $"{prefix}.provenance.source-version", operation.Provenance.SourceVersion ?? string.Empty);
-        AppendProcessor(builder, prefix, operation.ExternalProcessorInvocation);
     }
 
     private static void AppendScalarTransform(

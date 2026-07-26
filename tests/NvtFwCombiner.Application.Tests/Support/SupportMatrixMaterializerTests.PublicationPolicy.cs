@@ -234,7 +234,7 @@ public sealed partial class SupportMatrixMaterializerTests
         {
             "route" => new(
                 priorDecision.DecisionId,
-                "nt51919-general-merge-generic",
+                "other-route",
                 priorDecision.Status,
                 priorDecision.Provenance),
             "status" => new(

@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Infrastructure.Tests.Support;
 public sealed class BuiltInSupportPublicationPolicyTests
 {
     private const string ExpectedSha256 =
-        "eeffb9be1afba4bc834b17fea63f08d628e170847cc4d0e5f50cdd2f39e9009b";
+        "18be74ba5f56ebdd66da419dc258c6432108205639bdce62c684f9b3adff0b51";
 
     /// <summary>The shipped policy loads only through its reviewed SHA-256.</summary>
     [Fact]
@@ -28,8 +28,8 @@ public sealed class BuiltInSupportPublicationPolicyTests
         Assert.Equal(5, policy.Decisions.Count);
         Assert.Contains(policy.Decisions, decision =>
             decision.RouteId ==
-                "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k-" +
-                    "integrity-ccca6b7eefff20fe" &&
+                "route-7-nt51950-8-ab-merge-4-1-ic-21-" +
+                    "nt51950-ab-merge-512k-integrity-de1df72be12d1b57" &&
             decision.Status == SupportPublicationStatus.Candidate);
     }
 
@@ -364,7 +364,8 @@ public sealed class BuiltInSupportPublicationPolicyTests
         {
             ["decisionId"] = decisionId,
             ["routeId"] =
-                "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k",
+                "route-7-nt51950-8-ab-merge-4-1-ic-21-" +
+                "nt51950-ab-merge-512k",
             ["status"] = "candidate",
             ["provenance"] = new JsonObject
             {

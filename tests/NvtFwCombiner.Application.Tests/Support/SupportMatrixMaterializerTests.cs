@@ -26,12 +26,32 @@ public sealed partial class SupportMatrixMaterializerTests
             "generic");
 
         Assert.Equal(
-            "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k",
+            "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-512k",
             oneIc.RouteId);
         Assert.Equal(
-            "nt51950-ab-merge-2-plus-ic-nt51950-ab-merge-1024k",
+            "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-nt51950-ab-merge-1024k",
             twoPlusIc.RouteId);
-        Assert.Equal("nt51919-general-merge-generic", generic.RouteId);
+        Assert.Equal(
+            "route-7-nt51919-13-general-merge-14-not-applicable-7-generic",
+            generic.RouteId);
+    }
+
+    /// <summary>Distinct route-axis tuples cannot collapse through kebab-case concatenation.</summary>
+    [Fact]
+    public void RouteIdentityFramesEveryAxisUnambiguously()
+    {
+        var workflowOwnsHyphen = new SupportRouteIdentity(
+            "NT51950",
+            "a-b",
+            "c",
+            "generic");
+        var countOwnsHyphen = new SupportRouteIdentity(
+            "NT51950",
+            "a",
+            "b-c",
+            "generic");
+
+        Assert.NotEqual(workflowOwnsHyphen.RouteId, countOwnsHyphen.RouteId);
     }
 
     /// <summary>Integrity behavior is a stable identity axis without exposing unsafe text.</summary>
@@ -60,7 +80,8 @@ public sealed partial class SupportMatrixMaterializerTests
         Assert.Equal(first.RouteId, same.RouteId);
         Assert.NotEqual(first.RouteId, different.RouteId);
         Assert.Matches(
-            "^nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-single-integrity-[0-9a-f]{16}$",
+            "^route-7-nt51926-15-ctrlram-replace-4-1-ic-28-" +
+            "nt51926-ctrlram-fw200-single-integrity-[0-9a-f]{16}$",
             first.RouteId);
     }
 
@@ -99,7 +120,7 @@ public sealed partial class SupportMatrixMaterializerTests
         SupportPublicationPolicySnapshot policy = Policy(
             new SupportPublicationDecision(
                 "other-route",
-                "nt51919-general-replace-generic",
+                "unresolved-route",
                 SupportPublicationStatus.TestOnly,
                 Provenance()));
 

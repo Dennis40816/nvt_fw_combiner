@@ -26,6 +26,7 @@ internal static partial class CurrentSupportMatrixCatalog
             unresolved);
         AddGeneralMergeRoutes(routes);
         AddGeneralReplaceRoutes(routes, unresolved);
+        AddPublicationRouteInventory(routes);
         AddCtrlRamRoutes(routes, unresolved);
         AddUnboundAuthoringScopes(routes, unresolved);
         LoadedSupportPublicationPolicy policy =
@@ -107,6 +108,24 @@ internal static partial class CurrentSupportMatrixCatalog
                 $"{WorkbenchCompositionService.Nt51926GeneralReplaceDpProfileVersion}:" +
                 map.MapId));
         }
+    }
+
+    private static void AddPublicationRouteInventory(
+        List<SupportRouteDescriptor> routes)
+    {
+        // Publication supplies status only. This explicit route inventory keeps
+        // unresolved capability axes visible without granting authoring or execution.
+        const string icId = "NT51919";
+        routes.Add(Route(
+            new SupportRouteIdentity(
+                icId,
+                IcWorkflowIds.GeneralReplace,
+                "not-applicable",
+                "generic"),
+            icId,
+            IcWorkflowIds.GeneralReplace,
+            executionAdmitted: false,
+            "publication-route:nt51919-general-replace:execution-unresolved"));
     }
 
     private static SupportRouteDescriptor Route(

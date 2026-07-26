@@ -6,7 +6,7 @@
   "decisions": [
     {
       "decisionId": "nt51919-general-merge-test-only",
-      "routeId": "nt51919-general-merge-generic",
+      "routeId": "route-7-nt51919-13-general-merge-14-not-applicable-7-generic",
       "status": "test-only",
       "provenance": {
         "authorityKind": "owner-decision",
@@ -17,7 +17,7 @@
     },
     {
       "decisionId": "nt51919-general-replace-test-only",
-      "routeId": "nt51919-general-replace-generic",
+      "routeId": "route-7-nt51919-15-general-replace-14-not-applicable-7-generic",
       "status": "test-only",
       "provenance": {
         "authorityKind": "owner-decision",
@@ -28,7 +28,7 @@
     },
     {
       "decisionId": "nt51950-ab-merge-1-ic-candidate",
-      "routeId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k-integrity-ccca6b7eefff20fe",
+      "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-512k-integrity-de1df72be12d1b57",
       "status": "candidate",
       "provenance": {
         "authorityKind": "owner-decision",
@@ -39,7 +39,7 @@
     },
     {
       "decisionId": "nt51950-ab-merge-2-plus-ic-candidate",
-      "routeId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-merge-1024k-integrity-ccca6b7eefff20fe",
+      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-nt51950-ab-merge-1024k-integrity-de1df72be12d1b57",
       "status": "candidate",
       "provenance": {
         "authorityKind": "owner-decision",
@@ -50,7 +50,7 @@
     },
     {
       "decisionId": "nt51951-ab-merge-candidate",
-      "routeId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k-integrity-76ab8160b124f60a",
+      "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k-integrity-6435dea0731a432f",
       "status": "candidate",
       "provenance": {
         "authorityKind": "owner-decision",

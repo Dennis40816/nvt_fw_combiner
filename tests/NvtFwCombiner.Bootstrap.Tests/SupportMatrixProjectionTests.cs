@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class SupportMatrixProjectionTests
 {
     private const string ExpectedPolicySha256 =
-        "eeffb9be1afba4bc834b17fea63f08d628e170847cc4d0e5f50cdd2f39e9009b";
+        "18be74ba5f56ebdd66da419dc258c6432108205639bdce62c684f9b3adff0b51";
 
     /// <summary>NT51950/951 AB publication decisions bind only to their exact map/count pairs.</summary>
     [Fact]
@@ -56,24 +56,28 @@ public sealed class SupportMatrixProjectionTests
             [
                 (
                     "NT51950",
-                    "nfc-nt51950-ab-merge-combiner-v1:" +
-                        "legacy-combiner-1.13.0",
-                    "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k-" +
-                        "integrity-ccca6b7eefff20fe"),
+                    "transform-scalar:28:relocate-tpb-diff-for-b-bank|" +
+                        "external-processor:32:nfc-nt51950-ab-merge-combiner-v1:" +
+                        "22:legacy-combiner-1.13.0|fingerprint:" +
+                        "f859b871f87deb06e77b82bcb0dd0055638a23989a44be5344d6e1856cad385d",
+                    "route-7-nt51950-8-ab-merge-4-1-ic-21-" +
+                        "nt51950-ab-merge-512k-integrity-de1df72be12d1b57"),
                 (
                     "NT51950",
-                    "nfc-nt51950-ab-merge-combiner-v1:" +
-                        "legacy-combiner-1.13.0",
-                    "nt51950-ab-merge-2-plus-ic-" +
-                        "nt51950-ab-merge-1024k-" +
-                        "integrity-ccca6b7eefff20fe"),
+                    "transform-scalar:28:relocate-tpb-diff-for-b-bank|" +
+                        "external-processor:32:nfc-nt51950-ab-merge-combiner-v1:" +
+                        "22:legacy-combiner-1.13.0|fingerprint:" +
+                        "f859b871f87deb06e77b82bcb0dd0055638a23989a44be5344d6e1856cad385d",
+                    "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-" +
+                        "nt51950-ab-merge-1024k-integrity-de1df72be12d1b57"),
                 (
                     "NT51951",
-                    "nfc-nt51951-ab-merge-combiner-v1:" +
-                        "legacy-combiner-1.13.0",
-                    "nt51951-ab-merge-selector-free-" +
-                        "nt51951-ab-merge-1024k-" +
-                        "integrity-76ab8160b124f60a"),
+                    "transform-scalar:28:relocate-tpb-diff-for-b-bank|" +
+                        "external-processor:32:nfc-nt51951-ab-merge-combiner-v1:" +
+                        "22:legacy-combiner-1.13.0|fingerprint:" +
+                        "513690905d39f26ac8afb63a63d4efb9f24e9c0cc9bdbfc2df7028d6b655c252",
+                    "route-7-nt51951-8-ab-merge-13-selector-free-22-" +
+                        "nt51951-ab-merge-1024k-integrity-6435dea0731a432f"),
             ],
             [
                 .. matrix.Rows
@@ -96,11 +100,11 @@ public sealed class SupportMatrixProjectionTests
     {
         SupportMatrix matrix = WorkbenchCompositionService.GetSupportMatrix();
         SupportMatrixRow generalMerge = Assert.Single(matrix.Rows, static row =>
-            row.Route.RouteId == "nt51919-general-merge-generic");
+            row.Route.Identity.IcId == "NT51919" &&
+            row.Route.Identity.WorkflowId == IcWorkflowIds.GeneralMerge);
         SupportMatrixRow exactReplace = Assert.Single(matrix.Rows, static row =>
-            row.Route.RouteId ==
-                "nt51926-general-replace-1-ic-" +
-                "nt51926-general-replace-full-flash-256k");
+            row.Route.Identity.IcId == "NT51926" &&
+            row.Route.Identity.WorkflowId == IcWorkflowIds.GeneralReplace);
 
         Assert.Equal(
             SupportAuthoringAvailability.Available,
@@ -113,11 +117,24 @@ public sealed class SupportMatrixProjectionTests
             SupportEvidenceStatus.ContractOnly,
             generalMerge.Evidence.Status);
 
-        Assert.DoesNotContain(matrix.Rows, static row =>
-            row.Route.RouteId == "nt51919-general-replace-generic");
-        Assert.Contains(matrix.Diagnostics, static diagnostic =>
-            diagnostic.Code == SupportMatrixMaterializer.PolicyRouteUnresolved &&
-            diagnostic.Subject == "nt51919-general-replace-generic");
+        SupportMatrixRow generalReplace = Assert.Single(
+            matrix.Rows,
+            static row =>
+                row.Route.Identity.IcId == "NT51919" &&
+                row.Route.Identity.WorkflowId ==
+                    IcWorkflowIds.GeneralReplace);
+        Assert.Equal(
+            SupportAuthoringAvailability.Unknown,
+            generalReplace.Route.AuthoringAvailability);
+        Assert.False(generalReplace.Route.ExecutionAdmitted);
+        Assert.Equal(
+            SupportPublicationStatus.TestOnly,
+            generalReplace.PublicationStatus);
+        Assert.Equal(
+            SupportEvidenceStatus.Missing,
+            generalReplace.Evidence.Status);
+        Assert.DoesNotContain(matrix.Diagnostics, static diagnostic =>
+            diagnostic.Code == SupportMatrixMaterializer.PolicyRouteUnresolved);
         Assert.Contains(matrix.Diagnostics, static diagnostic =>
             diagnostic.Code == SupportMatrixMaterializer.SourceScopeUnresolved &&
             diagnostic.Subject ==
@@ -137,6 +154,37 @@ public sealed class SupportMatrixProjectionTests
             diagnostic.Code == SupportMatrixMaterializer.SourceScopeUnresolved &&
             diagnostic.Subject ==
                 "support-source:NT51926:general-replace:authoring");
+    }
+
+    /// <summary>Host-side AB header relocation participates in exact integrity identity.</summary>
+    [Theory]
+    [InlineData("NT51919")]
+    [InlineData("NT51929")]
+    [InlineData("NT51932")]
+    public void AbHeaderRelocationIsAnIntegrityRoute(string icId)
+    {
+        SupportMatrix matrix = WorkbenchCompositionService.GetSupportMatrix();
+
+        SupportMatrixRow row = Assert.Single(matrix.Rows, candidate =>
+            candidate.Route.Identity.IcId == icId &&
+            candidate.Route.Identity.WorkflowId == IcWorkflowIds.AbMerge);
+
+        Assert.Contains(
+            "transform-scalar",
+            row.Route.Identity.IntegrityRouteId,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "relocate-tpb-ilm",
+            row.Route.Identity.IntegrityRouteId,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "relocate-tpb-dlm",
+            row.Route.Identity.IntegrityRouteId,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "relocate-tpb-diff",
+            row.Route.Identity.IntegrityRouteId,
+            StringComparison.Ordinal);
     }
 
     /// <summary>CtrlRAM uses exact typed postbuild selectors even when its map is topology-invariant.</summary>
@@ -207,13 +255,11 @@ public sealed class SupportMatrixProjectionTests
             first.Rows.Select(static row => row.Route.Identity)
                 .Distinct()
                 .Count());
-        Assert.Equal(
-            ["nt51919-general-replace-generic"],
-            first.Diagnostics
-                .Where(static diagnostic =>
-                    diagnostic.Code ==
-                        SupportMatrixMaterializer.PolicyRouteUnresolved)
-                .Select(static diagnostic => diagnostic.Subject));
+        Assert.DoesNotContain(
+            first.Diagnostics,
+            static diagnostic =>
+                diagnostic.Code ==
+                    SupportMatrixMaterializer.PolicyRouteUnresolved);
         Assert.Equal(
             [
                 .. IcSupportCatalog.All
@@ -230,7 +276,9 @@ public sealed class SupportMatrixProjectionTests
                 .Select(static diagnostic => diagnostic.Subject));
         Assert.Equal(
             [
-                "nt51926-general-replace-1-ic-" +
+                "route-7-nt51919-15-general-replace-14-" +
+                "not-applicable-7-generic",
+                "route-7-nt51926-15-general-replace-4-1-ic-39-" +
                 "nt51926-general-replace-full-flash-256k",
             ],
             first.Diagnostics

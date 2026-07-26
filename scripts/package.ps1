@@ -116,7 +116,7 @@ $ApprovedSupportPublicationPolicyPackageContracts = @(
     [pscustomobject]@{
         path = 'docs/contracts/support-publication-policy-v1.json'
         role = 'publicationPolicy'
-        sha256 = 'eeffb9be1afba4bc834b17fea63f08d628e170847cc4d0e5f50cdd2f39e9009b'
+        sha256 = '18be74ba5f56ebdd66da419dc258c6432108205639bdce62c684f9b3adff0b51'
     }
 )
 

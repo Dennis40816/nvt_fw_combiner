@@ -10,8 +10,9 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateExternalProcessorComposition();
 
+        Assert.NotNull(composition.IntegrityFingerprint);
         Assert.Equal(
-            "73c0d059c0385d1f9c25e65e09889f7afc14d605c998e4ff5665f007534627e4",
+            "b9e6b7a2128f16631bac175e9b302e27b69ceecca2536bbc9a888d8f1258cc2c",
             composition.CompilationFingerprint);
     }
 
@@ -53,10 +54,32 @@ public sealed partial class CompiledCompositionTests
                 ScalarTransformOverflowPolicy.Reject)),
         ];
 
-        Assert.All(variants, variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
+        Assert.NotNull(baseline.IntegrityFingerprint);
+        Assert.All(
+            variants,
+            variant =>
+            {
+                Assert.NotEqual(
+                    baseline.CompilationFingerprint,
+                    variant.CompilationFingerprint);
+                Assert.NotEqual(
+                    baseline.IntegrityFingerprint,
+                    variant.IntegrityFingerprint);
+            });
+        CompiledComposition reasonOnly = CreateScalarTransformComposition(
+            baseline.Plan.OrderedOperations.Single().ScalarTransform!,
+            "wording-only change");
+        Assert.NotEqual(
+            baseline.CompilationFingerprint,
+            reasonOnly.CompilationFingerprint);
+        Assert.Equal(
+            baseline.IntegrityFingerprint,
+            reasonOnly.IntegrityFingerprint);
     }
 
-    private static CompiledComposition CreateScalarTransformComposition(ScalarTransform transform)
+    private static CompiledComposition CreateScalarTransformComposition(
+        ScalarTransform transform,
+        string reason = "adjust scalar")
     {
         long width = transform.WidthBytes;
         var plan = new CompositionPlan(
@@ -74,7 +97,7 @@ public sealed partial class CompiledCompositionTests
                 new ByteRange(0, width),
                 transform,
                 OverlapPolicy.Reject,
-                "adjust scalar")]);
+                reason)]);
         return CompiledComposition.CreateLegacy(
             plan,
             CreateMergeIdentity(),

@@ -30,21 +30,25 @@ public sealed class SupportPublicationPolicyContractTests
         ValidateSourceSemantics(policy);
         Assert.Equal(
             [
-                ("nt51919-general-merge-generic", "test-only"),
-                ("nt51919-general-replace-generic", "test-only"),
                 (
-                    "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k-" +
-                        "integrity-ccca6b7eefff20fe",
+                    "route-7-nt51919-13-general-merge-14-" +
+                        "not-applicable-7-generic",
+                    "test-only"),
+                (
+                    "route-7-nt51919-15-general-replace-14-" +
+                        "not-applicable-7-generic",
+                    "test-only"),
+                (
+                    "route-7-nt51950-8-ab-merge-4-1-ic-21-" +
+                        "nt51950-ab-merge-512k-integrity-de1df72be12d1b57",
                     "candidate"),
                 (
-                    "nt51950-ab-merge-2-plus-ic-" +
-                        "nt51950-ab-merge-1024k-" +
-                        "integrity-ccca6b7eefff20fe",
+                    "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-" +
+                        "nt51950-ab-merge-1024k-integrity-de1df72be12d1b57",
                     "candidate"),
                 (
-                    "nt51951-ab-merge-selector-free-" +
-                        "nt51951-ab-merge-1024k-" +
-                        "integrity-76ab8160b124f60a",
+                    "route-7-nt51951-8-ab-merge-13-selector-free-22-" +
+                        "nt51951-ab-merge-1024k-integrity-6435dea0731a432f",
                     "candidate"),
             ],
             Decisions(policy));
@@ -111,7 +115,7 @@ public sealed class SupportPublicationPolicyContractTests
         switch (mutation)
         {
             case "decision-id":
-                duplicate["routeId"] = "nt51919-general-merge-generic-other";
+                duplicate["routeId"] = "other-route";
                 break;
             case "route-id":
                 duplicate["decisionId"] = "nt51919-general-merge-test-only-other";

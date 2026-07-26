@@ -87,19 +87,73 @@ internal static partial class CurrentSupportMatrixCatalog
     private static string ResolveIntegrityRouteId(
         CompiledComposition composition)
     {
-        string[] processorRoutes =
+        string[] integrityOperations =
         [
             .. composition.Plan.OrderedOperations
                 .Where(static operation =>
-                    operation.ExternalProcessorInvocation is not null)
-                .Select(static operation =>
-                    operation.ExternalProcessorInvocation!)
-                .Select(static invocation =>
-                    $"{invocation.ProcessorId}:{invocation.ToolBindingId}"),
+                    operation.Kind is
+                        CompositionOperationKind.RunExternalProcessor or
+                        CompositionOperationKind.TransformScalar)
+                .Select(DescribeIntegrityOperation),
         ];
-        return processorRoutes.Length == 0
-            ? "not-applicable"
-            : string.Join('|', processorRoutes);
+        if (integrityOperations.Length == 0)
+        {
+            return composition.IntegrityFingerprint is null
+                ? "not-applicable"
+                : throw new InvalidOperationException(
+                    "A compiled integrity fingerprint must have a declared integrity operation.");
+        }
+
+        string fingerprint = composition.IntegrityFingerprint ??
+            throw new InvalidOperationException(
+                "Declared integrity operations require a compiled integrity fingerprint.");
+        return $"{string.Join('|', integrityOperations)}|fingerprint:{fingerprint}";
+    }
+
+    private static string DescribeIntegrityOperation(
+        CompositionOperation operation)
+    {
+        return operation.Kind switch
+        {
+            CompositionOperationKind.RunExternalProcessor =>
+                DescribeExternalProcessor(operation),
+            CompositionOperationKind.TransformScalar =>
+                DescribeScalarTransform(operation),
+            CompositionOperationKind.CopyRange or
+            CompositionOperationKind.ReplaceRange or
+            CompositionOperationKind.FillRange or
+            CompositionOperationKind.PatchScalar =>
+                throw new InvalidOperationException(
+                    "The operation is not an integrity operation."),
+            _ => throw new InvalidOperationException(
+                "Unknown compiled integrity operation."),
+        };
+    }
+
+    private static string DescribeExternalProcessor(
+        CompositionOperation operation)
+    {
+        ExternalProcessorInvocation invocation =
+            operation.ExternalProcessorInvocation ??
+            throw new InvalidOperationException(
+                "An external-processor operation requires its invocation.");
+        return
+            $"external-processor:{FrameIntegrityValue(invocation.ProcessorId)}:" +
+            FrameIntegrityValue(invocation.ToolBindingId);
+    }
+
+    private static string DescribeScalarTransform(
+        CompositionOperation operation)
+    {
+        _ = operation.ScalarTransform ??
+            throw new InvalidOperationException(
+                "A scalar-transform operation requires its transform.");
+        return $"transform-scalar:{FrameIntegrityValue(operation.OperationId)}";
+    }
+
+    private static string FrameIntegrityValue(string value)
+    {
+        return FormattableString.Invariant($"{value.Length}:{value}");
     }
 
     private static TopologySelection? CreateTopologySelection(
