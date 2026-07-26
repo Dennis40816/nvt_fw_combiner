@@ -44,9 +44,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("| Engineering |", nfcRoadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("| Phase | Scope | Exit gate |", nfcRoadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Canonicalize only transport-level line endings", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Status: owner-approved and published on 2026-07-25.", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 0 | #170 | Establish executable Support Matrix baseline | — |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 9 | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #195, #196 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("Status: owner-approved; synchronized with the closed design grill and GitHub", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("issues on 2026-07-26.", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 0 | Canonical pilot | #173 | Deliver the NT51929 Standard Merge canonical capability tracer | — |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 12 | Deferred UI | #214 | Deliver Message Center and System Information diagnostics | #173, #185, #208 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 14 | Integration | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #195, #196 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("The only open executable", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("frontier after the 2026-07-26 synchronization is #173.", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains(
             "Dependency depth is a topological planning aid, not a release number.",
             dependencyPlan,
