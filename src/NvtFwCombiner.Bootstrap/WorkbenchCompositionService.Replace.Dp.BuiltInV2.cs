@@ -59,7 +59,8 @@ public static partial class WorkbenchCompositionService
         string normalized = selector.Trim();
         foreach (BuiltInV2Registration registration in BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values)
         {
-            if (registration.MatchesSelector(normalized))
+            if (IsSelectableIcId(registration.IcId) &&
+                registration.MatchesSelector(normalized))
             {
                 icId = registration.IcId;
                 return true;
@@ -74,7 +75,9 @@ public static partial class WorkbenchCompositionService
     {
         return string.Join(
             "/",
-            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Keys.Order(StringComparer.Ordinal));
+            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Keys
+                .Where(IsSelectableIcId)
+                .Order(StringComparer.Ordinal));
     }
 
     /// <summary>Returns true when the IC has one registered built-in V2 DP Replace route.</summary>

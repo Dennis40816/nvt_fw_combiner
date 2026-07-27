@@ -77,7 +77,7 @@ public sealed class WorkbenchCatalogProjectionTests
 
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
         Assert.Equal(13, settings.CatalogIcCount);
-        Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
+        Assert.Equal(13, settings.StandardMergeProfileCount);
         Assert.Equal(13, settings.DpReplaceProfileCount);
         Assert.Equal(13, settings.CtrlRamReplaceAvailableIcCount);
     }
@@ -86,8 +86,8 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         Assert.Equal(
             [
-                "NT51917", "NT51919", "NT51920", "NT51923", "NT51926", "NT51927", "NT51928",
-                "NT51929", "NT51930", "NT51931", "NT51932", "NT51950", "NT51951",
+                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51929", "NT51932", "NT51950", "NT51951",
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
@@ -116,8 +116,8 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         Assert.Equal(
             [
-                "NT51917", "NT51919", "NT51920", "NT51923", "NT51926", "NT51927", "NT51928",
-                "NT51929", "NT51930", "NT51931", "NT51932", "NT51950", "NT51951",
+                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51929", "NT51932", "NT51950", "NT51951",
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 

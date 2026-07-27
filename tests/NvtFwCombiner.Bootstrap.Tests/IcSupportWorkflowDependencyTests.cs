@@ -93,12 +93,20 @@ public sealed class IcSupportWorkflowDependencyTests
         ];
         string[] registeredIcIds =
         [
-            .. WorkbenchCompositionService.GetReplaceProfileSummaries()
-                .Select(summary => summary.IcId)
+            .. IcSupportCatalog.All
+                .Where(entry => WorkbenchCompositionService.HasBuiltInV2DpReplace(entry.IcId))
+                .Select(entry => entry.IcId)
                 .Order(StringComparer.Ordinal),
         ];
 
         Assert.Equal(registeredIcIds, supportedIcIds);
+        Assert.Equal(
+            supportedIcIds.Intersect(
+                WorkbenchCompositionService.GetSupportedIcIds(),
+                StringComparer.Ordinal),
+            WorkbenchCompositionService.GetReplaceProfileSummaries()
+                .Select(summary => summary.IcId)
+                .Order(StringComparer.Ordinal));
         foreach (string icId in supportedIcIds)
         {
             WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(

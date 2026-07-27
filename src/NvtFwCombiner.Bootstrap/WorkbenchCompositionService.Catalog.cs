@@ -41,6 +41,14 @@ public static partial class WorkbenchCompositionService
         return s_selectableIcIds;
     }
 
+    internal static bool IsSelectableIcId(string icId)
+    {
+        return !string.IsNullOrWhiteSpace(icId) &&
+            s_selectableIcIds.Contains(
+                IcSupportCatalog.NormalizeIcId(icId),
+                StringComparer.Ordinal);
+    }
+
     /// <summary>Gets the catalog-owned initial IC id for shell/workbench surfaces.</summary>
     public static string GetDefaultIcId()
     {
@@ -87,7 +95,10 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets compiled Standard Merge profile summaries in stable CLI/display order.</summary>
     public static IReadOnlyList<WorkbenchProfileSummary> GetStandardMergeProfileSummaries()
     {
-        return s_standardMergeProfileSummaries.Value;
+        return Array.AsReadOnly(
+            s_standardMergeProfileSummaries.Value
+                .Where(static profile => IsSelectableIcId(profile.IcId))
+                .ToArray());
     }
 
     /// <summary>Gets compiled AB Merge profile summaries in stable CLI/display order.</summary>
@@ -99,7 +110,10 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets compiled Replace profile summaries in stable CLI/display order.</summary>
     public static IReadOnlyList<WorkbenchProfileSummary> GetReplaceProfileSummaries()
     {
-        return s_replaceProfileSummaries.Value;
+        return Array.AsReadOnly(
+            s_replaceProfileSummaries.Value
+                .Where(static profile => IsSelectableIcId(profile.IcId))
+                .ToArray());
     }
 
     private static WorkbenchProfileSummary? FindStandardMergeProfileSummaryByIc(string icId)
