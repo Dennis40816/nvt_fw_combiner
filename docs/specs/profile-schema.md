@@ -63,6 +63,18 @@ Region access is deny-by-default:
 
 The compiler, not UI pre-filtering, is the authority for experience, region policy, atomicity, overlap, and processor dependencies.
 
+Count-dependent DiffDLM composition is a canonical family/profile fact, not a
+list of duplicated per-count operations. A profile references the record
+policy, target anchor, stride, writable subrange, preservation mask, and IC
+Count applicability. Compilation expands only the active records for the
+resolved count. Source records after the active prefix are non-authoritative
+dummy content and cannot replace inactive target records. Any separately
+postbuilt FWConfig Backup placement uses its own bounded processor write
+authority and postcondition; it is not part of the DiffDLM scatter allowance.
+Dynamic-placement profiles declare the count-derived postcondition separately.
+A fixed-layout profile instead declares its fixed End Flag/Backup fact once;
+it must not inherit a dynamic alignment formula by family analogy.
+
 ## External Processor Binding
 
 A `run-processor` operation references a closed processor stage. `crc-worker-v1` is calculation-only

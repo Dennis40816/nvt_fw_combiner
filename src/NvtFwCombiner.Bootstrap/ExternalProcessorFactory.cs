@@ -8,51 +8,75 @@ namespace NvtFwCombiner.Bootstrap;
 
 internal static class ExternalProcessorFactory
 {
-    private static readonly ExternalProcessorLifetime ProcessLifetime = new(CreateUncachedOrNull);
+    private static readonly ExternalProcessorLifetime ProcessLifetime = new(CreateUncached);
 
     internal static IExternalProcessor? GetOrCreateOrNull()
     {
-        return ProcessLifetime.GetOrCreateOrNull();
+        return AcquireCurrent().Processor;
     }
 
-    private static ExternalProcessorRouter? CreateUncachedOrNull()
+    internal static ExternalProcessorGenerationLease AcquireCurrent()
     {
-        string? toolRoot = FindExternalToolsRoot();
-        if (toolRoot is null)
-        {
-            return null;
-        }
+        return ProcessLifetime.AcquireCurrent();
+    }
 
-        List<ExternalCombinerToolManifest> manifests = [
-            .. Directory.EnumerateFiles(toolRoot, "manifest.json", SearchOption.AllDirectories)
-                .Order(StringComparer.OrdinalIgnoreCase)
-                .Select(LoadManifest),
-        ];
-        if (manifests.Count == 0)
-        {
-            return null;
-        }
+    /// <summary>Starts a new explicit processor-discovery generation.</summary>
+    internal static void Refresh()
+    {
+        ProcessLifetime.Refresh();
+    }
 
+    internal static bool IsCurrent(long generation)
+    {
+        return ProcessLifetime.IsCurrent(generation);
+    }
+
+    private static ExternalProcessorRuntimeEnvironment CreateUncached()
+    {
+        string toolRoot = FindExternalToolsRoot() ??
+            Path.Combine(AppContext.BaseDirectory, "external-tools");
+        List<ExternalCombinerToolManifest> manifests = Directory.Exists(toolRoot)
+            ?
+            [
+                .. Directory.EnumerateFiles(
+                        toolRoot,
+                        "manifest.json",
+                        SearchOption.AllDirectories)
+                    .Order(StringComparer.OrdinalIgnoreCase)
+                    .Select(LoadManifest),
+            ]
+            : [];
         var registry = new ExternalCombinerToolRegistry(manifests);
         string stagingRoot = Path.Combine(Path.GetTempPath(), "nvt-fw-combiner", "external-tools");
-        _ = Directory.CreateDirectory(stagingRoot);
-        var processRunner = new SystemExternalProcessRunner();
-        var legacyPostbuildProcessor = new LegacyCombinerPostbuildProcessor(
-            registry,
-            BuiltInPostbuildProfileCatalog.All,
-            toolRoot,
-            stagingRoot,
-            processRunner);
-        var manifestProcessor = new ExternalCombinerProcessor(
+        var readinessProvider = new ExternalProcessorRuntimeDependencyInspector(
             registry,
             toolRoot,
             stagingRoot,
-            processRunner,
-            ExternalCombinerInvocationCatalog.All);
-        return new ExternalProcessorRouter(
-            legacyPostbuildProcessor,
-            manifestProcessor,
-            BuiltInPostbuildProfileCatalog.All.Select(static profile => profile.ProcessorId));
+            TimeProvider.System);
+        IExternalProcessor? processor = null;
+        if (manifests.Count != 0)
+        {
+            _ = Directory.CreateDirectory(stagingRoot);
+            var processRunner = new SystemExternalProcessRunner();
+            var legacyPostbuildProcessor = new LegacyCombinerPostbuildProcessor(
+                registry,
+                BuiltInPostbuildProfileCatalog.All,
+                toolRoot,
+                stagingRoot,
+                processRunner);
+            var manifestProcessor = new ExternalCombinerProcessor(
+                registry,
+                toolRoot,
+                stagingRoot,
+                processRunner,
+                ExternalCombinerInvocationCatalog.All);
+            processor = new ExternalProcessorRouter(
+                legacyPostbuildProcessor,
+                manifestProcessor,
+                BuiltInPostbuildProfileCatalog.All.Select(static profile => profile.ProcessorId));
+        }
+
+        return new ExternalProcessorRuntimeEnvironment(processor, readinessProvider);
     }
 
     private static string? FindExternalToolsRoot()
@@ -132,20 +156,89 @@ internal static class ExternalProcessorFactory
     }
 }
 
+internal sealed record ExternalProcessorRuntimeEnvironment(
+    IExternalProcessor? Processor,
+    IRuntimeDependencyReadinessProvider ReadinessProvider);
+
+internal sealed record ExternalProcessorGenerationLease(
+    long Generation,
+    IExternalProcessor? Processor,
+    IRuntimeDependencyReadinessProvider ReadinessProvider);
+
 internal sealed class ExternalProcessorLifetime
 {
-    private readonly Lazy<IExternalProcessor?> _processor;
+    private readonly Lock _gate = new();
+    private readonly Func<ExternalProcessorRuntimeEnvironment> _environmentFactory;
+    private Lazy<ExternalProcessorRuntimeEnvironment> _environment;
+    private long _generation = 1;
 
-    internal ExternalProcessorLifetime(Func<IExternalProcessor?> processorFactory)
+    internal ExternalProcessorLifetime(
+        Func<ExternalProcessorRuntimeEnvironment> environmentFactory)
     {
-        ArgumentNullException.ThrowIfNull(processorFactory);
-        _processor = new Lazy<IExternalProcessor?>(
-            processorFactory,
-            LazyThreadSafetyMode.ExecutionAndPublication);
+        ArgumentNullException.ThrowIfNull(environmentFactory);
+        _environmentFactory = environmentFactory;
+        _environment = CreateGeneration();
     }
 
-    internal IExternalProcessor? GetOrCreateOrNull()
+    internal long Generation
     {
-        return _processor.Value;
+        get
+        {
+            lock (_gate)
+            {
+                return _generation;
+            }
+        }
+    }
+
+    internal ExternalProcessorGenerationLease AcquireCurrent()
+    {
+        while (true)
+        {
+            Lazy<ExternalProcessorRuntimeEnvironment> environment;
+            long generation;
+            lock (_gate)
+            {
+                environment = _environment;
+                generation = _generation;
+            }
+
+            ExternalProcessorRuntimeEnvironment value = environment.Value;
+            lock (_gate)
+            {
+                if (ReferenceEquals(environment, _environment) &&
+                    generation == _generation)
+                {
+                    return new ExternalProcessorGenerationLease(
+                        generation,
+                        value.Processor,
+                        value.ReadinessProvider);
+                }
+            }
+        }
+    }
+
+    internal void Refresh()
+    {
+        lock (_gate)
+        {
+            _generation = checked(_generation + 1);
+            _environment = CreateGeneration();
+        }
+    }
+
+    internal bool IsCurrent(long generation)
+    {
+        lock (_gate)
+        {
+            return generation == _generation;
+        }
+    }
+
+    private Lazy<ExternalProcessorRuntimeEnvironment> CreateGeneration()
+    {
+        return new Lazy<ExternalProcessorRuntimeEnvironment>(
+            _environmentFactory,
+            LazyThreadSafetyMode.ExecutionAndPublication);
     }
 }

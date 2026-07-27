@@ -5,6 +5,12 @@ Last updated: 2026-07-21.
 
 This table defines the owner-side one-file smoke validation for CtrlRAM Replace mapping. It does not replace byte-for-byte golden output approval. It is meant to catch wrong slot, wrong range, wrong branch, and wrong postbuild-category selection before final golden parity.
 
+> **0.10.x target scope:** NT51920, NT51925, NT51930, and NT51931 rows in this
+> table are pre-#221 compatibility/evidence vectors only. They must not be used
+> to create a `0.10.x` production route, selector, family relationship, or
+> migration slice. #221 owns their removal while preserving only explicitly
+> historical provenance needed for regression traceability.
+
 ## Universal BIN
 
 Create one file at least `0x23000` bytes long. This deliberately conservative size retains coverage for the largest archived CtrlRAM input evidence. The active catalog selects no `0x23000` branch; NT51930's sole runtime profile uses the approved `0xFE00` `DiffDLM.bin` range only for the admitted `2..13` plan across Common FW `>=1.0.0`.
@@ -58,7 +64,7 @@ Ranges are TP work-image half-open ranges.
 | NT51917 | NT51927 alias, 2-chip | master slots above; right NF `[0x1F800,0x207D0)` `0xFD0`; right Normal `[0x207D0,0x237D0)` `0x3000`; right MP `[0x237D0,0x25BD0)` `0x2400`; right VN `[0x25BD0,0x27230)` `0x1660` |
 | NT51917 | NT51927 alias, 3-chip | 2-chip slots plus left NF `[0x28800,0x297D0)` `0xFD0`; left Normal `[0x297D0,0x2C7D0)` `0x3000`; left MP `[0x2C7D0,0x2EBD0)` `0x2400`; left VN `[0x2EBD0,0x30230)` `0x1660` |
 | NT51919 | NT51929/NT51932 alias, single | NF `[0x1FC00,0x21B90)` `0x1F90`; Normal `[0x21B90,0x26590)` `0x4A00`; VN `[0x26590,0x27EF0)` `0x1960` |
-| NT51919 | NT51929/NT51932 alias, cascade | single slots plus DiffDLM `[0x2D100,0x35D00)` `0x8C00` |
+| NT51919 | NT51929/NT51932 alias, cascade `N=2..8` | single slots plus `N-1` active records from `0x2D100`; each stride `0x1400`, writable DLM `0x0B90`, kept NF `0x0870`; inactive records remain reference bytes |
 | NT51920 | single | Normal master `[0x22780,0x24F80)` `0x2800`; MP master `[0x24F80,0x26680)` `0x1700`; NF `[0x2A780,0x2C710)` `0x1F90`; VN `[0x2C710,0x2D728)` `0x1018` |
 | NT51920 | cascade | single slots plus Normal slave `[0x26780,0x28F80)` `0x2800`; MP slave `[0x28F80,0x2A680)` `0x1700`; Vector `[0x2D728,0x2D980)` `0x258` |
 | NT51923 | single | Normal `[0x22800,0x26000)` `0x3800`; MP `[0x26000,0x28800)` `0x2800`; NF `[0x2A000,0x2E4B0)` `0x44B0`; VN `[0x2E800,0x2FE60)` `0x1660` |
@@ -72,7 +78,7 @@ Ranges are TP work-image half-open ranges.
 | NT51927 | 3-chip | 2-chip slots plus left NF `[0x28800,0x297D0)` `0xFD0`; left Normal `[0x297D0,0x2C7D0)` `0x3000`; left MP `[0x2C7D0,0x2EBD0)` `0x2400`; left VN `[0x2EBD0,0x30230)` `0x1660` |
 | NT51928 | non-NB, NT51927 alias | Same slots as NT51927. NB is not covered. |
 | NT51929 | NT51932 alias, single | NF `[0x1FC00,0x21B90)` `0x1F90`; Normal `[0x21B90,0x26590)` `0x4A00`; VN `[0x26590,0x27EF0)` `0x1960` |
-| NT51929 | NT51932 alias, cascade | single slots plus DiffDLM `[0x2D100,0x35D00)` `0x8C00` |
+| NT51929 | NT51932 alias, cascade `N=2..8` | single slots plus `N-1` active records from `0x2D100`; each stride `0x1400`, writable DLM `0x0B90`, kept NF `0x0870`; inactive records remain reference bytes |
 | NT51930 | sole runtime profile `[1.0.0, infinity)`, single | NF `[0x1FC00,0x21650)` `0x1A50`; Normal `[0x21650,0x24250)` `0x2C00`; MP `[0x24250,0x27650)` `0x3400`; VN `[0x27650,0x28FAE)` `0x195E` |
 | NT51930 | sole runtime profile, cascade `2..13` | single slots plus DiffDLM `[0x2F200,0x3F000)` `0xFE00` |
 | NT51930 | evidence-only 2.0.0, single | NF `[0x1FC00,0x21650)` `0x1A50`; Normal `[0x21650,0x24250)` `0x2C00`; VN `[0x27650,0x28FB0)` `0x1960` |
@@ -80,11 +86,19 @@ Ranges are TP work-image half-open ranges.
 | NT51931 | single physical-slot layout | NF `[0x16800,0x177D0)` `0xFD0`; Normal `[0x177D0,0x19FD0)` `0x2800`; MP `[0x19FD0,0x1C3D0)` `0x2400`; VN `[0x1C3D0,0x1DA30)` `0x1660` |
 | NT51931 | cascade; exact AUTO_PRJ-158 cascade-6 V2 route materialized; registered 1.13.0/51931-based parity validated | single slots plus DLM `[0x22800,0x3A400)` `0x17C00` |
 | NT51932 | single | NF `[0x1FC00,0x21B90)` `0x1F90`; Normal `[0x21B90,0x26590)` `0x4A00`; VN `[0x26590,0x27EF0)` `0x1960` |
-| NT51932 | cascade | single slots plus DiffDLM `[0x2D100,0x35D00)` `0x8C00` |
+| NT51932 | cascade `N=2..8` | single slots plus `N-1` active records from `0x2D100`; each stride `0x1400`, writable DLM `0x0B90`, kept NF `0x0870`; inactive records remain reference bytes |
 | NT51950 | single | NF `[0x22C00,0x25610)` `0x2A10`; Normal `[0x25610,0x2B210)` `0x5C00`; VN `[0x2B210,0x2D30C)` `0x20FC` |
-| NT51950 | cascade | single slots plus DiffDLM `[0x33200,0x34600)` `0x1400` |
+| NT51950 | cascade, current 2 IC | single slots plus one record at `0x33200`; writable Diff CtrlRAM `0x910`, kept Diff NF `0xAF0` |
 | NT51951 | NT51950 alias, single | Same slots as NT51950 single. |
 | NT51951 | NT51950 alias, cascade | Same slots as NT51950 cascade. |
+
+For NT51919/NT51929/NT51932 Cascade, also seed the bounded postbuild Backup
+placement area independently. The expected Backup start is
+`AlignUp(0x2D100 + (N - 1) * 0x1400, 0x1000)`. The processor chooses the
+actual location; an in-authority mismatch is a Build Report warning, not a
+DiffDLM scatter write. NT51950/NT51951 instead seed and verify the fixed
+Backup at `0x36000`, derived from their declared End Flag at `0x36FFC`;
+no count-derived placement formula applies.
 
 ## Expected Report Checks
 

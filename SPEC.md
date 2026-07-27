@@ -34,9 +34,21 @@
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
 - NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.
-- NT51950 and NT51951 expose single and generic-cascade CtrlRAM with identical TP offsets and a legacy DiffDLM outer envelope `[0x33200,0x34600)`; that envelope is not contiguous write authority until its per-IC Diff DLM/Diff NF geometry is owner-confirmed. Their 256/512 KiB container capacities remain distinct, LDC is packaged inside DP, and AB stays separate.
+- The approved `0.10.x` NT51950/NT51951 target exposes single and the
+  owner-confirmed exact
+  2-IC Cascade CtrlRAM plan with identical TP offsets. The Cascade record starts
+  at `0x33200`, uses stride `0x1400`, writes only Diff CtrlRAM
+  `[+0x000,+0x910)`, and preserves Diff NF `[+0x910,+0x1400)` from the
+  immutable reference. The legacy outer envelope `[0x33200,0x34600)` is one
+  complete record, not contiguous AE write authority. Their 256/512 KiB
+  container capacities remain distinct, LDC is packaged inside DP, and AB stays
+  separate.
 - Common FW starts at `1.0.0`. NT51926 alone has two current runtime intervals; one-profile ICs do not block on missing or future informational version values. PID never selects a route.
-- NT51930 exposes only single and `2–13`; NT51927/NT51928 expose only single/2/3. A decoded FWConfig chip count cross-checks the chosen plan and may require confirmation, but never silently chooses family or creates a plan.
+- In the pre-retirement compatibility runtime, NT51930 exposes only single and
+  `2–13`, while NT51927/NT51928 expose only single/2/3. The `0.10.x` target
+  does not migrate NT51930; #221 removes it. For every admitted route, a decoded
+  FWConfig chip count may cross-check the chosen plan and may require
+  confirmation, but never silently chooses family or creates a plan.
 
 - `v0.9.10` (`b0266f312a67d644475731153b1af82f7eadcc95`) is the only accepted predecessor for `0.9.11`. The premature `0.9.11.10` lineage is recovery evidence only and cannot be merged or released as-is.
 - The measured startup lifecycle opens a meaningful Home screen first, warms immutable catalog projections on a worker thread, then materializes common page visual trees at background dispatcher priority. Warm-up cannot navigate, read user firmware, mutate a profile, launch an external processor, select support, or acquire Build authority.
@@ -60,9 +72,21 @@
   `<= 0x40000`; oversize is a build error. NT51950/NT51951 remain the exception because they paste a
   full DP container and require exact selected-map capacity.
 - NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
-- DP Replace has a trusted V2 authoring route for all 13 selectable ICs. Gen Flash routes clone an exact same-IC Standard/Normal Reference FlashCode and replace only the canonical DP partition; NT51928 non-NB additionally requires a separate full FlashCode-shaped LDC input for `[0x40000, 0x62000)`, distinct from DP `[0x3C000, 0x40000)`. This authoring availability does not by itself grant a public support claim.
-- NT51930 currently has no `>13 IC` product target; map cascade to the `<=13 IC` DiffDLM branch (`0x2F200`, size `65024`) until owner data reactivates larger counts.
-- DiffDLM Replace treats an AE-provided DiffDLM artifact as full-stride records
+- The pre-retirement compatibility runtime has a trusted V2 DP Replace route
+  for all 13 formerly selectable ICs. The `0.10.x` target retains only the
+  non-retired profile set; #221 removes NT51920/NT51925/NT51930/NT51931 rather
+  than migrating those routes. Retained Gen Flash routes clone an exact same-IC
+  Standard/Normal Reference FlashCode and replace only the canonical DP
+  partition; NT51928 non-NB additionally requires a separate full
+  FlashCode-shaped LDC input for `[0x40000, 0x62000)`, distinct from DP
+  `[0x3C000, 0x40000)`. Authoring availability does not by itself grant a public
+  support claim.
+- NT51920, NT51925, NT51930, and NT51931 are retired from the `0.10.x`
+  production capability set by the owner-approved retirement contract. Their
+  former DiffDLM ranges remain historical evidence only and cannot be migrated,
+  inferred, or exposed by a compatibility fallback.
+- The approved `0.10.x` DiffDLM Replace target treats an AE-provided DiffDLM
+  artifact as full-stride records
   whose NF tails may contain invalid uniform filler, never as a contiguous
   replacement for an interleaved target envelope. Every DiffDLM declaration
   must bind both its writable DLM subranges
@@ -78,17 +102,42 @@
   `[recordBase + 0x0B90, recordBase + 0x1400)`. Cascade IC Count `N` requires
   exactly `N - 1` active DLM subranges, and every required `0x0B90` source
   subrange must contain more than one distinct byte; validation covers all
-  required records, not only the first. Unused trailing records have no
-  inferred firmware meaning and cannot enlarge the compiled source/read or
-  target/write set. A DiffDLM route must not expose an
-  independently writable NF selection until the NF-mode and
-  `DiffNFMerge.exe` contract is separately approved. NT51950/NT51951 require
-  the same
-  NF-preserving mechanism, but their record geometry remains evidence-required
-  and must not be inferred from the legacy outer envelope or from the
-  NT51919/NT51929/NT51932 family. Their affected DiffDLM routes remain
-  unavailable and fail closed until owner evidence binds source/target record
-  geometry, writable DLM and preserved NF masks, and IC Count applicability.
+  required records, not only the first. With target record zero at
+  `diffBase`, the active DiffDLM envelope is
+  `[diffBase, diffBase + (N - 1) * 0x1400)`. Bytes in AE records after that
+  active source prefix are inactive dummy content: they are not copied, do not
+  gain mutation authority, and cannot enlarge the compiled DiffDLM source/read
+  or scatter/write set. Every inactive target record remains byte-identical to
+  the immutable reference except for a separately declared postbuild write.
+  Only the NT51919/NT51929/NT51932 and NT51950/NT51951 families currently have
+  owner-confirmed Cascade DiffDLM records containing a preserved Diff NF
+  subrange. Those Cascade authoring routes must hide the independent NF CtrlRAM
+  selector. This is an authoring safeguard, not removal of postbuild NF
+  processing: the declared postbuild `NF_Ctrlram.bin` argument/stage remains
+  active and must use its profile-resolved, non-user-selected staged source. No
+  hidden or stale UI selection may feed it. Their Single plans, other IC
+  families, and other non-Diff-NF plans retain their declared NF selector
+  behavior. Future user-selectable NF0/NF1/... authoring and `DiffNFMerge.exe`
+  remain separately owner-gated.
+  The NT51919/NT51929/NT51932 pattern is named **Dynamic DiffDLM**:
+  postbuild—not Replace scatter—owns
+  placement of the FWConfig Backup. The runtime expected Backup start is
+  `AlignUp(diffBase + (N - 1) * 0x1400, 0x1000)`. After an attempted
+  Preview/Build, the host locates the unique NVT Backup and compares its actual
+  start with that expected address. A different actual address inside the
+  profile-declared bounded Backup-placement authority produces a Build Report
+  warning; a missing/ambiguous Backup, out-of-bounds placement, or processor
+  mutation outside declared authority still fails closed. Alignment never
+  infers the Backup length, source range, or processor write envelope.
+  NT51950/NT51951 use the same active-record/NF-preservation mechanism, but are
+  **fixed-layout DiffDLM**, not Dynamic DiffDLM. Their independent geometry is
+  target record zero `0x33200`, stride `0x1400`, writable Diff CtrlRAM
+  `[+0x000,+0x910)`, and preserved Diff NF `[+0x910,+0x1400)`. Their map fixes
+  the NVT End Flag at `0x36FFC`; its terminal `T` is `0x36FFF`, so the canonical
+  FWConfig Backup start is always `0x36000`. Postbuild copies the primary
+  FWConfig at `0x22200` into that fixed Backup; Replace does not relocate it.
+  Their current Cascade applicability is exactly 2 IC. Wider counts and the
+  NT51929-family count-derived Backup placement formula are not inferred.
 - FW Register ranges are first-class map evidence. REG Replace is represented as a pending capability over those regions, but remains without an executable profile or UI exposure until owner evidence is approved. Current executable Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
 - Merge and Replace runs must produce a report modal after Preview/Build and persist run history. The report must show each operation step, input/output hashes, IC/IC-num context, normalized ranges, external Combiner command sequence, processor result, warnings, and final artifact path.
 - Per-IC Merge/Replace flowcharts live in [`docs/architecture/ic-workflow-flowcharts.md`](docs/architecture/ic-workflow-flowcharts.md). Any change to built-in merge profiles, replace profiles, CtrlRAM postbuild catalog, 950/951 DP policy, or supported IC workflow matrix must update that reference in the same change.
@@ -115,7 +164,7 @@
 
 Merge：
 
-- `standard-merge`：固定 profile 的正常合併。Current priority covers normal DP/TP merge flows, including NT51930 flash-map evidence and NT51950/NT51951 DP Perspective golden cases, while support exposure remains gated by firmware-owner sign-off.
+- `standard-merge`：固定 profile 的正常合併。Current `0.10.x` priority covers retained normal DP/TP merge flows and NT51950/NT51951 DP Perspective golden cases. NT51930 flash-map data is pre-retirement evidence only; #221 removes its production route. Support exposure remains gated by firmware-owner sign-off.
 - `ab-merge`：固定 profile 的 A/B bank 合併、relocation 與 integrity stages。
 - `general-merge`：一或多個 BIN，使用者以 memory map drag、mapping table 或精確手動輸入設定 source/target ranges。
 
@@ -323,6 +372,18 @@ FWConfig Backup rule for all executable profiles is exactly one complete
 `00 4E 56 54` marker, with the Backup start at its terminal `T - 0xFFF`.
 Zero or multiple markers fail closed with
 `Expected exactly one NVT marker (00 4E 56 54), but found {count}.`
+
+For an NT51919/NT51929/NT51932 Cascade **Dynamic DiffDLM** run, the canonical
+runtime postcondition additionally compares this marker-derived actual Backup start
+with `AlignUp(diffBase + (IC Count - 1) * recordStride, 0x1000)`. Placement is
+performed by the declared postbuild processor, never by the Replace scatter
+plan. A mismatch inside the processor's bounded Backup-placement write
+authority is a typed Build Report warning rather than an authoring/readiness
+blocker; placement or mutation outside that authority remains a hard processor
+  failure. NT51950/NT51951 have no count-derived placement formula: their
+  declared End Flag `0x36FFC` fixes the marker-derived Backup start at
+  `0x36000`. A different location is a fixed-map/postbuild contract violation,
+  not the Dynamic DiffDLM warning case.
 
 ### 4.2 Legacy combiner.exe CRC/Header path
 
@@ -703,7 +764,18 @@ through the same profile/compiler/engine and report `saved-rule` provenance.
   approved groups。
 - General：explicit mapping inside profile-approved envelope。
 
-Current Replace implementation priority is DP Replace and CtrlRAM Replace workflows. CtrlRAM postbuild command core, trusted V2 profile wiring, and UI/report/history integration are implemented for all 31 modeled runtime interval/plan pairs across NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951. NT51919 and NT51929 follow the NT51932 reference flow; NT51928 non-NB follows NT51927 TP/CtrlRAM single/2IC/3IC authority while retaining a distinct DP/LDC image; NT51951 follows NT51950 TP authority with a distinct container capacity. Remaining release gates are per-plan direct expected-output evidence where recorded, independent R3 review, firmware-owner support promotion, canonical verification, and CI; they do not reintroduce golden identity as production admission.
+The pre-retirement compatibility runtime implemented 31 modeled CtrlRAM
+interval/plan pairs. The `0.10.x` target does not preserve that inventory:
+#221 removes NT51920/NT51925/NT51930/NT51931 and #194 must not migrate or
+re-expose them. Retained priorities are DP Replace and CtrlRAM Replace for
+NT51917, NT51919, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929,
+NT51932, NT51950, and NT51951. NT51919/NT51929 follow the NT51932 fact scope;
+NT51928 non-NB follows NT51927 TP/CtrlRAM single/2IC/3IC authority while
+retaining a distinct DP/LDC image; NT51951 follows NT51950 TP authority with a
+distinct container capacity. Remaining release gates are per-plan direct
+expected-output evidence where recorded, independent R3 review, firmware-owner
+support promotion, canonical verification, and CI; they do not reintroduce
+golden identity as production admission.
 
 ### 10.7 Dev0 C# implementation milestone
 
@@ -1248,7 +1320,34 @@ version.
 30. Runtime processor discovery is refreshable and cannot permanently cache a
     missing or invalid tool for the process lifetime. Preview may emit a
     blocked report without invoking mutation when a required dependency is
-    unavailable.
+    unavailable. Check-time Preview/Build availability itself never creates a
+    Run Report. A genuinely absent required input (`PendingInput`) blocks
+    Preview; a supplied but invalid input (`Blocked`) remains diagnostically
+    previewable while Build stays unavailable.
+
+Runtime readiness is valid only for the exact tuple `(RouteId,
+CapabilityFingerprint, ResolutionToken, AuthoringRevision,
+RuntimeDependencyGeneration)`. Every refresh receives the current
+environment-owned generation explicitly; there is no implicit/default
+generation and no revision-zero compatibility overload in the canonical
+contract. Ordinary Preview/Build attempts acquire the current coherent
+generation; they do not create a replacement generation and therefore do not
+invalidate one another. The explicit runtime-dependency refresh command
+publishes a new generation. A probe
+that finishes for an older generation is stale and cannot enable or execute
+Preview/Build. The processor executor and readiness provider used by one
+attempt come from the same generation-coherent environment lease; the executor
+continues to perform its normal manifest/hash checks at mutation time.
+
+Until #180/#194 migrate CtrlRAM authoring and execution to canonical capability
+resolution, the named CtrlRAM Workbench adapter may project its already
+executable compiled route into this readiness contract with
+`AuthoringRevision(0)`. That one-way bridge only extracts processor/tool
+references already present in the compiled plan and carries the existing route
+admission into the gate. It cannot define firmware facts, ranges, evidence, or
+publication/support, and it cannot be used as a second catalog. #180 supplies
+the real authoring revision; #194 deletes the compiled-route bridge after the
+remaining headless routes resolve through the canonical capability owner.
 
 #### Shared presentation
 
@@ -1479,8 +1578,9 @@ after the grill closes so issues do not become a competing draft specification.
   dependencies and review sizes are approved.
 - Changing any firmware range, offset, operation order, CRC/header algorithm,
   processor authority, or golden expected output through this planning spec.
-- Promoting NT51920/NT51931 DPCMI facts or any route that still lacks required
-  owner evidence.
+- Re-admitting NT51920/NT51925/NT51930/NT51931 or using their historical DPCMI,
+  map, processor, or golden facts as production authority without a new
+  owner-approved admission contract.
 - Inferring perfect-like membership, or treating an Initial-Code/TP shared
   relationship as permission to inherit another part, support, publication,
   topology, processor, or workflow fact.
@@ -1513,10 +1613,11 @@ approved specification and consistency grill
   -> implement, review, verify, and delete old ownership slice by slice
 ```
 
-NT51920/NT51931 DPCMI locator intake is closed by #177 through the owner-backed
-canonical bindings `0x3E014` and `0x3E018`. Their distinct direct-golden,
-processor, and support-promotion evidence gaps remain explicit tasks; canonical
-locator admission does not close or weaken those gates.
+Historical NT51920/NT51931 DPCMI locator evidence (`0x3E014` and `0x3E018`)
+remains traceability-only. #177 does not migrate either IC, and #221 removes
+NT51920/NT51925/NT51930/NT51931 from the `0.10.x` production capability set.
+Any later re-admission requires a new owner-approved contract and cannot be
+derived from those locators.
 
 Until #194 migrates every existing consumer, `GenFlashVersionCatalog` is a
 compatibility adapter for `WorkbenchCompositionService` inspection, slot facts,

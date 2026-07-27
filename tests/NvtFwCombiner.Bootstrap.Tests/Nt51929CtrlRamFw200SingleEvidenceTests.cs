@@ -10,7 +10,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Exact V2 route evidence from NT51929 Common FW 2.0.0 owner artifacts.</summary>
-public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
+public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
 {
     private const string OwnerExpectedSha256 = "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910";
     private const string CurrentOutputSha256 = "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f";
