@@ -1,10 +1,37 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.16 CRC/header hot-fix candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.17 DiffDLM/Diff NF hot-fix candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.16`
+Specification package version: `0.9.17`
 
-## 0.9.16 CRC/header hot-fix candidate — not published
+## 0.9.17 DiffDLM/Diff NF hot-fix candidate — not published
+
+The `0.9.17` candidate starts from official stable `v0.9.16`, peeled to
+`462590e8b993b8e42d088bc07377571a4bb9f25d`. Its only firmware behavior
+change maps active DLM prefixes for 929-like and 950-like Cascade DiffDLM
+Replace while retaining record-local Diff NF and inactive records from the
+immutable Reference. Independent Cascade NF selection is unavailable on those
+routes, but the internal Postbuild NF stage remains. Full-artifact DiffDLM
+families, Single routes, and Cascade runs without selected DiffDLM retain their
+existing behavior.
+
+Owner-approved NT51932 four-IC evidence supplies the direct byte-level golden:
+three DLM prefixes are replaced; all three active Diff NF tails and the inactive
+suffix remain Reference-owned; the final output differs from the owner expected
+image only within the 40 already-authorized CRC/header bytes. NT51950/NT51951
+have exact geometry and runtime contract tests but no direct Cascade project
+golden, so this candidate does not infer product certification or new support.
+
+Focused DiffDLM, NT51932 real-Combiner, NT51950/NT51951, selector, and
+regression tests pass locally. Canonical exact-head verification, independent
+final review, protected maintenance-branch CI, immutable candidate packaging,
+protected promotion, downloaded-asset verification, and release-owner approval
+remain required before publication. The existing release workflow accepts only
+the current protected `main`, which is already `v0.10.0`; `v0.9.17` must not be
+published by moving an older tag or by falsely identifying the `v0.10.0` main
+tree as this maintenance source.
+
+## 0.9.16 CRC/header hot-fix source
 
 The `0.9.16` branch starts from official stable `v0.9.15`, peeled to
 `008333a9c96ea65454a334824d349f3574373edd`. Feature PR 168 reviewed head

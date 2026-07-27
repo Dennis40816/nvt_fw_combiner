@@ -28,6 +28,8 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
     private const int HeaderCopyLength = 0x200;
     private const int DiffStart = 0x2D100;
     private const int DiffLength = 0x8C00;
+    private const int DiffRecordStride = 0x1400;
+    private const int DiffDlmLength = 0xB90;
 
     /// <summary>Locks the exact Standard Merge reconstruction and metadata admission facts.</summary>
     [Fact]
@@ -207,7 +209,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
         reference[checked((int)metadata.StructureStart) + FirmwareConfigLayout.ChipNumberOffset] = 1;
         File.WriteAllBytes(referencePath, reference);
-        Dictionary<string, string> slotPaths = CreateSlotPaths(evidence, referencePath);
+        Dictionary<string, string> slotPaths = CreateSlotPaths(evidence, referencePath, includeIndependentNf: true);
         Assert.True(slotPaths.Remove("replace-ctrlram-diff"));
         string outputPath = workspace.PathFor("single-output.bin");
 
@@ -301,8 +303,9 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         Assert.Equal([new ByteRange(0, Capacity)], ReadRanges(session, "ProcessorAllowedReadRanges"));
         ByteRange[] expectedWrites = [
             new(0x7100, 4), new(0x7118, 4), new(0x7128, 0x1C),
-            new(NfStart, 1758), new(NormalStart, NormalLength),
-            new(VnStart, 4120), new(HeaderCopyStart, HeaderCopyLength), new(DiffStart, DiffLength),
+            new(NormalStart, NormalLength),
+            new(VnStart, 4120), new(HeaderCopyStart, HeaderCopyLength),
+            new(DiffStart, DiffDlmLength), new(DiffStart + DiffRecordStride, DiffDlmLength),
         ];
         Assert.Equal(expectedWrites, ReadRanges(session, "ProcessorAllowedWriteRanges"));
         string executable = session.GetProperty("ExecutedCommands")[0].GetProperty("ExecutablePath").GetString()!;
@@ -394,16 +397,24 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         return report.RootElement.GetProperty("ProfileId").GetString()!;
     }
 
-    private static Dictionary<string, string> CreateSlotPaths(OwnerCase evidence, string referencePath)
+    private static Dictionary<string, string> CreateSlotPaths(
+        OwnerCase evidence,
+        string referencePath,
+        bool includeIndependentNf = false)
     {
-        return new Dictionary<string, string>(StringComparer.Ordinal)
+        var slots = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [WorkbenchSlotIds.ReplaceBase] = referencePath,
             ["replace-ctrlram-normal"] = evidence.Require("Normal_Ctrlram.bin").Path,
             ["replace-ctrlram-diff"] = evidence.Require("DiffDLM.bin").Path,
             ["replace-ctrlram-vn"] = evidence.Require("VN_Ctrlram.bin").Path,
-            ["replace-ctrlram-nf"] = evidence.Require("NF_Ctrlram.bin").Path,
         };
+        if (includeIndependentNf)
+        {
+            slots["replace-ctrlram-nf"] = evidence.Require("NF_Ctrlram.bin").Path;
+        }
+
+        return slots;
     }
 
     private static OwnerCase ReadOwnerCase()

@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>FlashCode output-name parity and immutable-inspection projection tests.</summary>
 public sealed class WorkbenchOutputNamingTests
 {
-    /// <summary>Every direct CtrlRAM owner golden exposes usable full-flash D/T naming metadata.</summary>
+    /// <summary>Every direct full-flash CtrlRAM owner golden exposes usable D/T naming metadata.</summary>
     [Fact]
     public void DirectCtrlRamGoldenBasesExposeOutputNamingMetadata()
     {
@@ -16,8 +16,15 @@ public sealed class WorkbenchOutputNamingTests
 
         foreach (JsonElement goldenCase in manifest.RootElement.GetProperty("cases").EnumerateArray())
         {
-            string icId = $"NT{goldenCase.GetProperty("ic").GetString()}";
             string caseId = goldenCase.GetProperty("caseId").GetString()!;
+            JsonElement rawCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+            if (rawCase.TryGetProperty("expectedArtifactKind", out JsonElement artifactKind) &&
+                artifactKind.GetString() == "tp-firmware")
+            {
+                continue;
+            }
+
+            string icId = $"NT{goldenCase.GetProperty("ic").GetString()}";
             WorkbenchOutputFileNameSuggestion suggestion = InspectDirectCtrlRamGolden(icId, caseId);
 
             if (!suggestion.HasDpVersion || !suggestion.HasTpVersion)

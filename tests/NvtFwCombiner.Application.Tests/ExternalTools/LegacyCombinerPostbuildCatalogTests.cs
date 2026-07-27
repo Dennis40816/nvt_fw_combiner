@@ -323,6 +323,29 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
                      block.FirmwareRange == new ByteRange(0x33200, 5120));
     }
 
+    /// <summary>The hot fix closes user NF bindings without deleting Combiner's existing NF command block.</summary>
+    [Theory]
+    [InlineData("NT51919", "cascade_2to8")]
+    [InlineData("NT51929", "cascade_2to8")]
+    [InlineData("NT51932", "cascade_2to8")]
+    [InlineData("NT51950", "cascade")]
+    [InlineData("NT51951", "cascade")]
+    public void PreserveActiveDiffNfPlansRetainPostbuildNfBlock(string icId, string number)
+    {
+        LegacyCombinerPostbuildProfile profile = Assert.Single(
+            LegacyCombinerPostbuildCatalog.GetProfiles(icId));
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            profile,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, [number]));
+
+        Assert.Contains(
+            plan.Commands.SelectMany(command => command.Blocks),
+            static block => block.SourceFileName == "NF_Ctrlram.bin");
+        Assert.Contains(
+            plan.Commands.SelectMany(command => command.Blocks),
+            static block => block.SourceFileName == "DiffDLM.bin");
+    }
+
     /// <summary>Verifies single selection does not schedule cascade-only DiffDLM blocks.</summary>
     [Fact]
     public void Nt51950SinglePlanOmitsDiffDlm()

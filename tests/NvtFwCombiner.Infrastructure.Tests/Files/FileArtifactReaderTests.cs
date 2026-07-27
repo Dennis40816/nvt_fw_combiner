@@ -35,4 +35,36 @@ public sealed class FileArtifactReaderTests
         _ = await Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
             await reader.ReadAsync(artifactPath, CancellationToken.None));
     }
+
+    /// <summary>Reads one artifact while proving it is distinct from a protected artifact.</summary>
+    [Fact]
+    public async Task ReadDistinctAsyncReadsDifferentPhysicalFiles()
+    {
+        using var workspace = TempWorkspace.Create();
+        string artifactPath = workspace.Write("input.bin", [1, 2, 3]);
+        string protectedPath = workspace.Write("base.bin", [4, 5, 6]);
+        var reader = new FileArtifactReader([workspace.Root]);
+
+        ReadOnlyMemory<byte> bytes = await reader.ReadDistinctAsync(
+            artifactPath,
+            protectedPath,
+            CancellationToken.None);
+
+        Assert.Equal([1, 2, 3], bytes.ToArray());
+    }
+
+    /// <summary>The protected snapshot read rejects two paths that resolve to one physical file.</summary>
+    [Fact]
+    public async Task ReadDistinctAsyncRejectsSamePhysicalFile()
+    {
+        using var workspace = TempWorkspace.Create();
+        string artifactPath = workspace.Write("input.bin", [1, 2, 3]);
+        var reader = new FileArtifactReader([workspace.Root]);
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await reader.ReadDistinctAsync(
+                artifactPath,
+                artifactPath,
+                CancellationToken.None));
+    }
 }

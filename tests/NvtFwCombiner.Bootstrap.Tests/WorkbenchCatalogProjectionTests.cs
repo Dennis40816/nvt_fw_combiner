@@ -8,14 +8,24 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Convergence tests for stable workbench catalog and profile projections.</summary>
 public sealed class WorkbenchCatalogProjectionTests
 {
-    /// <summary>Workbench IC and selector projections preserve catalog order, defaults, and display choices.</summary>
+    /// <summary>Workbench selectors hide retired 0.9.17 rows without deleting their internal catalog facts.</summary>
     [Fact]
     public void IcCatalogProjectionPreservesSelectableRowsAndChoices()
     {
         IReadOnlyList<string> icIds = WorkbenchCompositionService.GetSupportedIcIds();
 
-        Assert.Equal(13, icIds.Count);
-        Assert.Equal(IcSupportCatalog.IcIds, icIds);
+        Assert.Equal(10, icIds.Count);
+        Assert.Equal(
+            IcSupportCatalog.IcIds.Where(static icId =>
+                icId is not ("NT51920" or "NT51925" or "NT51930" or "NT51931")),
+            icIds);
+        Assert.DoesNotContain("NT51920", icIds);
+        Assert.DoesNotContain("NT51925", icIds);
+        Assert.DoesNotContain("NT51930", icIds);
+        Assert.DoesNotContain("NT51931", icIds);
+        Assert.True(IcSupportCatalog.TryFind("NT51920", out _));
+        Assert.True(IcSupportCatalog.TryFind("NT51930", out _));
+        Assert.True(IcSupportCatalog.TryFind("NT51931", out _));
         Assert.Equal("NT51950", WorkbenchCompositionService.GetDefaultIcId());
         Assert.Equal(
             WorkbenchCompositionService.GetNumberSelectionChoices("NT51926"),
@@ -67,7 +77,7 @@ public sealed class WorkbenchCatalogProjectionTests
 
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
         Assert.Equal(13, settings.CatalogIcCount);
-        Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
+        Assert.Equal(13, settings.StandardMergeProfileCount);
         Assert.Equal(13, settings.DpReplaceProfileCount);
         Assert.Equal(13, settings.CtrlRamReplaceAvailableIcCount);
     }
@@ -76,8 +86,8 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         Assert.Equal(
             [
-                "NT51917", "NT51919", "NT51920", "NT51923", "NT51926", "NT51927", "NT51928",
-                "NT51929", "NT51930", "NT51931", "NT51932", "NT51950", "NT51951",
+                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51929", "NT51932", "NT51950", "NT51951",
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
@@ -106,8 +116,8 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         Assert.Equal(
             [
-                "NT51917", "NT51919", "NT51920", "NT51923", "NT51926", "NT51927", "NT51928",
-                "NT51929", "NT51930", "NT51931", "NT51932", "NT51950", "NT51951",
+                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51929", "NT51932", "NT51950", "NT51951",
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 

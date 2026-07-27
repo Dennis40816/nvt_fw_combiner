@@ -6,6 +6,56 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 No unreleased changes.
 
+## [0.9.17] - 2026-07-27
+
+### Summary
+
+This compatibility hot-fix prevents Cascade DiffDLM replacement from
+overwriting record-local Diff NF data for the NT51929-like and NT51950-like
+families. It also removes retired ICs from user-facing selectors and consistently
+labels the selected artifact as `DiffDLM`. Standard Merge, DP Replace, AB Code,
+General workflows, Single-IC CtrlRAM Replace, and full-artifact DiffDLM families
+retain their existing byte behavior.
+
+### Product changes
+
+#### Preserve embedded Diff NF during Cascade DiffDLM replacement
+
+- Before → After: selected AE DiffDLM records could overwrite embedded Diff NF bytes and cause incorrect sensing behavior; the host now maps only each active record's DLM payload, keeps its Diff NF tail and all inactive records from the immutable Reference, then runs the existing CRC/Postbuild sequence.
+- Affected: CtrlRAM Replace Cascade routes for NT51919, NT51929, and NT51932 use `0x1400` records split into `0x0B90` writable DLM plus `0x0870` kept Diff NF. NT51950 and NT51951 use the owner-provided decimal split of `2320` writable DLM plus `2800` kept Diff NF for the current two-IC route.
+- Support status: Corrective and support-neutral. No new IC, topology, profile, workflow, or certification state is introduced.
+- Compatibility: NT51917/NT51923/NT51926/NT51927/NT51928 keep their complete declared DiffDLM replacement behavior. Single routes are unchanged. Cascade runs that do not select DiffDLM retain their previous IC-count resolution and replacement behavior.
+- Admission and safety: a selected mask route requires an exact IC Count from readable FWConfig or an exact numeric selection, validates every active DLM slice, rejects invalid header stride/start geometry, rejects Base/DiffDLM path aliasing, and snapshots the complete original selected input for report size/SHA identity. Independent `NF_Ctrlram.bin` selection is hidden and rejected on these Cascade routes, while the existing internal Postbuild NF stage remains active.
+- Verification: an owner-approved NT51932 four-IC golden proves three DLM-only mappings, byte-identical Reference Diff NF and inactive payload, unchanged input hashes, and byte-for-byte output agreement outside the 40 already-authorized CRC/header bytes. NT51950/NT51951 contract tests prove the `2320 + 2800` split; direct 950-family Cascade project/golden evidence is not available and is not inferred.
+
+#### Retired selector cleanup and DiffDLM naming
+
+- Before → After: NT51920, NT51925, NT51930, and NT51931 remained selectable despite their planned retirement, and the same artifact appeared as `DIFF CtrlRAM`; the shared UI/CLI IC selector now omits those four ICs and the artifact is labeled `DiffDLM`.
+- Affected: user-facing IC selection and CtrlRAM Replace slot/layout descriptions only.
+- Support status: Selector hide only. Existing 0.9.x profiles, processors, and internal catalogs are intentionally retained; full production-code removal belongs to the 0.10.x refactor.
+- Compatibility: no Memory Layout redesign, hover/detail UI, profile-family migration, or Support Matrix change is included.
+
+### Security
+
+- The selected DiffDLM and Reference are immutable snapshots. The report and Preview token identify the complete operator-selected DiffDLM rather than a synthesized buffer.
+- Active write authority consists only of explicit half-open DLM ranges. Diff NF, inactive records, DP, and unrelated firmware bytes are not writable by the new mappings.
+- Existing external-tool binding, command order, CRC algorithms, staged-copy confinement, and postbuild write verification remain unchanged.
+
+### Known issues
+
+- NT51950/NT51951 Cascade behavior has owner-approved geometry and synthetic/runtime contract coverage but no direct project golden. This hot-fix does not claim route certification or new product support from that coverage.
+- The selector-hidden NT51920/NT51925/NT51930/NT51931 implementation remains in the 0.9.x package for compatibility; complete retirement is deferred to 0.10.x.
+
+### Upgrade and rollback
+
+- Upgrade by replacing the complete previous portable folder with `NvtFwCombiner-v0.9.17-win-x64`; do not merge package contents into an older installation.
+- Saved preferences and report history require no migration. Roll back by restoring the untouched `v0.9.16` portable folder; existing firmware outputs remain ordinary BIN files.
+
+### Downloads and integrity
+
+- The stable GitHub Release publishes `NvtFwCombiner-v0.9.17-win-x64.zip`, its SPDX SBOM, provenance, candidate manifest, and outer SHA-256 list. GitHub also provides tag-derived source ZIP and TAR.GZ downloads.
+- Verify the outer checksum list and provenance source identity before distribution. The Windows x64 package is self-contained and does not require a separately installed .NET or Python runtime.
+
 ## [0.9.16] - 2026-07-24
 
 ### Summary

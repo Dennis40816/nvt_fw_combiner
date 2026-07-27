@@ -83,7 +83,9 @@ public static partial class WorkbenchCompositionService
         {
             WorkbenchReplaceModes.CtrlRam =>
             [
-                .. BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)
+                .. GetUserSelectableCtrlRamSources(icId, selection, postbuildProfile)
+                    .SelectMany(static source => source.Regions)
+                    .DistinctBy(static region => region.RegionId, StringComparer.Ordinal)
                     .OrderBy(region => region.Range.Start)
                     .Select(region => new WorkbenchMemoryMapRow(
                         FormatDisplayRange(region.Range),

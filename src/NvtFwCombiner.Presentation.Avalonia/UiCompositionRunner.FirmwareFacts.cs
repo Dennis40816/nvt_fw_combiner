@@ -36,6 +36,11 @@ public static partial class UiCompositionRunner
     {
         ArgumentNullException.ThrowIfNull(inspection);
 
+        if (inspection.BaseFirmwareArtifactKind == WorkbenchBaseFirmwareArtifactKind.TpFirmware)
+        {
+            return [];
+        }
+
         WorkbenchDpVersionMetadata? legacyMetadata = inspection.DpVersion;
         WorkbenchCmiDpCodeMetadata? cmiMetadata = inspection.CmiDpCode;
         if (legacyMetadata is null && cmiMetadata is null)

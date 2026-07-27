@@ -1,7 +1,7 @@
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -26,25 +26,41 @@ public static partial class WorkbenchCompositionService
         LegacyCombinerPostbuildProfile? postbuildProfile,
         bool hasReadableBase)
     {
-        LegacyCombinerPostbuildBranch branch = postbuildProfile is null ? LegacyCombinerPostbuildBranch.SingleChip :
-            LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, ToIcNumberSelection(number)).Branch;
         return postbuildProfile is null && hasReadableBase
             ? []
             : [
-            .. BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, ToIcNumberSelection(number), postbuildProfile)
-                    .Select(source => CreateCtrlRamReplaceInputSlot(icId, branch, source)),
+            .. GetUserSelectableCtrlRamSources(icId, ToIcNumberSelection(number), postbuildProfile)
+                    .Select(CreateCtrlRamReplaceInputSlot),
             ];
     }
 
-    private static WorkbenchReplaceInputSlot CreateCtrlRamReplaceInputSlot(
+    private static IReadOnlyList<TpCtrlRamPostbuildSource> GetUserSelectableCtrlRamSources(
         string icId,
-        LegacyCombinerPostbuildBranch branch,
-        TpCtrlRamPostbuildSource source)
+        IcNumberSelection selection,
+        LegacyCombinerPostbuildProfile? postbuildProfile)
     {
-        bool requiresDiffNfMerge = source.SourceId == "nf" &&
-            IcSupportCatalog.NormalizeIcId(icId) is
-                "NT51919" or "NT51929" or "NT51932" or "NT51950" or "NT51951" &&
-            branch == LegacyCombinerPostbuildBranch.Cascade;
+        LegacyCombinerPostbuildProfile? effectiveProfile = postbuildProfile;
+        if (effectiveProfile is null)
+        {
+            _ = TryGetDefaultPostbuildProfile(icId, out effectiveProfile);
+        }
+
+        IReadOnlyList<TpCtrlRamPostbuildSource> sources =
+            BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, selection, postbuildProfile);
+        return effectiveProfile is null ||
+            !DiffDlmNfMaskPolicy.TryResolve(
+                icId,
+                LegacyCombinerPostbuildPlanner.CreatePlan(effectiveProfile, selection).Branch,
+                out _)
+            ? sources
+            : [
+                .. sources.Where(
+                    static source => !DiffDlmNfMaskPolicy.IsIndependentNfSource(source.SourceFileName)),
+            ];
+    }
+
+    private static WorkbenchReplaceInputSlot CreateCtrlRamReplaceInputSlot(TpCtrlRamPostbuildSource source)
+    {
         string title = source.Regions.Count == 1
             ? source.Regions[0].DisplayName
             : $"{DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(source.SourceId)} (Shared)";
@@ -60,10 +76,8 @@ public static partial class WorkbenchCompositionService
         string slotId = CtrlRamSlotId(source.SourceId);
         return new WorkbenchReplaceInputSlot(
             slotId,
-            requiresDiffNfMerge ? $"{title} (DiffNFMerge output)" : title,
-            requiresDiffNfMerge
-                ? $"{description} · Cascade requires a DiffNFMerge-prebuilt NF_Ctrlram.bin; generation is not integrated."
-                : description,
+            title,
+            description,
             true,
             slotId,
             source.SourceId);

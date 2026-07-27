@@ -34,6 +34,47 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(legacyFact, cmiFact);
     }
 
+    /// <summary>TP-only bases suppress DP facts while FlashCode and unknown artifacts keep existing behavior.</summary>
+    [Fact]
+    public void DpFactsRespectBaseArtifactKind()
+    {
+        var cmi = new WorkbenchCmiDpCodeMetadata(0x00, 0x0D, 0, 0);
+        static WorkbenchFirmwareInspection Inspection(
+            WorkbenchBaseFirmwareArtifactKind artifactKind,
+            WorkbenchCmiDpCodeMetadata? cmiMetadata)
+        {
+            return new WorkbenchFirmwareInspection(
+                null,
+                null,
+                null,
+                cmiMetadata,
+                null,
+                null,
+                artifactKind);
+        }
+
+        WorkbenchFirmwareInspection tpWithoutCmi = Inspection(WorkbenchBaseFirmwareArtifactKind.TpFirmware, null);
+        Assert.Empty(UiCompositionRunner.GetDpFirmwareSlotFacts(tpWithoutCmi));
+        Assert.Empty(UiCompositionRunner.GetFirmwareSlotFacts(tpWithoutCmi, includeBaseFacts: true));
+        Assert.Empty(UiCompositionRunner.GetDpFirmwareSlotFacts(
+            Inspection(WorkbenchBaseFirmwareArtifactKind.TpFirmware, cmi)));
+
+        WorkbenchBaseFirmwareArtifactKind[] dpArtifactKinds =
+        [
+            WorkbenchBaseFirmwareArtifactKind.FlashCode,
+            WorkbenchBaseFirmwareArtifactKind.Unknown,
+        ];
+        foreach (WorkbenchBaseFirmwareArtifactKind artifactKind in dpArtifactKinds)
+        {
+            Assert.Equal(
+                new FirmwareSlotFactViewModel("DP", "Pending", true),
+                Assert.Single(UiCompositionRunner.GetDpFirmwareSlotFacts(Inspection(artifactKind, null))));
+            Assert.Equal(
+                new FirmwareSlotFactViewModel("DP", "D00-0D"),
+                Assert.Single(UiCompositionRunner.GetDpFirmwareSlotFacts(Inspection(artifactKind, cmi))));
+        }
+    }
+
     /// <summary>Verifies slot completion retains required and optional semantics for XAML state selectors.</summary>
     [Fact]
     public void FirmwareSlotCompletionToneHighlightsOnlyRequiredInputs()

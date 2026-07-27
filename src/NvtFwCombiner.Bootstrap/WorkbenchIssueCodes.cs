@@ -81,6 +81,12 @@ public static class WorkbenchIssueCodes
     /// <summary>CtrlRAM Replace has no selected replacement BIN for mapped regions.</summary>
     public const string ReplaceCtrlRamNoRegionInput = "replace.ctrlram.no-region-input";
 
+    /// <summary>A Cascade route with embedded Diff NF does not accept the legacy independent NF input.</summary>
+    public const string ReplaceCtrlRamCascadeNfInputUnsupported = "replace.ctrlram.cascade-nf-input-unsupported";
+
+    /// <summary>DiffDLM does not satisfy the active-record mask contract.</summary>
+    public const string ReplaceCtrlRamDiffDlmSourceInvalid = "replace.ctrlram.diffdlm-source-invalid";
+
     /// <summary>CtrlRAM Replace postbuild planner did not expose an approved write range.</summary>
     public const string ReplaceCtrlRamPostbuildWriteRangeMissing = "replace.ctrlram.postbuild-write-range-missing";
 

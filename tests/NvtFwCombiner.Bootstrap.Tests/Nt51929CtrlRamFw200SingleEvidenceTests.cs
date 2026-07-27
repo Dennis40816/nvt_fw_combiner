@@ -257,7 +257,7 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
             artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
     }
 
-    /// <summary>NT51919 and NT51929 bounded cascade routes consume the owner-declared DiffDLM range.</summary>
+    /// <summary>NT51919 and NT51929 cascade routes map only active DLM bytes and retain all other bytes.</summary>
     [Theory]
     [InlineData("NT51919", "nt51919-ctrlram-replace-fw1x-cascade")]
     [InlineData("NT51929", "nt51929-ctrlram-replace-fw1x-cascade")]
@@ -277,6 +277,7 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
         string diffPath = workspace.Write("DiffDLM.bin", diff);
         Dictionary<string, string> slotPaths = CreateSlotPaths(evidence, referencePath);
         slotPaths["replace-ctrlram-diff"] = diffPath;
+        Assert.True(slotPaths.Remove("replace-ctrlram-nf"));
         string outputPath = workspace.PathFor("cascade-output.bin");
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
@@ -291,7 +292,15 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
 
         Assert.True(result.Succeeded, result.ReportJson);
         byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(diff, output.AsSpan(0x2D100, diff.Length).ToArray());
+        Assert.Equal(
+            diff.AsSpan(0, 0xB90).ToArray(),
+            output.AsSpan(0x2D100, 0xB90).ToArray());
+        Assert.Equal(
+            reference.AsSpan(0x2D100 + 0xB90, 0x870).ToArray(),
+            output.AsSpan(0x2D100 + 0xB90, 0x870).ToArray());
+        Assert.Equal(
+            reference.AsSpan(0x2D100 + 0x1400, 0x8C00 - 0x1400).ToArray(),
+            output.AsSpan(0x2D100 + 0x1400, 0x8C00 - 0x1400).ToArray());
         using var report = JsonDocument.Parse(result.ReportJson);
         AssertReportIdentity(report.RootElement, expectedProfileId, icId);
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
