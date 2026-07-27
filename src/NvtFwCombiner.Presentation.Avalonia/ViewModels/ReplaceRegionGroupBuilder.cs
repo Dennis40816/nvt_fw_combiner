@@ -42,7 +42,7 @@ internal static class ReplaceRegionGroupBuilder
     private static string RegionGroupKey(string? slotId, string label)
     {
         return string.Equals(slotId, WorkbenchSlotIds.CreateReplaceCtrlRam("diff"), StringComparison.Ordinal) ||
-            label.Contains("DIFF CtrlRAM", StringComparison.OrdinalIgnoreCase)
+            label.Contains("DiffDLM", StringComparison.OrdinalIgnoreCase)
             ? ReplaceRegionGroupKeys.Cascade
             : label switch
             {

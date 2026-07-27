@@ -152,7 +152,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("unknown option '--dp'", result.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>NT51931 General Replace reports its catalog gate before input parsing.</summary>
+    /// <summary>A selector-hidden NT51931 is unavailable through the shared UI/CLI IC list.</summary>
     [Fact]
     public async Task Nt51931GeneralReplaceCommandReportsNotSupported()
     {
@@ -163,10 +163,9 @@ public sealed partial class ReplaceCliCommandTests
             "NT51931",
         ]);
 
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains(WorkbenchIssueCodes.ReplaceWorkflowNotSupported, result.Error, StringComparison.Ordinal);
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("unknown general-replace profile 'NT51931'", result.Error, StringComparison.Ordinal);
         Assert.Contains("NT51931", result.Error, StringComparison.Ordinal);
-        Assert.Contains("Not available", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("--ic-num is required", result.Error, StringComparison.Ordinal);
     }
 }

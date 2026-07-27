@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.16 hot-fix stable-release source; publication is controlled by the protected release workflow`
-> 文件版本：`0.9.16`
+> 文件狀態：`0.9.17 DiffDLM/Diff NF hot-fix candidate; publication is controlled by a protected maintenance-release workflow`
+> 文件版本：`0.9.17`
 > 基準日期：`2026-07-24`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
@@ -30,7 +30,7 @@
 
 ## 0.1 Current owner priority
 
-`0.9.16` is a focused hot-fix source derived from official `v0.9.15` peeled commit `008333a9c96ea65454a334824d349f3574373edd`. It authorizes only profile-classified Header/Header Copy and topology-applicable CtrlRAM/DLM CRC writes, corrects AB/Replace presentation state, and skips DP-only metadata inspection for TP firmware. Single-IC routes explicitly exclude cascade-only DiffDLM/DLM CRC words. Owner-supplied NT51929 single Normal CtrlRAM evidence locks the production route to four Header/Header Copy CRC words without promoting runtime support or release redistribution of the private evidence. The `0.9.15` AB function state and its certification debt otherwise remain unchanged. `0.10.0` continues to own the broader Support Matrix, error/report experience, clean-Windows UI-smoke closure, and release-workflow annotated-tag newline hardening. The canonical future sequence is [NFC Roadmap](docs/architecture/nfc_roadmap.md). Publication is permitted only after independent review, firmware-owner approval, protected CI, package verification, and release-owner approval; an omitted external gate must remain explicit rather than being described as passing.
+`0.9.17` is a compatibility hot-fix source derived from official `v0.9.16` peeled commit `462590e8b993b8e42d088bc07377571a4bb9f25d`. For NT51919/NT51929/NT51932 Cascade DiffDLM Replace, each active slave record contributes only its `0x0B90` DLM prefix; its `0x0870` Diff NF tail and every inactive record remain Reference-owned. NT51950/NT51951 use the owner-declared decimal `2320 + 2800` split for the current two-IC mask contract. A selected mask route requires an exact IC Count, validates fixed header/record geometry and every active DLM slice, snapshots the complete physical input for report identity, and rejects independent Cascade `NF_Ctrlram.bin` bindings without removing the internal Postbuild NF stage. NT51917/NT51923/NT51926/NT51927/NT51928 full-artifact DiffDLM replacement, Single routes, and Cascade runs without a selected DiffDLM retain their existing behavior. NT51920/NT51925/NT51930/NT51931 are hidden from user-facing selectors only; their 0.9.x implementation remains for compatibility. Owner-supplied NT51932 four-IC evidence is direct byte-level proof for the 929-like family; NT51950/NT51951 geometry tests do not claim a direct product golden or support promotion. Publication is permitted only after independent exact-head review, firmware-owner approval, protected CI, package verification, and release-owner approval; prior stable tags/assets are immutable.
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
 - NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.

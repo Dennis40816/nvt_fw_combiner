@@ -8,14 +8,24 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Convergence tests for stable workbench catalog and profile projections.</summary>
 public sealed class WorkbenchCatalogProjectionTests
 {
-    /// <summary>Workbench IC and selector projections preserve catalog order, defaults, and display choices.</summary>
+    /// <summary>Workbench selectors hide retired 0.9.17 rows without deleting their internal catalog facts.</summary>
     [Fact]
     public void IcCatalogProjectionPreservesSelectableRowsAndChoices()
     {
         IReadOnlyList<string> icIds = WorkbenchCompositionService.GetSupportedIcIds();
 
-        Assert.Equal(13, icIds.Count);
-        Assert.Equal(IcSupportCatalog.IcIds, icIds);
+        Assert.Equal(10, icIds.Count);
+        Assert.Equal(
+            IcSupportCatalog.IcIds.Where(static icId =>
+                icId is not ("NT51920" or "NT51925" or "NT51930" or "NT51931")),
+            icIds);
+        Assert.DoesNotContain("NT51920", icIds);
+        Assert.DoesNotContain("NT51925", icIds);
+        Assert.DoesNotContain("NT51930", icIds);
+        Assert.DoesNotContain("NT51931", icIds);
+        Assert.True(IcSupportCatalog.TryFind("NT51920", out _));
+        Assert.True(IcSupportCatalog.TryFind("NT51930", out _));
+        Assert.True(IcSupportCatalog.TryFind("NT51931", out _));
         Assert.Equal("NT51950", WorkbenchCompositionService.GetDefaultIcId());
         Assert.Equal(
             WorkbenchCompositionService.GetNumberSelectionChoices("NT51926"),

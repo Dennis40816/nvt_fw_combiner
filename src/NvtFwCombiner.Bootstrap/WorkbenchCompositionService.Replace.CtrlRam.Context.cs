@@ -100,7 +100,30 @@ public static partial class WorkbenchCompositionService
 
         if (commandPlan is not null || basePath is null)
         {
-            sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(postbuildProfile?.IcId ?? icId, selection, postbuildProfile);
+            IReadOnlyList<TpCtrlRamPostbuildSource> plannedSources =
+                BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(
+                    postbuildProfile?.IcId ?? icId,
+                    selection,
+                    postbuildProfile);
+            // Keep NF in the internal postbuild plan; only its user binding is unsupported.
+            sources = plannedSources;
+            if (commandPlan is not null &&
+                DiffDlmNfMaskPolicy.TryResolve(
+                    commandPlan.Profile.IcId,
+                    commandPlan.Branch,
+                    out _))
+            {
+                string nfSlotId = CtrlRamSlotId("nf");
+                if (slotPaths.TryGetValue(nfSlotId, out string? nfPath) &&
+                    !string.IsNullOrWhiteSpace(nfPath))
+                {
+                    validationIssues.Add(new CompositionIssue(
+                        WorkbenchIssueCodes.ReplaceCtrlRamCascadeNfInputUnsupported,
+                        "This Cascade route preserves record-local Diff NF from the base firmware and does not accept an independent NF_Ctrlram.bin input.",
+                        nfSlotId));
+                }
+            }
+
             regions = [.. sources.SelectMany(source => source.Regions)
                 .DistinctBy(region => region.RegionId, StringComparer.Ordinal)
                 .OrderBy(region => region.Range.Start)];
@@ -238,6 +261,6 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpFlashMapRegion> Regions,
         IReadOnlyList<TpCtrlRamPostbuildSource> Sources,
         IReadOnlyList<TpCtrlRamPostbuildSource> SelectedSources,
-        IReadOnlyDictionary<string, long> SelectedSourceLengths,
+        Dictionary<string, long> SelectedSourceLengths,
         IReadOnlyList<CompositionIssue> ValidationIssues);
 }

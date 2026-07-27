@@ -249,6 +249,7 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
         File.WriteAllBytes(diffPath, diffBytes);
         Dictionary<string, string> slots = CreateSlotPaths(evidence, referencePath);
         slots[WorkbenchSlotIds.CreateReplaceCtrlRam("diff")] = diffPath;
+        Assert.True(slots.Remove(WorkbenchSlotIds.CreateReplaceCtrlRam("nf")));
 
         string outputPath = workspace.PathFor("cascade.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
@@ -257,9 +258,71 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
 
         Assert.True(result.Succeeded, result.ReportJson);
         Assert.True(File.Exists(outputPath));
-        Assert.Equal(diffBytes, File.ReadAllBytes(outputPath).AsSpan(0x33200, 0x1400).ToArray());
+        byte[] output = File.ReadAllBytes(outputPath);
+        Assert.Equal(
+            diffBytes.AsSpan(0, 0x910).ToArray(),
+            output.AsSpan(0x33200, 0x910).ToArray());
+        Assert.Equal(
+            cascadeReference.AsSpan(0x33B10, 0xAF0).ToArray(),
+            output.AsSpan(0x33B10, 0xAF0).ToArray());
         using var report = JsonDocument.Parse(result.ReportJson);
         AssertReportIdentity(report.RootElement, "nt51950-ctrlram-replace-fw1x-cascade");
+    }
+
+    /// <summary>Without DiffDLM selected, the hot-fix does not narrow the existing generic Cascade route to two IC.</summary>
+    [Fact]
+    public async Task ThreeIcNormalOnlyCascadeRetainsExistingBehaviorAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-three-ic-normal-only");
+        byte[] cascadeReference = [.. evidence.Expected.Bytes];
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(cascadeReference, out FirmwareConfigMetadata metadata));
+        cascadeReference[checked((int)metadata.StructureStart + FirmwareConfigLayout.ChipNumberOffset)] = 3;
+        string referencePath = workspace.Write("cascade-reference.bin", cascadeReference);
+        Dictionary<string, string> slots = CreateSlotPaths(evidence, referencePath);
+        Assert.True(slots.Remove(WorkbenchSlotIds.CreateReplaceCtrlRam("nf")));
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51950", "cascade", slots, true, workspace.PathFor("normal-only.bin"), null,
+            new PassThroughProcessor(), TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        AssertReportIdentity(report.RootElement, "nt51950-ctrlram-replace-fw1x-cascade");
+        Assert.DoesNotContain(
+            report.RootElement.GetProperty("Operations").EnumerateArray(),
+            operation => operation.GetProperty("OperationId").GetString()!
+                .StartsWith("replace-diff-", StringComparison.Ordinal));
+    }
+
+    /// <summary>A stale or manually constructed Cascade NF binding is rejected before execution.</summary>
+    [Fact]
+    public async Task CascadeRejectsIndependentNfBindingAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade-nf-rejected");
+        byte[] cascadeReference = [.. evidence.Expected.Bytes];
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(cascadeReference, out FirmwareConfigMetadata metadata));
+        cascadeReference[checked((int)metadata.StructureStart + FirmwareConfigLayout.ChipNumberOffset)] = 2;
+        string referencePath = workspace.Write("cascade-reference.bin", cascadeReference);
+        string diffPath = workspace.Write(
+            "DiffDLM.bin",
+            [.. Enumerable.Range(0, 0x1400).Select(static index => unchecked((byte)((index * 17) + 3)))]);
+        Dictionary<string, string> slots = CreateSlotPaths(evidence, referencePath);
+        slots[WorkbenchSlotIds.CreateReplaceCtrlRam("diff")] = diffPath;
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51950", "cascade", slots, true, outputPath, null,
+            new PassThroughProcessor(), TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        Assert.False(File.Exists(outputPath));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() ==
+                WorkbenchIssueCodes.ReplaceCtrlRamCascadeNfInputUnsupported);
     }
 
     /// <summary>Proves accepted NT51950 identifiers select the same exact V2 route.</summary>

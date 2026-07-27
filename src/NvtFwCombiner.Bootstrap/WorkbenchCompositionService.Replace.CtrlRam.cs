@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -101,11 +102,50 @@ public static partial class WorkbenchCompositionService
         if (CtrlRamV2RouteRegistry.TryResolve(context.CommandPlan, out CtrlRamV2Route? route))
         {
             WorkbenchFirmwareContextSuggestion? firmware = ReadFirmwareContextSuggestion(icId, referenceBytes);
-            int topologyCount = context.CommandPlan.Selector.ResolveTopologyCount(
-                context.Selection,
-                firmware?.ChipNumber);
+            int topologyCount;
+            if (DiffDlmNfMaskPolicy.TryResolve(
+                    context.PostbuildProfile.IcId,
+                    context.CommandPlan.Branch,
+                    out DiffDlmNfGeometry? geometry) &&
+                context.SelectedSources.Any(
+                    static source => DiffDlmNfMaskPolicy.IsDiffDlmSource(source.SourceFileName)))
+            {
+                int? reportedChipCount = TryReadFirmwareConfigBackupMetadata(
+                    icId,
+                    referenceBytes,
+                    out FirmwareConfigMetadata firmwareConfig)
+                        ? firmwareConfig.ChipNumber
+                        : null;
+                if (!DiffDlmNfMaskPolicy.TryResolveTopologyCount(
+                        geometry!,
+                        context.Selection,
+                        reportedChipCount,
+                        out topologyCount,
+                        out CompositionIssue? topologyIssue))
+                {
+                    return Blocked([topologyIssue!]);
+                }
+            }
+            else
+            {
+                topologyCount = context.CommandPlan.Selector.ResolveTopologyCount(
+                    context.Selection,
+                    firmware?.ChipNumber);
+            }
+
+            if (!TryCreateCtrlRamInputSnapshots(
+                    context,
+                    topologyCount,
+                    slotPaths,
+                    out CtrlRamReplaceRunContext runtimeContext,
+                    out IReadOnlyDictionary<string, byte[]> virtualArtifacts,
+                    out IReadOnlyList<CompositionIssue> snapshotIssues))
+            {
+                return Blocked(snapshotIssues);
+            }
+
             V2CompositionPlanCompileResult v2Compile = CompileCtrlRamV2(
-                context,
+                runtimeContext,
                 route,
                 new(
                     topologyCount,
@@ -120,7 +160,7 @@ public static partial class WorkbenchCompositionService
                     v2Compile.CompiledComposition!,
                     CreateCtrlRamReplaceBindings(
                         v2Compile.CompiledComposition!,
-                        context,
+                        runtimeContext,
                         slotPaths),
                     context.BasePath!,
                     build,
@@ -128,10 +168,7 @@ public static partial class WorkbenchCompositionService
                     externalProcessor,
                     icNumberSelection: ToIcNumberSelection(context.CommandPlan.Selector.Token),
                     cancellationToken,
-                    virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)
-                    {
-                        [context.BasePath!] = referenceBytes,
-                    },
+                    virtualArtifacts,
                     progress: progress).ConfigureAwait(false);
         }
 

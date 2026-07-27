@@ -273,7 +273,7 @@
         },
         {
           "regionId": "diff",
-          "displayName": "DIFF CtrlRAM",
+          "displayName": "DiffDLM",
           "kind": "ctrlram",
           "start": 184576,
           "length": 35840,
@@ -443,7 +443,7 @@
         },
         {
           "regionId": "diff",
-          "displayName": "DIFF CtrlRAM",
+          "displayName": "DiffDLM",
           "kind": "ctrlram",
           "start": 165888,
           "length": 6144,
@@ -554,7 +554,7 @@
         },
         {
           "regionId": "diff",
-          "displayName": "DIFF CtrlRAM",
+          "displayName": "DiffDLM",
           "kind": "ctrlram",
           "start": 161792,
           "length": 10240,
@@ -1110,7 +1110,7 @@
         },
         {
           "regionId": "diff",
-          "displayName": "DIFF CtrlRAM",
+          "displayName": "DiffDLM",
           "kind": "ctrlram",
           "start": 184576,
           "length": 35840,
@@ -1202,7 +1202,7 @@
         },
         {
           "regionId": "diff",
-          "displayName": "DIFF CtrlRAM",
+          "displayName": "DiffDLM",
           "kind": "ctrlram",
           "start": 193024,
           "length": 65024,
@@ -1393,7 +1393,7 @@
         },
         {
           "regionId": "diff",
-          "displayName": "DIFF CtrlRAM",
+          "displayName": "DiffDLM",
           "kind": "ctrlram",
           "start": 184576,
           "length": 35840,
@@ -1473,7 +1473,7 @@
         },
         {
           "regionId": "diff",
-          "displayName": "DIFF CtrlRAM",
+          "displayName": "DiffDLM",
           "kind": "ctrlram",
           "start": 209408,
           "length": 5120,
@@ -1596,7 +1596,7 @@
         },
         {
           "regionId": "diff",
-          "displayName": "DIFF CtrlRAM",
+          "displayName": "DiffDLM",
           "kind": "ctrlram",
           "start": 209408,
           "length": 5120,

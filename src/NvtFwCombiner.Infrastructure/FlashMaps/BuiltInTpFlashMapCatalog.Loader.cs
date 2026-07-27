@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Infrastructure.FlashMaps;
 internal static partial class BuiltInTpFlashMapCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/flash-map.json";
-    private const string ExpectedSha256 = "a027f3d7718a36e5db66d174c4f0f512a2c3cec1c6cc3c3653774559acc79af8";
+    private const string ExpectedSha256 = "c2b6b75630a21086cb80c97c4f5f8c91c9020f0ed28aa0cebbb8fa8dc39b21c0";
     private static IReadOnlyList<TpFlashMapProfile> LoadProfiles()
     {
         string path = Path.Combine(AppContext.BaseDirectory, RelativePath.Replace('/', Path.DirectorySeparatorChar));

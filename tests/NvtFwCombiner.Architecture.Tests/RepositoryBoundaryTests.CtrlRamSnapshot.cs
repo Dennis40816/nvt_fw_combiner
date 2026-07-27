@@ -9,6 +9,7 @@ public sealed partial class RepositoryBoundaryTests
         string context = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Context.cs");
         string v2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
         string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
+        string snapshots = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.DiffDlm.cs");
 
         Assert.Contains("baseBytes = TryReadFirmwareImage(basePath)", context, StringComparison.Ordinal);
         Assert.Contains("FirmwareArtifactPayload referencePayload", v2, StringComparison.Ordinal);
@@ -16,7 +17,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("byte[] referenceBytes = context.BaseBytes", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("requiredBaseSha256", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("referencePayload.Sha256", runner, StringComparison.Ordinal);
-        Assert.Contains("virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)", runner, StringComparison.Ordinal);
-        Assert.Contains("[context.BasePath!] = referenceBytes", runner, StringComparison.Ordinal);
+        Assert.Contains("TryCreateCtrlRamInputSnapshots(", runner, StringComparison.Ordinal);
+        Assert.Contains("var artifacts = new Dictionary<string, byte[]>(StringComparer.Ordinal)", snapshots, StringComparison.Ordinal);
+        Assert.Contains("[context.BasePath!] = context.BaseBytes!", snapshots, StringComparison.Ordinal);
     }
 }

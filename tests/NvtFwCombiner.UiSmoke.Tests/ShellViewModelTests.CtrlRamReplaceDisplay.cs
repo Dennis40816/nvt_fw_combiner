@@ -111,16 +111,18 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(["Cascade", "Common"], viewModel.ReplaceSlotGroups.Select(group => group.Title));
         FirmwareSlotGroupViewModel cascade = viewModel.ReplaceSlotGroups[0];
         FirmwareSlotGroupViewModel common = viewModel.ReplaceSlotGroups[1];
-        Assert.Contains(cascade.Slots, slot => slot.Title == "DIFF CtrlRAM");
-        Assert.DoesNotContain(common.Slots, slot => slot.Title == "DIFF CtrlRAM");
+        Assert.Contains(cascade.Slots, slot => slot.Title == "DiffDLM");
+        Assert.DoesNotContain(common.Slots, slot => slot.Title == "DiffDLM");
+        Assert.DoesNotContain(viewModel.ReplaceSlots, slot => slot.SlotId == "replace-ctrlram-nf");
         Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
             group.Title == "Cascade" &&
-            group.Segments.Any(segment => segment.SourceLabel == "DIFF CtrlRAM"));
+            group.Segments.Any(segment => segment.SourceLabel == "DiffDLM"));
         Assert.DoesNotContain(viewModel.ReplaceSlotGroups, group => group.Title == "Single IC");
 
         viewModel.SelectedNumber = "single";
 
-        Assert.DoesNotContain(viewModel.ReplaceSlots, slot => slot.Title == "DIFF CtrlRAM");
+        Assert.DoesNotContain(viewModel.ReplaceSlots, slot => slot.Title == "DiffDLM");
+        Assert.Contains(viewModel.ReplaceSlots, slot => slot.SlotId == "replace-ctrlram-nf");
         Assert.Equal("Common", Assert.Single(viewModel.ReplaceSlotGroups).Title);
     }
 
@@ -138,7 +140,7 @@ public sealed partial class ShellViewModelTests
         Assert.DoesNotContain(viewModel.ReplaceSlotGroups[1].Slots, slot => slot.SlotId == "replace-ctrlram-diff");
         Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
             group.Title == "Cascade" &&
-            group.Segments.Any(segment => segment.SourceLabel == "DIFF CtrlRAM"));
+            group.Segments.Any(segment => segment.SourceLabel == "DiffDLM"));
     }
 
     /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes physical shared and per-chip inputs.</summary>

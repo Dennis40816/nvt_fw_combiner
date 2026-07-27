@@ -166,6 +166,7 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         string diffPath = workspace.Write("DiffDLM.bin", diffBytes);
         Dictionary<string, string> slots = CreateSlotPaths(evidence, referencePath);
         slots[WorkbenchSlotIds.CreateReplaceCtrlRam("diff")] = diffPath;
+        Assert.True(slots.Remove(WorkbenchSlotIds.CreateReplaceCtrlRam("nf")));
 
         string outputPath = workspace.PathFor("cascade.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
@@ -175,7 +176,12 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         Assert.True(result.Succeeded, result.ReportJson);
         Assert.True(File.Exists(outputPath));
         byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(diffBytes, output.AsSpan(0x33200, 0x1400).ToArray());
+        Assert.Equal(
+            diffBytes.AsSpan(0, 0x910).ToArray(),
+            output.AsSpan(0x33200, 0x910).ToArray());
+        Assert.Equal(
+            cascadeReference.AsSpan(0x33B10, 0xAF0).ToArray(),
+            output.AsSpan(0x33B10, 0xAF0).ToArray());
         Assert.Equal(cascadeReference.AsSpan(0x34600).ToArray(), output.AsSpan(0x34600).ToArray());
         using var report = JsonDocument.Parse(result.ReportJson);
         AssertReportIdentity(report.RootElement, "nt51951-ctrlram-replace-fw1x-cascade");

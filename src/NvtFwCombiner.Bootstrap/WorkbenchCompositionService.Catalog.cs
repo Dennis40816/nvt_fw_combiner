@@ -12,6 +12,11 @@ public static partial class WorkbenchCompositionService
 {
     internal const string StandardMergeFallbackOutputFileName = "nvt-fw-combiner-output.bin";
 
+    private static readonly ReadOnlyCollection<string> s_selectableIcIds = Array.AsReadOnly(
+        IcSupportCatalog.IcIds
+            .Where(static icId => icId is not ("NT51920" or "NT51925" or "NT51930" or "NT51931"))
+            .ToArray());
+
     private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_standardMergeProfileSummaries = new(() =>
         Array.AsReadOnly(BuiltInV2RegistrationRegistry.StandardMerge
             .Select(static registration => registration.CreateProfileSummary())
@@ -33,7 +38,7 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets selectable IC ids from the IC support catalog.</summary>
     public static IReadOnlyList<string> GetSupportedIcIds()
     {
-        return IcSupportCatalog.IcIds;
+        return s_selectableIcIds;
     }
 
     /// <summary>Gets the catalog-owned initial IC id for shell/workbench surfaces.</summary>
