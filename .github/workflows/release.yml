@@ -520,6 +520,11 @@ jobs:
           $state = python $env:NFC_RELEASE_POLICY probe-resource --endpoint $endpoint
           if ($LASTEXITCODE -ne 0) { throw 'Stable tag state could not be proved.' }
           if ($state.Trim() -eq 'absent') {
+            $currentSourceHead = gh api `
+              "repos/$env:NFC_REPOSITORY/git/ref/heads/$env:NFC_SOURCE_BRANCH" --jq .object.sha
+            if ($LASTEXITCODE -ne 0 -or $currentSourceHead.Trim() -ne $env:NFC_SOURCE_SHA) {
+              throw 'The selected release branch advanced before tag creation.'
+            }
             $tagObject = gh api --method POST "repos/$env:NFC_REPOSITORY/git/tags" `
               -f "tag=$env:NFC_TAG" -f "message=$tagMessage" `
               -f "object=$env:NFC_SOURCE_SHA" -f 'type=commit' --jq .sha
@@ -689,7 +694,7 @@ jobs:
           $fresh = Join-Path $env:RUNNER_TEMP 'published-package-smoke'
           New-Item -ItemType Directory -Force -Path $fresh | Out-Null
           gh release download $env:NFC_TAG --repo $env:NFC_REPOSITORY --dir $fresh `
-            --pattern "NvtFwCombiner-$env:NFC_TAG-win-x64.zip"
+            --pattern "NvtFwCombiner-$env:NFC_TAG-win-x64*"
           if ($LASTEXITCODE -ne 0) { throw 'Published package could not be downloaded for smoke.' }
       - name: Smoke published package without a GitHub token
         shell: pwsh

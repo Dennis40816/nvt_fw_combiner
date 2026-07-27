@@ -78,6 +78,9 @@ is the final tag confirmation. After approval, a narrow job receives
 7. downloads the published Windows assets into a fresh directory, compares all
    digests/provenance identity.
 
+The selected branch head is read again immediately before the first tag-object
+mutation; any advancement after candidate preparation fails closed.
+
 A separate `contents: read` job then downloads the published package and runs
 the protected-main smoke tool. Download and execution are separate steps; the
 package execution step receives neither `GH_TOKEN` nor `GITHUB_TOKEN`.

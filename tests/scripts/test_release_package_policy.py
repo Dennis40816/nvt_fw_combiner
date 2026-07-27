@@ -416,6 +416,19 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "(Test-Path Env:GH_TOKEN) -or (Test-Path Env:GITHUB_TOKEN)",
             published_smoke,
         )
+        self.assertIn(
+            '--pattern "NvtFwCombiner-$env:NFC_TAG-win-x64*"',
+            published_smoke,
+        )
+        absent_index = promote.index("if ($state.Trim() -eq 'absent')")
+        head_recheck_index = promote.index(
+            "git/ref/heads/$env:NFC_SOURCE_BRANCH", absent_index
+        )
+        tag_create_index = promote.index(
+            'gh api --method POST "repos/$env:NFC_REPOSITORY/git/tags"',
+            absent_index,
+        )
+        self.assertLess(head_recheck_index, tag_create_index)
 
     def test_stable_candidate_permits_only_recoverable_tag_and_release_states(
         self,

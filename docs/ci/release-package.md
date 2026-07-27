@@ -103,14 +103,16 @@ peeled commit plus Release state/body, verifies GitHub-generated source
 archives, downloads every published asset into a fresh directory, compares the
 exact name set and digests. The write-token job never checks out or executes the
 selected product source. A separate `contents: read` job downloads the
-published ZIP, then runs protected-main smoke tooling in a second step where
-neither `GH_TOKEN` nor `GITHUB_TOKEN` is exposed. A pre-approval failure creates
-no tag. If promotion fails after tag creation, rerun only the failed promotion
-job in the same workflow run so the original run id and artifact digest remain
-authoritative; zero-, one-, or multi-asset partial Releases recover by
-uploading only missing assets. Any moved/lightweight tag, conflicting body,
-extra name, or conflicting byte fails closed. A new workflow run cannot reuse
-the old stable version.
+published ZIP plus its adjacent SPDX and provenance sidecars, then runs
+protected-main smoke tooling in a second step where neither `GH_TOKEN` nor
+`GITHUB_TOKEN` is exposed. The write-token job rereads the selected branch head
+immediately before creating a new tag object and fails if it advanced. A
+pre-approval failure creates no tag. If promotion fails after tag creation,
+rerun only the failed promotion job in the same workflow run so the original
+run id and artifact digest remain authoritative; zero-, one-, or multi-asset
+partial Releases recover by uploading only missing assets. Any
+moved/lightweight tag, conflicting body, extra name, or conflicting byte fails
+closed. A new workflow run cannot reuse the old stable version.
 
 Both package paths run `smoke-release.ps1 -SkipUiLaunch` before upload or publication. This checks that materialized built-in profile paths use the `builtInProfile` role and include bundle manifests, checks the exact approved external-tool paths, verifies manifest/hashes and sidecars, and runs the worker self-test. It does not satisfy the visible startup or clean-machine gate.
 
