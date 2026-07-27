@@ -27,6 +27,8 @@ permissions:
 # final merged PR/current-head review/required checks for an exact selected
 # release-branch head. Product source is current main or the explicit
 # 0.9.17/0.9.17 maintenance pair. Release-environment approval unlocks the only
-# contents:write job, which creates one annotated tag and publishes the already
-# verified, manifest-bound closed asset set. A failed promotion is recovered
-# only by rerunning the failed job in that same run.
+# contents:write job, which uses protected-main tooling only, creates one
+# annotated tag, and publishes the already verified, manifest-bound closed asset
+# set. A separate read-only, token-free execution step smokes the published
+# package. A failed promotion is recovered only by rerunning the failed job in
+# that same run.

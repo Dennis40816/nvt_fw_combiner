@@ -353,11 +353,11 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("$reviewedCommitPattern =", release_workflow)
         self.assertIn("[regex]::IsMatch(", release_workflow)
         self.assertNotIn("$reviewedCommitMarker =", release_workflow)
-        self.assertEqual(2, release_workflow.count("git rev-parse 'HEAD^{tree}'"))
+        self.assertEqual(1, release_workflow.count("git rev-parse 'HEAD^{tree}'"))
         self.assertNotIn("git rev-parse HEAD^{tree}", release_workflow)
         self.assertIn("codexReview = if ($codexReview.Count -eq 1)", release_workflow)
         self.assertIn(
-            "NFC_RELEASE_POLICY: ./.release-authority/scripts/release_promotion_policy.py",
+            "NFC_RELEASE_POLICY: ./scripts/release_promotion_policy.py",
             release_workflow,
         )
         self.assertIn(
@@ -390,6 +390,31 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             release_workflow.index("actions/setup-python@"),
             first_policy_call,
             "release-authoritative Python policy must use the pinned interpreter",
+        )
+
+    def test_write_token_job_never_checks_out_or_executes_maintenance_code(
+        self,
+    ) -> None:
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        promote_start = release.index("\n  promote:")
+        smoke_start = release.index("\n  published-smoke:", promote_start)
+        promote = release[promote_start:smoke_start]
+        published_smoke = release[smoke_start:]
+
+        self.assertNotIn("Checkout prepared source", promote)
+        self.assertNotIn("smoke-release.ps1", promote)
+        self.assertIn("ref: main", promote)
+        self.assertIn(
+            'gh api "repos/$env:NFC_REPOSITORY/git/commits/$env:NFC_SOURCE_SHA"',
+            promote,
+        )
+        self.assertIn("contents: read", published_smoke)
+        self.assertIn(
+            "Smoke published package without a GitHub token", published_smoke
+        )
+        self.assertIn(
+            "(Test-Path Env:GH_TOKEN) -or (Test-Path Env:GITHUB_TOKEN)",
+            published_smoke,
         )
 
     def test_stable_candidate_permits_only_recoverable_tag_and_release_states(

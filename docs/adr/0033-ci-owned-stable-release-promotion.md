@@ -76,7 +76,11 @@ is the final tag confirmation. After approval, a narrow job receives
 5. publishes the already verified immutable candidate assets and complete notes;
 6. confirms GitHub's tag-derived source ZIP and tar.gz downloads resolve; and
 7. downloads the published Windows assets into a fresh directory, compares all
-   digests/provenance identity, and runs the release smoke again.
+   digests/provenance identity.
+
+A separate `contents: read` job then downloads the published package and runs
+the protected-main smoke tool. Download and execution are separate steps; the
+package execution step receives neither `GH_TOKEN` nor `GITHUB_TOKEN`.
 
 The stable publishing steps therefore run only after an immutable tag exists,
 even though CI rather than a local operator creates that tag.
@@ -87,6 +91,10 @@ even though CI rather than a local operator creates that tag.
   job receives `contents: write`.
 - Pull-request code never receives release secrets, a write token, or access to
   the protected release environment.
+- The `contents: write` job never checks out or executes product-source code.
+  It observes the source commit/tree through GitHub and invokes only the
+  protected-main policy. Candidate binaries run only in the later token-free,
+  read-only smoke job.
 - A maintenance source is accepted only through an explicit branch/version
   allowlist, an exact merged PR targeting that branch, exact-head required
   checks/review evidence, and the same protected release approval. It gains no

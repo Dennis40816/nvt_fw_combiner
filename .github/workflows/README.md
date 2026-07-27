@@ -21,11 +21,14 @@ to remain current protected `main`. Same-run recovery of an exact tag permits
 later source-branch advancement only while the source stays reachable.
 Promotion creates or exactly verifies the annotated stable tag, publishes the
 prepared assets and CHANGELOG-derived notes, then revalidates tag/Release
-metadata and the downloaded release. If promotion fails after tag creation,
-rerun only the failed promotion job in the same workflow run; zero/one/multi-
-asset partial states may add only missing matching assets, while tags and
-conflicting assets are never moved or overwritten. Development or local tags
-never publish a release.
+metadata and the downloaded release. The write-token job checks out only
+protected-main authority and never executes candidate code. A subsequent
+`contents: read` job downloads the package and runs protected-main smoke tooling
+in a token-free execution step. If promotion fails after tag creation, rerun
+only the failed promotion job in the same workflow run; zero/one/multi-asset
+partial states may add only missing matching assets, while tags and conflicting
+assets are never moved or overwritten. Development or local tags never publish
+a release.
 
 `main-package.yml` is a manual preview only. Ordinary `main` pushes no longer spend Windows minutes packaging or create fallback prereleases. Draft pull requests run the policy check; the Python and .NET matrices start when the PR becomes review-ready, while all `main` pushes retain the complete CI matrix.
 

@@ -413,21 +413,14 @@ jobs:
     timeout-minutes: 30
     environment: release
     env:
-      NFC_RELEASE_POLICY: ./.release-authority/scripts/release_promotion_policy.py
+      NFC_RELEASE_POLICY: ./scripts/release_promotion_policy.py
     permissions:
       contents: write
     steps:
-      - name: Checkout prepared source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          ref: ${{ needs.candidate.outputs.source-sha }}
-          fetch-depth: 0
-          persist-credentials: false
       - name: Checkout protected release authority
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: main
-          path: .release-authority
           fetch-depth: 0
           persist-credentials: false
       - name: Setup pinned Python for release policy
@@ -446,22 +439,25 @@ jobs:
           NFC_SOURCE_VERSION: ${{ needs.candidate.outputs.version }}
           NFC_WORKFLOW_SHA: ${{ needs.candidate.outputs.workflow-sha }}
         run: |
-          $sourceSha = git rev-parse HEAD
-          $sourceTree = git rev-parse 'HEAD^{tree}'
-          $mainSha = git -C .release-authority rev-parse HEAD
+          $mainSha = git rev-parse HEAD
           $sourceBranchRef = "refs/remotes/origin/$env:NFC_SOURCE_BRANCH"
-          $sourceBranchSha = git -C .release-authority rev-parse --verify $sourceBranchRef
+          $sourceBranchSha = git rev-parse --verify $sourceBranchRef
+          $sourceCommitText = gh api "repos/$env:NFC_REPOSITORY/git/commits/$env:NFC_SOURCE_SHA"
+          if ($LASTEXITCODE -ne 0) { throw 'Prepared source commit could not be read.' }
+          $sourceCommit = $sourceCommitText | ConvertFrom-Json
+          $observedSourceSha = [string]$sourceCommit.sha
+          $observedSourceTree = [string]$sourceCommit.tree.sha
           $endpoint = "repos/$env:NFC_REPOSITORY/git/ref/tags/$env:NFC_TAG"
           $tagState = python $env:NFC_RELEASE_POLICY probe-resource --endpoint $endpoint
           if ($LASTEXITCODE -ne 0) { throw 'Stable tag state could not be proved before promotion.' }
-          git -C .release-authority merge-base --is-ancestor $sourceSha $sourceBranchSha
+          git merge-base --is-ancestor $env:NFC_SOURCE_SHA $sourceBranchSha
           $sourceIsBranchAncestor = if ($LASTEXITCODE -eq 0) { 'true' } else { 'false' }
           python $env:NFC_RELEASE_POLICY validate-promotion-source `
             --tag-state $tagState.Trim() `
             --source-sha $env:NFC_SOURCE_SHA `
             --source-tree $env:NFC_SOURCE_TREE `
-            --checkout-sha $sourceSha `
-            --checkout-tree $sourceTree `
+            --checkout-sha $observedSourceSha `
+            --checkout-tree $observedSourceTree `
             --source-branch $env:NFC_SOURCE_BRANCH `
             --source-version $env:NFC_SOURCE_VERSION `
             --source-branch-sha $sourceBranchSha `
@@ -604,7 +600,7 @@ jobs:
             }
           }
           else { throw 'Release probe returned an unknown state.' }
-      - name: Verify published assets, source downloads, and package
+      - name: Verify published assets and source downloads
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -667,5 +663,42 @@ jobs:
           }
           Invoke-WebRequest -Uri "https://github.com/$env:NFC_REPOSITORY/archive/refs/tags/$env:NFC_TAG.zip" -Method Head | Out-Null
           Invoke-WebRequest -Uri "https://github.com/$env:NFC_REPOSITORY/archive/refs/tags/$env:NFC_TAG.tar.gz" -Method Head | Out-Null
-          ./scripts/smoke-release.ps1 `
-            -PackagePath (Join-Path $fresh "NvtFwCombiner-$env:NFC_TAG-win-x64.zip") -SkipUiLaunch
+
+  published-smoke:
+    name: release / published-smoke
+    needs:
+      - candidate
+      - promote
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout protected release authority
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.candidate.outputs.workflow-sha }}
+          persist-credentials: false
+      - name: Download published package with read-only authority
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NFC_REPOSITORY: ${{ github.repository }}
+          NFC_TAG: ${{ needs.candidate.outputs.tag }}
+        run: |
+          $fresh = Join-Path $env:RUNNER_TEMP 'published-package-smoke'
+          New-Item -ItemType Directory -Force -Path $fresh | Out-Null
+          gh release download $env:NFC_TAG --repo $env:NFC_REPOSITORY --dir $fresh `
+            --pattern "NvtFwCombiner-$env:NFC_TAG-win-x64.zip"
+          if ($LASTEXITCODE -ne 0) { throw 'Published package could not be downloaded for smoke.' }
+      - name: Smoke published package without a GitHub token
+        shell: pwsh
+        env:
+          NFC_TAG: ${{ needs.candidate.outputs.tag }}
+        run: |
+          if ((Test-Path Env:GH_TOKEN) -or (Test-Path Env:GITHUB_TOKEN)) {
+            throw 'Published package smoke must not receive a GitHub token.'
+          }
+          $package = Join-Path $env:RUNNER_TEMP `
+            "published-package-smoke/NvtFwCombiner-$env:NFC_TAG-win-x64.zip"
+          ./scripts/smoke-release.ps1 -PackagePath $package -SkipUiLaunch
