@@ -376,6 +376,43 @@ public sealed record AuthoringDerivedPublication
     public string ResultReference { get; }
 }
 
+/// <summary>Closed authoring-draft contracts admitted by session policy.</summary>
+public enum AuthoringDraftKind
+{
+    /// <summary>One typed General Merge/Replace explicit-mapping draft.</summary>
+    GeneralMapping,
+}
+
+/// <summary>
+/// Closed typed draft carried by one authoring session. Application-owned
+/// contracts must project caller state into a deeply immutable snapshot.
+/// </summary>
+public abstract record AuthoringDraftState
+{
+    /// <summary>Creates one typed draft with a stable closed-contract identity.</summary>
+    internal AuthoringDraftState(AuthoringDraftKind draftKind)
+    {
+        if (!Enum.IsDefined(draftKind))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(draftKind),
+                draftKind,
+                "Unknown authoring draft kind.");
+        }
+
+        DraftKind = draftKind;
+    }
+
+    /// <summary>Stable identity of the concrete typed draft contract.</summary>
+    public AuthoringDraftKind DraftKind { get; }
+
+    /// <summary>
+    /// Defensively projects caller-owned state before a session publishes it.
+    /// The internal abstract member closes concrete contracts to Application.
+    /// </summary>
+    internal abstract AuthoringDraftState CreateImmutableSnapshot();
+}
+
 /// <summary>Coherent immutable state consumed by UI or CLI adapters.</summary>
 public sealed class ActiveSessionSnapshot
 {
@@ -397,6 +434,8 @@ public sealed class ActiveSessionSnapshot
         IEnumerable<string> icChoices,
         IEnumerable<string> icCountChoices,
         IEnumerable<AuthoringSlotState> slots,
+        AuthoringDraftState? draftState,
+        string? draftCapabilityFingerprint,
         IEnumerable<AuthoringDerivedPublication> derivedPublications)
     {
         WorkflowId = workflowId;
@@ -412,6 +451,8 @@ public sealed class ActiveSessionSnapshot
         _icCountChoices = [.. icCountChoices];
         _slots = [.. slots];
         _derivedPublications = [.. derivedPublications];
+        DraftState = draftState;
+        DraftCapabilityFingerprint = draftCapabilityFingerprint;
         IcChoices = Array.AsReadOnly(_icChoices);
         IcCountChoices = Array.AsReadOnly(_icCountChoices);
         Slots = Array.AsReadOnly(_slots);
@@ -454,6 +495,11 @@ public sealed class ActiveSessionSnapshot
     /// <summary>Resolved slot states.</summary>
     public IReadOnlyList<AuthoringSlotState> Slots { get; }
 
+    /// <summary>Current immutable typed draft, or null when this mode has none.</summary>
+    public AuthoringDraftState? DraftState { get; }
+
+    internal string? DraftCapabilityFingerprint { get; }
+
     /// <summary>Derived result references admitted for this exact snapshot.</summary>
     public IReadOnlyList<AuthoringDerivedPublication> DerivedPublications { get; }
 }
@@ -478,6 +524,9 @@ public static class AuthoringSessionIssueCodes
 
     /// <summary>The selected slot definition is absent from the active route.</summary>
     public const string SlotUnavailable = "authoring.session.slot-unavailable";
+
+    /// <summary>The workflow does not declare authoring-draft semantics.</summary>
+    public const string DraftUnavailable = "authoring.session.draft-unavailable";
 
     /// <summary>The asynchronous result belongs to older session state.</summary>
     public const string StalePublication = "authoring.session.publication-stale";
