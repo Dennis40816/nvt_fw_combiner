@@ -27,6 +27,7 @@ retain their existing byte behavior.
 - Compatibility: NT51917/NT51923/NT51926/NT51927/NT51928 keep their complete declared DiffDLM replacement behavior. Single routes are unchanged. Cascade runs that do not select DiffDLM retain their previous IC-count resolution and replacement behavior.
 - Admission and safety: a selected mask route requires an exact IC Count from readable FWConfig or an exact numeric selection, validates every active DLM slice, rejects invalid header stride/start geometry, rejects Base/DiffDLM path aliasing, and snapshots the complete original selected input for report size/SHA identity. Independent `NF_Ctrlram.bin` selection is hidden and rejected on these Cascade routes, while the existing internal Postbuild NF stage remains active.
 - Verification: an owner-approved NT51932 four-IC golden proves three DLM-only mappings, byte-identical Reference Diff NF and inactive payload, unchanged input hashes, and byte-for-byte output agreement outside the 40 already-authorized CRC/header bytes. NT51950/NT51951 contract tests prove the `2320 + 2800` split; direct 950-family Cascade project/golden evidence is not available and is not inferred.
+- Limitations: Direct NT51950/NT51951 Cascade golden evidence remains unavailable; this hot-fix does not certify those routes or change their support status.
 
 #### Retired selector cleanup and DiffDLM naming
 
@@ -34,6 +35,8 @@ retain their existing byte behavior.
 - Affected: user-facing IC selection and CtrlRAM Replace slot/layout descriptions only.
 - Support status: Selector hide only. Existing 0.9.x profiles, processors, and internal catalogs are intentionally retained; full production-code removal belongs to the 0.10.x refactor.
 - Compatibility: no Memory Layout redesign, hover/detail UI, profile-family migration, or Support Matrix change is included.
+- Verification: UI/CLI selector contract tests cover the retired IC exclusions, and CtrlRAM presentation coverage locks the shared `DiffDLM` label.
+- Limitations: Retired profiles remain packaged and internally addressable for compatibility; full removal and related UI redesign are deferred to 0.10.x.
 
 ### Security
 
