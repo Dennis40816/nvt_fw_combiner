@@ -288,7 +288,17 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("Exact reviewed main commit", release_workflow)
+        self.assertIn("Exact reviewed release-branch head", release_workflow)
+        self.assertIn("source_branch:", release_workflow)
+        self.assertIn("- 0.9.17", release_workflow)
+        self.assertIn(
+            "NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17')",
+            release_workflow,
+        )
+        self.assertIn(
+            "$env:NFC_SOURCE_BRANCH -ne '0.9.17' -or $version -ne '0.9.17'",
+            release_workflow,
+        )
         self.assertIn("permissions:\n  contents: read", release_workflow)
         self.assertIn(
             "candidate:\n"
@@ -306,7 +316,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("environment: release", release_workflow)
         self.assertIn("contents: write", release_workflow)
         self.assertIn("scripts/render_release_notes.py", release_workflow)
-        self.assertIn("release_promotion_policy.py validate-context", release_workflow)
+        self.assertIn(
+            "python $env:NFC_RELEASE_POLICY validate-context", release_workflow
+        )
         self.assertIn("owner_self_approval_exception:", release_workflow)
         self.assertIn(
             "NFC_REPOSITORY_OWNER: ${{ github.repository_owner }}", release_workflow
@@ -341,17 +353,22 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("$reviewedCommitPattern =", release_workflow)
         self.assertIn("[regex]::IsMatch(", release_workflow)
         self.assertNotIn("$reviewedCommitMarker =", release_workflow)
-        self.assertEqual(2, release_workflow.count("git rev-parse 'HEAD^{tree}'"))
+        self.assertEqual(1, release_workflow.count("git rev-parse 'HEAD^{tree}'"))
         self.assertNotIn("git rev-parse HEAD^{tree}", release_workflow)
         self.assertIn("codexReview = if ($codexReview.Count -eq 1)", release_workflow)
         self.assertIn(
-            "release_promotion_policy.py validate-promotion-source", release_workflow
+            "NFC_RELEASE_POLICY: ./scripts/release_promotion_policy.py",
+            release_workflow,
         )
-        self.assertIn("release_promotion_policy.py validate-tag", release_workflow)
-        self.assertIn("release_promotion_policy.py validate-release", release_workflow)
-        self.assertIn("release_promotion_policy.py create-manifest", release_workflow)
-        self.assertIn("release_promotion_policy.py verify-manifest", release_workflow)
-        self.assertIn("release_promotion_policy.py plan-recovery", release_workflow)
+        self.assertIn(
+            "python $env:NFC_RELEASE_POLICY validate-promotion-source",
+            release_workflow,
+        )
+        self.assertIn("$env:NFC_RELEASE_POLICY validate-tag", release_workflow)
+        self.assertIn("$env:NFC_RELEASE_POLICY validate-release", release_workflow)
+        self.assertIn("$env:NFC_RELEASE_POLICY create-manifest", release_workflow)
+        self.assertIn("$env:NFC_RELEASE_POLICY verify-manifest", release_workflow)
+        self.assertIn("$env:NFC_RELEASE_POLICY plan-recovery", release_workflow)
         self.assertIn("review-snapshot.json", release_workflow)
         self.assertIn("artifact-digest", release_workflow)
         self.assertIn("git/tags", release_workflow)
@@ -374,6 +391,49 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             first_policy_call,
             "release-authoritative Python policy must use the pinned interpreter",
         )
+
+    def test_write_token_job_never_checks_out_or_executes_maintenance_code(
+        self,
+    ) -> None:
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        promote_start = release.index("\n  promote:")
+        smoke_start = release.index("\n  published-smoke:", promote_start)
+        promote = release[promote_start:smoke_start]
+        published_smoke = release[smoke_start:]
+
+        self.assertNotIn("Checkout prepared source", promote)
+        self.assertNotIn("smoke-release.ps1", promote)
+        self.assertIn("ref: main", promote)
+        self.assertIn(
+            'gh api "repos/$env:NFC_REPOSITORY/git/commits/$env:NFC_SOURCE_SHA"',
+            promote,
+        )
+        self.assertIn("contents: read", published_smoke)
+        self.assertIn(
+            "Smoke published package without a GitHub token", published_smoke
+        )
+        self.assertIn(
+            "(Test-Path Env:GH_TOKEN) -or (Test-Path Env:GITHUB_TOKEN)",
+            published_smoke,
+        )
+        self.assertIn(
+            '--pattern "NvtFwCombiner-$env:NFC_TAG-win-x64*"',
+            published_smoke,
+        )
+        absent_index = promote.index("if ($state.Trim() -eq 'absent')")
+        head_recheck_index = promote.index(
+            "git/ref/heads/$env:NFC_SOURCE_BRANCH", absent_index
+        )
+        tag_create_index = promote.index(
+            'gh api --method POST "repos/$env:NFC_REPOSITORY/git/tags"',
+            absent_index,
+        )
+        tag_step = promote[promote.index("- name: Create or verify immutable annotated tag") :]
+        self.assertIn(
+            "NFC_SOURCE_BRANCH: ${{ needs.candidate.outputs.source-branch }}",
+            tag_step,
+        )
+        self.assertLess(head_recheck_index, tag_create_index)
 
     def test_stable_candidate_permits_only_recoverable_tag_and_release_states(
         self,
@@ -400,7 +460,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
 
         self.assertIn("ready_for_review", ci)
-        self.assertIn("Final reviewed pull request merged as this main commit", release)
+        self.assertIn(
+            "Final reviewed pull request merged as this release-branch commit", release
+        )
         self.assertIn(
             "GitHub CLI cannot query `--required` after the final PR's head branch is closed.",
             release,

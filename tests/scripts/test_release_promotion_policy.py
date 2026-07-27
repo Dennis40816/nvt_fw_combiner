@@ -51,6 +51,8 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             "workflow_sha": SHA,
             "workflow_ref": "refs/heads/main",
             "source_sha": SHA,
+            "source_branch": "main",
+            "source_version": "0.10.0",
             "main_sha": SHA,
             "source_tree": TREE,
             "repository_owner": "release-owner",
@@ -63,6 +65,89 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             valid_snapshot(),
             **self.candidate_arguments(),
         )
+
+    def test_accepts_exact_reviewed_0917_maintenance_identity(self) -> None:
+        maintenance_sha = "5" * 40
+        snapshot = {
+            **valid_snapshot(),
+            "baseRefName": "0.9.17",
+            "mergeCommitSha": maintenance_sha,
+        }
+
+        MODULE.validate_candidate_context(
+            snapshot,
+            **{
+                **self.candidate_arguments(),
+                "requested_sha": maintenance_sha,
+                "source_sha": maintenance_sha,
+                "source_branch": "0.9.17",
+                "source_version": "0.9.17",
+            },
+        )
+
+    def test_rejects_unapproved_or_mismatched_maintenance_source(self) -> None:
+        maintenance_sha = "5" * 40
+        snapshot = {
+            **valid_snapshot(),
+            "baseRefName": "0.9.17",
+            "mergeCommitSha": maintenance_sha,
+        }
+        common = {
+            **self.candidate_arguments(),
+            "requested_sha": maintenance_sha,
+            "source_sha": maintenance_sha,
+        }
+        for source_branch, source_version in (
+            ("0.9.16", "0.9.16"),
+            ("0.9.17", "0.9.18"),
+        ):
+            with self.subTest(
+                source_branch=source_branch, source_version=source_version
+            ):
+                with self.assertRaisesRegex(ValueError, "approved maintenance"):
+                    MODULE.validate_candidate_context(
+                        snapshot,
+                        **{
+                            **common,
+                            "source_branch": source_branch,
+                            "source_version": source_version,
+                        },
+                    )
+
+    def test_rejects_release_source_sha_or_pr_base_drift(self) -> None:
+        maintenance_sha = "5" * 40
+        snapshot = {
+            **valid_snapshot(),
+            "baseRefName": "0.9.17",
+            "mergeCommitSha": maintenance_sha,
+        }
+        arguments = {
+            **self.candidate_arguments(),
+            "requested_sha": maintenance_sha,
+            "source_sha": maintenance_sha,
+            "source_branch": "0.9.17",
+            "source_version": "0.9.17",
+        }
+
+        with self.assertRaisesRegex(ValueError, "source SHAs must be identical"):
+            MODULE.validate_candidate_context(
+                snapshot,
+                **{**arguments, "requested_sha": "6" * 40},
+            )
+        with self.assertRaisesRegex(ValueError, "selected release source branch"):
+            MODULE.validate_candidate_context(
+                {**snapshot, "baseRefName": "main"},
+                **arguments,
+            )
+        with self.assertRaisesRegex(ValueError, "current protected main"):
+            MODULE.validate_candidate_context(
+                valid_snapshot(),
+                **{
+                    **self.candidate_arguments(),
+                    "requested_sha": "6" * 40,
+                    "source_sha": "6" * 40,
+                },
+            )
 
     def test_rejects_tree_review_and_required_check_drift(self) -> None:
         mutations = (
@@ -89,7 +174,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
     def test_rejects_non_main_workflow_or_stale_sha(self) -> None:
         for workflow_ref, workflow_sha, message in (
             ("refs/heads/feature", SHA, "dispatched from main"),
-            ("refs/heads/main", "3" * 40, "must be identical"),
+            ("refs/heads/main", "3" * 40, "current protected main"),
         ):
             with self.subTest(workflow_ref=workflow_ref, workflow_sha=workflow_sha):
                 with self.assertRaisesRegex(ValueError, message):
@@ -223,32 +308,57 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             "source_tree": TREE,
             "checkout_sha": SHA,
             "checkout_tree": TREE,
+            "source_branch": "main",
+            "source_version": "0.10.0",
+            "source_branch_sha": SHA,
+            "workflow_sha": SHA,
         }
         MODULE.validate_promotion_source_state(
             **common,
             tag_state="absent",
             main_sha=SHA,
-            source_is_main_ancestor=True,
+            source_is_branch_ancestor=True,
         )
-        with self.assertRaisesRegex(ValueError, "current protected main"):
+        with self.assertRaisesRegex(ValueError, "workflow authority"):
             MODULE.validate_promotion_source_state(
                 **common,
                 tag_state="absent",
                 main_sha="4" * 40,
-                source_is_main_ancestor=True,
+                source_is_branch_ancestor=True,
             )
         MODULE.validate_promotion_source_state(
             **common,
             tag_state="present",
-            main_sha="4" * 40,
-            source_is_main_ancestor=True,
+            main_sha=SHA,
+            source_is_branch_ancestor=True,
         )
-        with self.assertRaisesRegex(ValueError, "remain reachable"):
+        with self.assertRaisesRegex(ValueError, "release branch"):
             MODULE.validate_promotion_source_state(
                 **common,
                 tag_state="present",
-                main_sha="4" * 40,
-                source_is_main_ancestor=False,
+                main_sha=SHA,
+                source_is_branch_ancestor=False,
+            )
+
+    def test_maintenance_promotion_requires_exact_current_branch_head(self) -> None:
+        maintenance_sha = "5" * 40
+        common = {
+            "source_sha": maintenance_sha,
+            "source_tree": TREE,
+            "checkout_sha": maintenance_sha,
+            "checkout_tree": TREE,
+            "source_branch": "0.9.17",
+            "source_version": "0.9.17",
+            "source_branch_sha": maintenance_sha,
+            "workflow_sha": SHA,
+            "main_sha": SHA,
+            "source_is_branch_ancestor": True,
+        }
+        MODULE.validate_promotion_source_state(**common, tag_state="absent")
+        with self.assertRaisesRegex(ValueError, "current release branch head"):
+            MODULE.validate_promotion_source_state(
+                **{**common, "source_branch_sha": "6" * 40},
+                tag_state="absent",
             )
 
     def test_existing_tag_must_be_annotated_exact_and_candidate_bound(self) -> None:

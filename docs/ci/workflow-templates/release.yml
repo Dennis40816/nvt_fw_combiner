@@ -5,12 +5,16 @@ name: release
 on:
   workflow_dispatch:
     inputs:
+      source_branch:
+        description: Reviewed release source branch (main or approved maintenance)
+        required: true
+        type: string
       commit:
-        description: Exact reviewed main commit (40-character lowercase SHA)
+        description: Exact reviewed release-branch head (40-character lowercase SHA)
         required: true
         type: string
       pull_request:
-        description: Final reviewed pull request merged as this main commit
+        description: Final reviewed pull request merged as this release-branch commit
         required: true
         type: string
 
@@ -19,8 +23,12 @@ permissions:
 
 # The full executable two-phase workflow is intentionally maintained in
 # .github/workflows/release.yml. This template records its security contract:
-# candidate verifies the final merged PR/current-head review/required checks and
-# packages an exact current main SHA with read-only contents. Release-environment
-# approval unlocks the only contents:write job, which creates one annotated tag
-# and publishes the already verified, manifest-bound closed asset set. A failed
-# promotion is recovered only by rerunning the failed job in that same run.
+# candidate verifies the current protected-main workflow authority plus the
+# final merged PR/current-head review/required checks for an exact selected
+# release-branch head. Product source is current main or the explicit
+# 0.9.17/0.9.17 maintenance pair. Release-environment approval unlocks the only
+# contents:write job, which uses protected-main tooling only, creates one
+# annotated tag, and publishes the already verified, manifest-bound closed asset
+# set. A separate read-only, token-free execution step smokes the published
+# package. A failed promotion is recovered only by rerunning the failed job in
+# that same run.

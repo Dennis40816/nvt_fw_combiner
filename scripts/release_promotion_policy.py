@@ -15,6 +15,7 @@ HEX_SHA = re.compile(r"^[0-9a-f]{40}$")
 STABLE_VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 CODEX_REVIEWER = "chatgpt-codex-connector"
 CODEX_REVIEW_SOURCES = frozenset({"pull-review", "inline-comment", "issue-comment"})
+MAINTENANCE_RELEASES = {"0.9.17": "0.9.17"}
 
 
 def _require(condition: bool, message: str) -> None:
@@ -38,6 +39,21 @@ def _normalize_reviewer(value: object) -> str:
     return normalized.removesuffix("[bot]").rstrip()
 
 
+def _validate_release_source(source_branch: str, source_version: str) -> None:
+    """Allow protected main or an explicitly owner-approved maintenance release."""
+
+    _require(
+        STABLE_VERSION.fullmatch(source_version) is not None,
+        "release source VERSION must be stable SemVer",
+    )
+    if source_branch == "main":
+        return
+    _require(
+        MAINTENANCE_RELEASES.get(source_branch) == source_version,
+        "release source is not an approved maintenance branch/version",
+    )
+
+
 def validate_candidate_context(
     snapshot: dict[str, Any],
     *,
@@ -45,13 +61,15 @@ def validate_candidate_context(
     workflow_sha: str,
     workflow_ref: str,
     source_sha: str,
+    source_branch: str,
+    source_version: str,
     main_sha: str,
     source_tree: str,
     repository_owner: str,
     workflow_actor: str,
     owner_self_approval_exception: bool,
 ) -> None:
-    """Fail unless the candidate is the reviewed final PR merged at current main."""
+    """Fail unless protected main authorizes an exact reviewed release source."""
 
     for label, value in (
         ("requested SHA", requested_sha),
@@ -66,16 +84,29 @@ def validate_candidate_context(
         "release workflow must be dispatched from main",
     )
     _require(
-        len({requested_sha, workflow_sha, source_sha, main_sha}) == 1,
-        "requested, workflow, checkout, and current main SHAs must be identical",
+        workflow_sha == main_sha,
+        "workflow definition must be the current protected main SHA",
     )
+    _require(
+        requested_sha == source_sha,
+        "requested and checkout source SHAs must be identical",
+    )
+    _validate_release_source(source_branch, source_version)
+    if source_branch == "main":
+        _require(
+            source_sha == main_sha,
+            "a main release source must be the current protected main SHA",
+        )
     _require(
         isinstance(snapshot.get("number"), int) and snapshot["number"] > 0,
         "reviewed PR number is invalid",
     )
     _require(snapshot.get("state") == "MERGED", "reviewed PR must be merged")
     _require(bool(snapshot.get("mergedAt")), "reviewed PR has no merged timestamp")
-    _require(snapshot.get("baseRefName") == "main", "reviewed PR must target main")
+    _require(
+        snapshot.get("baseRefName") == source_branch,
+        "reviewed PR must target the selected release source branch",
+    )
     _require(
         snapshot.get("mergeCommitSha") == source_sha,
         "reviewed PR merge commit is not the candidate",
@@ -342,16 +373,22 @@ def validate_promotion_source_state(
     source_tree: str,
     checkout_sha: str,
     checkout_tree: str,
+    source_branch: str,
+    source_version: str,
+    source_branch_sha: str,
+    workflow_sha: str,
     main_sha: str,
-    source_is_main_ancestor: bool,
+    source_is_branch_ancestor: bool,
 ) -> None:
-    """Require current main for first publication and reachable source for recovery."""
+    """Require current release authority and an exact/reachable release source."""
 
     for label, value in (
         ("source SHA", source_sha),
         ("source tree", source_tree),
         ("checkout SHA", checkout_sha),
         ("checkout tree", checkout_tree),
+        ("source branch SHA", source_branch_sha),
+        ("workflow SHA", workflow_sha),
         ("main SHA", main_sha),
     ):
         _require_sha(value, label)
@@ -362,16 +399,26 @@ def validate_promotion_source_state(
         checkout_tree == source_tree,
         "prepared checkout tree differs from the candidate",
     )
+    _require(
+        workflow_sha == main_sha,
+        "release workflow authority is no longer current protected main",
+    )
+    _validate_release_source(source_branch, source_version)
+    if source_branch == "main":
+        _require(
+            source_branch_sha == main_sha,
+            "main release branch identity differs from protected main",
+        )
     _require(tag_state in {"absent", "present"}, "stable tag state is invalid")
     if tag_state == "absent":
         _require(
-            main_sha == source_sha,
-            "a new stable tag may be created only from current protected main",
+            source_branch_sha == source_sha,
+            "a new stable tag may be created only from the current release branch head",
         )
         return
     _require(
-        source_is_main_ancestor,
-        "a recovery candidate must remain reachable from protected main",
+        source_is_branch_ancestor,
+        "a recovery candidate must remain reachable from its release branch",
     )
 
 
@@ -605,6 +652,8 @@ def parse_args() -> argparse.Namespace:
         "workflow-sha",
         "workflow-ref",
         "source-sha",
+        "source-branch",
+        "source-version",
         "main-sha",
         "source-tree",
     ):
@@ -637,9 +686,13 @@ def parse_args() -> argparse.Namespace:
     promotion.add_argument("--source-tree", required=True)
     promotion.add_argument("--checkout-sha", required=True)
     promotion.add_argument("--checkout-tree", required=True)
+    promotion.add_argument("--source-branch", required=True)
+    promotion.add_argument("--source-version", required=True)
+    promotion.add_argument("--source-branch-sha", required=True)
+    promotion.add_argument("--workflow-sha", required=True)
     promotion.add_argument("--main-sha", required=True)
     promotion.add_argument(
-        "--source-is-main-ancestor",
+        "--source-is-branch-ancestor",
         choices=("true", "false"),
         required=True,
     )
@@ -669,6 +722,8 @@ def main() -> int:
             workflow_sha=args.workflow_sha,
             workflow_ref=args.workflow_ref,
             source_sha=args.source_sha,
+            source_branch=args.source_branch,
+            source_version=args.source_version,
             main_sha=args.main_sha,
             source_tree=args.source_tree,
             repository_owner=args.repository_owner,
@@ -706,8 +761,12 @@ def main() -> int:
             source_tree=args.source_tree,
             checkout_sha=args.checkout_sha,
             checkout_tree=args.checkout_tree,
+            source_branch=args.source_branch,
+            source_version=args.source_version,
+            source_branch_sha=args.source_branch_sha,
+            workflow_sha=args.workflow_sha,
             main_sha=args.main_sha,
-            source_is_main_ancestor=args.source_is_main_ancestor == "true",
+            source_is_branch_ancestor=args.source_is_branch_ancestor == "true",
         )
     elif args.command == "validate-tag":
         validate_existing_tag(
