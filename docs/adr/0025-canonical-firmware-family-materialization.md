@@ -4,6 +4,7 @@
 - Date: 2026-07-18
 - Owners: Architecture owner + firmware owner
 - Extends: ADR 0022
+- Amended by: ADR 0042 for the `0.10.x` retirement of NT51930
 
 ## Context
 
@@ -11,6 +12,10 @@ ADR 0022 made reviewed contract schemas single-owner source files while keeping
 every deployed profile bundle self-contained and manifest-pinned. Firmware-family
 documents are profile data, not schemas, so reusing one reviewed family snapshot
 needs a separate decision and explicit evidence boundary.
+
+ADR 0042 removes NT51930 from the `0.10.x` production capability set. The
+NT51930 statements below remain legacy materialization evidence only and do not
+authorize a target canonical route.
 
 The NT51930 logical-output General Merge candidate must bind the exact canonical
 family bytes already owned by `nt51930-standard-merge`. The NT51917 CtrlRAM

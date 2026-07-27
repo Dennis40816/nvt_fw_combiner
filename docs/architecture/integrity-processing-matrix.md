@@ -2,6 +2,16 @@
 
 This matrix records current evidence. It is not a blanket support claim. `Unknown` must never be interpreted as `None`.
 
+`0.10.x` target amendment (2026-07-27):
+
+- ADR 0042/#221 retire NT51920, NT51925, NT51930, and NT51931. Their rows and
+  ranges below remain legacy `0.9.x` evidence only and cannot become target
+  selector, processor, or Support Matrix authority.
+- For #219/#188 `PreserveActiveDiffNf` routes, composition first applies the
+  selected DiffDLM payload, then restores every active Diff NF byte from the
+  immutable reference, and only then runs CRC/Postbuild. NT51923/NT51926 and the
+  NT51927 TP family retain full-artifact DiffDLM replacement.
+
 Owner update 2026-06-30:
 
 - Replace is expected to require legacy `combiner.exe` CRC/header recalculation after the replacement mutations.

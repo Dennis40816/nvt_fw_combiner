@@ -30,13 +30,14 @@
 
 ## 0.1 Current owner priority
 
-`0.9.16` is a focused hot-fix source derived from official `v0.9.15` peeled commit `008333a9c96ea65454a334824d349f3574373edd`. It authorizes only profile-classified Header/Header Copy and topology-applicable CtrlRAM/DLM CRC writes, corrects AB/Replace presentation state, and skips DP-only metadata inspection for TP firmware. Single-IC routes explicitly exclude cascade-only DiffDLM/DLM CRC words. Owner-supplied NT51929 single Normal CtrlRAM evidence locks the production route to four Header/Header Copy CRC words without promoting runtime support or release redistribution of the private evidence. The `0.9.15` AB function state and its certification debt otherwise remain unchanged. `0.10.0` owns architecture, terminology, evidence inventory, process, validation standards, and ticket dependency planning only. The later `0.10.x` sequence owns the dependency-allocated Support Matrix, error/report experience, clean-Windows UI-smoke closure, release-workflow annotated-tag newline hardening, and production-maintainability slices. The canonical future sequence is [NFC Roadmap](docs/architecture/nfc_roadmap.md). Publication is permitted only after independent review, firmware-owner approval, protected CI, package verification, and release-owner approval; an omitted external gate must remain explicit rather than being described as passing.
+`0.9.16` is the published focused hot-fix derived from official `v0.9.15` peeled commit `008333a9c96ea65454a334824d349f3574373edd`. It authorizes only profile-classified Header/Header Copy and topology-applicable CtrlRAM/DLM CRC writes, corrects AB/Replace presentation state, and skips DP-only metadata inspection for TP firmware. Single-IC routes explicitly exclude cascade-only DiffDLM/DLM CRC words. Owner-supplied NT51929 single Normal CtrlRAM evidence locks the production route to four Header/Header Copy CRC words without promoting runtime support or release redistribution of the private evidence. The separately approved `0.9.17` compatibility hot-fix starts from official `v0.9.16` and is limited to the DiffDLM active-NF preservation and selector behavior defined below; it does not import the `0.10.x` architecture. The `0.9.15` AB function state and its certification debt otherwise remain unchanged. `0.10.0` owns architecture, terminology, evidence inventory, process, validation standards, and ticket dependency planning only. The later `0.10.x` sequence owns the dependency-allocated Support Matrix, error/report experience, clean-Windows UI-smoke closure, release-workflow annotated-tag newline hardening, and production-maintainability slices. The canonical future sequence is [NFC Roadmap](docs/architecture/nfc_roadmap.md). Publication is permitted only after independent review, firmware-owner approval, protected CI, package verification, and release-owner approval; an omitted external gate must remain explicit rather than being described as passing.
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
 - NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.
-- NT51950 and NT51951 expose single and generic-cascade CtrlRAM with identical TP offsets and a legacy DiffDLM outer envelope `[0x33200,0x34600)`; that envelope is not contiguous write authority until its per-IC Diff DLM/Diff NF geometry is owner-confirmed. Their 256/512 KiB container capacities remain distinct, LDC is packaged inside DP, and AB stays separate.
+- NT51950 and NT51951 expose single and generic-cascade CtrlRAM with identical TP offsets and a DiffDLM record at `[0x33200,0x34600)`. For the current 2-IC map, `[0x33200,0x33B10)` is writable Diff CtrlRAM and `[0x33B10,0x34600)` is reference-preserved Diff NF. Their 256/512 KiB container capacities remain distinct, LDC is packaged inside DP, and AB stays separate.
 - Common FW starts at `1.0.0`. NT51926 alone has two current runtime intervals; one-profile ICs do not block on missing or future informational version values. PID never selects a route.
-- NT51930 exposes only single and `2–13`; NT51927/NT51928 expose only single/2/3. A decoded FWConfig chip count cross-checks the chosen plan and may require confirmation, but never silently chooses family or creates a plan.
+- The owner retired NT51920, NT51925, NT51930, and NT51931 from the `0.10.x` product capability set on 2026-07-27. They must not resolve as authorable or executable UI/CLI routes, appear in the published Support Matrix, or retain production profiles/processors after #221 closes. Historical evidence and provenance may remain clearly non-production. The `0.9.17` hot-fix does not backport that deletion; it only removes those ICs from user-facing IC selectors.
+- NT51927/NT51928 expose only single/2/3. A decoded FWConfig chip count cross-checks the chosen plan and may require confirmation, but never silently chooses family or creates a plan.
 
 - `v0.9.10` (`b0266f312a67d644475731153b1af82f7eadcc95`) is the only accepted predecessor for `0.9.11`. The premature `0.9.11.10` lineage is recovery evidence only and cannot be merged or released as-is.
 - The measured startup lifecycle opens a meaningful Home screen first, warms immutable catalog projections on a worker thread, then materializes common page visual trees at background dispatcher priority. Warm-up cannot navigate, read user firmware, mutate a profile, launch an external processor, select support, or acquire Build authority.
@@ -45,8 +46,8 @@
 - Post-commit background report preparation is an explicit `0.9.10` requirement. A successful Build publishes the atomically committed output identity as soon as the BIN is usable, while complete JSON, Hex Diff, and history projection continue off the dispatcher. Preview and uncommitted failures publish no artifact, and the run retains command ownership until the complete report is ready.
 
 - AB Code architecture was re-admitted under ADR 0032 in `v0.9.14`. The `0.9.15` release scope exposes only the declared NT51919/NT51929/NT51932, NT51950 `1 IC`/`Cascade`, and selector-free NT51951 function-open profiles through the shared Application boundary. Typed profile authority, exact ranges, relocation/integrity contracts, direct golden evidence, and firmware-owner approval still gate support certification and release; metadata cannot admit, select, or promote a route.
-- NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919/NT51929/NT51932 consume one owner-declared perfect-like-family firmware definition; requested-member evidence and publication remain explicit. This direction does not infer NT51950/NT51951 ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
-- The first `v0.9.14` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect-like family whose AB layout is version-independent and whose route does not depend on IC Number. Its required/expected 512 KiB DP_AB execution span exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB have independent required/expected 256 KiB execution spans, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning. A shorter input remains Build-blocking because it does not cover the compiled required end. An oversized input is accepted only through the profile-declared declared-prefix policy, emits a warning, preserves its actual identity in the report, and ignores trailing bytes without mutating the source.
+- NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919/NT51929/NT51932 consume one owner-declared `PerfectFamilyRelationship` firmware definition; requested-member evidence and publication remain explicit. This direction does not infer NT51950/NT51951 ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
+- The first `v0.9.14` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect family whose AB layout is version-independent and whose route does not depend on IC Number. Its required/expected 512 KiB DP_AB execution span exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB have independent required/expected 256 KiB execution spans, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning. A shorter input remains Build-blocking because it does not cover the compiled required end. An oversized input is accepted only through the profile-declared declared-prefix policy, emits a warning, preserves its actual identity in the report, and ignores trailing bytes without mutating the source.
 - Firmware ranges, aliases, metadata locators, capability evidence, workflow profiles, and execution promotion must converge through the versioned family/profile bundle and one compiled composition boundary defined by ADR 0015. Migration preserves current promotion stages and blockers; map coverage never grants Build authority.
 - Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
@@ -59,36 +60,79 @@
   warning, not a build blocker. Every Standard Merge TP source must cover its declared views and be
   `<= 0x40000`; oversize is a build error. NT51950/NT51951 remain the exception because they paste a
   full DP container and require exact selected-map capacity.
-- NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
-- DP Replace has a trusted V2 authoring route for all 13 selectable ICs. Gen Flash routes clone an exact same-IC Standard/Normal Reference FlashCode and replace only the canonical DP partition; NT51928 non-NB additionally requires a separate full FlashCode-shaped LDC input for `[0x40000, 0x62000)`, distinct from DP `[0x3C000, 0x40000)`. This authoring availability does not by itself grant a public support claim.
-- NT51930 currently has no `>13 IC` product target; map cascade to the `<=13 IC` DiffDLM branch (`0x2F200`, size `65024`) until owner data reactivates larger counts.
-- DiffDLM Replace treats an AE-provided DiffDLM artifact as full-stride records
-  whose NF tails may contain invalid uniform filler, never as a contiguous
-  replacement for an interleaved target envelope. Every DiffDLM declaration
-  must bind both its writable DLM subranges
+- NT51917 and NT51927 form one owner-declared `PerfectFamilyRelationship`.
+  NT51919 follows the NT51919/NT51929/NT51932 perfect family. NT51928 non-NB
+  references only the approved NT51927 Initial Code/TP facts through
+  `SharedFactRelationship`; its LDC and complete DP/container remain distinct.
+  NT51928 NB is a separate IC and must not inherit that relationship unless
+  explicitly approved.
+- DP Replace has trusted V2 authoring routes for the remaining admitted ICs. Gen Flash routes clone an exact same-IC Standard/Normal Reference FlashCode and replace only the canonical DP partition; NT51928 non-NB additionally requires a separate full FlashCode-shaped LDC input for `[0x40000, 0x62000)`, distinct from DP `[0x3C000, 0x40000)`. This authoring availability does not by itself grant a public support claim.
+- `DiffDLM` is the canonical selected-artifact and UI slot name. A profile
+  declares exactly one replacement policy rather than deriving behavior from
+  the filename:
+  - `FullArtifactReplace` applies to NT51923, NT51926, and the NT51927 TP family
+    (NT51917 perfect-family and NT51928 TP-shared consumers). The complete
+    declared DiffDLM payload is replaced from the selected DiffDLM artifact;
+    these routes do not acquire a Diff NF preservation mask.
+  - `PreserveActiveDiffNf` applies only to the 929-like and 950-like families.
+    Their selected artifact contains full-stride records whose active Diff NF
+    tails may contain invalid filler and therefore are not mutation authority.
+  Every `PreserveActiveDiffNf` declaration must bind both its writable DLM subranges
   and its preservation-mask subranges; the non-overlapping union must exactly
-  cover each declared target record. A missing, `unknown`, overlapping, or
+  cover each active target record. A missing, `unknown`, overlapping, or
   incomplete preservation mask makes the route unavailable and cannot compile
   or Build. The compiled plan must scatter each declared source record only
   into its IC-owned Diff DLM subrange and preserve every masked byte from the
-  immutable reference; source NF bytes are never mutation authority.
-  NT51919/NT51929/NT51932 share the first owner-confirmed geometry: both source
-  and target records have stride `0x1400`, Diff DLM
-  `[recordBase, recordBase + 0x0B90)`, and preserved Diff NF
-  `[recordBase + 0x0B90, recordBase + 0x1400)`. Cascade IC Count `N` requires
-  exactly `N - 1` active DLM subranges, and every required `0x0B90` source
-  subrange must contain more than one distinct byte; validation covers all
-  required records, not only the first. Unused trailing records have no
-  inferred firmware meaning and cannot enlarge the compiled source/read or
-  target/write set. A DiffDLM route must not expose an
-  independently writable NF selection until the NF-mode and
-  `DiffNFMerge.exe` contract is separately approved. NT51950/NT51951 require
-  the same
-  NF-preserving mechanism, but their record geometry remains evidence-required
-  and must not be inferred from the legacy outer envelope or from the
-  NT51919/NT51929/NT51932 family. Their affected DiffDLM routes remain
-  unavailable and fail closed until owner evidence binds source/target record
-  geometry, writable DLM and preserved NF masks, and IC Count applicability.
+  immutable reference; source NF bytes inside active records are never mutation
+  authority.
+  The owner-confirmed record-relative geometries are:
+
+  | DiffDLM family | Members | Applicable topology / IC Count | Target record 0 | Record stride | Writable Diff CtrlRAM | Reference-preserved Diff NF | Active records |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | 929-like | NT51919, NT51929, NT51932 | Cascade, `2..8` | `0x2D100` | `0x1400` | `[+0x0000,+0x0B90)` = `0x0B90` (2960) bytes | `[+0x0B90,+0x1400)` = `0x0870` (2160) bytes | `IC Count - 1` |
+  | 950-like | NT51950, NT51951 | Cascade; current map is 2 IC / one slave record | `0x33200` | `0x1400` | `[+0x0000,+0x0910)` = `0x0910` (2320) bytes | `[+0x0910,+0x1400)` = `0x0AF0` (2800) bytes | 1 under the current 2-IC map |
+
+  Every required writable source subrange must contain more than one distinct
+  byte; validation covers every required record, not only the first. For a
+  Cascade IC Count `N`, zero-based block `0` represents IC1, the total active
+  block count is `N - 1`, and blocks `0..N-2` use masked replacement.
+  Bytes after the active prefix are an inactive passthrough: every source byte
+  actually present inside the profile-declared DiffDLM payload extent replaces
+  the same relative target byte without a Diff NF mask. A missing inactive
+  suffix leaves the immutable reference byte unchanged, and bytes beyond the
+  declared target extent are ignored with a warning and never gain write
+  authority. When the resolved route is Cascade and uses
+  `PreserveActiveDiffNf`, every independent NF selection slot is unavailable:
+  UI does not render it, and the shared Application/CLI authoring contract
+  rejects stale or manually constructed requests that bind it. This is a
+  conservative `0.10.x` fence against implying that one selected NF payload is
+  distributed into the record-local Diff NF tails. It is not merely a visual
+  hide. Single routes are not restricted by this rule, and
+  `FullArtifactReplace` Cascade routes retain their independently declared NF
+  behavior. A future `NF0`/`NF1`/... per-record model requires a separate
+  owner-approved contract before those slots can be exposed. Direct
+  `DiffNFMerge.exe` authoring remains unsupported. A
+  `DiffDLM.bin` filename or legacy outer envelope alone does not prove that a
+  record contains Diff NF; full-replacement routes retain their separately
+  declared write geometry and do not acquire a preservation mask by filename
+  inference.
+- The owner-provided NT51932 four-IC golden is the direct 929-like pilot. It
+  must prove all three active writable records change as expected, all three
+  active Diff NF tails remain byte-identical to the immutable reference, and
+  the final CRC/Postbuild output matches independently expected bytes. The
+  perfect-family relationship permits like-for-like mechanical reuse for
+  NT51919/NT51929, but requested-member evidence and publication remain
+  explicit. NT51950/NT51951 geometry does not certify behavior: a direct
+  950-like expected-output golden is still required before that preservation
+  route is promoted.
+- The `0.9.17` compatibility hot-fix stays inside the existing architecture:
+  preserve the current full DiffDLM copy, restore only the active 929-like and
+  950-like Diff NF ranges from the immutable reference, then run the existing
+  CRC/Postbuild sequence. NT51923/NT51926/NT51927-family full replacement stays
+  unchanged. The hot-fix renames the selector to `DiffDLM`, hides
+  every independent NF slot on affected Cascade mask routes, hides
+  NT51920/NT51925/NT51930/NT51931 from IC lists, and does not backport the
+  `0.10.x` family, capability, projector, or authoring-session architecture.
 - FW Register ranges are first-class map evidence. REG Replace is represented as a pending capability over those regions, but remains without an executable profile or UI exposure until owner evidence is approved. Current executable Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
 - Merge and Replace runs must produce a report modal after Preview/Build and persist run history. The report must show each operation step, input/output hashes, IC/IC-num context, normalized ranges, external Combiner command sequence, processor result, warnings, and final artifact path.
 - Per-IC Merge/Replace flowcharts live in [`docs/architecture/ic-workflow-flowcharts.md`](docs/architecture/ic-workflow-flowcharts.md). Any change to built-in merge profiles, replace profiles, CtrlRAM postbuild catalog, 950/951 DP policy, or supported IC workflow matrix must update that reference in the same change.
@@ -115,7 +159,7 @@
 
 Merge：
 
-- `standard-merge`：固定 profile 的正常合併。Current priority covers normal DP/TP merge flows, including NT51930 flash-map evidence and NT51950/NT51951 DP Perspective golden cases, while support exposure remains gated by firmware-owner sign-off.
+- `standard-merge`：固定 profile 的正常合併。Current priority covers the remaining admitted normal DP/TP merge flows, including NT51950/NT51951 DP Perspective golden cases, while support exposure remains gated by firmware-owner sign-off.
 - `ab-merge`：固定 profile 的 A/B bank 合併、relocation 與 integrity stages。
 - `general-merge`：一或多個 BIN，使用者以 memory map drag、mapping table 或精確手動輸入設定 source/target ranges。
 
@@ -703,7 +747,7 @@ through the same profile/compiler/engine and report `saved-rule` provenance.
   approved groups。
 - General：explicit mapping inside profile-approved envelope。
 
-Current Replace implementation priority is DP Replace and CtrlRAM Replace workflows. CtrlRAM postbuild command core, trusted V2 profile wiring, and UI/report/history integration are implemented for all 31 modeled runtime interval/plan pairs across NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951. NT51919 and NT51929 follow the NT51932 reference flow; NT51928 non-NB follows NT51927 TP/CtrlRAM single/2IC/3IC authority while retaining a distinct DP/LDC image; NT51951 follows NT51950 TP authority with a distinct container capacity. Remaining release gates are per-plan direct expected-output evidence where recorded, independent R3 review, firmware-owner support promotion, canonical verification, and CI; they do not reintroduce golden identity as production admission.
+Current `0.9.x` code still contains DP Replace and CtrlRAM Replace wiring for the legacy 31 interval/plan inventory. The `0.10.x` target retires NT51920, NT51925, NT51930, and NT51931 rather than migrating their capabilities. The remaining routes migrate through canonical resolution: NT51919 and NT51929 follow the NT51932 reference flow; NT51928 non-NB follows NT51927 TP/CtrlRAM single/2IC/3IC authority while retaining a distinct DP/LDC image; NT51951 follows NT51950 TP authority with a distinct container capacity. Remaining release gates are per-plan direct expected-output evidence where recorded, independent R3 review, firmware-owner support promotion, canonical verification, and CI; they do not reintroduce golden identity as production admission.
 
 ### 10.7 Dev0 C# implementation milestone
 
@@ -914,7 +958,7 @@ version.
 28. As a firmware profile author, I want the all-IC FirmwareConfig General Parameters structure modeled once and reused for typed TP FW, Common FW, PID, observed IC Count, sensor totals, Display/TP resolution, maximum-finger, report-IRQ, and outermost-IC-master facts, so that each consumer does not decode the same prefix independently.
 29. As a firmware profile author, I want TP Flash Header represented as a common metadata structure with named spans, fields, series, groups, and instances, so that inspection, relocation, integrity, copy, and reporting reference the same geometry.
 30. As a firmware profile author, I want every physically declared repeated CRC field retained while applicability marks it Active, Unused, or Unknown, so that field existence is not mistaken for mutation authority.
-31. As a firmware profile author, I want perfect-like families to own one complete firmware definition while Initial-Code/TP shared families remain named and part-scoped, so identical ICs do not duplicate semantics and partial sharing cannot leak unrelated facts.
+31. As a firmware profile author, I want `PerfectFamilyRelationship` to own one complete firmware definition while every partial relationship uses one typed, fact-scoped `SharedFactRelationship` with a readable role, so adding TP Flash Header or DiffDLM sharing does not require another relationship class and cannot leak unrelated facts.
 32. As a firmware profile author, I want symmetric AB layouts instantiated from one bank-relative definition where evidence supports it, so that A and B ranges are not duplicated.
 33. As a firmware profile author, I want irregular NT51950/NT51951 AB layouts to model only the opaque seed, required anchors, and TP paste mappings execution needs, so that the model does not invent unnecessary internal structure.
 34. As a firmware owner, I want TP BIN positions, final Flash positions, encoded Header addresses, and TP Backup placement distance to be distinct typed concepts, so that relocation cannot add an offset twice or mutate the wrong bytes.
@@ -930,18 +974,22 @@ version.
 44. As a test maintainer, I want one workflow-regression matrix projected
     from the canonical capability authority, so that selectable, executable,
     evidenced, and published routes cannot drift across independent lists.
-45. As a test maintainer, I want an executed .NET/Python coverage baseline and non-decreasing changed-module ratchet, so that test count cannot be presented as coverage.
-46. As a test maintainer, I want a changed-input oracle for every migrated mapping family, so that a self-replacement case cannot conceal a no-op implementation.
-47. As a CI maintainer, I want the canonical verifier to run safe top-level lanes with bounded concurrency and isolated logs, so that verification is faster without becoming nondeterministic.
-48. As a CI maintainer, I want a single low-memory serial fallback and measured lane timings, so that concurrency claims remain reproducible on local Windows and CI.
-49. As a reviewer, I want each refactor ticket to move one responsibility through one named compatibility seam, so that architecture, byte, UI, and deletion consequences remain reviewable.
-50. As a reviewer, I want old owners deleted only after all callers migrate and evidence classifications do not regress, so that a cleanup cannot silently remove protection.
-51. As a release owner, I want later `0.10.x` version allocation decided from an approved dependency graph, risk, evidence, and review size, so that arbitrary version buckets do not drive architecture.
-52. As a future IC-authoring UI designer, I want trusted bundles to use typed IDs, hashes, versions, and reviewable candidates, so that UI-assisted authoring can be added later without allowing runtime self-promotion.
-53. As a migration reviewer, I want every characterized behavior classified
+45. As a firmware operator, I want DiffDLM shown as one compact Memory Layout
+    segment whose hover/focus card says how many active Diff NF segments are
+    kept and can disclose their exact IC/block/source/target ranges, so internal
+    masking remains inspectable without splitting the primary layout bar.
+46. As a test maintainer, I want an executed .NET/Python coverage baseline and non-decreasing changed-module ratchet, so that test count cannot be presented as coverage.
+47. As a test maintainer, I want a changed-input oracle for every migrated mapping family, so that a self-replacement case cannot conceal a no-op implementation.
+48. As a CI maintainer, I want the canonical verifier to run safe top-level lanes with bounded concurrency and isolated logs, so that verification is faster without becoming nondeterministic.
+49. As a CI maintainer, I want a single low-memory serial fallback and measured lane timings, so that concurrency claims remain reproducible on local Windows and CI.
+50. As a reviewer, I want each refactor ticket to move one responsibility through one named compatibility seam, so that architecture, byte, UI, and deletion consequences remain reviewable.
+51. As a reviewer, I want old owners deleted only after all callers migrate and evidence classifications do not regress, so that a cleanup cannot silently remove protection.
+52. As a release owner, I want later `0.10.x` version allocation decided from an approved dependency graph, risk, evidence, and review size, so that arbitrary version buckets do not drive architecture.
+53. As a future IC-authoring UI designer, I want trusted bundles to use typed IDs, hashes, versions, and reviewable candidates, so that UI-assisted authoring can be added later without allowing runtime self-promotion.
+54. As a migration reviewer, I want every characterized behavior classified
     before it becomes a parity gate, so that known defects are not preserved as
     compatibility contracts and uncertain firmware behavior is not guessed.
-54. As a repository owner, I want non-UI/test production code reduced by at
+55. As a repository owner, I want non-UI/test production code reduced by at
     least 50% by the end of the 0.10.x maintainability program, so that
     duplicated owners and compatibility paths are actually deleted rather than
     reorganized into equally large replacement modules.
@@ -1073,7 +1121,7 @@ version.
   failure and follows the last-known-good/cold-start fail-closed rules.
 - By the end of `0.10.x`, adding an IC that uses the existing closed vocabulary
   is data-only onboarding: a versioned trusted bundle declares IC identity,
-  perfect-like membership or shared-part relationships, maps and IC Count
+  perfect-family membership or typed shared-fact relationships, maps and IC Count
   applicability, artifacts, metadata structures, workflow profiles, and
   evidence references; the package's versioned hash-pinned trust index admits
   the reviewed bytes.
@@ -1187,11 +1235,15 @@ version.
     Active, Unused, or Unknown for a resolution. Applicability never grants
     write authority; a workflow behavior binding must reference the exact
     field/span/group and declare its execution owner and evidence.
-17. A perfect-like family owns one complete modeled firmware definition and
+17. `PerfectFamilyRelationship` owns one complete modeled firmware definition and
     forbids member-specific semantic overrides; member identity, evidence, and
-    publication remain separate. Partial relationships are named and
-    part-scoped: sharing Initial Code or TP also shares metadata owned by that
-    part without inheriting LDC, another part, support, or publication.
+    publication remain separate. Every partial relationship uses one
+    `SharedFactRelationship` contract with a readable role, typed canonical fact
+    references, applicability, reason, and evidence. Roles such as
+    `initial-code-shared`, `tp-shared`, or `tp-flash-header-shared` remain
+    author-facing vocabulary, not separate runtime classes or schema
+    discriminators. Sharing one fact never imports LDC, another part, support,
+    publication, processor, topology, or workflow authority.
 
 #### AB and external mutation boundaries
 
@@ -1305,18 +1357,27 @@ version.
 39. CRC, Header, and Header Copy do not receive primary Memory Layout roles.
     They remain trace/safety facts and appear visually only through a report
     issue when necessary.
-40. One Presentation-owned read-only Hex Viewport accepts a bounded immutable
+40. Memory Layout renders DiffDLM as one segment. For
+    `PreserveActiveDiffNf`, its compact hover/focus card says that the selected
+    DiffDLM is replaced except for `N` kept active Diff NF segments. A quiet
+    details affordance may open a lateral side panel listing each kept IC,
+    zero-based block index, artifact-relative range, resolved Flash range, and
+    `Kept from Reference` state. Pointer hover, keyboard focus, click-to-pin,
+    screen-reader description, `Esc`, reduced motion, and edge-aware left/right
+    placement expose equivalent information without a large expansion arrow.
+    `FullArtifactReplace` shows `Entire DiffDLM` and has no kept-segment panel.
+41. One Presentation-owned read-only Hex Viewport accepts a bounded immutable
     snapshot and emits source-neutral interaction intents. Hex Editor composes
     edit/history/search/save adapters around it; Report Diff and BIN Inspector
     remain read-only adapters.
-41. Hex extraction is not a redesign. It must preserve the current custom-drawn
+42. Hex extraction is not a redesign. It must preserve the current custom-drawn
     16-byte-row appearance, features, accessibility, and equal-or-better
     measured performance.
-42. Output naming compiles from one canonical rule and resolves tokens from the
+43. Output naming compiles from one canonical rule and resolves tokens from the
     same accepted inspection snapshot as execution. The normal skeleton is
     `{IC}_{OutputType}_{VersionInfo}_{Date}.bin`; output-specific version
     formatting and missing-token behavior are explicit.
-43. Output folder selection, explicit override, protected-path comparison, and
+44. Output folder selection, explicit override, protected-path comparison, and
     atomic commit remain host/infrastructure responsibilities separate from
     firmware naming semantics.
 
@@ -1479,11 +1540,12 @@ after the grill closes so issues do not become a competing draft specification.
   dependencies and review sizes are approved.
 - Changing any firmware range, offset, operation order, CRC/header algorithm,
   processor authority, or golden expected output through this planning spec.
-- Promoting NT51920/NT51931 DPCMI facts or any route that still lacks required
-  owner evidence.
-- Inferring perfect-like membership, or treating an Initial-Code/TP shared
-  relationship as permission to inherit another part, support, publication,
-  topology, processor, or workflow fact.
+- Reintroducing NT51920, NT51925, NT51930, or NT51931 production capability
+  without a new owner-approved specification, evidence set, ticket, and support
+  decision.
+- Inferring perfect-family membership, or treating a readable shared-fact role as
+  permission to inherit any fact not explicitly referenced by that
+  `SharedFactRelationship`.
 - Replacing the unified composition engine with workflow-specific executors.
 - Creating a separate TP Header catalog, DP Version locator, Memory Layout map,
   UI firmware model, or report-only firmware authority.
@@ -1508,15 +1570,16 @@ owner decision rather than unresolved architecture. The approved sequence is:
 
 ```text
 approved specification and consistency grill
-  -> approved GitHub tickets #170-#197 and dependency edges
+  -> canonical 0.10.x dependency plan and its approved GitHub tickets
   -> allocate the dependency-ready frontier to the next 0.10.x release
   -> implement, review, verify, and delete old ownership slice by slice
 ```
 
-NT51920/NT51931 DPCMI locator intake is closed by #177 through the owner-backed
-canonical bindings `0x3E014` and `0x3E018`. Their distinct direct-golden,
-processor, and support-promotion evidence gaps remain explicit tasks; canonical
-locator admission does not close or weaken those gates.
+The former NT51920/NT51931 DPCMI locator intake is historical evidence only.
+The 2026-07-27 retirement decision removes NT51920, NT51925, NT51930, and
+NT51931 from the `0.10.x` production capability set; #221 removes their
+production registrations, and #177 plus later convergence tickets must not
+migrate or publish their routes.
 
 Until #194 migrates every existing consumer, `GenFlashVersionCatalog` is a
 compatibility adapter for `WorkbenchCompositionService` inspection, slot facts,

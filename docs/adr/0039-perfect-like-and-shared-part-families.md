@@ -6,7 +6,7 @@
 - Owners: Product owner + architecture owner + firmware owner
 - Risk: R2 architecture contract; each firmware binding remains R3
 - Amends: ADR 0015, ADR 0017, ADR 0025, and ADR 0032
-- Amended by: ADR 0040
+- Amended by: ADR 0040, ADR 0041, and ADR 0042
 
 ## Context
 
@@ -50,6 +50,10 @@ Their shared firmware definitions are family-owned rather than represented as
 three offset catalogs or a chain of firmware-semantic aliases. Direct and alias
 evidence remain accurately classified per requested member.
 
+NT51917 and NT51927 are another owner-confirmed perfect family. NT51928 is not a
+member: it shares only the approved Initial Code and TP facts with NT51927 and
+retains distinct LDC and complete DP/container semantics.
+
 If a firmware-semantic difference is later established, the affected member is
 removed from the perfect-like family or the relationship is replaced by one or
 more explicit shared-part relationships. A perfect-like member cannot carry a
@@ -64,6 +68,12 @@ another part:
 - `initial-code-shared-family` shares Initial Code geometry and its metadata;
 - `tp-shared-family` shares TP geometry and its metadata; and
 - future partial relationships must name their exact canonical owner and scope.
+
+ADR 0041 supersedes the implementation shape, not these domain meanings.
+Initial Code shared, TP shared, TP Flash Header shared, and similar names remain
+author-facing roles, while one typed `SharedFactRelationship` carries the exact
+canonical fact references at runtime. New partial-sharing concepts do not add
+new relationship subclasses or schema discriminators.
 
 NT51927 and NT51928 participate in both
 `initial-code-shared-family` and `tp-shared-family`. DPCMI can therefore reuse
@@ -85,9 +95,10 @@ semantics.
 
 Ticket #175 defines the one global FirmwareConfig General Parameters structure
 and pilots its TP binding through NT51927/NT51928. Ticket #177 migrates remaining
-metadata bindings, including family-owned NT51919/NT51929/NT51932 DPCMI and the
-remaining shared-part families. No migration promotes support or changes
-firmware bytes.
+metadata bindings for the admitted ICs, including family-owned
+NT51919/NT51929/NT51932 DPCMI and the remaining partial relationships. ADR 0042
+and #221 exclude NT51920, NT51925, NT51930, and NT51931 rather than migrating
+their facts. No migration promotes support or changes firmware bytes.
 
 The #175 profile document that temporarily contains NT51917, NT51927, and
 NT51928 is a canonical metadata carrier plus member-specific map container. It
@@ -110,10 +121,10 @@ firmware-family relations contract:
   FirmwareConfig definition; DPCMI placement, LDC, capacity, topology, and AB
   remain explicit;
 - owner-backed DPCMI bindings resolve at `0x401A` for NT51919/29/32,
-  `0x3C01C` for NT51917/27/28, `0x3E014` for NT51920/23/26, `0x18` for
-  NT51930, and `0x3E018` for NT51931. The owner confirmed on 2026-07-27 that
-  the NT51920/31 locations are invariant across Single, Cascade, and IC Count;
-  and
+  `0x3C01C` for NT51917/27/28, and `0x3E014` for NT51923/26. The transitional
+  #177 implementation also contains NT51920/30/31 bindings, but ADR 0042 makes
+  them historical implementation evidence that #221 removes rather than
+  target family data; and
 - trusted composition compilation resolves only metadata required by map
   selection. Inspection-only family metadata remains available to the
   reference-only Metadata Plan/Inspector and does not make an unrelated
@@ -123,9 +134,11 @@ The normalizer now rejects unknown members, same-kind overlapping
 relationships, incomplete perfect-like membership, member-specific
 perfect-like aliases/capabilities, unequal shared-region geometry, and
 unavailable or unequal shared metadata-definition references. This completes
-the family/data binding slice only. Profile/consumer convergence and removal
-of remaining migration adapters remain ticket #194; support promotion, UI,
-processor behavior, and firmware bytes are unchanged.
+the transitional family/data binding slice only. ADR 0041 replaces the
+dedicated partial-sharing runtime shapes; #221 removes retired members before
+#177 is considered complete against the target contract. Profile/consumer
+convergence and removal of remaining migration adapters remain ticket #194;
+support promotion, UI, processor behavior, and firmware bytes are unchanged.
 
 ## Alternatives
 

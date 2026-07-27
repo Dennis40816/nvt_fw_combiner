@@ -4,6 +4,12 @@ Status: architecture reference; evidence dates are recorded by the cited manifes
 
 This document is an index for the current Merge and Replace flows by IC. It is not a production support claim. A profile is production-ready only after profile validation, golden regression, processor diff review, and owner sign-off. The implementation runbook for adding a new IC workflow is [`adding-ic-merge-replace-workflow.md`](adding-ic-merge-replace-workflow.md).
 
+`0.10.x` target amendment (2026-07-27): ADR 0042/#221 retire NT51920,
+NT51925, NT51930, and NT51931. Their diagrams/rows below characterize the
+legacy `0.9.x` runtime only and are not target selectable, executable, or
+publishable flows. #221 removes those production rows when it removes the
+matching registrations; historical evidence may remain explicitly labeled.
+
 ## Update rule
 
 Update this document in the same change when any of these sources change:

@@ -2,6 +2,11 @@
 
 This is a planning inventory, not a support claim. A row becomes supported only after profile validation, integrity disposition, golden regression, and owner sign-off. `Unknown` never means `None`.
 
+`0.10.x` target amendment (2026-07-27): ADR 0042 and #221 retire NT51920,
+NT51925, NT51930, and NT51931 from production capability. Their rows and exact
+facts below remain legacy `0.9.x` evidence/history only; they must not feed the
+target canonical selector, profile/processor inventory, or Support Matrix.
+
 v0.9.12 admission correction: [ADR 0030](../adr/0030-production-firmware-admission-without-golden-hashes.md)
 supersedes the older `reference-SHA`, `full-reference-SHA`, and "SHA as build discriminator" wording
 retained in evidence-history cells below. Golden input/output hashes continue to lock regression

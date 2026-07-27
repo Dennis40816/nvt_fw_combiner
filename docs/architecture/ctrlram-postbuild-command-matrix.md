@@ -2,6 +2,13 @@
 
 This matrix records the normalized Combiner command sequences used after CtrlRAM Replace. The living experiment and conclusion tracker is [`ctrlram-replace-status-report.md`](ctrlram-replace-status-report.md).
 
+`0.10.x` target amendment (2026-07-27): ADR 0042/#221 retire NT51920,
+NT51925, NT51930, and NT51931; their rows remain legacy `0.9.x` command
+evidence only. #219/#188 apply DiffDLM replacement and restore every active
+Diff NF range from the immutable reference before invoking the command sequence
+below. NT51923/NT51926 and the NT51927 TP family retain full-artifact DiffDLM
+replacement.
+
 Evidence order:
 
 1. owner postbuild script command order;

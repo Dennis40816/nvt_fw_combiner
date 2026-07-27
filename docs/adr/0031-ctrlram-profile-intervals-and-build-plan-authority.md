@@ -5,6 +5,8 @@
 - Owner decision: 2026-07-21; DiffDLM/NF amendment 2026-07-27
 - Risk: R3; implementation and release still require firmware-owner review
 - Amends: ADR 0030 production-admission decision 2
+- Amended by: ADR 0042 for the `0.10.x` retirement of NT51920, NT51925,
+  NT51930, and NT51931
 
 ## Context
 
@@ -79,42 +81,64 @@ Consequently:
    distinct DP/LDC content begins at `0x40000` and remains outside CtrlRAM authority, so all three
    matching TP plans route through separate 512 KiB maps. NT51928 NB remains outside this decision.
 9. NT51950 and NT51951 each expose single and generic cascade. Their TP ranges, DiffDLM
-   outer envelope `[0x33200,0x34600)`, offsets, and postbuild command contract match; the envelope
-   is not contiguous write authority until the per-IC Diff DLM/Diff NF record geometry is
-   owner-confirmed. Their `0x40000` and `0x80000` full-image capacities remain distinct map facts.
+   outer envelope `[0x33200,0x34600)`, offsets, and postbuild command contract match. The
+   owner-confirmed record splits that envelope into writable Diff CtrlRAM `[0x33200,0x33B10)` and
+   reference-preserved Diff NF `[0x33B10,0x34600)`. Their `0x40000` and `0x80000` full-image
+   capacities remain distinct map facts.
    Unlike NT51928, LDC is already packaged inside each IC's DP payload and therefore creates no
    separate CtrlRAM or DP input. AB behavior is a separate decision.
 
 ### DiffDLM and Diff NF write authority
 
-1. An AE-provided DiffDLM artifact uses the same full record stride as the target and includes a
-   Diff NF tail, but that source NF may be uniform `0x00`/`0xFF` filler and is not valid mutation
-   authority. The artifact cannot be copied contiguously over a target envelope that interleaves
-   Diff DLM and Diff NF.
+1. When the canonical firmware map declares a DiffDLM record that includes a Diff NF tail, an
+   AE-provided DiffDLM artifact uses the same full record stride as the target, but that source NF
+   may be uniform `0x00`/`0xFF` filler and is not valid mutation authority. A contiguous artifact
+   copy cannot be the final active-record mutation authority. A compatibility implementation may
+   copy the declared payload first only when the same compiled/verified sequence restores every
+   active Diff NF byte from the immutable reference before integrity processing.
 2. A canonical profile owns the source-record length, target-record stride, target DLM subrange,
    preserved NF subrange, IC Count applicability, and evidence. The compiled plan lowers those
    facts into ordinary explicit copy operations; no processor or UI-only mask may expand them.
-   Every DiffDLM declaration must bind at least one explicit preservation-mask subrange. Writable
-   DLM and preservation-mask subranges must be non-overlapping, remain inside the target record,
-   and together cover the complete declared record stride. Missing, `unknown`, overlapping, or
-   incomplete mask authority makes the DiffDLM route unavailable before plan compilation.
-3. NT51919/NT51929/NT51932 share the first owner-confirmed geometry. For zero-based slave record
-   `i`, source and target record base is `i * 0x1400`; the writable Diff DLM subrange is
-   `[base, base + 0x0B90)` and the preserved Diff NF subrange is
-   `[base + 0x0B90, base + 0x1400)`. Cascade IC Count `N` requires exactly `N - 1` active DLM
-   subranges. Every required `0x0B90` source DLM subrange must contain more than one distinct byte;
-   the validator checks all required records, not only the first. No rule for unused trailing
-   records is inferred without owner evidence.
+   Every Diff NF-bearing DiffDLM declaration must bind at least one explicit preservation-mask
+   subrange. Writable DLM and preservation-mask subranges must be non-overlapping, remain inside
+   the target record, and together cover each complete active record stride. Missing, `unknown`,
+   overlapping, or incomplete mask authority makes the affected DiffDLM route unavailable before
+   plan compilation. A DiffDLM filename or outer envelope alone does not imply Diff NF coupling;
+   DLM-only routes retain their separately declared write geometry.
+3. The canonical geometry table in `SPEC.md` owns the 929-like and 950-like record facts. For a
+   zero-based slave record `i`, source and target record bases advance by the declared `0x1400`
+   stride. The 929-like family writes `0x0B90` and preserves `0x0870`; the 950-like family writes
+   `0x0910` and preserves `0x0AF0`. Every required writable source subrange must contain more than
+   one distinct byte; the validator checks all required records, not only the first. Zero-based
+   block `0` represents IC1; Cascade IC Count `N` has exactly `N - 1` active blocks
+   `0..N-2`. Bytes after that active prefix but still inside the profile-declared DiffDLM
+   replacement extent are inactive passthrough: selected source bytes replace the same relative
+   target bytes without an NF mask. A missing inactive suffix leaves the immutable reference
+   unchanged; source overflow is ignored with a warning and never widens target write authority.
 4. Preview, execution, mutation audit, and golden evidence must prove every Diff NF byte remains
-   identical to the immutable reference while every requested DLM record is placed at its declared
-   target subrange. One contiguous mutation allowance over the outer envelope is forbidden.
-5. An affected DiffDLM authoring route does not expose a separately writable NF selection until the
-   NF-mode and `DiffNFMerge.exe` contract is owner-approved. This does not remove NF inputs from
-   unrelated single/non-DiffDLM CtrlRAM plans.
-6. NT51950 and NT51951 are evidence-required for this same mechanism, so their DiffDLM routes
-   remain unavailable while the mandatory preservation mask is unbound. Their record geometry,
-   input-record geometry, IC Count mapping, and NF placement must not be copied from NT51932 or
-   inferred from `[0x33200,0x34600)`.
+   identical to the immutable reference for every active record while every requested DLM record is
+   placed at its declared target subrange. The mutation audit separately identifies the
+   owner-approved inactive passthrough; one undifferentiated contiguous mutation allowance over the
+   outer envelope is forbidden.
+5. Every independent NF slot is unavailable when the resolved route is Cascade and uses the
+   preservation-mask policy. Presentation omits the slot, and the common Application/CLI
+   authoring contract rejects stale or manually constructed requests that bind it. This is a
+   conservative fence against implying that one NF input is distributed into record-local Diff NF
+   tails; it is not UI-only authority. Single routes are not restricted, and full-replacement
+   Cascade routes retain their independently declared NF behavior. A future `NF0`/`NF1`/...
+   per-record input contract requires a separate owner decision. Direct `DiffNFMerge.exe`
+   authoring remains unsupported.
+6. NT51950 and NT51951 use their own owner-confirmed `0x0910 + 0x0AF0 = 0x1400` geometry; they do
+   not inherit NT51932's split. The current 51950 map defines Cascade as 2 IC with one slave record.
+   A future count expansion requires separate IC Count applicability evidence rather than extending
+   this record count by analogy.
+7. NT51923, NT51926, and the NT51927 TP family use full-artifact DiffDLM
+   replacement. A `DiffDLM.bin` filename or an `NF_Diff_*` inventory does not
+   grant a preservation mask or change those routes.
+8. ADR 0042 retires NT51920, NT51925, NT51930, and NT51931 from the
+   `0.10.x` production capability set. Their legacy `0.9.x` evidence may remain
+   as historical characterization, but no `0.10.x` mask, family migration,
+   authoring route, processor, or support claim is created for them.
 
 ### Production route key
 
@@ -191,8 +215,11 @@ checks. They validate the selected execution; they do not identify a family.
   traceability.
 - NT51928 partial-family authority is limited to the separately owner-approved NT51927-equivalent
   TP single/2-chip/3-chip plans. The partial alias does not authorize NB or reuse DP/LDC semantics.
-- The route registry now covers all 31 runtime interval/build-plan pairs in the postbuild catalog;
-  there is no golden-derived fail-closed exception list.
+- The `0.9.x` route registry covers all 31 historical runtime
+  interval/build-plan pairs in the postbuild catalog; there is no
+  golden-derived fail-closed exception list. ADR 0042 separately removes the
+  four retired ICs rather than migrating that complete inventory into
+  `0.10.x`.
 
 ## Verification
 
@@ -216,10 +243,15 @@ checks. They validate the selected execution; they do not identify a family.
    unscoped family resolution remains ambiguous.
 8. NT51928 tests compile all non-NB single/2-chip/3-chip maps at `0x80000` and retain the DP/LDC
    tail; its DP Replace contract independently requires non-overlapping DP and LDC inputs.
-9. NT51950/NT51951 cascade tests retain the distinct `0x40000`/`0x80000` map capacities, but no
-   longer treat their legacy DiffDLM outer envelope as contiguous write authority. Promotion waits
-   for owner-confirmed per-record DLM/NF geometry and NF-preservation evidence.
+9. NT51950/NT51951 cascade tests retain the distinct `0x40000`/`0x80000` map capacities and use the
+   owner-confirmed `0x0910` writable plus `0x0AF0` preserved split. Promotion still waits for direct
+   expected-output NF-preservation evidence.
 10. NT51919/NT51929/NT51932 DiffDLM tests use distinct sentinels in every DLM and NF subrange, vary
     cascade IC Count across the admitted `2–8` range, prove full-stride source record ordering,
     reject an all-identical required DLM subrange, and require byte-identical preservation of every
     NF subrange. The owner-provided NT51932 4-IC golden must exercise three active DLM records.
+11. Mask-policy tests prove an inactive source suffix replaces the same relative
+    target bytes, a missing suffix retains the immutable reference, overflow
+    cannot widen the declared target extent, every independent NF binding is
+    rejected for the affected Cascade route, and a Single route retains its
+    separately declared NF behavior.

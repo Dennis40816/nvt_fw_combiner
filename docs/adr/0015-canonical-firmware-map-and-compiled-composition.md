@@ -7,7 +7,7 @@
 - Supersedes: ADR 0008 catalog-join ownership after compatibility migration
 - Amends: ADR 0003, ADR 0004, ADR 0005, ADR 0006, and ADR 0007
 - Amended by: ADR 0016, ADR 0017, ADR 0018, ADR 0019, ADR 0020, ADR 0023,
-  ADR 0024, and ADR 0032
+  ADR 0024, ADR 0032, and ADR 0042
 
 ## Context
 
@@ -248,8 +248,10 @@ bundle/profile/map hashes and compiled by the same compiler. Future REG Replace 
 a pending capability over canonical Register regions, with no executable profile or UI exposure
 until owner evidence exists. Neither creates a new executor.
 
-All 13 selectable ICs receive complete evidence/catalog resolution coverage. This is not a claim
-that every IC/workflow is authorable, compilable, executable, or supported.
+The legacy migration covered all 13 then-selectable ICs for evidence/catalog
+resolution. ADR 0042 removes NT51920, NT51925, NT51930, and NT51931 from the
+`0.10.x` production capability set, so their legacy coverage cannot materialize
+as a target selectable, executable, or published route.
 
 ## Consequences
 

@@ -5,6 +5,10 @@ Owner input gate: closed by the final 2026-07-18 intake; remaining parity,
 tool, route, and R2/R3 review gates are agent-owned.
 Last updated: 2026-07-21.
 
+`0.10.x` target amendment (2026-07-27): ADR 0042/#221 retire NT51920,
+NT51925, NT51930, and NT51931. Their routes below remain legacy `0.9.x`
+characterization only and are not migrated into target production capability.
+
 v0.9.12 admission correction: [ADR 0030](../adr/0030-production-firmware-admission-without-golden-hashes.md)
 supersedes every `reference-SHA`, `full-reference-SHA`, or "exact reference SHA" runtime-admission
 statement retained in the historical experiment rows below. Those hashes remain exact golden/parity

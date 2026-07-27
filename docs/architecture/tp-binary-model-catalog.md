@@ -10,6 +10,11 @@ access, or golden parity status.
 
 Related decision: [ADR 0013](../adr/0013-tp-binary-model-and-report-semantic-projection.md).
 
+`0.10.x` target amendment (2026-07-27): ADR 0042/#221 retire NT51920,
+NT51925, NT51930, and NT51931. Their worksheet/header entries remain
+non-production historical evidence for report interpretation only and are not
+migrated into target selectors, profiles, processors, or family relationships.
+
 Evidence sources:
 
 - `docs/references/ic-flashmap/IC_FlashMap_20260725.xlsx` TP Overview rows;
