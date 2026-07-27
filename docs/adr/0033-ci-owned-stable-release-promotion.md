@@ -1,6 +1,6 @@
 # ADR 0033: Promote stable releases through one protected CI workflow
 
-- Status: Accepted for `v0.9.14` planning; workflow and permission changes remain human-gated
+- Status: Accepted; amended 2026-07-28 for independent `v0.9.17` maintenance publication
 - Date: 2026-07-22
 - Owners: Product owner, release owner, security/repository owner
 
@@ -40,11 +40,16 @@ and integrity guidance.
 
 ### Candidate phase
 
-The promotion run starts read-only against an explicit full `main` SHA. Before
-any tag exists, it:
+The promotion run is always dispatched from the exact current protected `main`
+SHA. The product source is normally that same SHA. An explicitly
+owner-approved maintenance branch/version pair may instead provide the product
+source without merging its commits to `main`; the first and currently only
+approved pair is branch `0.9.17` with `VERSION=0.9.17`. Before any tag exists,
+the workflow:
 
-1. confirms the SHA is the protected `main` commit and that its tree equals the
-   reviewed final-PR tree;
+1. confirms the workflow definition is current protected `main`, the selected
+   product SHA is the exact source-branch head, and its tree equals the reviewed
+   final-PR tree;
 2. validates version and release-note consistency;
 3. checks required review and CI evidence;
 4. runs `python scripts/verify.py --all`;
@@ -63,8 +68,8 @@ The workflow then waits at the protected `release` environment. This approval
 is the final tag confirmation. After approval, a narrow job receives
 `contents: write` and:
 
-1. rechecks that the prepared SHA/tree and protected `main` identity have not
-   changed;
+1. rechecks that the prepared SHA/tree, selected release-branch identity, and
+   protected-`main` workflow authority have not changed;
 2. rejects any pre-existing stable tag or conflicting Release;
 3. creates one annotated stable tag for the prepared SHA;
 4. checks out and verifies the immutable tag identity;
@@ -82,6 +87,10 @@ even though CI rather than a local operator creates that tag.
   job receives `contents: write`.
 - Pull-request code never receives release secrets, a write token, or access to
   the protected release environment.
+- A maintenance source is accepted only through an explicit branch/version
+  allowlist, an exact merged PR targeting that branch, exact-head required
+  checks/review evidence, and the same protected release approval. It gains no
+  authority to modify or merge into `main`.
 - The normal path requires an exact-head GitHub approval. When GitHub forbids
   the repository owner's sole identity from approving its own PR, an explicit,
   default-off dispatch exception may be used only when that same repository
@@ -138,6 +147,10 @@ permission.
   candidate.
 - **Trust only the final PR artifact:** the exact merged `main` identity and
   release environment still require verification.
+- **Merge every maintenance hotfix into `main` before release:** this would mix
+  a compatibility-only maintenance line into the active development line. The
+  protected workflow remains the release authority while the exact reviewed
+  maintenance head remains the product source.
 - **Regenerate notes from commit subjects:** cannot communicate support,
   compatibility, verification, limitations, or rollback accurately.
 

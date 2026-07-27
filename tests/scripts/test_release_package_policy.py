@@ -288,7 +288,17 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("Exact reviewed main commit", release_workflow)
+        self.assertIn("Exact reviewed release-branch head", release_workflow)
+        self.assertIn("source_branch:", release_workflow)
+        self.assertIn("- 0.9.17", release_workflow)
+        self.assertIn(
+            "NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17')",
+            release_workflow,
+        )
+        self.assertIn(
+            "$env:NFC_SOURCE_BRANCH -ne '0.9.17' -or $version -ne '0.9.17'",
+            release_workflow,
+        )
         self.assertIn("permissions:\n  contents: read", release_workflow)
         self.assertIn(
             "candidate:\n"
@@ -306,7 +316,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("environment: release", release_workflow)
         self.assertIn("contents: write", release_workflow)
         self.assertIn("scripts/render_release_notes.py", release_workflow)
-        self.assertIn("release_promotion_policy.py validate-context", release_workflow)
+        self.assertIn(
+            "python $env:NFC_RELEASE_POLICY validate-context", release_workflow
+        )
         self.assertIn("owner_self_approval_exception:", release_workflow)
         self.assertIn(
             "NFC_REPOSITORY_OWNER: ${{ github.repository_owner }}", release_workflow
@@ -345,13 +357,18 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertNotIn("git rev-parse HEAD^{tree}", release_workflow)
         self.assertIn("codexReview = if ($codexReview.Count -eq 1)", release_workflow)
         self.assertIn(
-            "release_promotion_policy.py validate-promotion-source", release_workflow
+            "NFC_RELEASE_POLICY: ./.release-authority/scripts/release_promotion_policy.py",
+            release_workflow,
         )
-        self.assertIn("release_promotion_policy.py validate-tag", release_workflow)
-        self.assertIn("release_promotion_policy.py validate-release", release_workflow)
-        self.assertIn("release_promotion_policy.py create-manifest", release_workflow)
-        self.assertIn("release_promotion_policy.py verify-manifest", release_workflow)
-        self.assertIn("release_promotion_policy.py plan-recovery", release_workflow)
+        self.assertIn(
+            "python $env:NFC_RELEASE_POLICY validate-promotion-source",
+            release_workflow,
+        )
+        self.assertIn("$env:NFC_RELEASE_POLICY validate-tag", release_workflow)
+        self.assertIn("$env:NFC_RELEASE_POLICY validate-release", release_workflow)
+        self.assertIn("$env:NFC_RELEASE_POLICY create-manifest", release_workflow)
+        self.assertIn("$env:NFC_RELEASE_POLICY verify-manifest", release_workflow)
+        self.assertIn("$env:NFC_RELEASE_POLICY plan-recovery", release_workflow)
         self.assertIn("review-snapshot.json", release_workflow)
         self.assertIn("artifact-digest", release_workflow)
         self.assertIn("git/tags", release_workflow)
@@ -400,7 +417,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
 
         self.assertIn("ready_for_review", ci)
-        self.assertIn("Final reviewed pull request merged as this main commit", release)
+        self.assertIn(
+            "Final reviewed pull request merged as this release-branch commit", release
+        )
         self.assertIn(
             "GitHub CLI cannot query `--required` after the final PR's head branch is closed.",
             release,

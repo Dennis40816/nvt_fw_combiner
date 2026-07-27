@@ -73,9 +73,41 @@ semantic change.
 
 `main-package.yml` is a manually dispatched preview path using `-AllowPrerelease` and the repository `VERSION`; ordinary `main` pushes do not package. It uploads only a short-retention Actions artifact and never creates a fallback tag or prerelease.
 
-`release.yml` accepts one exact reviewed full `main` SHA plus the final merged PR that produced it. A read-only candidate job proves that the workflow definition, checkout, requested SHA, current protected `main`, final PR merge commit, reviewed PR-head tree, current-head approval, and the exact PR-head `github-actions` check runs `policy / polytail`, `python-worker / verify`, and `dotnet / build-test` all describe that one candidate. It then runs the canonical full verifier, packages once, smokes the package, and renders a complete matching stable CHANGELOG section. A closed candidate manifest binds source SHA/tree, workflow SHA/ref, run id, final-review snapshot, release-note digest, and the exact ZIP/SBOM/provenance names, sizes, and SHA-256 values. A versioned outer checksum file binds those payloads and the candidate manifest; the Actions artifact digest is bound into the annotated-tag message.
+`release.yml` is always dispatched from the exact current protected `main`
+workflow definition. It accepts one exact reviewed release-branch head plus the
+final merged PR that produced it. The product source is normally `main`; the
+explicitly approved independent maintenance pair `0.9.17` / `0.9.17` may
+publish without merging its product commits to `main`. A read-only candidate
+job proves that the workflow authority, selected branch head, checkout,
+requested SHA, final PR merge commit/base, reviewed PR-head tree, current-head
+approval, and the exact PR-head `github-actions` check runs
+`policy / polytail`, `python-worker / verify`, and `dotnet / build-test` all
+describe that one candidate. It then runs the canonical full verifier, packages
+once, smokes the package, and renders a complete matching stable CHANGELOG
+section. A closed candidate manifest binds source SHA/tree, workflow SHA/ref,
+run id, final-review snapshot, release-note digest, and the exact
+ZIP/SBOM/provenance names, sizes, and SHA-256 values. A versioned outer checksum
+file binds those payloads and the candidate manifest; the Actions artifact
+digest is bound into the annotated-tag message.
 
-The protected `release` environment is the final tag confirmation. Only after approval does a narrow `contents: write` job revalidate the downloaded candidate. A first tag creation also requires the candidate to remain the exact current `main`; recovery of an already exact-matching tag permits `main` to advance only when the candidate remains its ancestor. The job then publishes exactly five assets: Windows ZIP, SPDX SBOM, provenance, candidate manifest, and outer SHA-256 list. The validated release notes become the Release body. It revalidates the annotated tag object and peeled commit plus Release state/body, verifies GitHub-generated source archives, downloads every published asset into a fresh directory, compares the exact name set and digests, and smokes the downloaded ZIP. A pre-approval failure creates no tag. If promotion fails after tag creation, rerun only the failed promotion job in the same workflow run so the original run id and artifact digest remain authoritative; zero-, one-, or multi-asset partial Releases recover by uploading only missing assets. Any moved/lightweight tag, conflicting body, extra name, or conflicting byte fails closed. A new workflow run cannot reuse the old stable version.
+The protected `release` environment is the final tag confirmation. Only after
+approval does a narrow `contents: write` job revalidate the downloaded
+candidate. A first tag creation requires the candidate to remain the exact
+current selected release-branch head while the workflow definition remains the
+exact current protected `main`; recovery of an already exact-matching tag
+permits the selected branch to advance only when the candidate remains its
+ancestor. The job then publishes exactly five assets: Windows ZIP, SPDX SBOM,
+provenance, candidate manifest, and outer SHA-256 list. The validated release
+notes become the Release body. It revalidates the annotated tag object and
+peeled commit plus Release state/body, verifies GitHub-generated source
+archives, downloads every published asset into a fresh directory, compares the
+exact name set and digests, and smokes the downloaded ZIP. A pre-approval
+failure creates no tag. If promotion fails after tag creation, rerun only the
+failed promotion job in the same workflow run so the original run id and
+artifact digest remain authoritative; zero-, one-, or multi-asset partial
+Releases recover by uploading only missing assets. Any moved/lightweight tag,
+conflicting body, extra name, or conflicting byte fails closed. A new workflow
+run cannot reuse the old stable version.
 
 Both package paths run `smoke-release.ps1 -SkipUiLaunch` before upload or publication. This checks that materialized built-in profile paths use the `builtInProfile` role and include bundle manifests, checks the exact approved external-tool paths, verifies manifest/hashes and sidecars, and runs the worker self-test. It does not satisfy the visible startup or clean-machine gate.
 
@@ -131,4 +163,8 @@ Release evidence must include:
 - clean Windows smoke without development runtimes;
 - final third-party license/legal review.
 
-The manually dispatched promotion workflow accepts only the exact current reviewed `main` SHA. It creates the immutable stable `vX.Y.Z` tag inside protected CI after candidate verification and environment approval. Development tags never publish assets.
+The manually dispatched promotion workflow accepts only the exact reviewed
+head of an approved release source while the workflow definition itself remains
+the exact current protected `main`. It creates the immutable stable `vX.Y.Z`
+tag inside protected CI after candidate verification and environment approval.
+Development tags never publish assets.

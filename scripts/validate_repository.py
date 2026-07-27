@@ -957,14 +957,19 @@ def validate_workflows(errors: list[str]) -> None:
     release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
     required_release_markers = (
         "workflow_dispatch",
-        "Exact reviewed main commit",
+        "Exact reviewed release-branch head",
         "Final reviewed pull request",
+        "NFC_WORKFLOW_REF -ne 'refs/heads/main'",
+        "NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17')",
+        "$env:NFC_SOURCE_BRANCH -ne '0.9.17' -or $version -ne '0.9.17'",
+        "$env:NFC_RELEASE_POLICY validate-context",
+        "$env:NFC_RELEASE_POLICY validate-promotion-source",
         "environment: release",
         "Create or verify immutable annotated tag",
     )
     if any(marker not in release for marker in required_release_markers):
         errors.append(
-            "release workflow must use exact-main CI promotion with a protected human environment gate"
+            "release workflow must use protected-main authority, an explicit release-source allowlist, and a protected human environment gate"
         )
     if "push:" in release and "tags:" in release:
         errors.append(

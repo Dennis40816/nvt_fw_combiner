@@ -70,4 +70,10 @@ The first failed command is evidence, not a reason to rerun it unchanged.
 
 For a feature branch, provide the changed files, risk class, exact test commands/results, firmware/profile/protocol/release impact, human-review requirements, and unresolved evidence gaps for merge into its version integration branch.
 
-Only when the version branch is complete should the final handoff target `main`. Use the pull-request template to record the version branch, source branch, target branch, phase commits, verification evidence, and unresolved gates.
+Only when the version branch is complete should the final handoff target `main`.
+An owner may instead designate an exact version branch as an independent
+maintenance release. In that case, product commits remain outside `main`; the
+protected-`main` workflow definition validates and publishes the exact reviewed
+maintenance-branch head. Use the pull-request template to record the version
+branch, source branch, target branch, phase commits, verification evidence,
+release source, and unresolved gates.
