@@ -217,7 +217,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             FirmwareImageMap imageMap,
             IEnumerable<FirmwareResolvedMetadataStructure> resolvedMetadataStructures,
             IEnumerable<FirmwareMetadataPredicateOutcome> predicateOutcomes,
-            bool selectionMetadataOnly = false)
+            IEnumerable<FirmwareMetadataStructure>? expectedMetadataStructures = null)
         {
             if (!ReferenceEquals(constructionToken, ResolvedMapConstructionToken))
             {
@@ -234,9 +234,11 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
             ValidateStaticSelection(imageMap, inputs);
             _artifactIdentities = SnapshotArtifactIdentities(inputs.Artifacts.Select(static artifact => artifact.Identity));
-            FirmwareMetadataStructure[] expectedStructures = selectionMetadataOnly
-                ? [.. definition.GetMapResolutionStructuresForMap(imageMap.MapId)]
-                : [.. definition.GetStructuresForMap(imageMap.MapId)];
+            FirmwareMetadataStructure[] expectedStructures =
+            [
+                .. expectedMetadataStructures ??
+                   definition.GetStructuresForMap(imageMap.MapId),
+            ];
             _resolvedMetadataStructures = SnapshotMetadataStructures(
                 resolvedMetadataStructures,
                 imageMap,

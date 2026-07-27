@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51929-nt51932",
-  "familyVersion": "1.2.0",
+  "familyVersion": "1.3.0",
   "members": [
     {
       "memberId": "NT51919",
@@ -175,37 +175,13 @@
   ],
   "imageMaps": [
     {
-      "mapId": "nt51919-standard-merge-256k",
+      "mapId": "nt51919-nt51929-nt51932-perfect-map-256k",
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": [
-          "NT51919"
-        ],
-        "modeIds": [
-          "standard-merge",
-          "dp-replace"
-        ],
-        "topologyRequirement": {
-          "kind": "none"
-        },
-        "capacityBytes": 262144
-      },
-      "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [
-        "nt51919-standard-merge-flash"
-      ],
-      "metadataSetIds": [],
-      "evidenceRefs": [
-        "standard-merge-alias-51919-to-51929",
-        "dp-replace-owner-decision-2026-07-20"
-      ]
-    },
-    {
-      "mapId": "nt51929-standard-merge-256k",
-      "addressSpaceId": "flash",
-      "applicability": {
-        "memberIds": [
-          "NT51929"
+          "NT51919",
+          "NT51929",
+          "NT51932"
         ],
         "modeIds": [
           "standard-merge",
@@ -224,62 +200,30 @@
         "nt51929-initial-code-metadata"
       ],
       "evidenceRefs": [
+        "standard-merge-alias-51919-to-51929",
         "gen-flash-bin-v2-51929-golden",
+        "gen-flash-bin-v2-51932-golden",
         "dp-replace-owner-decision-2026-07-20",
         "owner-handoff-nt51929-dpcmi-2026-07-10"
       ]
-    },
-    {
-      "mapId": "nt51932-standard-merge-256k",
-      "addressSpaceId": "flash",
-      "applicability": {
-        "memberIds": [
-          "NT51932"
-        ],
-        "modeIds": [
-          "standard-merge",
-          "dp-replace"
-        ],
-        "topologyRequirement": {
-          "kind": "none"
-        },
-        "capacityBytes": 262144
-      },
-      "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [
-        "nt51929-nt51932-standard-merge-flash"
-      ],
-      "metadataSetIds": [],
-      "evidenceRefs": [
-        "gen-flash-bin-v2-51932-golden",
-        "dp-replace-owner-decision-2026-07-20"
-      ]
     }
   ],
-  "factAliases": [
+  "factAliases": [],
+  "familyRelationships": [
     {
-      "aliasId": "nt51919-standard-merge-region-set-alias",
-      "factKind": "region-set",
-      "targetMemberId": "NT51919",
-      "targetMapId": "nt51919-standard-merge-256k",
-      "targetRegionSetId": "nt51919-standard-merge-flash",
-      "sourceMemberId": "NT51929",
-      "sourceMapId": "nt51929-standard-merge-256k",
-      "sourceRegionSetId": "nt51929-nt51932-standard-merge-flash",
-      "applicability": {
-        "modeIds": [
-          "standard-merge",
-          "dp-replace"
-        ],
-        "topologyRequirement": {
-          "kind": "none"
-        },
-        "capacityBytes": 262144
-      },
-      "reason": "Owner-confirmed NT51919 Standard Merge alias of NT51929 retains target map identity and source physical-region evidence.",
+      "relationshipId": "nt51919-nt51929-nt51932-perfect-like-family",
+      "relationshipKind": "perfect-like-family",
+      "memberIds": [
+        "NT51919",
+        "NT51929",
+        "NT51932"
+      ],
+      "reason": "The firmware owner confirmed NT51919, NT51929, and NT51932 share one complete modeled firmware definition while requested-member evidence and publication remain separate.",
       "evidenceRefs": [
         "standard-merge-alias-51919-to-51929",
-        "dp-replace-owner-decision-2026-07-20"
+        "gen-flash-bin-v2-51929-golden",
+        "gen-flash-bin-v2-51932-golden",
+        "owner-handoff-nt51929-dpcmi-2026-07-10"
       ]
     }
   ],

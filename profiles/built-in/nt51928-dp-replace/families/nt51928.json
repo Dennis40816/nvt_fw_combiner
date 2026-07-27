@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51928",
-  "familyVersion": "1.1.0",
+  "familyVersion": "1.2.0",
   "members": [
     {
       "memberId": "NT51928",
@@ -91,7 +91,33 @@
       ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "nt51928-initial-code-metadata",
+      "structures": [
+        {
+          "structureId": "dpcmi",
+          "artifactBindingId": "dp-replacement",
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "dp-code",
+            "offset": 28,
+            "allowedResultRegionId": "dp-code"
+          },
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.2.0",
+            "familyContentHash": "136341752985c063aacc32ee10bf7c61f9d0484c2ac27ff5aafab9bc754b56e8",
+            "structureId": "dpcmi"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "adr-0039-owner-accepted-2026-07-26",
+        "gen-flash-bin-v2-51928-golden"
+      ]
+    }
+  ],
   "imageMaps": [
     {
       "mapId": "nt51928-standard-merge-512k",
@@ -113,7 +139,9 @@
       "regionSetIds": [
         "nt51928-standard-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51928-initial-code-metadata"
+      ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51928-golden",
         "dp-replace-owner-decision-2026-07-20"
@@ -122,6 +150,7 @@
   ],
   "factAliases": [],
   "evidenceRefs": [
+    "adr-0039-owner-accepted-2026-07-26",
     "gen-flash-bin-v2-51928-golden",
     "dp-replace-owner-decision-2026-07-20"
   ]

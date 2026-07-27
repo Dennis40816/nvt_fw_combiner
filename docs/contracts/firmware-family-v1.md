@@ -28,6 +28,49 @@ or exposes a UI action. Newly inventoried regions use `writeConstraint = "forbid
 evidence approves a narrower constraint. A composition profile may further restrict a map but may
 not relax it.
 
+## Family relationships
+
+The strict relations schema permits zero or more owner-declared
+`familyRelationships`. A relationship is a firmware-semantic declaration, not
+an evidence alias, support decision, or runtime selector. Every relationship
+has one ordinally unique `relationshipId`, at least two explicit `memberIds`, a
+nonblank reason, and one or more evidence references. Membership is never
+inferred from equal bytes, filenames, hashes, versions, PIDs, or golden
+observations.
+
+The closed relationship kinds are:
+
+- `perfect-like-family`: all family-document semantics are owned once for the
+  complete declared member set. Every map that contains one relationship
+  member contains the exact complete member set; member-scoped fact aliases,
+  capability exceptions, partial region lists, and partial metadata lists are
+  forbidden. `sharedRegionIds` and `metadataDefinitionIds` are therefore
+  omitted.
+- `initial-code-shared-family`: only the listed Initial Code regions and their
+  canonical metadata definitions are shared.
+- `tp-shared-family`: only the listed TP regions and their canonical metadata
+  definitions are shared.
+
+A partial relationship lists one or more `sharedRegionIds`. Every member must
+select the same region geometry for each listed id. Its optional
+`metadataDefinitionIds` select canonical logical definition identities, not
+structure instances or copied field/offset tables. Every member map must select
+that definition through its own applicable binding, and all selected
+structures must retain the same immutable definition reference. Unlisted
+regions, metadata, capacity, topology, LDC, integrity, processor, workflow, and
+publication facts remain outside the relationship.
+
+Two relationships of the same kind may not overlap in membership, and every
+declared member must exist in the family. Unknown members, missing shared
+regions, unequal region geometry, unavailable or ambiguous metadata
+definitions, member-specific perfect-like aliases/capabilities, and partial
+perfect-like map membership reject normalization.
+
+The family contract enforces only facts it owns. Composition operations,
+processor stages, and product publication remain profile/policy authorities;
+their convergence onto the same family-owned facts is a separate migration
+gate and cannot be inferred from a relationship declaration.
+
 Family identity is resolved before map applicability. The normalized requested IC must name an
 explicit member or owner-declared fact-scoped alias; PID, firmware version, chip count, filename,
 capacity, hash, and decoded payload metadata never discover, select, or change the family. Map

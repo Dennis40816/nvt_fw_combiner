@@ -23,7 +23,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                 "standard-merge"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.0.0", policy.CatalogVersion);
+        Assert.Equal("1.1.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);

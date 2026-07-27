@@ -14,6 +14,7 @@ namespace NvtFwCombiner.Contracts.Firmware;
 /// <param name="ImageMaps">Candidate physical image maps.</param>
 /// <param name="FactAliases">Explicit fact-scoped aliases.</param>
 /// <param name="EvidenceRefs">Family-level evidence manifest references.</param>
+/// <param name="FamilyRelationships">Optional owner-declared perfect-like or shared-part relationships.</param>
 public sealed record FirmwareFamilyDocument(
     string SchemaVersion,
     string FamilyId,
@@ -24,12 +25,60 @@ public sealed record FirmwareFamilyDocument(
     IReadOnlyList<FirmwareMetadataSetDocument> MetadataSets,
     IReadOnlyList<FirmwareImageMapDocument> ImageMaps,
     IReadOnlyList<FirmwareFactAliasDocument> FactAliases,
-    IReadOnlyList<string> EvidenceRefs);
+    IReadOnlyList<string> EvidenceRefs,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<FirmwareFamilyRelationshipDocument>? FamilyRelationships = null);
 
 /// <summary>DTO for one family member and its display label.</summary>
 /// <param name="MemberId">Stable IC member identifier.</param>
 /// <param name="DisplayName">Human-readable IC name.</param>
 public sealed record FirmwareFamilyMemberDocument(string MemberId, string DisplayName);
+
+/// <summary>
+/// Shared DTO fields for one owner-declared family relationship. Relationship
+/// declarations contain firmware-semantic scope only; support, publication,
+/// evidence classification, workflow, processor, and topology authority are
+/// intentionally not representable here.
+/// </summary>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "relationshipKind")]
+[JsonDerivedType(typeof(FirmwarePerfectLikeFamilyRelationshipDocument), "perfect-like-family")]
+[JsonDerivedType(
+    typeof(FirmwareInitialCodeSharedFamilyRelationshipDocument),
+    "initial-code-shared-family")]
+[JsonDerivedType(typeof(FirmwareTpSharedFamilyRelationshipDocument), "tp-shared-family")]
+public abstract record FirmwareFamilyRelationshipDocument(
+    string RelationshipId,
+    IReadOnlyList<string> MemberIds,
+    string Reason,
+    IReadOnlyList<string> EvidenceRefs);
+
+/// <summary>DTO for one complete perfect-like firmware-semantic relationship.</summary>
+public sealed record FirmwarePerfectLikeFamilyRelationshipDocument(
+    string RelationshipId,
+    IReadOnlyList<string> MemberIds,
+    string Reason,
+    IReadOnlyList<string> EvidenceRefs)
+    : FirmwareFamilyRelationshipDocument(RelationshipId, MemberIds, Reason, EvidenceRefs);
+
+/// <summary>DTO for one Initial Code geometry and owned-metadata relationship.</summary>
+public sealed record FirmwareInitialCodeSharedFamilyRelationshipDocument(
+    string RelationshipId,
+    IReadOnlyList<string> MemberIds,
+    IReadOnlyList<string> SharedRegionIds,
+    IReadOnlyList<string> MetadataDefinitionIds,
+    string Reason,
+    IReadOnlyList<string> EvidenceRefs)
+    : FirmwareFamilyRelationshipDocument(RelationshipId, MemberIds, Reason, EvidenceRefs);
+
+/// <summary>DTO for one TP geometry and owned-metadata relationship.</summary>
+public sealed record FirmwareTpSharedFamilyRelationshipDocument(
+    string RelationshipId,
+    IReadOnlyList<string> MemberIds,
+    IReadOnlyList<string> SharedRegionIds,
+    IReadOnlyList<string> MetadataDefinitionIds,
+    string Reason,
+    IReadOnlyList<string> EvidenceRefs)
+    : FirmwareFamilyRelationshipDocument(RelationshipId, MemberIds, Reason, EvidenceRefs);
 
 /// <summary>DTO for one map-bound evidence-backed technical capability fact.</summary>
 /// <param name="CapabilityFactId">Stable aliasable capability fact identifier.</param>

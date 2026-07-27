@@ -321,11 +321,6 @@ internal static class TrustedV2CompositionCompiler
                     : "The selected trusted V2 profile must identify exactly one canonical image map for the requested capacity.");
         }
 
-        bool resolveSelectionMetadataOnly =
-            catalog.TryResolveSelection(
-                selection!,
-                out TrustedCompositionProfileCatalogEntry? selectedProfile) &&
-            selectedProfile.Profile.MetadataBindings.Count != 0;
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
             new V2CompositionPreparationRequest(
@@ -335,8 +330,7 @@ internal static class TrustedV2CompositionCompiler
                     modeId,
                     mapCandidates[0].CapacityBytes,
                     requestedTopology,
-                    resolutionArtifacts),
-                resolveSelectionMetadataOnly));
+                    resolutionArtifacts)));
         return preparation.IsAdmitted
             ? V2CompositionPlanCompiler.Compile(preparation)
             : Failed(

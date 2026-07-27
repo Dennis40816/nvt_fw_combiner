@@ -34,7 +34,7 @@
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
 - NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.
-- NT51950 and NT51951 expose single and generic-cascade CtrlRAM with identical TP offsets and DiffDLM `[0x33200,0x34600)`; their 256/512 KiB container capacities remain distinct, LDC is packaged inside DP, and AB stays separate.
+- NT51950 and NT51951 expose single and generic-cascade CtrlRAM with identical TP offsets and a legacy DiffDLM outer envelope `[0x33200,0x34600)`; that envelope is not contiguous write authority until its per-IC Diff DLM/Diff NF geometry is owner-confirmed. Their 256/512 KiB container capacities remain distinct, LDC is packaged inside DP, and AB stays separate.
 - Common FW starts at `1.0.0`. NT51926 alone has two current runtime intervals; one-profile ICs do not block on missing or future informational version values. PID never selects a route.
 - NT51930 exposes only single and `2–13`; NT51927/NT51928 expose only single/2/3. A decoded FWConfig chip count cross-checks the chosen plan and may require confirmation, but never silently chooses family or creates a plan.
 
@@ -62,6 +62,33 @@
 - NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
 - DP Replace has a trusted V2 authoring route for all 13 selectable ICs. Gen Flash routes clone an exact same-IC Standard/Normal Reference FlashCode and replace only the canonical DP partition; NT51928 non-NB additionally requires a separate full FlashCode-shaped LDC input for `[0x40000, 0x62000)`, distinct from DP `[0x3C000, 0x40000)`. This authoring availability does not by itself grant a public support claim.
 - NT51930 currently has no `>13 IC` product target; map cascade to the `<=13 IC` DiffDLM branch (`0x2F200`, size `65024`) until owner data reactivates larger counts.
+- DiffDLM Replace treats an AE-provided DiffDLM artifact as full-stride records
+  whose NF tails may contain invalid uniform filler, never as a contiguous
+  replacement for an interleaved target envelope. Every DiffDLM declaration
+  must bind both its writable DLM subranges
+  and its preservation-mask subranges; the non-overlapping union must exactly
+  cover each declared target record. A missing, `unknown`, overlapping, or
+  incomplete preservation mask makes the route unavailable and cannot compile
+  or Build. The compiled plan must scatter each declared source record only
+  into its IC-owned Diff DLM subrange and preserve every masked byte from the
+  immutable reference; source NF bytes are never mutation authority.
+  NT51919/NT51929/NT51932 share the first owner-confirmed geometry: both source
+  and target records have stride `0x1400`, Diff DLM
+  `[recordBase, recordBase + 0x0B90)`, and preserved Diff NF
+  `[recordBase + 0x0B90, recordBase + 0x1400)`. Cascade IC Count `N` requires
+  exactly `N - 1` active DLM subranges, and every required `0x0B90` source
+  subrange must contain more than one distinct byte; validation covers all
+  required records, not only the first. Unused trailing records have no
+  inferred firmware meaning and cannot enlarge the compiled source/read or
+  target/write set. A DiffDLM route must not expose an
+  independently writable NF selection until the NF-mode and
+  `DiffNFMerge.exe` contract is separately approved. NT51950/NT51951 require
+  the same
+  NF-preserving mechanism, but their record geometry remains evidence-required
+  and must not be inferred from the legacy outer envelope or from the
+  NT51919/NT51929/NT51932 family. Their affected DiffDLM routes remain
+  unavailable and fail closed until owner evidence binds source/target record
+  geometry, writable DLM and preserved NF masks, and IC Count applicability.
 - FW Register ranges are first-class map evidence. REG Replace is represented as a pending capability over those regions, but remains without an executable profile or UI exposure until owner evidence is approved. Current executable Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
 - Merge and Replace runs must produce a report modal after Preview/Build and persist run history. The report must show each operation step, input/output hashes, IC/IC-num context, normalized ranges, external Combiner command sequence, processor result, warnings, and final artifact path.
 - Per-IC Merge/Replace flowcharts live in [`docs/architecture/ic-workflow-flowcharts.md`](docs/architecture/ic-workflow-flowcharts.md). Any change to built-in merge profiles, replace profiles, CtrlRAM postbuild catalog, 950/951 DP policy, or supported IC workflow matrix must update that reference in the same change.
@@ -1486,10 +1513,18 @@ approved specification and consistency grill
   -> implement, review, verify, and delete old ownership slice by slice
 ```
 
-Known NT51920/NT51931 DPCMI mapping gaps and the identified direct-golden/
-processor evidence gaps remain explicit evidence tasks. They do not reopen the
-IC-first architecture, and they block only the affected promotion or deletion
-boundary.
+NT51920/NT51931 DPCMI locator intake is closed by #177 through the owner-backed
+canonical bindings `0x3E014` and `0x3E018`. Their distinct direct-golden,
+processor, and support-promotion evidence gaps remain explicit tasks; canonical
+locator admission does not close or weaken those gates.
+
+Until #194 migrates every existing consumer, `GenFlashVersionCatalog` is a
+compatibility adapter for `WorkbenchCompositionService` inspection, slot facts,
+and output naming. It owns no firmware locator or admission authority. When a
+canonical DPCMI structure is declared, its result—including a typed read
+failure—is final and must never fall back to the compatibility adapter. Adapter
+deletion requires canonical consumer parity and zero remaining callers; #195
+retains the Workbench-facade deletion gate.
 
 The tracer's authoring-policy model is closed: each exact route declares
 `Available` or `Unavailable`, and UI and CLI must always expose the same result.
@@ -1499,10 +1534,12 @@ cannot be reused to change authoring availability. Omission is `Missing` and
 fail-closed, never another spelling of `Unavailable`.
 
 The `0.10.0` planning conditions are satisfied: the owner approved this spec,
-the canonical firmware-coordinate vocabulary, and the dependency graph; GitHub
-tickets `#170` through `#197` are published with the canonical
-`ready-for-agent` label. The repository copy of the titles, dependency depths,
-and exact `Blocked by` edges is
+the canonical firmware-coordinate vocabulary, and the dependency graph. The
+GitHub tickets listed in the repository dependency plan are published;
+`ready-for-agent` is applied only where specification and evidence intake are
+complete, while evidence-gated tickets such as #188 remain unready. The
+repository copy of the titles, dependency depths, and exact `Blocked by` edges
+is
 [`docs/governance/0.10.x-ticket-dependency-plan.md`](docs/governance/0.10.x-ticket-dependency-plan.md).
 Those edges still determine the implementation frontier, and publication does
 not authorize a ticket to bypass its evidence, review, branch, or release gate.

@@ -47,6 +47,11 @@
       "type": "array",
       "items": { "$ref": "#/$defs/factAlias" }
     },
+    "familyRelationships": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/familyRelationship" }
+    },
     "evidenceRefs": {
       "type": "array",
       "minItems": 1,
@@ -654,6 +659,123 @@
         "metadataPredicates": {
           "type": "array",
           "items": { "$ref": "#/$defs/metadataPredicate" }
+        }
+      }
+    },
+    "familyRelationship": {
+      "oneOf": [
+        { "$ref": "#/$defs/perfectLikeFamilyRelationship" },
+        { "$ref": "#/$defs/initialCodeSharedFamilyRelationship" },
+        { "$ref": "#/$defs/tpSharedFamilyRelationship" }
+      ]
+    },
+    "perfectLikeFamilyRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relationshipId",
+        "relationshipKind",
+        "memberIds",
+        "reason",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "relationshipId": { "$ref": "#/$defs/id" },
+        "relationshipKind": { "const": "perfect-like-family" },
+        "memberIds": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/icId" }
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "initialCodeSharedFamilyRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relationshipId",
+        "relationshipKind",
+        "memberIds",
+        "sharedRegionIds",
+        "metadataDefinitionIds",
+        "reason",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "relationshipId": { "$ref": "#/$defs/id" },
+        "relationshipKind": { "const": "initial-code-shared-family" },
+        "memberIds": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/icId" }
+        },
+        "sharedRegionIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "metadataDefinitionIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "tpSharedFamilyRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relationshipId",
+        "relationshipKind",
+        "memberIds",
+        "sharedRegionIds",
+        "metadataDefinitionIds",
+        "reason",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "relationshipId": { "$ref": "#/$defs/id" },
+        "relationshipKind": { "const": "tp-shared-family" },
+        "memberIds": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/icId" }
+        },
+        "sharedRegionIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "metadataDefinitionIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
         }
       }
     },

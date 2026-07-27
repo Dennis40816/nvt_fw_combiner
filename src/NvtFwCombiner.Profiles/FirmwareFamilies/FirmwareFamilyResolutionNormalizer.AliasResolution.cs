@@ -78,6 +78,12 @@ public static partial class FirmwareFamilyResolutionNormalizer
             structuresByMap,
             mapApplicabilities,
             aliasApplicabilities);
+        FirmwareFamilyRelationship[] familyRelationships = NormalizeFamilyRelationships(
+            document,
+            normalizedMaps,
+            structuresByMap,
+            aliases,
+            capabilities);
 
         return TranslateInvariant("$", () => new FirmwareFamilyResolutionDefinition(
                 document.FamilyId,
@@ -85,7 +91,8 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 familyContentHash,
                 normalizedMaps,
                 metadataSetsById.Values,
-                capabilities));
+                capabilities,
+                familyRelationships));
     }
 
     private static MapInput[] CreateMaps(

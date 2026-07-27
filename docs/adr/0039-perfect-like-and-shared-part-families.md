@@ -96,6 +96,37 @@ is not the runtime representation of `initial-code-shared-family` or
 relationships, their isolation enforcement, and the NT51917/NT51927/NT51928
 migration slice.
 
+## Implementation status (2026-07-27)
+
+Ticket #177 implements the family-owned portion of this decision in the strict
+firmware-family relations contract:
+
+- NT51919/NT51929/NT51932 select one family-owned 256 KiB map and one canonical
+  DPCMI definition through `perfect-like-family`;
+- NT51927/NT51928 declare separate Initial-Code-shared and TP-shared
+  relationships; DPCMI belongs to the former, FirmwareConfig General
+  Parameters belongs to the latter, and NT51928 `ldc-code` belongs to neither;
+- NT51950/NT51951 declare only TP sharing through `tp-overlay` and the canonical
+  FirmwareConfig definition; DPCMI placement, LDC, capacity, topology, and AB
+  remain explicit;
+- owner-backed DPCMI bindings resolve at `0x401A` for NT51919/29/32,
+  `0x3C01C` for NT51917/27/28, `0x3E014` for NT51920/23/26, `0x18` for
+  NT51930, and `0x3E018` for NT51931. The owner confirmed on 2026-07-27 that
+  the NT51920/31 locations are invariant across Single, Cascade, and IC Count;
+  and
+- trusted composition compilation resolves only metadata required by map
+  selection. Inspection-only family metadata remains available to the
+  reference-only Metadata Plan/Inspector and does not make an unrelated
+  Standard Merge wait for an artifact.
+
+The normalizer now rejects unknown members, same-kind overlapping
+relationships, incomplete perfect-like membership, member-specific
+perfect-like aliases/capabilities, unequal shared-region geometry, and
+unavailable or unequal shared metadata-definition references. This completes
+the family/data binding slice only. Profile/consumer convergence and removal
+of remaining migration adapters remain ticket #194; support promotion, UI,
+processor behavior, and firmware bytes are unchanged.
+
 ## Alternatives
 
 - Treat every relationship as fact-scoped: rejected because `perfect-like`

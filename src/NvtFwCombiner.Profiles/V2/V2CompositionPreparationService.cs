@@ -8,14 +8,12 @@ internal sealed class V2CompositionPreparationRequest
 {
     internal V2CompositionPreparationRequest(
         TrustedProfileBundleCatalog.ProfileSelection selection,
-        FirmwareMapResolutionInputs resolutionInputs,
-        bool resolveSelectionMetadataOnly = false)
+        FirmwareMapResolutionInputs resolutionInputs)
     {
         ArgumentNullException.ThrowIfNull(selection);
         ArgumentNullException.ThrowIfNull(resolutionInputs);
         Selection = selection;
         ResolutionInputs = resolutionInputs;
-        ResolveSelectionMetadataOnly = resolveSelectionMetadataOnly;
     }
 
     /// <summary>Exact catalog-minted profile selection.</summary>
@@ -24,8 +22,6 @@ internal sealed class V2CompositionPreparationRequest
     /// <summary>Immutable Domain-owned map resolution selections and artifact snapshots.</summary>
     internal FirmwareMapResolutionInputs ResolutionInputs { get; }
 
-    /// <summary>Whether non-predicate metadata remains deferred to an explicit inspection plan.</summary>
-    internal bool ResolveSelectionMetadataOnly { get; }
 }
 
 /// <summary>Closed non-executable preparation outcome before V2 composition-plan lowering exists.</summary>
@@ -205,13 +201,17 @@ internal static class V2CompositionPreparationService
         }
 
         var profileMapIds = profile.Profile.MapBinding.MapIds.ToHashSet(StringComparer.Ordinal);
-        FirmwareMapResolutionResult mapResolution = request.ResolveSelectionMetadataOnly
-            ? profile.Family.Family.ResolveMapWithinForSelection(
-                request.ResolutionInputs,
-                profileMapIds)
-            : profile.Family.Family.ResolveMapWithin(
-                request.ResolutionInputs,
-                profileMapIds);
+        var deferredInspectionStructureIds = profile.Profile.MetadataBindings
+            .Select(static binding => binding.StructureId)
+            .ToHashSet(StringComparer.Ordinal);
+        var requiredMetadataStructureIds =
+            profile.Profile.MapBinding.RequiredMetadataStructureIds
+                .Where(structureId => !deferredInspectionStructureIds.Contains(structureId))
+                .ToHashSet(StringComparer.Ordinal);
+        FirmwareMapResolutionResult mapResolution = profile.Family.Family.ResolveMapWithinForProfile(
+            request.ResolutionInputs,
+            profileMapIds,
+            requiredMetadataStructureIds);
         switch (mapResolution.Status)
         {
             case FirmwareMapResolutionStatus.Pending:

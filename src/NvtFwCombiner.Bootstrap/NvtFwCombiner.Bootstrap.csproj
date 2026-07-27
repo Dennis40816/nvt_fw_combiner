@@ -11,7 +11,6 @@
     <BuiltInProfileSourceRoot>$(MSBuildProjectDirectory)\..\..\profiles\built-in</BuiltInProfileSourceRoot>
     <ProfileContractRoot>$(MSBuildProjectDirectory)\..\..\docs\contracts</ProfileContractRoot>
     <BuiltInProfileMaterializedRoot>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\materialized-profiles\built-in</BuiltInProfileMaterializedRoot>
-    <BuiltInProfilePublishedRoot>$(OutDir)profiles\built-in</BuiltInProfilePublishedRoot>
     <DefaultCompositionProfileSchemaFile>composition-profile-v2.schema.json</DefaultCompositionProfileSchemaFile>
   </PropertyGroup>
   <ItemDefinitionGroup>
@@ -47,6 +46,7 @@
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51930-general-merge-logical-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
+      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
       <CanonicalFirmwareFamilySource>nt51930-standard-merge\families\nt51930.json</CanonicalFirmwareFamilySource>
       <CanonicalFirmwareFamilyDestination>families\nt51930.json</CanonicalFirmwareFamilyDestination>
     </BuiltInProfileBundle>
@@ -97,20 +97,30 @@
     <BuiltInProfileBundle Include="nt51951-ctrlram-replace-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51920-dp-replace" />
-    <BuiltInProfileBundle Include="nt51923-dp-replace" />
+    <BuiltInProfileBundle Include="nt51920-dp-replace">
+      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
+    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51923-dp-replace">
+      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
+    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51923-standard-merge" />
-    <BuiltInProfileBundle Include="nt51927-dp-replace" />
+    <BuiltInProfileBundle Include="nt51927-dp-replace">
+      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
+    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51927-standard-merge">
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51928-dp-replace" />
+    <BuiltInProfileBundle Include="nt51928-dp-replace">
+      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
+    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51928-standard-merge">
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
       <CanonicalFirmwareFamilySource>nt51927-standard-merge\families\nt51927-nt51928.json</CanonicalFirmwareFamilySource>
       <CanonicalFirmwareFamilyDestination>families\nt51927-nt51928.json</CanonicalFirmwareFamilyDestination>
     </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51929-dp-replace" />
+    <BuiltInProfileBundle Include="nt51929-dp-replace">
+      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
+    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51929-standard-merge" />
     <BuiltInProfileBundle Include="nt51919-nt51929-nt51932-ab-merge">
       <CompositionProfileSchemaFile>composition-profile-v2.10.schema.json</CompositionProfileSchemaFile>
@@ -118,15 +128,22 @@
     <BuiltInProfileBundle Include="nt51950-ab-merge">
       <CompositionProfileSchemaFile>composition-profile-v2.10.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51930-standard-merge" />
-    <BuiltInProfileBundle Include="nt51931-dp-replace" />
+    <BuiltInProfileBundle Include="nt51930-standard-merge">
+      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
+    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51931-dp-replace">
+      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
+    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51931-standard-merge" />
     <BuiltInProfileBundle Include="nt51950-nt51951-standard-merge">
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
   </ItemGroup>
   <Target Name="MaterializeBuiltInProfileBundles" BeforeTargets="AssignTargetPaths">
-    <RemoveDir Directories="$(BuiltInProfileMaterializedRoot);$(BuiltInProfilePublishedRoot)" />
+    <PropertyGroup>
+      <_BuiltInProfilePublishedRoot>$(OutDir)profiles\built-in</_BuiltInProfilePublishedRoot>
+    </PropertyGroup>
+    <RemoveDir Directories="$(BuiltInProfileMaterializedRoot);$(_BuiltInProfilePublishedRoot)" />
     <ItemGroup>
       <_BuiltInProfileSource Include="$(BuiltInProfileSourceRoot)\%(BuiltInProfileBundle.Identity)\**\*"
         Exclude="$(BuiltInProfileSourceRoot)\%(BuiltInProfileBundle.Identity)\schemas\**\*">
@@ -180,8 +197,8 @@
       <_BuiltInProfileMaterializedFiles Include="$(BuiltInProfileMaterializedRoot)\**\*" />
       <Content Include="@(_BuiltInProfileMaterializedFiles)">
         <Link>profiles\built-in\%(_BuiltInProfileMaterializedFiles.RecursiveDir)%(_BuiltInProfileMaterializedFiles.Filename)%(_BuiltInProfileMaterializedFiles.Extension)</Link>
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <CopyToPublishDirectory>Always</CopyToPublishDirectory>
       </Content>
     </ItemGroup>
   </Target>

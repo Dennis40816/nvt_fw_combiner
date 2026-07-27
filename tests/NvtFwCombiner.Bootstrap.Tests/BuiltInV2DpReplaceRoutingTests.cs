@@ -10,15 +10,15 @@ public sealed class BuiltInV2DpReplaceRoutingTests
 {
     /// <summary>Every canonical Gen Flash map exposes only its owner-approved DP partition.</summary>
     [Theory]
-    [InlineData("NT51917", 0x40000, "nt51917-dp-replace-gen-flash-alias", "c805ce9881786131a299675ec84ff272cd3effc74310fc783965abb1a8400568", 0x3C000, 0x4000)]
-    [InlineData("NT51919", 0x40000, "nt51919-dp-replace-gen-flash-alias", "37f4db17de259f28ff54b9b02ef60bdbd604dcdb2a218f46d137c9e58f0feee5", 0x00000, 0x6000)]
-    [InlineData("NT51920", 0x40000, "nt51920-dp-replace-gen-flash", "54fe891836a8e899f3ac27c3dd32e35678032b3f0c886d6a2f2659369c7185a9", 0x3E000, 0x2000)]
-    [InlineData("NT51923", 0x40000, "nt51923-dp-replace-gen-flash", "4c822759f79167ab16331bb9590b89f3d7874ec518660ca098e545ae432569a0", 0x3E000, 0x2000)]
-    [InlineData("NT51926", 0x40000, "nt51926-dp-replace-gen-flash", "4c822759f79167ab16331bb9590b89f3d7874ec518660ca098e545ae432569a0", 0x3E000, 0x2000)]
-    [InlineData("NT51927", 0x40000, "nt51927-dp-replace-gen-flash", "c805ce9881786131a299675ec84ff272cd3effc74310fc783965abb1a8400568", 0x3C000, 0x4000)]
-    [InlineData("NT51929", 0x40000, "nt51929-dp-replace-gen-flash", "37f4db17de259f28ff54b9b02ef60bdbd604dcdb2a218f46d137c9e58f0feee5", 0x00000, 0x6000)]
-    [InlineData("NT51931", 0x40000, "nt51931-dp-replace-gen-flash", "eae8c593556e9cb5d639d2f05c94f8144d091767e490e746cd5cdeb2b5384c9c", 0x3E000, 0x2000)]
-    [InlineData("NT51932", 0x40000, "nt51932-dp-replace-gen-flash", "37f4db17de259f28ff54b9b02ef60bdbd604dcdb2a218f46d137c9e58f0feee5", 0x00000, 0x6000)]
+    [InlineData("NT51917", 0x40000, "nt51917-dp-replace-gen-flash-alias", "bcf3a6ec6e2371717df39934bcf80a40989379da2667591b0da72d0166737274", 0x3C000, 0x4000)]
+    [InlineData("NT51919", 0x40000, "nt51919-dp-replace-gen-flash-alias", "ce5a57eb6df377335be081b5eecf7f9eb379ce9a43cc51dd3bcae161febcdbcc", 0x00000, 0x6000)]
+    [InlineData("NT51920", 0x40000, "nt51920-dp-replace-gen-flash", "74b48f23401f713fb5f465a18187589359b28d5d043689283fa0d39857081978", 0x3E000, 0x2000)]
+    [InlineData("NT51923", 0x40000, "nt51923-dp-replace-gen-flash", "8a3efe8ffe4a3df89d025efbbb882d89c193e46a728127b03c1ca8f0c8797ca8", 0x3E000, 0x2000)]
+    [InlineData("NT51926", 0x40000, "nt51926-dp-replace-gen-flash", "8a3efe8ffe4a3df89d025efbbb882d89c193e46a728127b03c1ca8f0c8797ca8", 0x3E000, 0x2000)]
+    [InlineData("NT51927", 0x40000, "nt51927-dp-replace-gen-flash", "bcf3a6ec6e2371717df39934bcf80a40989379da2667591b0da72d0166737274", 0x3C000, 0x4000)]
+    [InlineData("NT51929", 0x40000, "nt51929-dp-replace-gen-flash", "ce5a57eb6df377335be081b5eecf7f9eb379ce9a43cc51dd3bcae161febcdbcc", 0x00000, 0x6000)]
+    [InlineData("NT51931", 0x40000, "nt51931-dp-replace-gen-flash", "6a0b3e953a6df1b3026b850dd548634cc56e43fb0a1abbb0746a0f1484e26301", 0x3E000, 0x2000)]
+    [InlineData("NT51932", 0x40000, "nt51932-dp-replace-gen-flash", "ce5a57eb6df377335be081b5eecf7f9eb379ce9a43cc51dd3bcae161febcdbcc", 0x00000, 0x6000)]
     public void GenFlashDpReplaceUsesCanonicalDpPartition(
         string icId,
         long baseCapacity,
@@ -129,7 +129,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("b7a40ccc5b5256631bb2588b25c5286378778b3c9e5506713faefd648039c9fc", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("1dc7643478095b4b24a46f047677f454771a0a7999b73f1cad11bdc1e916d715", details.Provenance.Bundle.ContentHash);
         Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", artifact.ProfileId);
         Assert.Equal(baseCapacity, artifact.Plan.OutputInitialization.Capacity);
         WorkbenchProfileSummary summary = WorkbenchCompositionService.GetReplaceProfileSummaries()
