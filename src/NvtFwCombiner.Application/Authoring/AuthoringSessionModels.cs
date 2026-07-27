@@ -376,6 +376,23 @@ public sealed record AuthoringDerivedPublication
     public string ResultReference { get; }
 }
 
+/// <summary>
+/// Immutable typed draft carried by one authoring session. Concrete draft
+/// contracts own their fields; the session owns only lifetime and invalidation.
+/// </summary>
+public abstract record AuthoringDraftState
+{
+    /// <summary>Creates one typed draft with a stable closed-contract identity.</summary>
+    protected AuthoringDraftState(string draftKind)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(draftKind);
+        DraftKind = draftKind;
+    }
+
+    /// <summary>Stable identity of the concrete typed draft contract.</summary>
+    public string DraftKind { get; }
+}
+
 /// <summary>Coherent immutable state consumed by UI or CLI adapters.</summary>
 public sealed class ActiveSessionSnapshot
 {
@@ -397,6 +414,8 @@ public sealed class ActiveSessionSnapshot
         IEnumerable<string> icChoices,
         IEnumerable<string> icCountChoices,
         IEnumerable<AuthoringSlotState> slots,
+        AuthoringDraftState? draftState,
+        string? draftCapabilityFingerprint,
         IEnumerable<AuthoringDerivedPublication> derivedPublications)
     {
         WorkflowId = workflowId;
@@ -412,6 +431,8 @@ public sealed class ActiveSessionSnapshot
         _icCountChoices = [.. icCountChoices];
         _slots = [.. slots];
         _derivedPublications = [.. derivedPublications];
+        DraftState = draftState;
+        DraftCapabilityFingerprint = draftCapabilityFingerprint;
         IcChoices = Array.AsReadOnly(_icChoices);
         IcCountChoices = Array.AsReadOnly(_icCountChoices);
         Slots = Array.AsReadOnly(_slots);
@@ -453,6 +474,11 @@ public sealed class ActiveSessionSnapshot
 
     /// <summary>Resolved slot states.</summary>
     public IReadOnlyList<AuthoringSlotState> Slots { get; }
+
+    /// <summary>Current immutable typed draft, or null when this mode has none.</summary>
+    public AuthoringDraftState? DraftState { get; }
+
+    internal string? DraftCapabilityFingerprint { get; }
 
     /// <summary>Derived result references admitted for this exact snapshot.</summary>
     public IReadOnlyList<AuthoringDerivedPublication> DerivedPublications { get; }

@@ -88,11 +88,16 @@ public sealed class AuthoringSessionState
                 : sameSelection
                     ? previous.AuthoringRevision
                     : previous.AuthoringRevision.Next();
+            AuthoringDraftState? draftState = ProjectDraft(route, previous);
             ActiveSessionSnapshot snapshot = CreateSnapshot(
                 catalog,
                 route,
                 revision,
                 ProjectSlots(route, previous),
+                draftState,
+                draftState is null
+                    ? null
+                    : route.CapabilityFingerprint,
                 []);
             _catalog = catalog;
             Volatile.Write(ref _current, snapshot);
@@ -136,11 +141,16 @@ public sealed class AuthoringSessionState
                 return new AuthoringSessionTransitionResult(_current, null);
             }
 
+            AuthoringDraftState? draftState = ProjectDraft(route, _current);
             ActiveSessionSnapshot snapshot = CreateSnapshot(
                 _catalog,
                 route,
                 _current.AuthoringRevision.Next(),
                 ProjectSlots(route, _current),
+                draftState,
+                draftState is null
+                    ? null
+                    : route.CapabilityFingerprint,
                 []);
             Volatile.Write(ref _current, snapshot);
             return new AuthoringSessionTransitionResult(snapshot, null);
@@ -208,6 +218,44 @@ public sealed class AuthoringSessionState
                 _current,
                 _current.AuthoringRevision.Next(),
                 slots,
+                _current.DraftState,
+                _current.DraftCapabilityFingerprint,
+                []);
+            Volatile.Write(ref _current, snapshot);
+            return new AuthoringSessionTransitionResult(snapshot, null);
+        }
+    }
+
+    /// <summary>
+    /// Replaces or clears the current immutable typed draft. Draft content is
+    /// owned by its concrete Application contract; this session owns lifetime.
+    /// </summary>
+    public AuthoringSessionTransitionResult SetDraft(
+        AuthoringDraftState? draftState)
+    {
+        lock (_transitionLock)
+        {
+            if (_current is null)
+            {
+                return Failure(
+                    AuthoringSessionIssueCodes.CatalogUnavailable,
+                    "The authoring session is not active.",
+                    WorkflowId);
+            }
+
+            if (Equals(_current.DraftState, draftState))
+            {
+                return new AuthoringSessionTransitionResult(_current, null);
+            }
+
+            ActiveSessionSnapshot snapshot = CopySnapshot(
+                _current,
+                _current.AuthoringRevision.Next(),
+                _current.Slots,
+                draftState,
+                draftState is null
+                    ? null
+                    : _current.CapabilityFingerprint,
                 []);
             Volatile.Write(ref _current, snapshot);
             return new AuthoringSessionTransitionResult(snapshot, null);
@@ -283,6 +331,8 @@ public sealed class AuthoringSessionState
                 _current,
                 _current.AuthoringRevision,
                 _current.Slots,
+                _current.DraftState,
+                _current.DraftCapabilityFingerprint,
                 publications);
             Volatile.Write(ref _current, snapshot);
             return new AuthoringPublicationResult(true, null);
@@ -313,11 +363,16 @@ public sealed class AuthoringSessionState
                 $"{icId}/{icCountVariant}");
         }
 
+        AuthoringDraftState? draftState = ProjectDraft(routes[0], _current);
         ActiveSessionSnapshot routeIdentity = CreateSnapshot(
             catalog,
             routes[0],
             _current?.AuthoringRevision ?? new AuthoringRevision(1),
             ProjectSlots(routes[0], _current),
+            draftState,
+            draftState is null
+                ? null
+                : routes[0].CapabilityFingerprint,
             []);
         return new AuthoringSessionTransitionResult(routeIdentity, null);
     }
@@ -365,11 +420,25 @@ public sealed class AuthoringSessionState
         ];
     }
 
+    private static AuthoringDraftState? ProjectDraft(
+        AuthoringCapabilityRoute route,
+        ActiveSessionSnapshot? previous)
+    {
+        return previous is not null &&
+            StringComparer.Ordinal.Equals(
+                previous.DraftCapabilityFingerprint,
+                route.CapabilityFingerprint)
+                ? previous.DraftState
+                : null;
+    }
+
     private static ActiveSessionSnapshot CreateSnapshot(
         AuthoringCapabilityCatalogSnapshot catalog,
         AuthoringCapabilityRoute route,
         AuthoringRevision revision,
         IEnumerable<AuthoringSlotState> slots,
+        AuthoringDraftState? draftState,
+        string? draftCapabilityFingerprint,
         IEnumerable<AuthoringDerivedPublication> publications)
     {
         return new ActiveSessionSnapshot(
@@ -385,6 +454,8 @@ public sealed class AuthoringSessionState
             catalog.IcChoices,
             catalog.GetIcCountChoices(route.Identity.IcId),
             slots,
+            draftState,
+            draftCapabilityFingerprint,
             publications);
     }
 
@@ -392,6 +463,8 @@ public sealed class AuthoringSessionState
         ActiveSessionSnapshot current,
         AuthoringRevision revision,
         IEnumerable<AuthoringSlotState> slots,
+        AuthoringDraftState? draftState,
+        string? draftCapabilityFingerprint,
         IEnumerable<AuthoringDerivedPublication> publications)
     {
         return new ActiveSessionSnapshot(
@@ -407,6 +480,8 @@ public sealed class AuthoringSessionState
             current.IcChoices,
             current.IcCountChoices,
             slots,
+            draftState,
+            draftCapabilityFingerprint,
             publications);
     }
 
