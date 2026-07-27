@@ -428,6 +428,11 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             'gh api --method POST "repos/$env:NFC_REPOSITORY/git/tags"',
             absent_index,
         )
+        tag_step = promote[promote.index("- name: Create or verify immutable annotated tag") :]
+        self.assertIn(
+            "NFC_SOURCE_BRANCH: ${{ needs.candidate.outputs.source-branch }}",
+            tag_step,
+        )
         self.assertLess(head_recheck_index, tag_create_index)
 
     def test_stable_candidate_permits_only_recoverable_tag_and_release_states(

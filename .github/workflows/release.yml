@@ -501,6 +501,7 @@ jobs:
           NFC_REPOSITORY: ${{ github.repository }}
           NFC_TAG: ${{ needs.candidate.outputs.tag }}
           NFC_SOURCE_SHA: ${{ needs.candidate.outputs.source-sha }}
+          NFC_SOURCE_BRANCH: ${{ needs.candidate.outputs.source-branch }}
           NFC_SOURCE_TREE: ${{ needs.candidate.outputs.source-tree }}
           NFC_RUN_ID: ${{ github.run_id }}
           NFC_MANIFEST_SHA256: ${{ needs.candidate.outputs.manifest-sha256 }}
