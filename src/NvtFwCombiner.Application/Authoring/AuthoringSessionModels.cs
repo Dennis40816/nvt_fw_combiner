@@ -376,21 +376,41 @@ public sealed record AuthoringDerivedPublication
     public string ResultReference { get; }
 }
 
+/// <summary>Closed authoring-draft contracts admitted by session policy.</summary>
+public enum AuthoringDraftKind
+{
+    /// <summary>One typed General Merge/Replace explicit-mapping draft.</summary>
+    GeneralMapping,
+}
+
 /// <summary>
-/// Immutable typed draft carried by one authoring session. Concrete draft
-/// contracts own their fields; the session owns only lifetime and invalidation.
+/// Closed typed draft carried by one authoring session. Application-owned
+/// contracts must project caller state into a deeply immutable snapshot.
 /// </summary>
 public abstract record AuthoringDraftState
 {
     /// <summary>Creates one typed draft with a stable closed-contract identity.</summary>
-    protected AuthoringDraftState(string draftKind)
+    internal AuthoringDraftState(AuthoringDraftKind draftKind)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(draftKind);
+        if (!Enum.IsDefined(draftKind))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(draftKind),
+                draftKind,
+                "Unknown authoring draft kind.");
+        }
+
         DraftKind = draftKind;
     }
 
     /// <summary>Stable identity of the concrete typed draft contract.</summary>
-    public string DraftKind { get; }
+    public AuthoringDraftKind DraftKind { get; }
+
+    /// <summary>
+    /// Defensively projects caller-owned state before a session publishes it.
+    /// The internal abstract member closes concrete contracts to Application.
+    /// </summary>
+    internal abstract AuthoringDraftState CreateImmutableSnapshot();
 }
 
 /// <summary>Coherent immutable state consumed by UI or CLI adapters.</summary>
@@ -504,6 +524,9 @@ public static class AuthoringSessionIssueCodes
 
     /// <summary>The selected slot definition is absent from the active route.</summary>
     public const string SlotUnavailable = "authoring.session.slot-unavailable";
+
+    /// <summary>The workflow does not declare authoring-draft semantics.</summary>
+    public const string DraftUnavailable = "authoring.session.draft-unavailable";
 
     /// <summary>The asynchronous result belongs to older session state.</summary>
     public const string StalePublication = "authoring.session.publication-stale";

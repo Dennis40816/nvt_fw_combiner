@@ -1,3 +1,5 @@
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Application.Authoring;
 
 /// <summary>
@@ -83,12 +85,16 @@ public sealed class AuthoringSessionState
                 return new AuthoringSessionTransitionResult(previous, null);
             }
 
+            AuthoringDraftState? draftState = ProjectDraft(route, previous);
+            bool compatibleCapability = previous is not null &&
+                StringComparer.Ordinal.Equals(
+                    previous.CapabilityFingerprint,
+                    route.CapabilityFingerprint);
             AuthoringRevision revision = previous is null
                 ? new AuthoringRevision(1)
-                : sameSelection
+                : sameSelection && compatibleCapability
                     ? previous.AuthoringRevision
                     : previous.AuthoringRevision.Next();
-            AuthoringDraftState? draftState = ProjectDraft(route, previous);
             ActiveSessionSnapshot snapshot = CreateSnapshot(
                 catalog,
                 route,
@@ -243,7 +249,17 @@ public sealed class AuthoringSessionState
                     WorkflowId);
             }
 
-            if (Equals(_current.DraftState, draftState))
+            if (!SupportsDraftState(WorkflowId, draftState?.DraftKind))
+            {
+                return Failure(
+                    AuthoringSessionIssueCodes.DraftUnavailable,
+                    "The active workflow does not declare the requested authoring-draft contract.",
+                    WorkflowId);
+            }
+
+            AuthoringDraftState? immutableDraft =
+                draftState?.CreateImmutableSnapshot();
+            if (Equals(_current.DraftState, immutableDraft))
             {
                 return new AuthoringSessionTransitionResult(_current, null);
             }
@@ -252,8 +268,8 @@ public sealed class AuthoringSessionState
                 _current,
                 _current.AuthoringRevision.Next(),
                 _current.Slots,
-                draftState,
-                draftState is null
+                immutableDraft,
+                immutableDraft is null
                     ? null
                     : _current.CapabilityFingerprint,
                 []);
@@ -430,6 +446,15 @@ public sealed class AuthoringSessionState
                 route.CapabilityFingerprint)
                 ? previous.DraftState
                 : null;
+    }
+
+    private static bool SupportsDraftState(
+        string workflowId,
+        AuthoringDraftKind? draftKind)
+    {
+        return (workflowId is
+                ExperienceIds.GeneralMerge or ExperienceIds.GeneralReplace) &&
+            (draftKind is null or AuthoringDraftKind.GeneralMapping);
     }
 
     private static ActiveSessionSnapshot CreateSnapshot(

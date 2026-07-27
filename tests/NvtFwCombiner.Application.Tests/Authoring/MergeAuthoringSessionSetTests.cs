@@ -177,6 +177,138 @@ public sealed class MergeAuthoringSessionSetTests
         Assert.Null(incompatible.DraftState);
     }
 
+    /// <summary>Session publication stores a defensive immutable draft projection.</summary>
+    [Fact]
+    public void DraftStateIsDefensivelySnapshottedBeforePublication()
+    {
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        _ = Activate(
+            session,
+            Catalog(
+                ExperienceIds.GeneralMerge,
+                "general-token",
+                Route(
+                    "NT51926",
+                    ExperienceIds.GeneralMerge,
+                    "selector-free",
+                    "general-map",
+                    "general-fingerprint",
+                    "mapping-source")));
+        var callerOwnedRows = new List<string> { "row-1" };
+
+        ActiveSessionSnapshot snapshot = SetDraft(
+            session,
+            new MutableTestDraftState(callerOwnedRows));
+        callerOwnedRows[0] = "mutated-after-publication";
+        callerOwnedRows.Add("row-2");
+
+        Assert.Equal(
+            "row-1",
+            Assert.IsType<TestDraftState>(snapshot.DraftState).Value);
+        Assert.Equal(
+            "row-1",
+            Assert.IsType<TestDraftState>(
+                session.CurrentSnapshot!.DraftState).Value);
+    }
+
+    /// <summary>Only General authoring workflows admit mapping-draft state.</summary>
+    [Theory]
+    [InlineData(ExperienceIds.StandardMerge)]
+    [InlineData(ExperienceIds.AbMerge)]
+    [InlineData(ExperienceIds.DpReplace)]
+    public void WorkflowsWithoutDraftSemanticsRejectDraftState(
+        string workflowId)
+    {
+        var session = new AuthoringSessionState(workflowId);
+        ActiveSessionSnapshot before = Activate(
+            session,
+            Catalog(
+                workflowId,
+                $"{workflowId}-token",
+                Route(
+                    "NT51929",
+                    workflowId,
+                    "selector-free",
+                    $"{workflowId}-map",
+                    $"{workflowId}-fingerprint",
+                    "input")));
+
+        AuthoringSessionTransitionResult result = session.SetDraft(
+            new TestDraftState("row-1"));
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(
+            AuthoringSessionIssueCodes.DraftUnavailable,
+            result.Issue!.Code);
+        Assert.Same(before, result.Snapshot);
+        Assert.Null(before.DraftState);
+        Assert.Equal(new AuthoringRevision(1), before.AuthoringRevision);
+    }
+
+    /// <summary>Capability changes advance revision when they invalidate a draft.</summary>
+    [Fact]
+    public void ActivationAdvancesRevisionWhenCapabilityChangeDropsDraft()
+    {
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        _ = Activate(
+            session,
+            Catalog(
+                ExperienceIds.GeneralMerge,
+                "token-1",
+                Route(
+                    "NT51926",
+                    ExperienceIds.GeneralMerge,
+                    "selector-free",
+                    "general-map",
+                    "fingerprint-1",
+                    "mapping-source")));
+        ActiveSessionSnapshot withDraft = SetDraft(
+            session,
+            new TestDraftState("row-1"));
+
+        ActiveSessionSnapshot changed = Activate(
+            session,
+            Catalog(
+                ExperienceIds.GeneralMerge,
+                "token-2",
+                Route(
+                    "NT51926",
+                    ExperienceIds.GeneralMerge,
+                    "selector-free",
+                    "general-map",
+                    "fingerprint-2",
+                    "mapping-source")));
+
+        Assert.Equal(
+            withDraft.AuthoringRevision.Next(),
+            changed.AuthoringRevision);
+        Assert.Null(changed.DraftState);
+
+        ActiveSessionSnapshot restored = SetDraft(
+            session,
+            new TestDraftState("row-2"));
+        ActiveSessionSnapshot policyOnlyPublication = Activate(
+            session,
+            Catalog(
+                ExperienceIds.GeneralMerge,
+                "token-3",
+                Route(
+                    "NT51926",
+                    ExperienceIds.GeneralMerge,
+                    "selector-free",
+                    "general-map",
+                    "fingerprint-2",
+                    "mapping-source")));
+
+        Assert.Equal(
+            restored.AuthoringRevision,
+            policyOnlyPublication.AuthoringRevision);
+        Assert.Equal(
+            "row-2",
+            Assert.IsType<TestDraftState>(
+                policyOnlyPublication.DraftState).Value);
+    }
+
     /// <summary>CLI sessions are ephemeral instances over the identical transition contract.</summary>
     [Fact]
     public void CliEphemeralSessionUsesTheSameRulesWithoutSharingState()
@@ -377,5 +509,20 @@ public sealed class MergeAuthoringSessionSetTests
     }
 
     private sealed record TestDraftState(string Value)
-        : AuthoringDraftState("general-mapping");
+        : AuthoringDraftState(AuthoringDraftKind.GeneralMapping)
+    {
+        internal override AuthoringDraftState CreateImmutableSnapshot()
+        {
+            return this;
+        }
+    }
+
+    private sealed record MutableTestDraftState(IReadOnlyList<string> Rows)
+        : AuthoringDraftState(AuthoringDraftKind.GeneralMapping)
+    {
+        internal override AuthoringDraftState CreateImmutableSnapshot()
+        {
+            return new TestDraftState(string.Join("|", Rows));
+        }
+    }
 }
