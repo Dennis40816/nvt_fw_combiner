@@ -9,6 +9,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     private readonly FirmwareImageMap[] _imageMaps;
     private readonly FirmwareMetadataSet[] _metadataSets;
     private readonly FirmwareMapFactBinding<FirmwareCapabilityFact>[] _capabilityBindings;
+    private readonly FirmwareFamilyRelationship[] _familyRelationships;
     private readonly string[] _requiredArtifactBindingIds;
     private readonly Dictionary<string, IReadOnlyList<FirmwareMetadataStructure>> _structuresByMap;
 
@@ -31,6 +32,26 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         IEnumerable<FirmwareImageMap> imageMaps,
         IEnumerable<FirmwareMetadataSet> metadataSets,
         IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityBindings)
+        : this(
+            familyId,
+            familyVersion,
+            familyContentHash,
+            imageMaps,
+            metadataSets,
+            capabilityBindings,
+            [])
+    {
+    }
+
+    /// <summary>Creates one normalized family with explicit firmware-semantic relationships.</summary>
+    internal FirmwareFamilyResolutionDefinition(
+        string familyId,
+        string familyVersion,
+        string familyContentHash,
+        IEnumerable<FirmwareImageMap> imageMaps,
+        IEnumerable<FirmwareMetadataSet> metadataSets,
+        IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityBindings,
+        IEnumerable<FirmwareFamilyRelationship> familyRelationships)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
@@ -45,6 +66,16 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         _imageMaps = SnapshotMaps(imageMaps);
         _metadataSets = SnapshotMetadataSets(metadataSets);
         _capabilityBindings = SnapshotCapabilityBindings(capabilityBindings, _imageMaps);
+        _familyRelationships = ImmutableReferenceSnapshot.CreateUnique(
+            familyRelationships,
+            static relationship => relationship.RelationshipId,
+            "Family relationships cannot contain null.",
+            "Family relationship ids must be ordinally unique.",
+            StringComparer.Ordinal);
+        Array.Sort(
+            _familyRelationships,
+            static (left, right) =>
+                StringComparer.Ordinal.Compare(left.RelationshipId, right.RelationshipId));
         ValidateFamilyStructureIds(_metadataSets);
 
         Dictionary<string, FirmwareMetadataSet> metadataSetsById = _metadataSets.ToDictionary(
@@ -86,6 +117,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         ImageMaps = Array.AsReadOnly(_imageMaps);
         MetadataSets = Array.AsReadOnly(_metadataSets);
         CapabilityBindings = Array.AsReadOnly(_capabilityBindings);
+        FamilyRelationships = Array.AsReadOnly(_familyRelationships);
         RequiredArtifactBindingIds = Array.AsReadOnly(_requiredArtifactBindingIds);
     }
 
@@ -106,6 +138,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
     /// <summary>Map-bound technical capability evidence that never changes map eligibility or Build support.</summary>
     public IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityBindings { get; }
+
+    /// <summary>Owner-declared perfect-like and shared-part firmware relationships.</summary>
+    public IReadOnlyList<FirmwareFamilyRelationship> FamilyRelationships { get; }
 
     /// <summary>Artifact bindings reachable from at least one candidate map.</summary>
     public IReadOnlyList<string> RequiredArtifactBindingIds { get; }

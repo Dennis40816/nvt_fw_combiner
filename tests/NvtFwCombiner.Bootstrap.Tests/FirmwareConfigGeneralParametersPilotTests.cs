@@ -291,7 +291,11 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
             out IReadOnlyList<CompositionIssue> issues);
         Assert.Empty(issues);
         CompiledComposition compiled = Assert.IsType<CompiledComposition>(composition);
-        return Assert.Single(registration.CreateMetadataPlan(compiled).Entries);
+        return Assert.Single(
+            registration.CreateMetadataPlan(compiled).Entries,
+            static entry => StringComparer.Ordinal.Equals(
+                entry.BindingId,
+                "firmware-config-general-parameters-inspection"));
     }
 
     private static byte[] CreateValidTp()

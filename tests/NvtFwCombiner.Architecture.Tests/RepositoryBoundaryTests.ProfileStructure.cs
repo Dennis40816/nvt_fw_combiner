@@ -177,6 +177,23 @@ public sealed partial class RepositoryBoundaryTests
             "nt51931-general-merge-logical-candidate",
             "nt51950-nt51951-general-merge-logical-candidate",
         ];
+        string[] relationshipSchemaBundleIds =
+        [
+            "nt51917-nt51927-general-merge-logical-candidate",
+            "nt51928-general-merge-logical-candidate",
+            "nt51930-general-merge-logical-candidate",
+            "nt51950-nt51951-general-merge-logical-candidate",
+            "nt51920-dp-replace",
+            "nt51923-dp-replace",
+            "nt51927-dp-replace",
+            "nt51927-standard-merge",
+            "nt51928-dp-replace",
+            "nt51928-standard-merge",
+            "nt51929-dp-replace",
+            "nt51930-standard-merge",
+            "nt51931-dp-replace",
+            "nt51950-nt51951-standard-merge",
+        ];
 
         Assert.Equal(
             expectedBundleIds,
@@ -220,27 +237,53 @@ public sealed partial class RepositoryBoundaryTests
                     "composition-profile-v2.9.schema.json",
                     Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
-            else if (bundle.Attribute("Include")?.Value is
-                         "nt51927-standard-merge" or
-                         "nt51928-standard-merge" or
-                         "nt51950-nt51951-standard-merge")
+            else
+            {
+                Assert.Empty(bundle.Elements("CompositionProfileSchemaFile"));
+            }
+
+            if (relationshipSchemaBundleIds.Contains(include.Value, StringComparer.Ordinal))
             {
                 Assert.Equal(
                     "firmware-family-v1-relations.schema.json",
                     Assert.Single(bundle.Elements("FirmwareFamilySchemaFile")).Value);
-                if (bundle.Attribute("Include")?.Value == "nt51928-standard-merge")
-                {
-                    Assert.Equal(
-                        "nt51927-standard-merge\\families\\nt51927-nt51928.json",
-                        Assert.Single(bundle.Elements("CanonicalFirmwareFamilySource")).Value);
-                    Assert.Equal(
-                        "families\\nt51927-nt51928.json",
-                        Assert.Single(bundle.Elements("CanonicalFirmwareFamilyDestination")).Value);
-                }
             }
             else
             {
-                Assert.Empty(bundle.Elements());
+                Assert.Empty(bundle.Elements("FirmwareFamilySchemaFile"));
+            }
+
+            (string? canonicalSource, string? canonicalDestination) = include.Value switch
+            {
+                "nt51917-nt51927-general-merge-logical-candidate" or
+                "nt51928-general-merge-logical-candidate" or
+                "nt51928-standard-merge" => (
+                    "nt51927-standard-merge\\families\\nt51927-nt51928.json",
+                    "families\\nt51927-nt51928.json"),
+                "nt51930-general-merge-logical-candidate" => (
+                    "nt51930-standard-merge\\families\\nt51930.json",
+                    "families\\nt51930.json"),
+                "nt51950-nt51951-general-merge-logical-candidate" => (
+                    "nt51950-nt51951-standard-merge\\families\\nt51950-nt51951-dp-perspective.json",
+                    "families\\nt51950-nt51951-dp-perspective.json"),
+                "nt51917-ctrlram-replace-alias-candidate" => (
+                    "nt51927-ctrlram-replace-candidate\\families\\nt51927-ctrlram-replace.json",
+                    "families\\nt51927-ctrlram-replace.json"),
+                _ => (null, null),
+            };
+            if (canonicalSource is null)
+            {
+                Assert.Empty(bundle.Elements("CanonicalFirmwareFamilySource"));
+                Assert.Empty(bundle.Elements("CanonicalFirmwareFamilyDestination"));
+            }
+            else
+            {
+                Assert.Equal(
+                    canonicalSource,
+                    Assert.Single(bundle.Elements("CanonicalFirmwareFamilySource")).Value);
+                Assert.Equal(
+                    canonicalDestination,
+                    Assert.Single(bundle.Elements("CanonicalFirmwareFamilyDestination")).Value);
             }
             Assert.DoesNotContain("*", include.Value, StringComparison.Ordinal);
             Assert.DoesNotContain("$(", include.Value, StringComparison.Ordinal);

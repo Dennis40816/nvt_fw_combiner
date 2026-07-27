@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0",
   "catalogId": "canonical-capability-policy",
-  "catalogVersion": "1.0.0",
-  "issuedOn": "2026-07-26",
+  "catalogVersion": "1.1.0",
+  "issuedOn": "2026-07-27",
   "routes": [
     {
       "icId": "NT51929",
@@ -37,27 +37,27 @@
       "icId": "NT51929",
       "workflowId": "dp-replace",
       "icCountVariant": "selector-free",
-      "mapVariant": "nt51929-standard-merge-256k",
-      "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-27-nt51929-standard-merge-256k",
-      "capabilityFingerprint": "a3ea6e35bf90e326fdb0aae7093ab603cda3003384ba56ed22dc1bd5c9a1c42c",
+      "mapVariant": "nt51919-nt51929-nt51932-perfect-map-256k",
+      "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-40-nt51919-nt51929-nt51932-perfect-map-256k",
+      "capabilityFingerprint": "cfa3a9fef751d5f4c372219549b31e59fb22a4c7f5579c2843dc1f922b59ea2f",
       "authoring": {
         "decisionId": "nt51929-dp-replace-authoring-v1",
-        "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-27-nt51929-standard-merge-256k",
-        "capabilityFingerprint": "a3ea6e35bf90e326fdb0aae7093ab603cda3003384ba56ed22dc1bd5c9a1c42c",
+        "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-40-nt51919-nt51929-nt51932-perfect-map-256k",
+        "capabilityFingerprint": "cfa3a9fef751d5f4c372219549b31e59fb22a4c7f5579c2843dc1f922b59ea2f",
         "value": "available",
         "sourceReference": "owner-approved:github-issue-174"
       },
       "publication": {
         "decisionId": "nt51929-dp-replace-publication-v1",
-        "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-27-nt51929-standard-merge-256k",
-        "capabilityFingerprint": "a3ea6e35bf90e326fdb0aae7093ab603cda3003384ba56ed22dc1bd5c9a1c42c",
+        "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-40-nt51919-nt51929-nt51932-perfect-map-256k",
+        "capabilityFingerprint": "cfa3a9fef751d5f4c372219549b31e59fb22a4c7f5579c2843dc1f922b59ea2f",
         "value": "supported",
         "sourceReference": "owner-approved:github-issue-174"
       },
       "evidence": {
         "decisionId": "nt51929-dp-replace-evidence-v1",
-        "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-27-nt51929-standard-merge-256k",
-        "capabilityFingerprint": "a3ea6e35bf90e326fdb0aae7093ab603cda3003384ba56ed22dc1bd5c9a1c42c",
+        "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-40-nt51919-nt51929-nt51932-perfect-map-256k",
+        "capabilityFingerprint": "cfa3a9fef751d5f4c372219549b31e59fb22a4c7f5579c2843dc1f922b59ea2f",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51929-gen-flash"
       }

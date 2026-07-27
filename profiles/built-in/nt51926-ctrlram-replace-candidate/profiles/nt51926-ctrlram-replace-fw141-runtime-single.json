@@ -48,7 +48,9 @@
       "header-crc-5c",
       "header-crc-fc"
     ],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": [
+      "nt51926-fwconfig-backup-envelope"
+    ],
     "requiredCapabilityIds": []
   },
   "inputSlots": [

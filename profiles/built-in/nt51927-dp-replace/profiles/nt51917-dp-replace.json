@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "profileId": "nt51917-dp-replace-gen-flash-alias",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "single-selector",
@@ -15,11 +15,11 @@
   },
   "mapBinding": {
     "familyId": "nt51927",
-    "familyVersion": "1.1.0",
-    "familyContentHash": "2db5d82fa95409cf28cf5f55bb892c60a849b864dc3425e772aacb17b96d5f29",
+    "familyVersion": "1.2.0",
+    "familyContentHash": "d1492cb07789d2eb5f1ce6309d2e9cd7e106e566f60ecafdd48729769125a428",
     "mapIds": ["nt51917-standard-merge-256k"],
     "requiredRegionIds": ["dp-code"],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": ["dpcmi"],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -47,7 +47,15 @@
     { "viewId": "dp-code-source", "spaceId": "dp-replacement", "selector": { "kind": "map-region", "regionId": "dp-code" } },
     { "viewId": "dp-code-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "dp-code" } }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "dpcmi-inspection",
+      "spaceId": "dp-replacement",
+      "structureId": "dpcmi",
+      "fieldIds": ["jira-low", "dp-major", "dp-minor", "jira-high"],
+      "purposes": ["validation", "output-naming", "display", "version"]
+    }
+  ],
   "regionAccessRules": [
     { "regionId": "dp-code", "access": "whole", "reason": "Replace the complete owner-approved NT51917 DP region inherited only through its fact-scoped NT51927 alias." }
   ],

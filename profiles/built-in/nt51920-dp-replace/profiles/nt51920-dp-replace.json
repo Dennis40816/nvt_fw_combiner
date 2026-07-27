@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "profileId": "nt51920-dp-replace-gen-flash",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "single-selector",
@@ -10,10 +10,10 @@
     "inputPolicy": "fixed", "topologyAuthoring": "hidden", "displayNameKey": "profile.nt51920.dp-replace"
   },
   "mapBinding": {
-    "familyId": "nt51920", "familyVersion": "1.1.0",
-    "familyContentHash": "22a1e41c1fc29f2d804a217b03ccf8012a8efea0300de3df8e797c5d04fb32ef",
+    "familyId": "nt51920", "familyVersion": "1.2.0",
+    "familyContentHash": "21ab8ca1b5ebdc76c165933c344ebdc00d24730365e6eab0b43508ee90ff6d2a",
     "mapIds": ["nt51920-standard-merge-256k"], "requiredRegionIds": ["dp-code"],
-    "requiredMetadataStructureIds": [], "requiredCapabilityIds": []
+    "requiredMetadataStructureIds": ["dpcmi"], "requiredCapabilityIds": []
   },
   "inputSlots": [
     {
@@ -36,7 +36,15 @@
     { "viewId": "dp-code-source", "spaceId": "dp-replacement", "selector": { "kind": "map-region", "regionId": "dp-code" } },
     { "viewId": "dp-code-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "dp-code" } }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "dpcmi-inspection",
+      "spaceId": "dp-replacement",
+      "structureId": "dpcmi",
+      "fieldIds": ["jira-low", "dp-major", "dp-minor", "jira-high"],
+      "purposes": ["validation", "output-naming", "display", "version"]
+    }
+  ],
   "regionAccessRules": [{ "regionId": "dp-code", "access": "whole", "reason": "Replace the complete owner-approved NT51920 DP region." }],
   "operations": [
     {
@@ -47,5 +55,5 @@
   ],
   "validations": [], "processorStages": [],
   "output": { "fileNameTemplate": "nt51920-dp-replace.bin", "allowOverride": true, "invalidCharacterPolicy": "reject", "requiredTokenIds": [] },
-  "evidenceRefs": ["gen-flash-bin-v2-51920-golden", "dp-replace-owner-decision-2026-07-20"]
+  "evidenceRefs": ["gen-flash-bin-v2-51920-golden", "dp-replace-owner-decision-2026-07-20", "owner-dpcmi-locator-confirmation-2026-07-27"]
 }

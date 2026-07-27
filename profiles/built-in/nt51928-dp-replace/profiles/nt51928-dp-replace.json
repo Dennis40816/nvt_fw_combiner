@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "profileId": "nt51928-dp-replace-gen-flash",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "single-selector",
@@ -15,11 +15,11 @@
   },
   "mapBinding": {
     "familyId": "nt51928",
-    "familyVersion": "1.1.0",
-    "familyContentHash": "e287d131f6501b6b66cda888b3f32ee687ea2a9c614091e6d300ba285282fbe7",
+    "familyVersion": "1.2.0",
+    "familyContentHash": "63be86e1d063c0b7addd32d0a1f77a014ae87948502372abc763ac399fe6a00f",
     "mapIds": ["nt51928-standard-merge-512k"],
     "requiredRegionIds": ["dp-code", "ldc-code"],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": ["dpcmi"],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -55,7 +55,15 @@
     { "viewId": "ldc-code-source", "spaceId": "ld-replacement", "selector": { "kind": "map-region", "regionId": "ldc-code" } },
     { "viewId": "ldc-code-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "ldc-code" } }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "dpcmi-inspection",
+      "spaceId": "dp-replacement",
+      "structureId": "dpcmi",
+      "fieldIds": ["jira-low", "dp-major", "dp-minor", "jira-high"],
+      "purposes": ["validation", "output-naming", "display", "version"]
+    }
+  ],
   "regionAccessRules": [
     { "regionId": "dp-code", "access": "whole", "reason": "Replace the complete owner-approved NT51928 DP region [0x3C000, 0x40000)." },
     { "regionId": "ldc-code", "access": "whole", "reason": "Replace the separate owner-approved NT51928 LDC region [0x40000, 0x62000)." }

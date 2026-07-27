@@ -18,12 +18,16 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
 
         CapabilityCatalogLoadResult loaded =
             source.Load(TestContext.Current.CancellationToken);
+        Assert.True(
+            loaded.Succeeded,
+            string.Join(
+                Environment.NewLine,
+                loaded.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
         CanonicalCapabilityDefinition definition =
             loaded.Candidate!.Definitions.Single(candidate =>
                 candidate.Identity.WorkflowId == "standard-merge");
         CompiledComposition composition = definition.CompiledComposition;
 
-        Assert.True(loaded.Succeeded);
         Assert.Equal("NT51929", definition.Identity.IcId);
         Assert.Equal("nt51929-standard-merge-256k", definition.Identity.MapVariant);
         Assert.Equal(definition.CapabilityFingerprint, composition.CompilationFingerprint);
@@ -46,14 +50,20 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
 
         CapabilityCatalogLoadResult loaded =
             source.Load(TestContext.Current.CancellationToken);
+        Assert.True(
+            loaded.Succeeded,
+            string.Join(
+                Environment.NewLine,
+                loaded.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
         CanonicalCapabilityDefinition definition =
             loaded.Candidate!.Definitions.Single(candidate =>
                 candidate.Identity.WorkflowId == "dp-replace");
         MetadataPlanEntry entry = Assert.Single(definition.MetadataPlan.Entries);
 
-        Assert.True(loaded.Succeeded);
         Assert.Equal("NT51929", definition.Identity.IcId);
-        Assert.Equal("nt51929-standard-merge-256k", definition.Identity.MapVariant);
+        Assert.Equal(
+            "nt51919-nt51929-nt51932-perfect-map-256k",
+            definition.Identity.MapVariant);
         Assert.Equal("dpcmi-inspection", entry.BindingId);
         Assert.Equal("dp-replacement", entry.SpaceId);
         Assert.Equal("dp-replacement", entry.SlotId);
@@ -244,6 +254,28 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
         Assert.Empty(issues);
         Assert.False(canonical.Succeeded);
         Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, canonical.Issue!.Code);
+    }
+
+    /// <summary>The policy-facing DP route compiles the perfect-like family map directly.</summary>
+    [Fact]
+    public void Nt51929DpReplacePolicyPinsPerfectLikeCompiledIdentity()
+    {
+        BuiltInV2Registration registration =
+            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value["NT51929"];
+
+        registration.TryCompile(
+            0x40000,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.Empty(issues);
+        Assert.NotNull(composition);
+        Assert.Equal(
+            "nt51919-nt51929-nt51932-perfect-map-256k",
+            composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal(
+            "cfa3a9fef751d5f4c372219549b31e59fb22a4c7f5579c2843dc1f922b59ea2f",
+            composition.CompilationFingerprint);
     }
 
     private static PinnedCapabilityDecision<TValue> Rebind<TValue>(

@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51950-nt51951-general-merge-logical-candidate",
-  "bundleVersion": "0.10.1-candidate.2",
+  "bundleVersion": "0.10.1-candidate.3",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "c26187044ce83e735418a2882999191402459f9397c59ded722e2fb69c250dea",
+  "contentHash": "0d6754abc0f60e7fd967023759893df67e834971ec568027fe861efc7d7d21f0",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -18,28 +18,28 @@
       "kind": "schema",
       "path": "schemas/firmware-family-v1.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "52521712087ce1cf3bc7178407c3616308a2179ea4f008dea9ee72d3e9fcebff"
+      "contentHash": "01416bca0e005245b0f51f9d3d78e438cb202e66a654614c99b9f2ed41ce581a"
     },
     {
       "entryId": "nt51950-nt51951-dp-perspective-family",
       "kind": "firmware-family",
       "path": "families/nt51950-nt51951-dp-perspective.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "2dd48cbca5566ea739815b18847a2e3874984a8edc6d966f4d3bd4bc1cfac1a2"
+      "contentHash": "62475c616c462b9c78f1e49654c2b375a65cb8b60ac8b1cc2d87a52853b1f85e"
     },
     {
       "entryId": "nt51950-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51950-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "daafedc4c8f3f373068d1355cf89d3e6b0c3ec2cba765ca7837778b759c463d8"
+      "contentHash": "d25272ec65f8e455c394fd46efb66b3f48967012e2c21b942d493787655bc883"
     },
     {
       "entryId": "nt51951-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51951-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "b9ac0a5a0174f1293f3bd91a88b0bfdf19e906432c73884c7c6f50900c040808"
+      "contentHash": "55659470821e8ac1d82914da99d798186a3c8f8be7423598e2519cda53361236"
     }
   ]
 }

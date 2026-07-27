@@ -10,7 +10,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
 {
     private const string Nt51920BundleHash = "eafad4284d5e25dcfd32d54c4c160958a0fd7eb9a21dda3ae44f73f3a2cb56c7";
     private const string Nt51923BundleHash = "8c1318f9e83a658028b1e0a07b2c38a28bcdeb6031d3a393d6b4912c2cdba14f";
-    private const string Nt51926BundleHash = "4e77aef1aca3f388ef4c1526d88cd2f89f51132e76cfe0fccf774ccf786078e7";
+    private const string Nt51926BundleHash = "25d5adc9697eacedcf238835da197b0359c41f8cc6d82110c181496038469529";
     private const string Nt51929BundleHash = "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365";
     private const string Nt51928BundleHash = "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634";
     private const string Nt51930BundleHash = "9750eaa60fc76f4368ea27279f4e3900af10ce3a252783b7f95fd8d6a0f7af57";
@@ -551,7 +551,9 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             icId,
             ExperienceIds.CtrlRamReplace,
             requestedTopology,
-            [new FirmwareArtifactPayload("reference-base", ResolutionReference(chipCount, referenceCapacity))],
+            [new FirmwareArtifactPayload(
+                "reference-base",
+                ResolutionReference(icId, chipCount, referenceCapacity))],
             new V2RuntimeReferenceReplaceCompileRequest(
                 [
                     new V2RuntimeReferenceReplaceInputBinding("reference-base", "reference-base", referenceCapacity),
@@ -577,14 +579,21 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         return composition;
     }
 
-    private static byte[] ResolutionReference(int chipCount, long capacity)
+    private static byte[] ResolutionReference(
+        string icId,
+        int chipCount,
+        long capacity)
     {
         byte[] bytes = new byte[checked((int)capacity)];
         bytes[23] = checked((byte)chipCount);
-        bytes[4092] = 0x00;
-        bytes[4093] = 0x4E;
-        bytes[4094] = 0x56;
-        bytes[4095] = 0x54;
+        int markerOffset = StringComparer.Ordinal.Equals(icId, "NT51926")
+            ? 0x3BFFC
+            : 0x0FFC;
+        bytes[markerOffset] = 0x00;
+        bytes[markerOffset + 1] = 0x4E;
+        bytes[markerOffset + 2] = 0x56;
+        bytes[markerOffset + 3] = 0x54;
+
         return bytes;
     }
 

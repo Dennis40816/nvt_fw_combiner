@@ -33,7 +33,9 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
         MetadataPlanDefinition nt51929 = CreateDpReplacePlan("NT51929");
 
         FirmwareMetadataStructure fwConfigProvider =
-            Assert.Single(nt51927.Entries).StructureDefinition;
+            StructureByDefinition(
+                nt51927,
+                FirmwareConfigDefinitionId);
         FirmwareMetadataStructure dpcmiProvider =
             Assert.Single(nt51929.Entries).StructureDefinition;
         FirmwareMetadataStructure fwConfig950 =
@@ -215,8 +217,8 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
     {
         var exact = new FirmwareMetadataStructureDefinitionReference(
                 "nt51929-nt51932",
-                "1.2.0",
-                "fa3a33524d1e0c9f497382f84a44a8be56576503d61c1a93a372b7d8e78ecaa3",
+                "1.3.0",
+                "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
                 DpcmiMetadataContract.StructureId);
         FirmwareMetadataStructureDefinitionReference changed =
             mismatch switch

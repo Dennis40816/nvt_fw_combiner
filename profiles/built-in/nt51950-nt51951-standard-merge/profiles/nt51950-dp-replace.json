@@ -18,8 +18,8 @@
   },
   "mapBinding": {
     "familyId": "nt51950-nt51951-dp-perspective",
-    "familyVersion": "1.1.0",
-    "familyContentHash": "2dd48cbca5566ea739815b18847a2e3874984a8edc6d966f4d3bd4bc1cfac1a2",
+    "familyVersion": "1.2.0",
+    "familyContentHash": "62475c616c462b9c78f1e49654c2b375a65cb8b60ac8b1cc2d87a52853b1f85e",
     "mapIds": [
       "nt51950-standard-merge-256k",
       "nt51950-standard-merge-512k",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51931",
-  "familyVersion": "1.1.0",
+  "familyVersion": "1.2.0",
   "members": [
     {
       "memberId": "NT51931",
@@ -67,7 +67,33 @@
       ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "nt51931-initial-code-metadata",
+      "structures": [
+        {
+          "structureId": "dpcmi",
+          "artifactBindingId": "dp-replacement",
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "dp-code",
+            "offset": 24,
+            "allowedResultRegionId": "dp-code"
+          },
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.3.0",
+            "familyContentHash": "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
+            "structureId": "dpcmi"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51931-golden",
+        "owner-dpcmi-locator-confirmation-2026-07-27"
+      ]
+    }
+  ],
   "imageMaps": [
     {
       "mapId": "nt51931-standard-merge-256k",
@@ -89,7 +115,9 @@
       "regionSetIds": [
         "nt51931-standard-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51931-initial-code-metadata"
+      ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51931-golden",
         "dp-replace-owner-decision-2026-07-20"
@@ -98,6 +126,7 @@
   ],
   "factAliases": [],
   "evidenceRefs": [
+    "owner-dpcmi-locator-confirmation-2026-07-27",
     "gen-flash-bin-v2-51931-golden",
     "dp-replace-owner-decision-2026-07-20"
   ]

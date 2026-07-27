@@ -15,42 +15,42 @@ internal static class BuiltInV2BundleRegistry
     internal static FrozenDictionary<string, BuiltInV2Bundle> All { get; } =
         new (string Directory, string ContentHash)[]
         {
-            ("nt51917-nt51927-general-merge-logical-candidate", "ab5eaaf312b749853940c3777c1b1609fa52118a9edf66f5ae0a51aef9c91242"),
+            ("nt51917-nt51927-general-merge-logical-candidate", "6e0ecbad0b1205f860c62d2a251ad54193dc53d49f88d0fbecfdb86ddfa951ea"),
             ("nt51917-ctrlram-replace-alias-candidate", "8992dbc5483054c5dc16e545444b1f94446c698c68b1abe7946efdb4d4ffb26b"),
             ("nt51919-nt51929-nt51932-ab-merge", "93902043b6e4ea4c8a2023a7f02c798e4497de3523b21115797e9b302ce22292"),
             ("nt51919-nt51929-nt51932-general-merge-logical-candidate", "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283"),
             ("nt51920-ctrlram-replace-candidate", "eafad4284d5e25dcfd32d54c4c160958a0fd7eb9a21dda3ae44f73f3a2cb56c7"),
             ("nt51920-general-merge-logical-candidate", "d2f87973576f54b80439f30ef1790f47df2994a6811673f0ceb8ecd5cacdbdc7"),
-            ("nt51920-dp-replace", "54fe891836a8e899f3ac27c3dd32e35678032b3f0c886d6a2f2659369c7185a9"),
+            ("nt51920-dp-replace", "74b48f23401f713fb5f465a18187589359b28d5d043689283fa0d39857081978"),
             ("nt51920-standard-merge", "3bb76d56656642af553ff012a619ca8fc38fb7cdabf8ac674e5433998357f9f2"),
             ("nt51923-nt51926-general-merge-logical-candidate", "26f12851f81d55bb88a0a0e18ab4f10f451747369e797efbc69fdbf05cdf5a96"),
             ("nt51923-ctrlram-replace-candidate", "8c1318f9e83a658028b1e0a07b2c38a28bcdeb6031d3a393d6b4912c2cdba14f"),
-            ("nt51923-dp-replace", "4c822759f79167ab16331bb9590b89f3d7874ec518660ca098e545ae432569a0"),
+            ("nt51923-dp-replace", "8a3efe8ffe4a3df89d025efbbb882d89c193e46a728127b03c1ca8f0c8797ca8"),
             ("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96"),
-            ("nt51926-ctrlram-replace-candidate", "4e77aef1aca3f388ef4c1526d88cd2f89f51132e76cfe0fccf774ccf786078e7"),
+            ("nt51926-ctrlram-replace-candidate", "25d5adc9697eacedcf238835da197b0359c41f8cc6d82110c181496038469529"),
             ("nt51927-ctrlram-replace-candidate", "d0c8a8775a35a01b52b8d8f32a93af0ac798067e2577d2420ab0dd65dd815d0f"),
-            ("nt51927-dp-replace", "c805ce9881786131a299675ec84ff272cd3effc74310fc783965abb1a8400568"),
-            ("nt51927-standard-merge", "9423b7d003cae3decc50cc5a2c6a4fd19aaa291e828eede07f184d559948474a"),
+            ("nt51927-dp-replace", "bcf3a6ec6e2371717df39934bcf80a40989379da2667591b0da72d0166737274"),
+            ("nt51927-standard-merge", "de4b59fc4f8d849d7ce60fb490af4c74324a4bcdd558d36577fb3ec668826e69"),
             ("nt51928-ctrlram-replace-candidate", "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634"),
-            ("nt51928-general-merge-logical-candidate", "d44bf4240cf72f4bbef4b0dd84607971b68ed62b1f0f8407ebd44720d249676b"),
-            ("nt51928-dp-replace", "2bc3c74cb886c14d8550887770ba986368dcec28661c9bb5701f42567436e6eb"),
-            ("nt51928-standard-merge", "f6fe383af8eb19680a7224c692ee5bebd5a34f316ba8d41eb85d0f711c73f722"),
+            ("nt51928-general-merge-logical-candidate", "207b1cf26169f62d7702f7daa1844272cb666ff368b405b8ebe5283b7986f861"),
+            ("nt51928-dp-replace", "780aea0141ae617d8b96f50a44da86cf46af2c9536e3e037260106935c750bcc"),
+            ("nt51928-standard-merge", "771ca61c941394b1579329ef271b81a06054003535fa49d40a20c14fc1af9e54"),
             ("nt51929-ctrlram-replace-candidate", "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365"),
-            ("nt51929-dp-replace", "37f4db17de259f28ff54b9b02ef60bdbd604dcdb2a218f46d137c9e58f0feee5"),
+            ("nt51929-dp-replace", "ce5a57eb6df377335be081b5eecf7f9eb379ce9a43cc51dd3bcae161febcdbcc"),
             ("nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09"),
-            ("nt51930-general-merge-logical-candidate", "0baa3c4829da28540fd93be7b8afae23ce5a23521361976a2dddf2267e18b9e3"),
+            ("nt51930-general-merge-logical-candidate", "72fce0d8405eaf969d781ad684aea9c654e0185bc625864b642e302d6f1698a4"),
             ("nt51930-ctrlram-replace-candidate", "9750eaa60fc76f4368ea27279f4e3900af10ce3a252783b7f95fd8d6a0f7af57"),
-            ("nt51930-standard-merge", "50f9b7f84879088c72ba6da8f23860d92d7819eff5dd0a4772e4b3bc28f0921a"),
+            ("nt51930-standard-merge", "94e8b6d4ddc1f6ea413d369efd6b656cc060af1708291319031dd596c37087a1"),
             ("nt51931-general-merge-logical-candidate", "ce3b18aede5c884b074b6f9253d45a255e82a2147ec76bd300e7548d6fdc52fe"),
             ("nt51931-ctrlram-replace-candidate", "5580e22edce0755c785693093917f12f2dfb173941e31ca12b1e2d1c312c5a20"),
-            ("nt51931-dp-replace", "eae8c593556e9cb5d639d2f05c94f8144d091767e490e746cd5cdeb2b5384c9c"),
+            ("nt51931-dp-replace", "6a0b3e953a6df1b3026b850dd548634cc56e43fb0a1abbb0746a0f1484e26301"),
             ("nt51931-standard-merge", "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f"),
             ("nt51932-ctrlram-replace-candidate", "7184a75733724cf85c0c63d219b24abbeac372eee1197063c2b2d2179aca7257"),
             ("nt51950-ab-merge", "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206"),
             ("nt51950-ctrlram-replace-candidate", "d3f745c68d948e7e3a3a07d5717de2114742f881444076d93d2232343f98049e"),
             ("nt51951-ctrlram-replace-candidate", "f48429f505f71fbe7c258780dc1ef848c1d9a402d79906c1e24b3a1097192728"),
-            ("nt51950-nt51951-general-merge-logical-candidate", "c26187044ce83e735418a2882999191402459f9397c59ded722e2fb69c250dea"),
-            ("nt51950-nt51951-standard-merge", "b7a40ccc5b5256631bb2588b25c5286378778b3c9e5506713faefd648039c9fc"),
+            ("nt51950-nt51951-general-merge-logical-candidate", "0d6754abc0f60e7fd967023759893df67e834971ec568027fe861efc7d7d21f0"),
+            ("nt51950-nt51951-standard-merge", "1dc7643478095b4b24a46f047677f454771a0a7999b73f1cad11bdc1e916d715"),
         }.ToFrozenDictionary(
             static bundle => bundle.Directory,
             static bundle => new BuiltInV2Bundle(bundle.Directory, bundle.ContentHash),
@@ -410,9 +410,13 @@ internal sealed class BuiltInV2Bundle
         FirmwareMapFactBinding<FirmwareMetadataSet>[] metadataBindings =
         [
             .. resolvedMap.ImageMap.MetadataSetBindings.Where(
-                candidate => candidate.Value.Structures.Any(
-                    candidateStructure =>
-                        ReferenceEquals(candidateStructure, structure))),
+                candidate =>
+                    StringComparer.Ordinal.Equals(
+                        candidate.EffectiveKey.MemberId,
+                        resolvedMap.MemberId) &&
+                    candidate.Value.Structures.Any(
+                        candidateStructure =>
+                            ReferenceEquals(candidateStructure, structure))),
         ];
         if (metadataBindings.Length != 1)
         {
