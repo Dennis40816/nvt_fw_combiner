@@ -253,13 +253,14 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         OwnerCase evidence = ReadOwnerCase();
         var processor = new CountingPassThroughProcessor();
         using var workspace = TempWorkspace.Create("nfc-nt51932-diff-base-hardlink");
+        string basePath = workspace.Write("base.bin", evidence.Base.Bytes);
         string aliasPath = workspace.PathFor("DiffDLM-hardlink.bin");
-        await CreateHardLinkAsync(aliasPath, evidence.Base.Path, TestContext.Current.CancellationToken);
+        await CreateHardLinkAsync(aliasPath, basePath, TestContext.Current.CancellationToken);
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
-            CreateSlotPaths(evidence, diffPath: aliasPath),
+            CreateSlotPaths(evidence, diffPath: aliasPath, basePath: basePath),
             build: true,
             workspace.PathFor("must-not-exist.bin"),
             firmwareVersionEdit: null,
