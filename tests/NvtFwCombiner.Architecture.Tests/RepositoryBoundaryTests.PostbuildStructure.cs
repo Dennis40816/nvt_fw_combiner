@@ -127,8 +127,14 @@ public sealed partial class RepositoryBoundaryTests
     public void ExternalProcessorDiscoveryUsesOneExplicitProcessLifetime()
     {
         string factory = ReadText("src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs");
+        string ctrlRam = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
 
-        Assert.Contains("ProcessLifetime = new(CreateUncachedOrNull)", factory, StringComparison.Ordinal);
+        Assert.Contains("ProcessLifetime = new(CreateUncached)", factory, StringComparison.Ordinal);
+        Assert.Contains("internal static ExternalProcessorGenerationLease AcquireCurrent()", factory, StringComparison.Ordinal);
+        Assert.Contains("internal static void Refresh()", factory, StringComparison.Ordinal);
+        Assert.Contains("public static void RefreshCtrlRamRuntimeDependencies()", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains("ExternalProcessorFactory.Refresh()", ctrlRam, StringComparison.Ordinal);
         Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", factory, StringComparison.Ordinal);
         Assert.Equal(1, factory.Split("Directory.EnumerateFiles(", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("static IExternalProcessor? CreateOrNull()", factory, StringComparison.Ordinal);

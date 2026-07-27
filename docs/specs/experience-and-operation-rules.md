@@ -47,3 +47,26 @@ Inventory data may be `unknown`, but a supported profile may not. A transform ma
 - Arithmetic is checked; overflow and out-of-bounds fail before execution.
 - Overlap rejects by default and must be explicitly declared per operation.
 - Every mutation records operation id, target space/range, before/after digest, changed ranges, and reason.
+- A count-dependent DiffDLM operation expands only active records. Source dummy
+  records outside the active prefix never become write operations; inactive
+  target records remain cloned from the immutable reference. A later postbuild
+  FWConfig Backup mutation is a separate processor-owned operation and report
+  entry, not an exception that widens the DiffDLM mask.
+
+## Preview and Build Readiness
+
+- Application resolves action state from independent authoring, execution,
+  input, runtime-dependency, evidence, and publication dimensions. Evidence and
+  publication never become hidden byte-execution switches.
+- Runtime readiness is bound to route identity, capability fingerprint,
+  catalog resolution token, authoring revision, and the current processor
+  environment generation. Any mismatch is stale and fails closed before
+  processor execution.
+- A required external processor that is missing, invalid, or replaced blocks
+  the executable Preview/Build attempt without invoking mutation. The next
+  explicit refresh can recover in the same process after the environment is
+  corrected.
+- Check-time state never creates a Run Report. When the user explicitly
+  attempts Preview with a runtime blocker, the headless workflow may return a
+  blocked Preview report; Build remains unavailable until every execution gate
+  is current.

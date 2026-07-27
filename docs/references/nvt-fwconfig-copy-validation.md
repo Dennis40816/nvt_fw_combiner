@@ -15,6 +15,39 @@ The Backup starts at `T - 0xFFF`. The compatibility reader currently decodes the
 
 All runtime FWConfig content is read from this Backup. Hash-pinned `flash-map.json` still declares an IC primary FWConfig address only for TP Overview and golden cross-check evidence; it is never a runtime fallback or source. Golden regression verifies the primary and Backup agree for all exposed fields: FW/FW-bar/sub-version, ChipNumber, Common FW version, PID, and exposed hardware information.
 
+## Dynamic DiffDLM Runtime Postcondition
+
+For the NT51919/NT51929/NT51932 family only, a Cascade DiffDLM run has a
+count-derived expected Backup start:
+
+```text
+activeRecordCount = IC Count - 1
+activeRecordEnd = 0x2D100 + activeRecordCount * 0x1400
+expectedBackupStart = AlignUp(activeRecordEnd, 0x1000)
+```
+
+The Replace scatter plan does not copy FWConfig and does not choose the actual
+Backup address. The declared postbuild processor places it. After an attempted
+Preview/Build, runtime locates the actual Backup through the unique NVT marker
+and compares it with the expected address. An actual address that differs but
+remains within the profile-declared bounded Backup-placement write authority is
+reported as a typed warning. Missing or ambiguous markers, out-of-bounds
+placement, or mutation outside processor authority still fail closed.
+
+The direct NT51932 Cascade-3 fixture confirms this relationship:
+`0x2D100 + 2 * 0x1400 = 0x2F900`, which aligns to Backup start `0x30000`;
+its unique NVT marker ends at `0x30FFF`. The golden table below records each
+artifact's observed location and is not a count-independent placement table.
+The owner-provided NT51932 4-IC golden must additionally confirm three active
+records, active end `0x30D00`, aligned Backup start `0x31000`, preserved active
+NF tails, and unchanged inactive records.
+
+NT51950/NT51951 are a separate fixed-layout contract. Their flash map declares
+the End Flag at `0x36FFC`, so its terminal `T` fixes the Backup start at
+`0x36000`. Postbuild copies the primary FWConfig at `0x22200` to that fixed
+destination. A different location is a fixed-map/postbuild failure, not the
+Dynamic DiffDLM in-authority warning case.
+
 ## Current Golden Evidence
 
 | IC | Golden output | NVT terminal `T` | FWConfig Backup start |
