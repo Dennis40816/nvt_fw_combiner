@@ -7,6 +7,12 @@ using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
+/// <summary>
+/// Focused v0.9.17 compatibility policy for record-local DiffDLM writes. The fixed owner-approved
+/// split is fail-closed and is cross-checked against the existing declared Postbuild extent before
+/// execution; migrating these facts into the IC-first 0.10.x profile schema is intentionally outside
+/// this maintenance release.
+/// </summary>
 internal static class DiffDlmNfMaskPolicy
 {
     private static readonly DiffDlmNfGeometry Nt51929Like = new(

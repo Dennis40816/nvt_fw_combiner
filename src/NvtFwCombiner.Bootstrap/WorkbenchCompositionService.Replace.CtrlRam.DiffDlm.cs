@@ -1,20 +1,22 @@
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.Files;
 
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static bool TryCreateCtrlRamInputSnapshots(
+    private static async ValueTask<(
+        bool Succeeded,
+        CtrlRamReplaceRunContext RuntimeContext,
+        IReadOnlyDictionary<string, byte[]> Snapshots,
+        IReadOnlyList<CompositionIssue> Issues)> CreateCtrlRamInputSnapshotsAsync(
         CtrlRamReplaceRunContext context,
         int topologyCount,
         IReadOnlyDictionary<string, string> slotPaths,
-        out CtrlRamReplaceRunContext runtimeContext,
-        out IReadOnlyDictionary<string, byte[]> snapshots,
-        out IReadOnlyList<CompositionIssue> issues)
+        CancellationToken cancellationToken)
     {
-        runtimeContext = context;
         var artifacts = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             [context.BasePath!] = context.BaseBytes!,
@@ -24,18 +26,14 @@ public static partial class WorkbenchCompositionService
                 context.CommandPlan!.Branch,
                 out DiffDlmNfGeometry? geometry))
         {
-            snapshots = artifacts;
-            issues = [];
-            return true;
+            return (true, context, artifacts, []);
         }
 
         TpCtrlRamPostbuildSource? diffDlm = context.SelectedSources.SingleOrDefault(
             static source => DiffDlmNfMaskPolicy.IsDiffDlmSource(source.SourceFileName));
         if (diffDlm is null)
         {
-            snapshots = artifacts;
-            issues = [];
-            return true;
+            return (true, context, artifacts, []);
         }
 
         if (diffDlm.Blocks.Count != 1 ||
@@ -43,15 +41,14 @@ public static partial class WorkbenchCompositionService
             diffDlm.Blocks[0].FirmwareRange != geometry!.MaximumFirmwareRange ||
             diffDlm.RequiredLength != geometry.MaximumFirmwareRange.Length)
         {
-            snapshots = artifacts;
-            issues =
+            CompositionIssue[] issues =
             [
                 new CompositionIssue(
                     WorkbenchIssueCodes.ReplaceCtrlRamDiffDlmSourceInvalid,
                     "The selected postbuild plan does not match the approved Preserve-active-DiffNF geometry.",
                     CtrlRamSlotId(diffDlm.SourceId)),
             ];
-            return false;
+            return (false, context, artifacts, issues);
         }
 
         if (!DiffDlmNfMaskPolicy.TryResolveActiveRange(
@@ -61,55 +58,62 @@ public static partial class WorkbenchCompositionService
                 out ByteRange activeRange,
                 out CompositionIssue? rangeIssue))
         {
-            snapshots = artifacts;
-            issues = [rangeIssue!];
-            return false;
+            return (false, context, artifacts, [rangeIssue!]);
         }
 
         string slotId = CtrlRamSlotId(diffDlm.SourceId);
         string sourcePath = Path.GetFullPath(slotPaths[slotId]);
-        StringComparison pathComparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
-        if (string.Equals(sourcePath, context.BasePath, pathComparison))
-        {
-            snapshots = artifacts;
-            issues =
-            [
-                new CompositionIssue(
-                    WorkbenchIssueCodes.ReplaceCtrlRamDiffDlmSourceInvalid,
-                    "DiffDLM and Base firmware must be different input files.",
-                    slotId),
-            ];
-            return false;
-        }
-
         int activeLength = checked((int)activeRange.Length);
         byte[] selectedSource;
         try
         {
-            using var stream = new FileStream(
+            FileArtifactReader reader = new(
+                [Path.GetDirectoryName(sourcePath)!, Path.GetDirectoryName(context.BasePath!)!]);
+            selectedSource = (await reader.ReadDistinctAsync(
                 sourcePath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read,
-                bufferSize: 4096,
-                FileOptions.SequentialScan);
-            selectedSource = new byte[checked((int)stream.Length)];
-            stream.ReadExactly(selectedSource);
+                context.BasePath!,
+                cancellationToken).ConfigureAwait(false)).ToArray();
+        }
+        catch (ArgumentException exception)
+        {
+            return (
+                false,
+                context,
+                artifacts,
+                [
+                    new CompositionIssue(
+                        WorkbenchIssueCodes.ReplaceCtrlRamDiffDlmSourceInvalid,
+                        $"DiffDLM and Base firmware must be different physical input files: {exception.Message}",
+                        slotId),
+                ]);
         }
         catch (Exception exception) when (
             exception is IOException or UnauthorizedAccessException or OverflowException)
         {
-            snapshots = artifacts;
-            issues =
-            [
-                new CompositionIssue(
-                    WorkbenchIssueCodes.InputArtifactReadFailed,
-                    $"DiffDLM could not be snapshotted: {exception.Message}",
-                    slotId),
-            ];
-            return false;
+            return (
+                false,
+                context,
+                artifacts,
+                [
+                    new CompositionIssue(
+                        WorkbenchIssueCodes.InputArtifactReadFailed,
+                        $"DiffDLM could not be snapshotted: {exception.Message}",
+                        slotId),
+                ]);
+        }
+
+        if (selectedSource.AsSpan().SequenceEqual(context.BaseBytes))
+        {
+            return (
+                false,
+                context,
+                artifacts,
+                [
+                    new CompositionIssue(
+                        WorkbenchIssueCodes.ReplaceCtrlRamDiffDlmSourceInvalid,
+                        "DiffDLM must not reuse the immutable Base firmware snapshot.",
+                        slotId),
+                ]);
         }
 
         if (!DiffDlmNfMaskPolicy.TryValidateSelectedSource(
@@ -118,9 +122,7 @@ public static partial class WorkbenchCompositionService
                 selectedSource,
                 out CompositionIssue? issue))
         {
-            snapshots = artifacts;
-            issues = [issue!];
-            return false;
+            return (false, context, artifacts, [issue!]);
         }
 
         artifacts[sourcePath] = selectedSource;
@@ -153,7 +155,7 @@ public static partial class WorkbenchCompositionService
         {
             [diffDlm.SourceId] = activeLength,
         };
-        runtimeContext = context with
+        CtrlRamReplaceRunContext runtimeContext = context with
         {
             SelectedSources =
             [
@@ -164,8 +166,6 @@ public static partial class WorkbenchCompositionService
             ],
             SelectedSourceLengths = activeLengths,
         };
-        snapshots = artifacts;
-        issues = [];
-        return true;
+        return (true, runtimeContext, artifacts, []);
     }
 }

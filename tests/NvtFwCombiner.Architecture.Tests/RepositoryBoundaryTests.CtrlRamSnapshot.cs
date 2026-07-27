@@ -17,7 +17,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("byte[] referenceBytes = context.BaseBytes", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("requiredBaseSha256", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("referencePayload.Sha256", runner, StringComparison.Ordinal);
-        Assert.Contains("TryCreateCtrlRamInputSnapshots(", runner, StringComparison.Ordinal);
+        Assert.Contains("CreateCtrlRamInputSnapshotsAsync(", runner, StringComparison.Ordinal);
         Assert.Contains("var artifacts = new Dictionary<string, byte[]>(StringComparer.Ordinal)", snapshots, StringComparison.Ordinal);
         Assert.Contains("[context.BasePath!] = context.BaseBytes!", snapshots, StringComparison.Ordinal);
     }

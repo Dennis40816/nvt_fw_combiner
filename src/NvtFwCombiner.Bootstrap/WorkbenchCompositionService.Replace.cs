@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -25,16 +26,36 @@ public static partial class WorkbenchCompositionService
         LegacyCombinerPostbuildProfile? postbuildProfile,
         bool hasReadableBase)
     {
-        LegacyCombinerPostbuildBranch branch = postbuildProfile is null ? LegacyCombinerPostbuildBranch.SingleChip :
-            LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, ToIcNumberSelection(number)).Branch;
         return postbuildProfile is null && hasReadableBase
             ? []
             : [
-            .. BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, ToIcNumberSelection(number), postbuildProfile)
-                    .Where(source =>
-                        !DiffDlmNfMaskPolicy.TryResolve(icId, branch, out _) ||
-                        !DiffDlmNfMaskPolicy.IsIndependentNfSource(source.SourceFileName))
+            .. GetUserSelectableCtrlRamSources(icId, ToIcNumberSelection(number), postbuildProfile)
                     .Select(CreateCtrlRamReplaceInputSlot),
+            ];
+    }
+
+    private static IReadOnlyList<TpCtrlRamPostbuildSource> GetUserSelectableCtrlRamSources(
+        string icId,
+        IcNumberSelection selection,
+        LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
+        LegacyCombinerPostbuildProfile? effectiveProfile = postbuildProfile;
+        if (effectiveProfile is null)
+        {
+            _ = TryGetDefaultPostbuildProfile(icId, out effectiveProfile);
+        }
+
+        IReadOnlyList<TpCtrlRamPostbuildSource> sources =
+            BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, selection, postbuildProfile);
+        return effectiveProfile is null ||
+            !DiffDlmNfMaskPolicy.TryResolve(
+                icId,
+                LegacyCombinerPostbuildPlanner.CreatePlan(effectiveProfile, selection).Branch,
+                out _)
+            ? sources
+            : [
+                .. sources.Where(
+                    static source => !DiffDlmNfMaskPolicy.IsIndependentNfSource(source.SourceFileName)),
             ];
     }
 

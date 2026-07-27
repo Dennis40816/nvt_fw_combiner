@@ -133,13 +133,17 @@ public static partial class WorkbenchCompositionService
                     firmware?.ChipNumber);
             }
 
-            if (!TryCreateCtrlRamInputSnapshots(
-                    context,
-                    topologyCount,
-                    slotPaths,
-                    out CtrlRamReplaceRunContext runtimeContext,
-                    out IReadOnlyDictionary<string, byte[]> virtualArtifacts,
-                    out IReadOnlyList<CompositionIssue> snapshotIssues))
+            (
+                bool snapshotsSucceeded,
+                CtrlRamReplaceRunContext runtimeContext,
+                IReadOnlyDictionary<string, byte[]> virtualArtifacts,
+                IReadOnlyList<CompositionIssue> snapshotIssues) =
+                    await CreateCtrlRamInputSnapshotsAsync(
+                        context,
+                        topologyCount,
+                        slotPaths,
+                        cancellationToken).ConfigureAwait(false);
+            if (!snapshotsSucceeded)
             {
                 return Blocked(snapshotIssues);
             }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.ExternalTools;
@@ -13,11 +14,12 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
 {
     private const string CaseId = "nt51932-diffdlm-nf-mask-cascade4-20260727";
     private const string ExpectedSha256 = "a75c900c912e2d46ddbbbad199516d75c37adb9deb6ce1a749e1d7ca99e922a8";
+    private const string GeneratedSha256 = "73d938eeabc684d1ba11c38767b562c0af87647eff7d96252f397b4b4f556203";
     private const int DiffStart = 0x2D100;
     private const int RecordStride = 0x1400;
     private const int DlmLength = 0x0B90;
 
-    /// <summary>Combiner output matches the owner image outside the already-authorized CRC/header words.</summary>
+    /// <summary>Pins the complete Combiner output and verifies its only Andes differences are authorized CRC/header words.</summary>
     [Fact]
     public async Task RealCombinerBuildDiffersFromOwnerExpectedOnlyAtPostbuildCrcWordsAsync()
     {
@@ -42,6 +44,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         Assert.True(result.Succeeded, result.ReportJson);
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(ExpectedSha256, Hash(evidence.Expected.Bytes));
+        Assert.Equal(GeneratedSha256, Hash(output));
         Assert.InRange(AssertOnlyPostbuildCrcDiffers(evidence.Expected.Bytes, output), 0, 40);
     }
 
@@ -238,6 +241,40 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
                 WorkbenchIssueCodes.ReplaceCtrlRamDiffDlmSourceInvalid);
     }
 
+    /// <summary>A hard-link alias of Base is the same physical input and fails before processing.</summary>
+    [Fact]
+    public async Task DiffDlmCannotReuseBaseThroughHardLinkAsync()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        OwnerCase evidence = ReadOwnerCase();
+        var processor = new CountingPassThroughProcessor();
+        using var workspace = TempWorkspace.Create("nfc-nt51932-diff-base-hardlink");
+        string aliasPath = workspace.PathFor("DiffDLM-hardlink.bin");
+        await CreateHardLinkAsync(aliasPath, evidence.Base.Path, TestContext.Current.CancellationToken);
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51932",
+            WorkbenchIcNumberTokens.CascadeTwoToEight,
+            CreateSlotPaths(evidence, diffPath: aliasPath),
+            build: true,
+            workspace.PathFor("must-not-exist.bin"),
+            firmwareVersionEdit: null,
+            processor,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.Equal(0, processor.CallCount);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() ==
+                WorkbenchIssueCodes.ReplaceCtrlRamDiffDlmSourceInvalid);
+    }
+
     private static Dictionary<string, string> CreateSlotPaths(
         OwnerCase evidence,
         string? diffPath = null,
@@ -315,6 +352,33 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
     private static string Hash(ReadOnlySpan<byte> bytes)
     {
         return Convert.ToHexStringLower(SHA256.HashData(bytes));
+    }
+
+    private static async Task CreateHardLinkAsync(
+        string linkPath,
+        string existingPath,
+        CancellationToken cancellationToken)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "fsutil.exe",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        startInfo.ArgumentList.Add("hardlink");
+        startInfo.ArgumentList.Add("create");
+        startInfo.ArgumentList.Add(linkPath);
+        startInfo.ArgumentList.Add(existingPath);
+
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Could not start fsutil to create the hard-link fixture.");
+        Task<string> standardOutput = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        Task<string> standardError = process.StandardError.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
+        Assert.True(
+            process.ExitCode == 0,
+            $"fsutil hardlink failed ({process.ExitCode}): {await standardError} {await standardOutput}");
     }
 
     private sealed record OwnerArtifact(string ArtifactId, string Path, byte[] Bytes);

@@ -29,7 +29,7 @@ public static partial class WorkbenchCompositionService
 
         IEnumerable<(TpFlashMapRegion Region, string SelectionId)> replacementRegions =
             replaceMode == WorkbenchReplaceModes.CtrlRam
-            ? BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, selection, postbuildProfile)
+            ? GetUserSelectableCtrlRamSources(icId, selection, postbuildProfile)
                 .SelectMany(source => source.Regions.Select(region => (region, source.SourceId)))
                 .DistinctBy(static item => item.region.RegionId, StringComparer.Ordinal)
             : [];

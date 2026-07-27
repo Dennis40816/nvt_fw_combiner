@@ -78,6 +78,28 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         Assert.Contains(slots, slot => slot.SlotId == "replace-ctrlram-diff");
     }
 
+    /// <summary>The same Cascade projection omits independent NF from memory rows and coverage.</summary>
+    [Theory]
+    [InlineData("NT51932", WorkbenchIcNumberTokens.CascadeTwoToEight)]
+    [InlineData("NT51950", "cascade")]
+    public void DiffNfCascadeFamiliesDoNotAdvertiseIndependentNfCoverage(string icId, string number)
+    {
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+            icId,
+            number,
+            WorkbenchReplaceModes.CtrlRam);
+
+        Assert.DoesNotContain(display.MemoryMapRows, static row =>
+            row.AfterSource.Contains("NF_Ctrlram.bin", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(display.CoverageSegments, static segment =>
+            string.Equals(segment.RegionId, "nf", StringComparison.Ordinal) ||
+            segment.SourceLabel.Contains("NF CtrlRAM", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(display.MemoryMapRows, static row =>
+            row.AfterSource.Contains("DiffDLM.bin", StringComparison.Ordinal));
+        Assert.Contains(display.CoverageSegments, static segment =>
+            string.Equals(segment.RegionId, "diff", StringComparison.Ordinal));
+    }
+
     /// <summary>Single-chip NF is already the physical Postbuild input and does not show a cascade prerequisite.</summary>
     [Theory]
     [InlineData("NT51932")]
