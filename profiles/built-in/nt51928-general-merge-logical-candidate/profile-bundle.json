@@ -3,7 +3,7 @@
   "bundleId": "nt51928-general-merge-logical-candidate",
   "bundleVersion": "0.10.1-shared-facts.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "ad10a21cbbca28444862d9e5d9e0463207b76adf215d020ea61ae81ebe35af8e",
+  "contentHash": "a774a7622aedfac94fc045b56e7fe04902359ebe59747acd5486ed336b6d5da2",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,14 +25,14 @@
       "kind": "firmware-family",
       "path": "families/nt51927-nt51928.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "45682ed8c5fd1c4ba69b0bb04e5ff6bbdd9b7716d4a046da3bd9b6014f802d86"
+      "contentHash": "cba6c93b4b23c10fc1e2372b227c994a857b498d6e3d58ee65d540994da64f8f"
     },
     {
       "entryId": "nt51928-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51928-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "439a03dfc57e6e64cf38007e30303006ff691b5a5ccbffbcec168f6feea18821"
+      "contentHash": "f2afe2db6e6840a811af74bccc4a89d6edb2387c9f6b1f596906afd2bc506c9c"
     }
   ]
 }

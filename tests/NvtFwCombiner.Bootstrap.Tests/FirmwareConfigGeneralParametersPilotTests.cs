@@ -127,13 +127,16 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         Assert.Equal(1920, facts.DisplayResolutionX);
         Assert.Equal(1080, facts.DisplayResolutionY);
         Assert.Equal(10, facts.MaximumOperableFingers);
-        Assert.Equal(3, facts.ReportIrqType);
+        Assert.Equal(0x10, facts.ReportIrqType);
+        Assert.Equal(FirmwareConfigReportIrqMode.LevelLow, facts.ReportIrqMode);
         Assert.Equal(7, facts.TpFirmwareSubVersion);
         Assert.Equal(4096, facts.TpResolutionX);
         Assert.Equal(2560, facts.TpResolutionY);
         Assert.Equal(3, facts.ObservedIcCount);
         Assert.Equal(1, facts.OutermostIcMasterEnable);
+        Assert.True(facts.IsOutermostIcMasterEnableValid);
         Assert.True(facts.UseOutermostIcAsMaster);
+        Assert.Equal(1, facts.CascadeEnable);
         Assert.Equal("2.5.9", facts.CommonFirmwareVersion);
         Assert.Equal(0x0927, facts.Pid);
 
@@ -311,7 +314,7 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         config[8] = 4;
         config[9] = 10;
         config[10] = 2;
-        config[11] = 3;
+        config[11] = 0x10;
         config[12] = 1;
         config[13] = 5;
         config[14] = 6;

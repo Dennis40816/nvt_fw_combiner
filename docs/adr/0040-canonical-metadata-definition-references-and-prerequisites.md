@@ -166,6 +166,28 @@ The existing Workbench facade may adapt binding identity to logical definition
 identity during migration, but it does not become a second resolver or a new
 consumer authority.
 
+### FirmwareConfig is one all-IC definition
+
+`firmware-config-general-parameters` is one canonical logical definition for
+all ICs. The authoritative General Parameters prefix is `[0x000, 0x029)`, and
+`u8Chip_Num` is one unsigned byte at structure-relative offset `0x017`.
+Artifact- and map-specific bindings may provide different bounded locators, but
+must reference this same field table. TP Flash Header `same-code`,
+`cascade-info`, and similar descriptors are separate structures and never
+reinterpret FirmwareConfig offsets or values.
+
+The initial semantic projection keeps the source bytes readable. It maps the
+four owner-defined `u8IRQ_Type` encodings (`00`, `01`, `10`, `11`), reports
+whether `u8BC_EN` belongs to its binary `0/1` domain, and interprets only `1`
+as outermost-IC Master enable. Unknown IRQ values and invalid BC_EN values are
+retained rather than causing an atomic metadata decode failure. `u8CascadeEn`
+remains uninterpreted until its value domain is approved.
+
+Because this definition is global, a `tp-shared` or other partial-family
+relationship must not list it merely to prove reuse. The relationship owns only
+its explicitly shared part geometry; each applicable map binds the global
+definition independently.
+
 ### #186 TP Flash Header extension boundary
 
 GitHub issue #186 applies the same exact-reference ceiling to the NT51929 and
@@ -174,6 +196,9 @@ NT51932 Type-AB TP Flash Header:
 - `firmware-family-v1.1-tp-header.schema.json` declares the closed
   `tp-flash-header` typed payload;
 - each physical field is declared once, including all eight DLM CRC fields;
+- the initial typed Header provider declares no value assertions: fields are
+  readable geometry/semantics and do not reject artifacts based on stored CRC,
+  address, size, option, `same-code`, or `cascade-info` values;
 - an explicit IC Count table resolves each series member as Active, Unused, or
   Unknown without changing field existence or authority;
 - Standard, TPA, and TPB structures retain distinct artifact instances while

@@ -95,6 +95,14 @@ processor stages, and product publication remain profile/policy authorities;
 their convergence onto the same family-owned facts is a separate migration
 gate and cannot be inferred from any relationship declaration.
 
+A metadata definition that is globally canonical across its declared
+consumers—`firmware-config-general-parameters` for all ICs, or DPCMI for every
+route that explicitly declares it—is not a partial-family fact. Maps bind that
+one definition through their own structure instances and locators. A
+`shared-fact-relationship` lists such a definition only if the owner explicitly
+establishes that the definition itself is restricted to that relationship;
+ordinary global reuse must not appear in `sharedFactReferences`.
+
 Family identity is resolved before map applicability. The normalized requested IC must name an
 explicit member or owner-declared fact-scoped alias; PID, firmware version, chip count, filename,
 capacity, hash, and decoded payload metadata never discover, select, or change the family. Map
@@ -159,6 +167,10 @@ field geometry: offsets, widths, encodings, and byte order remain declared
 exactly once in the common `fields` array. Duplicate ids, dangling references,
 range containment, applicability membership, and complete field-semantic
 coverage remain normalizer/Domain invariants after schema validation.
+Current TP Flash Header providers declare `assertions: []`: the typed model
+reads field values but imposes no value admission constraint. A CRC, address,
+size, option, `same-code`, or `cascade-info` value therefore cannot reject the
+Header structure merely because its stored value differs.
 
 Address-valued fields also declare `storedAddress`, which describes the
 integer encoded in the field rather than the field's own byte position.

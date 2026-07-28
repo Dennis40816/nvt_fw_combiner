@@ -38,6 +38,7 @@ public sealed class Nt51929Nt51932TpFlashHeaderMetadataTests
         Assert.Equal("type-ab-tp-flash-header", header29.StructureDefinition.Definition.DefinitionId);
         Assert.Equal(0x100, header29.StructureDefinition.Definition.LengthBytes);
         Assert.Equal(22, header29.StructureDefinition.Definition.Fields.Count);
+        Assert.Empty(header29.StructureDefinition.Definition.Assertions);
         FirmwareTpFlashHeaderDefinition typed =
             Assert.IsType<FirmwareTpFlashHeaderDefinition>(
                 header29.StructureDefinition.Definition.TypedDefinition);

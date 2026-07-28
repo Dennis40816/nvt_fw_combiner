@@ -71,16 +71,19 @@ declared even when their current values happen to match.
 
 ## Examples
 
-- NT51923 and NT51926 may reference the same Standard Merge region set, DPCMI
-  definition, or TP Flash Header while retaining distinct CtrlRAM maps,
-  Postbuild versions, and evidence.
+- NT51923 and NT51926 are not a family. They may reuse an independently global
+  DPCMI definition through exact references, while their Standard Merge maps,
+  TP Flash Header layouts, CtrlRAM maps, Postbuild versions, and evidence
+  remain separately declared.
 - NT51917 and NT51927 use one `PerfectFamilyRelationship`; NT51928 is outside
   that perfect family and references only the approved Initial Code/TP facts.
 - NT51927 and NT51928 use readable Initial Code and TP sharing roles, but the
   runtime contract is the exact set of referenced Initial Code/TP facts.
   NT51928 LDC and complete DP/container facts remain unreferenced and distinct.
-- NT51950 and NT51951 may share TP and DiffDLM definitions without sharing
-  Initial Code placement, LDC, capacity, AB layout, evidence, or publication.
+- NT51950 and NT51951 currently share only their approved TP region. A future
+  DiffDLM relationship requires its own owner-backed fact reference and cannot
+  imply Initial Code placement, LDC, capacity, AB layout, evidence, or
+  publication.
 - A future TP Flash Header relationship adds one typed reference and role; it
   does not add `TpFlashHeaderSharedFamilyRelationship` to every layer.
 
@@ -133,6 +136,6 @@ promotion, or `0.9.17` hot-fix behavior.
   applicability-mismatched references fail closed.
 - NT51927/NT51928 retain distinct LDC/DP facts while resolving the same declared
   Initial Code and TP facts.
-- NT51923/NT51926 can share a TP Flash Header reference without sharing
-  CtrlRAM/Postbuild definitions.
+- NT51923/NT51926 retain distinct TP Flash Header and CtrlRAM/Postbuild
+  definitions even when both reuse a global metadata definition.
 - Support, publication, evidence, and route admission remain independent.

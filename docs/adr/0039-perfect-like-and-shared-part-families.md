@@ -61,9 +61,9 @@ silent exception.
 
 ### Shared-part relationships
 
-Partial relationships remain named and fact-scoped. A shared artifact part also
-shares the metadata structures owned by that part, but it grants no facts from
-another part:
+Partial relationships remain named and fact-scoped. A relationship shares only
+its explicit canonical fact references; a globally canonical metadata
+definition is reused independently and is not turned into a family fact:
 
 - `initial-code-shared-family` shares Initial Code geometry and its metadata;
 - `tp-shared-family` shares TP geometry and its metadata; and
@@ -75,11 +75,14 @@ author-facing roles, while one typed `SharedFactRelationship` carries the exact
 canonical fact references at runtime. New partial-sharing concepts do not add
 new relationship subclasses or schema discriminators.
 
-NT51927 and NT51928 participate in both
-`initial-code-shared-family` and `tp-shared-family`. DPCMI can therefore reuse
-their one Initial Code definition, and FirmwareConfig/TP metadata can reuse
-their one TP definition. NT51928's LDC and complete DP/container map remain
-distinct.
+NT51917 inherits the complete NT51927 definition through their perfect-family
+relationship. NT51917, NT51927, and NT51928 therefore participate in the
+Initial-Code-shared and TP-shared fact scopes, while NT51928 remains outside
+the perfect family. The relationships reference only the common Initial Code
+and TP regions. The one globally canonical DPCMI definition for declared
+consumers and the all-IC FirmwareConfig definition are bound through each
+applicable map independently; neither is owned by this partial family.
+NT51928's LDC and complete DP/container map remain distinct.
 
 NT51950 and NT51951 retain only their approved TP-sharing relationship. Their
 Initial Code, LDC, capacity, topology-dependent placement, and AB distinctions
@@ -114,11 +117,14 @@ firmware-family relations contract:
 
 - NT51919/NT51929/NT51932 select one family-owned 256 KiB map and one canonical
   DPCMI definition through `perfect-like-family`;
-- NT51927/NT51928 declare separate Initial-Code-shared and TP-shared
-  relationships; DPCMI belongs to the former, FirmwareConfig General
-  Parameters belongs to the latter, and NT51928 `ldc-code` belongs to neither;
-- NT51950/NT51951 declare only TP sharing through `tp-overlay` and the canonical
-  FirmwareConfig definition; DPCMI placement, LDC, capacity, topology, and AB
+- NT51917/NT51927 declare one perfect-like relationship; their common map also
+  participates with NT51928 in separate Initial-Code-shared and TP-shared
+  relationships that reference only `dp-code` and `tp-code`;
+- the globally canonical DPCMI definition for declared consumers and the
+  all-IC FirmwareConfig definition are reused independently of partial family
+  membership, and NT51928 `ldc-code` belongs to neither partial relationship;
+- NT51950/NT51951 declare only TP sharing through `tp-overlay`; DPCMI,
+  FirmwareConfig placement, LDC, capacity, topology, and AB
   remain explicit;
 - owner-backed DPCMI bindings resolve at `0x401A` for NT51919/29/32,
   `0x3C01C` for NT51917/27/28, and `0x3E014` for NT51923/26. The transitional
@@ -169,8 +175,9 @@ support promotion, UI, processor behavior, and firmware bytes are unchanged.
   retaining distinct requested member identity and evidence/publication facts.
 - A member-level map, metadata, processor, integrity, topology, or workflow
   override inside a perfect-like family is rejected.
-- NT51927/NT51928 resolve identical Initial Code and TP definitions, including
-  their owned metadata, while NT51928 resolves its distinct LDC/DP map.
+- NT51917/NT51927 resolve one perfect-family map; that map and NT51928 resolve
+  identical Initial Code and TP region facts while NT51928 resolves its
+  distinct LDC/DP map.
 - Cross-part inheritance, undeclared family membership, cycles, and ambiguous
   providers fail closed.
 - Route identity, capability fingerprint, report provenance, golden

@@ -23,12 +23,30 @@ internal static class FirmwareConfigGeneralParametersContract
     public const string TpFirmwareSubVersion = "tp-firmware-subversion";
     public const string TpResolutionX = "tp-resolution-x";
     public const string TpResolutionY = "tp-resolution-y";
+    /// <summary>All-IC <c>u8Chip_Num</c> at structure-relative offset <c>0x017</c>.</summary>
     public const string ObservedIcCount = "observed-ic-count";
     public const string OutermostIcMasterEnable = "outermost-ic-master-enable";
+    public const string CascadeEnable = "cascade-enable";
     public const string CommonFirmwareMajorVersion = "common-firmware-major-version";
     public const string CommonFirmwareMinorVersion = "common-firmware-minor-version";
     public const string CommonFirmwareAdditionalVersion = "common-firmware-additional-version";
     public const string Pid = "pid";
+}
+
+/// <summary>Owner-defined values stored by FirmwareConfig <c>u8IRQ_Type</c>.</summary>
+public enum FirmwareConfigReportIrqMode : byte
+{
+    /// <summary>ATTN reports on the falling edge.</summary>
+    AttentionEdgeFalling = 0x00,
+
+    /// <summary>ATTN reports on the rising edge.</summary>
+    AttentionEdgeRising = 0x01,
+
+    /// <summary>ATTN reports while the signal level is low.</summary>
+    LevelLow = 0x10,
+
+    /// <summary>ATTN reports while the signal level is high.</summary>
+    LevelHigh = 0x11,
 }
 
 /// <summary>Semantic projection selected from the complete common General Parameters prefix.</summary>
@@ -50,10 +68,28 @@ public sealed record FirmwareConfigGeneralParametersFacts(
     byte CommonFirmwareMajorVersion,
     byte CommonFirmwareMinorVersion,
     byte CommonFirmwareAdditionalVersion,
-    ushort Pid)
+    ushort Pid,
+    byte CascadeEnable)
 {
+    /// <summary>
+    /// Typed meaning for a known <c>u8IRQ_Type</c> byte; null preserves an
+    /// owner-unknown value for inspection instead of discarding the structure.
+    /// </summary>
+    public FirmwareConfigReportIrqMode? ReportIrqMode
+    {
+        get
+        {
+            var mode = (FirmwareConfigReportIrqMode)ReportIrqType;
+            return Enum.IsDefined(mode) ? mode : null;
+        }
+    }
+
+    /// <summary>Whether <c>u8BC_EN</c> uses its owner-defined binary encoding.</summary>
+    public bool IsOutermostIcMasterEnableValid =>
+        OutermostIcMasterEnable is 0 or 1;
+
     /// <summary>Whether FirmwareConfig requests the outermost IC as Master.</summary>
-    public bool UseOutermostIcAsMaster => OutermostIcMasterEnable != 0;
+    public bool UseOutermostIcAsMaster => OutermostIcMasterEnable == 1;
 
     /// <summary>Three-byte common firmware version.</summary>
     public string CommonFirmwareVersion =>
@@ -97,6 +133,7 @@ public static class FirmwareConfigGeneralParametersProjector
             !reader.TryReadUInt16(FirmwareConfigGeneralParametersContract.TpResolutionY, out ushort touchPanelResolutionY) ||
             !reader.TryReadByte(FirmwareConfigGeneralParametersContract.ObservedIcCount, out byte observedIcCount) ||
             !reader.TryReadByte(FirmwareConfigGeneralParametersContract.OutermostIcMasterEnable, out byte outermostIcMasterEnable) ||
+            !reader.TryReadByte(FirmwareConfigGeneralParametersContract.CascadeEnable, out byte cascadeEnable) ||
             !reader.TryReadByte(FirmwareConfigGeneralParametersContract.CommonFirmwareMajorVersion, out byte commonFirmwareMajorVersion) ||
             !reader.TryReadByte(FirmwareConfigGeneralParametersContract.CommonFirmwareMinorVersion, out byte commonFirmwareMinorVersion) ||
             !reader.TryReadByte(FirmwareConfigGeneralParametersContract.CommonFirmwareAdditionalVersion, out byte commonFirmwareAdditionalVersion) ||
@@ -142,7 +179,8 @@ public static class FirmwareConfigGeneralParametersProjector
             commonFirmwareMajorVersion,
             commonFirmwareMinorVersion,
             commonFirmwareAdditionalVersion,
-            novatekProjectId);
+            novatekProjectId,
+            cascadeEnable);
         return true;
     }
 

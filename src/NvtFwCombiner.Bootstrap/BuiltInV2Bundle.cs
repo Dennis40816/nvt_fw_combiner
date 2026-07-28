@@ -15,7 +15,7 @@ internal static class BuiltInV2BundleRegistry
     internal static FrozenDictionary<string, BuiltInV2Bundle> All { get; } =
         new (string Directory, string ContentHash)[]
         {
-            ("nt51917-nt51927-general-merge-logical-candidate", "fd7b78418e9c786d167674ea08fc7e6888966d2915e46194d45e923e1dc28eae"),
+            ("nt51917-nt51927-general-merge-logical-candidate", "3dd5c0adb73b7ee5b0c0762e79ab8ddfa800696a0646138d15fba8984d84d2eb"),
             ("nt51917-ctrlram-replace-alias-candidate", "8992dbc5483054c5dc16e545444b1f94446c698c68b1abe7946efdb4d4ffb26b"),
             ("nt51919-nt51929-nt51932-ab-merge", "e7ad9ad8b4df72275ab25a617c76ffae20b84ba431880753b41b8c4fa0ef3f0a"),
             ("nt51919-nt51929-nt51932-general-merge-logical-candidate", "5659a4095a6fce9ab3f46f9415759f7aeba321adfddb891e52871b2d6acff4f8"),
@@ -25,12 +25,12 @@ internal static class BuiltInV2BundleRegistry
             ("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96"),
             ("nt51926-ctrlram-replace-candidate", "25d5adc9697eacedcf238835da197b0359c41f8cc6d82110c181496038469529"),
             ("nt51927-ctrlram-replace-candidate", "d0c8a8775a35a01b52b8d8f32a93af0ac798067e2577d2420ab0dd65dd815d0f"),
-            ("nt51927-dp-replace", "2990c7fd6e7b7e18071f86fa9d7686c39c778236170f2e428768330eac96e2dd"),
-            ("nt51927-standard-merge", "64db6f91b964b7314a3248f960acdb516a400250c4f1cb8271fd62d3f659dbba"),
+            ("nt51927-dp-replace", "e4d93b721cf275341775614d6eaf46b6aad06e6eb46b3674770371e0b8d8a313"),
+            ("nt51927-standard-merge", "631bf40e6f5f6aee14be7a5b834243def7c6a37cdb88f49e0d854471d5de6015"),
             ("nt51928-ctrlram-replace-candidate", "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634"),
-            ("nt51928-general-merge-logical-candidate", "ad10a21cbbca28444862d9e5d9e0463207b76adf215d020ea61ae81ebe35af8e"),
-            ("nt51928-dp-replace", "24d313492b6eed7da6007484a11e3c3c4661e103c1d8a711c71730694529117f"),
-            ("nt51928-standard-merge", "b322d647a7037dde5eb37143b8d54efde8095c8177ac6a2a3d711a187561b46b"),
+            ("nt51928-general-merge-logical-candidate", "a774a7622aedfac94fc045b56e7fe04902359ebe59747acd5486ed336b6d5da2"),
+            ("nt51928-dp-replace", "19fa3f39c8341052a0614bcdf4e21638fe76f1a9c471888ae7586b21937c77c9"),
+            ("nt51928-standard-merge", "63cc636b72a63e6bd34c7e45769bb21342b7885120f483ff70432e35350eadbb"),
             ("nt51929-ctrlram-replace-candidate", "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365"),
             ("nt51929-dp-replace", "169b9334a57328504fbe463c96dda1e8d749109896ae8d0143088b747b0ab596"),
             ("nt51929-standard-merge", "14a3b2808a5377af39b683fe44f60f152e9c7f4a15c18e5c9e264ad6ea2b0827"),
@@ -38,8 +38,8 @@ internal static class BuiltInV2BundleRegistry
             ("nt51950-ab-merge", "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206"),
             ("nt51950-ctrlram-replace-candidate", "d3f745c68d948e7e3a3a07d5717de2114742f881444076d93d2232343f98049e"),
             ("nt51951-ctrlram-replace-candidate", "f48429f505f71fbe7c258780dc1ef848c1d9a402d79906c1e24b3a1097192728"),
-            ("nt51950-nt51951-general-merge-logical-candidate", "6370374c74a8c7369601636d7bff47b31df3db0343e1d24a3d4c52f16a0e34cb"),
-            ("nt51950-nt51951-standard-merge", "91a68e0fcb49e429323927d3d7ab3c8168d8e5a744612485b0b9ab3be866a566"),
+            ("nt51950-nt51951-general-merge-logical-candidate", "387e70efd2bfb4591852f700b5f0b1b3763b0fb7c5edd2cefa10d998b73b29b6"),
+            ("nt51950-nt51951-standard-merge", "714bd7460c15da708be3a297ca8681bba6986262e5fbbc2589b3a8fab15779a1"),
         }.ToFrozenDictionary(
             static bundle => bundle.Directory,
             static bundle => new BuiltInV2Bundle(bundle.Directory, bundle.ContentHash),

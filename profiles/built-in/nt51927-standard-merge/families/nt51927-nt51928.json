@@ -248,35 +248,11 @@
   ],
   "imageMaps": [
     {
-      "mapId": "nt51917-standard-merge-256k",
-      "addressSpaceId": "flash",
-      "applicability": {
-        "memberIds": [
-          "NT51917"
-        ],
-        "modeIds": [
-          "standard-merge"
-        ],
-        "topologyRequirement": {
-          "kind": "none"
-        },
-        "capacityBytes": 262144
-      },
-      "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [
-        "nt51917-standard-merge-flash",
-        "nt51927-nt51928-shared-initial-tp"
-      ],
-      "metadataSetIds": [],
-      "evidenceRefs": [
-        "standard-merge-alias-51917-to-51927"
-      ]
-    },
-    {
       "mapId": "nt51927-standard-merge-256k",
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": [
+          "NT51917",
           "NT51927"
         ],
         "modeIds": [
@@ -298,7 +274,8 @@
       ],
       "evidenceRefs": [
         "common-fw-ap-fwconfig-general-parameters",
-        "gen-flash-bin-v2-51927-golden"
+        "gen-flash-bin-v2-51927-golden",
+        "standard-merge-alias-51917-to-51927"
       ]
     },
     {
@@ -331,36 +308,27 @@
       ]
     }
   ],
-  "factAliases": [
+  "factAliases": [],
+  "familyRelationships": [
     {
-      "aliasId": "nt51917-standard-merge-region-set-alias",
-      "factKind": "region-set",
-      "targetMemberId": "NT51917",
-      "targetMapId": "nt51917-standard-merge-256k",
-      "targetRegionSetId": "nt51917-standard-merge-flash",
-      "sourceMemberId": "NT51927",
-      "sourceMapId": "nt51927-standard-merge-256k",
-      "sourceRegionSetId": "nt51927-standard-merge-flash",
-      "applicability": {
-        "modeIds": [
-          "standard-merge"
-        ],
-        "topologyRequirement": {
-          "kind": "none"
-        },
-        "capacityBytes": 262144
-      },
-      "reason": "Owner-confirmed NT51917 Standard Merge alias of NT51927 retains target map identity and source physical-region evidence.",
+      "relationshipId": "nt51917-nt51927-perfect-like-family",
+      "relationshipKind": "perfect-like-family",
+      "memberIds": [
+        "NT51917",
+        "NT51927"
+      ],
+      "reason": "The firmware owner confirmed NT51917 and NT51927 share one complete modeled firmware definition while requested-member evidence and publication remain separate.",
       "evidenceRefs": [
+        "adr-0039-owner-accepted-2026-07-26",
+        "gen-flash-bin-v2-51927-golden",
         "standard-merge-alias-51917-to-51927"
       ]
-    }
-  ],
-  "familyRelationships": [
+    },
     {
       "relationshipId": "nt51927-nt51928-initial-code-shared-family",
       "relationshipKind": "shared-fact-relationship",
       "memberIds": [
+        "NT51917",
         "NT51927",
         "NT51928"
       ],
@@ -375,13 +343,9 @@
         {
           "factKind": "region",
           "factId": "dp-code"
-        },
-        {
-          "factKind": "metadata-definition",
-          "factId": "dpcmi"
         }
       ],
-      "reason": "The firmware owner confirmed NT51927 and NT51928 share Initial Code geometry and its DPCMI metadata while NT51928 retains its distinct LDC and complete container map.",
+      "reason": "NT51917 inherits NT51927 Initial Code geometry through their perfect-like relationship, and the firmware owner confirmed NT51927/NT51928 share that geometry while NT51928 retains its distinct LDC and complete container map. The all-IC DPCMI definition is canonical independently of this partial family relationship.",
       "evidenceRefs": [
         "adr-0039-owner-accepted-2026-07-26",
         "gen-flash-bin-v2-51927-golden",
@@ -392,6 +356,7 @@
       "relationshipId": "nt51927-nt51928-tp-shared-family",
       "relationshipKind": "shared-fact-relationship",
       "memberIds": [
+        "NT51917",
         "NT51927",
         "NT51928"
       ],
@@ -406,16 +371,11 @@
         {
           "factKind": "region",
           "factId": "tp-code"
-        },
-        {
-          "factKind": "metadata-definition",
-          "factId": "firmware-config-general-parameters"
         }
       ],
-      "reason": "The firmware owner confirmed NT51927 and NT51928 share TP geometry and TP-owned FirmwareConfig metadata without importing LDC or another workflow.",
+      "reason": "NT51917 inherits NT51927 TP geometry through their perfect-like relationship, and the firmware owner confirmed NT51927/NT51928 share that geometry without importing LDC or another workflow. The all-IC FirmwareConfig definition is canonical independently of this partial family relationship.",
       "evidenceRefs": [
         "adr-0039-owner-accepted-2026-07-26",
-        "common-fw-ap-fwconfig-general-parameters",
         "gen-flash-bin-v2-51927-golden",
         "gen-flash-bin-v2-51928-golden"
       ]

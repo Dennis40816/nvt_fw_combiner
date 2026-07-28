@@ -11,7 +11,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
     [Theory]
     [InlineData(
         "nt51917-nt51927-general-merge-logical-candidate",
-        "fd7b78418e9c786d167674ea08fc7e6888966d2915e46194d45e923e1dc28eae",
+        "3dd5c0adb73b7ee5b0c0762e79ab8ddfa800696a0646138d15fba8984d84d2eb",
         "nt51927-standard-merge",
         "nt51927-nt51928.json",
         "nt51917-nt51927-nt51928-canonical-container",
@@ -19,7 +19,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51917-general-merge-logical-candidate")]
     [InlineData(
         "nt51917-nt51927-general-merge-logical-candidate",
-        "fd7b78418e9c786d167674ea08fc7e6888966d2915e46194d45e923e1dc28eae",
+        "3dd5c0adb73b7ee5b0c0762e79ab8ddfa800696a0646138d15fba8984d84d2eb",
         "nt51927-standard-merge",
         "nt51927-nt51928.json",
         "nt51917-nt51927-nt51928-canonical-container",
@@ -43,7 +43,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51926-general-merge-logical-candidate")]
     [InlineData(
         "nt51928-general-merge-logical-candidate",
-        "ad10a21cbbca28444862d9e5d9e0463207b76adf215d020ea61ae81ebe35af8e",
+        "a774a7622aedfac94fc045b56e7fe04902359ebe59747acd5486ed336b6d5da2",
         "nt51927-standard-merge",
         "nt51927-nt51928.json",
         "nt51917-nt51927-nt51928-canonical-container",
@@ -51,7 +51,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51928-general-merge-logical-candidate")]
     [InlineData(
         "nt51950-nt51951-general-merge-logical-candidate",
-        "6370374c74a8c7369601636d7bff47b31df3db0343e1d24a3d4c52f16a0e34cb",
+        "387e70efd2bfb4591852f700b5f0b1b3763b0fb7c5edd2cefa10d998b73b29b6",
         "nt51950-nt51951-standard-merge",
         "nt51950-nt51951-dp-perspective.json",
         "nt51950-nt51951-dp-perspective",
@@ -59,7 +59,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51950-general-merge-logical-candidate")]
     [InlineData(
         "nt51950-nt51951-general-merge-logical-candidate",
-        "6370374c74a8c7369601636d7bff47b31df3db0343e1d24a3d4c52f16a0e34cb",
+        "387e70efd2bfb4591852f700b5f0b1b3763b0fb7c5edd2cefa10d998b73b29b6",
         "nt51950-nt51951-standard-merge",
         "nt51950-nt51951-dp-perspective.json",
         "nt51950-nt51951-dp-perspective",
