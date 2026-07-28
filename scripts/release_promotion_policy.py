@@ -15,7 +15,10 @@ HEX_SHA = re.compile(r"^[0-9a-f]{40}$")
 STABLE_VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 CODEX_REVIEWER = "chatgpt-codex-connector"
 CODEX_REVIEW_SOURCES = frozenset({"pull-review", "inline-comment", "issue-comment"})
-MAINTENANCE_RELEASES = {"0.9.17": "0.9.17"}
+MAINTENANCE_RELEASES = {
+    "0.9.17": "0.9.17",
+    "0.9.18": "0.9.18",
+}
 
 
 def _require(condition: bool, message: str) -> None:

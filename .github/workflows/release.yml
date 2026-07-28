@@ -11,6 +11,7 @@ on:
         options:
           - main
           - 0.9.17
+          - 0.9.18
       commit:
         description: Exact reviewed release-branch head (40-character lowercase SHA)
         required: true
@@ -76,7 +77,7 @@ jobs:
           if ($env:NFC_OWNER_SELF_APPROVAL_EXCEPTION -notin @('true', 'false')) {
             throw 'The owner self-approval exception input is invalid.'
           }
-          if ($env:NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17')) {
+          if ($env:NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17', '0.9.18')) {
             throw 'The release source branch is not approved.'
           }
           if ($env:NFC_WORKFLOW_REF -ne 'refs/heads/main') {
@@ -125,8 +126,12 @@ jobs:
           if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
             throw "VERSION must be stable SemVer; found '$version'."
           }
+          $approvedMaintenanceVersions = @{
+            '0.9.17' = '0.9.17'
+            '0.9.18' = '0.9.18'
+          }
           if ($env:NFC_SOURCE_BRANCH -ne 'main' -and
-              ($env:NFC_SOURCE_BRANCH -ne '0.9.17' -or $version -ne '0.9.17')) {
+              $approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version) {
             throw 'The maintenance branch and VERSION are not an approved release pair.'
           }
           $tag = "v$version"
