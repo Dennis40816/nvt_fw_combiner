@@ -17,8 +17,8 @@
   },
   "mapBinding": {
     "familyId": "nt51917-nt51927-nt51928-canonical-container",
-    "familyVersion": "1.2.0",
-    "familyContentHash": "136341752985c063aacc32ee10bf7c61f9d0484c2ac27ff5aafab9bc754b56e8",
+    "familyVersion": "1.3.0",
+    "familyContentHash": "45682ed8c5fd1c4ba69b0bb04e5ff6bbdd9b7716d4a046da3bd9b6014f802d86",
     "mapIds": [
       "nt51927-standard-merge-256k"
     ],

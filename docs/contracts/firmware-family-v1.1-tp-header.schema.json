@@ -867,8 +867,7 @@
     "familyRelationship": {
       "oneOf": [
         { "$ref": "#/$defs/perfectLikeFamilyRelationship" },
-        { "$ref": "#/$defs/initialCodeSharedFamilyRelationship" },
-        { "$ref": "#/$defs/tpSharedFamilyRelationship" }
+        { "$ref": "#/$defs/sharedFactRelationship" }
       ]
     },
     "perfectLikeFamilyRelationship": {
@@ -899,37 +898,44 @@
         }
       }
     },
-    "initialCodeSharedFamilyRelationship": {
+    "sharedFactRelationship": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "relationshipId",
         "relationshipKind",
         "memberIds",
-        "sharedRegionIds",
-        "metadataDefinitionIds",
+        "role",
+        "applicability",
+        "sharedFactReferences",
         "reason",
         "evidenceRefs"
       ],
       "properties": {
         "relationshipId": { "$ref": "#/$defs/id" },
-        "relationshipKind": { "const": "initial-code-shared-family" },
+        "relationshipKind": { "const": "shared-fact-relationship" },
         "memberIds": {
           "type": "array",
           "minItems": 2,
           "uniqueItems": true,
           "items": { "$ref": "#/$defs/icId" }
         },
-        "sharedRegionIds": {
+        "role": {
+          "enum": [
+            "initial-code-shared",
+            "tp-shared",
+            "tp-flash-header-shared",
+            "diffdlm-shared"
+          ]
+        },
+        "applicability": {
+          "$ref": "#/$defs/sharedFactApplicability"
+        },
+        "sharedFactReferences": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "$ref": "#/$defs/id" }
-        },
-        "metadataDefinitionIds": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/id" }
+          "items": { "$ref": "#/$defs/sharedFactReference" }
         },
         "reason": { "type": "string", "minLength": 1 },
         "evidenceRefs": {
@@ -940,45 +946,28 @@
         }
       }
     },
-    "tpSharedFamilyRelationship": {
+    "sharedFactApplicability": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "relationshipId",
-        "relationshipKind",
-        "memberIds",
-        "sharedRegionIds",
-        "metadataDefinitionIds",
-        "reason",
-        "evidenceRefs"
-      ],
+      "required": ["mapIds"],
       "properties": {
-        "relationshipId": { "$ref": "#/$defs/id" },
-        "relationshipKind": { "const": "tp-shared-family" },
-        "memberIds": {
-          "type": "array",
-          "minItems": 2,
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/icId" }
-        },
-        "sharedRegionIds": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/id" }
-        },
-        "metadataDefinitionIds": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/id" }
-        },
-        "reason": { "type": "string", "minLength": 1 },
-        "evidenceRefs": {
+        "mapIds": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
           "items": { "$ref": "#/$defs/id" }
         }
+      }
+    },
+    "sharedFactReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["factKind", "factId"],
+      "properties": {
+        "factKind": {
+          "enum": ["region", "metadata-definition"]
+        },
+        "factId": { "$ref": "#/$defs/id" }
       }
     },
     "factAlias": {

@@ -493,4 +493,81 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("DpPerspectiveCatalog", ReadBootstrapSources(), StringComparison.Ordinal);
     }
 
+    /// <summary>Partial family vocabulary cannot expand back into role-specific runtime forms.</summary>
+    [Fact]
+    public void FamilyRelationshipsRetainExactlyTwoRuntimeForms()
+    {
+        string contract = ReadText(
+            "src/NvtFwCombiner.Contracts/Firmware/FirmwareFamilyDocument.cs");
+        string domain = ReadText(
+            "src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyRelationship.cs");
+        string normalizer = ReadText(
+            "src/NvtFwCombiner.Profiles/FirmwareFamilies/FirmwareFamilyResolutionNormalizer.Relationships.cs");
+        string relationshipSchema = ReadText(
+            "docs/contracts/firmware-family-v1-relations.schema.json");
+        string tpHeaderSchema = ReadText(
+            "docs/contracts/firmware-family-v1.1-tp-header.schema.json");
+        string productionFamilyJson = string.Join(
+            Environment.NewLine,
+            Directory.EnumerateFiles(
+                    Path.Combine(Root.FullName, "profiles", "built-in"),
+                    "*.json",
+                    SearchOption.AllDirectories)
+                .Where(static path =>
+                    path.Contains(
+                        $"{Path.DirectorySeparatorChar}families{Path.DirectorySeparatorChar}",
+                        StringComparison.Ordinal))
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+
+        Assert.Contains(
+            "FirmwarePerfectFamilyRelationshipDocument",
+            contract,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "FirmwareSharedFactRelationshipDocument",
+            contract,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "sealed class PerfectFamilyRelationship",
+            domain,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "sealed class SharedFactRelationship",
+            domain,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "NormalizeSharedFactRelationship",
+            normalizer,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "FirmwareFamilyRelationshipKind",
+            domain + normalizer,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "FirmwareInitialCodeSharedFamilyRelationshipDocument",
+            contract + normalizer,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "FirmwareTpSharedFamilyRelationshipDocument",
+            contract + normalizer,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "\"relationshipKind\": \"initial-code-shared-family\"",
+            relationshipSchema + tpHeaderSchema + productionFamilyJson,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "\"relationshipKind\": \"tp-shared-family\"",
+            relationshipSchema + tpHeaderSchema + productionFamilyJson,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "\"sharedRegionIds\"",
+            relationshipSchema + tpHeaderSchema + productionFamilyJson,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "\"metadataDefinitionIds\"",
+            relationshipSchema + tpHeaderSchema + productionFamilyJson,
+            StringComparison.Ordinal);
+    }
+
 }

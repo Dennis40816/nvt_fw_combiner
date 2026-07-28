@@ -23,7 +23,7 @@ internal sealed class BuiltInCanonicalMetadataDefinitionResolver :
         ArgumentNullException.ThrowIfNull(reference);
         string? providerBundle = (reference.FamilyId, reference.FamilyVersion) switch
         {
-            ("nt51917-nt51927-nt51928-canonical-container", "1.2.0") =>
+            ("nt51917-nt51927-nt51928-canonical-container", "1.3.0") =>
                 "nt51927-standard-merge",
             ("nt51929-nt51932", "1.3.0") =>
                 "nt51929-dp-replace",

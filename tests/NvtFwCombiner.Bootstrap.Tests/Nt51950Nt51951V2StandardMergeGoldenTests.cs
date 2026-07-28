@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 {
     private const string BundleDirectory = "nt51950-nt51951-standard-merge";
-    private const string BundleContentHash = "1dc7643478095b4b24a46f047677f454771a0a7999b73f1cad11bdc1e916d715";
+    private const string BundleContentHash = "91a68e0fcb49e429323927d3d7ab3c8168d8e5a744612485b0b9ab3be866a566";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
