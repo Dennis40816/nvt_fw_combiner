@@ -362,6 +362,26 @@ public sealed partial class CompiledComposition
                     AppendInteger(builder, $"{prefix}.firmware-version", firmwareConfig.FirmwareVersion);
                     AppendInteger(builder, $"{prefix}.firmware-sub-version", firmwareConfig.FirmwareSubVersion);
                     break;
+                case CompiledFirmwareConfigBackupPlacementAuthorityValidation authority:
+                    AppendField(builder, $"{prefix}.inactive-mutation-issue-code", authority.InactiveMutationIssueCode);
+                    AppendField(builder, $"{prefix}.reference-space-id", authority.ReferenceAddressSpaceId);
+                    AppendRange(builder, $"{prefix}.authority-range", authority.AuthorityRange);
+                    AppendInteger(builder, $"{prefix}.backup-length", authority.BackupLength);
+                    break;
+                case CompiledFirmwareConfigBackupExpectedAddressValidation expected:
+                    AppendInteger(builder, $"{prefix}.expected-start", expected.ExpectedStart);
+                    break;
+                case CompiledUniformInputRangeValidation uniform:
+                    AppendField(builder, $"{prefix}.address-space-id", uniform.AddressSpaceId);
+                    for (int rangeIndex = 0; rangeIndex < uniform.Ranges.Count; rangeIndex++)
+                    {
+                        AppendRange(
+                            builder,
+                            $"{prefix}.range[{rangeIndex}]",
+                            uniform.Ranges[rangeIndex]);
+                    }
+
+                    break;
                 default:
                     throw new InvalidOperationException("Unknown compiled validation requirement kind.");
             }

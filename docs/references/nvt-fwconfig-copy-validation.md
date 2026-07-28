@@ -34,6 +34,34 @@ remains within the profile-declared bounded Backup-placement write authority is
 reported as a typed warning. Missing or ambiguous markers, out-of-bounds
 placement, or mutation outside processor authority still fail closed.
 
+The declared bounded range is a placement-candidate range, not blanket write
+permission. After the processor returns, the host derives both the original
+Reference Backup envelope and the unique actual output Backup envelope. Those
+two envelopes are the only candidate bytes allowed to differ; this permits
+clearing the old marker and writing the relocated Backup while rejecting any
+unrelated inactive DLM, Diff NF, or padding mutation.
+
+The maximum seven-record Dynamic DiffDLM layout envelope is
+`[0x2D100,0x35D00)`. Only the first `IC Count - 1` records are active for
+Replace; the remainder is inactive capacity that postbuild may reuse for the
+FWConfig Backup. Consequently, 4 IC places the expected Backup at
+`[0x31000,0x32000)`, inside the maximum record envelope.
+`[0x35D00,0x37000)` is the static upper authority extension required for the
+8-IC expected Backup `[0x36000,0x37000)`, not a fixed Backup allocation.
+Replace leaves inactive bytes unchanged from Reference before postbuild.
+
+Dynamic DiffDLM input requires every active `0x1400` AE record in full. For
+4 IC this is exactly three records, or `0x3C00` bytes. A source ending at the
+last writable DLM byte (`0x3390`) is still truncated because it omits the
+preserved NF tail of that active record. Additional AE records are inactive
+dummy content and are ignored.
+
+If the canonical Backup reports `Chip_Num = 0`, Dynamic DiffDLM cannot resolve
+active records or expected Backup placement and blocks with
+`firmware-config.chip-count-required`; it must never silently select 2 IC.
+Routes that do not consume IC Count emit `firmware-config.chip-count-zero` as a
+warning and may continue.
+
 The direct NT51932 Cascade-3 fixture confirms this relationship:
 `0x2D100 + 2 * 0x1400 = 0x2F900`, which aligns to Backup start `0x30000`;
 its unique NVT marker ends at `0x30FFF`. The golden table below records each

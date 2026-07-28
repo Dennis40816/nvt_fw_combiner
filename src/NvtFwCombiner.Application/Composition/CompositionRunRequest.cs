@@ -17,7 +17,8 @@ public sealed class CompositionRunRequest
         string? approvedPreviewToken = null,
         IcNumberSelection? icNumberSelection = null,
         bool outputFileNameIsOverride = false,
-        TopologySelection? abMergeTopologySelection = null)
+        TopologySelection? abMergeTopologySelection = null,
+        IEnumerable<CompositionIssue>? advisoryIssues = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(compiledComposition);
@@ -45,6 +46,7 @@ public sealed class CompositionRunRequest
         ApprovedPreviewToken = string.IsNullOrWhiteSpace(approvedPreviewToken) ? null : approvedPreviewToken;
         IcNumberSelection = icNumberSelection;
         AbMergeTopologySelection = abMergeTopologySelection;
+        AdvisoryIssues = CopyAdvisoryIssues(advisoryIssues);
     }
 
     /// <summary>Stable run id for reports and diagnostics.</summary>
@@ -71,6 +73,9 @@ public sealed class CompositionRunRequest
     /// <summary>Explicit topology chosen only for an AB Merge profile whose resolved map requires it.</summary>
     public TopologySelection? AbMergeTopologySelection { get; }
 
+    /// <summary>Caller-supplied typed warnings or information retained in Preview/Build reports.</summary>
+    public IReadOnlyList<CompositionIssue> AdvisoryIssues { get; }
+
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
     {
@@ -83,7 +88,24 @@ public sealed class CompositionRunRequest
             previewToken,
             IcNumberSelection,
             IsOutputFileNameOverride,
-            AbMergeTopologySelection);
+            AbMergeTopologySelection,
+            AdvisoryIssues);
+    }
+
+    private static ReadOnlyCollection<CompositionIssue> CopyAdvisoryIssues(
+        IEnumerable<CompositionIssue>? advisoryIssues)
+    {
+        CompositionIssue[] copy = advisoryIssues is null ? [] : [.. advisoryIssues];
+        return copy.Any(static issue => issue is null)
+            ? throw new ArgumentException(
+                "Advisory issues cannot contain null.",
+                nameof(advisoryIssues))
+            : copy.Any(static issue =>
+                StringComparer.Ordinal.Equals(issue.Severity, CompositionIssueSeverity.Error))
+            ? throw new ArgumentException(
+                "Advisory issues must use info or warning severity.",
+                nameof(advisoryIssues))
+            : Array.AsReadOnly(copy);
     }
 
     private static Dictionary<string, InputArtifactBinding> CopyBindings(IEnumerable<InputArtifactBinding> bindings)
@@ -371,9 +393,24 @@ public sealed class CompositionRunRequest
         foreach (CompiledValidationRequirement requirement in compiledComposition.ValidationRequirements)
         {
             if (compiledComposition.Authority is LegacyProfileCompilationAuthority or ProfileBundleV2CompilationAuthority &&
-                requirement is CompiledFirmwareConfigBackupVersionValidation &&
-                requirement.Stage == CompiledValidationStage.FinalOutput &&
-                requirement.Severity == CompiledValidationSeverity.Error)
+                requirement switch
+                {
+                    CompiledFirmwareConfigBackupVersionValidation =>
+                        requirement.Stage == CompiledValidationStage.FinalOutput &&
+                        requirement.Severity == CompiledValidationSeverity.Error,
+                    CompiledFirmwareConfigBackupPlacementAuthorityValidation =>
+                        requirement.Stage == CompiledValidationStage.FinalOutput &&
+                        requirement.Severity == CompiledValidationSeverity.Error,
+                    CompiledFirmwareConfigBackupExpectedAddressValidation =>
+                        requirement.Stage == CompiledValidationStage.FinalOutput &&
+                        requirement.Severity == CompiledValidationSeverity.Warning,
+                    CompiledUniformInputRangeValidation =>
+                        requirement.Stage == CompiledValidationStage.InputLoad &&
+                        requirement.Severity is
+                            CompiledValidationSeverity.Error or
+                            CompiledValidationSeverity.Warning,
+                    _ => false,
+                })
             {
                 continue;
             }

@@ -170,11 +170,15 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         {
             [WorkbenchSlotIds.ReplaceBase] = referencePath,
             ["replace-ctrlram-normal"] = evidence.Require("Normal_Ctrlram.bin").Path,
-            ["replace-ctrlram-diff"] = evidence.Require("DiffDLM.bin").Path,
             ["replace-ctrlram-mp"] = evidence.Require("MP_Ctrlram.bin").Path,
             ["replace-ctrlram-vn"] = evidence.Require("VN_Ctrlram.bin").Path,
             ["replace-ctrlram-nf"] = evidence.Require("NF_Ctrlram.bin").Path,
         };
+        if (!StringComparer.Ordinal.Equals(number, "single"))
+        {
+            slotPaths.Add("replace-ctrlram-diff", evidence.Require("DiffDLM.bin").Path);
+        }
+
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
             "NT51926",

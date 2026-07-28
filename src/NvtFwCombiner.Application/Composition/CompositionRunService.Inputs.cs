@@ -15,7 +15,12 @@ public sealed partial class CompositionRunService
         List<CompositionIssue> issues = ValidateArtifactBindings(request);
         if (issues.Count > 0)
         {
-            return new BoundInputs(inputBytes, inputSummaries, issues);
+            return new BoundInputs(
+                inputBytes,
+                inputSummaries,
+                issues,
+                [],
+                CreateSkippedInputLoadValidations(request.CompiledComposition));
         }
 
         foreach (string addressSpaceId in request.CompiledComposition.Plan.RequiredInputAddressSpaceIds)
@@ -33,12 +38,32 @@ public sealed partial class CompositionRunService
         }
 
         ValidateV2InputLengthRequirements(request, inputBytes, issues);
+        List<InputLoadValidationEvaluation> inputLoadValidations =
+            issues.Count == 0
+                ? EvaluateInputLoad(request.CompiledComposition, inputBytes)
+                : CreateSkippedInputLoadValidations(request.CompiledComposition);
+        List<CompositionIssue> advisoryIssues =
+        [
+            .. inputLoadValidations
+                .Where(static evaluation =>
+                    evaluation.Issue is { Severity: not CompositionIssueSeverity.Error })
+                .Select(static evaluation => evaluation.Issue!),
+        ];
+        issues.AddRange(inputLoadValidations
+            .Where(static evaluation =>
+                evaluation.Issue is { Severity: CompositionIssueSeverity.Error })
+            .Select(static evaluation => evaluation.Issue!));
         if (issues.Count == 0)
         {
             ValidateAbMergeTopologyMetadata(request, inputBytes, issues);
         }
 
-        return new BoundInputs(inputBytes, inputSummaries, issues);
+        return new BoundInputs(
+            inputBytes,
+            inputSummaries,
+            issues,
+            advisoryIssues,
+            inputLoadValidations);
     }
 
     private static void ValidateV2InputLengthRequirements(
@@ -277,7 +302,9 @@ public sealed partial class CompositionRunService
     private sealed record BoundInputs(
         IReadOnlyDictionary<string, byte[]> InputBytes,
         IReadOnlyList<InputArtifactSummary> InputSummaries,
-        IReadOnlyList<CompositionIssue> Issues);
+        IReadOnlyList<CompositionIssue> Issues,
+        IReadOnlyList<CompositionIssue> AdvisoryIssues,
+        IReadOnlyList<InputLoadValidationEvaluation> InputLoadValidations);
 
     private sealed record ArtifactReadSnapshot(byte[] Bytes, string Sha256);
 }

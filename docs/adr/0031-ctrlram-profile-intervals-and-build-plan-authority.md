@@ -115,7 +115,12 @@ Consequently:
    exactly `N - 1` active DLM subranges, so its active target envelope is
    `[0x2D100, 0x2D100 + (N - 1) * 0x1400)`. Every required `0x0B90` source DLM subrange must
    contain more than one distinct byte; the validator checks all required records, not only the
-   first.
+   first. Input admission also requires the complete active source prefix
+   `(N - 1) * 0x1400`; a file ending at the last active DLM end is truncated
+   even though all writable DLM bytes happen to be present. Repeated-byte
+   validation is compiled and evaluated at `InputLoad` against the same
+   immutable bound snapshot later used by the plan; Workbench path reads are
+   not a second validation authority.
 4. AE bytes after the active source prefix are inactive dummy content. They are ignored rather than
    copied, cannot widen DiffDLM read/write authority, and never replace an inactive target record.
    Inactive target records remain identical to the immutable reference except for a separately
@@ -125,8 +130,12 @@ Consequently:
    the unique NVT marker after the attempted processor run. If the actual start differs but remains
    inside the profile-declared bounded Backup-placement authority, the Build Report records a typed
    warning; missing/ambiguous Backup, out-of-bounds placement, or any mutation outside declared
-   processor authority fails closed. The alignment formula does not infer Backup length, source
-   range, or write envelope.
+   processor authority fails closed. The bounded range is placement-candidate
+   authority, not permission to mutate every candidate byte. Once the actual
+   marker is known, only the original Reference Backup envelope and the actual
+   Backup envelope may differ; all remaining candidate bytes are compared
+   byte-for-byte with the immutable Reference. The alignment formula does not
+   infer Backup length, source range, or write envelope.
 6. Preview, execution, mutation audit, and golden evidence must prove every active Diff NF byte remains
    identical to the immutable reference while every requested DLM record is placed at its declared
    target subrange, every inactive target record is preserved before postbuild, and any FWConfig
@@ -270,7 +279,15 @@ checks. They validate the selected execution; they do not identify a family.
     active NF subrange and every inactive target record. The owner-provided NT51932 4-IC golden must
     exercise three active DLM records. Runtime tests also prove expected Backup starts for each
     admitted count, marker-derived actual placement, warning-only in-authority mismatch, and
-    fail-closed out-of-authority mutation.
+    fail-closed out-of-authority mutation. The count-resolved Backup may occupy inactive bytes
+    inside the maximum `[0x2D100,0x35D00)` record envelope; the adjacent
+    `[0x35D00,0x37000)` authority tail is not modeled as a fixed Backup region.
+    Boundary tests reject active source lengths `0x338F`, `0x3390`, and
+    `0x3BFF` for 4 IC and accept exactly `0x3C00`; negative processor tests
+    mutate inactive DLM, inactive Diff NF, and upper-extension bytes inside the
+    candidate range and must fail the final immutable-reference audit. A
+    nonproduction oracle also recreates the retired contiguous full-record
+    overlay and proves the documented 3,145-byte corruption class.
 11. UI/Application tests prove only the two owner-confirmed Diff-NF families
     hide the independent NF selector in Cascade, while their postbuild plan
     still contains its declared `NF_Ctrlram.bin` stage with a

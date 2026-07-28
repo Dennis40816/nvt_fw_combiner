@@ -28,6 +28,10 @@ This document expands the safety contract summarized in `SPEC.md` section 9. Ver
   Backup address; runtime compares it with the count-derived, `0x1000`-aligned
   expected address. An in-authority mismatch is a typed Build Report warning,
   while a missing/ambiguous Backup or out-of-authority mutation fails closed.
+  The bounded range is placement-candidate authority, not blanket final
+  mutation permission: only the original Reference Backup envelope and the
+  marker-derived actual Backup envelope may differ. All other candidate bytes
+  are checked against the immutable Reference.
 - NT51950/NT51951 are not dynamic-placement routes. Their declared End Flag
   `0x36FFC` fixes the canonical FWConfig Backup start at `0x36000`; a different
   marker-derived location fails the fixed postbuild contract.

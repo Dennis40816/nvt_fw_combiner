@@ -64,10 +64,12 @@ Inventory data may be `unknown`, but a supported profile may not. A transform ma
 - Overlap rejects by default and must be explicitly declared per operation.
 - Every mutation records operation id, target space/range, before/after digest, changed ranges, and reason.
 - A count-dependent DiffDLM operation expands only active records. Source dummy
-  records outside the active prefix never become write operations; inactive
-  target records remain cloned from the immutable reference. A later postbuild
-  FWConfig Backup mutation is a separate processor-owned operation and report
-  entry, not an exception that widens the DiffDLM mask.
+  records outside the complete active full-stride prefix never become write
+  operations; a source that reaches only the last writable DLM byte but omits
+  its preserved NF tail is truncated and rejected. Inactive target records
+  remain cloned from the immutable reference. A later postbuild FWConfig
+  Backup mutation is a separate processor-owned operation and report entry,
+  not an exception that widens the DiffDLM mask.
 
 ## Preview and Build Readiness
 
