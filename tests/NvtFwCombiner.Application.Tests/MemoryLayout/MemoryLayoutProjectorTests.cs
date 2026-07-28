@@ -9,7 +9,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Application.Tests.MemoryLayout;
 
 /// <summary>Exercises the pure canonical memory-layout projection contract.</summary>
-public sealed class MemoryLayoutProjectorTests
+public sealed partial class MemoryLayoutProjectorTests
 {
     private const long Capacity = 16;
     private static readonly ResolutionToken Token = new("catalog-1");
@@ -153,6 +153,21 @@ public sealed class MemoryLayoutProjectorTests
         Assert.All(
             snapshot.AfterSegments,
             static segment => Assert.Empty(segment.ContributingOperationIds));
+
+        ActiveSessionSnapshot selectedSession = CreateSession(
+            fixture,
+            Slot("dp-input", AuthoringSlotLifecycle.Selected, length: 12),
+            Slot("tp-input", AuthoringSlotLifecycle.Empty));
+        MemoryLayoutPendingItem selected = Assert.Single(
+            MemoryLayoutProjector.Project(
+                    fixture.Capability,
+                    selectedSession,
+                    compiledOverlay: null)
+                .PendingItems,
+            static item => item.SlotId == "dp-input");
+        Assert.Equal(MemoryLayoutNextAction.RunInspection, selected.NextAction);
+        Assert.Equal(MemoryLayoutReadiness.PendingInput, selected.Readiness);
+        Assert.Null(selected.BlockedIssue);
     }
 
     /// <summary>Retains kept subranges under one primary canonical segment.</summary>
@@ -281,7 +296,9 @@ public sealed class MemoryLayoutProjectorTests
                 other.Composition));
     }
 
-    private static ProjectionFixture CreateFixture(CompositionKind kind)
+    private static ProjectionFixture CreateFixture(
+        CompositionKind kind,
+        CompositionPlan? customPlan = null)
     {
         string workflowId = kind == CompositionKind.Merge
             ? ExperienceIds.StandardMerge
@@ -295,9 +312,10 @@ public sealed class MemoryLayoutProjectorTests
         CompiledInputContract inputContract = kind == CompositionKind.Merge
             ? MergeInputContract()
             : ReplaceInputContract();
-        CompositionPlan plan = kind == CompositionKind.Merge
-            ? MergePlan()
-            : ReplacePlan();
+        CompositionPlan plan = customPlan ??
+            (kind == CompositionKind.Merge
+                ? MergePlan()
+                : ReplacePlan());
         var provenance = new V2CompilationProvenance(
             new ProfileBundleIdentity(
                 $"bundle-{workflowId}",
@@ -636,7 +654,8 @@ public sealed class MemoryLayoutProjectorTests
     private static AuthoringSlotState Slot(
         string slotId,
         AuthoringSlotLifecycle lifecycle,
-        long length = 0)
+        long length = 0,
+        AuthoringSlotIssueReference? blockingIssue = null)
     {
         bool empty = lifecycle == AuthoringSlotLifecycle.Empty;
         return new AuthoringSlotState(
@@ -648,7 +667,8 @@ public sealed class MemoryLayoutProjectorTests
                     exists: true,
                     length,
                     DateTimeOffset.UnixEpoch),
-            lifecycle);
+            lifecycle,
+            blockingIssue);
     }
 
     private sealed record ProjectionFixture(

@@ -243,6 +243,10 @@ operations produce transient before/after coverage; no copied region
 definition, guessed range, color, pixel width, or renderer state enters the
 Application result. A selected artifact whose placement is not resolved is a
 non-geometric pending or blocked item with typed prerequisite and next action.
+Each blocked item also retains an opaque issue reference owned by the exact
+inspection or validation result and pins it to the same resolution token,
+authoring revision, slot definition, selected path, and file stamp. The
+projection does not copy diagnostic text or firmware facts.
 Content role, workflow disposition, endpoint/bank identity, diagnostics,
 observed change, selection, focus, and declared processor effect remain
 orthogonal typed dimensions. Primary segments may own subordinate kept-range

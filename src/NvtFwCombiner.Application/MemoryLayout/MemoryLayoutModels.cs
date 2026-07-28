@@ -153,6 +153,46 @@ public enum MemoryLayoutNextAction
     ReviewInputIssue,
 }
 
+/// <summary>
+/// Identity-pinned reference to the actual issue that blocks one authoring slot.
+/// The referenced inspection or validation result remains the diagnostic owner.
+/// </summary>
+public sealed record MemoryLayoutBlockedIssueReference
+{
+    internal MemoryLayoutBlockedIssueReference(
+        ResolutionToken resolutionToken,
+        AuthoringRevision authoringRevision,
+        AuthoringSlotPublicationIdentity slotIdentity,
+        AuthoringSlotIssueReference issue)
+    {
+        ArgumentNullException.ThrowIfNull(slotIdentity);
+        ArgumentNullException.ThrowIfNull(issue);
+        if (slotIdentity.SelectedPath is null || slotIdentity.FileStamp is null)
+        {
+            throw new ArgumentException(
+                "A blocked issue requires the exact selected-file identity.",
+                nameof(slotIdentity));
+        }
+
+        ResolutionToken = resolutionToken;
+        AuthoringRevision = authoringRevision;
+        SlotIdentity = slotIdentity;
+        Issue = issue;
+    }
+
+    /// <summary>Canonical catalog publication identity.</summary>
+    public ResolutionToken ResolutionToken { get; }
+
+    /// <summary>Exact authoring-input revision.</summary>
+    public AuthoringRevision AuthoringRevision { get; }
+
+    /// <summary>Exact slot, path, and host-captured file identity.</summary>
+    public AuthoringSlotPublicationIdentity SlotIdentity { get; }
+
+    /// <summary>Reference to the actual separately owned diagnostic issue.</summary>
+    public AuthoringSlotIssueReference Issue { get; }
+}
+
 /// <summary>A kept range subordinate to a primary segment, not a canonical region.</summary>
 public sealed class MemoryLayoutPreservationDetail
 {
@@ -355,7 +395,8 @@ public sealed class MemoryLayoutPendingItem
         MemoryLayoutPrerequisite prerequisite,
         MemoryLayoutNextAction nextAction,
         long? knownInputLength,
-        MemoryDiagnosticSeverity diagnosticSeverity)
+        MemoryDiagnosticSeverity diagnosticSeverity,
+        MemoryLayoutBlockedIssueReference? blockedIssue)
     {
         ArgumentNullException.ThrowIfNull(requirement);
         MemoryLayoutGuard.Defined(readiness, nameof(readiness));
@@ -367,6 +408,14 @@ public sealed class MemoryLayoutPendingItem
             throw new ArgumentOutOfRangeException(nameof(knownInputLength));
         }
 
+        bool hasBlockedIssue = blockedIssue is not null;
+        if (hasBlockedIssue != (readiness == MemoryLayoutReadiness.Blocked))
+        {
+            throw new ArgumentException(
+                "Only blocked items require one identity-pinned issue reference.",
+                nameof(blockedIssue));
+        }
+
         SlotId = requirement.SlotId;
         Role = requirement.Role;
         ArtifactClass = requirement.ArtifactClass;
@@ -375,6 +424,7 @@ public sealed class MemoryLayoutPendingItem
         NextAction = nextAction;
         KnownInputLength = knownInputLength;
         DiagnosticSeverity = diagnosticSeverity;
+        BlockedIssue = blockedIssue;
     }
 
     /// <summary>Canonical input-slot identity.</summary>
@@ -393,6 +443,8 @@ public sealed class MemoryLayoutPendingItem
     public long? KnownInputLength { get; }
     /// <summary>Typed diagnostic severity.</summary>
     public MemoryDiagnosticSeverity DiagnosticSeverity { get; }
+    /// <summary>Actual identity-pinned issue reference for a blocked item.</summary>
+    public MemoryLayoutBlockedIssueReference? BlockedIssue { get; }
 }
 
 /// <summary>One disposable immutable layout projection for an authoring revision.</summary>

@@ -41,6 +41,45 @@ public enum AuthoringSlotLifecycle
     Error,
 }
 
+/// <summary>
+/// Opaque reference to one issue owned by an immutable inspection or validation result.
+/// Carries no duplicated diagnostic text or firmware fact.
+/// </summary>
+public sealed record AuthoringSlotIssueReference
+{
+    /// <summary>Creates one reference to an issue inside a separately owned result.</summary>
+    public AuthoringSlotIssueReference(
+        AuthoringDerivedResultKind resultKind,
+        string resultReference,
+        string issueId)
+    {
+        if (resultKind is not (
+            AuthoringDerivedResultKind.Inspection or
+            AuthoringDerivedResultKind.Validation))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(resultKind),
+                resultKind,
+                "Slot issues must be owned by an inspection or validation result.");
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(resultReference);
+        ArgumentException.ThrowIfNullOrWhiteSpace(issueId);
+        ResultKind = resultKind;
+        ResultReference = resultReference;
+        IssueId = issueId;
+    }
+
+    /// <summary>Kind of immutable result that owns the issue.</summary>
+    public AuthoringDerivedResultKind ResultKind { get; }
+
+    /// <summary>Opaque reference to the separately owned immutable result.</summary>
+    public string ResultReference { get; }
+
+    /// <summary>Stable issue identity inside the referenced result.</summary>
+    public string IssueId { get; }
+}
+
 /// <summary>Monotonic identity for one set of authoring inputs.</summary>
 public readonly record struct AuthoringRevision
 {
@@ -310,7 +349,8 @@ public sealed record AuthoringSlotState
         string definitionId,
         string? selectedPath,
         FileStamp? fileStamp,
-        AuthoringSlotLifecycle lifecycle)
+        AuthoringSlotLifecycle lifecycle,
+        AuthoringSlotIssueReference? blockingIssue = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
         if ((selectedPath is null) != (fileStamp is null))
@@ -329,10 +369,19 @@ public sealed record AuthoringSlotState
                 nameof(lifecycle));
         }
 
+        bool hasBlockingIssue = blockingIssue is not null;
+        if (hasBlockingIssue != (lifecycle == AuthoringSlotLifecycle.Error))
+        {
+            throw new ArgumentException(
+                "Only an error lifecycle requires one blocking inspection or validation issue reference.",
+                nameof(blockingIssue));
+        }
+
         DefinitionId = definitionId;
         SelectedPath = selectedPath;
         FileStamp = fileStamp;
         Lifecycle = lifecycle;
+        BlockingIssue = blockingIssue;
     }
 
     /// <summary>Referenced canonical slot-definition identity.</summary>
@@ -346,6 +395,9 @@ public sealed record AuthoringSlotState
 
     /// <summary>Current selected-file lifecycle.</summary>
     public AuthoringSlotLifecycle Lifecycle { get; }
+
+    /// <summary>Actual blocking issue reference, present only for an error lifecycle.</summary>
+    public AuthoringSlotIssueReference? BlockingIssue { get; }
 }
 
 /// <summary>One successfully published derived-result reference.</summary>

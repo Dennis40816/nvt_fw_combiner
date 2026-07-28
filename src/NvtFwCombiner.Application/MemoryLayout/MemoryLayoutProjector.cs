@@ -63,7 +63,7 @@ public static class MemoryLayoutProjector
         ValidateAuthoringSlots(slotsById, statesById);
 
         MemoryLayoutPendingItem[] pendingItems =
-            ProjectPendingItems(inputContract.Slots, statesById);
+            ProjectPendingItems(inputContract.Slots, statesById, authoring);
         MemoryLayoutSegment[] before =
             CreateInitialCoverage(
                 primaryRegions,
@@ -163,7 +163,8 @@ public static class MemoryLayoutProjector
 
     private static MemoryLayoutPendingItem[] ProjectPendingItems(
         IReadOnlyList<CompiledInputSlotRequirement> requirements,
-        Dictionary<string, AuthoringSlotState> states)
+        Dictionary<string, AuthoringSlotState> states,
+        ActiveSessionSnapshot authoring)
     {
         List<MemoryLayoutPendingItem> pending = [];
         foreach (CompiledInputSlotRequirement requirement in requirements)
@@ -214,7 +215,17 @@ public static class MemoryLayoutProjector
                     prerequisite,
                     nextAction,
                     state.FileStamp?.Length,
-                    severity));
+                    severity,
+                    state.BlockingIssue is null
+                        ? null
+                        : new MemoryLayoutBlockedIssueReference(
+                            authoring.ResolutionToken,
+                            authoring.AuthoringRevision,
+                            new AuthoringSlotPublicationIdentity(
+                                state.DefinitionId,
+                                state.SelectedPath,
+                                state.FileStamp),
+                            state.BlockingIssue)));
         }
 
         return
