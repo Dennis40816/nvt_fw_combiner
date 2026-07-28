@@ -8,19 +8,33 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 {
     public sealed partial class ResolvedFirmwareImageMap
     {
-        private const string ResolutionFingerprintFormat = "nfc.resolved-firmware-map.v1";
+        private const string LegacyResolutionFingerprintFormat =
+            "nfc.resolved-firmware-map.v1";
+        private const string TypedMetadataResolutionFingerprintFormat =
+            "nfc.resolved-firmware-map.v2";
 
         private static string CalculateResolutionFingerprint(ResolvedFirmwareImageMap resolvedMap)
         {
+            bool includesTypedMetadata = resolvedMap.ResolvedMetadataStructures.Any(
+                static structure =>
+                    structure.StructureDefinition.Definition.TypedDefinition is not null);
             var builder = new StringBuilder();
-            AppendField(builder, "format", ResolutionFingerprintFormat);
+            AppendField(
+                builder,
+                "format",
+                includesTypedMetadata
+                    ? TypedMetadataResolutionFingerprintFormat
+                    : LegacyResolutionFingerprintFormat);
             AppendField(builder, "family.id", resolvedMap.FamilyId);
             AppendField(builder, "family.version", resolvedMap.FamilyVersion);
             AppendField(builder, "family.content-hash", resolvedMap.FamilyContentHash);
             AppendMap(builder, resolvedMap);
             AppendTopology(builder, resolvedMap.TopologySelection);
             AppendArtifacts(builder, resolvedMap.ArtifactIdentities);
-            AppendMetadataStructures(builder, resolvedMap.ResolvedMetadataStructures);
+            AppendMetadataStructures(
+                builder,
+                resolvedMap.ResolvedMetadataStructures,
+                includesTypedMetadata);
             AppendPredicateOutcomes(builder, resolvedMap.PredicateOutcomes);
             AppendFactProvenance(builder, resolvedMap.FactProvenance);
 
@@ -71,7 +85,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         private static void AppendMetadataStructures(
             StringBuilder builder,
-            IReadOnlyList<FirmwareResolvedMetadataStructure> structures)
+            IReadOnlyList<FirmwareResolvedMetadataStructure> structures,
+            bool includeDefinitionIdentity)
         {
             AppendInteger(builder, "metadata-structure.count", structures.Count);
             for (int index = 0; index < structures.Count; index++)
@@ -86,6 +101,34 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 AppendAddressedRange(builder, $"{prefix}.locator.range", locator.ResolvedRange);
                 AppendNullableInteger(builder, $"{prefix}.locator.marker-match-count", locator.MarkerMatchCount);
                 AppendNullableInteger(builder, $"{prefix}.locator.selected-marker-start", locator.SelectedMarkerStart);
+                if (includeDefinitionIdentity)
+                {
+                    AppendField(
+                        builder,
+                        $"{prefix}.definition.binding-id",
+                        structure.StructureDefinition.StructureId);
+                    AppendField(
+                        builder,
+                        $"{prefix}.definition.logical-id",
+                        structure.StructureDefinition.Definition.DefinitionId);
+                    AppendEnum(
+                        builder,
+                        $"{prefix}.definition.kind",
+                        structure.StructureDefinition.Definition.StructureKind);
+                    AppendInteger(builder, $"{prefix}.field.count", structure.Fields.Count);
+                    for (int fieldIndex = 0; fieldIndex < structure.Fields.Count; fieldIndex++)
+                    {
+                        FirmwareResolvedMetadataField field = structure.Fields[fieldIndex];
+                        string fieldPrefix =
+                            FormattableString.Invariant($"{prefix}.field.{fieldIndex}");
+                        AppendField(builder, $"{fieldPrefix}.id", field.Field.FieldId);
+                        AppendEnum(
+                            builder,
+                            $"{fieldPrefix}.applicability",
+                            field.Applicability);
+                    }
+                }
+
                 AppendField(builder, $"{prefix}.decoded.artifact-id", decoded.ArtifactBindingId);
                 AppendField(builder, $"{prefix}.decoded.structure-id", decoded.MetadataStructureId);
                 FirmwareDecodedMetadataFact[] facts = [.. decoded.Facts.OrderBy(static fact => fact.FieldId, StringComparer.Ordinal)];

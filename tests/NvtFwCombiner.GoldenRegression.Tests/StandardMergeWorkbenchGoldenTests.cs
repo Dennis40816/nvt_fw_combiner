@@ -126,7 +126,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
 
         Assert.Equal("nt51929-standard-merge-gen-flash.bin", result.OutputFileName);
         Assert.Equal(
-            "f719dc53dfd6d5aeeb7f7168937c1920e5b2d4f4f266f3404ba2a7b94a504d67",
+            "894c809b9e928df044a89b95dedafd282966166bc45d00592dcd9cf56703dd93",
             root.GetProperty("CompilationFingerprint").GetString());
         Assert.Equal(
             ["dp-input", "tp-input"],

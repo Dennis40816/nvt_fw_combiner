@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.10",
+  "schemaVersion": "2.11",
   "profileId": "nt51932-ab-merge",
-  "profileVersion": "0.2.0",
+  "profileVersion": "0.3.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -18,11 +18,14 @@
   },
   "mapBinding": {
     "familyId": "nt51919-nt51929-nt51932-ab-merge",
-    "familyVersion": "0.1.0",
-    "familyContentHash": "282e6b1c6ba8ed5af648dfab255190207718a430989d0539539742f802891ad5",
+    "familyVersion": "0.2.0",
+    "familyContentHash": "b47c9b9426874f63c8fb10f856b7b1074a098fdf856d2b38a0248d46157a4235",
     "mapIds": ["nt51932-ab-merge-512k"],
     "requiredRegionIds": ["ab-image", "a-cmi-dp-version", "b-cmi-dp-version", "tpa-code", "tpb-code"],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": [
+      "type-ab-tpa-tp-flash-header",
+      "type-ab-tpb-tp-flash-header"
+    ],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -99,7 +102,128 @@
     { "viewId": "tp-b-source", "spaceId": "tp-b-work", "selector": { "kind": "space-range", "range": { "start": 28672, "length": 233472 } } },
     { "viewId": "tp-b-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "tpb-code" } }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "type-ab-tpa-tp-flash-header-read-model",
+      "spaceId": "tp-a-input",
+      "structureId": "type-ab-tpa-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        },
+        {
+          "targetKind": "series",
+          "targetId": "dlm-crc-series"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "header-integrity-values"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "tp-bank-relative-start-addresses"
+        }
+      ],
+      "purposes": [
+        "inspection",
+        "formatting",
+        "memory-projection",
+        "report-classification"
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51932",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    },
+    {
+      "bindingId": "type-ab-tpb-tp-flash-header-read-model",
+      "spaceId": "tp-b-input",
+      "structureId": "type-ab-tpb-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        },
+        {
+          "targetKind": "series",
+          "targetId": "dlm-crc-series"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "header-integrity-values"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "tp-bank-relative-start-addresses"
+        }
+      ],
+      "purposes": [
+        "inspection",
+        "formatting",
+        "memory-projection",
+        "report-classification"
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51932",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    },
+    {
+      "bindingId": "type-ab-tpa-header-copy-reference",
+      "spaceId": "tp-a-input",
+      "structureId": "type-ab-tpa-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        }
+      ],
+      "purposes": [
+        "copy"
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51932",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    },
+    {
+      "bindingId": "type-ab-tpb-header-copy-reference",
+      "spaceId": "tp-b-input",
+      "structureId": "type-ab-tpb-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        }
+      ],
+      "purposes": [
+        "copy"
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51932",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    },
+    {
+      "bindingId": "type-ab-tpb-header-relocation-reference",
+      "spaceId": "tp-b-input",
+      "structureId": "type-ab-tpb-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "group",
+          "targetId": "tp-bank-relative-start-addresses"
+        }
+      ],
+      "purposes": [
+        "relocation"
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51932",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    }
+  ],
   "regionAccessRules": [
     { "regionId": "ab-image", "access": "explicit-range", "reason": "Copy the owner-supplied full 512 KiB AB DP container before TP overlays." },
     { "regionId": "tpa-code", "access": "whole", "reason": "Overlay the exact TPA code range after the DP AB image." },

@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.10",
+  "schemaVersion": "2.11",
   "profileId": "nt51919-ab-merge-alias",
-  "profileVersion": "0.2.0",
+  "profileVersion": "0.3.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -18,8 +18,8 @@
   },
   "mapBinding": {
     "familyId": "nt51919-nt51929-nt51932-ab-merge",
-    "familyVersion": "0.1.0",
-    "familyContentHash": "282e6b1c6ba8ed5af648dfab255190207718a430989d0539539742f802891ad5",
+    "familyVersion": "0.2.0",
+    "familyContentHash": "b47c9b9426874f63c8fb10f856b7b1074a098fdf856d2b38a0248d46157a4235",
     "mapIds": [
       "nt51919-ab-merge-512k"
     ],

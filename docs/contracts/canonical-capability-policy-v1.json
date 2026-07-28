@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0",
   "catalogId": "canonical-capability-policy",
-  "catalogVersion": "1.1.0",
-  "issuedOn": "2026-07-27",
+  "catalogVersion": "1.2.0",
+  "issuedOn": "2026-07-28",
   "routes": [
     {
       "icId": "NT51929",
@@ -10,25 +10,25 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51929-standard-merge-256k",
       "routeId": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
-      "capabilityFingerprint": "f719dc53dfd6d5aeeb7f7168937c1920e5b2d4f4f266f3404ba2a7b94a504d67",
+      "capabilityFingerprint": "894c809b9e928df044a89b95dedafd282966166bc45d00592dcd9cf56703dd93",
       "authoring": {
-        "decisionId": "nt51929-standard-merge-authoring-v1",
+        "decisionId": "nt51929-standard-merge-authoring-v2",
         "routeId": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
-        "capabilityFingerprint": "f719dc53dfd6d5aeeb7f7168937c1920e5b2d4f4f266f3404ba2a7b94a504d67",
+        "capabilityFingerprint": "894c809b9e928df044a89b95dedafd282966166bc45d00592dcd9cf56703dd93",
         "value": "available",
-        "sourceReference": "owner-approved:github-issue-173"
+        "sourceReference": "owner-approved:github-issue-186"
       },
       "publication": {
-        "decisionId": "nt51929-standard-merge-publication-v1",
+        "decisionId": "nt51929-standard-merge-publication-v2",
         "routeId": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
-        "capabilityFingerprint": "f719dc53dfd6d5aeeb7f7168937c1920e5b2d4f4f266f3404ba2a7b94a504d67",
+        "capabilityFingerprint": "894c809b9e928df044a89b95dedafd282966166bc45d00592dcd9cf56703dd93",
         "value": "supported",
-        "sourceReference": "owner-approved:github-issue-173"
+        "sourceReference": "owner-approved:github-issue-186"
       },
       "evidence": {
-        "decisionId": "nt51929-standard-merge-evidence-v1",
+        "decisionId": "nt51929-standard-merge-evidence-v2",
         "routeId": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
-        "capabilityFingerprint": "f719dc53dfd6d5aeeb7f7168937c1920e5b2d4f4f266f3404ba2a7b94a504d67",
+        "capabilityFingerprint": "894c809b9e928df044a89b95dedafd282966166bc45d00592dcd9cf56703dd93",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51929-gen-flash"
       }

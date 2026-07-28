@@ -124,14 +124,19 @@ public sealed class FirmwareMetadataLocatorOutcome
 /// <summary>Immutable successful locator and typed-decode payload with no source bytes.</summary>
 public sealed class FirmwareResolvedMetadataStructure
 {
+    private readonly FirmwareResolvedMetadataField[] _fields;
+
     internal FirmwareResolvedMetadataStructure(
         string mapId,
         FirmwareArtifactIdentity artifactIdentity,
+        FirmwareMetadataStructure structureDefinition,
+        TopologySelection? topology,
         FirmwareMetadataLocatorOutcome locatorOutcome,
         FirmwareDecodedMetadataStructure decodedStructure)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
         ArgumentNullException.ThrowIfNull(artifactIdentity);
+        ArgumentNullException.ThrowIfNull(structureDefinition);
         ArgumentNullException.ThrowIfNull(locatorOutcome);
         ArgumentNullException.ThrowIfNull(decodedStructure);
         if (!StringComparer.Ordinal.Equals(
@@ -141,10 +146,44 @@ public sealed class FirmwareResolvedMetadataStructure
             throw new ArgumentException("Resolved artifact identity must match decoded structure binding.");
         }
 
+        if (!StringComparer.Ordinal.Equals(
+                structureDefinition.ArtifactBindingId,
+                decodedStructure.ArtifactBindingId) ||
+            !StringComparer.Ordinal.Equals(
+                structureDefinition.StructureId,
+                decodedStructure.MetadataStructureId))
+        {
+            throw new ArgumentException(
+                "Resolved structure definition must match the decoded structure binding.");
+        }
+
+        var facts =
+            decodedStructure.Facts.ToDictionary(
+                static fact => fact.FieldId,
+                StringComparer.Ordinal);
+        IReadOnlyList<FirmwareResolvedMetadataField> applicability =
+            structureDefinition.Definition.ResolveFields(topology);
+        if (facts.Count != applicability.Count ||
+            applicability.Any(field => !facts.ContainsKey(field.Field.FieldId)))
+        {
+            throw new ArgumentException(
+                "Resolved field definitions must close over every decoded fact.");
+        }
+
+        _fields =
+        [
+            .. applicability.Select(field =>
+                new FirmwareResolvedMetadataField(
+                    field.Field,
+                    field.Applicability,
+                    facts[field.Field.FieldId].Value)),
+        ];
         MapId = mapId;
         ArtifactIdentity = artifactIdentity;
+        StructureDefinition = structureDefinition;
         LocatorOutcome = locatorOutcome;
         DecodedStructure = decodedStructure;
+        Fields = Array.AsReadOnly(_fields);
     }
 
     /// <summary>Candidate image map that scoped this metadata structure.</summary>
@@ -153,11 +192,17 @@ public sealed class FirmwareResolvedMetadataStructure
     /// <summary>Identity derived from the immutable artifact payload snapshot.</summary>
     public FirmwareArtifactIdentity ArtifactIdentity { get; }
 
+    /// <summary>Exact canonical binding and shared logical definition reference.</summary>
+    public FirmwareMetadataStructure StructureDefinition { get; }
+
     /// <summary>Exact locator outcome without source payload bytes.</summary>
     public FirmwareMetadataLocatorOutcome LocatorOutcome { get; }
 
     /// <summary>Atomic typed structure decode.</summary>
     public FirmwareDecodedMetadataStructure DecodedStructure { get; }
+
+    /// <summary>Decoded physical fields with resolution-scoped applicability.</summary>
+    public IReadOnlyList<FirmwareResolvedMetadataField> Fields { get; }
 }
 
 /// <summary>Pending, rejected, or successful evaluation of one candidate-selected structure.</summary>

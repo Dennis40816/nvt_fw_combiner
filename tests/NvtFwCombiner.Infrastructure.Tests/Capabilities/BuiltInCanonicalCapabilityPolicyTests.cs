@@ -23,7 +23,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                 "standard-merge"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.1.0", policy.CatalogVersion);
+        Assert.Equal("1.2.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -32,11 +32,20 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
         Assert.Equal("selector-free", route.Identity.IcCountVariant);
         Assert.Equal("nt51929-standard-merge-256k", route.Identity.MapVariant);
         Assert.Equal(
-            "f719dc53dfd6d5aeeb7f7168937c1920e5b2d4f4f266f3404ba2a7b94a504d67",
+            "894c809b9e928df044a89b95dedafd282966166bc45d00592dcd9cf56703dd93",
             route.CapabilityFingerprint);
         Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
         Assert.Equal(CapabilityPublicationStatus.Supported, route.Publication.Value);
         Assert.Equal(CapabilityEvidenceStatus.DirectGolden, route.Evidence.Value);
+        Assert.Equal("nt51929-standard-merge-authoring-v2", route.Authoring.DecisionId);
+        Assert.Equal(
+            "owner-approved:github-issue-186",
+            route.Authoring.SourceReference);
+        Assert.Equal("nt51929-standard-merge-publication-v2", route.Publication.DecisionId);
+        Assert.Equal(
+            "owner-approved:github-issue-186",
+            route.Publication.SourceReference);
+        Assert.Equal("nt51929-standard-merge-evidence-v2", route.Evidence.DecisionId);
     }
 
     /// <summary>The reviewed policy is copied to both build and publish outputs.</summary>

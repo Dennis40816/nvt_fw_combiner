@@ -56,8 +56,20 @@ public sealed record CompositionProfileMetadataBindingDocument(
     string BindingId,
     string SpaceId,
     string StructureId,
-    IReadOnlyList<string> FieldIds,
-    IReadOnlyList<string> Purposes);
+    IReadOnlyList<string>? FieldIds,
+    IReadOnlyList<string> Purposes,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<CompositionProfileMetadataTargetReferenceDocument>? TargetReferences = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<string>? EvidenceRefs = null);
+
+/// <summary>
+/// DTO for one exact read-only span, field, series, or group reference. It
+/// deliberately contains no firmware geometry or execution authority.
+/// </summary>
+public sealed record CompositionProfileMetadataTargetReferenceDocument(
+    string TargetKind,
+    string TargetId);
 
 /// <summary>DTO for deny-by-default authoring access to one canonical region.</summary>
 public sealed record CompositionProfileRegionAccessRuleDocument(

@@ -18,7 +18,8 @@ public sealed class FirmwareMetadataStructureDefinition
         long lengthBytes,
         IEnumerable<FirmwareMetadataField> fields,
         IEnumerable<FirmwareMetadataByteAssertion> assertions,
-        IEnumerable<FirmwareMetadataFieldRelation>? relations = null)
+        IEnumerable<FirmwareMetadataFieldRelation>? relations = null,
+        FirmwareMetadataTypedDefinition? typedDefinition = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lengthBytes);
@@ -72,11 +73,15 @@ public sealed class FirmwareMetadataStructureDefinition
         ValidateRelations(_fields, _relations);
         Array.Sort(_relations, static (left, right) =>
             StringComparer.Ordinal.Compare(left.RelationId, right.RelationId));
+        typedDefinition?.Validate(_fields, lengthBytes);
         DefinitionId = definitionId;
         LengthBytes = lengthBytes;
         Fields = Array.AsReadOnly(_fields);
         Assertions = Array.AsReadOnly(_assertions);
         Relations = Array.AsReadOnly(_relations);
+        TypedDefinition = typedDefinition;
+        StructureKind = typedDefinition?.StructureKind ??
+                        FirmwareMetadataStructureKind.Generic;
     }
 
     /// <summary>Stable logical structure identity.</summary>
@@ -93,6 +98,56 @@ public sealed class FirmwareMetadataStructureDefinition
 
     /// <summary>Typed validation relations in deterministic relation-id order.</summary>
     public IReadOnlyList<FirmwareMetadataFieldRelation> Relations { get; }
+
+    /// <summary>Closed common-metadata specialization discriminator.</summary>
+    public FirmwareMetadataStructureKind StructureKind { get; }
+
+    /// <summary>
+    /// Optional typed specialization. Null is the explicit legacy/common
+    /// metadata shape and never implies TP Header semantics.
+    /// </summary>
+    public FirmwareMetadataTypedDefinition? TypedDefinition { get; }
+
+    /// <summary>
+    /// Resolves every physical field without granting mutation authority.
+    /// Generic fields are topology-invariant and therefore Active.
+    /// </summary>
+    public IReadOnlyList<FirmwareResolvedMetadataField> ResolveFields(
+        TopologySelection? topology)
+    {
+        return TypedDefinition?.ResolveFields(_fields, topology) ??
+               Array.AsReadOnly(
+                   _fields.Select(static field =>
+                       new FirmwareResolvedMetadataField(
+                           field,
+                           FirmwareMetadataFieldApplicabilityState.Active))
+                       .ToArray());
+    }
+
+    /// <summary>Returns whether one typed reference closes over this exact definition.</summary>
+    public bool ContainsReferenceTarget(FirmwareMetadataReferenceTarget target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        return target.Kind switch
+        {
+            FirmwareMetadataReferenceTargetKind.Field =>
+                _fields.Any(field =>
+                    StringComparer.Ordinal.Equals(field.FieldId, target.TargetId)),
+            FirmwareMetadataReferenceTargetKind.Span
+                when TypedDefinition is FirmwareTpFlashHeaderDefinition header =>
+                header.Spans.Any(span =>
+                    StringComparer.Ordinal.Equals(span.SpanId, target.TargetId)),
+            FirmwareMetadataReferenceTargetKind.Series
+                when TypedDefinition is FirmwareTpFlashHeaderDefinition header =>
+                header.FieldSeries.Any(series =>
+                    StringComparer.Ordinal.Equals(series.SeriesId, target.TargetId)),
+            FirmwareMetadataReferenceTargetKind.Group
+                when TypedDefinition is FirmwareTpFlashHeaderDefinition header =>
+                header.FieldGroups.Any(group =>
+                    StringComparer.Ordinal.Equals(group.GroupId, target.TargetId)),
+            _ => false,
+        };
+    }
 
     internal bool TryDecode(
         string artifactBindingId,

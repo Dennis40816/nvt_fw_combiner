@@ -17,8 +17,8 @@ internal static class BuiltInV2BundleRegistry
         {
             ("nt51917-nt51927-general-merge-logical-candidate", "6e0ecbad0b1205f860c62d2a251ad54193dc53d49f88d0fbecfdb86ddfa951ea"),
             ("nt51917-ctrlram-replace-alias-candidate", "8992dbc5483054c5dc16e545444b1f94446c698c68b1abe7946efdb4d4ffb26b"),
-            ("nt51919-nt51929-nt51932-ab-merge", "93902043b6e4ea4c8a2023a7f02c798e4497de3523b21115797e9b302ce22292"),
-            ("nt51919-nt51929-nt51932-general-merge-logical-candidate", "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283"),
+            ("nt51919-nt51929-nt51932-ab-merge", "6486c31690463aa9624ef36c5701d7620c5ef9467917c0bc68831e5e93a2590d"),
+            ("nt51919-nt51929-nt51932-general-merge-logical-candidate", "0d8b975c5cd0b010624ae2d056f18430174fc2b1234819c644aa49ccb039547b"),
             ("nt51923-nt51926-general-merge-logical-candidate", "26f12851f81d55bb88a0a0e18ab4f10f451747369e797efbc69fdbf05cdf5a96"),
             ("nt51923-ctrlram-replace-candidate", "8c1318f9e83a658028b1e0a07b2c38a28bcdeb6031d3a393d6b4912c2cdba14f"),
             ("nt51923-dp-replace", "8a3efe8ffe4a3df89d025efbbb882d89c193e46a728127b03c1ca8f0c8797ca8"),
@@ -33,7 +33,7 @@ internal static class BuiltInV2BundleRegistry
             ("nt51928-standard-merge", "771ca61c941394b1579329ef271b81a06054003535fa49d40a20c14fc1af9e54"),
             ("nt51929-ctrlram-replace-candidate", "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365"),
             ("nt51929-dp-replace", "ce5a57eb6df377335be081b5eecf7f9eb379ce9a43cc51dd3bcae161febcdbcc"),
-            ("nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09"),
+            ("nt51929-standard-merge", "3270451ed264d59744400e131086d7a69c652384982946883c56483280786b69"),
             ("nt51932-ctrlram-replace-candidate", "7184a75733724cf85c0c63d219b24abbeac372eee1197063c2b2d2179aca7257"),
             ("nt51950-ab-merge", "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206"),
             ("nt51950-ctrlram-replace-candidate", "d3f745c68d948e7e3a3a07d5717de2114742f881444076d93d2232343f98049e"),
@@ -426,25 +426,42 @@ internal sealed class BuiltInV2Bundle
             resolvedMap,
             metadataBindings[0],
             structure,
-            binding.FieldIds,
-            binding.Purposes.Select(ToInspectionPurpose));
+            binding.TargetReferences,
+            binding.Purposes.Select(ToReferencePurpose),
+            binding.EvidenceRefs);
     }
 
-    private static MetadataInspectionPurpose ToInspectionPurpose(
+    private static MetadataReferencePurpose ToReferencePurpose(
         CompositionProfileMetadataPurpose purpose)
     {
         return purpose switch
         {
             CompositionProfileMetadataPurpose.MapResolution =>
-                MetadataInspectionPurpose.MapResolution,
+                MetadataReferencePurpose.MapResolution,
             CompositionProfileMetadataPurpose.Validation =>
-                MetadataInspectionPurpose.Validation,
+                MetadataReferencePurpose.Validation,
             CompositionProfileMetadataPurpose.OutputNaming =>
-                MetadataInspectionPurpose.OutputNaming,
+                MetadataReferencePurpose.OutputNaming,
             CompositionProfileMetadataPurpose.Display =>
-                MetadataInspectionPurpose.Display,
+                MetadataReferencePurpose.Display,
             CompositionProfileMetadataPurpose.Version =>
-                MetadataInspectionPurpose.Version,
+                MetadataReferencePurpose.Version,
+            CompositionProfileMetadataPurpose.Inspection =>
+                MetadataReferencePurpose.Inspection,
+            CompositionProfileMetadataPurpose.Formatting =>
+                MetadataReferencePurpose.Formatting,
+            CompositionProfileMetadataPurpose.Copy =>
+                MetadataReferencePurpose.Copy,
+            CompositionProfileMetadataPurpose.Relocation =>
+                MetadataReferencePurpose.Relocation,
+            CompositionProfileMetadataPurpose.Integrity =>
+                MetadataReferencePurpose.Integrity,
+            CompositionProfileMetadataPurpose.Processor =>
+                MetadataReferencePurpose.Processor,
+            CompositionProfileMetadataPurpose.MemoryProjection =>
+                MetadataReferencePurpose.MemoryProjection,
+            CompositionProfileMetadataPurpose.ReportClassification =>
+                MetadataReferencePurpose.ReportClassification,
             _ => throw new InvalidDataException(
                 "Unknown trusted profile metadata purpose."),
         };

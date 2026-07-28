@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51919-nt51929-nt51932-ab-merge",
-  "familyVersion": "0.1.0",
+  "familyVersion": "0.2.0",
   "members": [
     {
       "memberId": "NT51919",
@@ -136,7 +136,56 @@
       ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "nt51929-nt51932-type-ab-tp-flash-headers",
+      "structures": [
+        {
+          "structureId": "type-ab-tpa-tp-flash-header",
+          "artifactBindingId": "tp-a-input",
+          "locator": {
+            "kind": "absolute-range",
+            "range": {
+              "addressSpaceId": "flash",
+              "start": 28928,
+              "length": 256
+            },
+            "allowedResultRegionId": "tpa-code"
+          },
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.1.0",
+            "familyContentHash": "06ab5b5ac35e143587420ecdc40aa17324cb63ec8a0c48e4c208092b1be22f39",
+            "structureId": "type-ab-tp-flash-header"
+          }
+        },
+        {
+          "structureId": "type-ab-tpb-tp-flash-header",
+          "artifactBindingId": "tp-b-input",
+          "locator": {
+            "kind": "absolute-range",
+            "range": {
+              "addressSpaceId": "flash",
+              "start": 28928,
+              "length": 256
+            },
+            "allowedResultRegionId": "tpa-code"
+          },
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.1.0",
+            "familyContentHash": "06ab5b5ac35e143587420ecdc40aa17324cb63ec8a0c48e4c208092b1be22f39",
+            "structureId": "type-ab-tp-flash-header"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51929",
+        "uploaded-ab-combiner-51932",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    }
+  ],
   "imageMaps": [
     {
       "mapId": "nt51919-ab-merge-512k",
@@ -181,7 +230,9 @@
       "regionSetIds": [
         "nt51929-nt51932-ab-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51929-nt51932-type-ab-tp-flash-headers"
+      ],
       "evidenceRefs": [
         "uploaded-ab-combiner-51929"
       ]
@@ -205,7 +256,9 @@
       "regionSetIds": [
         "nt51929-nt51932-ab-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51929-nt51932-type-ab-tp-flash-headers"
+      ],
       "evidenceRefs": [
         "uploaded-ab-combiner-51932"
       ]
@@ -239,6 +292,7 @@
   "evidenceRefs": [
     "uploaded-ab-combiner-51929",
     "uploaded-ab-combiner-51932",
-    "ab-merge-alias-51919-to-51929"
+    "ab-merge-alias-51919-to-51929",
+    "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
   ]
 }

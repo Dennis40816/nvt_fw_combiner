@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-  "bundleVersion": "0.9.5-candidate.1",
+  "bundleVersion": "0.9.5-candidate.2",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283",
+  "contentHash": "0d8b975c5cd0b010624ae2d056f18430174fc2b1234819c644aa49ccb039547b",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -18,35 +18,35 @@
       "kind": "schema",
       "path": "schemas/firmware-family-v1.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+      "contentHash": "fa0b1fd4a0fb7a56e1f2f77ed76cdb08a01606ea5596d99b0fda55c8339b2223"
     },
     {
       "entryId": "nt51919-nt51929-nt51932-family",
       "kind": "firmware-family",
       "path": "families/nt51929-nt51932.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "c23385d5ad956016dbf356ede9355205611bad636fe2ddea44f5f654634e80ce"
+      "contentHash": "5e35d83625d58319d25c67905295de81d1e02dfe4617be2386896cdd6e1cfb7c"
     },
     {
       "entryId": "nt51919-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51919-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "9e08aab75fb6f00be9fc435bad5ea3503e67d1149ddbee7f7496fc718f2497c3"
+      "contentHash": "795b2bed6ae8e32c52157acdc2f2682283b10e38ecaa25acbbc7b495bc2cd25a"
     },
     {
       "entryId": "nt51929-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "6b2a9d74c63db91629829d682298a9b81194ca80a715351669ee87cec7f5f58e"
+      "contentHash": "190cafdd4b2d6bcd3c8edd2f5c31f8725f8279b15e24b040c6140b961a2099d6"
     },
     {
       "entryId": "nt51932-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51932-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "d49b297b0a07893c040644c8a17ccc09a90bd86f3981eeae0184ef991341b634"
+      "contentHash": "d1429391ef64fd802f9300618b9a94b99add714de417d4cd3e0513c883369655"
     }
   ]
 }

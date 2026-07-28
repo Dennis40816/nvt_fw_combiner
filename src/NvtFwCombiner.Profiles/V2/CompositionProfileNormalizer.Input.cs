@@ -87,7 +87,7 @@ internal static partial class CompositionProfileNormalizer
                     "Warning issue code is missing."),
                     NormalizeExpectedInputLengths(document.ExpectedInputLengths, $"{path}.expectedInputLengths"))),
             "tp-maximum-256k" => NormalizeTpMaximum(document, path),
-            "declared-prefix-with-warning" when schemaVersion == "2.10" => Wrap(path, () =>
+            "declared-prefix-with-warning" when schemaVersion is "2.10" or "2.11" => Wrap(path, () =>
                 new DeclaredPrefixWithWarningLengthRule(
                     ReadInt64(
                         Require(document.RequiredEndExclusive, $"{path}.requiredEndExclusive"),
@@ -107,7 +107,7 @@ internal static partial class CompositionProfileNormalizer
                         "Unexpected outer-length issue code is missing."))),
             "declared-prefix-with-warning" => throw Error(
                 $"{path}.kind",
-                "Declared-prefix input authority requires composition-profile schema version '2.10'."),
+                "Declared-prefix input authority requires composition-profile schema version '2.10' or '2.11'."),
             _ => throw Error($"{path}.kind", "Unknown input length rule."),
         };
     }

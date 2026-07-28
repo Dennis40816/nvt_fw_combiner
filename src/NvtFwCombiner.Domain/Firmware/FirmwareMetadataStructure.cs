@@ -13,7 +13,8 @@ public sealed class FirmwareMetadataStructure
         FirmwareMetadataLocator locator,
         IEnumerable<FirmwareMetadataField> fields,
         IEnumerable<FirmwareMetadataByteAssertion> assertions,
-        IEnumerable<FirmwareMetadataFieldRelation>? relations = null)
+        IEnumerable<FirmwareMetadataFieldRelation>? relations = null,
+        FirmwareMetadataTypedDefinition? typedDefinition = null)
         : this(
             structureId,
             artifactBindingId,
@@ -22,7 +23,8 @@ public sealed class FirmwareMetadataStructure
                 lengthBytes,
                 fields,
                 assertions,
-                relations),
+                relations,
+                typedDefinition),
             locator)
     {
     }

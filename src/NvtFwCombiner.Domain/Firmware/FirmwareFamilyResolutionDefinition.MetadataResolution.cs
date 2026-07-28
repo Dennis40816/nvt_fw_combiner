@@ -80,6 +80,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             new FirmwareResolvedMetadataStructure(
                 map.MapId,
                 artifact.Identity,
+                structure,
+                inputs.RequestedTopology,
                 locatorOutcome,
                 decoded));
     }
@@ -176,6 +178,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             new FirmwareResolvedMetadataStructure(
                 map.MapId,
                 artifact.Identity,
+                structure,
+                inputs.RequestedTopology,
                 outcome,
                 decoded));
     }

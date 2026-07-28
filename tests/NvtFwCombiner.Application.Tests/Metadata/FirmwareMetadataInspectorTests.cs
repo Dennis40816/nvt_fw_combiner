@@ -124,11 +124,11 @@ public sealed class FirmwareMetadataInspectorTests
         _ = Assert.Throws<ArgumentException>(() =>
             CreateDpcmiEntry(
                 fixture,
-                purposes: [MetadataInspectionPurpose.Validation, MetadataInspectionPurpose.Validation]));
+                purposes: [MetadataReferencePurpose.Validation, MetadataReferencePurpose.Validation]));
         _ = Assert.Throws<ArgumentException>(() =>
             CreateDpcmiEntry(
                 fixture,
-                purposes: [(MetadataInspectionPurpose)int.MaxValue]));
+                purposes: [(MetadataReferencePurpose)int.MaxValue]));
     }
 
     /// <summary>One plan cannot contain null, duplicate, or cross-resolution bindings.</summary>
@@ -258,7 +258,7 @@ public sealed class FirmwareMetadataInspectorTests
         string bindingId = "dpcmi-inspection",
         string? spaceId = null,
         IEnumerable<string>? fieldIds = null,
-        IEnumerable<MetadataInspectionPurpose>? purposes = null,
+        IEnumerable<MetadataReferencePurpose>? purposes = null,
         FirmwareFamilyResolutionDefinition? familyDefinition = null,
         ResolvedFirmwareImageMap? resolvedMap = null,
         FirmwareMapFactBinding<FirmwareMetadataSet>? metadataSetBinding = null,
@@ -281,10 +281,10 @@ public sealed class FirmwareMetadataInspectorTests
             ],
             purposes ??
             [
-                MetadataInspectionPurpose.Validation,
-                MetadataInspectionPurpose.OutputNaming,
-                MetadataInspectionPurpose.Display,
-                MetadataInspectionPurpose.Version,
+                MetadataReferencePurpose.Validation,
+                MetadataReferencePurpose.OutputNaming,
+                MetadataReferencePurpose.Display,
+                MetadataReferencePurpose.Version,
             ]);
     }
 
