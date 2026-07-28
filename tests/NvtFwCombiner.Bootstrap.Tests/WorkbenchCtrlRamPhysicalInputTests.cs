@@ -216,52 +216,6 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
-    /// <summary>Generic and bounded cascade selectors reject a nonzero contradictory firmware count before processing.</summary>
-    [Theory]
-    [InlineData("NT51920", "cascade", "nt51920-fw120-cascade2-auto-prj-55-20260717", 1)]
-    [InlineData("NT51930", WorkbenchIcNumberTokens.CascadeTwoToThirteen, "nt51930-fw130-cascade3-auto-prj-302-inx-20260718", 14)]
-    public async Task CascadeFirmwareChipCountMismatchFailsBeforeProcessorInvocation(
-        string icId,
-        string number,
-        string caseId,
-        byte contradictoryChipCount)
-    {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-cascade-count-mismatch");
-        byte[] baseBytes = File.ReadAllBytes(DirectGoldenBasePath(caseId));
-        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata metadata));
-        baseBytes[checked((int)metadata.StructureStart) + FirmwareConfigLayout.ChipNumberOffset] =
-            contradictoryChipCount;
-        string basePath = workspace.Write("base.bin", baseBytes);
-        string nfPath = workspace.Write("NF_Ctrlram.bin", [0x10]);
-        string outputPath = workspace.PathFor("must-not-exist.bin");
-        var processor = new InspectingProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
-
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
-            icId,
-            number,
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                [WorkbenchSlotIds.ReplaceBase] = basePath,
-                ["replace-ctrlram-nf"] = nfPath,
-            },
-            build: true,
-            outputPath,
-            firmwareVersionEdit: null,
-            externalProcessor: processor,
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        Assert.False(result.Succeeded, result.ReportJson);
-        Assert.Equal(0, processor.CallCount);
-        Assert.False(File.Exists(outputPath));
-        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
-        using var document = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
-            document.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == WorkbenchIssueCodes.ReplaceCtrlRamIcNumberMismatch);
-        Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
-    }
-
     /// <summary>An unavailable firmware count may fail other admission checks, but never fabricates a mismatch.</summary>
     [Fact]
     public async Task UnavailableFirmwareChipCountDoesNotCreateMismatchIssue()
@@ -315,11 +269,4 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         return CanonicalGoldenTestData.ArtifactPath(baseArtifact);
     }
 
-    private static string DirectGoldenBasePath(string caseId)
-    {
-        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
-        JsonElement baseArtifact = goldenCase.GetProperty("artifacts").EnumerateArray().Single(item =>
-            item.GetProperty("sourceRole").GetString() == "expected-final-output");
-        return CanonicalGoldenTestData.ArtifactPath(baseArtifact);
-    }
 }

@@ -22,10 +22,6 @@
     </BuiltInProfileBundle>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <BuiltInProfileBundle Include="nt51920-standard-merge" />
-    <BuiltInProfileBundle Include="nt51920-general-merge-logical-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51917-nt51927-general-merge-logical-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
@@ -44,23 +40,11 @@
       <CanonicalFirmwareFamilySource>nt51927-standard-merge\families\nt51927-nt51928.json</CanonicalFirmwareFamilySource>
       <CanonicalFirmwareFamilyDestination>families\nt51927-nt51928.json</CanonicalFirmwareFamilyDestination>
     </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51930-general-merge-logical-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
-      <CanonicalFirmwareFamilySource>nt51930-standard-merge\families\nt51930.json</CanonicalFirmwareFamilySource>
-      <CanonicalFirmwareFamilyDestination>families\nt51930.json</CanonicalFirmwareFamilyDestination>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51931-general-merge-logical-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51950-nt51951-general-merge-logical-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
       <CanonicalFirmwareFamilySource>nt51950-nt51951-standard-merge\families\nt51950-nt51951-dp-perspective.json</CanonicalFirmwareFamilySource>
       <CanonicalFirmwareFamilyDestination>families\nt51950-nt51951-dp-perspective.json</CanonicalFirmwareFamilyDestination>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51920-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51923-ctrlram-replace-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
@@ -82,12 +66,6 @@
     <BuiltInProfileBundle Include="nt51929-ctrlram-replace-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51930-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51931-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51932-ctrlram-replace-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
@@ -96,9 +74,6 @@
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51951-ctrlram-replace-candidate">
       <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51920-dp-replace">
-      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51923-dp-replace">
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
@@ -128,13 +103,6 @@
     <BuiltInProfileBundle Include="nt51950-ab-merge">
       <CompositionProfileSchemaFile>composition-profile-v2.10.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51930-standard-merge">
-      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51931-dp-replace">
-      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51931-standard-merge" />
     <BuiltInProfileBundle Include="nt51950-nt51951-standard-merge">
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>

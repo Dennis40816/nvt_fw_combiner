@@ -10,7 +10,7 @@ public sealed class StandardMergeCompilationTests
     public void NormalProfileCompilesThroughSharedResolver()
     {
         bool succeeded = WorkbenchCompositionService.TryCompileStandardMerge(
-            "NT51920",
+            "NT51923",
             dpInputLength: null,
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
@@ -18,7 +18,7 @@ public sealed class StandardMergeCompilationTests
         Assert.True(succeeded);
         Assert.Empty(issues);
         Assert.NotNull(composition);
-        Assert.Equal("nt51920-standard-merge-gen-flash", composition.ProfileId);
+        Assert.Equal("nt51923-standard-merge-gen-flash", composition.ProfileId);
         Assert.Equal(0x40000, composition.Plan.OutputInitialization.Capacity);
         Assert.Equal(["dp-input", "tp-input"], composition.Plan.RequiredInputAddressSpaceIds);
     }
@@ -115,7 +115,6 @@ public sealed class StandardMergeCompilationTests
 
     /// <summary>General Merge defaults retain representative compiled Standard Merge capacities.</summary>
     [Theory]
-    [InlineData("NT51920", "0x40000")]
     [InlineData("NT51950", "0x100000")]
     [InlineData("NT51951", "0x100000")]
     public void GeneralMergeDefaultLengthUsesCompiledOutputCapacity(string icId, string expectedLength)

@@ -248,7 +248,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             Encoding.ASCII.GetBytes("NT51927TT"),
             Encoding.ASCII.GetBytes("151926 51928"),
             Encoding.ASCII.GetBytes("51926TT7"),
-            Encoding.ASCII.GetBytes("a51920b51921"),
+            Encoding.ASCII.GetBytes("a51923b51926"),
             [0xFF, (byte)'5', (byte)'1', (byte)'9', (byte)'3', (byte)'2', 0x80],
         ];
         foreach (byte[] sample in craftedSamples)
@@ -324,40 +324,6 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             "base.bin",
             "base.bin",
             new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.Cascade),
-            _ => invalidBytes);
-        WorkbenchFirmwareConfigMetadata invalidMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
-            invalidInspection.FirmwareConfig);
-        Assert.False(invalidMetadata.IsFirmwareVersionBarValid);
-        Assert.Equal(validMetadata.PostbuildCategory, invalidMetadata.PostbuildCategory);
-        Assert.NotEmpty(Assert.IsType<WorkbenchCtrlRamInspectionDisplay>(invalidInspection.CtrlRamDisplay).InputSlots);
-    }
-
-    /// <summary>Informational Common FW metadata cannot hide an IC's sole runtime postbuild profile.</summary>
-    [Fact]
-    public void InspectionKeepsSoleProfileWhenVersionMetadataIsUnreadable()
-    {
-        byte[] validBytes = File.ReadAllBytes(GoldenArtifactPath("51930", "expected-output"));
-        WorkbenchFirmwareInspection validInspection = WorkbenchCompositionService.InspectFirmware(
-            "NT51930",
-            "base.bin",
-            "base.bin",
-            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.CascadeTwoToThirteen),
-            _ => validBytes);
-        WorkbenchFirmwareConfigMetadata validMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
-            validInspection.FirmwareConfig);
-        Assert.True(validMetadata.IsFirmwareVersionBarValid);
-        Assert.NotNull(validMetadata.PostbuildCategory);
-
-        byte[] invalidBytes = (byte[])validBytes.Clone();
-        int versionBarOffset = checked(
-            (int)validMetadata.FirmwareConfigBackupStart + FirmwareConfigLayout.FirmwareVersionBarOffset);
-        invalidBytes[versionBarOffset] ^= 0x01;
-
-        WorkbenchFirmwareInspection invalidInspection = WorkbenchCompositionService.InspectFirmware(
-            "NT51930",
-            "base.bin",
-            "base.bin",
-            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.CascadeTwoToThirteen),
             _ => invalidBytes);
         WorkbenchFirmwareConfigMetadata invalidMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
             invalidInspection.FirmwareConfig);

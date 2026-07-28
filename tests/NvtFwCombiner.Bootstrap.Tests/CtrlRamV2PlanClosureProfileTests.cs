@@ -8,33 +8,16 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Proves newly closed runtime plans compile only their declared topology and byte authority.</summary>
 public sealed class CtrlRamV2PlanClosureProfileTests
 {
-    private const string Nt51920BundleHash = "eafad4284d5e25dcfd32d54c4c160958a0fd7eb9a21dda3ae44f73f3a2cb56c7";
     private const string Nt51923BundleHash = "8c1318f9e83a658028b1e0a07b2c38a28bcdeb6031d3a393d6b4912c2cdba14f";
     private const string Nt51926BundleHash = "25d5adc9697eacedcf238835da197b0359c41f8cc6d82110c181496038469529";
     private const string Nt51929BundleHash = "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365";
     private const string Nt51928BundleHash = "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634";
-    private const string Nt51930BundleHash = "9750eaa60fc76f4368ea27279f4e3900af10ce3a252783b7f95fd8d6a0f7af57";
-    private const string Nt51931BundleHash = "5580e22edce0755c785693093917f12f2dfb173941e31ca12b1e2d1c312c5a20";
     private const string Nt51932BundleHash = "7184a75733724cf85c0c63d219b24abbeac372eee1197063c2b2d2179aca7257";
     private const string Nt51950BundleHash = "d3f745c68d948e7e3a3a07d5717de2114742f881444076d93d2232343f98049e";
     private const string Nt51951BundleHash = "f48429f505f71fbe7c258780dc1ef848c1d9a402d79906c1e24b3a1097192728";
 
     /// <summary>Normal-header profiles grant every owner-classified CRC word and no surrounding gap bytes.</summary>
     [Theory]
-    [InlineData(
-        "nt51920-ctrlram-replace-candidate",
-        Nt51920BundleHash,
-        "nt51920-ctrlram-replace-fw120-single",
-        "NT51920",
-        1,
-        0x22780)]
-    [InlineData(
-        "nt51920-ctrlram-replace-candidate",
-        Nt51920BundleHash,
-        "nt51920-ctrlram-replace-fw120-cascade2",
-        "NT51920",
-        2,
-        0x22780)]
     [InlineData(
         "nt51923-ctrlram-replace-candidate",
         Nt51923BundleHash,
@@ -121,28 +104,6 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0x40000,
         "0.3.0")]
     [InlineData(
-        "nt51930-ctrlram-replace-candidate",
-        Nt51930BundleHash,
-        "nt51930-ctrlram-replace-fw130-cascade3",
-        "NT51930",
-        3,
-        0x21650,
-        0x7128,
-        0x30,
-        0x40000,
-        "0.3.0")]
-    [InlineData(
-        "nt51931-ctrlram-replace-candidate",
-        Nt51931BundleHash,
-        "nt51931-ctrlram-replace-fw130-cascade6",
-        "NT51931",
-        6,
-        0x16800,
-        0x6C,
-        0x4C,
-        0x40000,
-        "0.3.0")]
-    [InlineData(
         "nt51932-ctrlram-replace-candidate",
         Nt51932BundleHash,
         "nt51932-ctrlram-replace-fw200-cascade3",
@@ -221,26 +182,6 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0x1FC00,
         0x7128,
         0x1C,
-        0x40000,
-        "0.2.0")]
-    [InlineData(
-        "nt51930-ctrlram-replace-candidate",
-        Nt51930BundleHash,
-        "nt51930-ctrlram-replace-fw1x-runtime-single",
-        "NT51930",
-        0x1FC00,
-        0x7128,
-        0x30,
-        0x40000,
-        "0.2.0")]
-    [InlineData(
-        "nt51931-ctrlram-replace-candidate",
-        Nt51931BundleHash,
-        "nt51931-ctrlram-replace-fw1x-single",
-        "NT51931",
-        0x16800,
-        0x6C,
-        0x4C,
         0x40000,
         "0.2.0")]
     [InlineData(
@@ -331,19 +272,8 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             static view => view.ViewId == "fw-config-backup-output");
     }
 
-    /// <summary>NT51931/NT51932 single routes compile without their cascade-only DiffDLM ranges.</summary>
+    /// <summary>NT51932 single routes compile without their cascade-only DiffDLM ranges.</summary>
     [Theory]
-    [InlineData(
-        "nt51931-ctrlram-replace-candidate",
-        Nt51931BundleHash,
-        "NT51931",
-        "nt51931-ctrlram-replace-fw1x-single",
-        "nfc.nt51931.ctrlram-postbuild-v1",
-        0x22800,
-        0x17C00,
-        0x16800,
-        1,
-        true)]
     [InlineData(
         "nt51932-ctrlram-replace-candidate",
         Nt51932BundleHash,

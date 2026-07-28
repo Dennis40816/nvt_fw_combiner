@@ -47,27 +47,6 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Contains("PostbuildSetup_51926_2.0.0.bat", profile.Evidence, StringComparison.Ordinal);
     }
 
-    /// <summary>The sole NT51930 runtime profile remains universal even when evidence-only 2.0.0 data exists.</summary>
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("unreadable")]
-    [InlineData("1.0.0")]
-    [InlineData("1.3.0")]
-    [InlineData("2.0.0")]
-    [InlineData("255.255.255")]
-    public void Nt51930SoleRuntimeProfileDoesNotRequireCommonFw(string? commonFwVersion)
-    {
-        LegacyCombinerPostbuildProfile runtimeProfile = Assert.Single(
-            LegacyCombinerPostbuildCatalog.GetProfiles("NT51930"));
-        LegacyCombinerPostbuildProfile selected = Select("NT51930", commonFwVersion);
-
-        Assert.Same(runtimeProfile, selected);
-        Assert.Equal("nfc.nt51930.ctrlram-postbuild-fw1.x", selected.ProcessorId);
-        Assert.Equal(LegacyCombinerCommonFwVersion.MinimumSupported, selected.EffectiveCommonFwVersion);
-        Assert.Contains("PostbuildSetup_51930_1.4.0.bat", selected.Evidence, StringComparison.Ordinal);
-    }
-
     /// <summary>Every IC with one runtime profile routes without informational Common FW metadata.</summary>
     [Fact]
     public void SingleRuntimeProfilesDoNotRequireCommonFw()
@@ -79,7 +58,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
                 .Where(static group => group.Count() == 1),
         ];
 
-        Assert.Equal(12, singleProfileIcs.Length);
+        Assert.Equal(9, singleProfileIcs.Length);
         foreach (IGrouping<string, LegacyCombinerPostbuildProfile> group in singleProfileIcs)
         {
             LegacyCombinerPostbuildProfile selected = Select(group.Key, commonFwVersion: null);
@@ -91,7 +70,6 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     /// <summary>Readable versions below the owner-defined 1.0.0 minimum fail for every profile count.</summary>
     [Theory]
     [InlineData("NT51926")]
-    [InlineData("NT51930")]
     public void CommonFwBelowMinimumIsRejected(string icId)
     {
         Assert.False(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
@@ -122,39 +100,6 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Contains("multiple runtime postbuild profiles", issue, StringComparison.Ordinal);
         Assert.Contains("[1.0.0, 2.0.0)", issue, StringComparison.Ordinal);
         Assert.Contains("[2.0.0, infinity)", issue, StringComparison.Ordinal);
-    }
-
-    /// <summary>Locks NT51930's currently evidenced 2..13 count range to one command plan.</summary>
-    [Fact]
-    public void Nt51930CountsTwoThroughThirteenUseSameCascadeCommands()
-    {
-        var firstSelection = new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]);
-        var lastSelection = new IcNumberSelection(IcNumberInputMode.NumericSelector, ["13"]);
-        LegacyCombinerPostbuildCommandPlan first = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
-            firstSelection);
-        LegacyCombinerPostbuildCommandPlan last = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
-            lastSelection);
-
-        Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, first.Branch);
-        Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, last.Branch);
-        Assert.Equal(2, first.Selector.ResolveTopologyCount(firstSelection, reportedChipCount: 0));
-        Assert.Equal(13, last.Selector.ResolveTopologyCount(lastSelection, reportedChipCount: 0));
-        Assert.Equal(3, last.Selector.ResolveTopologyCount(lastSelection, reportedChipCount: 3));
-        Assert.Equal(
-            first.Commands.Select(static command => command.CommandId),
-            last.Commands.Select(static command => command.CommandId));
-        Assert.Contains(
-            first.Commands.SelectMany(static command => command.Blocks),
-            block => block.SourceFileName == "DiffDLM.bin" &&
-                     block.FirmwareRange == new ByteRange(0x2F200, 65024));
-        _ = Assert.Throws<ArgumentException>(() => LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"])));
-        _ = Assert.Throws<ArgumentException>(() => LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"])));
     }
 
     /// <summary>Duplicate runtime IC rows must form unique ordered intervals beginning at 1.0.0.</summary>

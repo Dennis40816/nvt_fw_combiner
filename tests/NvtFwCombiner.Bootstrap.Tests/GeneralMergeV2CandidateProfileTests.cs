@@ -10,14 +10,6 @@ public sealed class GeneralMergeV2CandidateProfileTests
     /// <summary>Verifies each candidate binds one exact member of its snapshot family without a physical map claim.</summary>
     [Theory]
     [InlineData(
-        "nt51920-general-merge-logical-candidate",
-        "d2f87973576f54b80439f30ef1790f47df2994a6811673f0ceb8ecd5cacdbdc7",
-        "nt51920-standard-merge",
-        "nt51920.json",
-        "nt51920",
-        "NT51920",
-        "nt51920-general-merge-logical-candidate")]
-    [InlineData(
         "nt51917-nt51927-general-merge-logical-candidate",
         "6e0ecbad0b1205f860c62d2a251ad54193dc53d49f88d0fbecfdb86ddfa951ea",
         "nt51927-standard-merge",
@@ -57,22 +49,6 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51917-nt51927-nt51928-canonical-container",
         "NT51928",
         "nt51928-general-merge-logical-candidate")]
-    [InlineData(
-        "nt51930-general-merge-logical-candidate",
-        "72fce0d8405eaf969d781ad684aea9c654e0185bc625864b642e302d6f1698a4",
-        "nt51930-standard-merge",
-        "nt51930.json",
-        "nt51930",
-        "NT51930",
-        "nt51930-general-merge-logical-candidate")]
-    [InlineData(
-        "nt51931-general-merge-logical-candidate",
-        "ce3b18aede5c884b074b6f9253d45a255e82a2147ec76bd300e7548d6fdc52fe",
-        "nt51931-standard-merge",
-        "nt51931.json",
-        "nt51931",
-        "NT51931",
-        "nt51931-general-merge-logical-candidate")]
     [InlineData(
         "nt51950-nt51951-general-merge-logical-candidate",
         "0d6754abc0f60e7fd967023759893df67e834971ec568027fe861efc7d7d21f0",

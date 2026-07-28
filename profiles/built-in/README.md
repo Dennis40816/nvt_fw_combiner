@@ -8,13 +8,17 @@ the manifest-pinned schema bytes from the canonical `docs/contracts` files into 
 root before tests, publish, or runtime loading; source trees must never be passed directly to the
 trusted loader.
 
-`nt51920-standard-merge` is the first canonical V2 migration bundle. Its family/profile ranges,
-operation order, output name, and owner-approved golden bytes are locked against the legacy
-`nt51920-standard-merge-gen-flash` profile. Bootstrap now loads the packaged bundle through its
-content-hash anchor and selects its V2 artifact for NT51920 Standard Merge; there is no legacy
-compile fallback for that IC. Its `profileVersion` deliberately remains `0.5.0`: this migration does
-not alter byte semantics. The bundle's `supported` promotion admits the closed V2 runtime contract
-only; release support remains governed by the matrix and firmware-owner gate.
+## Historical retired bundle evidence
+
+The former `nt51920-standard-merge`, `nt51930-standard-merge`, and
+`nt51931-standard-merge` bundles were migration and regression controls before
+ADR 0042 and #221 retired NT51920, NT51925, NT51930, and NT51931. Their source
+tables, golden manifests, and immutable fixtures may remain as explicitly
+historical evidence, but their bundle directories, trust entries, runtime
+registrations, selectors, package inventory, and publication rows are removed.
+Historical evidence never readmits one of these ICs.
+
+## Active built-in bundles
 
 `nt51929-standard-merge` is the next canonical V2 candidate family. It declares the shared
 NT51929/NT51932 physical map and the owner-confirmed NT51919 map-bound region-set alias. Its three
@@ -41,20 +45,6 @@ physical map preserves TP `[0x00000, 0x3C000)`, the explicit forbidden gap, and 
 owner-approved golden-byte parity. Bootstrap packages the bundle through its content-hash anchor
 and selects its V2 artifacts for both ICs without a legacy compile fallback. Release support still
 requires firmware-owner migration review.
-
-`nt51930-standard-merge` is a canonical V2 family for the standalone NT51930 FlashMap Standard
-Merge profile. Its physical map preserves DP `[0x00000, 0x06000)`, the explicit forbidden gap, and
-TP `[0x07000, 0x40000)`. Bootstrap packages the bundle through its content-hash anchor and selects
-its V2 artifact without a legacy compile fallback. CtrlRAM postbuild remains outside this Standard
-Merge bundle and still requires its independent firmware-owner evidence.
-
-`nt51931-standard-merge` is a canonical V2 data candidate for the standalone NT51931 gen_flash
-Standard Merge profile. Its physical map preserves TP `[0x00000, 0x3C000)`, the explicit forbidden
-gap, and DP `[0x3E000, 0x40000)`. The V2 profile accepts the owner-approved `0x80000` DP container
-while copying only the `0x40000` declared source span. It has direct legacy-plan and golden-byte
-parity. Bootstrap packages the bundle through its content-hash anchor and selects its V2 artifact
-without a legacy compile fallback; firmware-owner migration review remains required before release
-support.
 
 `nt51927-standard-merge` is a canonical V2 family for direct NT51927 and the map-bound NT51917
 alias. Its physical source map preserves TP `[0x00000, 0x35000)`, the explicit gap, and DP

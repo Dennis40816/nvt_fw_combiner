@@ -35,24 +35,6 @@ public sealed partial class ShellViewModelTests
         Assert.NotEmpty(viewModel.SelectedNumberChoice.DisplayLabel);
     }
 
-    /// <summary>NT51930 exposes only its implemented single and 2..13 postbuild plans.</summary>
-    [Fact]
-    public void Nt51930NumberChoicesExposeBoundedCascadeRange()
-    {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51930";
-
-        Assert.Equal(
-            [
-                new IcNumberChoiceViewModel(WorkbenchIcNumberTokens.SingleChip, "1 IC"),
-                new IcNumberChoiceViewModel(WorkbenchIcNumberTokens.CascadeTwoToThirteen, "2–13 IC"),
-            ],
-            viewModel.NumberSelectionChoices);
-        Assert.DoesNotContain(
-            viewModel.NumberSelectionChoices,
-            static choice => choice.Token == WorkbenchIcNumberTokens.Cascade);
-    }
-
     /// <summary>Leaving AB Merge restores the standard IC and Number projections for Replace.</summary>
     [Fact]
     public void ReplaceDoesNotInheritAbMergeSelectorProjection()
@@ -118,8 +100,5 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("✓ Verified: DP · ! Open: CtrlRAM, Customized", viewModel.SelectedIcDetailEvidence);
         Assert.Contains("compiled profile contracts", viewModel.SelectedIcDetailSupport, StringComparison.Ordinal);
 
-        viewModel.SelectedIc = "NT51931";
-
-        Assert.Contains("— Unavailable: Customized", viewModel.SelectedIcDetailEvidence, StringComparison.Ordinal);
     }
 }

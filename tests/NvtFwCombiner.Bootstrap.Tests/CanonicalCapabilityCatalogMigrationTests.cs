@@ -241,19 +241,54 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
     public void OtherStandardMergeRoutesRemainBehindMigrationAdapter()
     {
         bool recognized = WorkbenchCompositionService.TryCompileStandardMerge(
-            "NT51930",
+            "NT51923",
             dpInputLength: 0x40000,
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
         CapabilityResolutionResult canonical =
             WorkbenchCompositionService.ResolveCanonicalStandardMergeCapability(
-                "NT51930");
+                "NT51923");
 
         Assert.True(recognized);
         Assert.NotNull(composition);
         Assert.Empty(issues);
         Assert.False(canonical.Succeeded);
         Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, canonical.Issue!.Code);
+    }
+
+    /// <summary>Retired ICs resolve to the same stable unsupported result and cannot compile through migration adapters.</summary>
+    [Theory]
+    [InlineData("NT51920")]
+    [InlineData("NT51925")]
+    [InlineData("NT51930")]
+    [InlineData("NT51931")]
+    public void RetiredIcRoutesFailClosed(string icId)
+    {
+        CapabilityResolutionResult standard =
+            WorkbenchCompositionService.ResolveCanonicalStandardMergeCapability(icId);
+        CapabilityResolutionResult dp =
+            WorkbenchCompositionService.ResolveCanonicalDpReplaceCapability(icId);
+        bool standardRecognized = WorkbenchCompositionService.TryCompileStandardMerge(
+            icId,
+            dpInputLength: 0x40000,
+            out CompiledComposition? standardComposition,
+            out IReadOnlyList<CompositionIssue> standardIssues);
+        bool dpRecognized = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+            icId,
+            baseCapacity: 0x40000,
+            out CompiledComposition? dpComposition,
+            out IReadOnlyList<CompositionIssue> dpIssues);
+
+        Assert.False(standard.Succeeded);
+        Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, standard.Issue!.Code);
+        Assert.False(dp.Succeeded);
+        Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, dp.Issue!.Code);
+        Assert.False(standardRecognized);
+        Assert.Null(standardComposition);
+        Assert.Empty(standardIssues);
+        Assert.False(dpRecognized);
+        Assert.Null(dpComposition);
+        Assert.Empty(dpIssues);
     }
 
     /// <summary>The policy-facing DP route compiles the perfect-like family map directly.</summary>

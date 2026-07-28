@@ -129,28 +129,20 @@ public sealed partial class RepositoryBoundaryTests
         ];
         string[] expectedBundleIds =
         [
-            "nt51920-standard-merge",
-            "nt51920-general-merge-logical-candidate",
             "nt51917-nt51927-general-merge-logical-candidate",
             "nt51919-nt51929-nt51932-general-merge-logical-candidate",
             "nt51923-nt51926-general-merge-logical-candidate",
             "nt51928-general-merge-logical-candidate",
-            "nt51930-general-merge-logical-candidate",
-            "nt51931-general-merge-logical-candidate",
             "nt51950-nt51951-general-merge-logical-candidate",
-            "nt51920-ctrlram-replace-candidate",
             "nt51923-ctrlram-replace-candidate",
             "nt51926-ctrlram-replace-candidate",
             "nt51917-ctrlram-replace-alias-candidate",
             "nt51927-ctrlram-replace-candidate",
             "nt51928-ctrlram-replace-candidate",
             "nt51929-ctrlram-replace-candidate",
-            "nt51930-ctrlram-replace-candidate",
-            "nt51931-ctrlram-replace-candidate",
             "nt51932-ctrlram-replace-candidate",
             "nt51950-ctrlram-replace-candidate",
             "nt51951-ctrlram-replace-candidate",
-            "nt51920-dp-replace",
             "nt51923-dp-replace",
             "nt51923-standard-merge",
             "nt51927-dp-replace",
@@ -161,37 +153,27 @@ public sealed partial class RepositoryBoundaryTests
             "nt51929-standard-merge",
             "nt51919-nt51929-nt51932-ab-merge",
             "nt51950-ab-merge",
-            "nt51930-standard-merge",
-            "nt51931-dp-replace",
-            "nt51931-standard-merge",
             "nt51950-nt51951-standard-merge",
         ];
         string[] logicalOutputCandidateBundleIds =
         [
-            "nt51920-general-merge-logical-candidate",
             "nt51917-nt51927-general-merge-logical-candidate",
             "nt51919-nt51929-nt51932-general-merge-logical-candidate",
             "nt51923-nt51926-general-merge-logical-candidate",
             "nt51928-general-merge-logical-candidate",
-            "nt51930-general-merge-logical-candidate",
-            "nt51931-general-merge-logical-candidate",
             "nt51950-nt51951-general-merge-logical-candidate",
         ];
         string[] relationshipSchemaBundleIds =
         [
             "nt51917-nt51927-general-merge-logical-candidate",
             "nt51928-general-merge-logical-candidate",
-            "nt51930-general-merge-logical-candidate",
             "nt51950-nt51951-general-merge-logical-candidate",
-            "nt51920-dp-replace",
             "nt51923-dp-replace",
             "nt51927-dp-replace",
             "nt51927-standard-merge",
             "nt51928-dp-replace",
             "nt51928-standard-merge",
             "nt51929-dp-replace",
-            "nt51930-standard-merge",
-            "nt51931-dp-replace",
             "nt51950-nt51951-standard-merge",
         ];
 
@@ -220,15 +202,12 @@ public sealed partial class RepositoryBoundaryTests
                     Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
             else if (bundle.Attribute("Include")?.Value is
-                         "nt51920-ctrlram-replace-candidate" or
                          "nt51923-ctrlram-replace-candidate" or
                          "nt51926-ctrlram-replace-candidate" or
                          "nt51917-ctrlram-replace-alias-candidate" or
                          "nt51927-ctrlram-replace-candidate" or
                          "nt51928-ctrlram-replace-candidate" or
                          "nt51929-ctrlram-replace-candidate" or
-                         "nt51930-ctrlram-replace-candidate" or
-                         "nt51931-ctrlram-replace-candidate" or
                          "nt51932-ctrlram-replace-candidate" or
                          "nt51950-ctrlram-replace-candidate" or
                          "nt51951-ctrlram-replace-candidate")
@@ -260,9 +239,6 @@ public sealed partial class RepositoryBoundaryTests
                 "nt51928-standard-merge" => (
                     "nt51927-standard-merge\\families\\nt51927-nt51928.json",
                     "families\\nt51927-nt51928.json"),
-                "nt51930-general-merge-logical-candidate" => (
-                    "nt51930-standard-merge\\families\\nt51930.json",
-                    "families\\nt51930.json"),
                 "nt51950-nt51951-general-merge-logical-candidate" => (
                     "nt51950-nt51951-standard-merge\\families\\nt51950-nt51951-dp-perspective.json",
                     "families\\nt51950-nt51951-dp-perspective.json"),
@@ -326,26 +302,60 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("**\\profile-bundle.json", project, StringComparison.Ordinal);
     }
 
+    /// <summary>Retired ICs have no production profile, route, processor, package, or catalog owner.</summary>
+    [Fact]
+    public void RetiredIcCapabilitiesStayOutsideProductionOwners()
+    {
+        string[] retiredIds = ["51920", "51925", "51930", "51931"];
+        string[] productionOwners =
+        [
+            "src/NvtFwCombiner.Profiles/IcSupportCatalog.cs",
+            "src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs",
+            "src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs",
+            "src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs",
+            "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+            "src/NvtFwCombiner.Application/FlashMaps/TpHeaderCatalog.Layouts.cs",
+            "src/NvtFwCombiner.Application/FlashMaps/GenFlashVersionCatalog.cs",
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.IntegrityRanges.cs",
+            "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs",
+            "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog.Loader.cs",
+            "profiles/built-in/ctrlram-postbuild-v2/catalog.json",
+            "profiles/built-in/ctrlram-postbuild-v2/flash-map.json",
+        ];
+
+        foreach (string owner in productionOwners)
+        {
+            string source = ReadText(owner);
+            Assert.All(retiredIds, retiredId =>
+                Assert.DoesNotContain(retiredId, source, StringComparison.Ordinal));
+        }
+
+        string builtInRoot = Path.Combine(Root.FullName, "profiles", "built-in");
+        Assert.DoesNotContain(
+            Directory.EnumerateFiles(builtInRoot, "*", SearchOption.AllDirectories),
+            path => retiredIds.Any(retiredId =>
+                Path.GetRelativePath(builtInRoot, path)
+                    .StartsWith($"nt{retiredId}-", StringComparison.Ordinal)));
+
+        Assert.True(Directory.Exists(Path.Combine(builtInRoot, "nt51923-ctrlram-replace-candidate")));
+        Assert.True(Directory.Exists(Path.Combine(builtInRoot, "nt51926-ctrlram-replace-candidate")));
+
+        string packagePolicy = ReadText("scripts/package.ps1");
+        Assert.Contains("$RetiredIcTokens", packagePolicy, StringComparison.Ordinal);
+        Assert.Contains("cannot publish retired IC", packagePolicy, StringComparison.Ordinal);
+        Assert.All(retiredIds, retiredId =>
+            Assert.Contains($"'{retiredId}'", packagePolicy, StringComparison.Ordinal));
+    }
+
     /// <summary>Verifies each approved canonical firmware-family reuse is explicit and closed-root.</summary>
     [Fact]
     public void CandidateBundlesMaterializeOnlyApprovedCanonicalFirmwareFamilies()
     {
         string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
         var document = XDocument.Parse(project);
-        XElement candidate = Assert.Single(document.Descendants("BuiltInProfileBundle"), static bundle =>
-            StringComparer.Ordinal.Equals(
-                bundle.Attribute("Include")?.Value,
-                "nt51930-general-merge-logical-candidate"));
-
-        Assert.Equal(
-            "nt51930-standard-merge\\families\\nt51930.json",
-            candidate.Element("CanonicalFirmwareFamilySource")?.Value);
-        Assert.Equal(
-            "families\\nt51930.json",
-            candidate.Element("CanonicalFirmwareFamilyDestination")?.Value);
-        Assert.Equal(6, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
+        Assert.Equal(5, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
             !string.IsNullOrWhiteSpace(element.Value)));
-        Assert.Equal(6, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
+        Assert.Equal(5, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
             !string.IsNullOrWhiteSpace(element.Value)));
 
         foreach (string bundleId in new[]
@@ -393,35 +403,6 @@ public sealed partial class RepositoryBoundaryTests
             "nt51950-nt51951-general-merge-logical-candidate",
             "families",
             "nt51950-nt51951-dp-perspective.json")));
-
-        string canonicalFamilyPath = Path.Combine(
-            Root.FullName,
-            "profiles",
-            "built-in",
-            "nt51930-standard-merge",
-            "families",
-            "nt51930.json");
-        string candidateFamilyPath = Path.Combine(
-            Root.FullName,
-            "profiles",
-            "built-in",
-            "nt51930-general-merge-logical-candidate",
-            "families",
-            "nt51930.json");
-        Assert.True(File.Exists(canonicalFamilyPath));
-        Assert.False(File.Exists(candidateFamilyPath));
-
-        using var manifest = JsonDocument.Parse(ReadText(
-            "profiles/built-in/nt51930-general-merge-logical-candidate/profile-bundle.json"));
-        JsonElement familyEntry = Assert.Single(
-            manifest.RootElement.GetProperty("entries").EnumerateArray(),
-            static entry => StringComparer.Ordinal.Equals(
-                entry.GetProperty("kind").GetString(),
-                "firmware-family"));
-        Assert.Equal("families/nt51930.json", familyEntry.GetProperty("path").GetString());
-        Assert.Equal(
-            familyEntry.GetProperty("contentHash").GetString(),
-            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(canonicalFamilyPath))).ToLowerInvariant());
 
         XElement nt51917Candidate = Assert.Single(document.Descendants("BuiltInProfileBundle"), static bundle =>
             StringComparer.Ordinal.Equals(

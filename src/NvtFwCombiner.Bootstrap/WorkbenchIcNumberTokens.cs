@@ -14,9 +14,6 @@ public static class WorkbenchIcNumberTokens
     /// <summary>NT51919/29/32's currently supported multi-chip count-range selector.</summary>
     public const string CascadeTwoToEight = "cascade_2to8";
 
-    /// <summary>NT51930's currently supported multi-chip count-range selector.</summary>
-    public const string CascadeTwoToThirteen = "cascade_2to13";
-
     /// <summary>Returns true when the value is the stable single-chip selector token.</summary>
     public static bool IsSingle(string? value)
     {

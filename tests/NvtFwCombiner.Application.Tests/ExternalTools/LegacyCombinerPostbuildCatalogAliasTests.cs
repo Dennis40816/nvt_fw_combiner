@@ -156,31 +156,6 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Contains("is not supported", exception.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>NT51931 follows the production count rule: one is single and counts above one are cascade.</summary>
-    [Fact]
-    public void Nt51931UsesGenericMultiChipCountRule()
-    {
-        LegacyCombinerPostbuildCommandPlan single = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51931,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["1"]));
-        LegacyCombinerPostbuildCommandPlan cascade = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51931,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
-
-        Assert.Equal(LegacyCombinerPostbuildBranch.SingleChip, single.Branch);
-        Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, cascade.Branch);
-        _ = Assert.Throws<ArgumentException>(() => LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51931,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["0"])));
-        Assert.Equal("legacy-combiner-1.13.0", cascade.Profile.ToolBindingId);
-        Assert.All(cascade.Commands, command =>
-        {
-            Assert.Equal("NT51931BASED_NORMAL_MODE", command.ModeArgument);
-            Assert.Equal("CRC8", command.CrcArgument);
-        });
-        Assert.Contains(cascade.Commands.SelectMany(command => command.Blocks), block => block.SourceFileName == "DiffDLM.bin");
-    }
-
     /// <summary>Locks the NT51927 two-chip and three-chip NF split offsets from postbuild.</summary>
     [Fact]
     public void Nt51927PostbuildKeepsDifferentRightNfOffsetsByIcCount()

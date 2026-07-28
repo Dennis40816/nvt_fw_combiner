@@ -203,7 +203,7 @@ public sealed partial class RepositoryBoundaryTests
                 .Order(StringComparer.Ordinal),
         ];
 
-        Assert.Equal(13, standardMergeIcIds.Length);
+        Assert.Equal(10, standardMergeIcIds.Length);
         Assert.Equal(standardMergeIcIds.Length, standardMergeIcIds.Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"], abMergeIcIds);
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);

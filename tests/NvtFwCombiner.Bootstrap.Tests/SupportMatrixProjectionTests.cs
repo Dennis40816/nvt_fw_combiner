@@ -208,12 +208,6 @@ public sealed class SupportMatrixProjectionTests
         "nt51929-ctrlram-fw1x-cascade-full-flash",
         "nfc.nt51929.ctrlram-postbuild-v1:legacy-combiner-1.13.0:Cascade|" +
         "fingerprint:7c191d49bec204a5a2b3dd28e69ffc3f53365e96772d0e0d87d34bd93e4a137e")]
-    [InlineData(
-        "NT51930",
-        "2-13-ic",
-        "nt51930-ctrlram-fw130-cascade3-full-flash",
-        "nfc.nt51930.ctrlram-postbuild-fw1.x:legacy-combiner-1.13.0:Cascade|" +
-        "fingerprint:de79bb73ff5246816eea66d274e3e310138bf9ac181430b8d3a1e4911a318029")]
     public void CtrlRamRowsRetainExactPostbuildIcCount(
         string icId,
         string icCountVariant,

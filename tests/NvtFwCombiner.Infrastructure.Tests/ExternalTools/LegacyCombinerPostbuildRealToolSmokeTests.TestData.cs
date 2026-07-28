@@ -9,8 +9,6 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
     {
         return new TheoryData<string, string, IcNumberInputMode, string, long[]>
         {
-            { "NT51920", "51920", IcNumberInputMode.SingleSelector, "single", Nt51920RangeValues() },
-            { "NT51920", "51920", IcNumberInputMode.CascadeSelector, "cascade", Nt51920RangeValues() },
             { "NT51923", "51923", IcNumberInputMode.SingleSelector, "single", Nt51923RangeValues() },
             { "NT51923", "51923", IcNumberInputMode.CascadeSelector, "cascade", Nt51923RangeValues() },
             { "NT51929", "51929", IcNumberInputMode.SingleSelector, "single", Nt51929RangeValues() },
@@ -29,23 +27,11 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
     {
         return new TheoryData<string, string, IcNumberInputMode, string>
         {
-            { "NT51920", "51920", IcNumberInputMode.SingleSelector, "single" },
             { "NT51923", "51923", IcNumberInputMode.CascadeSelector, "cascade" },
             { "NT51926", "51926", IcNumberInputMode.SingleSelector, "single" },
             { "NT51927", "51927", IcNumberInputMode.SingleSelector, "single" },
             { "NT51950", "51950", IcNumberInputMode.SingleSelector, "single" },
         };
-    }
-
-    private static long[] Nt51920RangeValues()
-    {
-        return
-        [
-            0x1C, 4,
-            0xFC, 4,
-            0x2669C, 4,
-            0x2677C, 4,
-        ];
     }
 
     private static long[] Nt51923RangeValues()

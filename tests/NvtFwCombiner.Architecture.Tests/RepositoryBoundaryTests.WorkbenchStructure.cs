@@ -225,8 +225,8 @@ public sealed partial class RepositoryBoundaryTests
             return value.Length == 64 && value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
         }
 
-        Assert.Equal(36, bundle.Split('"').Count(IsSha256Literal));
-        Assert.Equal(44, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
+        Assert.Equal(25, bundle.Split('"').Count(IsSha256Literal));
+        Assert.Equal(35, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
         Assert.Equal(1, CountOccurrences(bundle, "nt51919-nt51929-nt51932-ab-merge"));
         Assert.Equal(1, CountOccurrences(bundle, "nt51950-ab-merge"));
         Assert.Contains(
