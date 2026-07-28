@@ -81,7 +81,7 @@ convergence.
 | NT51923 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENFLASH-V2`: hash-anchored DP Replace profile is routed. | `R-CTRLRAM-LEGACY-NORMAL`: one `[1.0.0, infinity)` profile; single and generic cascade are V2-routed, with DiffDLM only in cascade. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Golden values are regression evidence; firmware-owner review remains required before support promotion. |
 | NT51926 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENFLASH-V2`: hash-anchored DP Replace profile is routed. | `R-CTRLRAM-LEGACY-NORMAL`: `[1.0.0,2.0.0)` uses the 1.4.1-sourced profile and `[2.0.0,infinity)` uses the 2.0.0-sourced profile; both expose single and generic cascade V2 plans. | `R-GENERAL-V2-DP-SLICE`: single/full-Flash/file-backed DP-only mappings use V2; TP/CtrlRAM, patches/fills, other counts and shapes fail closed. | Missing Common FW blocks only because two runtime intervals exist. Exact golden versions do not narrow either interval; support remains neutral. |
 | NT51927 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENFLASH-V2`: hash-anchored DP Replace profile is routed. | `R-CTRLRAM-927`: one `[1.0.0, infinity)` profile exposes single, exact 2-chip, and exact 3-chip V2 plans. | `R-GENERAL-POSTBUILD`: non-exact General Replace shapes fail closed. | PID, exact Common FW, and whole-reference SHA are evidence only; command-plan distinctions come from owner-provided single/2/3 plans. |
-| NT51928 | `SM-GENFLASH-LD-V2`: hash-anchored V2 route includes TP, DP, and typed auxiliary LD. | `R-DP-LDC-V2`: DP and the separate LDC `[0x40000,0x62000)` are independent required inputs and routed writes. | `R-CTRLRAM-927-PARTIAL`: owner-approved non-NB single, exact 2-chip, and exact 3-chip plans reuse the matching NT51927 TP branches in a distinct 512 KiB map. | `R-GENERAL-POSTBUILD`: non-exact General Replace shapes fail closed. | NT51928 NB remains excluded; every admitted CtrlRAM plan preserves `[0x34800,0x80000)`, so DP/LDC differences do not alter TP authority. |
+| NT51928 | `SM-GENFLASH-LDC-VARIANT`: one capability; absent LDC selects the shared NT51927-compatible `0x40000` candidate, while supplied structurally valid LDC selects `0x80000`; invalid supplied LDC blocks without fallback. | `R-DP-LDC-VARIANT`: accepted Reference `0x40000` permits Initial Code only; `0x80000` permits Initial Code, LDC `[0x40000,0x62000)`, or both through one `1..2` selection group. | `R-CTRLRAM-927-PARTIAL`: separately declared owner-approved non-NB single, exact 2-chip, and exact 3-chip profiles reference their matching TP/postbuild facts inside the NT51928 container; this authority is not inherited from the Initial Code/TP shared-fact relationship. | `R-GENERAL-POSTBUILD`: non-exact General Replace shapes fail closed. | NT51928 NB remains excluded; #239 owns the dual-capacity headless migration, while existing CtrlRAM evidence and support gates remain separate. |
 | NT51929 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENFLASH-V2`: hash-anchored DP Replace profile is routed. | `R-CTRLRAM-51932`: the `[1.0.0, infinity)` single and bounded `2–8 IC` cascade plans are V2-routed; cascade authorizes DLM CRC 1–7 at `[0x7128,0x7144)`. | `R-GENERAL-POSTBUILD`: non-exact General Replace shapes fail closed. | `AB-51929-FAMILY-PILOT` has direct golden parity and runtime/CLI routing. UI, final firmware confirmation, and release gates remain open. |
 | NT51932 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENFLASH-V2`: hash-anchored DP Replace profile is routed. | `R-CTRLRAM-51932`: the `[1.0.0, infinity)` single and bounded `2–8 IC` cascade plans are V2-routed; cascade authorizes DLM CRC 1–7 at `[0x7128,0x7144)`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | `AB-51929-FAMILY-PILOT` is runtime/CLI routed through the approved NT51929 fact scope; UI and release gates remain open. |
 | NT51950 | `SM-950-951-DP-PERSPECTIVE-V2`: packaged canonical V2 maps select the submitted DP capacity. | `R-DP-950-951`: the workbench UI/CLI routes the V2 profile and selects its base capacity; LDC is already packaged in the DP payload. | `R-CTRLRAM-51950`: the `[1.0.0, infinity)` single and current 2-IC cascade plans are V2-routed; cascade writes Diff CtrlRAM `[0x33200,0x33B10)`, preserves Diff NF `[0x33B10,0x34600)`, ignores inactive AE dummy content, and authorizes DLM CRC 1–19 `[0xA134,0xA180)`. | `R-GENERAL-POSTBUILD`: non-exact General Replace shapes fail closed. | Single/cascade share the TP layout and postbuild offsets inside the `0x40000` container. Wider counts and NT51929-family FWConfig placement are not inferred. Exact PID/version/SHA values remain evidence only; AB is separate and no support promotion is claimed. |
@@ -166,18 +166,23 @@ flowchart TD
 | --- | ---: | --- | --- | --- |
 | NT51930 | `0x40000` | `[0x07000, 0x40000)` | `[0x00000, 0x06000)` | Derived from `IC_FlashMap.xlsx 51930 TP Flashmap`; owner golden added from `merge_bin.7z`. |
 
-### SM-GENFLASH-LD
+### SM-GENFLASH-LDC-VARIANT
 
 Used by NT51928 non-NB.
 
 ```mermaid
 flowchart TD
-    A["Select NT51928 Standard Merge profile"] --> B["Create blank 0x80000 output image"]
-    B --> C["Copy TP input [0x00000, 0x35000), sequence 100"]
-    C --> D["Copy DP input [0x3C000, 0x40000), sequence 200"]
-    D --> E["Copy LD input [0x40000, 0x62000), sequence 300"]
-    E --> F["Validate ranges and write artifact"]
-    F --> G["Preview/Build report"]
+    A["Select one NT51928 Standard Merge capability"] --> B{"LDC supplied?"}
+    B -- "no" --> C["Resolve shared NT51927-compatible 0x40000 candidate"]
+    B -- "yes" --> D["Resolve NT51928 0x80000 candidate"]
+    D --> E{"LDC structurally valid?"}
+    E -- "no" --> F["Block; never fall back to absence"]
+    E -- "yes" --> G["Copy TP, Initial Code, and LDC [0x40000, 0x62000)"]
+    C --> H["Copy canonical shared TP and Initial Code facts"]
+    G --> I["Validate ranges and write 0x80000 artifact"]
+    H --> J["Validate ranges and write 0x40000 artifact"]
+    I --> K["Preview/Build report"]
+    J --> K
 ```
 
 ### SM-950-951-DP-PERSPECTIVE
@@ -201,16 +206,16 @@ flowchart TD
 
 ### R-DP-GENERIC
 
-This is the generic Replace composition shape. Real per-IC DP maps are still pending unless a profile explicitly declares the DP or LD partitions.
+This is the generic Replace composition shape. Real per-IC DP maps are still pending unless a profile explicitly declares the DP or LDC partitions.
 
 ```mermaid
 flowchart TD
     A["Load reference/base firmware"] --> B["Clone to mutable work image"]
-    B --> C["Load DP replacement and optional LD replacement"]
-    C --> D{"Replacement input fits declared DP/LD length?"}
+    B --> C["Load DP replacement and optional LDC replacement"]
+    C --> D{"Replacement input fits declared DP/LDC length?"}
     D -- "larger" --> E["Reject oversize input"]
-    D -- "shorter or exact" --> F["Pad shorter DP/LD inputs with profile padding byte when declared"]
-    F --> G["Replace declared DP and LD partitions"]
+    D -- "shorter or exact" --> F["Pad shorter DP/LDC inputs with profile padding byte when declared"]
+    F --> G["Replace declared DP and LDC partitions"]
     G --> H["No combiner stage unless the profile declares a processor"]
     H --> I["Preview/Build report and history entry"]
 ```
@@ -264,8 +269,10 @@ Used by NT51917, NT51927, and NT51928 non-NB.
 NT51917, NT51927, and NT51928 non-NB each expose exactly three owner-provided
 command plans: single, 2-chip, and 3-chip. Their one runtime profile covers all
 Common FW versions from `1.0.0`; exact FW/PID/SHA values only identify regression
-cases. NT51928 reuses NT51927 TP/CtrlRAM authority while keeping its distinct
-512 KiB DP/LDC image tail. NT51928 NB is not covered and fails closed.
+cases. NT51928's CtrlRAM plans separately declare the matching TP/postbuild facts
+inside its container; this route authority is not inherited from its
+Initial-Code/TP `SharedFactRelationship` with NT51927. NT51928 NB is not covered
+and fails closed.
 
 ```mermaid
 flowchart TD
