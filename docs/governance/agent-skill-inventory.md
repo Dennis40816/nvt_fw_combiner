@@ -9,6 +9,7 @@ skills; they are not repository authority.
 
 | Skill | Invocation | Authority | Replaces |
 | --- | --- | --- | --- |
+| `assess-refactor-progress` | implicit | progress-report | — |
 | `code-review` | implicit | review | — |
 | `composition-experience-change` | implicit | experience | — |
 | `crc-worker-contract` | implicit | crc-worker | — |
