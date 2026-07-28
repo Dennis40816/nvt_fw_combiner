@@ -248,6 +248,8 @@ public sealed class SharedFactRelationship : FirmwareFamilyRelationship
                 nameof(sharedFactReferences));
         }
 
+        ValidateMemberCoverage(_applicableMaps, MemberIds);
+        ValidateCanonicalReferenceIdentity(_applicableMaps, _sharedFactReferences);
         Array.Sort(
             _applicableMaps,
             static (left, right) => StringComparer.Ordinal.Compare(left.MapId, right.MapId));
@@ -265,6 +267,79 @@ public sealed class SharedFactRelationship : FirmwareFamilyRelationship
 
     /// <summary>Exact typed canonical facts shared by the declared members.</summary>
     public IReadOnlyList<FirmwareSharedFactReference> SharedFactReferences { get; }
+
+    private static void ValidateMemberCoverage(
+        IReadOnlyList<FirmwareImageMap> applicableMaps,
+        IReadOnlyList<string> memberIds)
+    {
+        var relationshipMembers = new HashSet<string>(memberIds, StringComparer.Ordinal);
+        if (applicableMaps.Any(map =>
+                map.Applicability.MemberIds.Any(memberId =>
+                    !relationshipMembers.Contains(memberId))))
+        {
+            throw new ArgumentException(
+                "Shared-fact applicability maps cannot admit members outside the relationship.",
+                nameof(applicableMaps));
+        }
+
+        if (memberIds.Any(memberId => applicableMaps.All(map =>
+                !map.Applicability.MemberIds.Contains(memberId, StringComparer.Ordinal))))
+        {
+            throw new ArgumentException(
+                "Shared-fact applicability maps must cover every relationship member.",
+                nameof(applicableMaps));
+        }
+    }
+
+    private static void ValidateCanonicalReferenceIdentity(
+        IReadOnlyList<FirmwareImageMap> applicableMaps,
+        IReadOnlyList<FirmwareSharedFactReference> sharedFactReferences)
+    {
+        foreach (FirmwareImageMap map in applicableMaps)
+        {
+            foreach (FirmwareSharedFactReference reference in sharedFactReferences)
+            {
+                bool isCanonical = reference.Kind switch
+                {
+                    FirmwareSharedFactKind.Region =>
+                        map.Regions.Any(candidate =>
+                            StringComparer.Ordinal.Equals(
+                                candidate.RegionId,
+                                reference.FactId) &&
+                            ReferenceEquals(candidate, reference.Region)),
+                    FirmwareSharedFactKind.MetadataDefinition =>
+                        HasExactMetadataDefinition(map, reference),
+                    _ => false,
+                };
+                if (!isCanonical)
+                {
+                    throw new ArgumentException(
+                        $"Shared fact '{reference.Kind}:{reference.FactId}' must reuse one exact " +
+                        $"canonical value on applicable map '{map.MapId}'.",
+                        nameof(sharedFactReferences));
+                }
+            }
+        }
+    }
+
+    private static bool HasExactMetadataDefinition(
+        FirmwareImageMap map,
+        FirmwareSharedFactReference reference)
+    {
+        FirmwareMetadataStructureDefinition[] definitions =
+        [
+            .. map.MetadataSetBindings
+                .Select(static binding => binding.Value)
+                .SelectMany(static set => set.Structures)
+                .Where(structure => StringComparer.Ordinal.Equals(
+                    structure.Definition.DefinitionId,
+                    reference.FactId))
+                .Select(static structure => structure.Definition),
+        ];
+        return definitions.Length != 0 &&
+            definitions.All(definition =>
+                ReferenceEquals(definition, reference.MetadataDefinition));
+    }
 
     private static int CompareFactReferences(
         FirmwareSharedFactReference left,

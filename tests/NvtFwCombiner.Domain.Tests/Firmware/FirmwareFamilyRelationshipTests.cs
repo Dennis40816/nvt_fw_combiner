@@ -52,11 +52,13 @@ public sealed class FirmwareFamilyRelationshipTests
     [Fact]
     public void SharedFactRelationshipSnapshotsCanonicalReferences()
     {
-        FirmwareImageMap map = Map("map-b");
         FirmwareMetadataStructureDefinition definition =
             new("metadata", 1, [], []);
         FirmwareMetadataStructureDefinition otherDefinition =
             new("other-metadata", 1, [], []);
+        FirmwareImageMap map = Map(
+            "map-b",
+            metadataDefinitions: [definition, otherDefinition]);
         var relationship = new SharedFactRelationship(
             "relationship",
             FirmwareSharedFactRole.InitialCodeShared,
@@ -147,6 +149,67 @@ public sealed class FirmwareFamilyRelationshipTests
             ["SPEC.md"]));
     }
 
+    /// <summary>Every applicable map is contained by and collectively covers the relationship members.</summary>
+    [Fact]
+    public void SharedFactRelationshipRejectsInvalidMemberCoverage()
+    {
+        FirmwareImageMap missingMemberMap = Map(
+            "missing-member",
+            members: ["NT51919"]);
+        FirmwareImageMap outsideMemberMap = Map(
+            "outside-member",
+            members: ["NT51919", "NT51929", "NT51932"]);
+
+        _ = Assert.Throws<ArgumentException>(() => Shared(
+            applicableMaps: [missingMemberMap],
+            sharedFactReferences:
+            [
+                FirmwareSharedFactReference.ForRegion(missingMemberMap.Regions[0]),
+            ]));
+        _ = Assert.Throws<ArgumentException>(() => Shared(
+            applicableMaps: [outsideMemberMap],
+            sharedFactReferences:
+            [
+                FirmwareSharedFactReference.ForRegion(outsideMemberMap.Regions[0]),
+            ]));
+    }
+
+    /// <summary>Every referenced fact is the exact canonical instance exposed by every applicable map.</summary>
+    [Fact]
+    public void SharedFactRelationshipRejectsMissingOrDivergentCanonicalReferences()
+    {
+        FirmwareImageMap firstMap = Map("first-map");
+        FirmwareImageMap secondMap = Map("second-map");
+        _ = Assert.Throws<ArgumentException>(() => Shared(
+            applicableMaps: [firstMap, secondMap],
+            sharedFactReferences:
+            [
+                FirmwareSharedFactReference.ForRegion(firstMap.Regions[0]),
+            ]));
+
+        FirmwareMetadataStructureDefinition definition =
+            new("metadata", 1, [], []);
+        FirmwareImageMap mapWithoutMetadata = Map("without-metadata");
+        _ = Assert.Throws<ArgumentException>(() => Shared(
+            applicableMaps: [mapWithoutMetadata],
+            sharedFactReferences:
+            [
+                FirmwareSharedFactReference.ForMetadataDefinition(definition),
+            ]));
+
+        FirmwareMetadataStructureDefinition sameIdDifferentInstance =
+            new("metadata", 1, [], []);
+        FirmwareImageMap mapWithDifferentDefinition = Map(
+            "different-definition",
+            metadataDefinitions: [sameIdDifferentInstance]);
+        _ = Assert.Throws<ArgumentException>(() => Shared(
+            applicableMaps: [mapWithDifferentDefinition],
+            sharedFactReferences:
+            [
+                FirmwareSharedFactReference.ForMetadataDefinition(definition),
+            ]));
+    }
+
     /// <summary>Set-like relationship inputs reject blank and duplicate identities.</summary>
     [Fact]
     public void RelationshipsRejectInvalidSetValues()
@@ -177,7 +240,10 @@ public sealed class FirmwareFamilyRelationshipTests
             ["SPEC.md"]);
     }
 
-    private static FirmwareImageMap Map(string mapId)
+    private static FirmwareImageMap Map(
+        string mapId,
+        IReadOnlyList<string>? members = null,
+        IReadOnlyList<FirmwareMetadataStructureDefinition>? metadataDefinitions = null)
     {
         FirmwareRegionSet regionSet = new(
             "regions",
@@ -192,24 +258,58 @@ public sealed class FirmwareFamilyRelationshipTests
                     FirmwareWriteConstraint.Forbidden),
             ],
             ["region-evidence"]);
-        string[] members = ["NT51919", "NT51929"];
+        IReadOnlyList<string> selectedMembers = members ?? ["NT51919", "NT51929"];
         FirmwareMapFactBinding<FirmwareRegionSet>[] bindings =
         [
-            .. members.Select(memberId => DirectBinding(memberId, mapId, regionSet)),
+            .. selectedMembers.Select(memberId => DirectBinding(memberId, mapId, regionSet)),
         ];
+        FirmwareMapFactBinding<FirmwareMetadataSet>[] metadataBindings =
+            CreateMetadataBindings(mapId, selectedMembers, metadataDefinitions ?? []);
 
         return new FirmwareImageMap(
             mapId,
             "flash",
             new FirmwareMapApplicability(
-                members,
+                selectedMembers,
                 ["standard"],
                 TopologyRequirement.NoTopologyConstraint(),
                 16),
             FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
             bindings,
-            [],
+            metadataBindings,
             ["map-evidence"]);
+    }
+
+    private static FirmwareMapFactBinding<FirmwareMetadataSet>[] CreateMetadataBindings(
+        string mapId,
+        IReadOnlyList<string> members,
+        IReadOnlyList<FirmwareMetadataStructureDefinition> definitions)
+    {
+        if (definitions.Count == 0)
+        {
+            return [];
+        }
+
+        FirmwareMetadataStructure[] structures =
+        [
+            .. definitions.Select(definition => new FirmwareMetadataStructure(
+                definition.DefinitionId,
+                "tp-input",
+                definition,
+                new FirmwareAbsoluteRangeLocator(
+                    new FirmwareAddressedRange(
+                        "flash",
+                        new ByteRange(0, definition.LengthBytes)),
+                    "root"))),
+        ];
+        var metadataSet = new FirmwareMetadataSet(
+            "metadata",
+            structures,
+            ["metadata-evidence"]);
+        return
+        [
+            .. members.Select(memberId => DirectBinding(memberId, mapId, metadataSet)),
+        ];
     }
 
     private static FirmwareMapFactBinding<TFact> DirectBinding<TFact>(
