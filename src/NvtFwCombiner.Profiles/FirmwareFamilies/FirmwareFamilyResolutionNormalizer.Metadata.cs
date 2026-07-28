@@ -266,7 +266,11 @@ public static partial class FirmwareFamilyResolutionNormalizer
             "header" => TpFlashHeaderFieldSubject.Header,
             "ilm" => TpFlashHeaderFieldSubject.Ilm,
             "dlm" => TpFlashHeaderFieldSubject.Dlm,
+            "data" => TpFlashHeaderFieldSubject.Data,
             "dlm-difference" => TpFlashHeaderFieldSubject.DlmDifference,
+            "firmware-config" => TpFlashHeaderFieldSubject.FirmwareConfig,
+            "ctrlram" => TpFlashHeaderFieldSubject.CtrlRam,
+            "mp-ctrlram" => TpFlashHeaderFieldSubject.MpCtrlRam,
             _ => throw Error($"{path}.subject", "Unknown TP Header field subject."),
         };
         TpFlashHeaderFieldRole role = document.Role switch

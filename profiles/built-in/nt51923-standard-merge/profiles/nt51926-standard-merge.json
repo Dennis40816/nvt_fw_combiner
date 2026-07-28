@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.11",
   "profileId": "nt51926-standard-merge-gen-flash",
   "profileVersion": "0.5.0",
   "promotion": {
@@ -7,6 +7,9 @@
     "blockers": []
   },
   "compositionKind": "merge",
+  "compilationContext": {
+    "kind": "resolved-map"
+  },
   "experience": {
     "experienceId": "standard-merge",
     "audience": "system",
@@ -17,8 +20,8 @@
   },
   "mapBinding": {
     "familyId": "nt51923-nt51926",
-    "familyVersion": "1.0.0",
-    "familyContentHash": "52059b7b33b68ad421459c5c79dd7466df2c8f5c57918290bdf9406ff8614a1a",
+    "familyVersion": "1.1.0",
+    "familyContentHash": "875a60ee08550d2ee882034a26fd56c1785a1f96024cd677fbfca0beb80aadb8",
     "mapIds": [
       "nt51926-standard-merge-256k"
     ],
@@ -26,7 +29,9 @@
       "tp-code",
       "dp-code"
     ],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": [
+      "nt51926-normal-tp-flash-header"
+    ],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -128,7 +133,43 @@
       }
     }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "nt51926-normal-tp-flash-header-read-model",
+      "spaceId": "tp-input",
+      "structureId": "nt51926-normal-tp-flash-header",
+      "targetReferences": [
+        { "targetKind": "span", "targetId": "complete-header" },
+        { "targetKind": "group", "targetId": "header-integrity-values" },
+        { "targetKind": "group", "targetId": "tp-bin-start-addresses" }
+      ],
+      "purposes": [
+        "inspection",
+        "formatting",
+        "memory-projection",
+        "report-classification"
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51926-golden",
+        "tddi-flash-header-workbook-925-926"
+      ]
+    },
+    {
+      "bindingId": "nt51926-normal-tp-flash-header-copy-reference",
+      "spaceId": "tp-input",
+      "structureId": "nt51926-normal-tp-flash-header",
+      "targetReferences": [
+        { "targetKind": "span", "targetId": "complete-header" }
+      ],
+      "purposes": [
+        "copy"
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51926-golden",
+        "tddi-flash-header-workbook-925-926"
+      ]
+    }
+  ],
   "regionAccessRules": [
     {
       "regionId": "tp-code",

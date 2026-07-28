@@ -10,11 +10,11 @@ public sealed class BuiltInV2DpReplaceRoutingTests
 {
     /// <summary>Every canonical Gen Flash map exposes only its owner-approved DP partition.</summary>
     [Theory]
-    [InlineData("NT51917", 0x40000, "nt51917-dp-replace-gen-flash-alias", "e4d93b721cf275341775614d6eaf46b6aad06e6eb46b3674770371e0b8d8a313", 0x3C000, 0x4000)]
+    [InlineData("NT51917", 0x40000, "nt51917-dp-replace-gen-flash-alias", "2bb448b7a8ba8fb259d8f429ff386d6c0aa29fd47d163f334c1e119e455ebcad", 0x3C000, 0x4000)]
     [InlineData("NT51919", 0x40000, "nt51919-dp-replace-gen-flash-alias", "169b9334a57328504fbe463c96dda1e8d749109896ae8d0143088b747b0ab596", 0x00000, 0x6000)]
     [InlineData("NT51923", 0x40000, "nt51923-dp-replace-gen-flash", "9496b7d6296e06fac81f4ca73a49ac1d4154ef9edc4dcf078fe433efa046081e", 0x3E000, 0x2000)]
     [InlineData("NT51926", 0x40000, "nt51926-dp-replace-gen-flash", "9496b7d6296e06fac81f4ca73a49ac1d4154ef9edc4dcf078fe433efa046081e", 0x3E000, 0x2000)]
-    [InlineData("NT51927", 0x40000, "nt51927-dp-replace-gen-flash", "e4d93b721cf275341775614d6eaf46b6aad06e6eb46b3674770371e0b8d8a313", 0x3C000, 0x4000)]
+    [InlineData("NT51927", 0x40000, "nt51927-dp-replace-gen-flash", "2bb448b7a8ba8fb259d8f429ff386d6c0aa29fd47d163f334c1e119e455ebcad", 0x3C000, 0x4000)]
     [InlineData("NT51929", 0x40000, "nt51929-dp-replace-gen-flash", "169b9334a57328504fbe463c96dda1e8d749109896ae8d0143088b747b0ab596", 0x00000, 0x6000)]
     [InlineData("NT51932", 0x40000, "nt51932-dp-replace-gen-flash", "169b9334a57328504fbe463c96dda1e8d749109896ae8d0143088b747b0ab596", 0x00000, 0x6000)]
     public void GenFlashDpReplaceUsesCanonicalDpPartition(
@@ -119,7 +119,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("714bd7460c15da708be3a297ca8681bba6986262e5fbbc2589b3a8fab15779a1", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("4511e59f2f573f80554df55e0e825d65885a4fb1661f78c44f48bc57859640e2", details.Provenance.Bundle.ContentHash);
         Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", artifact.ProfileId);
         Assert.Equal(baseCapacity, artifact.Plan.OutputInitialization.Capacity);
         WorkbenchProfileSummary summary = WorkbenchCompositionService.GetReplaceProfileSummaries()

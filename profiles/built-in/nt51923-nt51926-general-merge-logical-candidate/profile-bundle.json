@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51923-nt51926-general-merge-logical-candidate",
-  "bundleVersion": "0.9.5-candidate.1",
+  "bundleVersion": "0.10.1-tp-header-closure.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "26f12851f81d55bb88a0a0e18ab4f10f451747369e797efbc69fdbf05cdf5a96",
+  "contentHash": "9a48caaf2d84b64f6479ad479f55c0d6202499493891a033140c4a9565ed7cc7",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -18,28 +18,28 @@
       "kind": "schema",
       "path": "schemas/firmware-family-v1.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+      "contentHash": "d35c8b8b5113c8f8a5d8b6567a8e2a00d24fd8b440c2ba5836187a824002f83c"
     },
     {
       "entryId": "nt51923-nt51926-family",
       "kind": "firmware-family",
       "path": "families/nt51923-nt51926.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "52059b7b33b68ad421459c5c79dd7466df2c8f5c57918290bdf9406ff8614a1a"
+      "contentHash": "875a60ee08550d2ee882034a26fd56c1785a1f96024cd677fbfca0beb80aadb8"
     },
     {
       "entryId": "nt51923-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51923-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "ef65c8e856155cc9f447122305ecc12a3cc142d142540d581d0149714ebdeccd"
+      "contentHash": "230f8540126d24ce53a03300c8590513144908cd506e67c834b1d8a46f7539f3"
     },
     {
       "entryId": "nt51926-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51926-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "bd152a60dd5878f23af47fe3f03db16a60d1d31996862d78ed36fa5fc9da6b59"
+      "contentHash": "01756f3d8a98ac5264a19058ee714075e16a8647e17869628ee7466cd279038f"
     }
   ]
 }
