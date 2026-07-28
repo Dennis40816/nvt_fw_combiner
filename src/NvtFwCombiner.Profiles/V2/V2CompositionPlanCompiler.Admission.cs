@@ -122,6 +122,18 @@ internal static partial class V2CompositionPlanCompiler
     {
         return profile.Output.InvalidCharacterPolicy == CompositionProfileInvalidCharacterPolicy.Reject &&
             (profile.Output.RequiredTokenIds.Count == 0 ||
+             (StringComparer.Ordinal.Equals(
+                  profile.Output.FileNameTemplate,
+                  CompiledOutputNamingRequirement.NormalFlashCodeV1Template) &&
+              profile.Output.RequiredTokenIds.SequenceEqual(
+                  ["date", "dp-version", "ic", "tp-version"],
+                  StringComparer.Ordinal)) ||
+             (StringComparer.Ordinal.Equals(
+                  profile.Output.FileNameTemplate,
+                  CompiledOutputNamingRequirement.TpFirmwareV1Template) &&
+              profile.Output.RequiredTokenIds.SequenceEqual(
+                  ["date", "ic", "tp-version"],
+                  StringComparer.Ordinal)) ||
              (profile.CompositionKind == CompositionKind.Merge &&
               StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.AbMerge) &&
               StringComparer.Ordinal.Equals(profile.Output.FileNameTemplate, CompiledOutputNamingRequirement.AbCodeV1Template) &&

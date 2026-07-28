@@ -18,19 +18,86 @@ public enum CompiledOutputNameRendererKind
     DeferredTokenTemplate,
     /// <summary>The fixed, evidence-backed AB Code filename contract.</summary>
     AbCodeV1,
+    /// <summary>The canonical normal FlashCode filename contract.</summary>
+    NormalFlashCodeV1,
+    /// <summary>The canonical TP-firmware filename contract.</summary>
+    TpFirmwareV1,
 }
 
-/// <summary>Profile-owned output naming requirements retained before runtime token rendering exists.</summary>
+/// <summary>Closed behavior when one compiled output-name token has no accepted value.</summary>
+public enum CompiledOutputTokenMissingPolicy
+{
+    /// <summary>The output name cannot be resolved without this token.</summary>
+    Block,
+    /// <summary>The compiled contract supplies one exact literal placeholder.</summary>
+    UsePlaceholder,
+}
+
+/// <summary>One compiled token reference and its explicit missing-value behavior.</summary>
+public sealed record CompiledOutputTokenRequirement
+{
+    internal CompiledOutputTokenRequirement(
+        string tokenId,
+        CompiledOutputTokenMissingPolicy missingPolicy,
+        string? placeholder)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tokenId);
+        if (!Enum.IsDefined(missingPolicy))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(missingPolicy),
+                missingPolicy,
+                "Unknown output token missing policy.");
+        }
+
+        if (missingPolicy == CompiledOutputTokenMissingPolicy.UsePlaceholder)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(placeholder);
+        }
+        else if (placeholder is not null)
+        {
+            throw new ArgumentException(
+                "Blocking output-name tokens cannot declare a placeholder.",
+                nameof(placeholder));
+        }
+
+        TokenId = tokenId;
+        MissingPolicy = missingPolicy;
+        Placeholder = placeholder;
+    }
+
+    /// <summary>Canonical token identifier from the compiled template.</summary>
+    public string TokenId { get; }
+
+    /// <summary>Explicit behavior when accepted inspection has no value.</summary>
+    public CompiledOutputTokenMissingPolicy MissingPolicy { get; }
+
+    /// <summary>Exact literal used only by <see cref="CompiledOutputTokenMissingPolicy.UsePlaceholder"/>.</summary>
+    public string? Placeholder { get; }
+}
+
+/// <summary>Profile-owned output naming requirements retained for runtime rendering.</summary>
 public sealed class CompiledOutputNamingRequirement
 {
     /// <summary>Canonical template for the AB Code v1 execution-path renderer.</summary>
     public const string AbCodeV1Template = "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin";
 
+    /// <summary>Canonical normal FlashCode name rendered from DPCMI and FirmwareConfig facts.</summary>
+    public const string NormalFlashCodeV1Template =
+        "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin";
+
+    /// <summary>Canonical TP-firmware name rendered from FirmwareConfig facts.</summary>
+    public const string TpFirmwareV1Template =
+        "{ic}_TPFW_T{tp-version}_{date}.bin";
+
     private static readonly string[] s_abCodeV1TokenIds = ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"];
+    private static readonly string[] s_normalFlashCodeV1TokenIds = ["date", "dp-version", "ic", "tp-version"];
+    private static readonly string[] s_tpFirmwareV1TokenIds = ["date", "ic", "tp-version"];
     private static readonly System.Buffers.SearchValues<char> s_windowsInvalidFileNameCharacters = System.Buffers.SearchValues.Create("<>\"|?*");
     private static readonly char[] WindowsInvalidFileNameCharacters = ['<', '>', '"', '|', '?', '*'];
 
     private readonly string[] _requiredTokenIds;
+    private readonly CompiledOutputTokenRequirement[] _tokenRequirements;
 
     internal CompiledOutputNamingRequirement(
         string fileNameTemplate,
@@ -79,14 +146,14 @@ public sealed class CompiledOutputNamingRequirement
         AllowOverride = allowOverride;
         InvalidCharacterPolicy = invalidCharacterPolicy;
         RequiredTokenIds = Array.AsReadOnly(_requiredTokenIds);
-        RendererKind = IsAbCodeV1Contract(
+        RendererKind = ResolveRendererKind(
             fileNameTemplate,
             invalidCharacterPolicy,
-            _requiredTokenIds)
-            ? CompiledOutputNameRendererKind.AbCodeV1
-            : _requiredTokenIds.Length == 0
-                ? CompiledOutputNameRendererKind.Static
-                : CompiledOutputNameRendererKind.DeferredTokenTemplate;
+            _requiredTokenIds);
+        _tokenRequirements = CreateTokenRequirements(
+            RendererKind,
+            _requiredTokenIds);
+        TokenRequirements = Array.AsReadOnly(_tokenRequirements);
     }
 
     /// <summary>Unrendered profile filename template.</summary>
@@ -103,6 +170,9 @@ public sealed class CompiledOutputNamingRequirement
 
     /// <summary>Typed rendering behavior admitted by the compiled output contract.</summary>
     public CompiledOutputNameRendererKind RendererKind { get; }
+
+    /// <summary>Token references and explicit missing-value behavior in canonical token-id order.</summary>
+    public IReadOnlyList<CompiledOutputTokenRequirement> TokenRequirements { get; }
 
     /// <summary>Validates a literal runtime output filename under the closed Windows-safe V2 policy.</summary>
     public static void ValidateRuntimeLiteralFileName(string fileName, string parameterName)
@@ -123,14 +193,104 @@ public sealed class CompiledOutputNamingRequirement
             parameterName);
     }
 
-    private static bool IsAbCodeV1Contract(
+    /// <summary>Validates the canonical IC identity required by compiled dynamic renderers.</summary>
+    public static void ValidateCanonicalIcIdentity(
+        string icId,
+        string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId, parameterName);
+        const string Prefix = "NT";
+        if (icId.Length != Prefix.Length + 5 ||
+            !icId.StartsWith(Prefix, StringComparison.Ordinal) ||
+            icId.AsSpan(Prefix.Length).IndexOfAnyExceptInRange('0', '9') >= 0)
+        {
+            throw new ArgumentException(
+                "Compiled output naming requires a canonical NTxxxxx IC identity.",
+                parameterName);
+        }
+    }
+
+    private static CompiledOutputNameRendererKind ResolveRendererKind(
         string fileNameTemplate,
         CompiledOutputInvalidCharacterPolicy invalidCharacterPolicy,
-        IReadOnlyList<string> requiredTokenIds)
+        string[] requiredTokenIds)
     {
-        return invalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.Reject &&
-            string.Equals(fileNameTemplate, AbCodeV1Template, StringComparison.Ordinal) &&
-            requiredTokenIds.SequenceEqual(s_abCodeV1TokenIds, StringComparer.Ordinal);
+        return invalidCharacterPolicy switch
+        {
+            CompiledOutputInvalidCharacterPolicy.Reject
+                when IsContract(fileNameTemplate, requiredTokenIds, AbCodeV1Template, s_abCodeV1TokenIds) =>
+                    CompiledOutputNameRendererKind.AbCodeV1,
+            CompiledOutputInvalidCharacterPolicy.Reject
+                when IsContract(
+                    fileNameTemplate,
+                    requiredTokenIds,
+                    NormalFlashCodeV1Template,
+                    s_normalFlashCodeV1TokenIds) =>
+                    CompiledOutputNameRendererKind.NormalFlashCodeV1,
+            CompiledOutputInvalidCharacterPolicy.Reject
+                when IsContract(
+                    fileNameTemplate,
+                    requiredTokenIds,
+                    TpFirmwareV1Template,
+                    s_tpFirmwareV1TokenIds) =>
+                    CompiledOutputNameRendererKind.TpFirmwareV1,
+            CompiledOutputInvalidCharacterPolicy.Reject or
+                CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore =>
+                    requiredTokenIds.Length == 0
+                        ? CompiledOutputNameRendererKind.Static
+                        : CompiledOutputNameRendererKind.DeferredTokenTemplate,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(invalidCharacterPolicy),
+                invalidCharacterPolicy,
+                "Unknown output invalid-character policy."),
+        };
+    }
+
+    private static bool IsContract(
+        string actualTemplate,
+        string[] actualTokenIds,
+        string expectedTemplate,
+        string[] expectedTokenIds)
+    {
+        return string.Equals(actualTemplate, expectedTemplate, StringComparison.Ordinal) &&
+               actualTokenIds.SequenceEqual(expectedTokenIds, StringComparer.Ordinal);
+    }
+
+    private static CompiledOutputTokenRequirement[] CreateTokenRequirements(
+        CompiledOutputNameRendererKind rendererKind,
+        IEnumerable<string> requiredTokenIds)
+    {
+        return
+        [
+            .. requiredTokenIds.Select(tokenId =>
+            {
+                string? placeholder = rendererKind switch
+                {
+                    CompiledOutputNameRendererKind.AbCodeV1 => tokenId switch
+                    {
+                        "dp-a" or "dp-b" => "Dxxxx",
+                        "tp-a" or "tp-b" => "Txxxx",
+                        _ => null,
+                    },
+                    CompiledOutputNameRendererKind.NormalFlashCodeV1 =>
+                        tokenId is "dp-version" or "tp-version" ? "xxxx" : null,
+                    CompiledOutputNameRendererKind.TpFirmwareV1 =>
+                        tokenId == "tp-version" ? "xxxx" : null,
+                    CompiledOutputNameRendererKind.Static or
+                        CompiledOutputNameRendererKind.DeferredTokenTemplate => null,
+                    _ => throw new ArgumentOutOfRangeException(
+                        nameof(rendererKind),
+                        rendererKind,
+                        "Unknown output renderer kind."),
+                };
+                return new CompiledOutputTokenRequirement(
+                    tokenId,
+                    placeholder is null
+                        ? CompiledOutputTokenMissingPolicy.Block
+                        : CompiledOutputTokenMissingPolicy.UsePlaceholder,
+                    placeholder);
+            }),
+        ];
     }
 
     private static string[] ExtractTokenIds(string template)

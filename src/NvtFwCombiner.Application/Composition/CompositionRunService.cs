@@ -56,7 +56,7 @@ public sealed partial class CompositionRunService
         DateTimeOffset startedAtUtc = _clock.UtcNow;
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
         OutputNameResolution outputName = boundInputs.Issues.Count == 0
-            ? AbCodeOutputNameResolver.Resolve(
+            ? CompiledOutputNameResolver.Resolve(
                 request,
                 boundInputs.InputBytes,
                 boundInputs.InputSummaries,
@@ -237,13 +237,26 @@ public sealed partial class CompositionRunService
         progressPublisher.Report(CompositionRunPhase.ReadingInputs);
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
         OutputNameResolution outputName = boundInputs.Issues.Count == 0
-            ? AbCodeOutputNameResolver.Resolve(
+            ? CompiledOutputNameResolver.Resolve(
                 request,
                 boundInputs.InputBytes,
                 boundInputs.InputSummaries,
                 startedAtUtc)
             : OutputNameResolution.Static(request.OutputFileName);
-        if (commitOutput && boundInputs.Issues.Count == 0 &&
+        CompositionIssue[] outputNameBlockingIssues =
+        [
+            .. outputName.Issues.Where(static issue =>
+                string.Equals(
+                    issue.Severity,
+                    CompositionIssueSeverity.Error,
+                    StringComparison.Ordinal)),
+        ];
+        CompositionIssue[] preparationIssues =
+        [
+            .. boundInputs.Issues,
+            .. outputNameBlockingIssues,
+        ];
+        if (commitOutput && preparationIssues.Length == 0 &&
             _outputWriter is ICompositionOutputCommitPreflight outputPreflight)
         {
             // The renderer has now bound the name to these exact accepted snapshots.  Perform
@@ -252,7 +265,7 @@ public sealed partial class CompositionRunService
         }
         var executedCommandsByOperationId = new Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>(StringComparer.Ordinal);
         CompositionExecutionResult execution;
-        if (boundInputs.Issues.Count == 0)
+        if (preparationIssues.Length == 0)
         {
             progressPublisher.Report(CompositionRunPhase.ExecutingComposition);
             execution = await ExecutePlanAsync(
@@ -265,7 +278,7 @@ public sealed partial class CompositionRunService
         }
         else
         {
-            execution = CompositionExecutionResult.Failed(boundInputs.Issues);
+            execution = CompositionExecutionResult.Failed(preparationIssues);
         }
 
         List<FinalOutputValidationEvaluation> finalOutputValidations;
@@ -287,7 +300,11 @@ public sealed partial class CompositionRunService
         List<CompositionIssue> runIssues = [
             .. request.AdvisoryIssues,
             .. boundInputs.AdvisoryIssues,
-            .. outputName.Issues,
+            .. outputName.Issues.Where(static issue =>
+                !string.Equals(
+                    issue.Severity,
+                    CompositionIssueSeverity.Error,
+                    StringComparison.Ordinal)),
             .. finalOutputValidations
                 .Where(static evaluation => evaluation.Issue is not null)
                 .Select(static evaluation => evaluation.Issue!),
