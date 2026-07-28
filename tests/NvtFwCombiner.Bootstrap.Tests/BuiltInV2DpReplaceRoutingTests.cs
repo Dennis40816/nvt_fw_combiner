@@ -47,7 +47,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Equal(new ByteRange(dpStart, dpLength), operation.TargetRange);
     }
 
-    /// <summary>NT51928 keeps DP and LDC as separate required inputs and non-overlapping writes.</summary>
+    /// <summary>NT51928 keeps the existing Both route and its non-overlapping writes unchanged.</summary>
     [Fact]
     public void Nt51928DpReplaceSeparatesDpAndLdcPartitions()
     {
@@ -78,6 +78,76 @@ public sealed class BuiltInV2DpReplaceRoutingTests
                 Assert.Equal(CompositionAddressSpaceIds.LdReplacement, operation.SourceSpaceId);
                 Assert.Equal(new ByteRange(0x40000, 0x22000), operation.TargetRange);
             });
+    }
+
+    /// <summary>NT51928 partial selections compile to fixed trusted input and operation shapes.</summary>
+    [Theory]
+    [InlineData(
+        (int)DpReplacePartSelection.InitialCode,
+        "nt51928-dp-replace-initial-code-only",
+        CompositionAddressSpaceIds.DpReplacement,
+        "replace-dp-code",
+        0x3C000,
+        0x4000)]
+    [InlineData(
+        (int)DpReplacePartSelection.Ldc,
+        "nt51928-dp-replace-ldc-only",
+        CompositionAddressSpaceIds.LdReplacement,
+        "replace-ldc-code",
+        0x40000,
+        0x22000)]
+    public void Nt51928DpReplacePartialSelectionUsesFixedTrustedProfile(
+        int selectionValue,
+        string profileId,
+        string replacementAddressSpaceId,
+        string operationId,
+        long start,
+        long length)
+    {
+        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+            "NT51928",
+            0x80000,
+            (DpReplacePartSelection)selectionValue,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(registered);
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        Assert.Equal(profileId, artifact.ProfileId);
+        Assert.Equal(
+            "9af8e470ab76f2277b3376ee16a684ad9dc787286c547e194aa601691e3d9396",
+            artifact.V2Details!.Provenance.Bundle.ContentHash);
+        Assert.Equal(
+            [replacementAddressSpaceId, CompositionAddressSpaceIds.ReferenceBase],
+            artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
+        CompositionOperation operation = Assert.Single(artifact.Plan.OrderedOperations);
+        Assert.Equal(operationId, operation.OperationId);
+        Assert.Equal(replacementAddressSpaceId, operation.SourceSpaceId);
+        Assert.Equal(new ByteRange(start, length), operation.TargetRange);
+    }
+
+    /// <summary>NT51928 request boundary rejects Reference-only calls with a stable group issue.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceWorkbenchRejectsReferenceWithoutReplacement()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51928-dp-replace-selection");
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51928",
+            "single",
+            "DP",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["replace-base"] = workspace.Write("reference.bin", new byte[0x80000]),
+            },
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        JsonElement issue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal(WorkbenchIssueCodes.ReplaceDpSelectionRequired, issue.GetProperty("Code").GetString());
+        Assert.Contains("Initial Code or LDC", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
     }
 
     /// <summary>Verifies DP Perspective classification remains a map-shape fact, not generic DP Replace availability.</summary>

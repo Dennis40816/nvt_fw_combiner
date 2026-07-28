@@ -31,7 +31,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             ClearCtrlRamInspectionDisplay();
         }
-        else if (slot.SlotId == MergeDpSlotId ||
+        else if (slot.SlotId is MergeDpSlotId or MergeLdSlotId ||
             (IsAbCodeMergeModeSelected && _abMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
         {
             RefreshMergeMemoryMapState();

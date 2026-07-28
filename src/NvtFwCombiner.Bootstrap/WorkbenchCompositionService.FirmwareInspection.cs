@@ -404,7 +404,8 @@ public static partial class WorkbenchCompositionService
                 number,
                 WorkbenchReplaceModes.CtrlRam,
                 dpBaseLength: null,
-                postbuildProfile: postbuildProfile));
+                postbuildProfile: postbuildProfile,
+                selectedRegionIds: null));
     }
 
     private static string? DetectFirmwareIcHintFromFileName(string path)

@@ -31,13 +31,20 @@ public static partial class WorkbenchCompositionService
         string number,
         string replaceMode,
         long? dpBaseLength = null,
-        string? ctrlRamBasePath = null)
+        string? ctrlRamBasePath = null,
+        IEnumerable<string>? selectedRegionIds = null)
     {
         LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
             TryResolvePostbuildProfileFromBasePathForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
-        return CreateReplaceMemoryDisplay(icId, number, replaceMode, dpBaseLength, postbuildProfile);
+        return CreateReplaceMemoryDisplay(
+            icId,
+            number,
+            replaceMode,
+            dpBaseLength,
+            postbuildProfile,
+            selectedRegionIds);
     }
 
     private static WorkbenchMemoryDisplay CreateReplaceMemoryDisplay(
@@ -45,7 +52,8 @@ public static partial class WorkbenchCompositionService
         string number,
         string replaceMode,
         long? dpBaseLength,
-        LegacyCombinerPostbuildProfile? postbuildProfile)
+        LegacyCombinerPostbuildProfile? postbuildProfile,
+        IEnumerable<string>? selectedRegionIds)
     {
         if (GetReplaceWorkflowId(replaceMode) is not null &&
             !IsReplaceWorkflowSupported(icId, replaceMode))
@@ -58,7 +66,7 @@ public static partial class WorkbenchCompositionService
 
         if (replaceMode == WorkbenchReplaceModes.Dp)
         {
-            return CreateV2DpReplaceMemoryDisplay(icId, dpBaseLength) ??
+            return CreateV2DpReplaceMemoryDisplay(icId, dpBaseLength, selectedRegionIds) ??
                 CreateMessageDisplay(
                     "No DP Replace profile",
                     ("Catalog", "No V2 profile", "Blocked", "No target", $"No trusted V2 DP Replace profile is registered for {icId}."),

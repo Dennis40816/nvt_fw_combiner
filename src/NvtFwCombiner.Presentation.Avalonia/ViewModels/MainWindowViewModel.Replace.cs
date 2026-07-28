@@ -31,7 +31,8 @@ public sealed partial class MainWindowViewModel
             (SelectedReplaceMode switch
             {
                 DpReplaceMode => ReplaceSlots.Count > 0 &&
-                    ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile),
+                    ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile) &&
+                    GetSelectedReplacementCount() > 0,
                 CtrlRamReplaceMode => ReplaceBaseSlot.HasFile &&
                     ReplaceSlots.Any(slot => !ReferenceEquals(slot, ReplaceBaseSlot) && slot.HasFile),
                 GeneralReplaceMode => ReplaceBaseSlot.HasFile &&

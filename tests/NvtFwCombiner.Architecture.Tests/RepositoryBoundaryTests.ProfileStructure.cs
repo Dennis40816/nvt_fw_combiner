@@ -156,6 +156,8 @@ public sealed partial class RepositoryBoundaryTests
             "nt51927-dp-replace",
             "nt51927-standard-merge",
             "nt51928-dp-replace",
+            "nt51928-dp-replace-partial",
+            "nt51928-standard-merge-no-ldc",
             "nt51928-standard-merge",
             "nt51929-dp-replace",
             "nt51929-standard-merge",
@@ -220,6 +222,12 @@ public sealed partial class RepositoryBoundaryTests
                     "composition-profile-v2.9.schema.json",
                     Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
+            else if (bundle.Attribute("Include")?.Value == "nt51928-dp-replace-partial")
+            {
+                Assert.Equal(
+                    ["CanonicalFirmwareFamilySource", "CanonicalFirmwareFamilyDestination"],
+                    bundle.Elements().Select(static element => element.Name.LocalName));
+            }
             else
             {
                 Assert.Empty(bundle.Elements());
@@ -273,9 +281,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(
             "families\\nt51930.json",
             candidate.Element("CanonicalFirmwareFamilyDestination")?.Value);
-        Assert.Equal(2, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
+        Assert.Equal(3, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
             !string.IsNullOrWhiteSpace(element.Value)));
-        Assert.Equal(2, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
+        Assert.Equal(3, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
             !string.IsNullOrWhiteSpace(element.Value)));
 
         string canonicalFamilyPath = Path.Combine(
@@ -344,6 +352,44 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(
             aliasFamilyEntry.GetProperty("contentHash").GetString(),
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(canonicalCtrlRamFamilyPath))).ToLowerInvariant());
+
+        XElement nt51928Partial = Assert.Single(document.Descendants("BuiltInProfileBundle"), static bundle =>
+            StringComparer.Ordinal.Equals(
+                bundle.Attribute("Include")?.Value,
+                "nt51928-dp-replace-partial"));
+        Assert.Equal(
+            "nt51928-dp-replace\\families\\nt51928.json",
+            nt51928Partial.Element("CanonicalFirmwareFamilySource")?.Value);
+        Assert.Equal(
+            "families\\nt51928.json",
+            nt51928Partial.Element("CanonicalFirmwareFamilyDestination")?.Value);
+        string canonicalNt51928FamilyPath = Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51928-dp-replace",
+            "families",
+            "nt51928.json");
+        string partialNt51928FamilyPath = Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51928-dp-replace-partial",
+            "families",
+            "nt51928.json");
+        Assert.True(File.Exists(canonicalNt51928FamilyPath));
+        Assert.False(File.Exists(partialNt51928FamilyPath));
+        using var partialManifest = JsonDocument.Parse(ReadText(
+            "profiles/built-in/nt51928-dp-replace-partial/profile-bundle.json"));
+        JsonElement partialFamilyEntry = Assert.Single(
+            partialManifest.RootElement.GetProperty("entries").EnumerateArray(),
+            static entry => StringComparer.Ordinal.Equals(
+                entry.GetProperty("kind").GetString(),
+                "firmware-family"));
+        Assert.Equal("families/nt51928.json", partialFamilyEntry.GetProperty("path").GetString());
+        Assert.Equal(
+            partialFamilyEntry.GetProperty("contentHash").GetString(),
+            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(canonicalNt51928FamilyPath))).ToLowerInvariant());
 
         Assert.Contains("Built-in profile canonical firmware-family metadata must declare both source and destination", project, StringComparison.Ordinal);
         Assert.Contains("Built-in profile canonical firmware-family source escapes the approved source root", project, StringComparison.Ordinal);

@@ -72,6 +72,24 @@ NT51928. Its `0x80000` physical map models TP `[0x00000, 0x35000)`, DP
 bundle by its content-hash anchor and selects its V2 artifact without a legacy compile fallback.
 Firmware-owner review is still required before support promotion; NT51928 NB remains unmodeled.
 
+`nt51928-standard-merge-no-ldc` is the isolated hash-anchored NT51928 variant selected only when
+Standard Merge has DP and TP but no LDC binding. It emits an exact `0x40000` image using the
+owner-approved NT51927-equivalent TP `[0x00000, 0x35000)`, forbidden gap
+`[0x35000, 0x3C000)`, and DP `[0x3C000, 0x40000)` geometry. The separate bundle intentionally
+avoids changing the trusted identity of either the existing NT51927 route or the NT51928
+`0x80000` route. Supplying LDC selects the existing route; an invalid supplied LDC fails closed
+instead of falling back.
+
+`nt51928-dp-replace-partial` contains the two hidden fixed-input compatibility
+profiles used when NT51928 DP Replace selects only Initial Code or only LDC.
+Both reuse the canonical hash-pinned family/map from `nt51928-dp-replace`
+through explicit build-time materialization rather than duplicating its
+firmware facts. Initial-only writes `[0x3C000,0x40000)`; LDC-only writes
+`[0x40000,0x62000)`. Both clone the complete exact `0x80000` Reference and
+preserve every unselected byte. The existing DP+LDC bundle and profile identity
+remain unchanged, and Bootstrap exposes all three fixed plans as one NT51928
+DP Replace capability with a one-of-two selection minimum.
+
 `nt51950-nt51951-standard-merge` also carries the supported DP Perspective Replace profiles for
 NT51950 and NT51951. They clone an exact base, replace the padded full DP container, restore only
 TP `[0x0A000, 0x37000)`, and leave customer information from DP/padding. The owner-approved direct

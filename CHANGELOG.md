@@ -6,6 +6,56 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 No unreleased changes.
 
+## [0.9.18] - 2026-07-28
+
+### Summary
+
+This compatibility hot-fix corrects the NT51928 non-NB input contract in
+Standard Merge and DP Replace. Standard Merge can now omit LDC and produce the
+NT51927-equivalent 256 KiB TP/DP layout. DP Replace now accepts Initial Code,
+LDC, or both while preserving every unselected byte from the Reference
+FlashCode. No other IC, workflow, integrity route, or support state changes.
+
+### Product changes
+
+#### Optional NT51928 LDC in Standard Merge
+
+- Before → After: NT51928 Standard Merge always required an LDC input and emitted a 512 KiB image; DP + TP can now build without LDC as an exact 256 KiB NT51927-equivalent layout, while selecting LDC retains the existing 512 KiB route.
+- Affected: Merge → Standard for NT51928 non-NB in the desktop UI and CLI.
+- Support status: Corrective and support-neutral. No new IC, topology, workflow, or certification state is introduced.
+- Compatibility: DP and TP remain required. A supplied LDC selects the unchanged hash-pinned 512 KiB plan and is validated without fallback; omitting LDC selects a separate hash-pinned 256 KiB plan.
+- Verification: the no-LDC plan matches the complete first 256 KiB of the owner-approved NT51928 Standard Merge output, and routing, CLI, UI, profile-contract, and architecture regressions cover both input shapes.
+- Limitations: The 256 KiB no-LDC output is not admitted as a DP Replace Reference by this focused hot-fix; current NT51928 DP Replace still requires the established exact 512 KiB Reference.
+
+#### Independent NT51928 Initial Code and LDC replacement
+
+- Before → After: NT51928 DP Replace required both Initial Code and LDC inputs; each input is now independently optional with a group minimum of one selected replacement.
+- Affected: Replace → DP for NT51928 non-NB in the desktop UI and CLI.
+- Support status: Corrective and support-neutral. Existing public profile identity and firmware support claims remain unchanged.
+- Compatibility: Reference FlashCode remains required and exactly 512 KiB. Initial Code writes only `[0x3C000,0x40000)`, LDC writes only `[0x40000,0x62000)`, and every unselected range remains byte-for-byte Reference-owned. Any invalid selected input fails the complete request atomically.
+- Verification: full-output changed-input regressions cover Initial-only, LDC-only, and Both selections; CLI and UI tests cover the one-of-two gate, invalid selected-input rejection, operation trace, and memory coverage.
+- Limitations: The changed-input controls prove range ownership and preservation against the canonical owner-approved NT51928 output; they do not promote a new support claim or alter the NT51928 NB exclusion.
+
+### Security
+
+- Runtime write authority remains confined to hash-pinned composition profiles and canonical map regions; UI and CLI carry selection state but do not calculate firmware offsets.
+- Unselected Initial Code or LDC bytes are cloned from the immutable Reference FlashCode. No processor, CRC, Postbuild, external-tool, or file-permission authority changes.
+
+### Known issues
+
+- NT51928 DP Replace continues to require an exact 512 KiB Reference FlashCode. Accepting the new 256 KiB no-LDC Standard Merge output as a replacement base requires a separate owner-approved contract.
+- NT51928 NB remains excluded, and this release does not change support or certification status for any route.
+
+### Upgrade and rollback
+
+- Upgrade by replacing the complete previous portable folder with `NvtFwCombiner-v0.9.18-win-x64`; do not merge package contents into an older installation.
+- Saved preferences and report history require no migration. Roll back by restoring the untouched `v0.9.17` portable folder; existing firmware outputs remain ordinary BIN files.
+
+### Downloads and integrity
+
+- The stable GitHub Release publishes `NvtFwCombiner-v0.9.18-win-x64.zip`, its SPDX SBOM, provenance, candidate manifest, and outer SHA-256 list. GitHub also provides tag-derived source ZIP and TAR.GZ downloads.
+- Verify the outer checksum list and provenance source identity before distribution. The Windows x64 package is self-contained and does not require a separately installed .NET or Python runtime.
+
 ## [0.9.17] - 2026-07-27
 
 ### Summary

@@ -36,7 +36,7 @@ commit.
 - `v0.9.15` — AB Code function-open, delivery-readiness, and review-automation milestone: start only from the official `v0.9.14` release commit, open the reviewed NT51919/NT51929/NT51932 route plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 in UI/CLI, complete owner-authorized AB input/output usability and reviewer-facing delivery automation, and retain code size as a non-blocking review metric. Direct-golden debt remains visible for support certification; it does not block these function-open routes. The shared Hex viewport, Changes redesign, and global Button-feedback backlog are deferred to a later owner-selected milestone.
 - `v0.9.16` — exceptional CRC/header-authority hot-fix from official `v0.9.15`: classify owner-approved CRC write windows, correct Replace/AB UI state and coverage, skip DP metadata inspection for TP firmware, and add the owner-approved NT51929 single Normal CtrlRAM golden. The former NT51950 AB certification assignment moved to the active `0.11.0` evidence track.
 - `v0.9.17` — NT51951 AB Code golden-certification closure milestone: establish independent direct evidence for its selector-free plan without borrowing NT51950 evidence or promoting support automatically.
-- `v0.9.18` — family/evidence-model unification milestone: normalize Perfect-family and LDC-TP-only evidence vocabulary, covered workflow/topology scope, excluded DP facts, support-matrix/report/review-handoff language, and the prerequisite design record for a later IC family/rule authoring UI. It does not change runtime admission, profiles, maps, processors, or golden evidence.
+- `v0.9.18` — focused NT51928 compatibility hot-fix: make Standard Merge LDC optional with an isolated 256 KiB no-LDC route, and make DP Replace Initial Code/LDC independently selectable with at least one replacement while preserving all unselected Reference bytes. Family/evidence-model unification remains on the later 0.10.x architecture track.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.10` are maintained in
@@ -69,7 +69,7 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.15` starts from official `v0.9.14` tag `58f5bbf4cdbfb4e02036c8c1b40c48aa88fa21f7`, peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`. It opens the reviewed NT51919/NT51929/NT51932 AB function plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 in UI/CLI, and owns output-name/input-inspection correctness plus delivery-to-review automation. All five routes remain function-open but support certification is not promoted. Direct-golden debt is explicit support-certification evidence, not a function gate. Cross-workflow header/Evidence/Memory coverage unification, the shared viewport, Changes redesign, and global Button feedback must be reassigned to a later owner-selected milestone before implementation.
 - `0.9.16` starts only from the official reviewed `v0.9.15` release tag. It owns only the exceptional CRC/header-authority, Replace/AB UI correctness, TP inspection, and NT51929 golden hot-fix; it does not certify an AB route or absorb the former NT51950 AB certification assignment.
 - `0.9.17` starts only from the official reviewed `v0.9.16` release tag. It owns independent NT51951 AB direct-golden and firmware-owner certification closure; it cannot derive any byte rule or certification from NT51950.
-- `0.9.18` starts only from the official reviewed `v0.9.17` release tag. It owns family/evidence-model unification: Perfect-family sharing remains like-for-like only, while LDC-family sharing is TP/CtrlRAM-only and never covers a DP workflow. It is the prerequisite for, not the implementation of, a future IC family/rule authoring UI.
+- `0.9.18` starts only from the official reviewed `v0.9.17` release tag. It owns only the NT51928 optional-LDC Standard Merge correction and independent Initial Code/LDC DP Replace selection; it does not absorb the later family/evidence-model refactor or any other 0.10.x work.
 
 The authoritative `0.9.15`–`0.9.18` scope, delivery-to-review contract, candidate admission ledger, and family/evidence foundation live in the single [v0.9.15–v0.9.18 Delivery and Family Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md).
 
@@ -126,7 +126,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.15` | AB function open, delivery readiness, and review automation | Open NT51919/NT51929/NT51932 plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 AB routes. Direct-golden debt blocks support certification, not function availability. Shared viewport/Changes/Button Presentation work is deferred pending a new owner-selected milestone. |
 | `v0.9.16` | Exceptional CRC/header-authority hot-fix | Classify owner-approved CRC write windows, correct Replace/AB UI behavior and TP inspection, and lock the NT51929 single Normal CtrlRAM golden; former NT51950 AB certification work moved to `0.11.0`. |
 | `v0.9.17` | NT51951 AB golden-certification closure | Establish independent direct evidence for its selector-free plan; do not copy NT51950 memory, command, or certification evidence. |
-| `v0.9.18` | Family/evidence model unification | Normalize Perfect-family and LDC-TP-only scope before any family/rule authoring UI; no runtime or firmware evidence promotion. |
+| `v0.9.18` | NT51928 optional-part compatibility hot-fix | Permit Standard Merge without LDC and DP Replace with Initial Code, LDC, or both; preserve unselected Reference bytes and retain support-neutral status. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -180,7 +180,7 @@ v0.9.14         separately gated AB re-admission and targeted UI correctness fix
 v0.9.15         AB function open, input/output usability, and review automation
 v0.9.16         exceptional CRC/header-authority and UI-correctness hot-fix
 v0.9.17         NT51951 AB golden-certification closure
-v0.9.18         family/evidence model unification
+v0.9.18         NT51928 optional-LDC and DP Replace input correction
 v1.0.0          stable
 ```
 

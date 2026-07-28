@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -223,13 +224,49 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(0x33, output[0x40000]);
     }
 
-    /// <summary>Verifies the NT51928 V2 route rejects a missing required LDC BIN before composition starts.</summary>
+    /// <summary>NT51928 without LDC builds the 256 KiB TP/DP image through the generic Standard Merge CLI.</summary>
     [Fact]
-    public async Task StandardMergePreviewRejectsMissingLdcForNt51928V2Profile()
+    public async Task StandardMergeBuildWritesNt51928OutputWithoutLdc()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x40000];
+        byte[] tp = new byte[0x35000];
+        dp[0x3C000] = 0x11;
+        tp[0] = 0x22;
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+        string outputPath = workspace.PathFor("caller-output.bin");
+
+        CliRunResult result = await RunCliAsync(
+        [
+            "standard-merge",
+            "build",
+            "--profile",
+            "NT51928",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+            "--output",
+            outputPath,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.True(File.Exists(outputPath));
+        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.Equal(0x40000, output.Length);
+        Assert.Equal(0x22, output[0]);
+        Assert.Equal(0x11, output[0x3C000]);
+    }
+
+    /// <summary>A supplied NT51928 LDC BIN selects the LDC route and fails closed when its size is invalid.</summary>
+    [Fact]
+    public async Task StandardMergePreviewRejectsInvalidSuppliedLdcForNt51928()
     {
         using var workspace = TempWorkspace.Create();
         string dpPath = workspace.Write("dp.bin", new byte[0x80000]);
         string tpPath = workspace.Write("tp.bin", new byte[0x35000]);
+        string invalidLdcPath = workspace.Write("ld.bin", new byte[0x7FFFF]);
 
         CliRunResult result = await RunCliAsync(
         [
@@ -241,10 +278,13 @@ public sealed class StandardMergeCliCommandTests
             dpPath,
             "--tp",
             tpPath,
+            "--ld",
+            invalidLdcPath,
         ]);
 
-        Assert.Equal(64, result.ExitCode);
-        Assert.Contains("--ld is required for address space 'ld-input'", result.Error, StringComparison.Ordinal);
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(CompositionIssueCodes.InputAddressSpaceLengthMismatch, result.Error, StringComparison.Ordinal);
+        Assert.Contains("ld-input", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Unknown Standard Merge selectors remain a usage error.</summary>

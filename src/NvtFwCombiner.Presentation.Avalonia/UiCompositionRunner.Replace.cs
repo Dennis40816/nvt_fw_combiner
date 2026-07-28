@@ -94,7 +94,8 @@ public static partial class UiCompositionRunner
             number,
             replaceMode,
             dpBaseLength,
-            ctrlRamBasePath: null);
+            ctrlRamBasePath: null,
+            selectedRegionIds);
         if (selectedRegionIds is not null &&
             string.Equals(replaceMode, WorkbenchReplaceModes.CtrlRam, StringComparison.Ordinal))
         {

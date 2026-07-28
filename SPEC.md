@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.17 DiffDLM/Diff NF hot-fix candidate; publication is controlled by a protected maintenance-release workflow`
-> 文件版本：`0.9.17`
-> 基準日期：`2026-07-24`
+> 文件狀態：`0.9.18 NT51928 compatibility candidate; publication is controlled by a protected maintenance-release workflow`
+> 文件版本：`0.9.18`
+> 基準日期：`2026-07-28`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -32,8 +32,10 @@
 
 `0.9.17` is a compatibility hot-fix source derived from official `v0.9.16` peeled commit `462590e8b993b8e42d088bc07377571a4bb9f25d`. For NT51919/NT51929/NT51932 Cascade DiffDLM Replace, each active slave record contributes only its `0x0B90` DLM prefix; its `0x0870` Diff NF tail and every inactive record remain Reference-owned. NT51950/NT51951 use the owner-declared decimal `2320 + 2800` split for the current two-IC mask contract. A selected mask route requires an exact IC Count, validates fixed header/record geometry and every active DLM slice, snapshots the complete physical input for report identity, and rejects independent Cascade `NF_Ctrlram.bin` bindings without removing the internal Postbuild NF stage. NT51917/NT51923/NT51926/NT51927/NT51928 full-artifact DiffDLM replacement, Single routes, and Cascade runs without a selected DiffDLM retain their existing behavior. NT51920/NT51925/NT51930/NT51931 are hidden from user-facing selectors only; their 0.9.x implementation remains for compatibility. Owner-supplied NT51932 four-IC evidence is direct byte-level proof for the 929-like family; NT51950/NT51951 geometry tests do not claim a direct product golden or support promotion. Publication is permitted only after independent exact-head review, firmware-owner approval, protected CI, package verification, and release-owner approval; prior stable tags/assets are immutable.
 
+`0.9.18` is a focused compatibility candidate derived only from official `v0.9.17` peeled commit `75803406d5c3e260ea501bcf2ae334fe4c7a4e4d`. Its runtime changes are limited to two NT51928 input-selection corrections. Standard Merge requires DP + TP and makes LDC optional: without LDC it compiles the NT51927-equivalent TP/gap/DP geometry into an exact `0x40000` output, while supplying LDC selects the existing hash-pinned `0x80000` TP/DP/LDC route unchanged. DP Replace still requires an exact `0x80000` Reference FlashCode, but Initial Code `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)` are independently optional with a group minimum of one selected part; each unselected part and every other byte remain Reference-owned. Other ICs, workflows, maps, ranges, processors, postbuild behavior, support state, and prior release tags/assets are unchanged.
+
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
-- NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.
+- NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently selects Initial Code `[0x3C000,0x40000)` and/or LDC `[0x40000,0x62000)` with at least one selected replacement. NT51928 NB remains excluded.
 - NT51950 and NT51951 expose single and generic-cascade CtrlRAM with identical TP offsets and DiffDLM `[0x33200,0x34600)`; their 256/512 KiB container capacities remain distinct, LDC is packaged inside DP, and AB stays separate.
 - Common FW starts at `1.0.0`. NT51926 alone has two current runtime intervals; one-profile ICs do not block on missing or future informational version values. PID never selects a route.
 - NT51930 exposes only single and `2–13`; NT51927/NT51928 expose only single/2/3. A decoded FWConfig chip count cross-checks the chosen plan and may require confirmation, but never silently chooses family or creates a plan.
@@ -60,7 +62,7 @@
   `<= 0x40000`; oversize is a build error. NT51950/NT51951 remain the exception because they paste a
   full DP container and require exact selected-map capacity.
 - NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
-- DP Replace has a trusted V2 authoring route for all 13 selectable ICs. Gen Flash routes clone an exact same-IC Standard/Normal Reference FlashCode and replace only the canonical DP partition; NT51928 non-NB additionally requires a separate full FlashCode-shaped LDC input for `[0x40000, 0x62000)`, distinct from DP `[0x3C000, 0x40000)`. This authoring availability does not by itself grant a public support claim.
+- DP Replace has a trusted V2 authoring route for all 13 retained ICs. Gen Flash routes clone an exact same-IC Standard/Normal Reference FlashCode and replace only the canonical DP partition; NT51928 non-NB exposes separate full FlashCode-shaped Initial Code and LDC inputs for `[0x3C000,0x40000)` and `[0x40000,0x62000)`. Each is optional, at least one is required, and every unselected range remains byte-for-byte from Reference. This authoring availability does not by itself grant a public support claim.
 - NT51930 currently has no `>13 IC` product target; map cascade to the `<=13 IC` DiffDLM branch (`0x2F200`, size `65024`) until owner data reactivates larger counts.
 - FW Register ranges are first-class map evidence. REG Replace is represented as a pending capability over those regions, but remains without an executable profile or UI exposure until owner evidence is approved. Current executable Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
 - Merge and Replace runs must produce a report modal after Preview/Build and persist run history. The report must show each operation step, input/output hashes, IC/IC-num context, normalized ranges, external Combiner command sequence, processor result, warnings, and final artifact path.
@@ -706,7 +708,7 @@ Replace page groups experiences by user mental model：
 - CtrlRAM Replace。
 - General Replace。
 
-The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. DP Replace slot cards must allow profile-declared DP and LD payloads to be separate files when the profile requires it. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is DP Replace and CtrlRAM Replace workflows. IC num mode is profile-declared: two-option profiles use text choices such as `single` and `cascade`; three-or-more concrete IC-count profiles use numeric count selection with future room for Other/custom exceptions.
+The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. DP Replace slot cards must allow profile-declared DP and LD payloads to be separate files and must enforce any profile-declared selection-group minimum at both UI and request boundaries. Memory coverage is visual-first; selected parts show Replace while unselected parts remain Reference-owned. Tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is DP Replace and CtrlRAM Replace workflows. IC num mode is profile-declared: two-option profiles use text choices such as `single` and `cascade`; three-or-more concrete IC-count profiles use numeric count selection with future room for Other/custom exceptions.
 
 ### 11.4 Preview/Build separation
 

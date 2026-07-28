@@ -6,7 +6,10 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     /// <summary>Gets one compiled Standard Merge memory display snapshot for UI projection.</summary>
-    public static WorkbenchMemoryDisplay GetStandardMergeMemoryDisplay(string icId, long? dpInputLength)
+    public static WorkbenchMemoryDisplay GetStandardMergeMemoryDisplay(
+        string icId,
+        long? dpInputLength,
+        bool includeOptionalLdc = true)
     {
         if (FindStandardMergeProfileSummaryByIc(icId) is null)
         {
@@ -46,6 +49,7 @@ public static partial class WorkbenchCompositionService
         if (!TryCompileStandardMerge(
                 icId,
                 dpInputLength,
+                includeOptionalLdc,
                 out CompiledComposition? composition,
                 out IReadOnlyList<CompositionIssue> issues))
         {
