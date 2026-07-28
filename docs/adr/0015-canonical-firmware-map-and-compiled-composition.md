@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-11
-- Last amended: 2026-07-26
+- Last amended: 2026-07-29
 - Owners: Product owner + architecture owner + firmware reviewers
 - Supersedes: ADR 0008 catalog-join ownership after compatibility migration
 - Amends: ADR 0003, ADR 0004, ADR 0005, ADR 0006, and ADR 0007
@@ -229,6 +229,26 @@ step once and passes its immutable result to every consumer. Inspection,
 resolution, compilation, engine execution, and each declared processor stage
 are not rerun by output naming, Memory Layout, reporting, UI, or CLI. This
 single-evaluation contract is separate from optional cross-operation caches.
+
+The 2026-07-29 Memory Layout amendment makes the layout snapshot a disposable,
+immutable Application projection rather than another firmware model. Its pure
+projector reads one `ResolvedCapability`, the matching `ActiveSessionSnapshot`,
+and optionally the exact `CompiledComposition` instance already owned by that
+capability. It cannot perform I/O, resolution, compilation, execution, or
+cache publication.
+
+Physical geometry remains the exact `FirmwareRegion` references and resolved
+half-open ranges from the canonical map. Initialization plus admitted ordered
+operations produce transient before/after coverage; no copied region
+definition, guessed range, color, pixel width, or renderer state enters the
+Application result. A selected artifact whose placement is not resolved is a
+non-geometric pending or blocked item with typed prerequisite and next action.
+Content role, workflow disposition, endpoint/bank identity, diagnostics,
+observed change, selection, focus, and declared processor effect remain
+orthogonal typed dimensions. Primary segments may own subordinate kept-range
+details, but those details are not canonical regions and cannot become a
+second map. Presentation alone maps these typed facts to colors, patterns,
+icons, labels, hover details, and responsive geometry.
 
 Authoring is one shared `Available` or `Unavailable` decision for UI and CLI. Publication is the
 separate explicit policy `Supported`, `Candidate`, `Internal`, or `TestOnly`; missing publication
