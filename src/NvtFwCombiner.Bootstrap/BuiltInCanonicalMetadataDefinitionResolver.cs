@@ -27,6 +27,8 @@ internal sealed class BuiltInCanonicalMetadataDefinitionResolver :
                 "nt51927-standard-merge",
             ("nt51929-nt51932", "1.3.0") =>
                 "nt51929-dp-replace",
+            ("nt51929-nt51932", "1.1.0") =>
+                "nt51929-standard-merge",
             _ => null,
         };
         if (providerBundle is null)

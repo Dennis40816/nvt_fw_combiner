@@ -10,9 +10,12 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Tests the first canonical route and the remaining one-way migration seam.</summary>
 public sealed class CanonicalCapabilityCatalogMigrationTests
 {
-    /// <summary>The trusted source joins policy references to the existing compiler output.</summary>
+    /// <summary>
+    /// The trusted source joins policy references and exact canonical TP Header
+    /// references to the existing compiler output without copying geometry.
+    /// </summary>
     [Fact]
-    public void SourceMaterializesNt51929WithoutCopyingFirmwareFacts()
+    public void SourceMaterializesNt51929WithCanonicalMetadataReferences()
     {
         var source = new CanonicalCapabilityCatalogMigrationSource();
 
@@ -39,7 +42,58 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
         Assert.All(
             composition.Plan.OrderedOperations,
             static operation => Assert.Null(operation.ExternalProcessorInvocation));
-        Assert.Empty(definition.MetadataPlan.Entries);
+        MetadataPlanEntry readModel = Assert.Single(
+            definition.MetadataPlan.Entries,
+            static entry => StringComparer.Ordinal.Equals(
+                entry.BindingId,
+                "type-ab-tp-flash-header-read-model"));
+        MetadataPlanEntry copyReference = Assert.Single(
+            definition.MetadataPlan.Entries,
+            static entry => StringComparer.Ordinal.Equals(
+                entry.BindingId,
+                "type-ab-tp-flash-header-copy-reference"));
+        Assert.Same(
+            readModel.StructureDefinition,
+            copyReference.StructureDefinition);
+        Assert.Equal(
+            FirmwareMetadataStructureKind.TpFlashHeader,
+            readModel.StructureDefinition.Definition.StructureKind);
+        Assert.Equal("tp-input", readModel.SpaceId);
+        Assert.Equal("tp-input", readModel.SlotId);
+        Assert.Equal(
+            [
+                new FirmwareMetadataReferenceTarget(
+                    FirmwareMetadataReferenceTargetKind.Span,
+                    "complete-header"),
+                new FirmwareMetadataReferenceTarget(
+                    FirmwareMetadataReferenceTargetKind.Series,
+                    "dlm-crc-series"),
+                new FirmwareMetadataReferenceTarget(
+                    FirmwareMetadataReferenceTargetKind.Group,
+                    "header-integrity-values"),
+                new FirmwareMetadataReferenceTarget(
+                    FirmwareMetadataReferenceTargetKind.Group,
+                    "tp-bank-relative-start-addresses"),
+            ],
+            readModel.TargetReferences);
+        Assert.Equal(
+            [
+                MetadataReferencePurpose.Inspection,
+                MetadataReferencePurpose.Formatting,
+                MetadataReferencePurpose.MemoryProjection,
+                MetadataReferencePurpose.ReportClassification,
+            ],
+            readModel.Purposes);
+        Assert.Equal(
+            [
+                new FirmwareMetadataReferenceTarget(
+                    FirmwareMetadataReferenceTargetKind.Span,
+                    "complete-header"),
+            ],
+            copyReference.TargetReferences);
+        Assert.Equal(
+            [MetadataReferencePurpose.Copy],
+            copyReference.Purposes);
     }
 
     /// <summary>The NT51929 DP Replace route references one canonical DPCMI declaration and selected DP slot.</summary>
@@ -82,10 +136,10 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
             entry.FieldIds);
         Assert.Equal(
             [
-                MetadataInspectionPurpose.Validation,
-                MetadataInspectionPurpose.OutputNaming,
-                MetadataInspectionPurpose.Display,
-                MetadataInspectionPurpose.Version,
+                MetadataReferencePurpose.Validation,
+                MetadataReferencePurpose.OutputNaming,
+                MetadataReferencePurpose.Display,
+                MetadataReferencePurpose.Version,
             ],
             entry.Purposes);
     }

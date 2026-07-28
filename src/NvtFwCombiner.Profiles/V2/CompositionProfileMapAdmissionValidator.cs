@@ -16,6 +16,7 @@ internal static class CompositionProfileMapAdmissionValidator
     private const string MapNotAllowed = "profile.v2.map.map-not-allowed";
     private const string RequiredRegionMissing = "profile.v2.map.required-region-missing";
     private const string RequiredMetadataStructureMissing = "profile.v2.map.required-metadata-structure-missing";
+    private const string MetadataTargetMissing = "profile.v2.map.metadata-target-missing";
     private const string RequiredCapabilityMissing = "profile.v2.map.required-capability-missing";
     private const string RequiredCapabilityAbsent = "profile.v2.map.required-capability-absent";
     private const string RequiredCapabilityUnknown = "profile.v2.map.required-capability-unknown";
@@ -68,6 +69,7 @@ internal static class CompositionProfileMapAdmissionValidator
             RequiredMetadataStructureMissing,
             "metadata structure",
             issues);
+        AddMetadataTargetIssues(profile, family, resolvedMap, issues);
 
         if (familyAssociationIsValid)
         {
@@ -153,6 +155,36 @@ internal static class CompositionProfileMapAdmissionValidator
                 issues.Add(new CompositionIssue(
                     issueCode,
                     $"Required {factDescription} '{requiredId}' is unavailable from the resolved map."));
+            }
+        }
+    }
+
+    private static void AddMetadataTargetIssues(
+        CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition family,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        List<CompositionIssue> issues)
+    {
+        foreach (CompositionProfileMetadataBinding metadataBinding in profile.MetadataBindings)
+        {
+            if (!family.TryResolveStructure(
+                    resolvedMap.ImageMap.MapId,
+                    metadataBinding.StructureId,
+                    out FirmwareMetadataStructure? structure))
+            {
+                continue;
+            }
+
+            foreach (FirmwareMetadataReferenceTarget target in
+                     metadataBinding.TargetReferences)
+            {
+                if (!structure.Definition.ContainsReferenceTarget(target))
+                {
+                    issues.Add(new CompositionIssue(
+                        MetadataTargetMissing,
+                        $"Metadata binding '{metadataBinding.BindingId}' references unknown " +
+                        $"{target.Kind} target '{target.TargetId}'."));
+                }
             }
         }
     }

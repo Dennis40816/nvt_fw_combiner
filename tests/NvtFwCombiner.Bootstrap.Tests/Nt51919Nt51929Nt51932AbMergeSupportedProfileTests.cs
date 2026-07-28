@@ -10,7 +10,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
 {
     private const string BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string BundleContentHash = "93902043b6e4ea4c8a2023a7f02c798e4497de3523b21115797e9b302ce22292";
+    private const string BundleContentHash = "6486c31690463aa9624ef36c5701d7620c5ef9467917c0bc68831e5e93a2590d";
     private const int Capacity = 0x80000;
     private const int TpCodeStart = 0x7000;
     private const int TpCodeLength = 0x39000;
@@ -55,7 +55,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
         V2CompositionPlanCompileResult wrongCapacity = TrustedV2CompositionCompiler.Compile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.2.0",
+            "0.3.0",
             icId,
             ExperienceIds.AbMerge,
             requestedMapCapacity: 0x40000);
@@ -138,7 +138,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.2.0",
+            "0.3.0",
             icId,
             ExperienceIds.AbMerge,
             Capacity);

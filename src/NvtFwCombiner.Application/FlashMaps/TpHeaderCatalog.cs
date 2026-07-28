@@ -64,7 +64,11 @@ public sealed class TpHeaderSection
     public int Priority { get; }
 }
 
-/// <summary>TP header/write category catalog shared by postbuild planning and report rendering.</summary>
+/// <summary>
+/// Legacy parity adapter for unmigrated postbuild section labels, block-name
+/// classification, and overlap priority. New routes reference canonical
+/// metadata definitions instead of adding entries here.
+/// </summary>
 public static partial class TpHeaderCatalog
 {
     private static readonly TpHeaderSection[] Sections =

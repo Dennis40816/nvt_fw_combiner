@@ -186,8 +186,15 @@ public sealed partial class RepositoryBoundaryTests
 
             Assert.Equal("Include", include.Name.LocalName);
             if (bundle.Attribute("Include")?.Value is
-                    "nt51919-nt51929-nt51932-ab-merge" or
-                    "nt51950-ab-merge")
+                    "nt51929-standard-merge" or
+                    "nt51919-nt51929-nt51932-ab-merge")
+            {
+                Assert.Equal(
+                    "composition-profile-v2.11.schema.json",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
+            }
+            else if (bundle.Attribute("Include")?.Value is
+                         "nt51950-ab-merge")
             {
                 Assert.Equal(
                     "composition-profile-v2.10.schema.json",
@@ -221,7 +228,16 @@ public sealed partial class RepositoryBoundaryTests
                 Assert.Empty(bundle.Elements("CompositionProfileSchemaFile"));
             }
 
-            if (relationshipSchemaBundleIds.Contains(include.Value, StringComparer.Ordinal))
+            if (include.Value is
+                    "nt51919-nt51929-nt51932-general-merge-logical-candidate" or
+                    "nt51929-standard-merge" or
+                    "nt51919-nt51929-nt51932-ab-merge")
+            {
+                Assert.Equal(
+                    "firmware-family-v1.1-tp-header.schema.json",
+                    Assert.Single(bundle.Elements("FirmwareFamilySchemaFile")).Value);
+            }
+            else if (relationshipSchemaBundleIds.Contains(include.Value, StringComparer.Ordinal))
             {
                 Assert.Equal(
                     "firmware-family-v1-relations.schema.json",

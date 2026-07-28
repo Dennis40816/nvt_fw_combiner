@@ -67,7 +67,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51951-general-merge-logical-candidate")]
     [InlineData(
         "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-        "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283",
+        "0d8b975c5cd0b010624ae2d056f18430174fc2b1234819c644aa49ccb039547b",
         "nt51929-standard-merge",
         "nt51929-nt51932.json",
         "nt51929-nt51932",
@@ -75,7 +75,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51919-general-merge-logical-candidate")]
     [InlineData(
         "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-        "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283",
+        "0d8b975c5cd0b010624ae2d056f18430174fc2b1234819c644aa49ccb039547b",
         "nt51929-standard-merge",
         "nt51929-nt51932.json",
         "nt51929-nt51932",
@@ -83,7 +83,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51929-general-merge-logical-candidate")]
     [InlineData(
         "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-        "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283",
+        "0d8b975c5cd0b010624ae2d056f18430174fc2b1234819c644aa49ccb039547b",
         "nt51929-standard-merge",
         "nt51929-nt51932.json",
         "nt51929-nt51932",
@@ -143,13 +143,24 @@ public sealed class GeneralMergeV2CandidateProfileTests
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
         Assert.Empty(details.RegionAccessContract.Requirements);
         Assert.Empty(details.RegionAccessContract.ResolvedViews);
-        Assert.Equal(
-            File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+        byte[] sourceFamily = File.ReadAllBytes(
+            RepositoryPaths.FromRepositoryRoot(
                 "profiles",
                 "built-in",
                 sourceBundleDirectory,
                 "families",
-                familyFileName)),
-            File.ReadAllBytes(Path.Combine(workspace.Root, "families", familyFileName)));
+                familyFileName));
+        byte[] candidateFamily = File.ReadAllBytes(
+            Path.Combine(workspace.Root, "families", familyFileName));
+        if (StringComparer.Ordinal.Equals(
+                bundleDirectory,
+                "nt51919-nt51929-nt51932-general-merge-logical-candidate"))
+        {
+            Assert.False(sourceFamily.SequenceEqual(candidateFamily));
+        }
+        else
+        {
+            Assert.Equal(sourceFamily, candidateFamily);
+        }
     }
 }

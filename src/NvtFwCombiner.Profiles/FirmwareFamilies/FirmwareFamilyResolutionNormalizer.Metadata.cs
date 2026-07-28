@@ -92,6 +92,14 @@ public static partial class FirmwareFamilyResolutionNormalizer
             $"{path}.locator");
         if (document.DefinitionReference is { } referenceDocument)
         {
+            if (document.StructureKind is not null ||
+                document.TpFlashHeader is not null)
+            {
+                throw Error(
+                    $"{path}.structureKind",
+                    "A referenced metadata definition cannot repeat a typed inline definition.");
+            }
+
             if (document.Length.ValueKind != System.Text.Json.JsonValueKind.Undefined ||
                 document.Fields is not null ||
                 document.Assertions is not null ||
@@ -125,6 +133,8 @@ public static partial class FirmwareFamilyResolutionNormalizer
                     locator));
         }
 
+        FirmwareMetadataTypedDefinition? typedDefinition =
+            NormalizeTypedDefinition(document, path);
         IReadOnlyList<FirmwareMetadataFieldDocument> fieldDocuments =
             RequireList(document.Fields, $"{path}.fields");
         var fields = new FirmwareMetadataField[fieldDocuments.Count];
@@ -160,7 +170,214 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 locator,
                 fields,
                 assertions,
-                relations));
+                relations,
+                typedDefinition));
+    }
+
+    private static FirmwareTpFlashHeaderDefinition? NormalizeTypedDefinition(
+        FirmwareMetadataStructureDocument document,
+        string path)
+    {
+        return document.StructureKind is null
+            ? document.TpFlashHeader is null
+                ? null
+                : throw Error(
+                    $"{path}.structureKind",
+                    "A typed metadata payload requires its matching structure kind.")
+            : document.StructureKind switch
+            {
+                "tp-flash-header" => NormalizeTpFlashHeader(
+                    Require(document.TpFlashHeader, $"{path}.tpFlashHeader"),
+                    $"{path}.tpFlashHeader"),
+                _ => throw Error(
+                    $"{path}.structureKind",
+                    "Unknown metadata structure kind."),
+            };
+    }
+
+    private static FirmwareTpFlashHeaderDefinition NormalizeTpFlashHeader(
+        FirmwareTpFlashHeaderDocument document,
+        string path)
+    {
+        IReadOnlyList<FirmwareMetadataNamedSpanDocument> spanDocuments =
+            RequireList(document.Spans, $"{path}.spans");
+        var spans = new FirmwareMetadataNamedSpan[spanDocuments.Count];
+        for (int index = 0; index < spanDocuments.Count; index++)
+        {
+            FirmwareMetadataNamedSpanDocument span = spanDocuments[index];
+            spans[index] = TranslateInvariant(
+                $"{path}.spans[{index}]",
+                () => new FirmwareMetadataNamedSpan(
+                    span.SpanId,
+                    NormalizeRange(span.Range, $"{path}.spans[{index}].range")));
+        }
+
+        IReadOnlyList<FirmwareTpFlashHeaderFieldSemanticsDocument> semanticsDocuments =
+            RequireList(document.FieldSemantics, $"{path}.fieldSemantics");
+        var fieldSemantics =
+            new FirmwareTpFlashHeaderFieldSemantics[semanticsDocuments.Count];
+        for (int index = 0; index < semanticsDocuments.Count; index++)
+        {
+            fieldSemantics[index] = NormalizeTpFlashHeaderFieldSemantics(
+                semanticsDocuments[index],
+                $"{path}.fieldSemantics[{index}]");
+        }
+
+        IReadOnlyList<FirmwareMetadataFieldSeriesDocument> seriesDocuments =
+            RequireList(document.FieldSeries, $"{path}.fieldSeries");
+        var fieldSeries = new FirmwareMetadataFieldSeries[seriesDocuments.Count];
+        for (int index = 0; index < seriesDocuments.Count; index++)
+        {
+            fieldSeries[index] = NormalizeMetadataFieldSeries(
+                seriesDocuments[index],
+                $"{path}.fieldSeries[{index}]");
+        }
+
+        IReadOnlyList<FirmwareMetadataFieldGroupDocument> groupDocuments =
+            RequireList(document.FieldGroups, $"{path}.fieldGroups");
+        var fieldGroups = new FirmwareMetadataFieldGroup[groupDocuments.Count];
+        for (int index = 0; index < groupDocuments.Count; index++)
+        {
+            FirmwareMetadataFieldGroupDocument group = groupDocuments[index];
+            fieldGroups[index] = TranslateInvariant(
+                $"{path}.fieldGroups[{index}]",
+                () => new FirmwareMetadataFieldGroup(
+                    group.GroupId,
+                    RequireList(group.FieldIds, $"{path}.fieldGroups[{index}].fieldIds"),
+                    RequireList(group.SeriesIds, $"{path}.fieldGroups[{index}].seriesIds")));
+        }
+
+        return TranslateInvariant(
+            path,
+            () => new FirmwareTpFlashHeaderDefinition(
+                spans,
+                fieldSemantics,
+                fieldSeries,
+                fieldGroups));
+    }
+
+    private static FirmwareTpFlashHeaderFieldSemantics
+        NormalizeTpFlashHeaderFieldSemantics(
+            FirmwareTpFlashHeaderFieldSemanticsDocument document,
+            string path)
+    {
+        TpFlashHeaderFieldSubject subject = document.Subject switch
+        {
+            "header" => TpFlashHeaderFieldSubject.Header,
+            "ilm" => TpFlashHeaderFieldSubject.Ilm,
+            "dlm" => TpFlashHeaderFieldSubject.Dlm,
+            "dlm-difference" => TpFlashHeaderFieldSubject.DlmDifference,
+            _ => throw Error($"{path}.subject", "Unknown TP Header field subject."),
+        };
+        TpFlashHeaderFieldRole role = document.Role switch
+        {
+            "integrity-value" => TpFlashHeaderFieldRole.IntegrityValue,
+            "destination-address" => TpFlashHeaderFieldRole.DestinationAddress,
+            "size" => TpFlashHeaderFieldRole.Size,
+            "tp-bin-start-address" => TpFlashHeaderFieldRole.TpBinStartAddress,
+            "option" => TpFlashHeaderFieldRole.Option,
+            _ => throw Error($"{path}.role", "Unknown TP Header field role."),
+        };
+        int? logicalIndex = document.LogicalIndex is { } sourceIndex
+            ? ReadInt32(sourceIndex, 0, int.MaxValue, $"{path}.logicalIndex")
+            : null;
+        FirmwareTpFlashHeaderStoredAddressSemantics? storedAddress =
+            document.StoredAddress is { } address
+                ? NormalizeStoredAddress(
+                    address,
+                    $"{path}.storedAddress")
+                : null;
+        return TranslateInvariant(
+            path,
+            () => new FirmwareTpFlashHeaderFieldSemantics(
+                document.FieldId,
+                document.SpanId,
+                subject,
+                role,
+                logicalIndex,
+                storedAddress));
+    }
+
+    private static FirmwareTpFlashHeaderStoredAddressSemantics NormalizeStoredAddress(
+        FirmwareTpFlashHeaderStoredAddressDocument document,
+        string path)
+    {
+        TpFlashHeaderStoredAddressBasis basis = document.Basis switch
+        {
+            "absolute" => TpFlashHeaderStoredAddressBasis.Absolute,
+            "tp-bin-offset" => TpFlashHeaderStoredAddressBasis.TpBinOffset,
+            _ => throw Error(
+                $"{path}.basis",
+                "Unknown TP Header stored-address basis."),
+        };
+        return TranslateInvariant(
+            path,
+            () => new FirmwareTpFlashHeaderStoredAddressSemantics(
+                document.AddressSpaceId,
+                basis));
+    }
+
+    private static FirmwareMetadataFieldSeries NormalizeMetadataFieldSeries(
+        FirmwareMetadataFieldSeriesDocument document,
+        string path)
+    {
+        IReadOnlyList<FirmwareMetadataFieldSeriesMemberDocument> memberDocuments =
+            RequireList(document.Members, $"{path}.members");
+        var members = new FirmwareMetadataFieldSeriesMember[memberDocuments.Count];
+        for (int index = 0; index < memberDocuments.Count; index++)
+        {
+            FirmwareMetadataFieldSeriesMemberDocument member = memberDocuments[index];
+            members[index] = TranslateInvariant(
+                $"{path}.members[{index}]",
+                () => new FirmwareMetadataFieldSeriesMember(
+                    ReadInt32(
+                        member.Index,
+                        0,
+                        int.MaxValue,
+                        $"{path}.members[{index}].index"),
+                    member.FieldId));
+        }
+
+        IReadOnlyList<FirmwareMetadataFieldSeriesApplicabilityDocument>
+            applicabilityDocuments =
+                RequireList(document.Applicability, $"{path}.applicability");
+        var applicability =
+            new FirmwareMetadataFieldSeriesApplicability[applicabilityDocuments.Count];
+        for (int index = 0; index < applicabilityDocuments.Count; index++)
+        {
+            FirmwareMetadataFieldSeriesApplicabilityDocument row =
+                applicabilityDocuments[index];
+            IReadOnlyList<System.Text.Json.JsonElement> activeIndexDocuments =
+                RequireList(
+                    row.ActiveIndices,
+                    $"{path}.applicability[{index}].activeIndices");
+            int[] activeIndices = new int[activeIndexDocuments.Count];
+            for (int activeIndex = 0; activeIndex < activeIndexDocuments.Count; activeIndex++)
+            {
+                activeIndices[activeIndex] = ReadInt32(
+                    activeIndexDocuments[activeIndex],
+                    0,
+                    int.MaxValue,
+                    $"{path}.applicability[{index}].activeIndices[{activeIndex}]");
+            }
+
+            applicability[index] = TranslateInvariant(
+                $"{path}.applicability[{index}]",
+                () => new FirmwareMetadataFieldSeriesApplicability(
+                    ReadInt32(
+                        row.IcCount,
+                        1,
+                        int.MaxValue,
+                        $"{path}.applicability[{index}].icCount"),
+                    activeIndices));
+        }
+
+        return TranslateInvariant(
+            path,
+            () => new FirmwareMetadataFieldSeries(
+                document.SeriesId,
+                members,
+                applicability));
     }
 
     private static FirmwareMetadataFieldRelation NormalizeRelation(

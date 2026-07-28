@@ -1,13 +1,12 @@
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using ResolvedFirmwareImageMap =
     NvtFwCombiner.Domain.Firmware.FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap;
 
 namespace NvtFwCombiner.Application.Metadata;
 
-/// <summary>Closed purpose for one selected canonical metadata structure.</summary>
-public enum MetadataInspectionPurpose
+/// <summary>Closed read-only consumer purpose for canonical metadata references.</summary>
+public enum MetadataReferencePurpose
 {
     /// <summary>The structure selects a physical map variant.</summary>
     MapResolution,
@@ -23,6 +22,30 @@ public enum MetadataInspectionPurpose
 
     /// <summary>The structure supplies a firmware version fact.</summary>
     Version,
+
+    /// <summary>The generic inspector decodes the referenced target.</summary>
+    Inspection,
+
+    /// <summary>The common formatter presents the referenced target.</summary>
+    Formatting,
+
+    /// <summary>A copy policy may reference the target without gaining authority here.</summary>
+    Copy,
+
+    /// <summary>A relocation policy may reference the target without gaining authority here.</summary>
+    Relocation,
+
+    /// <summary>An integrity policy may reference the target without gaining authority here.</summary>
+    Integrity,
+
+    /// <summary>A processor policy may reference the target without gaining authority here.</summary>
+    Processor,
+
+    /// <summary>The typed memory projector consumes the target.</summary>
+    MemoryProjection,
+
+    /// <summary>Report difference classification consumes the target.</summary>
+    ReportClassification,
 }
 
 /// <summary>Closed state of one selection-scoped metadata evaluation.</summary>
@@ -86,9 +109,11 @@ public sealed record ResolvedPrerequisiteAction(
 public sealed class MetadataPlanEntry
 {
     private readonly string[] _fieldIds;
-    private readonly MetadataInspectionPurpose[] _purposes;
+    private readonly FirmwareMetadataReferenceTarget[] _targetReferences;
+    private readonly MetadataReferencePurpose[] _purposes;
+    private readonly string[] _evidenceRefs;
 
-    /// <summary>Creates one checked reference-only metadata plan entry.</summary>
+    /// <summary>Creates one legacy field-only metadata plan entry.</summary>
     public MetadataPlanEntry(
         string bindingId,
         string spaceId,
@@ -98,7 +123,33 @@ public sealed class MetadataPlanEntry
         FirmwareMapFactBinding<FirmwareMetadataSet> metadataSetBinding,
         FirmwareMetadataStructure structureDefinition,
         IEnumerable<string> fieldIds,
-        IEnumerable<MetadataInspectionPurpose> purposes)
+        IEnumerable<MetadataReferencePurpose> purposes)
+        : this(
+            bindingId,
+            spaceId,
+            slotId,
+            familyDefinition,
+            resolvedMap,
+            metadataSetBinding,
+            structureDefinition,
+            CreateFieldTargets(fieldIds),
+            purposes,
+            [])
+    {
+    }
+
+    /// <summary>Creates one checked typed reference-only metadata plan entry.</summary>
+    public MetadataPlanEntry(
+        string bindingId,
+        string spaceId,
+        string slotId,
+        FirmwareFamilyResolutionDefinition familyDefinition,
+        ResolvedFirmwareImageMap resolvedMap,
+        FirmwareMapFactBinding<FirmwareMetadataSet> metadataSetBinding,
+        FirmwareMetadataStructure structureDefinition,
+        IEnumerable<FirmwareMetadataReferenceTarget> targetReferences,
+        IEnumerable<MetadataReferencePurpose> purposes,
+        IEnumerable<string> evidenceRefs)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bindingId);
         ArgumentException.ThrowIfNullOrWhiteSpace(spaceId);
@@ -107,8 +158,9 @@ public sealed class MetadataPlanEntry
         ArgumentNullException.ThrowIfNull(resolvedMap);
         ArgumentNullException.ThrowIfNull(metadataSetBinding);
         ArgumentNullException.ThrowIfNull(structureDefinition);
-        ArgumentNullException.ThrowIfNull(fieldIds);
+        ArgumentNullException.ThrowIfNull(targetReferences);
         ArgumentNullException.ThrowIfNull(purposes);
+        ArgumentNullException.ThrowIfNull(evidenceRefs);
 
         if (!familyDefinition.ImageMaps.Any(map =>
                 ReferenceEquals(map, resolvedMap.ImageMap)) ||
@@ -148,27 +200,32 @@ public sealed class MetadataPlanEntry
                 nameof(spaceId));
         }
 
-        _fieldIds = [.. fieldIds];
-        if (_fieldIds.Length == 0 ||
-            _fieldIds.Any(string.IsNullOrWhiteSpace) ||
-            _fieldIds.Distinct(StringComparer.Ordinal).Count() !=
-                _fieldIds.Length)
+        _targetReferences = [.. targetReferences];
+        if (_targetReferences.Length == 0 ||
+            _targetReferences.Any(static target => target is null) ||
+            _targetReferences.Distinct().Count() != _targetReferences.Length)
         {
             throw new ArgumentException(
-                "Metadata plan field references must be nonempty and unique.",
-                nameof(fieldIds));
+                "Metadata plan target references must be nonempty and unique.",
+                nameof(targetReferences));
         }
 
-        HashSet<string> declaredFields = new(
-            structureDefinition.Fields.Select(static field => field.FieldId),
-            StringComparer.Ordinal);
-        if (_fieldIds.Any(fieldId => !declaredFields.Contains(fieldId)))
+        if (_targetReferences.Any(target =>
+                !structureDefinition.Definition.ContainsReferenceTarget(target)))
         {
             throw new ArgumentException(
-                "Metadata plan fields must reference the canonical structure definition.",
-                nameof(fieldIds));
+                "Metadata plan targets must reference the canonical structure definition.",
+                nameof(targetReferences));
         }
 
+        Array.Sort(_targetReferences, CompareTargets);
+        _fieldIds =
+        [
+            .. _targetReferences
+                .Where(static target =>
+                    target.Kind == FirmwareMetadataReferenceTargetKind.Field)
+                .Select(static target => target.TargetId),
+        ];
         _purposes = [.. purposes];
         if (_purposes.Length == 0 ||
             _purposes.Any(static purpose => !Enum.IsDefined(purpose)) ||
@@ -180,6 +237,17 @@ public sealed class MetadataPlanEntry
         }
 
         Array.Sort(_purposes);
+        _evidenceRefs = [.. evidenceRefs];
+        if (_evidenceRefs.Any(string.IsNullOrWhiteSpace) ||
+            _evidenceRefs.Distinct(StringComparer.Ordinal).Count() !=
+                _evidenceRefs.Length)
+        {
+            throw new ArgumentException(
+                "Metadata plan evidence references must be nonblank and unique.",
+                nameof(evidenceRefs));
+        }
+
+        Array.Sort(_evidenceRefs, StringComparer.Ordinal);
         BindingId = bindingId;
         SpaceId = spaceId;
         SlotId = slotId;
@@ -187,8 +255,10 @@ public sealed class MetadataPlanEntry
         ResolvedMap = resolvedMap;
         MetadataSetBinding = metadataSetBinding;
         StructureDefinition = structureDefinition;
+        TargetReferences = Array.AsReadOnly(_targetReferences);
         FieldIds = Array.AsReadOnly(_fieldIds);
         Purposes = Array.AsReadOnly(_purposes);
+        EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
     }
 
     /// <summary>Stable profile binding identity.</summary>
@@ -212,11 +282,40 @@ public sealed class MetadataPlanEntry
     /// <summary>Canonical structure definition reference.</summary>
     public FirmwareMetadataStructure StructureDefinition { get; }
 
-    /// <summary>Selected canonical field definition ids.</summary>
+    /// <summary>Selected canonical span/field/series/group references.</summary>
+    public IReadOnlyList<FirmwareMetadataReferenceTarget> TargetReferences { get; }
+
+    /// <summary>Legacy field-only projection derived from typed targets.</summary>
     public IReadOnlyList<string> FieldIds { get; }
 
-    /// <summary>Selected inspection/validation/formatting purposes.</summary>
-    public IReadOnlyList<MetadataInspectionPurpose> Purposes { get; }
+    /// <summary>Selected read-only consumer purposes.</summary>
+    public IReadOnlyList<MetadataReferencePurpose> Purposes { get; }
+
+    /// <summary>Evidence supporting the typed target references.</summary>
+    public IReadOnlyList<string> EvidenceRefs { get; }
+
+    private static FirmwareMetadataReferenceTarget[] CreateFieldTargets(
+        IEnumerable<string> fieldIds)
+    {
+        ArgumentNullException.ThrowIfNull(fieldIds);
+        return
+        [
+            .. fieldIds.Select(static fieldId =>
+                new FirmwareMetadataReferenceTarget(
+                    FirmwareMetadataReferenceTargetKind.Field,
+                    fieldId)),
+        ];
+    }
+
+    private static int CompareTargets(
+        FirmwareMetadataReferenceTarget left,
+        FirmwareMetadataReferenceTarget right)
+    {
+        int kind = left.Kind.CompareTo(right.Kind);
+        return kind != 0
+            ? kind
+            : StringComparer.Ordinal.Compare(left.TargetId, right.TargetId);
+    }
 }
 
 /// <summary>Immutable pre-publication metadata plan definition.</summary>
@@ -559,123 +658,5 @@ public static class FirmwareMetadataInspector
             resolution,
             readiness,
             nextAction);
-    }
-}
-
-/// <summary>Stable logical DPCMI vocabulary shared by declarations and projections.</summary>
-public static class DpcmiMetadataContract
-{
-    /// <summary>One Initial Code structure at CMD1 Page 0 registers 16h-18h.</summary>
-    public const string StructureId = "dpcmi";
-
-    /// <summary>First CMD1 Page 0 register in the structure.</summary>
-    public const int FirstRegister = 0x16;
-
-    /// <summary>Jira bits 7:0 in register 16h.</summary>
-    public const string JiraLowFieldId = "jira-low";
-
-    /// <summary>DP major version byte in register 17h.</summary>
-    public const string MajorVersionFieldId = "dp-major";
-
-    /// <summary>DP minor version nibble in register 18h bits 7:4.</summary>
-    public const string MinorVersionFieldId = "dp-minor";
-
-    /// <summary>Jira bits 11:8 in register 18h bits 3:0.</summary>
-    public const string JiraHighFieldId = "jira-high";
-}
-
-/// <summary>Derived DP Version and Jira facts from one successfully decoded DPCMI structure.</summary>
-public sealed record DpcmiMetadataFacts(
-    byte MajorVersion,
-    byte MinorVersion,
-    ushort JiraNumber,
-    ByteRange ResolvedRange)
-{
-    /// <summary>Four uppercase hexadecimal digits used by output naming.</summary>
-    public string VersionToken =>
-        FormattableString.Invariant($"{MajorVersion:X2}{MinorVersion:X2}");
-
-    /// <summary>Technical Jira badge, absent only when the declared value is zero.</summary>
-    public string? JiraBadge =>
-        JiraNumber == 0 ? null : $"AUTO_PRJ-{JiraNumber}";
-}
-
-/// <summary>Projects DPCMI raw fields into their accepted derived semantic facts.</summary>
-public static class DpcmiMetadataProjector
-{
-    /// <summary>Projects exactly one successful DPCMI result.</summary>
-    public static bool TryProject(
-        MetadataInspectionSnapshot snapshot,
-        out DpcmiMetadataFacts facts)
-    {
-        ArgumentNullException.ThrowIfNull(snapshot);
-        facts = null!;
-        MetadataInspectionResult[] matches =
-        [
-            .. snapshot.Results.Where(result =>
-                StringComparer.Ordinal.Equals(
-                    result.PlanEntry.Definition.StructureDefinition.Definition.DefinitionId,
-                    DpcmiMetadataContract.StructureId)),
-        ];
-        if (matches.Length != 1 ||
-            matches[0].State != MetadataInspectionState.Value ||
-            matches[0].Resolution?.Resolved is not { } resolved)
-        {
-            return false;
-        }
-
-        var values =
-            resolved.DecodedStructure.Facts.ToDictionary(
-                static fact => fact.FieldId,
-                static fact => fact.Value,
-                StringComparer.Ordinal);
-        if (!TryReadByte(
-                values,
-                DpcmiMetadataContract.JiraLowFieldId,
-                out byte jiraLow) ||
-            !TryReadByte(
-                values,
-                DpcmiMetadataContract.MajorVersionFieldId,
-                out byte major) ||
-            !TryReadByte(
-                values,
-                DpcmiMetadataContract.MinorVersionFieldId,
-                out byte minor) ||
-            !TryReadByte(
-                values,
-                DpcmiMetadataContract.JiraHighFieldId,
-                out byte jiraHigh) ||
-            minor > 0x0F ||
-            jiraHigh > 0x0F)
-        {
-            return false;
-        }
-
-        facts = new DpcmiMetadataFacts(
-            major,
-            minor,
-            checked((ushort)(jiraLow | (jiraHigh << 8))),
-            resolved.LocatorOutcome.ResolvedRange.Range);
-        return true;
-    }
-
-    private static bool TryReadByte(
-        Dictionary<string, FirmwareMetadataValue> values,
-        string fieldId,
-        out byte value)
-    {
-        value = 0;
-        if (!values.TryGetValue(
-                fieldId,
-                out FirmwareMetadataValue? metadata) ||
-            metadata.Kind != FirmwareMetadataValueKind.UnsignedInteger ||
-            metadata.UnsignedIntegerValue is not { } unsigned ||
-            unsigned > byte.MaxValue)
-        {
-            return false;
-        }
-
-        value = (byte)unsigned;
-        return true;
     }
 }

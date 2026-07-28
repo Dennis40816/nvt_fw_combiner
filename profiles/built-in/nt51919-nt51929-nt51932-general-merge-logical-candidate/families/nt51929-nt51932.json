@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51929-nt51932",
-  "familyVersion": "1.0.0",
+  "familyVersion": "1.1.0",
   "members": [
     {
       "memberId": "NT51919",
@@ -76,7 +76,34 @@
       ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "nt51929-nt51932-type-ab-tp-flash-header",
+      "structures": [
+        {
+          "structureId": "type-ab-tp-flash-header",
+          "artifactBindingId": "tp-input",
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "tp-code",
+            "offset": 256,
+            "allowedResultRegionId": "tp-code"
+          },
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.1.0",
+            "familyContentHash": "06ab5b5ac35e143587420ecdc40aa17324cb63ec8a0c48e4c208092b1be22f39",
+            "structureId": "type-ab-tp-flash-header"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51929-golden",
+        "gen-flash-bin-v2-51932-golden",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    }
+  ],
   "imageMaps": [
     {
       "mapId": "nt51919-standard-merge-256k",
@@ -121,7 +148,9 @@
       "regionSetIds": [
         "nt51929-nt51932-standard-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51929-nt51932-type-ab-tp-flash-header"
+      ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51929-golden"
       ]
@@ -145,7 +174,9 @@
       "regionSetIds": [
         "nt51929-nt51932-standard-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51929-nt51932-type-ab-tp-flash-header"
+      ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51932-golden"
       ]
@@ -179,6 +210,7 @@
   "evidenceRefs": [
     "gen-flash-bin-v2-51929-golden",
     "gen-flash-bin-v2-51932-golden",
-    "standard-merge-alias-51919-to-51929"
+    "standard-merge-alias-51919-to-51929",
+    "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
   ]
 }

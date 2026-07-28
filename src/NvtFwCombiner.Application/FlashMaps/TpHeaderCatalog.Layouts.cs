@@ -2,7 +2,10 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.FlashMaps;
 
-/// <summary>Application-owned evidenced TP header layouts used for semantic report classification.</summary>
+/// <summary>
+/// Legacy read-only layout parity data for routes whose report classification
+/// has not yet migrated to resolved canonical metadata.
+/// </summary>
 public static partial class TpHeaderCatalog
 {
     private static readonly Dictionary<string, TpHeaderLayout> HeaderLayoutsByIc = BuildHeaderLayouts();

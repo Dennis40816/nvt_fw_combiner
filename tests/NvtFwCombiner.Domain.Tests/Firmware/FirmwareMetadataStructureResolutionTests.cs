@@ -34,11 +34,16 @@ public sealed partial class FirmwareMetadataStructureResolutionTests
             result.Resolved);
         Assert.Equal("map", resolved.MapId);
         Assert.Equal(artifact.Identity, resolved.ArtifactIdentity);
+        Assert.Same(structure, resolved.StructureDefinition);
         Assert.Equal(FirmwareMetadataLocatorKind.AbsoluteRange, resolved.LocatorOutcome.LocatorKind);
         Assert.Equal(new ByteRange(4, 2), resolved.LocatorOutcome.ResolvedRange.Range);
         Assert.Null(resolved.LocatorOutcome.MarkerMatchCount);
         Assert.Null(resolved.LocatorOutcome.SelectedMarkerStart);
         Assert.Equal("0001", Assert.Single(resolved.DecodedStructure.Facts).Value.BytesValue?.Hex);
+        FirmwareResolvedMetadataField resolvedField = Assert.Single(resolved.Fields);
+        Assert.Same(structure.Fields[0], resolvedField.Field);
+        Assert.Equal(FirmwareMetadataFieldApplicabilityState.Active, resolvedField.Applicability);
+        Assert.Equal("0001", resolvedField.Value?.BytesValue?.Hex);
     }
 
     /// <summary>Verifies a region-relative result may end at its base-region boundary.</summary>

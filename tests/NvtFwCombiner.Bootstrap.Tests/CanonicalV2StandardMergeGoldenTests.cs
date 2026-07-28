@@ -9,9 +9,9 @@ public sealed class CanonicalV2StandardMergeGoldenTests
 {
     /// <summary>Verifies every family member declares the V2 copy plan and produces owner-approved reference bytes.</summary>
     [Theory]
-    [InlineData("nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "NT51919", "nt51919-standard-merge-gen-flash-alias", "51929", "nt51919-standard-merge-gen-flash-alias.bin", 0x6000, 0x40000, true, true)]
-    [InlineData("nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "NT51929", "nt51929-standard-merge-gen-flash", "51929", "nt51929-standard-merge-gen-flash.bin", 0x6000, 0x40000, false, true)]
-    [InlineData("nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "NT51932", "nt51932-standard-merge-gen-flash", "51932", "nt51932-standard-merge-gen-flash.bin", 0x6000, 0x40000, false, true)]
+    [InlineData("nt51929-standard-merge", "3270451ed264d59744400e131086d7a69c652384982946883c56483280786b69", "NT51919", "nt51919-standard-merge-gen-flash-alias", "51929", "nt51919-standard-merge-gen-flash-alias.bin", 0x6000, 0x40000, true, true)]
+    [InlineData("nt51929-standard-merge", "3270451ed264d59744400e131086d7a69c652384982946883c56483280786b69", "NT51929", "nt51929-standard-merge-gen-flash", "51929", "nt51929-standard-merge-gen-flash.bin", 0x6000, 0x40000, false, true)]
+    [InlineData("nt51929-standard-merge", "3270451ed264d59744400e131086d7a69c652384982946883c56483280786b69", "NT51932", "nt51932-standard-merge-gen-flash", "51932", "nt51932-standard-merge-gen-flash.bin", 0x6000, 0x40000, false, true)]
     [InlineData("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "NT51923", "nt51923-standard-merge-gen-flash", "51923", "nt51923-standard-merge-gen-flash.bin", 0x40000, 0x40000, false, true)]
     [InlineData("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "NT51926", "nt51926-standard-merge-gen-flash", "51926", "nt51926-standard-merge-gen-flash.bin", 0x40000, 0x40000, false, true)]
     [InlineData("nt51927-standard-merge", "de4b59fc4f8d849d7ce60fb490af4c74324a4bcdd558d36577fb3ec668826e69", "NT51917", "nt51917-standard-merge-gen-flash-alias", "51927", "nt51917-standard-merge-gen-flash-alias.bin", 0x40000, 0x200000, true, true)]
@@ -34,7 +34,7 @@ public sealed class CanonicalV2StandardMergeGoldenTests
             profileId,
             icId switch
             {
-                "NT51917" => "0.6.0",
+                "NT51917" or "NT51919" or "NT51929" or "NT51932" => "0.6.0",
                 "NT51927" or "NT51928" => "0.7.0",
                 _ => "0.5.0",
             },

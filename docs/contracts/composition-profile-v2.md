@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0 through 2.10
+# Composition Profile Contract 2.0 through 2.11
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -10,7 +10,8 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.7.schema.json`](composition-profile-v2.7.schema.json), and
 [`composition-profile-v2.8.schema.json`](composition-profile-v2.8.schema.json), and
 [`composition-profile-v2.9.schema.json`](composition-profile-v2.9.schema.json), and
-[`composition-profile-v2.10.schema.json`](composition-profile-v2.10.schema.json). A trusted bundle
+[`composition-profile-v2.10.schema.json`](composition-profile-v2.10.schema.json), and
+[`composition-profile-v2.11.schema.json`](composition-profile-v2.11.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -222,6 +223,27 @@ the accepted execution snapshot to `[0, requiredEndExclusive)`, rejects padding 
 or CtrlRAM use, and retains the complete policy in `CompiledInputContract` and its fingerprint. Every
 source view and processor read must remain within the declared prefix. This contract does not admit an AB
 route, change a profile promotion stage, or connect Application Build/report behavior by itself.
+
+Schema 2.11 keeps every 2.10 execution, input, and processor constraint and
+adds a strict successor shape for metadata bindings. A binding uses exactly
+one of:
+
+- legacy `fieldIds`, retained only as a compatibility shape and optionally
+  carrying `evidenceRefs`; or
+- nonempty typed `targetReferences` plus nonempty `evidenceRefs`.
+
+The two forms cannot be mixed. Each typed target is a reference-only
+`{ targetKind, targetId }` pair whose closed kinds are `span`, `field`,
+`series`, and `group`. It carries no range, offset, operation, processor,
+stage, or write authority. Target existence and kind are validated against
+the already resolved canonical metadata definition.
+
+The 2.11 closed metadata-purpose vocabulary is `map-resolution`,
+`validation`, `output-naming`, `display`, `version`, `inspection`,
+`formatting`, `copy`, `relocation`, `integrity`, `processor`,
+`memory-projection`, and `report-classification`. A purpose states why a
+read-only metadata reference is consumed; it does not authorize execution or
+derive firmware facts.
 
 ## Input size policy
 

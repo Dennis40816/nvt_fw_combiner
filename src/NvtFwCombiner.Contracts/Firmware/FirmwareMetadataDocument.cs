@@ -21,6 +21,8 @@ public sealed record FirmwareMetadataSetDocument(
 /// <param name="Assertions">Structure-relative byte assertions.</param>
 /// <param name="Relations">Optional typed relationships between declared fields.</param>
 /// <param name="DefinitionReference">Optional exact canonical metadata-definition reference.</param>
+/// <param name="StructureKind">Optional closed typed-structure discriminator.</param>
+/// <param name="TpFlashHeader">Optional typed TP Flash Header payload.</param>
 public sealed record FirmwareMetadataStructureDocument(
     string StructureId,
     string ArtifactBindingId,
@@ -31,7 +33,11 @@ public sealed record FirmwareMetadataStructureDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     IReadOnlyList<FirmwareMetadataFieldRelationDocument>? Relations = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    FirmwareMetadataStructureDefinitionReferenceDocument? DefinitionReference = null);
+    FirmwareMetadataStructureDefinitionReferenceDocument? DefinitionReference = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? StructureKind = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    FirmwareTpFlashHeaderDocument? TpFlashHeader = null);
 
 /// <summary>DTO for one exact canonical metadata-definition reference.</summary>
 public sealed record FirmwareMetadataStructureDefinitionReferenceDocument(

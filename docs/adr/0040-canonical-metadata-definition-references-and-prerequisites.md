@@ -4,6 +4,8 @@
 - Date: 2026-07-26
 - Accepted: 2026-07-26 by the product, architecture, and firmware owner through
   the owner-approved `0.10.x` specification and GitHub issue #176
+- Extended: 2026-07-28 by GitHub issue #186 for the typed TP Flash Header
+  specialization and reference-only behavior-binding vocabulary
 - Owners: Product owner + architecture owner + firmware owner
 - Risk: R2 cross-layer architecture contract; each firmware locator binding
   remains R3
@@ -37,7 +39,14 @@ locator-independent logical definition. It owns:
 - length;
 - field definitions;
 - byte assertions; and
-- typed relations.
+- typed relations; and
+- an optional closed typed specialization whose spans, field semantics,
+  explicit repeated series, groups, and stored-address meaning remain part of
+  the same immutable definition.
+
+The specialization is physical geometry and value meaning, not workflow
+execution policy. A reference to a span, field, series, or group never grants
+copy, relocation, processor, integrity, or write authority.
 
 `FirmwareMetadataStructure` is one located binding instance. It owns:
 
@@ -156,6 +165,28 @@ This slice does not claim the following later work:
 The existing Workbench facade may adapt binding identity to logical definition
 identity during migration, but it does not become a second resolver or a new
 consumer authority.
+
+### #186 TP Flash Header extension boundary
+
+GitHub issue #186 applies the same exact-reference ceiling to the NT51929 and
+NT51932 Type-AB TP Flash Header:
+
+- `firmware-family-v1.1-tp-header.schema.json` declares the closed
+  `tp-flash-header` typed payload;
+- each physical field is declared once, including all eight DLM CRC fields;
+- an explicit IC Count table resolves each series member as Active, Unused, or
+  Unknown without changing field existence or authority;
+- Standard, TPA, and TPB structures retain distinct artifact instances while
+  sharing the exact immutable provider definition;
+- TPA and TPB input locators remain at the unshifted TP-BIN source coordinate;
+  final B-bank placement is a separate composition concern; and
+- `composition-profile-v2.11.schema.json` records reference-only target and
+  purpose bindings. It does not lower operations or authorize writes.
+
+#189 owns consumption of the relocation group by NT51919/29/32 AB lowering.
+#194 owns the remaining headless runtime/report migration and parity-adapter
+deletion. This extension therefore freezes their canonical seam without
+duplicating those downstream execution owners.
 
 ## Alternatives
 

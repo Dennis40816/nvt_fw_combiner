@@ -9,6 +9,12 @@ the build-selected strict extension
 same schema id and base ownership rules. The durable ownership, trust, and
 prerequisite-resolution decision is recorded in
 [ADR 0040](../adr/0040-canonical-metadata-definition-references-and-prerequisites.md).
+Bundles that additionally declare typed TP Flash Header metadata use the
+build-selected strict successor
+[`firmware-family-v1.1-tp-header.schema.json`](firmware-family-v1.1-tp-header.schema.json).
+It retains schema version `1.1`, the common firmware-family schema id, every
+relations-schema constraint, and is selected by its exact trusted content
+hash.
 
 Migration status: schema 1.1's dedicated partial relationship kinds remain the
 current executable compatibility contract. ADR 0041 requires #177 to replace
@@ -122,6 +128,34 @@ two forms are mutually exclusive. A reference pins exact provider `familyId`, `f
 bundles, and Profiles retains the provider's same immutable definition object. A missing, stale,
 ambiguous, or non-allow-listed reference rejects the family; consumers never copy the provider's
 offsets or field table.
+
+The TP Header successor keeps three closed metadata-structure shapes:
+
+- legacy inline definitions omit both `structureKind` and `tpFlashHeader`;
+- typed inline definitions declare `structureKind = "tp-flash-header"` and
+  one complete `tpFlashHeader` payload; and
+- exact `definitionReference` bindings omit all inline definition facts,
+  including the discriminator and typed payload.
+
+Unknown discriminators, a payload without its discriminator, a discriminator
+without its payload, or any referenced/inline mixture reject schema
+validation. The TP payload requires named structure-relative spans and one
+semantic reference for every common physical field. Repeated fields use
+explicit `{ index, fieldId }` members and explicit `icCount` applicability
+rows; groups reference field or series ids. The payload contains no second
+field geometry: offsets, widths, encodings, and byte order remain declared
+exactly once in the common `fields` array. Duplicate ids, dangling references,
+range containment, applicability membership, and complete field-semantic
+coverage remain normalizer/Domain invariants after schema validation.
+
+Address-valued fields also declare `storedAddress`, which describes the
+integer encoded in the field rather than the field's own byte position.
+`destination-address` currently requires an `absolute` basis in its named
+value address space (for example `sram`). `tp-bin-start-address` requires
+address space `tp-bin` with basis `tp-bin-offset`. Non-address roles must omit
+`storedAddress`. This keeps a Header stored address distinct from TP BIN byte
+position, final Flash image position, and a TPB placement delta; profiles may
+reference the fact but do not gain relocation authority from it.
 
 `metadata-field-selected` is the closed dependent-locator form. It names one structure selected by
 the same map, one unsigned prerequisite field, non-overlapping inclusive value branches, and one

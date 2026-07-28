@@ -244,7 +244,7 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
             metadataBinding,
             structure,
             selectedDefinitions.Select(static field => field.FieldId),
-            [MetadataInspectionPurpose.Display, MetadataInspectionPurpose.Version]);
+            [MetadataReferencePurpose.Display, MetadataReferencePurpose.Version]);
         ResolvedMetadataPlan plan = new MetadataPlanDefinition([entry])
             .Resolve(new ResolutionToken("test-catalog:firmware-config"));
         return FirmwareMetadataInspector.Inspect(plan, [artifact]);

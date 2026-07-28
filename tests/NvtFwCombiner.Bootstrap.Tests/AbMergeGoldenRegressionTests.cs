@@ -16,7 +16,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class AbMergeGoldenRegressionTests
 {
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string Nt51929BundleContentHash = "93902043b6e4ea4c8a2023a7f02c798e4497de3523b21115797e9b302ce22292";
+    private const string Nt51929BundleContentHash = "6486c31690463aa9624ef36c5701d7620c5ef9467917c0bc68831e5e93a2590d";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
     private const string Nt51950BundleContentHash = "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206";
 
@@ -103,7 +103,7 @@ public sealed class AbMergeGoldenRegressionTests
         CompiledComposition composition = CompileProfile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(Nt51929BundleDirectory, Nt51929BundleContentHash),
             profileId,
-            "0.2.0",
+            "0.3.0",
             icId,
             capacity);
         byte[] dp = CreateAddressSensitivePattern(capacity, 0x31);
@@ -380,10 +380,20 @@ public sealed class AbMergeGoldenRegressionTests
         string icId,
         string? profileId = null)
     {
+        string requestedProfileId =
+            profileId ?? goldenCase.GetProperty("profileId").GetString()!;
+        string requestedProfileVersion = requestedProfileId is
+            "nt51919-ab-merge-alias" or
+            "nt51929-ab-merge" or
+            "nt51932-ab-merge"
+                // The 0.3.0 bump adds read-only canonical metadata references;
+                // the independently owned 0.2.0 expected bytes remain unchanged.
+                ? "0.3.0"
+                : goldenCase.GetProperty("profileVersion").GetString()!;
         return CompileProfile(
             catalog,
-            profileId ?? goldenCase.GetProperty("profileId").GetString()!,
-            goldenCase.GetProperty("profileVersion").GetString()!,
+            requestedProfileId,
+            requestedProfileVersion,
             icId,
             goldenCase.GetProperty("mapCapacity").GetInt64());
     }
