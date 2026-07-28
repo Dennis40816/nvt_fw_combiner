@@ -17,16 +17,19 @@
   },
   "mapBinding": {
     "familyId": "nt51917-nt51927-nt51928-canonical-container",
-    "familyVersion": "1.2.0",
-    "familyContentHash": "136341752985c063aacc32ee10bf7c61f9d0484c2ac27ff5aafab9bc754b56e8",
+    "familyVersion": "1.3.0",
+    "familyContentHash": "cba6c93b4b23c10fc1e2372b227c994a857b498d6e3d58ee65d540994da64f8f",
     "mapIds": [
-      "nt51917-standard-merge-256k"
+      "nt51927-standard-merge-256k"
     ],
     "requiredRegionIds": [
       "tp-code",
       "dp-code"
     ],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": [
+      "firmware-config-general-parameters",
+      "dpcmi"
+    ],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -131,17 +134,65 @@
       }
     }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "firmware-config-general-parameters-inspection",
+      "spaceId": "tp-input",
+      "structureId": "firmware-config-general-parameters",
+      "fieldIds": [
+        "tp-firmware-version",
+        "tp-firmware-version-complement",
+        "sensor-count-x",
+        "sensor-count-y",
+        "display-resolution-x",
+        "display-resolution-y",
+        "maximum-operable-fingers",
+        "report-irq-type",
+        "tp-firmware-subversion",
+        "tp-resolution-x",
+        "tp-resolution-y",
+        "observed-ic-count",
+        "outermost-ic-master-enable",
+        "common-firmware-major-version",
+        "common-firmware-minor-version",
+        "common-firmware-additional-version",
+        "pid"
+      ],
+      "purposes": [
+        "validation",
+        "output-naming",
+        "display",
+        "version"
+      ]
+    },
+    {
+      "bindingId": "dpcmi-inspection",
+      "spaceId": "dp-input",
+      "structureId": "dpcmi",
+      "fieldIds": [
+        "jira-low",
+        "dp-major",
+        "dp-minor",
+        "jira-high"
+      ],
+      "purposes": [
+        "validation",
+        "output-naming",
+        "display",
+        "version"
+      ]
+    }
+  ],
   "regionAccessRules": [
     {
       "regionId": "tp-code",
       "access": "whole",
-      "reason": "Owner-confirmed NT51917 alias inherits the NT51927 Standard Merge TP range."
+      "reason": "Owner-confirmed NT51917 perfect-family member uses the canonical NT51927 Standard Merge TP range."
     },
     {
       "regionId": "dp-code",
       "access": "whole",
-      "reason": "Owner-confirmed NT51917 alias inherits the NT51927 Standard Merge DP range."
+      "reason": "Owner-confirmed NT51917 perfect-family member uses the canonical NT51927 Standard Merge DP range."
     }
   ],
   "operations": [
@@ -149,7 +200,7 @@
       "operationId": "copy-tp",
       "sequence": 100,
       "overlapPolicy": "reject",
-      "reason": "Copy the owner-confirmed NT51917 alias TP range.",
+      "reason": "Copy the owner-confirmed NT51917 perfect-family TP range.",
       "kind": "copy-range",
       "sourceViewId": "tp-source",
       "targetViewId": "tp-output"
@@ -158,7 +209,7 @@
       "operationId": "copy-dp",
       "sequence": 200,
       "overlapPolicy": "reject",
-      "reason": "Copy the owner-confirmed NT51917 alias DP range.",
+      "reason": "Copy the owner-confirmed NT51917 perfect-family DP range.",
       "kind": "copy-range",
       "sourceViewId": "dp-source",
       "targetViewId": "dp-output"

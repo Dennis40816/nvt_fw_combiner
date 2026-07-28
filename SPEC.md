@@ -1253,14 +1253,27 @@ version.
     locator authorities. The legacy DP-version reader is parity-only and is
     deleted after all callers move.
 13. FirmwareConfig is one all-IC structure. Its General Parameters use one
-    declared prefix `[0x000, 0x029)`. TP FW, Common FW, PID, observed IC Count,
+    declared prefix `[0x000, 0x029)`. IC Count is the unsigned byte
+    `u8Chip_Num` at structure-relative offset `0x017`; it is not a TP Flash
+    Header field. TP FW, Common FW, PID, observed IC Count,
     X/Y sensor totals, Display and TP resolution, maximum operable fingers,
     report IRQ type, and whether the outermost IC is used as Master are typed
     fields from that structure. Runtime requires exactly one NVT marker and
     reports the observed marker count when that invariant fails. Later FWConfig
-    sections remain out of the initial target model.
+    sections remain out of the initial target model. A map or artifact may
+    supply a different locator binding, but it cannot redefine the field table.
+    `u8IRQ_Type` retains its raw byte and exposes the known meanings
+    `0x00 = ATTN edge falling`, `0x01 = ATTN edge rising`,
+    `0x10 = level low`, and `0x11 = level high`; an unknown byte remains
+    readable and owner-unknown. `u8BC_EN` has the binary domain `0` or `1`,
+    with only `1` selecting the outermost IC as Master; other bytes remain
+    readable but invalid. `u8CascadeEn` remains a raw unsigned byte until its
+    value meanings are owner-approved.
 14. TP Flash Header is a `tp-flash-header` metadata structure with named spans,
     fields, repeated series, semantic groups, and resolved instances.
+    Its initial model declares readable field geometry and semantics only:
+    it has no field-value admission assertions. CRCs, addresses, sizes, build
+    options, `same-code`, and `cascade-info` values are decoded as stored.
     Inspection, formatting, copy, relocation, integrity, processor authority,
     memory projection, and report classification reference it rather than
     restating offsets.

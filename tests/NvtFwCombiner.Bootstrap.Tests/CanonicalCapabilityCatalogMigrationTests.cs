@@ -363,7 +363,7 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
             "nt51919-nt51929-nt51932-perfect-map-256k",
             composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(
-            "cfa3a9fef751d5f4c372219549b31e59fb22a4c7f5579c2843dc1f922b59ea2f",
+            "08cc5133d1dcd8c5111e6be05cee4cccfc3d626b7dfd70aa951d7782eb90f6cb",
             composition.CompilationFingerprint);
     }
 

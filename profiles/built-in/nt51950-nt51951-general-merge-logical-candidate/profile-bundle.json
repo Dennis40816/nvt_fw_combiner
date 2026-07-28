@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51950-nt51951-general-merge-logical-candidate",
-  "bundleVersion": "0.10.1-candidate.3",
+  "bundleVersion": "0.10.1-shared-facts.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "0d6754abc0f60e7fd967023759893df67e834971ec568027fe861efc7d7d21f0",
+  "contentHash": "387e70efd2bfb4591852f700b5f0b1b3763b0fb7c5edd2cefa10d998b73b29b6",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -18,28 +18,28 @@
       "kind": "schema",
       "path": "schemas/firmware-family-v1.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "01416bca0e005245b0f51f9d3d78e438cb202e66a654614c99b9f2ed41ce581a"
+      "contentHash": "695e43c4c89b647b83333a776dc26e2a27b925c46448048ef0c38e839456a0e3"
     },
     {
       "entryId": "nt51950-nt51951-dp-perspective-family",
       "kind": "firmware-family",
       "path": "families/nt51950-nt51951-dp-perspective.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "62475c616c462b9c78f1e49654c2b375a65cb8b60ac8b1cc2d87a52853b1f85e"
+      "contentHash": "649ab340b691863dc7b6f0df7e1c351d04f7b196d8086ed244edfe62a3ba2230"
     },
     {
       "entryId": "nt51950-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51950-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "d25272ec65f8e455c394fd46efb66b3f48967012e2c21b942d493787655bc883"
+      "contentHash": "28f35e3962868d7ba96b6b5c0d90573ecffec241dfac8cffa42fbd3a8956a4af"
     },
     {
       "entryId": "nt51951-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51951-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "55659470821e8ac1d82914da99d798186a3c8f8be7423598e2519cda53361236"
+      "contentHash": "ff05036dac85cf152524d386576de20eae01a854e76d8fbc1bdaeee097bdd438"
     }
   ]
 }

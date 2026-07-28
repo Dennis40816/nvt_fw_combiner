@@ -15,8 +15,8 @@
   },
   "mapBinding": {
     "familyId": "nt51927",
-    "familyVersion": "1.2.0",
-    "familyContentHash": "d1492cb07789d2eb5f1ce6309d2e9cd7e106e566f60ecafdd48729769125a428",
+    "familyVersion": "1.3.0",
+    "familyContentHash": "bb547934bd68daba6ff8ff08ac3102e22b94812b4eba3f29babbcd14dc0e78a9",
     "mapIds": ["nt51917-standard-merge-256k"],
     "requiredRegionIds": ["dp-code"],
     "requiredMetadataStructureIds": ["dpcmi"],

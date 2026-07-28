@@ -19,19 +19,15 @@ public sealed class FirmwareFamilyRelationshipBindingTests
         MetadataPlanDefinition nt51932 = CreateDpReplacePlan("NT51932");
         FirmwareFamilyResolutionDefinition family =
             Assert.Single(nt51929.Entries).FamilyDefinition;
-        FirmwareFamilyRelationship relationship =
-            Assert.Single(family.FamilyRelationships);
+        PerfectFamilyRelationship relationship =
+            Assert.IsType<PerfectFamilyRelationship>(
+                Assert.Single(family.FamilyRelationships));
 
         Assert.Same(family, Assert.Single(nt51919.Entries).FamilyDefinition);
         Assert.Same(family, Assert.Single(nt51932.Entries).FamilyDefinition);
         Assert.Equal(
-            FirmwareFamilyRelationshipKind.PerfectLikeFamily,
-            relationship.Kind);
-        Assert.Equal(
             ["NT51919", "NT51929", "NT51932"],
             relationship.MemberIds);
-        Assert.Empty(relationship.SharedRegionIds);
-        Assert.Empty(relationship.MetadataDefinitions);
         FirmwareImageMap map = Assert.Single(family.ImageMaps);
         Assert.Equal(
             "nt51919-nt51929-nt51932-perfect-map-256k",
@@ -59,44 +55,100 @@ public sealed class FirmwareFamilyRelationshipBindingTests
         MetadataPlanDefinition plan = CreateStandardMergePlan(icId);
         FirmwareFamilyResolutionDefinition family =
             plan.Entries[0].FamilyDefinition;
-        FirmwareFamilyRelationship initialCode =
-            Assert.Single(family.FamilyRelationships, relationship =>
-                relationship.Kind ==
-                FirmwareFamilyRelationshipKind.InitialCodeSharedFamily);
-        FirmwareFamilyRelationship tp =
-            Assert.Single(family.FamilyRelationships, relationship =>
-                relationship.Kind ==
-                FirmwareFamilyRelationshipKind.TpSharedFamily);
+        PerfectFamilyRelationship perfect = Assert.Single(
+            family.FamilyRelationships.OfType<PerfectFamilyRelationship>());
+        SharedFactRelationship initialCode = Assert.Single(
+            family.FamilyRelationships.OfType<SharedFactRelationship>(),
+            static relationship =>
+                relationship.Role == FirmwareSharedFactRole.InitialCodeShared);
+        SharedFactRelationship tp = Assert.Single(
+            family.FamilyRelationships.OfType<SharedFactRelationship>(),
+            static relationship =>
+                relationship.Role == FirmwareSharedFactRole.TpShared);
 
-        Assert.Equal(["NT51927", "NT51928"], initialCode.MemberIds);
-        Assert.Equal(["dp-code"], initialCode.SharedRegionIds);
+        Assert.Equal(["NT51917", "NT51927"], perfect.MemberIds);
+        Assert.Equal(["NT51917", "NT51927", "NT51928"], initialCode.MemberIds);
         Assert.Equal(
-            [DpcmiMetadataContract.StructureId],
-            initialCode.MetadataDefinitions.Select(
-                static definition => definition.DefinitionId));
-        Assert.Equal(["NT51927", "NT51928"], tp.MemberIds);
-        Assert.Equal(["tp-code"], tp.SharedRegionIds);
+            ["nt51927-standard-merge-256k", "nt51928-standard-merge-512k"],
+            initialCode.ApplicableMaps.Select(static map => map.MapId));
         Assert.Equal(
-            ["firmware-config-general-parameters"],
-            tp.MetadataDefinitions.Select(
-                static definition => definition.DefinitionId));
+            [
+                (FirmwareSharedFactKind.Region, "dp-code"),
+            ],
+            initialCode.SharedFactReferences.Select(static reference =>
+                (reference.Kind, reference.FactId)));
+        AssertSharedRegionIdentity(initialCode, "dp-code");
+        Assert.Equal(["NT51917", "NT51927", "NT51928"], tp.MemberIds);
+        Assert.Equal(
+            [
+                (FirmwareSharedFactKind.Region, "tp-code"),
+            ],
+            tp.SharedFactReferences.Select(static reference =>
+                (reference.Kind, reference.FactId)));
+        AssertSharedRegionIdentity(tp, "tp-code");
         Assert.DoesNotContain(
-            family.FamilyRelationships.SelectMany(
-                static relationship => relationship.SharedRegionIds),
-            regionId => StringComparer.Ordinal.Equals(regionId, "ldc-code"));
+            family.FamilyRelationships
+                .OfType<SharedFactRelationship>()
+                .SelectMany(static relationship => relationship.SharedFactReferences),
+            static reference =>
+                reference.Kind == FirmwareSharedFactKind.Region &&
+                StringComparer.Ordinal.Equals(reference.FactId, "ldc-code"));
 
-        FirmwareMetadataStructure dpcmi =
-            AssertStructure(family, plan.Entries[0].ResolvedMap.ImageMap.MapId, "dpcmi");
-        Assert.Same(
-            Assert.Single(initialCode.MetadataDefinitions),
-            dpcmi.Definition);
-        Assert.Same(
-            Assert.Single(tp.MetadataDefinitions),
-            plan.Entries.Single(entry =>
-                StringComparer.Ordinal.Equals(
-                    entry.StructureDefinition.Definition.DefinitionId,
-                    "firmware-config-general-parameters"))
-                .StructureDefinition.Definition);
+        Assert.DoesNotContain(
+            family.FamilyRelationships
+                .OfType<SharedFactRelationship>()
+                .SelectMany(static relationship => relationship.SharedFactReferences),
+            static reference =>
+                reference.Kind == FirmwareSharedFactKind.MetadataDefinition &&
+                (StringComparer.Ordinal.Equals(
+                     reference.FactId,
+                     DpcmiMetadataContract.StructureId) ||
+                 StringComparer.Ordinal.Equals(
+                     reference.FactId,
+                     "firmware-config-general-parameters")));
+        Assert.Contains(
+            plan.Entries,
+            static entry => StringComparer.Ordinal.Equals(
+                entry.StructureDefinition.Definition.DefinitionId,
+                "firmware-config-general-parameters"));
+        Assert.Contains(
+            plan.Entries,
+            static entry => StringComparer.Ordinal.Equals(
+                entry.StructureDefinition.Definition.DefinitionId,
+                DpcmiMetadataContract.StructureId));
+    }
+
+    /// <summary>Perfect-family Standard Merge members expose the same canonical metadata definitions.</summary>
+    [Fact]
+    public void Nt51917Nt51927StandardMergeExposeTheSameMetadataDefinitions()
+    {
+        MetadataPlanDefinition nt51917 = CreateStandardMergePlan("NT51917");
+        MetadataPlanDefinition nt51927 = CreateStandardMergePlan("NT51927");
+
+        Assert.Equal(
+            [
+                DpcmiMetadataContract.StructureId,
+                "firmware-config-general-parameters",
+            ],
+            nt51917.Entries
+                .Select(static entry => entry.StructureDefinition.Definition.DefinitionId)
+                .Order(StringComparer.Ordinal));
+        Assert.Equal(
+            nt51927.Entries
+                .Select(static entry => entry.StructureDefinition.Definition.DefinitionId)
+                .Order(StringComparer.Ordinal),
+            nt51917.Entries
+                .Select(static entry => entry.StructureDefinition.Definition.DefinitionId)
+                .Order(StringComparer.Ordinal));
+        Assert.All(
+            nt51917.Entries,
+            entry => Assert.Same(
+                nt51927.Entries.Single(candidate =>
+                    StringComparer.Ordinal.Equals(
+                        candidate.StructureDefinition.Definition.DefinitionId,
+                        entry.StructureDefinition.Definition.DefinitionId))
+                    .StructureDefinition.Definition,
+                entry.StructureDefinition.Definition));
     }
 
     /// <summary>NT51950/51 declare TP sharing without importing DP/topology/AB facts.</summary>
@@ -106,24 +158,40 @@ public sealed class FirmwareFamilyRelationshipBindingTests
     public void Nt51950Nt51951RelationshipIsTpOnly(string icId)
     {
         MetadataPlanDefinition plan = CreateStandardMergePlan(icId);
-        FirmwareFamilyRelationship relationship = Assert.Single(
-            plan.Entries[0].FamilyDefinition.FamilyRelationships);
+        SharedFactRelationship relationship =
+            Assert.IsType<SharedFactRelationship>(
+                Assert.Single(
+                    plan.Entries[0].FamilyDefinition.FamilyRelationships));
 
-        Assert.Equal(
-            FirmwareFamilyRelationshipKind.TpSharedFamily,
-            relationship.Kind);
+        Assert.Equal(FirmwareSharedFactRole.TpShared, relationship.Role);
         Assert.Equal(["NT51950", "NT51951"], relationship.MemberIds);
-        Assert.Equal(["tp-overlay"], relationship.SharedRegionIds);
         Assert.Equal(
-            ["firmware-config-general-parameters"],
-            relationship.MetadataDefinitions.Select(
-                static definition => definition.DefinitionId));
+            [
+                "nt51950-standard-merge-1024k",
+                "nt51950-standard-merge-256k",
+                "nt51950-standard-merge-512k",
+                "nt51951-standard-merge-1024k",
+                "nt51951-standard-merge-256k",
+                "nt51951-standard-merge-512k",
+            ],
+            relationship.ApplicableMaps.Select(static map => map.MapId));
+        Assert.Equal(
+            [
+                (FirmwareSharedFactKind.Region, "tp-overlay"),
+            ],
+            relationship.SharedFactReferences.Select(static reference =>
+                (reference.Kind, reference.FactId)));
+        AssertSharedRegionIdentity(relationship, "tp-overlay");
         Assert.DoesNotContain(
-            relationship.MetadataDefinitions,
-            static definition =>
-                StringComparer.Ordinal.Equals(
-                    definition.DefinitionId,
-                    DpcmiMetadataContract.StructureId));
+            relationship.SharedFactReferences,
+            static reference =>
+                reference.Kind == FirmwareSharedFactKind.MetadataDefinition &&
+                (StringComparer.Ordinal.Equals(
+                     reference.FactId,
+                     DpcmiMetadataContract.StructureId) ||
+                 StringComparer.Ordinal.Equals(
+                     reference.FactId,
+                     "firmware-config-general-parameters")));
     }
 
     /// <summary>Every evidenced DP route reuses the canonical DPCMI definition at its owner-backed locator.</summary>
@@ -161,17 +229,23 @@ public sealed class FirmwareFamilyRelationshipBindingTests
             baseRegion.Range.Start + locator.Offset);
     }
 
-    private static FirmwareMetadataStructure AssertStructure(
-        FirmwareFamilyResolutionDefinition family,
-        string mapId,
-        string structureId)
+    private static void AssertSharedRegionIdentity(
+        SharedFactRelationship relationship,
+        string regionId)
     {
-        Assert.True(
-            family.TryResolveStructure(
-                mapId,
-                structureId,
-                out FirmwareMetadataStructure? structure));
-        return Assert.IsType<FirmwareMetadataStructure>(structure);
+        FirmwareRegion sharedRegion = Assert.IsType<FirmwareRegion>(
+            Assert.Single(
+                relationship.SharedFactReferences,
+                reference =>
+                    reference.Kind == FirmwareSharedFactKind.Region &&
+                    StringComparer.Ordinal.Equals(reference.FactId, regionId))
+                .Region);
+        Assert.All(
+            relationship.ApplicableMaps,
+            map => Assert.Same(
+                sharedRegion,
+                map.Regions.Single(region =>
+                    StringComparer.Ordinal.Equals(region.RegionId, regionId))));
     }
 
     private static MetadataPlanDefinition CreateStandardMergePlan(string icId)

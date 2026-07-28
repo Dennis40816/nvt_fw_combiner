@@ -16,11 +16,11 @@ It retains schema version `1.1`, the common firmware-family schema id, every
 relations-schema constraint, and is selected by its exact trusted content
 hash.
 
-Migration status: schema 1.1's dedicated partial relationship kinds remain the
-current executable compatibility contract. ADR 0041 requires #177 to replace
-them in the next reviewed contract revision with one typed
-`SharedFactRelationship`; do not add another role-specific relationship kind to
-schema 1.1. ADR 0042/#221 excludes retired ICs from that migration.
+Migration status: the strict relations schema and TP Header successor implement
+ADR 0041 with exactly two serialized relationship forms:
+`perfect-like-family` and `shared-fact-relationship`. The former dedicated
+`initial-code-shared-family` and `tp-shared-family` discriminators are no longer
+admitted. ADR 0042/#221 excludes retired ICs from this migration.
 
 ## Ownership
 
@@ -46,42 +46,62 @@ The strict relations schema permits zero or more owner-declared
 `familyRelationships`. A relationship is a firmware-semantic declaration, not
 an evidence alias, support decision, or runtime selector. Every relationship
 has one ordinally unique `relationshipId`, at least two explicit `memberIds`, a
-nonblank reason, and one or more evidence references. Membership is never
-inferred from equal bytes, filenames, hashes, versions, PIDs, or golden
-observations.
+nonblank `reason`, and one or more `evidenceRefs`. Membership is never inferred
+from equal bytes, filenames, hashes, versions, PIDs, or golden observations.
 
-The closed relationship kinds are:
+There are exactly two serialized relationship forms:
 
-- `perfect-like-family`: all family-document semantics are owned once for the
-  complete declared member set. Every map that contains one relationship
-  member contains the exact complete member set; member-scoped fact aliases,
+- `perfect-like-family` declares complete semantic equivalence for its members.
+  Its exact shape is `relationshipId`, `relationshipKind`, `memberIds`,
+  `reason`, and `evidenceRefs`. Every map that contains one relationship member
+  contains the exact complete member set; member-scoped fact aliases,
   capability exceptions, partial region lists, and partial metadata lists are
-  forbidden. `sharedRegionIds` and `metadataDefinitionIds` are therefore
-  omitted.
-- `initial-code-shared-family`: only the listed Initial Code regions and their
-  canonical metadata definitions are shared.
-- `tp-shared-family`: only the listed TP regions and their canonical metadata
-  definitions are shared.
+  forbidden.
+- `shared-fact-relationship` declares only explicitly referenced facts as
+  shared. Its exact shape is `relationshipId`, `relationshipKind`, `memberIds`,
+  `role`, `applicability`, `sharedFactReferences`, `reason`, and
+  `evidenceRefs`. `applicability.mapIds` is a nonempty exact map-id set; it is
+  never inferred from relationship membership or equal map contents.
 
-A partial relationship lists one or more `sharedRegionIds`. Every member must
-select the same region geometry for each listed id. Its optional
-`metadataDefinitionIds` select canonical logical definition identities, not
-structure instances or copied field/offset tables. Every member map must select
-that definition through its own applicable binding, and all selected
-structures must retain the same immutable definition reference. Unlisted
-regions, metadata, capacity, topology, LDC, integrity, processor, workflow, and
-publication facts remain outside the relationship.
+The closed author-facing roles for `shared-fact-relationship` are
+`initial-code-shared`, `tp-shared`, `tp-flash-header-shared`, and
+`diffdlm-shared`. A role explains review intent only. Changing it cannot select
+runtime behavior, expand applicability, or add an unreferenced fact.
 
-Two relationships of the same kind may not overlap in membership, and every
-declared member must exist in the family. Unknown members, missing shared
-regions, unequal region geometry, unavailable or ambiguous metadata
-definitions, member-specific perfect-like aliases/capabilities, and partial
+Each `sharedFactReferences` entry has the exact typed shape
+`{ "factKind": ..., "factId": ... }`. The current closed fact kinds are
+`region` and `metadata-definition`. A region reference selects one canonical
+region fact. A metadata-definition reference selects one canonical logical
+definition identity, not a structure instance or a copied field/offset table.
+The normalizer resolves each reference to the same immutable canonical object.
+A fact not referenced is not shared.
+For `region`, every applicable map must bind the exact same immutable region
+instance through one canonical region set; separately declared value-equal
+regions are rejected. Metadata definitions follow the same reference-identity
+rule.
+
+The old `initial-code-shared-family` and `tp-shared-family` discriminators,
+`sharedRegionIds`, `metadataDefinitionIds`, and every other undeclared
+relationship, applicability, or reference property are rejected by the strict
+schemas. Unknown members, map ids, references, or reference kinds; wrong-kind,
+missing, inapplicable, ambiguous, or unequal facts; conflicting relationship
+scope; member-specific perfect-like aliases or capabilities; and partial
 perfect-like map membership reject normalization.
 
-The family contract enforces only facts it owns. Composition operations,
+Unlisted regions, metadata, capacity, topology, LDC, integrity, processor,
+workflow, publication, support, evidence classification, and requested
+identity remain outside a partial relationship. Composition operations,
 processor stages, and product publication remain profile/policy authorities;
 their convergence onto the same family-owned facts is a separate migration
-gate and cannot be inferred from a relationship declaration.
+gate and cannot be inferred from any relationship declaration.
+
+A metadata definition that is globally canonical across its declared
+consumers—`firmware-config-general-parameters` for all ICs, or DPCMI for every
+route that explicitly declares it—is not a partial-family fact. Maps bind that
+one definition through their own structure instances and locators. A
+`shared-fact-relationship` lists such a definition only if the owner explicitly
+establishes that the definition itself is restricted to that relationship;
+ordinary global reuse must not appear in `sharedFactReferences`.
 
 Family identity is resolved before map applicability. The normalized requested IC must name an
 explicit member or owner-declared fact-scoped alias; PID, firmware version, chip count, filename,
@@ -147,6 +167,10 @@ field geometry: offsets, widths, encodings, and byte order remain declared
 exactly once in the common `fields` array. Duplicate ids, dangling references,
 range containment, applicability membership, and complete field-semantic
 coverage remain normalizer/Domain invariants after schema validation.
+Current TP Flash Header providers declare `assertions: []`: the typed model
+reads field values but imposes no value admission constraint. A CRC, address,
+size, option, `same-code`, or `cascade-info` value therefore cannot reject the
+Header structure merely because its stored value differs.
 
 Address-valued fields also declare `storedAddress`, which describes the
 integer encoded in the field rather than the field's own byte position.

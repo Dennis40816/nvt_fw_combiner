@@ -24,17 +24,12 @@ public static partial class FirmwareFamilyResolutionNormalizer
             static member => member.MemberId,
             "members",
             "memberId");
-        var definitionsById =
-            structuresByMap.Values
-                .SelectMany(static structures => structures.Values)
-                .Select(static structure => structure.Definition)
-                .GroupBy(static definition => definition.DefinitionId, StringComparer.Ordinal)
-                .ToDictionary(
-                    static group => group.Key,
-                    static group => group.First(),
-                    StringComparer.Ordinal);
+        var mapsById = maps.ToDictionary(
+            static map => map.MapId,
+            StringComparer.Ordinal);
         var relationshipIds = new HashSet<string>(StringComparer.Ordinal);
-        var membersByKind = new HashSet<(FirmwareFamilyRelationshipKind Kind, string MemberId)>();
+        var perfectFamilyMembers = new HashSet<string>(StringComparer.Ordinal);
+        var sharedBindings = new HashSet<SharedBindingKey>();
         var normalized = new FirmwareFamilyRelationship[relationshipDocuments.Count];
 
         for (int index = 0; index < relationshipDocuments.Count; index++)
@@ -60,56 +55,23 @@ public static partial class FirmwareFamilyResolutionNormalizer
                     "Family relationships require at least two ordinally unique members.");
             }
 
-            FirmwareFamilyRelationshipKind kind = relationship switch
-            {
-                FirmwarePerfectLikeFamilyRelationshipDocument =>
-                    FirmwareFamilyRelationshipKind.PerfectLikeFamily,
-                FirmwareInitialCodeSharedFamilyRelationshipDocument =>
-                    FirmwareFamilyRelationshipKind.InitialCodeSharedFamily,
-                FirmwareTpSharedFamilyRelationshipDocument =>
-                    FirmwareFamilyRelationshipKind.TpSharedFamily,
-                _ => throw Error(path, "Unknown family relationship shape."),
-            };
-            foreach (string memberId in relationship.MemberIds)
-            {
-                if (!membersByKind.Add((kind, memberId)))
-                {
-                    throw Error(
-                        $"{path}.memberIds",
-                        $"Member '{memberId}' has more than one '{kind}' relationship.");
-                }
-            }
-
             normalized[index] = relationship switch
             {
-                FirmwarePerfectLikeFamilyRelationshipDocument perfect =>
-                    NormalizePerfectLikeRelationship(
+                FirmwarePerfectFamilyRelationshipDocument perfect =>
+                    NormalizePerfectFamilyRelationship(
                         perfect,
-                        kind,
                         path,
                         maps,
                         aliases,
-                        capabilities),
-                FirmwareInitialCodeSharedFamilyRelationshipDocument initialCode =>
-                    NormalizeSharedPartRelationship(
-                        initialCode,
-                        initialCode.SharedRegionIds,
-                        initialCode.MetadataDefinitionIds,
-                        kind,
+                        capabilities,
+                        perfectFamilyMembers),
+                FirmwareSharedFactRelationshipDocument shared =>
+                    NormalizeSharedFactRelationship(
+                        shared,
                         path,
-                        maps,
+                        mapsById,
                         structuresByMap,
-                        definitionsById),
-                FirmwareTpSharedFamilyRelationshipDocument tp =>
-                    NormalizeSharedPartRelationship(
-                        tp,
-                        tp.SharedRegionIds,
-                        tp.MetadataDefinitionIds,
-                        kind,
-                        path,
-                        maps,
-                        structuresByMap,
-                        definitionsById),
+                        sharedBindings),
                 _ => throw Error(path, "Unknown family relationship shape."),
             };
         }
@@ -117,14 +79,24 @@ public static partial class FirmwareFamilyResolutionNormalizer
         return normalized;
     }
 
-    private static FirmwareFamilyRelationship NormalizePerfectLikeRelationship(
-        FirmwarePerfectLikeFamilyRelationshipDocument document,
-        FirmwareFamilyRelationshipKind kind,
+    private static PerfectFamilyRelationship NormalizePerfectFamilyRelationship(
+        FirmwarePerfectFamilyRelationshipDocument document,
         string path,
         IReadOnlyList<FirmwareImageMap> maps,
         IReadOnlyList<AliasDeclaration> aliases,
-        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilities)
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilities,
+        HashSet<string> perfectFamilyMembers)
     {
+        foreach (string memberId in document.MemberIds)
+        {
+            if (!perfectFamilyMembers.Add(memberId))
+            {
+                throw Error(
+                    $"{path}.memberIds",
+                    $"Member '{memberId}' has more than one perfect-family relationship.");
+            }
+        }
+
         var memberIds = new HashSet<string>(document.MemberIds, StringComparer.Ordinal);
         FirmwareImageMap[] relatedMaps =
         [
@@ -134,7 +106,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
             document.MemberIds.Any(memberId =>
                 relatedMaps.All(map => !map.Applicability.MemberIds.Contains(memberId, StringComparer.Ordinal))))
         {
-            throw Error(path, "Every perfect-like member must be selected by a family-owned map.");
+            throw Error(path, "Every perfect-family member must be selected by a family-owned map.");
         }
 
         foreach (FirmwareImageMap map in relatedMaps)
@@ -143,7 +115,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
             {
                 throw Error(
                     path,
-                    $"Perfect-like relationship '{document.RelationshipId}' contains member-specific map " +
+                    $"Perfect-family relationship '{document.RelationshipId}' contains member-specific map " +
                     $"'{map.MapId}'.");
             }
         }
@@ -157,162 +129,212 @@ public static partial class FirmwareFamilyResolutionNormalizer
         {
             (true, _) => throw Error(
                 path,
-                "Perfect-like firmware semantics cannot be represented by member-specific fact aliases."),
+                "Perfect-family firmware semantics cannot be represented by member-specific fact aliases."),
             (_, true) => throw Error(
                 path,
-                "Perfect-like firmware semantics cannot contain member-specific capability facts."),
-            _ => TranslateInvariant(path, () => new FirmwareFamilyRelationship(
+                "Perfect-family firmware semantics cannot contain member-specific capability facts."),
+            _ => TranslateInvariant(path, () => new PerfectFamilyRelationship(
                     document.RelationshipId,
-                    kind,
                     document.MemberIds,
-                    [],
-                    [],
                     document.Reason,
                     document.EvidenceRefs)),
         };
     }
 
-    private static FirmwareFamilyRelationship NormalizeSharedPartRelationship(
-        FirmwareFamilyRelationshipDocument document,
-        IReadOnlyList<string> sharedRegionIds,
-        IReadOnlyList<string> metadataDefinitionIds,
-        FirmwareFamilyRelationshipKind kind,
+    private static SharedFactRelationship NormalizeSharedFactRelationship(
+        FirmwareSharedFactRelationshipDocument document,
         string path,
-        IReadOnlyList<FirmwareImageMap> maps,
+        Dictionary<string, FirmwareImageMap> mapsById,
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, FirmwareMetadataStructure>> structuresByMap,
-        Dictionary<string, FirmwareMetadataStructureDefinition> definitionsById)
+        HashSet<SharedBindingKey> sharedBindings)
     {
-        ValidateDistinctFactIds(sharedRegionIds, $"{path}.sharedRegionIds");
-        ValidateDistinctFactIds(metadataDefinitionIds, $"{path}.metadataDefinitionIds");
-        if (sharedRegionIds.Count == 0)
+        FirmwareSharedFactRole role = NormalizeSharedFactRole(document.Role, $"{path}.role");
+        FirmwareSharedFactApplicabilityDocument applicability =
+            document.Applicability ?? throw Error(
+                $"{path}.applicability",
+                "Shared-fact relationships require explicit map applicability.");
+        IReadOnlyList<string> mapIds = RequireList(
+            applicability.MapIds,
+            $"{path}.applicability.mapIds");
+        ValidateDistinctFactIds(mapIds, $"{path}.applicability.mapIds");
+        if (mapIds.Count == 0)
         {
             throw Error(
-                $"{path}.sharedRegionIds",
-                "Shared-part relationships require at least one shared region.");
+                $"{path}.applicability.mapIds",
+                "Shared-fact relationships require at least one applicable map.");
         }
 
-        var definitions = new FirmwareMetadataStructureDefinition[
-            metadataDefinitionIds.Count];
-        for (int index = 0; index < metadataDefinitionIds.Count; index++)
+        var applicableMaps = new FirmwareImageMap[mapIds.Count];
+        var relationshipMembers = new HashSet<string>(document.MemberIds, StringComparer.Ordinal);
+        for (int index = 0; index < mapIds.Count; index++)
         {
-            string definitionId = metadataDefinitionIds[index];
-            if (!definitionsById.TryGetValue(definitionId, out FirmwareMetadataStructureDefinition? definition))
+            string mapId = mapIds[index];
+            if (!mapsById.TryGetValue(mapId, out FirmwareImageMap? map))
             {
                 throw Error(
-                    $"{path}.metadataDefinitionIds[{index}]",
-                    $"Unknown metadata definition '{definitionId}'.");
+                    $"{path}.applicability.mapIds[{index}]",
+                    $"Unknown shared-fact applicability map '{mapId}'.");
             }
 
-            definitions[index] = definition;
+            if (map.Applicability.MemberIds.Any(memberId => !relationshipMembers.Contains(memberId)))
+            {
+                throw Error(
+                    $"{path}.applicability.mapIds[{index}]",
+                    $"Map '{mapId}' admits a member outside relationship '{document.RelationshipId}'.");
+            }
+
+            applicableMaps[index] = map;
         }
 
-        FirmwareImageMap? baselineMap = null;
-        IReadOnlyDictionary<string, FirmwareMetadataStructure>? baselineStructures = null;
         foreach (string memberId in document.MemberIds)
         {
-            FirmwareImageMap[] memberMaps =
-            [
-                .. maps.Where(map =>
-                    map.Applicability.MemberIds.Contains(memberId, StringComparer.Ordinal) &&
-                    sharedRegionIds.Any(regionId =>
-                        map.Regions.Any(region =>
-                            StringComparer.Ordinal.Equals(region.RegionId, regionId)))),
-            ];
-            if (memberMaps.Length == 0)
+            if (applicableMaps.All(map =>
+                    !map.Applicability.MemberIds.Contains(memberId, StringComparer.Ordinal)))
             {
                 throw Error(
-                    $"{path}.memberIds",
-                    $"Member '{memberId}' has no map containing the declared shared part.");
-            }
-
-            foreach (FirmwareImageMap map in memberMaps)
-            {
-                IReadOnlyDictionary<string, FirmwareMetadataStructure> structures =
-                    structuresByMap[map.MapId];
-                if (sharedRegionIds.Any(regionId =>
-                        map.Regions.All(region =>
-                            !StringComparer.Ordinal.Equals(region.RegionId, regionId))))
-                {
-                    throw Error(
-                        $"{path}.sharedRegionIds",
-                        $"Map '{map.MapId}' contains only part of the declared shared geometry.");
-                }
-
-                if (metadataDefinitionIds.Any(definitionId =>
-                        structures.Values.All(structure =>
-                            !StringComparer.Ordinal.Equals(
-                                structure.Definition.DefinitionId,
-                                definitionId))))
-                {
-                    throw Error(
-                        $"{path}.metadataDefinitionIds",
-                        $"Map '{map.MapId}' does not select all metadata owned by the shared part.");
-                }
-
-                baselineMap ??= map;
-                baselineStructures ??= structures;
-                ValidateSharedPartMatchesBaseline(
-                    path,
-                    sharedRegionIds,
-                    metadataDefinitionIds,
-                    baselineMap,
-                    baselineStructures,
-                    map,
-                    structures);
+                    $"{path}.applicability.mapIds",
+                    $"Shared-fact applicability does not cover member '{memberId}'.");
             }
         }
 
-        return TranslateInvariant(path, () => new FirmwareFamilyRelationship(
+        IReadOnlyList<FirmwareSharedFactReferenceDocument> referenceDocuments = RequireList(
+            document.SharedFactReferences,
+            $"{path}.sharedFactReferences");
+        if (referenceDocuments.Count == 0)
+        {
+            throw Error(
+                $"{path}.sharedFactReferences",
+                "Shared-fact relationships require at least one typed fact reference.");
+        }
+
+        var referenceKeys = new HashSet<(FirmwareSharedFactKind Kind, string FactId)>();
+        var references = new FirmwareSharedFactReference[referenceDocuments.Count];
+        for (int index = 0; index < referenceDocuments.Count; index++)
+        {
+            FirmwareSharedFactReferenceDocument reference =
+                referenceDocuments[index] ?? throw Error(
+                    $"{path}.sharedFactReferences[{index}]",
+                    "Shared-fact reference cannot be null.");
+            string referencePath = $"{path}.sharedFactReferences[{index}]";
+            FirmwareSharedFactKind kind = NormalizeSharedFactKind(
+                reference.FactKind,
+                $"{referencePath}.factKind");
+            if (!referenceKeys.Add((kind, reference.FactId)))
+            {
+                throw Error(
+                    referencePath,
+                    $"Duplicate shared-fact reference '{kind}:{reference.FactId}'.");
+            }
+
+            references[index] = kind switch
+            {
+                FirmwareSharedFactKind.Region => ResolveSharedRegionReference(
+                    reference.FactId,
+                    applicableMaps,
+                    referencePath),
+                FirmwareSharedFactKind.MetadataDefinition =>
+                    ResolveSharedMetadataDefinitionReference(
+                        reference.FactId,
+                        applicableMaps,
+                        structuresByMap,
+                        referencePath),
+                _ => throw Error(
+                    $"{referencePath}.factKind",
+                    "Unknown shared firmware fact kind."),
+            };
+        }
+
+        SharedFactRelationship normalized = TranslateInvariant(path, () => new SharedFactRelationship(
                 document.RelationshipId,
-                kind,
+                role,
                 document.MemberIds,
-                sharedRegionIds,
-                definitions,
+                applicableMaps,
+                references,
                 document.Reason,
                 document.EvidenceRefs));
+        foreach (FirmwareImageMap map in normalized.ApplicableMaps)
+        {
+            foreach (FirmwareSharedFactReference reference in normalized.SharedFactReferences)
+            {
+                var key = new SharedBindingKey(map.MapId, reference.Kind, reference.FactId);
+                if (!sharedBindings.Add(key))
+                {
+                    throw Error(
+                        $"{path}.sharedFactReferences",
+                        $"Canonical fact '{reference.Kind}:{reference.FactId}' has more than one " +
+                        $"shared relationship on map '{map.MapId}'.");
+                }
+            }
+        }
+
+        return normalized;
     }
 
-    private static void ValidateSharedPartMatchesBaseline(
-        string path,
-        IReadOnlyList<string> sharedRegionIds,
-        IReadOnlyList<string> metadataDefinitionIds,
-        FirmwareImageMap baselineMap,
-        IReadOnlyDictionary<string, FirmwareMetadataStructure> baselineStructures,
-        FirmwareImageMap candidateMap,
-        IReadOnlyDictionary<string, FirmwareMetadataStructure> candidateStructures)
+    private static FirmwareSharedFactReference ResolveSharedRegionReference(
+        string regionId,
+        IReadOnlyList<FirmwareImageMap> applicableMaps,
+        string path)
     {
-        foreach (string regionId in sharedRegionIds)
+        ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
+        FirmwareRegion? baseline = null;
+        FirmwareImageMap? baselineMap = null;
+        foreach (FirmwareImageMap map in applicableMaps)
         {
-            FirmwareRegion baseline = baselineMap.Regions.Single(region =>
-                StringComparer.Ordinal.Equals(region.RegionId, regionId));
-            FirmwareRegion candidate = candidateMap.Regions.Single(region =>
-                StringComparer.Ordinal.Equals(region.RegionId, regionId));
-            if (baseline != candidate)
+            FirmwareRegion[] matches =
+            [
+                .. map.Regions.Where(region =>
+                    StringComparer.Ordinal.Equals(region.RegionId, regionId)),
+            ];
+            if (matches.Length != 1)
             {
                 throw Error(
-                    $"{path}.sharedRegionIds",
-                    $"Shared region '{regionId}' differs between maps '{baselineMap.MapId}' and " +
-                    $"'{candidateMap.MapId}'.");
+                    $"{path}.factId",
+                    $"Map '{map.MapId}' does not expose exactly one shared region '{regionId}'.");
+            }
+
+            baseline ??= matches[0];
+            baselineMap ??= map;
+            if (!ReferenceEquals(baseline, matches[0]))
+            {
+                throw Error(
+                    $"{path}.factId",
+                    $"Shared region '{regionId}' does not reuse one canonical region between maps " +
+                    $"'{baselineMap.MapId}' and '{map.MapId}'.");
             }
         }
 
-        foreach (string definitionId in metadataDefinitionIds)
+        return FirmwareSharedFactReference.ForRegion(
+            baseline ?? throw Error(path, "Shared region resolution requires an applicable map."));
+    }
+
+    private static FirmwareSharedFactReference ResolveSharedMetadataDefinitionReference(
+        string definitionId,
+        IReadOnlyList<FirmwareImageMap> applicableMaps,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, FirmwareMetadataStructure>> structuresByMap,
+        string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
+        FirmwareMetadataStructureDefinition? baseline = null;
+        FirmwareImageMap? baselineMap = null;
+        foreach (FirmwareImageMap map in applicableMaps)
         {
-            FirmwareMetadataStructureDefinition baselineDefinition = ResolveSharedDefinition(
-                baselineStructures,
+            FirmwareMetadataStructureDefinition definition = ResolveSharedDefinition(
+                structuresByMap[map.MapId],
                 definitionId,
                 path);
-            FirmwareMetadataStructureDefinition candidateDefinition = ResolveSharedDefinition(
-                candidateStructures,
-                definitionId,
-                path);
-            if (!ReferenceEquals(baselineDefinition, candidateDefinition))
+            baseline ??= definition;
+            baselineMap ??= map;
+            if (!ReferenceEquals(baseline, definition))
             {
                 throw Error(
-                    $"{path}.metadataDefinitionIds",
-                    $"Shared metadata definition '{definitionId}' does not reuse one canonical definition.");
+                    $"{path}.factId",
+                    $"Shared metadata definition '{definitionId}' does not reuse one canonical definition " +
+                    $"between maps '{baselineMap.MapId}' and '{map.MapId}'.");
             }
         }
+
+        return FirmwareSharedFactReference.ForMetadataDefinition(
+            baseline ?? throw Error(path, "Shared metadata resolution requires an applicable map."));
     }
 
     private static FirmwareMetadataStructureDefinition ResolveSharedDefinition(
@@ -332,7 +354,34 @@ public static partial class FirmwareFamilyResolutionNormalizer
             matches.Skip(1).All(candidate => ReferenceEquals(matches[0], candidate))
             ? matches[0]
             : throw Error(
-                $"{path}.metadataDefinitionIds",
-                $"Metadata definition '{definitionId}' is missing or ambiguous in a shared-part map.");
+                $"{path}.factId",
+                $"Metadata definition '{definitionId}' is missing or ambiguous in an applicable map.");
     }
+
+    private static FirmwareSharedFactRole NormalizeSharedFactRole(string token, string path)
+    {
+        return token switch
+        {
+            "initial-code-shared" => FirmwareSharedFactRole.InitialCodeShared,
+            "tp-shared" => FirmwareSharedFactRole.TpShared,
+            "tp-flash-header-shared" => FirmwareSharedFactRole.TpFlashHeaderShared,
+            "diffdlm-shared" => FirmwareSharedFactRole.DiffDlmShared,
+            _ => throw Error(path, $"Unknown shared-fact role '{token}'."),
+        };
+    }
+
+    private static FirmwareSharedFactKind NormalizeSharedFactKind(string token, string path)
+    {
+        return token switch
+        {
+            "region" => FirmwareSharedFactKind.Region,
+            "metadata-definition" => FirmwareSharedFactKind.MetadataDefinition,
+            _ => throw Error(path, $"Unknown shared firmware fact kind '{token}'."),
+        };
+    }
+
+    private sealed record SharedBindingKey(
+        string MapId,
+        FirmwareSharedFactKind Kind,
+        string FactId);
 }

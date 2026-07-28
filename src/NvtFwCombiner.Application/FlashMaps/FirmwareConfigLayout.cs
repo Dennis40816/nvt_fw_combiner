@@ -1,6 +1,11 @@
 namespace NvtFwCombiner.Application.FlashMaps;
 
-/// <summary>Reviewed FWConfig byte offsets used for firmware metadata and postbuild category selection.</summary>
+/// <summary>
+/// Compatibility offsets used by the legacy FWConfig reader and version-write
+/// routes during #194 migration. The canonical all-IC General Parameters field
+/// table is declared once in profile data; this class is not a second profile
+/// or TP Flash Header definition.
+/// </summary>
 public static class FirmwareConfigLayout
 {
     /// <summary>Offset of <c>u8FWVersion</c> from the start of <c>ST_PUB_FW_CONFIG.gstFwSettings</c>.</summary>
@@ -12,7 +17,10 @@ public static class FirmwareConfigLayout
     /// <summary>Offset of <c>u8FWSubVersion</c>.</summary>
     public const int FirmwareSubVersionOffset = 0x011;
 
-    /// <summary>Offset of <c>u8Chip_Num</c> / <c>CASCADE_CHIP_NUM</c>.</summary>
+    /// <summary>
+    /// Structure-relative offset of the all-IC <c>u8Chip_Num</c> /
+    /// <c>CASCADE_CHIP_NUM</c> source. TP Flash Header fields are unrelated.
+    /// </summary>
     public const int ChipNumberOffset = 0x017;
 
     /// <summary>Offset of <c>u8CommonFwMajorVersion</c>.</summary>

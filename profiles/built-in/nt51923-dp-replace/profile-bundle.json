@@ -1,13 +1,13 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51923-dp-replace-family",
-  "bundleVersion": "0.10.1-dpcmi.1",
+  "bundleVersion": "0.10.1-shared-facts.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "8a3efe8ffe4a3df89d025efbbb882d89c193e46a728127b03c1ca8f0c8797ca8",
+  "contentHash": "9496b7d6296e06fac81f4ca73a49ac1d4154ef9edc4dcf078fe433efa046081e",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     { "entryId": "composition-profile-v2-schema", "kind": "schema", "path": "schemas/composition-profile-v2.schema.json", "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json", "contentHash": "1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0" },
-    { "entryId": "firmware-family-v1-schema", "kind": "schema", "path": "schemas/firmware-family-v1.schema.json", "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json", "contentHash": "01416bca0e005245b0f51f9d3d78e438cb202e66a654614c99b9f2ed41ce581a" },
+    { "entryId": "firmware-family-v1-schema", "kind": "schema", "path": "schemas/firmware-family-v1.schema.json", "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json", "contentHash": "695e43c4c89b647b83333a776dc26e2a27b925c46448048ef0c38e839456a0e3" },
     { "entryId": "nt51923-nt51926-family", "kind": "firmware-family", "path": "families/nt51923-nt51926.json", "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json", "contentHash": "2659d42ee9c61884be1bbd0f3cc562591f0eb225813d5b18ec23903a34da8ec9" },
     { "entryId": "nt51923-dp-replace-profile", "kind": "composition-profile", "path": "profiles/nt51923-dp-replace.json", "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json", "contentHash": "9ae8145398ea731544d0301b23c82e58672d5de85c7385a38180a039a7a65cd8" },
     { "entryId": "nt51926-dp-replace-profile", "kind": "composition-profile", "path": "profiles/nt51926-dp-replace.json", "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json", "contentHash": "060aa8f1f00a61f67c862e0b8566d41046975b82bb50c0b986df7dc7e377cc91" }

@@ -12,7 +12,7 @@ namespace NvtFwCombiner.Application.Tests.Metadata;
 public sealed class FirmwareConfigGeneralParametersProjectorTests
 {
     private const int CapacityBytes = 0x40;
-    private const int StructureLengthBytes = 22;
+    private const int StructureLengthBytes = 23;
     private const string ArtifactBindingId = "tp-firmware";
     private const string FamilyHash =
         "abababababababababababababababababababababababababababababababab";
@@ -26,7 +26,7 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         new(FirmwareConfigGeneralParametersContract.DisplayResolutionX, 4, 2, 1920),
         new(FirmwareConfigGeneralParametersContract.DisplayResolutionY, 6, 2, 1080),
         new(FirmwareConfigGeneralParametersContract.MaximumOperableFingers, 8, 1, 10),
-        new(FirmwareConfigGeneralParametersContract.ReportIrqType, 9, 1, 2),
+        new(FirmwareConfigGeneralParametersContract.ReportIrqType, 9, 1, 0x10),
         new(FirmwareConfigGeneralParametersContract.TpFirmwareSubVersion, 10, 1, 3),
         new(FirmwareConfigGeneralParametersContract.TpResolutionX, 11, 2, 2880),
         new(FirmwareConfigGeneralParametersContract.TpResolutionY, 13, 2, 1800),
@@ -36,6 +36,7 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         new(FirmwareConfigGeneralParametersContract.CommonFirmwareMinorVersion, 18, 1, 5),
         new(FirmwareConfigGeneralParametersContract.CommonFirmwareAdditionalVersion, 19, 1, 6),
         new(FirmwareConfigGeneralParametersContract.Pid, 20, 2, 0x1234),
+        new(FirmwareConfigGeneralParametersContract.CascadeEnable, 22, 1, 1),
     ];
 
     /// <summary>Every semantic projector input is required; no partial fact object may escape.</summary>
@@ -59,12 +60,15 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         Assert.Equal((ushort)1920, facts.DisplayResolutionX);
         Assert.Equal((ushort)1080, facts.DisplayResolutionY);
         Assert.Equal((byte)10, facts.MaximumOperableFingers);
-        Assert.Equal((byte)2, facts.ReportIrqType);
+        Assert.Equal((byte)0x10, facts.ReportIrqType);
+        Assert.Equal(FirmwareConfigReportIrqMode.LevelLow, facts.ReportIrqMode);
         Assert.Equal((byte)3, facts.TpFirmwareSubVersion);
         Assert.Equal((ushort)2880, facts.TpResolutionX);
         Assert.Equal((ushort)1800, facts.TpResolutionY);
         Assert.Equal((byte)3, facts.ObservedIcCount);
+        Assert.True(facts.IsOutermostIcMasterEnableValid);
         Assert.True(facts.UseOutermostIcAsMaster);
+        Assert.Equal((byte)1, facts.CascadeEnable);
         Assert.Equal("4.5.6", facts.CommonFirmwareVersion);
         Assert.Equal((ushort)0x1234, facts.Pid);
     }
@@ -81,6 +85,44 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
             snapshot,
             out FirmwareConfigGeneralParametersFacts facts));
         Assert.False(facts.IsTpFirmwareVersionComplementValid);
+        Assert.True(facts.IsOutermostIcMasterEnableValid);
+        Assert.False(facts.UseOutermostIcAsMaster);
+    }
+
+    /// <summary>All four owner-defined IRQ encodings retain their raw byte and typed meaning.</summary>
+    [Theory]
+    [InlineData(0x00, FirmwareConfigReportIrqMode.AttentionEdgeFalling)]
+    [InlineData(0x01, FirmwareConfigReportIrqMode.AttentionEdgeRising)]
+    [InlineData(0x10, FirmwareConfigReportIrqMode.LevelLow)]
+    [InlineData(0x11, FirmwareConfigReportIrqMode.LevelHigh)]
+    public void TryProjectMapsKnownIrqBytesWithoutDiscardingRawValue(
+        byte rawValue,
+        FirmwareConfigReportIrqMode expectedMode)
+    {
+        MetadataInspectionSnapshot snapshot = CreateSnapshot(reportIrqType: rawValue);
+
+        Assert.True(FirmwareConfigGeneralParametersProjector.TryProject(
+            snapshot,
+            out FirmwareConfigGeneralParametersFacts facts));
+        Assert.Equal(rawValue, facts.ReportIrqType);
+        Assert.Equal(expectedMode, facts.ReportIrqMode);
+    }
+
+    /// <summary>Unknown IRQ and BC_EN values remain readable while their semantic validity is explicit.</summary>
+    [Fact]
+    public void TryProjectRetainsUnknownIrqAndInvalidOutermostMasterFlag()
+    {
+        MetadataInspectionSnapshot snapshot = CreateSnapshot(
+            reportIrqType: 0xFF,
+            outermostIcMasterEnable: 2);
+
+        Assert.True(FirmwareConfigGeneralParametersProjector.TryProject(
+            snapshot,
+            out FirmwareConfigGeneralParametersFacts facts));
+        Assert.Equal((byte)0xFF, facts.ReportIrqType);
+        Assert.Null(facts.ReportIrqMode);
+        Assert.Equal((byte)2, facts.OutermostIcMasterEnable);
+        Assert.False(facts.IsOutermostIcMasterEnableValid);
         Assert.False(facts.UseOutermostIcAsMaster);
     }
 
@@ -134,6 +176,7 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
     private static MetadataInspectionSnapshot CreateSnapshot(
         string? omittedFieldId = null,
         bool validComplement = true,
+        byte reportIrqType = 0x10,
         byte outermostIcMasterEnable = 1,
         bool includeComplementRelation = true,
         bool misbindComplementRelation = false)
@@ -224,6 +267,7 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
             [metadataSet]);
         byte[] artifactBytes = CreateArtifactBytes(
             validComplement,
+            reportIrqType,
             outermostIcMasterEnable);
         var artifact = new FirmwareArtifactPayload(ArtifactBindingId, artifactBytes);
         ResolvedFirmwareImageMap resolvedMap = Assert.IsType<ResolvedFirmwareImageMap>(
@@ -252,6 +296,7 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
 
     private static byte[] CreateArtifactBytes(
         bool validComplement,
+        byte reportIrqType,
         byte outermostIcMasterEnable)
     {
         byte[] bytes = new byte[CapacityBytes];
@@ -263,6 +308,8 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
                     when !validComplement => 0xA4,
                 FirmwareConfigGeneralParametersContract.OutermostIcMasterEnable =>
                     outermostIcMasterEnable,
+                FirmwareConfigGeneralParametersContract.ReportIrqType =>
+                    reportIrqType,
                 _ => field.Value,
             };
             for (int index = 0; index < field.WidthBytes; index++)

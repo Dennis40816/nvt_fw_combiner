@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51929-standard-merge-family",
-  "bundleVersion": "0.10.0-tp-header-metadata.1",
+  "bundleVersion": "0.10.1-shared-facts.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "3270451ed264d59744400e131086d7a69c652384982946883c56483280786b69",
+  "contentHash": "14a3b2808a5377af39b683fe44f60f152e9c7f4a15c18e5c9e264ad6ea2b0827",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -18,7 +18,7 @@
       "kind": "schema",
       "path": "schemas/firmware-family-v1.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "fa0b1fd4a0fb7a56e1f2f77ed76cdb08a01606ea5596d99b0fda55c8339b2223"
+      "contentHash": "df51a164a73ab3c6dae4139b5501b4e34e5faad750267c7aa353d1e3ee27129f"
     },
     {
       "entryId": "nt51919-standard-merge-profile",

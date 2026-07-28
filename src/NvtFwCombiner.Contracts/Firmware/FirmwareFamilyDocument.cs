@@ -37,45 +37,45 @@ public sealed record FirmwareFamilyMemberDocument(string MemberId, string Displa
 /// <summary>
 /// Shared DTO fields for one owner-declared family relationship. Relationship
 /// declarations contain firmware-semantic scope only; support, publication,
-/// evidence classification, workflow, processor, and topology authority are
-/// intentionally not representable here.
+/// evidence classification, workflow, and processor authority are intentionally
+/// not representable here.
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "relationshipKind")]
-[JsonDerivedType(typeof(FirmwarePerfectLikeFamilyRelationshipDocument), "perfect-like-family")]
-[JsonDerivedType(
-    typeof(FirmwareInitialCodeSharedFamilyRelationshipDocument),
-    "initial-code-shared-family")]
-[JsonDerivedType(typeof(FirmwareTpSharedFamilyRelationshipDocument), "tp-shared-family")]
+[JsonDerivedType(typeof(FirmwarePerfectFamilyRelationshipDocument), "perfect-like-family")]
+[JsonDerivedType(typeof(FirmwareSharedFactRelationshipDocument), "shared-fact-relationship")]
 public abstract record FirmwareFamilyRelationshipDocument(
     string RelationshipId,
     IReadOnlyList<string> MemberIds,
     string Reason,
     IReadOnlyList<string> EvidenceRefs);
 
-/// <summary>DTO for one complete perfect-like firmware-semantic relationship.</summary>
-public sealed record FirmwarePerfectLikeFamilyRelationshipDocument(
+/// <summary>DTO for one complete perfect-family firmware-semantic relationship.</summary>
+public sealed record FirmwarePerfectFamilyRelationshipDocument(
     string RelationshipId,
     IReadOnlyList<string> MemberIds,
     string Reason,
     IReadOnlyList<string> EvidenceRefs)
     : FirmwareFamilyRelationshipDocument(RelationshipId, MemberIds, Reason, EvidenceRefs);
 
-/// <summary>DTO for one Initial Code geometry and owned-metadata relationship.</summary>
-public sealed record FirmwareInitialCodeSharedFamilyRelationshipDocument(
-    string RelationshipId,
-    IReadOnlyList<string> MemberIds,
-    IReadOnlyList<string> SharedRegionIds,
-    IReadOnlyList<string> MetadataDefinitionIds,
-    string Reason,
-    IReadOnlyList<string> EvidenceRefs)
-    : FirmwareFamilyRelationshipDocument(RelationshipId, MemberIds, Reason, EvidenceRefs);
+/// <summary>DTO for the exact image maps on which one shared-fact relationship applies.</summary>
+public sealed record FirmwareSharedFactApplicabilityDocument(
+    IReadOnlyList<string> MapIds);
 
-/// <summary>DTO for one TP geometry and owned-metadata relationship.</summary>
-public sealed record FirmwareTpSharedFamilyRelationshipDocument(
+/// <summary>DTO for one typed exact reference to a canonical shared firmware fact.</summary>
+public sealed record FirmwareSharedFactReferenceDocument(
+    string FactKind,
+    string FactId);
+
+/// <summary>
+/// DTO for one partial relationship whose readable role never selects runtime
+/// behavior; only its exact map applicability and typed fact references do.
+/// </summary>
+public sealed record FirmwareSharedFactRelationshipDocument(
     string RelationshipId,
     IReadOnlyList<string> MemberIds,
-    IReadOnlyList<string> SharedRegionIds,
-    IReadOnlyList<string> MetadataDefinitionIds,
+    string Role,
+    FirmwareSharedFactApplicabilityDocument Applicability,
+    IReadOnlyList<FirmwareSharedFactReferenceDocument> SharedFactReferences,
     string Reason,
     IReadOnlyList<string> EvidenceRefs)
     : FirmwareFamilyRelationshipDocument(RelationshipId, MemberIds, Reason, EvidenceRefs);
