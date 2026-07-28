@@ -33,7 +33,16 @@
 `0.9.16` is the published focused hot-fix derived from official `v0.9.15` peeled commit `008333a9c96ea65454a334824d349f3574373edd`. It authorizes only profile-classified Header/Header Copy and topology-applicable CtrlRAM/DLM CRC writes, corrects AB/Replace presentation state, and skips DP-only metadata inspection for TP firmware. Single-IC routes explicitly exclude cascade-only DiffDLM/DLM CRC words. Owner-supplied NT51929 single Normal CtrlRAM evidence locks the production route to four Header/Header Copy CRC words without promoting runtime support or release redistribution of the private evidence. The separately approved `0.9.17` compatibility hot-fix starts from official `v0.9.16` and is limited to the DiffDLM active-NF preservation and selector behavior defined below; it does not import the `0.10.x` architecture. The `0.9.15` AB function state and its certification debt otherwise remain unchanged. `0.10.0` owns architecture, terminology, evidence inventory, process, validation standards, and ticket dependency planning only. The later `0.10.x` sequence owns the dependency-allocated Support Matrix, error/report experience, clean-Windows UI-smoke closure, release-workflow annotated-tag newline hardening, and production-maintainability slices. The canonical future sequence is [NFC Roadmap](docs/architecture/nfc_roadmap.md). Publication is permitted only after independent review, firmware-owner approval, protected CI, package verification, and release-owner approval; an omitted external gate must remain explicit rather than being described as passing.
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
-- NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.
+- NT51928 non-NB references NT51927 canonical Initial Code and TP facts
+  through typed `SharedFactRelationship` roles `initial-code-shared` and
+  `tp-shared`; the two ICs are not a perfect family. NT51928 admits one
+  `0x40000` form without LDC that directly follows the shared NT51927
+  composition and one `0x80000` form with its distinct LDC
+  `[0x40000,0x62000)`. Standard Merge and DP Replace each remain one public
+  capability. Standard Merge LDC absence selects the `0x40000` candidate;
+  supplied LDC selects `0x80000` and must pass structural validation without
+  fallback. DP Replace resolves from accepted Reference length. NT51928 NB
+  remains excluded.
 - The approved `0.10.x` NT51950/NT51951 target exposes single and the
   owner-confirmed exact
   2-IC Cascade CtrlRAM plan with identical TP offsets. The Cascade record starts
@@ -71,16 +80,23 @@
   warning, not a build blocker. Every Standard Merge TP source must cover its declared views and be
   `<= 0x40000`; oversize is a build error. NT51950/NT51951 remain the exception because they paste a
   full DP container and require exact selected-map capacity.
-- NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
+- NT51917 follows the complete NT51927 perfect-family definition, and NT51919
+  follows the complete NT51929 perfect-family definition. NT51928 non-NB
+  references only explicitly declared NT51927 Initial Code and TP facts through
+  `initial-code-shared` and `tp-shared`; every NT51928 CtrlRAM route, IC Count,
+  processor, evidence, and support decision remains separately profile-declared.
+  NT51928 NB is a separate IC and must not inherit either scope unless
+  explicitly approved.
 - The pre-retirement compatibility runtime has a trusted V2 DP Replace route
   for all 13 formerly selectable ICs. The `0.10.x` target retains only the
   non-retired profile set; #221 removes NT51920/NT51925/NT51930/NT51931 rather
-  than migrating those routes. Retained Gen Flash routes clone an exact same-IC
-  Standard/Normal Reference FlashCode and replace only the canonical DP
-  partition; NT51928 non-NB additionally requires a separate full
-  FlashCode-shaped LDC input for `[0x40000, 0x62000)`, distinct from DP
-  `[0x3C000, 0x40000)`. Authoring availability does not by itself grant a public
-  support claim.
+  than migrating those routes. Retained Gen Flash routes clone an accepted
+  same-IC Standard/Normal Reference FlashCode before applying only selected
+  canonical replacements. NT51928 non-NB accepts declared `0x40000` and
+  `0x80000` Reference variants. The former has no applicable LDC; the latter
+  permits independently optional Initial Code `[0x3C000,0x40000)` and LDC
+  `[0x40000,0x62000)` replacements but requires at least one selection.
+  Authoring availability does not by itself grant a public support claim.
 - NT51920, NT51925, NT51930, and NT51931 are retired from the `0.10.x`
   production capability set by the owner-approved retirement contract. Their
   former DiffDLM ranges remain historical evidence only and cannot be migrated,
@@ -170,7 +186,7 @@ Merge：
 
 Replace：
 
-- `dp-replace`：DP whole 或 profile-declared partitions；LD replacement also belongs to DP Replace and may be modeled as a separate LD replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
+- `dp-replace`：DP whole 或 profile-declared partitions；LDC replacement also belongs to DP Replace and may be modeled as a separate LDC replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
 - `ctrlram-replace`：只操作 physical `owner = tp`、`kind = ctrlram` 的 named regions，或完全由
   這類 regions 組成的 approved groups。
 - `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview/Build validation 約束。Any mapping that touches a TP-classified range must compile with an approved legacy Combiner CRC/header refresh after the replacement mutation.
@@ -759,7 +775,7 @@ through the same profile/compiler/engine and report `saved-rule` provenance.
 
 ### 10.6 Replace experiences
 
-- DP Replace：DP-focused; DP whole/declared-part access only. LD replacement is included in this experience and may be supplied as its own LD BIN。
+- DP Replace：DP-focused; DP whole/declared-part access only. LDC replacement is included in this experience and may be supplied as its own LDC BIN。
 - CtrlRAM Replace：只允許 physical `owner = tp`、`kind = ctrlram` regions 或完全由它們組成的
   approved groups。
 - General：explicit mapping inside profile-approved envelope。
@@ -769,10 +785,12 @@ interval/plan pairs. The `0.10.x` target does not preserve that inventory:
 #221 removes NT51920/NT51925/NT51930/NT51931 and #194 must not migrate or
 re-expose them. Retained priorities are DP Replace and CtrlRAM Replace for
 NT51917, NT51919, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929,
-NT51932, NT51950, and NT51951. NT51919/NT51929 follow the NT51932 fact scope;
-NT51928 non-NB follows NT51927 TP/CtrlRAM single/2IC/3IC authority while
-retaining a distinct DP/LDC image; NT51951 follows NT51950 TP authority with a
-distinct container capacity. Remaining release gates are per-plan direct
+NT51932, NT51950, and NT51951. NT51919/NT51929 follow the NT51932 fact scope.
+NT51928 non-NB shares only the explicitly referenced NT51927 Initial Code and
+TP facts while retaining distinct LDC/container facts; its separately declared
+CtrlRAM single/2IC/3IC profiles, IC Count applicability, processors, evidence,
+and support gates are not inherited through that relationship. NT51951 follows
+NT51950 TP authority with a distinct container capacity. Remaining release gates are per-plan direct
 expected-output evidence where recorded, independent R3 review, firmware-owner
 support promotion, canonical verification, and CI; they do not reintroduce
 golden identity as production admission.
@@ -821,7 +839,7 @@ Replace page groups experiences by user mental model：
 - CtrlRAM Replace。
 - General Replace。
 
-The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. DP Replace slot cards must allow profile-declared DP and LD payloads to be separate files when the profile requires it. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is DP Replace and CtrlRAM Replace workflows. IC num mode is profile-declared: two-option profiles use text choices such as `single` and `cascade`; three-or-more concrete IC-count profiles use numeric count selection with future room for Other/custom exceptions.
+The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. DP Replace slot cards must allow profile-declared DP and LDC payloads to be separate files when the profile requires it. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is DP Replace and CtrlRAM Replace workflows. IC num mode is profile-declared: two-option profiles use text choices such as `single` and `cascade`; three-or-more concrete IC-count profiles use numeric count selection with future room for Other/custom exceptions.
 
 ### 11.4 Preview/Build separation
 
@@ -1021,6 +1039,15 @@ version.
     least 50% by the end of the 0.10.x maintainability program, so that
     duplicated owners and compatibility paths are actually deleted rather than
     reorganized into equally large replacement modules.
+56. As an NT51928 operator, I want one Standard Merge and one DP Replace
+    capability to resolve either the shared `0x40000` no-LDC form or the
+    `0x80000` LDC form, so container differences do not create duplicate
+    profiles, routes, or Support Matrix rows.
+57. As a firmware operator, I want an applicable replacement group to require
+    at least one selected part while leaving each member optional, and I want a
+    uniform Initial Code/DP/LDC region reported as a warning rather than a Build
+    blocker, so optional composition and firmware plausibility remain distinct
+    from execution safety.
 
 ### 15.4 Implementation Decisions
 
@@ -1244,7 +1271,14 @@ version.
 
 10. DP is a logical artifact containing required Initial Code and an optional
     declared LDC part. TP is a separate logical artifact. Physical placement is
-    resolved by IC, map, IC Count, and artifact instance.
+    resolved by IC, map, IC Count, and artifact instance. NT51927/NT51928 share
+    only explicitly referenced Initial Code and TP facts through
+    `SharedFactRelationship`; NT51928 retains its distinct LDC and complete
+    container facts. NT51928 Standard Merge resolves one `0x40000` shared
+    Initial-Code/TP variant when LDC is absent and one `0x80000` variant when
+    LDC is selected. NT51928 DP Replace resolves those variants from the
+    accepted Reference length. Neither workflow duplicates public routes or
+    Support Matrix rows.
 11. An artifact or part declares metadata structures once. The common
     inspection plan contains structure references and resolved state only; a
     common inspector and formatter read the accepted immutable snapshot.
@@ -1337,7 +1371,17 @@ version.
 27. Repeated file inputs use one typed `AuthoringSlotState`, inspection
     lifecycle, normalization capability, validation projection, formatter, and
     visual control. The selected-file lifecycle is not stored in the immutable
-    artifact definition.
+    artifact definition. An explicit selection group may reference individually
+    optional `zero-or-one` slots and own a minimum/maximum selected count across
+    only the members applicable to the resolved map. NT51928 DP Replace groups
+    Initial Code and LDC with selected count `1..2`; a `0x40000` Reference makes
+    LDC `NotApplicable`, leaves Initial Code as the sole required selection,
+    and keeps the visible LDC slot annotated `Reference length does not include
+    LDC`. Before Reference inspection that slot is `PendingInput`. Switching
+    Reference variants revises the session and rejects stale/manual LDC
+    bindings.
+    Canonical public, profile, CLI, report, and UI terminology is `LDC`;
+    new contracts do not introduce `LD` aliases.
 28. General Merge and General Replace use one `AuthoringMappingState`, one
     invariant range codec, one Start + Length editor, and one typed draft shared
     by UI, CLI, Saved Rules, validation, memory projection, and compilation.
@@ -1353,6 +1397,15 @@ version.
     Run Report. A genuinely absent required input (`PendingInput`) blocks
     Preview; a supplied but invalid input (`Blocked`) remains diagnostically
     previewable while Build stays unavailable.
+31. Structural artifact admission remains blocking when a selected file is
+    unreadable, has an unsupported container length, cannot cover a required
+    range, or would create an out-of-bounds operation. A profile may separately
+    attach a warning-only `non-uniform-region` plausibility rule to one
+    canonical Initial Code, DP, or LDC source view. A view with only one
+    distinct byte emits the same typed warning through Application, UI, CLI,
+    Preview, and Build Report but does not alter map resolution, selection,
+    execution admission, or output bytes. The rule is explicit per profile and
+    is never inferred globally from artifact class, filename, or hash.
 
 Runtime readiness is valid only for the exact tuple `(RouteId,
 CapabilityFingerprint, ResolutionToken, AuthoringRevision,

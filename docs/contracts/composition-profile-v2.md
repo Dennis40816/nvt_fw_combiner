@@ -73,6 +73,21 @@ accepted extensions, typed length rule, typed normalization rule, and every immu
 including instance policy. The artifact does not treat `AddressSpace` geometry as a second source of
 input acceptance policy; the plan projection must agree with the compiled contract.
 
+The schema successor implemented by #239 adds profile-owned input selection
+groups. A group references existing `zero-or-one` slot ids and declares checked
+`minimumSelected`/`maximumSelected` counts. Compilation evaluates the group
+only across members applicable to the resolved map and retains the group
+definition reference plus resolved selection/readiness state in the compiled
+contract and fingerprint. It does not clone slot definitions, create another
+route, or make unrelated multi-input profiles optional.
+
+That successor also admits multiple declared maps for one NT51928 capability.
+For Standard Merge, LDC absence selects the `0x40000` candidate; supplied LDC
+selects the `0x80000` candidate and must then pass structural validation.
+Failure blocks and never falls back to absence. DP Replace resolves the same
+closed variants from accepted Reference length. Length never infers IC
+identity.
+
 Every admitted `requiredCapabilityIds` binding is retained in compilation provenance as the exact
 effective/direct `FirmwareMapFactBinding`, including capability value, applicability, alias chain, and
 evidence. The V2 compilation fingerprint format is `nfc.compiled-composition.profile-v2.v5` and binds
@@ -301,6 +316,14 @@ CMD, CMD-BK, FirmwareConfig, PID, and version facts without copying locator offs
 `pid-sanity` always rejects both `all-zero` and `all-ff`; it does not prove an input is TP by itself,
 but it rejects the known invalid identities before compile. `reject-metadata-byte-pattern` remains a
 generic validation for non-PID metadata.
+
+The #239 schema successor adds warning-only `non-uniform-region` plausibility
+validation over one canonical source view. The view must contain more than one
+distinct byte to avoid the warning. A uniform view emits the declared typed
+warning through Application, CLI, UI, Preview, and Build Report but never
+changes map resolution, group selection, execution admission, or output bytes.
+Profiles opt in explicitly; artifact class, filename, and hash do not attach
+the rule.
 
 Topology-independent shapes bind multiple map ids to one profile. This is how equivalent cases such
 as NT51951 Standard avoid duplicate single/cascade UI choices. A shape such as NT51950 Standard may

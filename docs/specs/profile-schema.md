@@ -18,6 +18,7 @@ migration. V1 becomes migration evidence only after v2 trusted-bundle loading an
   "experience": {},
   "mapBinding": {},
   "inputSlots": [],
+  "inputSelectionGroups": [],
   "spaces": [],
   "views": [],
   "metadataBindings": [],
@@ -52,6 +53,31 @@ Input slots declare artifact class, role, cardinality, accepted extensions, and 
 normalization policy. TP firmware is capped by `tp-maximum-256k`; Normal DP extraction warns on outer
 size mismatch but requires every declared view in bounds; whole-DP and reference inputs bind exact
 resolved-map capacity. Original filenames are always trace metadata and never IC/range truth.
+
+An input selection group references existing slot definitions and declares
+`minimumSelected` plus `maximumSelected`. Member slots retain their own
+`zero-or-one` cardinality; the group is evaluated only across members
+applicable to the resolved map variant. The resolved plan stores definition
+references plus selection/readiness state and does not copy slot or operation
+definitions. Group policy participates in capability identity but does not
+create another route.
+
+NT51928 is the first dual-capacity case. Standard Merge keeps DP and TP
+required. LDC absence selects the shared Initial-Code/TP `0x40000` candidate;
+supplied `ldc-input` selects the LDC-capable `0x80000` candidate and must then
+pass structural validation. Failure blocks and never falls back to absence.
+DP Replace selects those same declared variants from an accepted `0x40000` or
+`0x80000` Reference. Its `initial-code-replacement` and `ldc-replacement`
+group requires one or two applicable selections. On the `0x40000` variant LDC
+is `NotApplicable`, remains visible with the reason that Reference does not
+contain LDC, and stale/manual LDC bindings are rejected.
+
+Structural acceptance remains blocking. A profile may separately reference a
+warning-only `non-uniform-region` validation over a canonical Initial Code,
+DP, or LDC source view. A view containing only one distinct byte emits a typed
+warning without changing map resolution, readiness, execution admission, or
+output bytes. This validation is explicit profile authority, never a global
+inference from artifact class.
 
 Region access is deny-by-default:
 
