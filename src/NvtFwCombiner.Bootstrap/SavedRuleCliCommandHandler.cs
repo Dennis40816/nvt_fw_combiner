@@ -1,6 +1,5 @@
 using System.Globalization;
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -57,7 +56,7 @@ internal static class SavedRuleCliCommandHandler
                 return CompositionFailed;
             }
 
-            await PrintMappingsAsync(rule, draft, output).ConfigureAwait(false);
+            await PrintMappingsAsync(draft, output).ConfigureAwait(false);
         }
 
         return Success;
@@ -78,25 +77,29 @@ internal static class SavedRuleCliCommandHandler
     }
 
     private static async Task PrintMappingsAsync(
-        SavedCompositionRule rule,
         GeneralMappingDraftState draft,
         TextWriter output)
     {
         await output.WriteLineAsync("Mapping rows:").ConfigureAwait(false);
-        foreach (SavedRuleMappingRow row in rule.MappingRows)
+        foreach (GeneralMappingDraftRow row in draft.Rows)
         {
-            string sourceRange = row.SourceRange is null ? "(entire replacement file)" : FormatRange(row.SourceRange.Value);
             await output.WriteLineAsync(
-                    $"  {row.RowId}: {row.SourceReference} {sourceRange} -> {row.TargetAddressSpaceId} {FormatRange(row.TargetRange)}")
+                    $"  {row.MappingId}: {row.Source.Reference} {FormatRange(row.SourceRange)} -> {row.TargetAddressSpaceId} {FormatRange(row.TargetRange)}")
                 .ConfigureAwait(false);
         }
 
         await output.WriteLineAsync("CLI mapping fragments:").ConfigureAwait(false);
         foreach (GeneralMappingDraftRow row in draft.Rows)
         {
-            string fragment = rule.SourceExperience == IcWorkflowIds.GeneralMerge
-                ? FormatGeneralMergeMapping(row)
-                : FormatGeneralReplaceMapping(row);
+            string fragment = row.OperationKind switch
+            {
+                Domain.Composition.ExplicitMappingOperationKind.CopyRange =>
+                    FormatGeneralMergeMapping(row),
+                Domain.Composition.ExplicitMappingOperationKind.ReplaceRange =>
+                    FormatGeneralReplaceMapping(row),
+                _ => throw new InvalidOperationException(
+                    $"Unsupported General mapping operation kind '{row.OperationKind}'."),
+            };
             await output.WriteLineAsync($"  {fragment}").ConfigureAwait(false);
         }
     }

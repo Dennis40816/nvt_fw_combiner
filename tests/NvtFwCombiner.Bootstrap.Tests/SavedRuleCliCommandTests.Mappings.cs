@@ -166,6 +166,14 @@ public sealed partial class SavedRuleCliCommandTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains(
+            "reviewed-replace-operation: source-bin 0x0-0x1F (len 0x20) -> output-image 0x100-0x11F (len 0x20)",
+            result.Output,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "(entire replacement file)",
+            result.Output,
+            StringComparison.Ordinal);
+        Assert.Contains(
             "--mapping 0x100+0x20=<source-bin>",
             result.Output,
             StringComparison.Ordinal);
