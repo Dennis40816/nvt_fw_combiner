@@ -26,6 +26,42 @@ public sealed partial class RepositoryBoundaryTests
         AssertNoProductionText("LegacyCombinerPostbuildCatalog");
     }
 
+    /// <summary>Locks every Dynamic DiffDLM summary to active-prefix scatter and immutable inactive records.</summary>
+    [Fact]
+    public void DynamicDiffDlmSummariesPreserveInactiveRecords()
+    {
+        string[] summaries =
+        [
+            NormalizeWhitespace(ReadText(
+                "docs/architecture/integrity-processing-matrix.md")),
+            NormalizeWhitespace(ReadText(
+                "docs/architecture/ctrlram-postbuild-command-matrix.md")),
+        ];
+
+        foreach (string summary in summaries)
+        {
+            Assert.Contains(
+                "scatters only the declared `N - 1` active DLM prefixes",
+                summary,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "AE suffix after the active prefix does not enter the read set or write set",
+                summary,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "Every active Diff NF tail and every inactive target record remains byte-identical",
+                summary,
+                StringComparison.Ordinal);
+        }
+
+        static string NormalizeWhitespace(string text)
+        {
+            return string.Join(
+                ' ',
+                text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        }
+    }
+
     /// <summary>Verifies retained Legacy Combiner runner contract types stay split by responsibility.</summary>
     [Fact]
     public void LegacyPostbuildContractTypesStaySplit()

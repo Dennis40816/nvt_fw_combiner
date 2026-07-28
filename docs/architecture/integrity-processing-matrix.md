@@ -7,10 +7,13 @@ This matrix records current evidence. It is not a blanket support claim. `Unknow
 - ADR 0042/#221 retire NT51920, NT51925, NT51930, and NT51931. Their rows and
   ranges below remain legacy `0.9.x` evidence only and cannot become target
   selector, processor, or Support Matrix authority.
-- For #219/#188 `PreserveActiveDiffNf` routes, composition first applies the
-  selected DiffDLM payload, then restores every active Diff NF byte from the
-  immutable reference, and only then runs CRC/Postbuild. NT51923/NT51926 and the
-  NT51927 TP family retain full-artifact DiffDLM replacement.
+- For #219/#188 `PreserveActiveDiffNf` routes, composition scatters only the
+  declared `N - 1` active DLM prefixes from the selected DiffDLM payload. The
+  AE suffix after the active prefix does not enter the read set or write set.
+  Every active Diff NF tail and every inactive target record remains
+  byte-identical to the immutable reference before CRC/Postbuild runs.
+  NT51923/NT51926 and the NT51927 TP family retain full-artifact DiffDLM
+  replacement.
 
 Owner update 2026-06-30:
 
@@ -70,7 +73,7 @@ establish NT51951 product golden parity or support.
 
 | Flow | Stage/purpose | Processor expectation | Current processor facts | Status |
 | --- | --- | --- | --- | --- |
-| CtrlRAM Replace priority flows | post-replace header/integrity stage | legacy `combiner.exe` CRC/header recalculation expected | Combiner 1.13.0 postbuild is implemented for all 13 selectable ICs. Production family admission uses requested IC; only NT51926 has two Common-FW-selected runtime intervals, while every other IC has one `[1.0.0,infinity)` interval. All 31 cataloged interval/plan pairs have trusted V2 routes: NT51927 and NT51928 non-NB each expose single/2-chip/3-chip; NT51950/51 each expose single/cascade with identical TP authority but distinct image capacity. NT51928 preserves its DP/LDC tail and independently routes DP plus LDC; NT51950/51 package LDC inside DP. Exact PID/version/SHA/count facts remain regression evidence. Existing direct cases retain V1/V2, command, range, report, and immutable-input evidence; Build-only NT51926 TP-version edit still validates the final Backup before commit. | Route closure is support-neutral; direct output evidence and firmware-owner promotion remain per-plan gates |
+| CtrlRAM Replace priority flows | post-replace header/integrity stage | legacy `combiner.exe` CRC/header recalculation expected | Pre-#221 `0.9.x` compatibility evidence implemented Combiner 1.13.0 postbuild for all 13 then-selectable ICs and covered 31 cataloged interval/plan pairs with trusted V2 routes. This is historical characterization only: the `0.10.x` target retires NT51920/25/30/31 and cannot use those rows as selector, processor, publication, or admission authority. In the admitted inventory, NT51927 and NT51928 non-NB each expose single/2-chip/3-chip; NT51950/51 each expose single/cascade with identical TP authority but distinct image capacity. NT51928 preserves its DP/LDC tail and independently routes DP plus LDC; NT51950/51 package LDC inside DP. Exact PID/version/SHA/count facts remain regression evidence. Existing direct cases retain V1/V2, command, range, report, and immutable-input evidence; Build-only NT51926 TP-version edit still validates the final Backup before commit. | Route closure is support-neutral; direct output evidence and firmware-owner promotion remain per-plan gates |
 | DP Replace priority flows | no CRC/header stage unless DP evidence says otherwise | restore only the profile-declared TP range when DP container includes TP | 950/951 DP Replace clones an exact base image whose length must be `0x40000`, `0x80000`, or `0x100000`, replaces the full padded selected-length DP container, restores TP `0x0A000-0x36FFF (len 0x2D000)`, and keeps customer info `0x37000-0x37FFF (len 0x1000)` from replacement DP; other IC DP Replace mappings remain gated | 950/951 workbench V2 route, static public deterministic hashes, and archived owner-approved legacy comparison are migration evidence, not an independent hardware golden |
 | General Replace touching TP-classified ranges | post-replace header/integrity stage | legacy `combiner.exe` CRC/header recalculation required after the explicit mapping | Owner rule recorded 2026-07-03; profile compiler requires a later external processor operation for TP-classified explicit mappings. Workbench/UI and CLI now append the selected Combiner 1.13.0 postbuild plan for TP/CtrlRAM mappings when the IC has a postbuild profile; NT51950 golden-backed self-replacement evidence locks command traceability. Golden expected outputs remain required before production enablement. | Workbench execution wired; golden parity pending |
 

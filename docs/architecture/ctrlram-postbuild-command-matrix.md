@@ -4,10 +4,12 @@ This matrix records the normalized Combiner command sequences used after CtrlRAM
 
 `0.10.x` target amendment (2026-07-27): ADR 0042/#221 retire NT51920,
 NT51925, NT51930, and NT51931; their rows remain legacy `0.9.x` command
-evidence only. #219/#188 apply DiffDLM replacement and restore every active
-Diff NF range from the immutable reference before invoking the command sequence
-below. NT51923/NT51926 and the NT51927 TP family retain full-artifact DiffDLM
-replacement.
+evidence only. For #219/#188, composition scatters only the declared `N - 1`
+active DLM prefixes from the selected DiffDLM payload. The AE suffix after the
+active prefix does not enter the read set or write set. Every active Diff NF
+tail and every inactive target record remains byte-identical to the immutable
+reference before the command sequence below runs. NT51923/NT51926 and the
+NT51927 TP family retain full-artifact DiffDLM replacement.
 
 Evidence order:
 
