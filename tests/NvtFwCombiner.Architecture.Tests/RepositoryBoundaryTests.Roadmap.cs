@@ -54,14 +54,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Canonicalize only transport-level line endings", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("Status: owner-approved; synchronized with the closed design grill and GitHub", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("issues on 2026-07-27.", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 0 | Canonical pilot | #173 | Deliver the NT51929 Standard Merge canonical capability tracer | — |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 0 | Capability retirement | #221 | Retire NT51920/NT51925/NT51930/NT51931 production capabilities | — |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("#174, #175, #176, #221", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| done | Canonical pilot | #173 | Deliver the NT51929 Standard Merge canonical capability tracer | — |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 0 | Headless retirement | #221 | Retire NT51920/NT51925/NT51930/NT51931 production capabilities | — |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 4 | Headless data | #177 | Migrate remaining admitted metadata family bindings | #174, #175, #176, #221 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 5 | Headless firmware | #187 | Migrate admitted legacy TP Header families | #186, #221, and matching #177 family slice |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 12 | Deferred UI | #214 | Deliver Message Center and System Information diagnostics | #173, #185, #208 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 14 | Integration | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #195, #196 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("The open executable frontier", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains(
-            "after the 2026-07-27 synchronization is #173 plus the independent retirement",
+            "The open dependency-ready frontier is #183, #184, #186, #193, and #221.",
             dependencyPlan,
             StringComparison.Ordinal);
         Assert.Contains(

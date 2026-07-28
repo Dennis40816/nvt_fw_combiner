@@ -1,4 +1,6 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests.Capabilities;
@@ -210,6 +212,43 @@ public sealed class CanonicalCapabilityCatalogTests
             Assert.Single(reload.Snapshot!.CertificationIssues).Code);
     }
 
+    /// <summary>Runtime requirements are references selected by the compiled plan, not re-inferred profile facts.</summary>
+    [Fact]
+    public void RuntimeDependencyRequestUsesOnlyCompiledExternalProcessorReferences()
+    {
+        CanonicalCapabilityDefinition definition = CreateDefinition(
+            CreateCompiledCompositionWithExternalProcessor());
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueueCapabilitySource(
+                CapabilityCatalogLoadResult.Success(
+                    new CanonicalCapabilityCatalogCandidate(
+                        "canonical-capability-catalog",
+                        "1.0.0",
+                        new string('a', 64),
+                        [definition]))));
+        CapabilityCatalogReloadResult reload =
+            catalog.Reload(TestContext.Current.CancellationToken);
+        ResolvedCapability capability = catalog.Resolve(Route.RouteId).Capability!;
+
+        var revision = new AuthoringRevision(17);
+        var request =
+            RuntimeDependencyReadinessRequest.FromResolvedCapability(capability, revision);
+        var admission =
+            CapabilityAdmissionSnapshot.FromResolvedCapability(capability, revision);
+
+        Assert.Equal(Route.RouteId, request.RouteId);
+        Assert.Equal(capability.CapabilityFingerprint, request.CapabilityFingerprint);
+        Assert.Equal(reload.Snapshot!.ResolutionToken, request.ResolutionToken);
+        Assert.Equal(revision, request.AuthoringRevision);
+        Assert.Equal(revision, admission.AuthoringRevision);
+        Assert.Equal(capability.ExecutionAdmitted, admission.ExecutionAdmitted);
+        Assert.Equal(capability.Evidence.Value, admission.EvidenceStatus);
+        Assert.Equal(capability.Publication.Value, admission.PublicationStatus);
+        ExternalProcessorDependencyReference dependency = Assert.Single(request.Dependencies);
+        Assert.Equal("crc-worker", dependency.ProcessorId);
+        Assert.Equal("nvt-crc-worker", dependency.ToolBindingId);
+    }
+
     /// <summary>An explicit unavailable authoring decision blocks the exact route.</summary>
     [Fact]
     public void ResolveRejectsUnavailableAuthoring()
@@ -374,6 +413,43 @@ public sealed class CanonicalCapabilityCatalogTests
             plan,
             new LegacyCompiledCompositionIdentity(
                 "synthetic-nt51929-standard-merge",
+                "1.0.0",
+                "NT51929",
+                "standard-merge",
+                "standard-merge",
+                CompositionKind.Merge),
+            "synthetic-nt51929-standard-merge.bin",
+            CompiledIcNumberPolicy.NotApplicable);
+    }
+
+    private static CompiledComposition CreateCompiledCompositionWithExternalProcessor()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 8, AddressSpaceMutability.Mutable),
+        ];
+        var invocation = new ExternalProcessorInvocation(
+            "crc-worker",
+            "nvt-crc-worker",
+            [new ByteRange(0, 8)],
+            [new ByteRange(0, 8)]);
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 8, 0),
+            addressSpaces,
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "run-crc-worker",
+                    100,
+                    "output-image",
+                    new ByteRange(0, 8),
+                    invocation,
+                    OverlapPolicy.Reject,
+                    "Run the compiled CRC worker."),
+            ]);
+        return CompiledComposition.CreateLegacy(
+            plan,
+            new LegacyCompiledCompositionIdentity(
+                "synthetic-nt51929-standard-merge-with-processor",
                 "1.0.0",
                 "NT51929",
                 "standard-merge",
