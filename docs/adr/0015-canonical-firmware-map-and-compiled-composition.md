@@ -7,7 +7,7 @@
 - Supersedes: ADR 0008 catalog-join ownership after compatibility migration
 - Amends: ADR 0003, ADR 0004, ADR 0005, ADR 0006, and ADR 0007
 - Amended by: ADR 0016, ADR 0017, ADR 0018, ADR 0019, ADR 0020, ADR 0023,
-  ADR 0024, and ADR 0032
+  ADR 0024, ADR 0032, and ADR 0042
 
 ## Context
 
@@ -97,11 +97,138 @@ data through ports, while Bootstrap remains dependency injection only. The catal
 read-only query/session snapshot over those compiled results; it does not redefine firmware
 facts, replace `CompiledComposition`, or become a second compiler.
 
+The 2026-07-28 convergence amendment limits one firmware fact to three
+firmware-semantic forms:
+
+1. a Contracts-owned serialized DTO used only for trusted schema/version
+   validation and deserialization;
+2. one Domain-owned canonical immutable definition; and
+3. a resolved or compiled reference that stores only definition identity,
+   selected applicability, resolved/per-run state, and execution identity.
+
+Profiles services map validated DTOs into the Domain definition and may use
+private ephemeral builder/validation state, but they do not expose, cache, or
+persist a second semantic model. Bootstrap/Workbench, Application, Presentation,
+and CLI may project ids, readiness/status, and formatted values; they cannot
+mirror canonical firmware fields, ranges, locators, formatter rules,
+operations, processors, or integrity declarations. Accidental public
+implementation types are not compatibility authority and receive no
+replacement shim after repository callers migrate.
+
+The canonical compiler branches only on the closed, versioned semantic
+vocabulary: operation, locator, initialization, validation, integrity, and
+processor-stage kinds. Production compiler, Domain, Application, Bootstrap, and
+CLI code may not select behavior by IC id, family id/name, workflow id/name, or
+another data identity. IC Count, Single/Cascade, topology, map, capacity, and
+family differences are canonical definition/applicability data.
+Existing-vocabulary IC onboarding therefore changes trusted data and its
+independent policy/evidence only; it changes no production C#.
+
+When evidence requires behavior that the current vocabulary cannot express,
+the change introduces one reviewed reusable semantic primitive with coordinated
+schema, Domain, compiler, fingerprint, conformance, and evidence updates. An
+IC-specific branch or workaround is not an extension mechanism. Approved
+external processors remain manifest-pinned, staged, range-constrained adapters;
+they are not compiler plugins.
+
 Each exact route has a stable `RouteId` composed only from IC, workflow, IC Count variant, and map
 variant. Integrity, processor, artifact, metadata, operation, and other executable semantics are
 part of the separate `CapabilityFingerprint`. Authoring, publication, and evidence decisions bind
 both values. A fingerprint change makes prior decisions stale and requires review; it never
 silently inherits authority.
+
+Trust admission first verifies the separately pinned SHA-256 of each exact raw
+document. Line-ending, whitespace, encoding, or property-order normalization
+cannot make different document bytes satisfy that trust check. The remaining
+semantic content identities use one versioned, deterministic, language-neutral
+canonical encoding and one implementation owner. The fingerprint chain is:
+
+```text
+trusted document exact-byte hash
+  -> canonical definition hash
+  -> CapabilityFingerprint
+  -> compiled-plan fingerprint
+  -> run/Preview identity
+```
+
+Each layer references the lower-layer hash and appends only state introduced by
+that layer. It does not serialize the same fields, ranges, locators, operations,
+processors, or integrity facts again. Reflection, runtime/dictionary iteration
+order, C# type names, storage paths, and JSON paths cannot affect an identity.
+An IC, family, or workflow may not define a separate hash writer.
+
+`RouteId`, `ResolutionToken`, `AuthoringRevision`, and `FileStamp` retain their
+accepted non-content-hash meanings. A fingerprint-format change explicitly
+bumps the format version; affected authoring, publication, and evidence policy
+becomes stale and is reviewed and repinned rather than silently accepted.
+Cross-language vectors lock the canonical encoding and chain.
+
+Every runtime invariant has one validating owner:
+
+1. schema/Contracts intake validates serialized shape, required fields,
+   primitive types, closed discriminators, and local bounds;
+2. Domain canonical construction validates firmware-semantic ranges, overlap,
+   reference kinds, cycles, applicability, family/topology rules, and
+   definition completeness;
+3. resolution/compiler validates only unique selection and lowering against an
+   already valid canonical definition;
+4. Application validates selected inputs, authoring revision, readiness,
+   stale-result identity, and runtime dependencies; and
+5. the processor host validates staging, actual before/after mutation,
+   declared write authority, and tool identity.
+
+Downstream layers accept typed validated results and do not reimplement the
+same rule, message, or issue code. Assertions and contract tests may prove the
+upstream boundary. The engine and processor host continue to enforce their
+local memory-safety, staging, and execution preconditions; those checks reject
+invalid state without becoming alternate firmware-fact, policy, or diagnostic
+owners. An unvalidated wire DTO cannot bypass canonical
+normalization/construction or enter resolution, compilation, Application, or
+execution.
+
+Application exposes capability-centered use cases only: resolve/query a
+capability, create/update an authoring session, inspect selected artifacts,
+Preview/Build one compiled capability, retrieve its typed report, and refresh
+runtime dependencies. Standard Merge, AB Merge, General Merge, DP Replace,
+CtrlRAM Replace, and General Replace do not retain separate service/request/
+result hierarchies. Their differences are canonical workflow definitions, slot
+and authoring policies, typed mapping/slot child state, and compiled
+operations.
+
+General mappings, CtrlRAM selections, and other mode-specific drafts may use
+typed child state inside the shared session contract, but they cannot define a
+second execution/readiness/report pipeline. UI and CLI consume the same
+Application contracts without workflow facades of their own. Bootstrap remains
+wiring and cannot replace the deleted services with a broad gateway.
+
+External processor infrastructure similarly has one staged host and one adapter
+per reviewed protocol family, not per IC, workflow, topology, or stage.
+Canonical processor-plan data owns the tokenized plan, staging bindings,
+read/write authority, and tool identity. The compiled capability carries a
+typed stage; Infrastructure performs manifest resolution, execution lifecycle,
+independent diff, and mutation enforcement without firmware-identity branches.
+
+Every cache is an optional, bounded performance adapter. Disabling or clearing
+it cannot change resolution, compiled bytes, readiness, diagnostics, evidence,
+publication, or support. The allowed cache categories are the immutable trusted
+catalog snapshot, artifact inspection cache, bounded Hex viewport/page cache,
+and runtime-dependency snapshot. Workflow/UI code cannot create another cache
+of those facts.
+
+Keys include the complete applicable definition/content hashes,
+`CapabilityFingerprint`, `FileStamp`, topology/selection identity, and
+environment generation. IC, mode, filename, or path alone is never sufficient.
+Authoring sessions retain selected-file identity and revision, not complete BIN
+payloads or cache ownership. Each cache declares capacity/lifetime,
+invalidation owner, and stale-publication tests. A miss recomputes through the
+same canonical pipeline and never enables a fallback locator, route, policy, or
+support result.
+
+Within one accepted operation/revision, orchestration evaluates each expensive
+step once and passes its immutable result to every consumer. Inspection,
+resolution, compilation, engine execution, and each declared processor stage
+are not rerun by output naming, Memory Layout, reporting, UI, or CLI. This
+single-evaluation contract is separate from optional cross-operation caches.
 
 Authoring is one shared `Available` or `Unavailable` decision for UI and CLI. Publication is the
 separate explicit policy `Supported`, `Candidate`, `Internal`, or `TestOnly`; missing publication
@@ -188,15 +315,20 @@ FirmwareFamilyResolutionDefinition + ResolutionInputs
   -> ResolvedFirmwareImageMap
 
 composition-profile-v2 + ResolvedFirmwareImageMap + compile request
-  -> normalized CompositionProfileDefinition
+  -> Domain-owned canonical composition definition
   -> CompiledComposition
   -> one CompositionPlan / one CompositionEngine
 ```
 
-`CompositionProfileDefinition` remains the normalized typed Profiles model, but no longer owns a
-second physical region map. A v2 profile owns slots, logical views, experience access, mutable
-initializers, ordered operations, validators, processor stages, output naming, evidence, and
-promotion state. It references canonical map region/view ids and cannot relax map safety.
+During migration, `CompositionProfileDefinition` is the existing normalized
+Profiles type. It is not a permanent fourth representation. Canonical Core
+Convergence must either make it the Domain-owned canonical composition
+definition or eliminate it after direct Contract-to-Domain normalization.
+Private Profiles builder/validation state remains ephemeral and cannot be
+returned as consumer data. The canonical v2 definition owns slots, logical
+views, experience access, mutable initializers, ordered operations, validators,
+processor stages, output naming, evidence, and promotion state. It references
+canonical map region/view ids and cannot relax map safety.
 
 The compiler returns one immutable `CompiledComposition`, which is the only Application run
 boundary. It contains the sole `CompositionPlan`, profile/bundle/map identity and hashes, complete
@@ -248,8 +380,10 @@ bundle/profile/map hashes and compiled by the same compiler. Future REG Replace 
 a pending capability over canonical Register regions, with no executable profile or UI exposure
 until owner evidence exists. Neither creates a new executor.
 
-All 13 selectable ICs receive complete evidence/catalog resolution coverage. This is not a claim
-that every IC/workflow is authorable, compilable, executable, or supported.
+The legacy migration covered all 13 then-selectable ICs for evidence/catalog
+resolution. ADR 0042 removes NT51920, NT51925, NT51930, and NT51931 from the
+`0.10.x` production capability set, so their legacy coverage cannot materialize
+as a target selectable, executable, or published route.
 
 ## Consequences
 

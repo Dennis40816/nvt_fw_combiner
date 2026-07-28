@@ -5,6 +5,8 @@
 - Owner decision: 2026-07-21; DiffDLM/NF amendment 2026-07-27
 - Risk: R3; implementation and release still require firmware-owner review
 - Amends: ADR 0030 production-admission decision 2
+- Amended by: ADR 0042 for the `0.10.x` retirement of NT51920, NT51925,
+  NT51930, and NT51931
 
 ## Context
 
@@ -91,10 +93,12 @@ Consequently:
 
 ### DiffDLM and Diff NF write authority
 
-1. An AE-provided DiffDLM artifact uses the same full record stride as the target and includes a
-   Diff NF tail, but that source NF may be uniform `0x00`/`0xFF` filler and is not valid mutation
-   authority. The artifact cannot be copied contiguously over a target envelope that interleaves
-   Diff DLM and Diff NF.
+1. When the canonical firmware map declares a DiffDLM record that includes a Diff NF tail, an
+   AE-provided DiffDLM artifact uses the same full record stride as the target, but that source NF
+   may be uniform `0x00`/`0xFF` filler and is not valid mutation authority. A contiguous artifact
+   copy cannot be the final active-record mutation authority. A compatibility implementation may
+   copy the declared payload first only when the same compiled/verified sequence restores every
+   active Diff NF byte from the immutable reference before integrity processing.
 2. A canonical profile owns the source-record length, target-record stride, target DLM subrange,
    preserved NF subrange, IC Count applicability, and evidence. The compiled plan lowers those
    facts into ordinary explicit copy operations; no processor or UI-only mask may expand them.

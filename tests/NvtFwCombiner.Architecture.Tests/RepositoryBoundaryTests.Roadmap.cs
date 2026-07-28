@@ -10,6 +10,7 @@ public sealed partial class RepositoryBoundaryTests
         string tags = ReadText("docs/governance/development-tags.md");
         string deliveryRoadmap = ReadText("docs/architecture/v0.9.15-0.9.17-roadmap.md");
         string nfcRoadmap = ReadText("docs/architecture/nfc_roadmap.md");
+        string normalizedNfcRoadmap = nfcRoadmap.ReplaceLineEndings(" ");
         string dependencyPlan = ReadText("docs/governance/0.10.x-ticket-dependency-plan.md");
 
         Assert.Contains("Status: historical execution and release evidence", roadmap, StringComparison.Ordinal);
@@ -23,8 +24,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("## `0.10.0`: planning and governance baseline", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("## Later `0.10.x`: dependency-allocated implementation", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("It does not allocate or implement a production Support Matrix", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("issues #170 through #197", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Dependency depth is not a release version.", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains(
+            "The approved GitHub issues named in the",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "numbers are not assumed to be a contiguous range",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains("#207, #214, #219, and #221", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Dependency depth is not a release version.", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("## `0.11.0`: AB certification and family evidence", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("NT51950 AB `1 IC` and `Cascade`", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("selector-free NT51951 AB", nfcRoadmap, StringComparison.Ordinal);
@@ -44,18 +53,28 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("| Engineering |", nfcRoadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("| Phase | Scope | Exit gate |", nfcRoadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("Canonicalize only transport-level line endings", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Status: owner-approved; synchronized with the closed design grill and GitHub", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("issues on 2026-07-27.", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| done | Canonical pilot | #173 | Deliver the NT51929 Standard Merge canonical capability tracer | — |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("Status: owner-approved dependency graph.", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains(
+            "GitHub issues and PRs are the sole live\nexecution-state records.",
+            dependencyPlan,
+            StringComparison.Ordinal);
+        Assert.Contains("| 0 | Canonical pilot | #173 | Deliver the NT51929 Standard Merge canonical capability tracer | — |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 0 | Headless retirement | #221 | Retire NT51920/NT51925/NT51930/NT51931 production capabilities | — |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 4 | Headless data | #177 | Migrate remaining admitted metadata family bindings | #174, #175, #176, #221 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 5 | Headless firmware | #187 | Migrate admitted legacy TP Header families | #186, #221, and matching #177 family slice |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 12 | Deferred UI | #214 | Deliver Message Center and System Information diagnostics | #173, #185, #208 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 14 | Integration | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #195, #196 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 14 | Core convergence | #230 | Converge Domain + Profiles to one canonical firmware model | #195, #196 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 15 | Core convergence | #231 | Converge Application on capability-centered use cases | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 15 | Core convergence | #232 | Converge Infrastructure, Contracts, and CRC worker protocol ownership | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 16 | Core convergence | #233 | Converge Bootstrap + CLI to wiring-only composition | #195, #196, #230, #231, #232 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 17 | Core convergence | #229 | Complete Canonical Core Convergence under the hard production-size gate | #230, #231, #232, #233 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 18 | Integration | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #229 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains(
-            "The open dependency-ready frontier is #183, #184, #186, #193, and #221.",
+            "Live completion and dependency-ready frontier state are queried from GitHub;",
             dependencyPlan,
             StringComparison.Ordinal);
+        Assert.DoesNotContain("| done |", dependencyPlan, StringComparison.Ordinal);
+        Assert.DoesNotContain("open dependency-ready frontier", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains(
             "Dependency depth is a topological planning aid, not a release number.",
             dependencyPlan,

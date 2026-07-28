@@ -10,6 +10,12 @@ same schema id and base ownership rules. The durable ownership, trust, and
 prerequisite-resolution decision is recorded in
 [ADR 0040](../adr/0040-canonical-metadata-definition-references-and-prerequisites.md).
 
+Migration status: schema 1.1's dedicated partial relationship kinds remain the
+current executable compatibility contract. ADR 0041 requires #177 to replace
+them in the next reviewed contract revision with one typed
+`SharedFactRelationship`; do not add another role-specific relationship kind to
+schema 1.1. ADR 0042/#221 excludes retired ICs from that migration.
+
 ## Ownership
 
 A family document owns only facts that can be resolved without choosing a workflow:
