@@ -291,12 +291,15 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("Exact reviewed release-branch head", release_workflow)
         self.assertIn("source_branch:", release_workflow)
         self.assertIn("- 0.9.17", release_workflow)
+        self.assertIn("- 0.9.18", release_workflow)
         self.assertIn(
-            "NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17')",
+            "NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17', '0.9.18')",
             release_workflow,
         )
+        self.assertIn("'0.9.17' = '0.9.17'", release_workflow)
+        self.assertIn("'0.9.18' = '0.9.18'", release_workflow)
         self.assertIn(
-            "$env:NFC_SOURCE_BRANCH -ne '0.9.17' -or $version -ne '0.9.17'",
+            "$approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version",
             release_workflow,
         )
         self.assertIn("permissions:\n  contents: read", release_workflow)

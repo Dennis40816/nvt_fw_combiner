@@ -85,6 +85,25 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             },
         )
 
+    def test_accepts_exact_reviewed_0918_maintenance_identity(self) -> None:
+        maintenance_sha = "6" * 40
+        snapshot = {
+            **valid_snapshot(),
+            "baseRefName": "0.9.18",
+            "mergeCommitSha": maintenance_sha,
+        }
+
+        MODULE.validate_candidate_context(
+            snapshot,
+            **{
+                **self.candidate_arguments(),
+                "requested_sha": maintenance_sha,
+                "source_sha": maintenance_sha,
+                "source_branch": "0.9.18",
+                "source_version": "0.9.18",
+            },
+        )
+
     def test_rejects_unapproved_or_mismatched_maintenance_source(self) -> None:
         maintenance_sha = "5" * 40
         snapshot = {
@@ -100,6 +119,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         for source_branch, source_version in (
             ("0.9.16", "0.9.16"),
             ("0.9.17", "0.9.18"),
+            ("0.9.18", "0.9.17"),
         ):
             with self.subTest(
                 source_branch=source_branch, source_version=source_version
@@ -347,8 +367,8 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             "source_tree": TREE,
             "checkout_sha": maintenance_sha,
             "checkout_tree": TREE,
-            "source_branch": "0.9.17",
-            "source_version": "0.9.17",
+            "source_branch": "0.9.18",
+            "source_version": "0.9.18",
             "source_branch_sha": maintenance_sha,
             "workflow_sha": SHA,
             "main_sha": SHA,

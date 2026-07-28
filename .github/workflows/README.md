@@ -9,8 +9,8 @@
 `release.yml` is always dispatched from the exact current protected `main`
 workflow definition for one explicit reviewed release-branch head and its final
 merged PR. The product source is normally `main`; the approved
-`0.9.17` / `0.9.17` maintenance pair may publish independently without merging
-its product commits into `main`. Its read-only candidate job uses pinned Python
+`0.9.17` / `0.9.17` and `0.9.18` / `0.9.18` maintenance pairs may publish
+independently without merging their product commits into `main`. Its read-only candidate job uses pinned Python
 to prove the PR head tree, PR base, current-head approval, required checks,
 merge commit, workflow authority, checkout, and selected branch identity before
 it verifies, packages, smokes, and stages one closed immutable candidate. The

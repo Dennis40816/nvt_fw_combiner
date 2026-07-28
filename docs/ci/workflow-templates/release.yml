@@ -26,7 +26,7 @@ permissions:
 # candidate verifies the current protected-main workflow authority plus the
 # final merged PR/current-head review/required checks for an exact selected
 # release-branch head. Product source is current main or the explicit
-# 0.9.17/0.9.17 maintenance pair. Release-environment approval unlocks the only
+# 0.9.17/0.9.17 and 0.9.18/0.9.18 maintenance pairs. Release-environment approval unlocks the only
 # contents:write job, which uses protected-main tooling only, creates one
 # annotated tag, and publishes the already verified, manifest-bound closed asset
 # set. A separate read-only, token-free execution step smokes the published
