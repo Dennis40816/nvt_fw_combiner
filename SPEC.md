@@ -906,9 +906,9 @@ The owner requested review participation. Assistant/Codex review should focus on
 ## 15. 0.10.x Maintainability Program Specification
 
 Status: owner-approved on 2026-07-25. This section records the accepted
-architecture workshop outcome and is the source for GitHub tickets `#170`
-through `#197`. Approval does not by itself authorize a production refactor, a
-firmware fact change, support promotion, or release.
+architecture workshop outcome and is the source for the `0.10.x` dependency
+plan and its linked GitHub tickets. Approval does not by itself authorize a
+production refactor, a firmware fact change, support promotion, or release.
 
 ### 15.1 Problem Statement
 
@@ -1149,6 +1149,14 @@ version.
   applicability, artifacts, metadata structures, workflow profiles, and
   evidence references; the package's versioned hash-pinned trust index admits
   the reviewed bytes.
+  Compiler/Domain/Application/Bootstrap/CLI production code may branch only on
+  closed semantic kinds, never IC, family, or workflow identity/name.
+  Single/Cascade, IC Count, topology, map, capacity, and family variation are
+  definition/applicability data. Behavior outside the existing vocabulary
+  requires one reusable reviewed primitive with coordinated schema, Domain,
+  compiler, fingerprint, conformance, and evidence updates; an IC-specific
+  workaround is forbidden. Manifest-pinned external processors remain
+  constrained adapters rather than compiler plugins.
   Deterministic validation, resolution, compilation, fingerprints, conformance
   tests, and golden vectors must be host- and language-neutral. They cannot
   depend on Avalonia, Workbench DTOs, C# reflection, or private UI state.
@@ -1565,11 +1573,150 @@ after the grill closes so issues do not become a competing draft specification.
     and anti-gaming constraints are owned by
     [`ADR 0021`](docs/adr/0021-code-size-ratchet-and-convergence.md).
     Ticket #171 must make that exact measurement executable through the existing
-    canonical verifier before it can become a repository gate; until then it is
-    an approved program target and the current validator policy remains in
-    force. Ticket #197 applies the target as the final `0.10.x` integration
-    gate without weakening behavior, architecture, firmware, security,
-    coverage, or release evidence.
+    canonical verifier. The resulting 22,607-line limit is a hard final
+    `0.10.x` integration gate, not an aspirational report. Every migration slice
+    records its production delta and deletes superseded ownership when its
+    caller/evidence gate permits. After Workbench/parallel-catalog deletion and
+    legacy-runtime retirement, a dedicated Canonical Core Convergence phase
+    owns explicit layer budgets and remaining simplification through four
+    independently reviewable slices: Domain + Profiles, Application, Bootstrap
+    + CLI, and Infrastructure + Contracts + CRC worker. Each slice declares its
+    caller inventory, deletion list, tests, measured delta, and final budget;
+    shared registries/schemas have one writer, and no slice mixes in new product
+    functionality or UI layout work. Their provisional hard caps are 10,500,
+    5,000, 2,000, and 4,500 lines respectively, for 22,000 allocated lines.
+    The remaining 607 lines are an unallocated integration reserve. Capacity
+    does not move between slices without owner-approved architecture review,
+    and no reallocation may raise the 22,607 final gate. Ticket #197 remains
+    blocked until the umbrella reaches that gate without weakening behavior,
+    architecture, firmware, security, coverage, or release evidence.
+    Every Canonical Core Convergence PR must reduce both its slice and total
+    metric and may not create temporary deletion debt. An earlier R3
+    firmware/route migration may temporarily grow only when a golden,
+    firmware-owner evidence gate, or unmigrated caller prevents safe deletion;
+    its existing issue/PR must name the old symbols, callers, added lines,
+    blocker, deletion ticket, and latest deletion milestone. Unclosed debt
+    blocks #194, #195, or #196 as applicable; no separate runtime debt model or
+    unowned TODO is permitted.
+22. One firmware fact has at most three firmware-semantic forms: a
+    Contracts-owned serialized DTO, one Domain-owned canonical immutable
+    definition, and a resolved/compiled reference containing only definition
+    identity, selected applicability, resolved/per-run state, and execution
+    identity. Profiles may use private ephemeral normalization/validation
+    state, but it cannot expose or persist a second semantic model.
+    Bootstrap/Workbench, Application, Presentation, and CLI may carry ids,
+    typed readiness/status, decoded or formatted values, and issues; they may
+    not mirror fields, ranges, locators, formatters, operations, processors, or
+    integrity facts. Accidental public implementation classes are not a
+    compatibility contract and receive no shim after repository callers move.
+23. Convergence tests preserve golden bytes/hashes, exact mutation ranges,
+    operation traces, public CLI/UI behavior, typed issue codes, failure
+    conditions, coverage ratchets, and required R3 evidence. Tests bound only
+    to legacy filenames, implementation types, partial-file counts, source
+    strings, or source positions are deleted after equivalent behavioral and
+    architecture coverage exists. Old/new differential tests are temporary
+    migration evidence with a deletion milestone; they cannot retain the old
+    production runtime after zero authority/callers. Their durable assertions
+    become fixed golden, approved synthetic-oracle, or contract-sentinel
+    evidence. Tests remain outside the production-line metric, but duplicate
+    equivalent test trees do not remain indefinitely and no evidence or
+    coverage gate is weakened.
+24. Content identity uses one versioned deterministic fingerprint chain:
+    trusted document exact-byte hash, canonical definition hash,
+    `CapabilityFingerprint`, compiled-plan fingerprint, then run/Preview
+    identity. Trust admission verifies the separately pinned SHA-256 of the
+    exact raw document bytes before deserialization; no line-ending, whitespace,
+    encoding, or property-order normalization may satisfy that trust check.
+    From canonical definition hashing upward, one language-neutral canonical
+    encoding applies. Each level references the lower-level hash and adds only
+    its own state; it never reserializes the same fields, ranges, locators,
+    operations, processors, or integrity facts. Reflection,
+    runtime/dictionary order, C# type names, storage paths, and JSON paths
+    cannot influence semantic identities, and IC/family/workflow-specific hash
+    builders are forbidden. `RouteId`, `ResolutionToken`, `AuthoringRevision`,
+    and `FileStamp` retain their separate accepted meanings. A semantic
+    fingerprint-format change bumps its version, makes pinned policy stale, and
+    requires reviewed repinning plus cross-language vectors.
+25. Every runtime invariant has one validating owner. Schema/Contracts intake
+    owns serialized shape, required fields, primitive types, closed
+    discriminators, and local bounds. Domain canonical construction owns
+    firmware-semantic ranges, overlap, reference kinds, cycles, applicability,
+    family/topology rules, and definition completeness. Resolution/compiler
+    owns only unique selection and lowering against an already valid
+    definition. Application owns current inputs, authoring revision, readiness,
+    stale-result identity, and runtime dependencies. The processor host owns
+    staging, actual before/after mutation, declared write authority, and tool
+    identity. Downstream layers consume typed validated results rather than
+    duplicate rules, messages, or issue codes. Boundary assertions/tests remain
+    valid, and the engine/host still enforce their local memory-safety and
+    execution preconditions. Those checks reject invalid state without becoming
+    alternate firmware-fact, policy, or diagnostic owners. An unvalidated DTO
+    cannot bypass canonical construction.
+26. Application exposes capability-centered use cases only: capability
+    resolution/query, shared authoring-session transition, selected-artifact
+    inspection, Preview/Build, typed report retrieval, and runtime-dependency
+    refresh. Standard/AB/General Merge and DP/CtrlRAM/General Replace vary by
+    canonical definitions, authoring/slot policy, typed child drafts, and
+    compiled operations; they do not retain separate service/request/result
+    hierarchies. General mapping and CtrlRAM selections may be typed child state
+    but cannot create a second readiness/execution/report pipeline. UI and CLI
+    consume these same contracts, and Bootstrap retains wiring only.
+27. External processors use one shared staged execution host and one adapter
+    per reviewed executable protocol family, never per IC, family, workflow,
+    topology, or stage. Canonical processor-plan data owns processor/protocol
+    identity, tokenized command reference, staging bindings, declared
+    read/write ranges, and tool version/hash. The compiled plan carries a typed
+    stage; Infrastructure owns manifest resolution, timeout/cancellation,
+    process cleanup, before/after diff, and mutation enforcement. An IC using an
+    existing protocol changes no production C#. A new executable protocol
+    requires one R2/R3-reviewed adapter and cannot be an IC runner or plugin.
+28. Caches are optional bounded performance adapters and cannot affect
+    resolution, Build bytes, readiness, diagnostics, evidence, publication, or
+    support. The admitted categories are immutable trusted-catalog snapshot,
+    artifact-inspection cache, bounded Hex viewport/page cache, and
+    runtime-dependency snapshot. Keys use complete applicable definition/hash,
+    `CapabilityFingerprint`, `FileStamp`, selection/topology identity, and
+    environment generation; IC/mode/filename alone is invalid. Authoring state
+    stores selected-file identity/revision rather than full BIN/cache ownership,
+    and UI/workflows cannot create parallel caches. Every cache has explicit
+    capacity/lifetime, invalidation owner, and stale-publication tests; clearing
+    all caches recomputes through the same canonical path without fallback.
+29. GitHub issue/PR state is the sole live execution-status authority.
+    Repository dependency documents retain stable approved outcomes, edges,
+    waves, and topological depth but not `done`, open/closed, or current
+    frontier snapshots. Status reports query GitHub in UTF-8 and are not
+    committed; offline build/verification never requires GitHub. Because
+    feature PRs merge to a non-default integration branch, the merge checklist
+    explicitly updates/closes the issue and records the PR rather than relying
+    on `Closes #N`.
+30. Final layer caps do not prematurely block prerequisite migration. The Core
+    Convergence entry change, after Workbench/parallel-catalog and legacy
+    runtime deletion, freezes the measured baseline for all four slices and
+    enables exact descending slice ratchets through `scripts/verify.py`. Every
+    Core PR lowers each affected slice ratchet and the total; moving equivalent
+    logic between slices cannot pass. Final integration enforces both four
+    maximum caps and total 22,607 through that same verifier, with no second
+    command or CI entry point.
+31. Documentation convergence removes boilerplate XML summaries that merely
+    restate names and repeated comments on forwarding constructors/properties,
+    migration mirrors, or accidental-public implementation types. The useful
+    information moves to the canonical contract/type owner. Persisted schemas,
+    reusable public boundaries, firmware coordinates/ranges, CRC/Header and
+    mutation authority, owner evidence, known limitations, fail-closed
+    rationale, non-obvious algorithms, security, processor, lifetime, and
+    concurrency invariants remain documented. Physical-line compression,
+    information loss, or moving logic/docs into excluded generated output is
+    forbidden anti-gaming.
+32. Within one accepted operation/revision, expensive work is evaluated once
+    and shared as an immutable result: one document parse/normalization per
+    catalog publication, one capability resolution per matching authoring
+    revision/token, one artifact inspection per matching file stamp/definition
+    hash, one compile and engine execution per Preview/Build, and one execution
+    per declared processor stage. Naming, Memory Layout, reports, UI, and CLI
+    consume those results and cannot reread/re-resolve/recompile/rerun. This is
+    orchestration, not global-cache correctness. Verification prefers
+    deterministic work counts, byte parity, bounded allocations, and unique
+    test ownership; stable timing ratchets require a reproducible baseline.
 
 ### 15.6 Out of Scope
 
@@ -1608,9 +1755,12 @@ owner decision rather than unresolved architecture. The approved sequence is:
 
 ```text
 approved specification and consistency grill
-  -> approved GitHub tickets #170-#197 and dependency edges
+  -> approved GitHub tickets and dependency edges
   -> allocate the dependency-ready frontier to the next 0.10.x release
-  -> implement, review, verify, and delete old ownership slice by slice
+  -> implement, review, verify, record production delta, and delete old ownership slice by slice
+  -> delete Workbench/parallel catalogs and retire the legacy runtime
+  -> complete four independently reviewable Canonical Core Convergence slices under explicit layer budgets
+  -> pass the 22,607-line #197 integration gate
 ```
 
 Historical NT51920/NT51931 DPCMI locator evidence (`0x3E014` and `0x3E018`)
@@ -1644,3 +1794,126 @@ is
 [`docs/governance/0.10.x-ticket-dependency-plan.md`](docs/governance/0.10.x-ticket-dependency-plan.md).
 Those edges still determine the implementation frontier, and publication does
 not authorize a ticket to bypass its evidence, review, branch, or release gate.
+
+### 15.8 Canonical Core Convergence Approved Specification
+
+Status: owner-approved on 2026-07-28. The owner accepted each underlying design
+decision during the consistency grill and then approved this consolidated
+specification for ticket synchronization. Approval does not authorize
+implementation, apply `ready-for-agent`, promote support, or publish a release.
+The detailed normative rules remain in section 15.4 and the referenced ADRs;
+this subsection is their reviewable intake summary, not a second firmware-fact
+owner.
+
+#### Problem and intended outcome
+
+Prerequisite vertical slices can establish the canonical runtime while leaving
+duplicate DTOs, validators, workflow services, fingerprints, caches, processor
+wrappers, Workbench projections, and implementation-shaped tests behind. That
+would preserve the current maintenance burden and miss the hard 22,607-line
+non-UI/test production gate even if every feature still works.
+
+Canonical Core Convergence must therefore delete superseded ownership after the
+headless, Workbench, and legacy-runtime migrations; retain one semantic and
+execution path; preserve all accepted behavior and firmware evidence; and make
+the final code-size constraint executable through the existing verifier.
+
+#### Necessary user stories
+
+1. As a maintainer, I want each firmware fact and invariant to have one
+   canonical representation and validating owner, so fixes cannot diverge
+   across layers.
+2. As an IC author, I want an IC using the existing semantic vocabulary to be
+   onboarded through reviewed trusted data without production C# branches.
+3. As a UI or CLI maintainer, I want both surfaces to consume the same
+   capability-centered Application results, so inspection, readiness, Preview,
+   Build, naming, and reports cannot execute twice or disagree.
+4. As a firmware owner, I want external processors constrained by one staged
+   host and reviewed protocol-family adapters, so IC variation cannot create
+   undeclared executable or mutation authority.
+5. As a reviewer, I want implementation-shaped duplicate tests and temporary
+   differential seams removed only after stable behavioral, golden, mutation,
+   and architecture evidence replaces them.
+6. As the repository owner, I want the four Core slices and total production
+   metric to ratchet downward to the approved caps, so the 50% reduction is a
+   verified result rather than a reorganized duplicate architecture.
+
+#### Scope and explicit non-goals
+
+The scope is one umbrella delivered through the four independently reviewable
+Domain + Profiles, Application, Bootstrap + CLI, and Infrastructure +
+Contracts + CRC worker slices defined in ADR 0021. It includes canonical-form
+convergence, validator ownership, language-neutral fingerprinting,
+capability-centered Application contracts, processor-host consolidation,
+bounded optional caches, behavioral-test convergence, documentation cleanup,
+single-evaluation orchestration, and descending code-size ratchets.
+
+It excludes UI layout changes, new product features, new IC firmware facts,
+support promotion, release publication, external executable plugins, a second
+verifier, physical-line minification, and any weakening of byte, golden,
+security, coverage, accessibility, or human-review gates.
+
+#### Canonical owners and affected layers
+
+- Contracts owns serialized shape; Domain owns one immutable firmware-semantic
+  definition and its semantic validation.
+- Profiles normalizes trusted input privately and compiles through the closed
+  vocabulary without exposing a second semantic model.
+- Application owns capability-centered resolution, authoring, inspection,
+  Preview/Build, report retrieval, readiness, and stale-result policy.
+- Infrastructure owns trust/document loading and one staged processor host with
+  protocol-family adapters; Bootstrap owns wiring; UI and CLI are consumers.
+- ADR 0021 owns measurement, slice caps, reserve, anti-gaming, and ratchet
+  policy. `scripts/verify.py` remains the only verification entry point.
+
+#### Functional and failure requirements
+
+Implementation must satisfy decisions 22 through 32 in section 15.5 and their
+referenced ADR amendments. In particular, one firmware fact has no more than
+the serialized DTO, canonical Domain definition, and reference-only
+resolved/compiled form; compiler branching is limited to closed semantic kinds;
+exact-byte trust admission feeds one versioned language-neutral semantic
+fingerprint chain; each invariant has one semantic owner without removing local
+engine/host safety checks; and each accepted operation/revision evaluates
+parse, resolution, inspection, compilation/engine execution, and processor
+stages no more than once at their declared identity seam.
+
+Unknown or unvalidated definitions, stale identity, missing processor
+authority, cache-key ambiguity, duplicate exact-route ownership, or a slice
+that fails to lower both its own and total metric fails closed. Cache disable or
+clear must only cause canonical recomputation and must not change bytes,
+readiness, diagnostics, evidence, publication, or support.
+
+#### Compatibility, firmware, support, security, and release impact
+
+Repository-internal accidental public implementation types receive no
+compatibility shims after callers migrate. Durable serialized contracts and
+documented external boundaries retain their normal compatibility policy.
+Firmware ranges, operation order, CRC/Header behavior, mutation authority, and
+golden bytes do not change through this convergence specification. Evidence and
+publication remain independent facts; neither code reduction nor architectural
+completion promotes support. Existing processor manifest/hash, staging,
+timeout, cleanup, and before/after mutation enforcement remain mandatory.
+Release gates remain unchanged and downstream of convergence.
+
+#### Testing and evidence plan
+
+Each slice records its entry measurement, callers, deletion list, affected
+semantic owners, narrow tests, architecture checks, production delta, and final
+measurement. Durable evidence covers fixed golden bytes/hashes, exact mutation
+ranges, operation traces, typed failures, UI/CLI observable behavior,
+cross-language fingerprint vectors, validation-boundary tests, stale/cache
+tests, deterministic work counts, bounded allocations, dependency direction,
+and zero callers for deleted owners. Timing becomes a gate only after a stable
+reproducible baseline. The canonical structure and final verifier gates remain
+mandatory at the risk level declared by the affected authority.
+
+#### Open decisions and remaining gates
+
+No architecture or terminology decision remains open from this grill.
+`$to-tickets` synchronized umbrella #229 and ownership-bounded slices #230-#233,
+including Core-entry ratchets and the #197 dependency, on 2026-07-28. Each
+ticket remains outside implementation intake until the owner separately
+approves its exact scope for `ready-for-agent`. Route-specific R3 golden or
+firmware-owner evidence remains an implementation gate, not an unresolved
+architecture decision.

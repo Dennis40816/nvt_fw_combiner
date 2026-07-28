@@ -97,20 +97,136 @@ met by deleting tests, compressing formatting, moving runtime logic into an
 excluded path, generating an equivalent hidden owner, reducing coverage, or
 weakening behavioral, architecture, firmware, security, or release gates.
 
-This is an owner-approved program target, not yet a second executable validator
-gate. The current `src/` C#/AXAML capacity ceiling and partial/duplicate
-ratchets remain enforced until #171 adds this exact metric and its tests to the
-existing `scripts/verify.py` path. That migration must preserve the existing
-measurement during transition or explicitly supersede it in the same reviewed
-change; it must not add another verification entry point. #197 applies the
-22,607-line target as a final integration gate only after #171 has made the
-measurement executable.
+Issue #171 made this exact metric executable through the existing
+`scripts/verify.py` path. During prerequisite migration it reports the measured
+runtime-production total while the existing `src/` C#/AXAML capacity and
+partial/duplicate ratchets remain active. Core Convergence later enables the
+descending slice ratchets defined below, and #197 applies the 22,607-line hard
+final integration gate. No transition adds another verification entry point.
 
 This is a convergence control, not permission to delete safety. Tests, golden
 vectors, evidence manifests, documentation, firmware-owner gates, and useful
 comments are outside the production-source metric. A change must not weaken
 validation, byte parity, immutable-input handling, self-contained packaging,
 or human review merely to satisfy a number.
+
+Owner decision, 2026-07-27: the 22,607-line target remains a hard final
+integration gate after the measured `0.10.x` integration tree grew to 53,266
+counted nonblank lines. It is not an aspirational report and cannot be deferred
+to a later release merely because canonical migration temporarily adds code.
+Code-size convergence therefore has two implementation responsibilities in
+addition to the final #197 check:
+
+- every migration slice records its counted production delta and deletes each
+  superseded owner as soon as caller parity and the required R2/R3 evidence
+  permit; and
+- after Workbench/parallel-catalog deletion and legacy-runtime retirement, one
+  dedicated **Canonical Core Convergence** phase owns the remaining measured
+  simplification of Domain, Application, Profiles, Infrastructure, Bootstrap,
+  Contracts, CLI, and the CRC worker before #197 may close.
+
+The dedicated phase must use explicit layer budgets, zero-caller/deletion
+evidence, behavior and byte parity, coverage, and dependency-direction tests.
+It may consolidate duplicate DTOs, resolution states, compiler paths,
+fingerprints, validators, and registration projections, but it may not replace
+them with an equally broad facade, generated hidden owner, excluded-path
+implementation, or weaker contract. If the canonical core still exceeds
+22,607 lines, #197 remains blocked.
+
+Canonical Core Convergence is one umbrella outcome, not one repository-wide
+implementation PR. It is delivered through four independently reviewable,
+ownership-bounded slices:
+
+1. **Domain + Profiles** removes duplicate DTO, resolution, fingerprint,
+   compiler, and normalizer paths.
+2. **Application** converges use-case, readiness, inspection, authoring, and
+   report models.
+3. **Bootstrap + CLI** starts only after #195 has deleted Workbench and the
+   parallel support catalogs. It removes remaining composition-root,
+   registration, route-dispatch, and CLI projection duplication, retaining
+   composition wiring only.
+4. **Infrastructure + Contracts + CRC worker** removes duplicate
+   adapter/protocol mappings while preserving constrained external-processor
+   boundaries.
+
+Each slice owns a final line budget, caller inventory, explicit deletion list,
+architecture tests, and measured delta. It may merge independently to the
+approved integration branch and may not carry a new product feature or UI
+layout change. Shared registries, schemas, and trust manifests retain one
+writer. The umbrella closes only after the combined metric is at or below the
+hard target.
+
+The owner-approved provisional hard caps are:
+
+| Slice | Measured 2026-07-27 | Final cap |
+| --- | ---: | ---: |
+| Domain + Profiles | 22,683 | 10,500 |
+| Application | 12,199 | 5,000 |
+| Bootstrap + CLI | 12,774 | 2,000 |
+| Infrastructure + Contracts + CRC worker | 5,610 | 4,500 |
+| Allocated total | 53,266 | 22,000 |
+
+The remaining 607 lines are an unallocated integration reserve, not growth
+budget owned by any slice. A slice finishing below its cap does not
+automatically transfer capacity to another slice. Any reallocation requires an
+owner-approved architecture review that proves why the responsibility must
+remain in that layer; it cannot raise the 22,607 final gate or weaken a
+deletion, dependency, test, firmware, evidence, or release invariant.
+
+Every Canonical Core Convergence PR must reduce both its slice measurement and
+the total counted production metric. It cannot create temporary deletion debt.
+Before that phase, a firmware/route migration may temporarily add counted code
+only when an R3 golden, firmware-owner evidence gate, or not-yet-migrated caller
+prevents safe same-PR deletion. The issue and PR execution record must then name
+the superseded owners/symbols, remaining callers, added counted lines, exact
+blocker, existing deletion ticket, and latest deletion milestone.
+
+This record is planning/review evidence, not another runtime debt model or
+parallel repository authority. Unclosed debt blocks the applicable headless
+convergence, Workbench deletion, or legacy-runtime retirement milestone. A
+generic TODO, unowned follow-up, or implied future cleanup does not authorize
+temporary growth.
+
+Tests remain outside the production-line metric, but that exclusion is not
+permission to retain duplicate test ownership indefinitely. Convergence
+preserves golden bytes/hashes, exact mutation ranges, operation traces,
+observable CLI/UI behavior, typed issue codes, failure conditions, coverage
+ratchets, and required R3 evidence. Tests coupled only to old implementation
+filenames, type names, partial-file counts, source strings, or source positions
+are deleted after equivalent behavioral and architecture coverage exists.
+
+Old/new runtime differential tests are migration evidence with a named deletion
+milestone. They cannot keep the old production runtime alive after its
+authority reaches zero. Before deletion, their durable assertions move to a
+fixed golden, approved synthetic oracle, or contract sentinel. The production
+target never lowers coverage, golden, firmware-owner, or independent-review
+gates.
+
+The final slice caps do not block prerequisite migration before Canonical Core
+Convergence begins. The repository continues to measure and report each slice.
+After Workbench/parallel-catalog deletion and legacy-runtime retirement, the
+Core Convergence entry change freezes the measured baseline for all four slices
+and enables exact descending slice ratchets through the existing canonical
+verifier. Every later Core PR lowers each affected slice ratchet and the total
+metric. Moving equivalent code to another slice cannot satisfy either check.
+
+Final integration enforces both the four maximum slice caps and the 22,607
+total. These checks remain modules invoked by `scripts/verify.py`; no second
+code-size command, validator, or CI entry point is introduced.
+
+Documentation consolidation is legitimate only when it removes boilerplate or
+moves repeated information to its canonical owner. XML summaries that merely
+repeat a member/type name, forwarding properties/constructors, migration DTO
+mirrors, and accidental-public implementation surfaces need no duplicated
+comment. Canonical persisted contracts and reusable public boundaries retain
+their useful documentation.
+
+Firmware ranges/coordinates, CRC/Header and mutation authority, owner evidence,
+known limitations, fail-closed rationale, non-obvious algorithms, security,
+processor, lifetime, and concurrency invariants remain documented. Removing
+that information, compressing multiple statements onto one physical line, or
+moving documentation/logic into excluded generated output is anti-gaming, not
+convergence.
 
 `scripts/verify.py` remains the only canonical verification entry point. Code
 size measurement modules have no independent command-line entry point and are

@@ -39,10 +39,11 @@ release.
 
 ## Later `0.10.x`: dependency-allocated implementation
 
-GitHub issues #170 through #197 and their exact `Blocked by` edges control the
-implementation frontier. Dependency depth is not a release version. The owner
-allocates only dependency-ready, reviewable slices after considering risk,
-evidence, file ownership, and available reviewers.
+The approved GitHub issues listed in the `0.10.x` dependency plan and their
+exact `Blocked by` edges control the implementation frontier. Dependency depth
+is not a release version. The owner allocates only dependency-ready, reviewable
+slices after considering risk, evidence, file ownership, and available
+reviewers.
 
 The final `0.10.x` integration release is downstream of #197 and all applicable
 architecture, firmware-owner, golden, package, clean-Windows, protected-CI, and
