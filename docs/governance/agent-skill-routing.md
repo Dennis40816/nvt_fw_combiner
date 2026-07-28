@@ -28,6 +28,9 @@ CRC/header behavior, evidence, support, release authority, or permissions.
 
 ## Workflow routes
 
+- Report current `0.10.x` completion, weighted program progress, and the
+  dependency-ready frontier with `$assess-refactor-progress`; GitHub remains
+  the sole live completion source.
 - Diagnose with `$diagnosing-bugs`; diagnosis alone does not authorize a fix.
 - Implement approved scope with `$implement`, including its
   red-green-refactor loop.

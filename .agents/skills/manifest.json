@@ -2,6 +2,15 @@
   "schemaVersion": 1,
   "skills": [
     {
+      "name": "assess-refactor-progress",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "progress-report",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
       "name": "code-review",
       "status": "active",
       "scope": "repo",
