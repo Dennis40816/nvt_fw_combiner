@@ -107,14 +107,11 @@ public sealed class LegacyCombinerPostbuildPlanSelector
             throw new ArgumentException("IC number selection does not match this postbuild plan selector.", nameof(selection));
         }
 
-        if (reportedChipCount is > 0 && MatchesReportedChipCount(reportedChipCount.Value))
-        {
-            return reportedChipCount.Value;
-        }
-
         string token = selection.Parts[^1].Trim();
         return TryParsePositiveCount(token, out int requestedCount)
             ? requestedCount
+            : reportedChipCount is > 0 && MatchesReportedChipCount(reportedChipCount.Value)
+            ? reportedChipCount.Value
             : MinimumCount;
     }
 

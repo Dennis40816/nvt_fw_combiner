@@ -1,6 +1,11 @@
 # Dev0 Contract Scope Addendum
 
-This addendum refines `SPEC.md` for the `0.1.0` branch. It is the working source for dev0 until the main spec is reorganized.
+Status: Historical bootstrap addendum. It is not current implementation
+authority; [`SPEC.md`](../../SPEC.md), accepted ADRs, and versioned contracts
+own current requirements.
+
+This addendum records how `SPEC.md` was refined for the historical `0.1.0`
+branch.
 
 ## Dev0 vs Dev1 decision
 

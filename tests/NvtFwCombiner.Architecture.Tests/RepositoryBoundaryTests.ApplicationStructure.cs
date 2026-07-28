@@ -188,15 +188,21 @@ public sealed partial class RepositoryBoundaryTests
         string bootstrapSources = ReadBootstrapSources();
 
         Assert.Contains(
-            "EvaluateFinalOutput(request.CompiledComposition, execution.OutputBytes)",
+            "finalOutputValidations = EvaluateFinalOutput(",
             root,
             StringComparison.Ordinal);
+        Assert.Contains("boundInputs.InputBytes,", root, StringComparison.Ordinal);
+        Assert.Contains("execution.OutputBytes);", root, StringComparison.Ordinal);
         Assert.Contains("ValidationRequirements { get; }", composition, StringComparison.Ordinal);
         Assert.Contains(
             "AppendValidationRequirements(builder, composition.ValidationRequirements)",
             fingerprint,
             StringComparison.Ordinal);
         Assert.Contains("CompiledFirmwareConfigBackupVersionValidation", finalOutputValidations, StringComparison.Ordinal);
+        Assert.Contains(
+            "CompiledFirmwareConfigBackupPlacementAuthorityValidation",
+            finalOutputValidations,
+            StringComparison.Ordinal);
         Assert.Contains("FirmwareConfigMetadataReader.TryReadBackup", finalOutputValidations, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Bootstrap", finalOutputValidations, StringComparison.Ordinal);
         Assert.DoesNotContain("LegacyProfileValidationRequirements", ReadProfileSources(), StringComparison.Ordinal);

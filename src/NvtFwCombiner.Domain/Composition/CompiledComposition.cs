@@ -28,6 +28,7 @@ public sealed partial class CompiledComposition
         Authority = new LegacyProfileCompilationAuthority();
         V2Details = null;
         ValidationRequirements = CopyValidationRequirements(validationRequirements);
+        ValidateValidationRequirements(plan, ValidationRequirements);
         IntegrityFingerprint = CalculateIntegrityFingerprint(plan);
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
@@ -69,6 +70,7 @@ public sealed partial class CompiledComposition
         Authority = new ProfileBundleV2CompilationAuthority();
         V2Details = identity.Details;
         ValidationRequirements = CopyValidationRequirements(identity.Details.Provenance.ValidationRequirements);
+        ValidateValidationRequirements(plan, ValidationRequirements);
         IntegrityFingerprint = CalculateIntegrityFingerprint(plan);
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }

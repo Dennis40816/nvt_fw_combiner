@@ -97,6 +97,22 @@
         "approval": "Repository owner explicitly approved committing these golden firmware fixtures to Git on 2026-07-05.",
         "evidenceScope": "Two NT51927 direct input-evidence cases plus fact-scoped same-workflow aliases; no independent expected output or support/release promotion is inferred."
       }
+    },
+    {
+      "legacyRoot": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727",
+      "source": {
+        "fileName": "CtrlRAM_Replace_DiffDLM_Issue_932_4IC.7z",
+        "archiveSha256": "2181962a7481d065615ae7a6603928cb071212ac800aa904fb0baf600277e1fd",
+        "transfer": "HackMD CJK14 numbered-note transfer",
+        "noteNumber": 1,
+        "noteId": "KqagEGasQJeEwlmBmANx-g",
+        "noteCharacters": 32164,
+        "noteSha256": "4cd6b52d24c3982857163b66e766c429d355c63ce9bc4b6a39eaa74022bce7bd",
+        "recoveredAtTaipei": "2026-07-27",
+        "sourceClassification": "private-owner-approved-golden",
+        "approval": "Repository owner supplied the NT51932 4-IC DiffDLM archive and directed it be added as a golden on 2026-07-27.",
+        "evidenceScope": "Direct NT51932 cascade-4 regression for full-stride DiffDLM masking: three DLM records are writable, interleaved NF tails are reference-preserved, and postbuild CRC/header bytes are verified from the complete expected output. No support promotion or NT51950/NT51951 physical-layout inference is authorized."
+      }
     }
   ],
   "cases": [
@@ -199,6 +215,10 @@
     {
       "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
       "manifestPath": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/provenance/case.json"
+    },
+    {
+      "caseId": "nt51932-diffdlm-nf-mask-cascade4-20260727",
+      "manifestPath": "NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/provenance/case.json"
     },
     {
       "caseId": "nt51951-fw200-single-auto-prj-695-20260718",

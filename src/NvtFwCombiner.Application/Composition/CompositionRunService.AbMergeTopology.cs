@@ -45,10 +45,14 @@ public sealed partial class CompositionRunService
 
         if (tpAMetadata.ChipNumber == 0 || tpBMetadata.ChipNumber == 0)
         {
-            issues.Add(new CompositionIssue(
-                TpFirmwareConfigInvalid,
-                "NT51950 AB topology selection requires positive TPA and TPB FWConfig chip counts.",
-                "ab-topology"));
+            FirmwareConfigMetadata zeroMetadata = tpAMetadata.ChipNumber == 0
+                ? tpAMetadata
+                : tpBMetadata;
+            issues.Add(FirmwareConfigChipCountDiagnostics.CreateZeroIssue(
+                zeroMetadata,
+                FirmwareConfigChipCountRequirement.RequiredPositive,
+                "ab-topology",
+                "AB Code uses TPA and TPB IC Count to validate the selected topology.")!);
             return;
         }
 

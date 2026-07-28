@@ -125,6 +125,14 @@
   gain mutation authority, and cannot enlarge the compiled DiffDLM source/read
   or scatter/write set. Every inactive target record remains byte-identical to
   the immutable reference except for a separately declared postbuild write.
+  The AE input must contain the complete active source prefix
+  `(N - 1) * 0x1400`; reaching only the final active `0x0B90` DLM end is
+  insufficient because the preserved NF tail is still part of that source
+  record's admission boundary. Bytes after the complete active prefix are
+  ignored and receive no read or write authority. Repeated-byte active DLM
+  rejection is a compiled `InputLoad` validation over the same immutable
+  accepted artifact snapshot used by execution; a separate path preflight is
+  not authoritative.
   Only the NT51919/NT51929/NT51932 and NT51950/NT51951 families currently have
   owner-confirmed Cascade DiffDLM records containing a preserved Diff NF
   subrange. Those Cascade authoring routes must hide the independent NF CtrlRAM
@@ -145,6 +153,20 @@
   warning; a missing/ambiguous Backup, out-of-bounds placement, or processor
   mutation outside declared authority still fails closed. Alignment never
   infers the Backup length, source range, or processor write envelope.
+  The maximum seven-record DiffDLM layout envelope is
+  `[0x2D100,0x35D00)`, but bytes after the count-resolved active-record end
+  are inactive record capacity, not a permanently reserved DLM-only region.
+  Postbuild may place the count-derived FWConfig Backup inside that inactive
+  capacity; for example, 4 IC predicts Backup `[0x31000,0x32000)`.
+  `[0x35D00,0x37000)` is only the static upper authority extension needed to
+  contain the 8-IC Backup `[0x36000,0x37000)`. It is not a fixed FWConfig
+  Backup region. The broad placement-candidate range is not blanket mutation
+  authority: after postbuild locates the unique actual Backup, only the
+  immutable Reference Backup envelope and that actual Backup envelope may
+  differ inside the candidate range. The original envelope may be cleared
+  during relocation; the actual envelope may be written. Every other inactive
+  DLM, Diff NF, inter-record, and upper-extension byte must remain identical to
+  the immutable Reference or the run fails closed.
   NT51950/NT51951 use the same active-record/NF-preservation mechanism, but are
   **fixed-layout DiffDLM**, not Dynamic DiffDLM. Their independent geometry is
   target record zero `0x33200`, stride `0x1400`, writable Diff CtrlRAM
@@ -396,7 +418,13 @@ performed by the declared postbuild processor, never by the Replace scatter
 plan. A mismatch inside the processor's bounded Backup-placement write
 authority is a typed Build Report warning rather than an authoring/readiness
 blocker; placement or mutation outside that authority remains a hard processor
-  failure. NT51950/NT51951 have no count-derived placement formula: their
+failure. That bounded authority may overlap the inactive suffix of the maximum
+DiffDLM record envelope: `[0x35D00,0x37000)` is only its upper extension, not
+the Backup itself. Placement-candidate authority and permitted final mutation
+are distinct: the final audit permits only the original Reference Backup
+envelope plus the marker-derived actual Backup envelope, and compares every
+other candidate byte to the immutable Reference. NT51950/NT51951 have no
+count-derived placement formula: their
   declared End Flag `0x36FFC` fixes the marker-derived Backup start at
   `0x36000`. A different location is a fixed-map/postbuild contract violation,
   not the Dynamic DiffDLM warning case.
@@ -1293,7 +1321,18 @@ version.
     X/Y sensor totals, Display and TP resolution, maximum operable fingers,
     report IRQ type, and whether the outermost IC is used as Master are typed
     fields from that structure. Runtime requires exactly one NVT marker and
-    reports the observed marker count when that invariant fails. Later FWConfig
+    reports the observed marker count when that invariant fails. It also
+    applies one shared zero-value policy. When a resolved workflow does not use
+    IC Count for topology, ranges, or placement, `Chip_Num = 0` emits warning
+    `firmware-config.chip-count-zero` with the operator action
+    `Confirm that FWConfig Chip_Num at offset 0x17 is configured correctly`;
+    Build remains enabled. When exact IC Count controls the plan—at minimum
+    NT51950 AB Code and NT51919/NT51929/NT51932 Dynamic DiffDLM—the same fact
+    emits blocking `firmware-config.chip-count-required` and no minimum count
+    may be fabricated. UI slot/check-time readiness and CLI use the same typed
+    issue; Build hover exposes blockers, while the run Report records warnings
+    and runtime failures. System Info remains environment diagnostics and is
+    not the owner of firmware-input issues. Later FWConfig
     sections remain out of the initial target model. A map or artifact may
     supply a different locator binding, but it cannot redefine the field table.
     `u8IRQ_Type` retains its raw byte and exposes the known meanings

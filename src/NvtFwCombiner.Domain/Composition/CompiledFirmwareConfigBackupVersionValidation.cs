@@ -1,7 +1,7 @@
 namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Factory methods for closed runtime validation requirements admitted by a compiler.</summary>
-internal static class CompiledValidationRequirements
+internal static partial class CompiledValidationRequirements
 {
     /// <summary>Requires the final canonical FWConfig Backup to contain the expected TP FW version.</summary>
     internal static CompiledFirmwareConfigBackupVersionValidation FirmwareConfigBackupVersion(

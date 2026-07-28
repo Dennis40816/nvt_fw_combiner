@@ -33,7 +33,8 @@ public static partial class WorkbenchCompositionService
         string? automaticOutputDirectory = null,
         IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null,
         bool outputPathUsesAutomaticName = false,
-        Action<string, OutputNamingSummary?>? additionalOutputPreflight = null)
+        Action<string, OutputNamingSummary?>? additionalOutputPreflight = null,
+        IReadOnlyList<CompositionIssue>? advisoryIssues = null)
     {
         CompositionRunResult result = await RunCompiledCompositionResultAsync(
             runIdPrefix,
@@ -52,7 +53,8 @@ public static partial class WorkbenchCompositionService
             automaticOutputDirectory,
             additionalOutputProtectedPaths,
             outputPathUsesAutomaticName,
-            additionalOutputPreflight).ConfigureAwait(false);
+            additionalOutputPreflight,
+            advisoryIssues).ConfigureAwait(false);
         return ToWorkbenchRunResult(result);
     }
 
@@ -74,7 +76,8 @@ public static partial class WorkbenchCompositionService
         string? automaticOutputDirectory = null,
         IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null,
         bool outputPathUsesAutomaticName = false,
-        Action<string, OutputNamingSummary?>? additionalOutputPreflight = null)
+        Action<string, OutputNamingSummary?>? additionalOutputPreflight = null,
+        IReadOnlyList<CompositionIssue>? advisoryIssues = null)
     {
         if (outputPathUsesAutomaticName &&
             (string.IsNullOrWhiteSpace(outputPath) || previewOutputFileName is not null))
@@ -157,7 +160,8 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: icNumberSelection,
             outputFileNameIsOverride: (outputPath is not null && !outputPathUsesAutomaticName) ||
                 previewOutputFileName is not null,
-            abMergeTopologySelection: abMergeTopologySelection);
+            abMergeTopologySelection: abMergeTopologySelection,
+            advisoryIssues: advisoryIssues);
 
         CompositionRunResult result = progress is null
             ? await service.PreviewOrBuildAsync(request, build, cancellationToken).ConfigureAwait(false)

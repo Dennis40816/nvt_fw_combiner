@@ -2,9 +2,11 @@
 
 The accepted target contract is
 [composition-profile-v2](../contracts/composition-profile-v2.md), paired with the canonical
-[firmware-family-v1](../contracts/firmware-family-v1.md) physical map. The current production loader
-continues to use [composition-profile-v1](../contracts/composition-profile-v1.md) during compatibility
-migration. V1 becomes migration evidence only after v2 trusted-bundle loading and parity gates pass.
+[firmware-family-v1](../contracts/firmware-family-v1.md) physical map. Current
+production routes load trust-anchored V2 bundles. The
+[composition-profile-v1](../contracts/composition-profile-v1.md) contract is
+retained as historical migration evidence only and cannot own a new production
+route.
 
 ## Top-Level Shape
 
@@ -93,10 +95,15 @@ Count-dependent DiffDLM composition is a canonical family/profile fact, not a
 list of duplicated per-count operations. A profile references the record
 policy, target anchor, stride, writable subrange, preservation mask, and IC
 Count applicability. Compilation expands only the active records for the
-resolved count. Source records after the active prefix are non-authoritative
-dummy content and cannot replace inactive target records. Any separately
-postbuilt FWConfig Backup placement uses its own bounded processor write
-authority and postcondition; it is not part of the DiffDLM scatter allowance.
+resolved count. Input admission requires every active source record in full,
+including its preserved mask bytes. Source records after that complete active
+prefix are non-authoritative dummy content and cannot replace inactive target
+records. Any separately postbuilt FWConfig Backup placement uses its own
+bounded processor placement authority and postcondition; it is not part of the
+DiffDLM scatter allowance. After the actual Backup is located, the final
+immutable-reference audit permits differences only in the original Reference
+Backup envelope and actual Backup envelope, not the entire placement-candidate
+range.
 Dynamic-placement profiles declare the count-derived postcondition separately.
 A fixed-layout profile instead declares its fixed End Flag/Backup fact once;
 it must not inherit a dynamic alignment formula by family analogy.

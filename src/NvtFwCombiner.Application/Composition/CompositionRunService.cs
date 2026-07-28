@@ -65,7 +65,7 @@ public sealed partial class CompositionRunService
         return new CompositionOutputNamePreview(
             outputName.FileName,
             outputName.Summary,
-            [.. boundInputs.Issues, .. outputName.Issues]);
+            [.. boundInputs.Issues, .. boundInputs.AdvisoryIssues, .. outputName.Issues]);
     }
 
     /// <summary>Executes the request without committing output.</summary>
@@ -222,6 +222,8 @@ public sealed partial class CompositionRunService
                 failedAtUtc,
                 committed: false,
                 validations: [
+                    .. CreateSkippedInputLoadValidations(request.CompiledComposition)
+                        .Select(static evaluation => evaluation.Summary),
                     .. CreateSkippedFinalOutputValidations(request.CompiledComposition)
                         .Select(static evaluation => evaluation.Summary),
                 ]);
@@ -270,7 +272,10 @@ public sealed partial class CompositionRunService
         if (execution.Status == CompositionExecutionStatus.Succeeded)
         {
             progressPublisher.Report(CompositionRunPhase.ValidatingOutput);
-            finalOutputValidations = EvaluateFinalOutput(request.CompiledComposition, execution.OutputBytes);
+            finalOutputValidations = EvaluateFinalOutput(
+                request.CompiledComposition,
+                boundInputs.InputBytes,
+                execution.OutputBytes);
         }
         else
         {
@@ -280,6 +285,8 @@ public sealed partial class CompositionRunService
             .. CreateOutputDifferences(request, execution, boundInputs.InputBytes, execution.OutputBytes),
         ];
         List<CompositionIssue> runIssues = [
+            .. request.AdvisoryIssues,
+            .. boundInputs.AdvisoryIssues,
             .. outputName.Issues,
             .. finalOutputValidations
                 .Where(static evaluation => evaluation.Issue is not null)
@@ -334,7 +341,11 @@ public sealed partial class CompositionRunService
             outputFileName: outputName.FileName,
             outputNaming: outputName.Summary,
             additionalIssues: runIssues,
-            validations: [.. finalOutputValidations.Select(static evaluation => evaluation.Summary)],
+            validations:
+            [
+                .. boundInputs.InputLoadValidations.Select(static evaluation => evaluation.Summary),
+                .. finalOutputValidations.Select(static evaluation => evaluation.Summary),
+            ],
             executedCommandsByOperationId: executedCommandsByOperationId);
 
         (string? inspectionOutputSpaceId, string? inspectionReferenceSpaceId, byte[]? inspectionReferenceBytes) = GetInspectionReference(

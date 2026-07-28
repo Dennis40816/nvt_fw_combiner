@@ -100,10 +100,15 @@ public sealed class BuiltInTpFlashMapCatalogTests
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
             LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            LegacyCombinerDiffDlmPolicy? maskedDiffDlm =
+                plan.Branch == LegacyCombinerPostbuildBranch.Cascade
+                    ? profile.DiffDlmPolicy
+                    : null;
             string[] expectedFileNames =
             [
                 .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
                     .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile)
+                    .Where(block => maskedDiffDlm is null || !maskedDiffDlm.IsIndependentNfBlock(block))
                     .Select(block => block.SourceFileName)
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal),

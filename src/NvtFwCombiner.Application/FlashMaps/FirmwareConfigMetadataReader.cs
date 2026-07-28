@@ -11,7 +11,7 @@ public static class FirmwareConfigMetadataReader
 
     /// <summary>
     /// Reads FWConfig facts from an absolute address for evidence and inspection only.
-    /// Runtime consumers must use <see cref="TryReadBackup"/>.
+    /// Runtime consumers must use <see cref="TryReadBackup(ReadOnlySpan{byte}, out FirmwareConfigMetadata)"/>.
     /// </summary>
     public static bool TryReadAtAbsoluteAddress(
         ReadOnlySpan<byte> image,
@@ -74,8 +74,20 @@ public static class FirmwareConfigMetadataReader
     /// </summary>
     public static bool TryReadBackup(ReadOnlySpan<byte> image, out FirmwareConfigMetadata metadata)
     {
+        return TryReadBackup(image, out metadata, out _);
+    }
+
+    /// <summary>
+    /// Reads the canonical FWConfig Backup and reports the complete exact NVT marker count for diagnostics.
+    /// </summary>
+    public static bool TryReadBackup(
+        ReadOnlySpan<byte> image,
+        out FirmwareConfigMetadata metadata,
+        out int markerCount)
+    {
         metadata = default;
         int? markerStart = null;
+        markerCount = 0;
         for (int offset = 0; offset <= image.Length - NvtBackupMarkerLength; offset++)
         {
             if (image[offset] != 0x00 ||
@@ -86,15 +98,11 @@ public static class FirmwareConfigMetadataReader
                 continue;
             }
 
-            if (markerStart is not null)
-            {
-                return false;
-            }
-
-            markerStart = offset;
+            markerCount++;
+            markerStart ??= offset;
         }
 
-        if (markerStart is not { } start)
+        if (markerCount != 1 || markerStart is not { } start)
         {
             return false;
         }

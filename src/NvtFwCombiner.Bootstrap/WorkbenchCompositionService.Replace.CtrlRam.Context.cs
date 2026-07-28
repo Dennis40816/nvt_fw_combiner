@@ -16,9 +16,11 @@ public static partial class WorkbenchCompositionService
     {
         IcNumberSelection selection = ToIcNumberSelection(number);
         List<CompositionIssue> validationIssues = [];
+        List<CompositionIssue> advisoryIssues = [];
         LegacyCombinerPostbuildProfile? postbuildProfile = null;
         LegacyCombinerPostbuildCommandPlan? commandPlan = null;
         FirmwareConfigVersionWritePlan? firmwareVersionWritePlan = null;
+        FirmwareConfigMetadata? baseFirmwareConfig = null;
         IReadOnlyList<TpFlashMapRegion> regions = [];
         IReadOnlyList<TpCtrlRamPostbuildSource> sources = [];
 
@@ -54,6 +56,14 @@ public static partial class WorkbenchCompositionService
                         "Base firmware BIN must not be empty.",
                         WorkbenchSlotIds.ReplaceBase));
                 }
+
+                if (TryReadFirmwareConfigBackupMetadata(
+                        icId,
+                        baseBytes,
+                        out FirmwareConfigMetadata parsedFirmwareConfig))
+                {
+                    baseFirmwareConfig = parsedFirmwareConfig;
+                }
             }
         }
 
@@ -67,7 +77,14 @@ public static partial class WorkbenchCompositionService
             {
                 try
                 {
-                    commandPlan = LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile!, selection);
+                    int? reportedChipCount =
+                        baseFirmwareConfig is { ChipNumber: > 0 } reportedFirmwareConfig
+                            ? reportedFirmwareConfig.ChipNumber
+                            : null;
+                    commandPlan = LegacyCombinerPostbuildPlanner.CreatePlan(
+                        postbuildProfile!,
+                        selection,
+                        reportedChipCount);
                 }
                 catch (ArgumentException exception)
                 {
@@ -87,20 +104,46 @@ public static partial class WorkbenchCompositionService
         }
 
         if (commandPlan is not null &&
-            baseBytes is not null &&
-            TryReadFirmwareConfigBackupMetadata(icId, baseBytes, out FirmwareConfigMetadata firmwareConfig) &&
+            baseFirmwareConfig is { } firmwareConfig &&
             firmwareConfig.ChipNumber != 0 &&
-            !commandPlan.Selector.MatchesReportedChipCount(firmwareConfig.ChipNumber))
+            commandPlan.TopologyCount != firmwareConfig.ChipNumber)
         {
             validationIssues.Add(new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamIcNumberMismatch,
-                $"Selected Number is {commandPlan.Selector.DisplayLabel}, but the base firmware FWConfig reports {firmwareConfig.ChipNumber} IC. Switch Number to the matching plan and review the CtrlRAM inputs before Build.",
+                $"Selected Number is {commandPlan.TopologyCount} IC, but the base firmware FWConfig reports {firmwareConfig.ChipNumber} IC. Switch Number to the matching plan and review the CtrlRAM inputs before Build.",
                 "number"));
+        }
+
+        if (commandPlan is not null &&
+            baseFirmwareConfig is { } chipCountMetadata &&
+            FirmwareConfigChipCountDiagnostics.CreateZeroIssue(
+                chipCountMetadata,
+                requirement: commandPlan.ChipCountRequirement,
+                operationId: WorkbenchSlotIds.ReplaceBase,
+                dependencyReason:
+                    "Dynamic DiffDLM uses IC Count to resolve active records and FWConfig Backup placement.")
+                is { } chipCountIssue)
+        {
+            if (StringComparer.Ordinal.Equals(chipCountIssue.Severity, CompositionIssueSeverity.Error))
+            {
+                validationIssues.Add(chipCountIssue);
+            }
+            else
+            {
+                advisoryIssues.Add(chipCountIssue);
+            }
         }
 
         if (commandPlan is not null || basePath is null)
         {
-            sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(postbuildProfile?.IcId ?? icId, selection, postbuildProfile);
+            sources = commandPlan is null
+                ? BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(
+                    postbuildProfile?.IcId ?? icId,
+                    selection,
+                    postbuildProfile)
+                : BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(
+                    postbuildProfile?.IcId ?? icId,
+                    commandPlan);
             regions = [.. sources.SelectMany(source => source.Regions)
                 .DistinctBy(region => region.RegionId, StringComparer.Ordinal)
                 .OrderBy(region => region.Range.Start)];
@@ -112,6 +155,23 @@ public static partial class WorkbenchCompositionService
                 WorkbenchIssueCodes.ReplaceCtrlRamNoMappedRegion,
                 $"No postbuild-mapped CtrlRAM region is available for {icId} / {number}.",
                 IcWorkflowIds.CtrlRamReplace));
+        }
+
+        HashSet<string> availableSourceSlots =
+        [
+            .. sources.Select(source => CtrlRamSlotId(source.SourceId)),
+        ];
+        foreach ((string slotId, string path) in slotPaths.Where(pair =>
+                     pair.Key.StartsWith(
+                         WorkbenchSlotIds.ReplaceCtrlRamPrefix,
+                         StringComparison.Ordinal) &&
+                     !string.IsNullOrWhiteSpace(pair.Value) &&
+                     !availableSourceSlots.Contains(pair.Key)))
+        {
+            validationIssues.Add(new CompositionIssue(
+                WorkbenchIssueCodes.ReplaceCtrlRamSourceUnavailable,
+                $"CtrlRAM source '{slotId}' is unavailable for the resolved {icId} / {number} route.",
+                slotId));
         }
 
         List<TpCtrlRamPostbuildSource> selectedSources =
@@ -145,12 +205,34 @@ public static partial class WorkbenchCompositionService
             long length = new FileInfo(path).Length;
             LegacyCombinerBlockArgument? unsafeBlock = source.Blocks.FirstOrDefault(block =>
                 block.SourceOffset > 0 && checked(block.SourceOffset + block.FirmwareRange.Length) > length);
-            if (length <= 0 || unsafeBlock is not null)
+            LegacyCombinerDiffDlmPolicy? diffDlmPolicy =
+                commandPlan?.Profile.DiffDlmPolicy is { } candidate &&
+                StringComparer.Ordinal.Equals(candidate.SourceFileName, source.SourceFileName)
+                    ? candidate
+                    : null;
+            LegacyCombinerBlockArgument? missingActiveDlmBlock =
+                diffDlmPolicy is null
+                    ? null
+                    : source.Blocks.FirstOrDefault(block =>
+                        checked(block.SourceOffset + block.FirmwareRange.Length) > length);
+            long? requiredActiveRecordPrefix = diffDlmPolicy?.GetRequiredSourceLength(
+                commandPlan!.TopologyCount);
+            bool missingCompleteActiveRecord =
+                requiredActiveRecordPrefix is { } requiredPrefix &&
+                length < requiredPrefix;
+            if (length <= 0 ||
+                unsafeBlock is not null ||
+                missingActiveDlmBlock is not null ||
+                missingCompleteActiveRecord)
             {
                 validationIssues.Add(new CompositionIssue(
                     CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                     length <= 0
                         ? $"CtrlRAM source '{source.SourceFileName}' must not be empty."
+                        : missingCompleteActiveRecord
+                            ? $"DiffDLM source is too short for {commandPlan!.TopologyCount} IC: complete active records require 0x{requiredActiveRecordPrefix!.Value:X} bytes, but the selected file has 0x{length:X} bytes."
+                        : missingActiveDlmBlock is not null
+                            ? $"DiffDLM source is missing active record '{missingActiveDlmBlock.BlockId}' ending at 0x{checked(missingActiveDlmBlock.SourceOffset + missingActiveDlmBlock.FirmwareRange.Length):X}."
                         : $"CtrlRAM source '{source.SourceFileName}' is too short for nonzero source offset 0x{unsafeBlock!.SourceOffset:X} and section length {unsafeBlock.FirmwareRange.Length} bytes.",
                     slotId));
                 continue;
@@ -205,7 +287,8 @@ public static partial class WorkbenchCompositionService
             sources,
             selectedSources,
             selectedSourceLengths,
-            validationIssues);
+            validationIssues,
+            advisoryIssues);
     }
 
     private static InputArtifactBinding[] CreateCtrlRamReplaceBindings(
@@ -239,5 +322,6 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpCtrlRamPostbuildSource> Sources,
         IReadOnlyList<TpCtrlRamPostbuildSource> SelectedSources,
         IReadOnlyDictionary<string, long> SelectedSourceLengths,
-        IReadOnlyList<CompositionIssue> ValidationIssues);
+        IReadOnlyList<CompositionIssue> ValidationIssues,
+        IReadOnlyList<CompositionIssue> AdvisoryIssues);
 }

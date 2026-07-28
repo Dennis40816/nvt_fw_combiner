@@ -214,6 +214,112 @@ public sealed partial class CompiledCompositionTests
         Assert.NotEqual(baseline.CompilationFingerprint, changed.CompilationFingerprint);
     }
 
+    /// <summary>Verifies dynamic FWConfig Backup authority and expected placement remain complete compiled identity.</summary>
+    [Fact]
+    public void FingerprintBindsFirmwareConfigBackupPlacementRequirements()
+    {
+        CompiledValidationRequirement baselineAuthority =
+            CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(
+                "verify-nvt-fwconfig-backup-authority",
+                "replace.ctrlram.fwconfig-backup-invalid",
+                "replace.ctrlram.dynamic-diffdlm-inactive-mutation",
+                "reference-image",
+                new ByteRange(4, 8),
+                4);
+        CompiledValidationRequirement[] authorityVariants =
+        [
+            CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(
+                "verify-nvt-fwconfig-backup-authority",
+                "replace.ctrlram.fwconfig-backup-invalid",
+                "replace.ctrlram.dynamic-diffdlm-other-mutation",
+                "reference-image",
+                new ByteRange(4, 8),
+                4),
+            CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(
+                "verify-nvt-fwconfig-backup-authority",
+                "replace.ctrlram.fwconfig-backup-invalid",
+                "replace.ctrlram.dynamic-diffdlm-inactive-mutation",
+                "other-reference",
+                new ByteRange(4, 8),
+                4),
+            CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(
+                "verify-nvt-fwconfig-backup-authority",
+                "replace.ctrlram.fwconfig-backup-invalid",
+                "replace.ctrlram.dynamic-diffdlm-inactive-mutation",
+                "reference-image",
+                new ByteRange(5, 8),
+                4),
+            CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(
+                "verify-nvt-fwconfig-backup-authority",
+                "replace.ctrlram.fwconfig-backup-invalid",
+                "replace.ctrlram.dynamic-diffdlm-inactive-mutation",
+                "reference-image",
+                new ByteRange(4, 8),
+                5),
+        ];
+        string baselineAuthorityFingerprint = CreateMerge(
+            validationRequirements: [baselineAuthority]).CompilationFingerprint;
+        Assert.All(
+            authorityVariants,
+            variant => Assert.NotEqual(
+                baselineAuthorityFingerprint,
+                CreateMerge(validationRequirements: [variant]).CompilationFingerprint));
+
+        CompiledValidationRequirement baselineExpected =
+            CompiledValidationRequirements.FirmwareConfigBackupExpectedAddress(
+                "verify-nvt-fwconfig-backup-expected-address",
+                "replace.ctrlram.fwconfig-backup-unexpected",
+                8);
+        CompiledValidationRequirement changedExpected =
+            CompiledValidationRequirements.FirmwareConfigBackupExpectedAddress(
+                "verify-nvt-fwconfig-backup-expected-address",
+                "replace.ctrlram.fwconfig-backup-unexpected",
+                9);
+        Assert.NotEqual(
+            CreateMerge(validationRequirements: [baselineExpected]).CompilationFingerprint,
+            CreateMerge(validationRequirements: [changedExpected]).CompilationFingerprint);
+
+        CompiledValidationRequirement baselineUniform =
+            CompiledValidationRequirements.RejectUniformInputRanges(
+                "reject-uniform-input",
+                CompiledValidationSeverity.Error,
+                "input.uniform",
+                "input",
+                [new ByteRange(0, 2)]);
+        CompiledValidationRequirement[] uniformVariants =
+        [
+            CompiledValidationRequirements.RejectUniformInputRanges(
+                "reject-uniform-input",
+                CompiledValidationSeverity.Warning,
+                "input.uniform",
+                "input",
+                [new ByteRange(0, 2)]),
+            CompiledValidationRequirements.RejectUniformInputRanges(
+                "reject-uniform-input",
+                CompiledValidationSeverity.Error,
+                "input.uniform",
+                "input",
+                [new ByteRange(1, 2)]),
+        ];
+        string baselineUniformFingerprint = CreateMerge(
+            validationRequirements: [baselineUniform]).CompilationFingerprint;
+        Assert.All(
+            uniformVariants,
+            variant => Assert.NotEqual(
+                baselineUniformFingerprint,
+                CreateMerge(validationRequirements: [variant]).CompilationFingerprint));
+
+        CompiledValidationRequirement outsideInput =
+            CompiledValidationRequirements.RejectUniformInputRanges(
+                "outside-input",
+                CompiledValidationSeverity.Error,
+                "input.uniform",
+                "input",
+                [new ByteRange(3, 2)]);
+        _ = Assert.Throws<ArgumentException>(() =>
+            CreateMerge(validationRequirements: [outsideInput]));
+    }
+
     /// <summary>Verifies initializer, output selection, input policy, and operation semantics affect the fingerprint.</summary>
     [Fact]
     public void FingerprintBindsPlanSemantics()
