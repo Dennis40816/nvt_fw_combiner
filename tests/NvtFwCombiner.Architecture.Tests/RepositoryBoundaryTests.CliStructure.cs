@@ -49,13 +49,19 @@ public sealed partial class RepositoryBoundaryTests
         foreach (string workflow in new[] { dp, ctrlRam, general })
         {
             Assert.Equal(1, CountOccurrences(workflow, "RunWorkbenchReplaceAsync("));
-            Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("EnsureOutputDoesNotAliasInputs", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("EnsureReportDoesNotAliasProtectedPaths", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("output file already exists", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("WriteWorkbenchReportFileIfRequestedAsync", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("PrintWorkbenchRunResultAsync", workflow, StringComparison.Ordinal);
         }
+
+        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", dp, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains(
+            "WorkbenchCompositionService.RunGeneralReplaceDraftAsync",
+            general,
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies General Merge CLI dispatch stays split from parsing, mapping adaptation, usage text, and result printing.</summary>

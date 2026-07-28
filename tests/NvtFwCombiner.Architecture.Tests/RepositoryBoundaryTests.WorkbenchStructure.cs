@@ -82,13 +82,15 @@ public sealed partial class RepositoryBoundaryTests
     {
         string ids = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchGeneralMergeIds.cs");
         string mapping = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Mapping.cs");
+        string authoring = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMappingDraft.cs");
         string profile = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
         string savedRuleRows = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.MappingRows.cs");
 
         Assert.Contains("public const string OutputRegionId = \"general-output\";", ids, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", mapping, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", authoring, StringComparison.Ordinal);
         Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", savedRuleRows, StringComparison.Ordinal);
         Assert.DoesNotContain("\"general-output\"", mapping, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"general-output\"", authoring, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchGeneralMergeIds.OutputRegionId", profile, StringComparison.Ordinal);
         Assert.DoesNotContain("\"general-output\"", savedRuleRows, StringComparison.Ordinal);
     }

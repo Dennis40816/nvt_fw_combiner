@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -23,8 +25,7 @@ internal static partial class ReplaceCliCommandHandler
         if (!TryCreateWorkbenchGeneralAuthoringInputs(
                 options,
                 error,
-                out WorkbenchGeneralReplaceMappingInput[]? mappings,
-                out WorkbenchGeneralReplacePatchInput[]? patches))
+                out GeneralMappingDraftState? mappingDraft))
         {
             return UsageError;
         }
@@ -34,9 +35,10 @@ internal static partial class ReplaceCliCommandHandler
             [WorkbenchSlotIds.ReplaceBase] = Path.GetFullPath(basePath),
         };
         Dictionary<string, string> protectedInputPaths = new(slotPaths, StringComparer.Ordinal);
-        foreach (WorkbenchGeneralReplaceMappingInput mapping in mappings)
+        foreach (GeneralMappingDraftRow mapping in mappingDraft.Rows.Where(
+                     static row => row.Source.Kind == GeneralMappingSourceKind.FileArtifact))
         {
-            protectedInputPaths[mapping.MappingId] = Path.GetFullPath(mapping.FilePath);
+            protectedInputPaths[mapping.MappingId] = Path.GetFullPath(mapping.Source.Reference);
         }
 
         return await RunWorkbenchReplaceAsync(
@@ -46,13 +48,11 @@ internal static partial class ReplaceCliCommandHandler
                 IcWorkflowIds.GeneralReplace,
                 options,
                 protectedInputPaths,
-                (build, outputPath, token) => WorkbenchCompositionService.RunReplaceAsync(
+                (build, outputPath, token) => WorkbenchCompositionService.RunGeneralReplaceDraftAsync(
                     icId,
                     icNumber,
-                    WorkbenchReplaceModes.General,
                     slotPaths,
-                    mappings,
-                    patches,
+                    mappingDraft,
                     build,
                     token,
                     outputPath),
@@ -65,61 +65,67 @@ internal static partial class ReplaceCliCommandHandler
     private static bool TryCreateWorkbenchGeneralAuthoringInputs(
         ParsedCliOptions options,
         TextWriter error,
-        [NotNullWhen(true)] out WorkbenchGeneralReplaceMappingInput[]? mappings,
-        [NotNullWhen(true)] out WorkbenchGeneralReplacePatchInput[]? patches)
+        [NotNullWhen(true)] out GeneralMappingDraftState? mappingDraft)
     {
         List<string> mappingValues = options.GetValues("--mapping");
         List<string> patchValues = options.GetValues("--patch");
         List<string> fillValues = options.GetValues("--fill");
         if (mappingValues.Count == 0 && patchValues.Count == 0 && fillValues.Count == 0)
         {
-            mappings = null;
-            patches = null;
+            mappingDraft = null;
             error.WriteLine(
                 "error: at least one --mapping <target-start+length=path>, --patch <target-start+length=hex>, or --fill <target-start+length=byte> value is required for real IC General Replace");
             return false;
         }
 
-        List<WorkbenchGeneralReplaceMappingInput> mappingItems = [];
+        List<GeneralMappingDraftRow> items = [];
         for (int index = 0; index < mappingValues.Count; index++)
         {
             if (!TryParseWorkbenchGeneralMappingValue(
                     mappingValues[index],
                     index + 1,
                     error,
-                    out WorkbenchGeneralReplaceMappingInput? mapping))
+                    out GeneralMappingDraftRow? mapping))
             {
-                mappings = null;
-                patches = null;
+                mappingDraft = null;
                 return false;
             }
 
-            mappingItems.Add(mapping);
+            items.Add(mapping);
         }
 
-        List<WorkbenchGeneralReplacePatchInput> patchItems = [];
         if (!TryAppendWorkbenchGeneralPatches(
                 "--patch",
                 patchValues,
                 WorkbenchGeneralReplacePatchKind.Overwrite,
                 "general-patch",
                 error,
-                patchItems) ||
+                items) ||
             !TryAppendWorkbenchGeneralPatches(
                 "--fill",
                 fillValues,
                 WorkbenchGeneralReplacePatchKind.Fill,
                 "general-fill",
                 error,
-                patchItems))
+                items))
         {
-            mappings = null;
-            patches = null;
+            mappingDraft = null;
             return false;
         }
 
-        mappings = [.. mappingItems];
-        patches = [.. patchItems];
+        if (!WorkbenchCompositionService.TryCreateGeneralReplaceDraft(
+                items,
+                out mappingDraft,
+                out IReadOnlyList<CompositionIssue> issues))
+        {
+            foreach (CompositionIssue issue in issues)
+            {
+                error.WriteLine($"error: {issue.Message}");
+            }
+
+            return false;
+        }
+
         return true;
     }
 
@@ -129,7 +135,7 @@ internal static partial class ReplaceCliCommandHandler
         WorkbenchGeneralReplacePatchKind kind,
         string idPrefix,
         TextWriter error,
-        List<WorkbenchGeneralReplacePatchInput> patches)
+        List<GeneralMappingDraftRow> rows)
     {
         for (int index = 0; index < values.Count; index++)
         {
@@ -138,18 +144,37 @@ internal static partial class ReplaceCliCommandHandler
                     values[index],
                     error,
                     out string? payload,
-                    out string? start,
-                    out string? endInclusive))
+                    out ByteRange targetRange))
             {
                 return false;
             }
 
-            patches.Add(new WorkbenchGeneralReplacePatchInput(
-                string.Create(CultureInfo.InvariantCulture, $"{idPrefix}-{index + 1}"),
-                start,
-                endInclusive,
-                kind,
-                payload));
+            string mappingId = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{idPrefix}-{index + 1}");
+            GeneralMappingSource source = kind switch
+            {
+                WorkbenchGeneralReplacePatchKind.Overwrite =>
+                    GeneralMappingSource.HexOverwrite(payload, mappingId),
+                WorkbenchGeneralReplacePatchKind.Fill =>
+                    GeneralMappingSource.HexFill(payload, mappingId),
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(kind),
+                    kind,
+                    "Unknown General Replace patch kind."),
+            };
+            rows.Add(new GeneralMappingDraftRow(
+                mappingId,
+                ExplicitMappingOperationKind.ReplaceRange,
+                source,
+                new ByteRange(0, targetRange.Length),
+                CompositionAddressSpaceIds.OutputImage,
+                targetRange,
+                OverlapPolicy.Reject,
+                alignment: 1,
+                kind == WorkbenchGeneralReplacePatchKind.Fill
+                    ? "Fill hexadecimal General range."
+                    : "Overwrite hexadecimal General range."));
         }
 
         return true;
@@ -159,7 +184,7 @@ internal static partial class ReplaceCliCommandHandler
         string value,
         int index,
         TextWriter error,
-        [NotNullWhen(true)] out WorkbenchGeneralReplaceMappingInput? mapping)
+        [NotNullWhen(true)] out GeneralMappingDraftRow? mapping)
     {
         mapping = null;
         if (!TryParseWorkbenchGeneralRangeValue(
@@ -167,8 +192,7 @@ internal static partial class ReplaceCliCommandHandler
                 value,
                 error,
                 out string? path,
-                out string? start,
-                out string? endInclusive))
+                out ByteRange targetRange))
         {
             return false;
         }
@@ -179,11 +203,19 @@ internal static partial class ReplaceCliCommandHandler
             return false;
         }
 
-        mapping = new WorkbenchGeneralReplaceMappingInput(
-            string.Create(CultureInfo.InvariantCulture, $"general-map-{index}"),
-            Path.GetFullPath(path),
-            start,
-            endInclusive);
+        string mappingId = string.Create(
+            CultureInfo.InvariantCulture,
+            $"general-map-{index}");
+        mapping = new GeneralMappingDraftRow(
+            mappingId,
+            ExplicitMappingOperationKind.ReplaceRange,
+            GeneralMappingSource.File(Path.GetFullPath(path)),
+            new ByteRange(0, targetRange.Length),
+            CompositionAddressSpaceIds.OutputImage,
+            targetRange,
+            OverlapPolicy.Reject,
+            alignment: 1,
+            "Replace explicit General range.");
         return true;
     }
 
@@ -192,12 +224,10 @@ internal static partial class ReplaceCliCommandHandler
         string value,
         TextWriter error,
         [NotNullWhen(true)] out string? payload,
-        [NotNullWhen(true)] out string? start,
-        [NotNullWhen(true)] out string? endInclusive)
+        out ByteRange targetRange)
     {
         payload = null;
-        start = null;
-        endInclusive = null;
+        targetRange = default;
         int separatorIndex = value.IndexOf('=', StringComparison.Ordinal);
         if (separatorIndex <= 0)
         {
@@ -215,27 +245,16 @@ internal static partial class ReplaceCliCommandHandler
             return false;
         }
 
-        if (!BootstrapRangeText.TryParseNonNegativeLong(rangeText[..plusIndex], out long rangeStart) ||
-            !BootstrapRangeText.TryParseNonNegativeLong(rangeText[(plusIndex + 1)..], out long length) ||
-            length <= 0)
+        if (!AuthoringByteRangeCodec.TryParseStartAndLength(
+                rangeText[..plusIndex],
+                rangeText[(plusIndex + 1)..],
+                out targetRange,
+                out AuthoringRangeTextIssue? issue))
         {
-            error.WriteLine($"error: {optionName} start must be non-negative and length must be positive");
+            error.WriteLine($"error: {optionName} {issue!.Message}");
             return false;
         }
 
-        long rangeEndInclusive;
-        try
-        {
-            rangeEndInclusive = checked(rangeStart + length - 1);
-        }
-        catch (OverflowException)
-        {
-            error.WriteLine($"error: {optionName} range exceeds the supported address size");
-            return false;
-        }
-
-        start = BootstrapRangeText.FormatHex(rangeStart);
-        endInclusive = BootstrapRangeText.FormatHex(rangeEndInclusive);
         return true;
     }
 }

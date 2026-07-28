@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -10,7 +11,7 @@ internal static partial class MergeCliCommandHandler
         IReadOnlyList<string> slotValues,
         string icId,
         TextWriter error,
-        [NotNullWhen(true)] out WorkbenchGeneralMergeMappingInput[]? mappings)
+        [NotNullWhen(true)] out GeneralMappingDraftState? mappings)
     {
         mappings = null;
         SavedCompositionRuleLoadResult load = SavedCompositionRuleLoader.Load(rulePath);
@@ -53,7 +54,7 @@ internal static partial class MergeCliCommandHandler
                 rowId,
                 fragment.OperationId)))
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
-        List<WorkbenchGeneralMergeMappingInput> items = [];
+        List<GeneralMappingDraftRow> items = [];
         foreach (SavedRuleMappingRow row in rule.MappingRows)
         {
             if (!string.Equals(row.TargetAddressSpaceId, CompositionAddressSpaceIds.OutputImage, StringComparison.Ordinal))
@@ -86,19 +87,30 @@ internal static partial class MergeCliCommandHandler
                 return false;
             }
 
-            items.Add(new WorkbenchGeneralMergeMappingInput(
+            items.Add(new GeneralMappingDraftRow(
                 operationId,
-                sourcePath,
-                BootstrapRangeText.FormatHex(sourceRange.Start),
-                BootstrapRangeText.FormatHex(row.TargetRange.Start),
-                BootstrapRangeText.FormatHex(row.TargetRange.Length),
+                ExplicitMappingOperationKind.CopyRange,
+                GeneralMappingSource.File(sourcePath),
+                sourceRange,
+                row.TargetAddressSpaceId,
+                row.TargetRange,
+                OverlapPolicy.Reject,
                 row.Alignment,
                 row.Reason,
+                row.TargetRegionId,
                 OperationProvenance.SavedRule(rule.RuleId, rule.RuleVersion)));
         }
 
-        mappings = [.. items];
-        return true;
+        try
+        {
+            mappings = new GeneralMappingDraftState(items);
+            return true;
+        }
+        catch (ArgumentException exception)
+        {
+            error.WriteLine($"error: saved rule mapping draft is invalid: {exception.Message}");
+            return false;
+        }
     }
 
     private static bool TryCreateSlotBindings(
