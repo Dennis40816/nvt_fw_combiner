@@ -7,12 +7,15 @@ public static partial class WorkbenchCompositionService
     private static bool TryGetBuiltInV2StandardMergeCompilation(
         string icId,
         long? dpInputLength,
+        bool includeOptionalLdc,
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        if (!BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
-                icId,
-                out BuiltInV2Registration? registration))
+        BuiltInV2Registration? registration =
+            StringComparer.Ordinal.Equals(icId, Nt51928IcId) && !includeOptionalLdc
+                ? BuiltInV2RegistrationRegistry.Nt51928StandardMergeWithoutLdc
+                : BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(icId);
+        if (registration is null)
         {
             composition = null;
             issues = [];

@@ -5,6 +5,8 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private const string Nt51928DpReplaceIcId = "NT51928";
+
     /// <summary>Compiles one registered DP Replace profile from its hash-anchored V2 bundle.</summary>
     internal static bool TryCompileBuiltInV2DpReplace(
         string icId,
@@ -19,6 +21,66 @@ public static partial class WorkbenchCompositionService
             composition = null;
             issues = [];
             return false;
+        }
+
+        registration.TryCompile(baseCapacity, out composition, out issues);
+        return true;
+    }
+
+    /// <summary>Compiles the fixed input shape selected by one DP Replace request.</summary>
+    internal static bool TryCompileBuiltInV2DpReplace(
+        string icId,
+        long baseCapacity,
+        DpReplacePartSelection selectedParts,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
+        if (!string.Equals(normalizedIcId, Nt51928DpReplaceIcId, StringComparison.Ordinal))
+        {
+            if (selectedParts != DpReplacePartSelection.InitialCode)
+            {
+                composition = null;
+                issues =
+                [
+                    new CompositionIssue(
+                        WorkbenchIssueCodes.ReplaceDpSelectionRequired,
+                        $"{normalizedIcId} DP Replace requires its Initial Code replacement input."),
+                ];
+                return true;
+            }
+
+            return TryCompileBuiltInV2DpReplace(
+                normalizedIcId,
+                baseCapacity,
+                out composition,
+                out issues);
+        }
+
+        BuiltInV2Registration? registration = selectedParts switch
+        {
+            DpReplacePartSelection.InitialCode =>
+                BuiltInV2RegistrationRegistry.Nt51928DpReplaceInitialCodeOnly,
+            DpReplacePartSelection.Ldc =>
+                BuiltInV2RegistrationRegistry.Nt51928DpReplaceLdcOnly,
+            DpReplacePartSelection.All =>
+                BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[Nt51928DpReplaceIcId],
+            DpReplacePartSelection.None => null,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(selectedParts),
+                selectedParts,
+                "Unknown NT51928 DP Replace part selection."),
+        };
+        if (registration is null)
+        {
+            composition = null;
+            issues =
+            [
+                new CompositionIssue(
+                    WorkbenchIssueCodes.ReplaceDpSelectionRequired,
+                    "NT51928 DP Replace requires at least one replacement: Initial Code or LDC."),
+            ];
+            return true;
         }
 
         registration.TryCompile(baseCapacity, out composition, out issues);

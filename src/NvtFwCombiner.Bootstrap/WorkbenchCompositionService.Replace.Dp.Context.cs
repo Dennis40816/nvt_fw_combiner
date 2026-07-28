@@ -1,3 +1,6 @@
+using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
+
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
@@ -38,10 +41,17 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        foreach (WorkbenchReplaceInputSlot slot in GetDpReplaceInputSlots(icId).Where(static slot => !slot.IsOptional))
+        DpReplacePartSelection selectedParts = DpReplacePartSelection.None;
+        foreach (WorkbenchReplaceInputSlot slot in GetDpReplaceInputSlots(icId))
         {
-            if (!slotPaths.TryGetValue(slot.SlotId, out string? inputPath) || string.IsNullOrWhiteSpace(inputPath))
+            bool supplied = slotPaths.TryGetValue(slot.SlotId, out string? inputPath);
+            if (!supplied)
             {
+                if (slot.IsOptional)
+                {
+                    continue;
+                }
+
                 failure = CreatePlanningRunResult(
                     icId,
                     WorkbenchReplaceModes.Dp,
@@ -51,6 +61,41 @@ public static partial class WorkbenchCompositionService
                     $"{slot.Title} is required for {icId} DP Replace.");
                 return false;
             }
+
+            if (string.IsNullOrWhiteSpace(inputPath))
+            {
+                failure = CreatePlanningRunResult(
+                    icId,
+                    WorkbenchReplaceModes.Dp,
+                    slotPaths,
+                    build,
+                    WorkbenchIssueCodes.InputMissing,
+                    $"Selected {slot.Title} path is empty.");
+                return false;
+            }
+
+            selectedParts |= slot.AddressSpaceId switch
+            {
+                CompositionAddressSpaceIds.DpReplacement =>
+                    DpReplacePartSelection.InitialCode,
+                CompositionAddressSpaceIds.LdReplacement =>
+                    DpReplacePartSelection.Ldc,
+                _ => throw new InvalidOperationException(
+                    $"DP Replace slot '{slot.SlotId}' has unsupported address space '{slot.AddressSpaceId}'."),
+            };
+        }
+
+        if (string.Equals(IcSupportCatalog.NormalizeIcId(icId), Nt51928DpReplaceIcId, StringComparison.Ordinal) &&
+            selectedParts == DpReplacePartSelection.None)
+        {
+            failure = CreatePlanningRunResult(
+                icId,
+                WorkbenchReplaceModes.Dp,
+                slotPaths,
+                build,
+                WorkbenchIssueCodes.ReplaceDpSelectionRequired,
+                "NT51928 DP Replace requires at least one replacement: Initial Code or LDC.");
+            return false;
         }
 
         long baseLength = new FileInfo(fullBasePath).Length;
@@ -58,6 +103,7 @@ public static partial class WorkbenchCompositionService
             ToIcNumberSelection(number),
             fullBasePath,
             baseLength,
+            selectedParts,
             slotPaths);
         return true;
     }

@@ -1,8 +1,30 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.17 DiffDLM/Diff NF hot-fix candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.18 NT51928 compatibility candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.17`
+Specification package version: `0.9.18`
+
+## 0.9.18 NT51928 optional-input compatibility candidate
+
+The `0.9.18` candidate starts from official stable `v0.9.17`, peeled to
+`75803406d5c3e260ea501bcf2ae334fe4c7a4e4d`. Standard Merge continues to
+require DP and TP, but LDC is optional: no LDC selects an isolated,
+hash-pinned 256 KiB NT51927-equivalent TP/gap/DP plan, while a supplied LDC
+selects the existing 512 KiB plan unchanged.
+
+NT51928 DP Replace retains its exact 512 KiB Reference requirement. Initial
+Code `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)` are independently
+selectable with a minimum of one. The output clones the immutable Reference,
+applies only selected fixed-input operations, and rejects any invalid selected
+input without falling back to a smaller selection.
+
+Local canonical verification passes with 158 repository Python tests, 28
+CRC-worker tests at 98.88% coverage, and 2,519 .NET tests with two declared
+Unix-only skips. Release build completes with zero warnings and zero errors.
+The candidate adds no firmware payload or external executable. Exact-head
+review, protected CI, maintenance-branch release admission, candidate package
+verification, protected promotion, downloaded-asset verification, and release
+owner approval remain required before publication.
 
 ## 0.9.17 DiffDLM/Diff NF hot-fix candidate — not published
 

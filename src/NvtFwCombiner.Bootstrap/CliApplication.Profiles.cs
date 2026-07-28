@@ -26,7 +26,12 @@ public static partial class CliApplication
         foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetStandardMergeProfileSummaries())
         {
             string inputs = profile.CompileSucceeded
-                ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
+                ? string.Join(
+                    ", ",
+                    WorkbenchCompositionService.GetStandardMergeInputSlots(profile.IcId)
+                        .Select(static input => input.Required
+                            ? input.AddressSpaceId
+                            : $"{input.AddressSpaceId} (optional)"))
                 : "compile-error";
             string issues = FormatProfileIssues(profile);
             await output.WriteLineAsync(
@@ -54,7 +59,7 @@ public static partial class CliApplication
         foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetReplaceProfileSummaries())
         {
             string inputs = profile.CompileSucceeded
-                ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
+                ? FormatReplaceProfileInputs(profile)
                 : "compile-error";
             string icNumberPolicy = FormatIcNumberPolicy(profile);
             string issues = FormatProfileIssues(profile);
@@ -66,6 +71,23 @@ public static partial class CliApplication
         }
 
         return Success;
+    }
+
+    private static string FormatReplaceProfileInputs(WorkbenchProfileSummary profile)
+    {
+        var authoringSlots =
+            WorkbenchCompositionService.GetReplaceInputSlots(
+                    profile.IcId,
+                    WorkbenchIcNumberTokens.SingleChip,
+                    WorkbenchReplaceModes.Dp)
+                .ToDictionary(static slot => slot.AddressSpaceId, StringComparer.Ordinal);
+        return string.Join(
+            ", ",
+            profile.RequiredInputAddressSpaceIds.Select(addressSpaceId =>
+                authoringSlots.TryGetValue(addressSpaceId, out WorkbenchReplaceInputSlot? slot) &&
+                slot.IsOptional
+                    ? $"{addressSpaceId} (optional)"
+                    : addressSpaceId));
     }
 
     private static string FormatIcNumberPolicy(WorkbenchProfileSummary profile)

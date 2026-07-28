@@ -11,9 +11,13 @@ public static partial class UiCompositionRunner
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetStandardMergeMemoryDisplay(
         string icId,
-        long? dpInputLength = null)
+        long? dpInputLength = null,
+        bool includeOptionalLdc = true)
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetStandardMergeMemoryDisplay(icId, dpInputLength);
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetStandardMergeMemoryDisplay(
+            icId,
+            dpInputLength,
+            includeOptionalLdc);
         return (
             display.RangeLabel,
             [.. display.MemoryMapRows.Select(ToMemoryMapRow)],

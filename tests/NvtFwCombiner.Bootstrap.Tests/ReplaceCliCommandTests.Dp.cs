@@ -157,4 +157,153 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(64, result.ExitCode);
         Assert.Contains("requires --ic-num single", result.Error, StringComparison.Ordinal);
     }
+
+    /// <summary>NT51928 CLI accepts Initial Code-only and preserves Reference LDC bytes.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceBuildAcceptsInitialCodeWithoutLdc()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] referenceBytes = [.. Enumerable.Repeat((byte)0x22, 0x80000)];
+        byte[] initialCodeBytes = [.. Enumerable.Repeat((byte)0xA1, 0x80000)];
+        string output = workspace.PathFor("nt51928-dp-replace.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "build",
+            "--profile",
+            "NT51928",
+            "--ic-num",
+            "single",
+            "--base",
+            workspace.Write("reference.bin", referenceBytes),
+            "--dp",
+            workspace.Write("initial-code.bin", initialCodeBytes),
+            "--output",
+            output,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(result.Error);
+        byte[] actual = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        Assert.Equal(0xA1, actual[0x3C000]);
+        Assert.Equal(0xA1, actual[0x3FFFF]);
+        Assert.Equal(0x22, actual[0x40000]);
+        Assert.Equal(0x22, actual[0x61FFF]);
+    }
+
+    /// <summary>NT51928 CLI accepts LDC-only and preserves Reference Initial Code bytes.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceBuildAcceptsLdcWithoutInitialCode()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] referenceBytes = [.. Enumerable.Repeat((byte)0x22, 0x80000)];
+        byte[] ldcBytes = [.. Enumerable.Repeat((byte)0xB2, 0x80000)];
+        string output = workspace.PathFor("nt51928-dp-replace.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "build",
+            "--profile",
+            "NT51928",
+            "--ic-num",
+            "single",
+            "--base",
+            workspace.Write("reference.bin", referenceBytes),
+            "--ldc",
+            workspace.Write("ldc.bin", ldcBytes),
+            "--output",
+            output,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(result.Error);
+        byte[] actual = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        Assert.Equal(0x22, actual[0x3C000]);
+        Assert.Equal(0x22, actual[0x3FFFF]);
+        Assert.Equal(0xB2, actual[0x40000]);
+        Assert.Equal(0xB2, actual[0x61FFF]);
+    }
+
+    /// <summary>NT51928 CLI rejects Reference-only requests before any output is created.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceBuildRequiresAtLeastOneReplacement()
+    {
+        using var workspace = TempWorkspace.Create();
+        string output = workspace.PathFor("nt51928-dp-replace.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "build",
+            "--profile",
+            "NT51928",
+            "--ic-num",
+            "single",
+            "--base",
+            workspace.Write("reference.bin", new byte[0x80000]),
+            "--output",
+            output,
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("at least one of --dp or --ldc is required", result.Error, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    /// <summary>An invalid selected LDC blocks a valid Initial Code instead of downgrading the request.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceBuildDoesNotIgnoreInvalidSelectedLdc()
+    {
+        using var workspace = TempWorkspace.Create();
+        string output = workspace.PathFor("nt51928-dp-replace.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "build",
+            "--profile",
+            "NT51928",
+            "--ic-num",
+            "single",
+            "--base",
+            workspace.Write("reference.bin", new byte[0x80000]),
+            "--dp",
+            workspace.Write("initial-code.bin", new byte[0x80000]),
+            "--ldc",
+            workspace.Write("invalid-ldc.bin", new byte[0x40000]),
+            "--output",
+            output,
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(CompositionIssueCodes.InputAddressSpaceLengthMismatch, result.Error, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    /// <summary>An invalid selected Initial Code blocks a valid LDC instead of downgrading the request.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceBuildDoesNotIgnoreInvalidSelectedInitialCode()
+    {
+        using var workspace = TempWorkspace.Create();
+        string output = workspace.PathFor("nt51928-dp-replace.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "build",
+            "--profile",
+            "NT51928",
+            "--ic-num",
+            "single",
+            "--base",
+            workspace.Write("reference.bin", new byte[0x80000]),
+            "--dp",
+            workspace.Write("invalid-initial-code.bin", new byte[0x3FFFF]),
+            "--ldc",
+            workspace.Write("ldc.bin", new byte[0x80000]),
+            "--output",
+            output,
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(CompositionIssueCodes.InputAddressSpaceLengthMismatch, result.Error, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
 }

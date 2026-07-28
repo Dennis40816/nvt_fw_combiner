@@ -340,8 +340,8 @@ public sealed partial class ShellTextResources
                 "Ready: Build will validate DP Replace inputs, then write output and report.",
                 "Ready：Build 會先驗證 DP Replace input，再寫出 output 與 report。"),
             WorkbenchReplaceModes.Dp => SelectLanguage(
-                "Build blocked: Reference FlashCode and required DP replacement inputs are required.",
-                "Build blocked：需要 Reference FlashCode 與必要的 DP replacement input。"),
+                "Build blocked: Reference FlashCode and at least one declared replacement input are required.",
+                "Build blocked：需要 Reference FlashCode 與至少一個已宣告的 replacement input。"),
             WorkbenchReplaceModes.CtrlRam when canRun => SelectLanguage(
                 "Ready: Build will replace selected CtrlRAM regions and run postbuild.",
                 "Ready：Build 會取代選定的 CtrlRAM region 並執行 postbuild。"),

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 using static NvtFwCombiner.Bootstrap.WorkbenchMemoryDisplayProjection;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -7,7 +8,10 @@ public static partial class WorkbenchCompositionService
 {
     private const string DpReplaceProfileUnavailable = "The V2 DP Replace profile did not produce an executable composition.";
 
-    private static WorkbenchMemoryDisplay? CreateV2DpReplaceMemoryDisplay(string icId, long? baseCapacity)
+    private static WorkbenchMemoryDisplay? CreateV2DpReplaceMemoryDisplay(
+        string icId,
+        long? baseCapacity,
+        IEnumerable<string>? selectedRegionIds)
     {
         if (!TryResolveBuiltInV2DpReplaceDisplay(icId, baseCapacity, out BuiltInV2DpReplaceDisplay? display))
         {
@@ -42,6 +46,9 @@ public static partial class WorkbenchCompositionService
 
         List<WorkbenchMemoryMapRow> rows = [];
         long capacity = composition.Plan.OutputInitialization.Capacity;
+        HashSet<string>? selectedAddressSpaces = ResolveNt51928SelectedDpReplaceAddressSpaces(
+            icId,
+            selectedRegionIds);
         CoverageSegment[] coverage =
         [
             new CoverageSegment(
@@ -54,6 +61,21 @@ public static partial class WorkbenchCompositionService
         ];
         foreach (CompositionOperation operation in composition.Plan.OrderedOperations)
         {
+            bool isSelected = selectedAddressSpaces is null ||
+                (operation.SourceSpaceId is { } sourceSpaceId &&
+                 selectedAddressSpaces.Contains(sourceSpaceId));
+            if (!isSelected)
+            {
+                string keptRange = FormatDisplayRange(operation.TargetRange);
+                rows.Add(new WorkbenchMemoryMapRow(
+                    keptRange,
+                    "Base flash",
+                    "Keep",
+                    "Base flash",
+                    $"No {AddressSpaceLabel(operation.SourceSpaceId ?? operation.TargetSpaceId)} input is selected; Reference FlashCode retains output {keptRange}."));
+                continue;
+            }
+
             (string before, string action, string after, string sourceLabel, bool isChanged, WorkbenchMemoryCoverageRole role) =
                 operation.SourceSpaceId switch
                 {
@@ -91,6 +113,26 @@ public static partial class WorkbenchCompositionService
             FormatFullRange(capacity),
             rows,
             ToWorkbenchCoverageSegments(coverage, capacity));
+    }
+
+    private static HashSet<string>? ResolveNt51928SelectedDpReplaceAddressSpaces(
+        string icId,
+        IEnumerable<string>? selectedRegionIds)
+    {
+        if (selectedRegionIds is null ||
+            !string.Equals(
+                IcSupportCatalog.NormalizeIcId(icId),
+                Nt51928DpReplaceIcId,
+                StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var regions = selectedRegionIds.ToHashSet(StringComparer.Ordinal);
+        return GetDpReplaceInputSlots(icId)
+            .Where(slot => slot.RegionId is not null && regions.Contains(slot.RegionId))
+            .Select(static slot => slot.AddressSpaceId)
+            .ToHashSet(StringComparer.Ordinal);
     }
 
     private static bool TryGetV2DpReplaceInputDescription(string icId, out string description)

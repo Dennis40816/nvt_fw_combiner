@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "2.0",
+  "profileId": "nt51928-dp-replace-ldc-only",
+  "profileVersion": "0.1.0",
+  "promotion": {
+    "stage": "supported",
+    "blockers": []
+  },
+  "compositionKind": "replace",
+  "icNumberInputMode": "single-selector",
+  "experience": {
+    "experienceId": "dp-replace",
+    "audience": "dp",
+    "layoutPolicy": "constrained",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51928.dp-replace-ldc-only"
+  },
+  "mapBinding": {
+    "familyId": "nt51928",
+    "familyVersion": "1.1.0",
+    "familyContentHash": "e287d131f6501b6b66cda888b3f32ee687ea2a9c614091e6d300ba285282fbe7",
+    "mapIds": [
+      "nt51928-standard-merge-512k"
+    ],
+    "requiredRegionIds": [
+      "ldc-code"
+    ],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "reference-base",
+      "role": "reference",
+      "artifactClass": "reference-image",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "exact-resolved-map-capacity"
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "slotId": "ld-replacement",
+      "role": "ldc",
+      "artifactClass": "auxiliary",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "exact-resolved-map-capacity"
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "reference-base",
+      "kind": "input-artifact",
+      "slotId": "reference-base",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "ld-replacement",
+      "kind": "input-artifact",
+      "slotId": "ld-replacement",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": {
+        "kind": "resolved-map"
+      },
+      "initializer": {
+        "kind": "clone",
+        "sourceSlotId": "reference-base"
+      }
+    }
+  ],
+  "views": [
+    {
+      "viewId": "ldc-code-source",
+      "spaceId": "ld-replacement",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "ldc-code"
+      }
+    },
+    {
+      "viewId": "ldc-code-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "ldc-code"
+      }
+    }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    {
+      "regionId": "ldc-code",
+      "access": "whole",
+      "reason": "Replace only the canonical NT51928 LDC range [0x40000, 0x62000)."
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "replace-ldc-code",
+      "sequence": 200,
+      "overlapPolicy": "reject",
+      "reason": "Replace only the selected NT51928 LDC and preserve Initial Code and every other byte from Reference FlashCode.",
+      "kind": "replace-range",
+      "sourceViewId": "ldc-code-source",
+      "targetViewId": "ldc-code-output"
+    }
+  ],
+  "validations": [],
+  "processorStages": [],
+  "output": {
+    "fileNameTemplate": "nt51928-dp-replace.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "gen-flash-bin-v2-51928-golden",
+    "dp-replace-owner-decision-2026-07-20",
+    "dp-replace-optional-parts-owner-decision-2026-07-28"
+  ]
+}

@@ -32,25 +32,28 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
-        _mergeDpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal);
-        _mergeTpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal);
-        _mergeLdSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.LdInput, StringComparer.Ordinal);
+        IReadOnlyDictionary<string, WorkbenchStandardMergeInputSlot> inputs =
+            WorkbenchCompositionService.GetStandardMergeInputSlots(SelectedIc)
+                .ToDictionary(static input => input.AddressSpaceId, StringComparer.Ordinal);
         MergeSlots.Clear();
-        if (required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal))
+        AddStandardMergeSlot(inputs, WorkbenchAddressSpaceIds.DpInput, _mergeDpSlot);
+        AddStandardMergeSlot(inputs, WorkbenchAddressSpaceIds.TpInput, _mergeTpSlot);
+        AddStandardMergeSlot(inputs, WorkbenchAddressSpaceIds.LdInput, _mergeLdSlot);
+    }
+
+    private void AddStandardMergeSlot(
+        IReadOnlyDictionary<string, WorkbenchStandardMergeInputSlot> inputs,
+        string addressSpaceId,
+        FirmwareSlotViewModel slot)
+    {
+        if (!inputs.TryGetValue(addressSpaceId, out WorkbenchStandardMergeInputSlot? input))
         {
-            MergeSlots.Add(_mergeDpSlot);
+            slot.IsOptional = true;
+            return;
         }
 
-        if (required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal))
-        {
-            MergeSlots.Add(_mergeTpSlot);
-        }
-
-        if (required.Contains(WorkbenchAddressSpaceIds.LdInput, StringComparer.Ordinal))
-        {
-            MergeSlots.Add(_mergeLdSlot);
-        }
+        slot.IsOptional = !input.Required;
+        MergeSlots.Add(slot);
     }
 
     private void RefreshAbMergeSlots()

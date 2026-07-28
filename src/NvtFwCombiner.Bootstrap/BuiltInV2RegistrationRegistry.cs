@@ -29,6 +29,30 @@ internal static class BuiltInV2RegistrationRegistry
     internal static ReadOnlyDictionary<string, BuiltInV2Registration> StandardMergeByIc { get; } =
         new(StandardMerge.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
 
+    internal static BuiltInV2Registration Nt51928StandardMergeWithoutLdc { get; } =
+        new(
+            "NT51928",
+            "nt51928-standard-merge-no-ldc",
+            "0.1.0",
+            BuiltInV2BundleRegistry.All["nt51928-standard-merge-no-ldc"],
+            CompositionKind.Merge);
+
+    internal static BuiltInV2Registration Nt51928DpReplaceInitialCodeOnly { get; } =
+        new(
+            "NT51928",
+            "nt51928-dp-replace-initial-code-only",
+            "0.1.0",
+            BuiltInV2BundleRegistry.All["nt51928-dp-replace-partial"],
+            CompositionKind.Replace);
+
+    internal static BuiltInV2Registration Nt51928DpReplaceLdcOnly { get; } =
+        new(
+            "NT51928",
+            "nt51928-dp-replace-ldc-only",
+            "0.1.0",
+            BuiltInV2BundleRegistry.All["nt51928-dp-replace-partial"],
+            CompositionKind.Replace);
+
     internal static ReadOnlyCollection<BuiltInV2Registration> AbMerge { get; } =
         Array.AsReadOnly(
         [

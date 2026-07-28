@@ -423,22 +423,6 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
     }
 
-    /// <summary>Verifies Standard Merge slots follow the selected profile instead of exposing LD globally.</summary>
-    [Fact]
-    public void MergeSlotsFollowSelectedProfileRequiredInputs()
-    {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-
-        viewModel.SelectedIc = "NT51926";
-
-        Assert.Equal(["DP BIN", "TP BIN"], viewModel.MergeSlots.Select(slot => slot.Title));
-        Assert.DoesNotContain(viewModel.MergeSlots, slot => slot.Title.Contains("LD", StringComparison.Ordinal));
-
-        viewModel.SelectedIc = "NT51928";
-
-        Assert.Equal(["DP BIN", "TP BIN", "LD BIN"], viewModel.MergeSlots.Select(slot => slot.Title));
-    }
-
     /// <summary>Verifies memory-map rows expose readable operation details without relying on tooltips.</summary>
     [Fact]
     public void MergeMemoryRowsExposeReadableOperationDetails()

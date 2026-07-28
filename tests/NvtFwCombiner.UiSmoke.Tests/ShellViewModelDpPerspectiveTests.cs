@@ -32,7 +32,7 @@ public sealed partial class ShellViewModelTests
             segment.SourceLabel.Contains("Preserved", StringComparison.Ordinal));
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel is "Changed DP BIN" or "Changed LDC BIN");
         Assert.Equal(
-            "Build blocked: Reference FlashCode and required DP replacement inputs are required.",
+            "Build blocked: Reference FlashCode and at least one declared replacement input are required.",
             viewModel.ReplaceReadinessStatus);
     }
 
@@ -129,6 +129,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(
             ["replace-base", "replace-dp"],
             viewModel.ReplaceSlots.Select(static slot => slot.SlotId));
+        Assert.False(viewModel.ReplaceSlots.Single(slot => slot.SlotId == "replace-dp").IsOptional);
 
         viewModel.SelectedIc = "NT51928";
 
@@ -136,6 +137,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(
             ["replace-base", "replace-dp", "replace-ldc"],
             viewModel.ReplaceSlots.Select(static slot => slot.SlotId));
+        Assert.All(
+            viewModel.ReplaceSlots.Where(slot => slot.SlotId is "replace-dp" or "replace-ldc"),
+            static slot => Assert.True(slot.IsOptional));
         Assert.Equal("Reference FlashCode length: 0x80000", viewModel.ReplaceMemoryRangeLabel);
     }
 

@@ -54,6 +54,9 @@ public static class WorkbenchIssueCodes
     /// <summary>DP Replace profile is intentionally pending for the selected IC.</summary>
     public const string ReplaceDpProfilePending = "replace.dp.profile-pending";
 
+    /// <summary>DP Replace requires at least one independently selectable replacement part.</summary>
+    public const string ReplaceDpSelectionRequired = "replace.dp.selection-required";
+
     /// <summary>Replace mode is not recognized by the workbench router.</summary>
     public const string ReplaceModeUnknown = "replace.mode.unknown";
 

@@ -181,6 +181,92 @@ public sealed class DpReplaceGoldenRegressionTests
                 .Select(static operation => operation.GetProperty("OperationId").GetString()));
     }
 
+    /// <summary>NT51928 changes only the independently selected Initial Code and LDC parts.</summary>
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task Nt51928DpReplacePreservesEveryUnselectedReferenceByte(
+        bool selectInitialCode,
+        bool selectLdc)
+    {
+        const int initialCodeStart = 0x3C000;
+        const int initialCodeLength = 0x4000;
+        const int ldcStart = 0x40000;
+        const int ldcLength = 0x22000;
+        string goldenRoot = CanonicalGoldenTestData.Root;
+        using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("ic").GetString() == "51928")
+            .Clone();
+        byte[] referenceBytes = ReadManifestFile(
+            goldenRoot,
+            goldenCase.GetProperty("expectedOutput"));
+        byte[] initialCodeBytes = [.. referenceBytes];
+        byte[] ldcBytes = [.. referenceBytes];
+        Array.Fill(initialCodeBytes, (byte)0xA1, initialCodeStart, initialCodeLength);
+        Array.Fill(ldcBytes, (byte)0xB2, ldcStart, ldcLength);
+        byte[] expectedBytes = [.. referenceBytes];
+        if (selectInitialCode)
+        {
+            Array.Fill(expectedBytes, (byte)0xA1, initialCodeStart, initialCodeLength);
+        }
+
+        if (selectLdc)
+        {
+            Array.Fill(expectedBytes, (byte)0xB2, ldcStart, ldcLength);
+        }
+
+        using var workspace = TempWorkspace.Create(
+            $"nvt-fw-combiner-dp-replace-51928-{selectInitialCode}-{selectLdc}");
+        var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["replace-base"] = workspace.Write("reference-flash.bin", referenceBytes),
+        };
+        if (selectInitialCode)
+        {
+            slotPaths["replace-dp"] = workspace.Write("initial-code.bin", initialCodeBytes);
+        }
+
+        if (selectLdc)
+        {
+            slotPaths["replace-ldc"] = workspace.Write("ldc.bin", ldcBytes);
+        }
+
+        string outputPath = workspace.PathFor("nt51928-dp-replace.bin");
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51928",
+            "single",
+            "DP",
+            slotPaths,
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(expectedBytes, await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken));
+        Assert.Equal(expectedBytes.LongLength, result.OutputSize);
+        Assert.Equal(Sha256Hex(expectedBytes), result.OutputSha256);
+        using var reportDocument = JsonDocument.Parse(result.ReportJson);
+        var expectedOperations = new List<string>();
+        if (selectInitialCode)
+        {
+            expectedOperations.Add("replace-dp-code");
+        }
+
+        if (selectLdc)
+        {
+            expectedOperations.Add("replace-ldc-code");
+        }
+
+        Assert.Equal(
+            expectedOperations,
+            reportDocument.RootElement.GetProperty("Operations")
+                .EnumerateArray()
+                .Select(static operation => operation.GetProperty("OperationId").GetString()));
+    }
+
     private static JsonElement FindDpPerspectiveCase(JsonElement manifest, string ic, string variant)
     {
         return manifest.GetProperty("cases")

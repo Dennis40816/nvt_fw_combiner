@@ -63,7 +63,16 @@ public static partial class WorkbenchCompositionService
             throw new InvalidOperationException(FormatIssues([inputIssue]));
         }
 
-        if (!TryCompileStandardMerge(icId, dpInputLength, out CompiledComposition? compiledComposition, out IReadOnlyList<CompositionIssue> issues))
+        bool includeOptionalLdc = slotPaths.TryGetValue(
+                CompositionAddressSpaceIds.LdInput,
+                out string? ldcPath) &&
+            !string.IsNullOrWhiteSpace(ldcPath);
+        if (!TryCompileStandardMerge(
+                icId,
+                dpInputLength,
+                includeOptionalLdc,
+                out CompiledComposition? compiledComposition,
+                out IReadOnlyList<CompositionIssue> issues))
         {
             throw new InvalidOperationException(FormatIssues(issues));
         }

@@ -172,6 +172,18 @@ public sealed partial class MainWindowViewModel
                 slot.Description));
         }
 
+        bool hasOnlyOptionalDpReplacementSlots = SelectedReplaceMode == DpReplaceMode &&
+            ReplaceSlots
+                .Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot))
+                .All(static slot => slot.IsOptional);
+        if (hasOnlyOptionalDpReplacementSlots && GetSelectedReplacementCount() == 0)
+        {
+            rows.Add(new ReportLineViewModel(
+                "DP replacement",
+                "No replacement part is selected.",
+                "Select at least one replacement: Initial Code or LDC."));
+        }
+
         if (IsCtrlRamReplaceModeSelected && GetSelectedReplacementCount() == 0)
         {
             rows.Add(new ReportLineViewModel(

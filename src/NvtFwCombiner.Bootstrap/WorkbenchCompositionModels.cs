@@ -178,6 +178,9 @@ public sealed record WorkbenchProfileSummary(
     bool CompileSucceeded,
     IReadOnlyList<string> IssueCodes);
 
+/// <summary>One Standard Merge input exposed to UI and CLI with its resolved requirement state.</summary>
+public sealed record WorkbenchStandardMergeInputSlot(string AddressSpaceId, bool Required);
+
 /// <summary>One profile-owned AB Merge topology choice exposed only when map selection requires it.</summary>
 public sealed record WorkbenchAbMergeTopologyChoice(string Token, string DisplayLabel);
 

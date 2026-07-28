@@ -193,7 +193,7 @@ public sealed partial class MainWindowViewModel
         }
 
         if (request.Items.Any(static item =>
-                item.SlotId == MergeDpSlotId ||
+                item.SlotId is MergeDpSlotId or MergeLdSlotId ||
                 item.AbMergeAddressSpaceId is not null))
         {
             RefreshMergeMemoryMapState();
@@ -277,6 +277,7 @@ public sealed partial class MainWindowViewModel
 
         NotifySlotFileOutputNames();
         if (slots.ContainsKey(MergeDpSlotId) ||
+            slots.ContainsKey(MergeLdSlotId) ||
             (IsAbCodeMergeModeSelected && slots.Keys.Any(_abMergeAddressSpaceBySlotId.ContainsKey)))
         {
             RefreshMergeMemoryMapState();

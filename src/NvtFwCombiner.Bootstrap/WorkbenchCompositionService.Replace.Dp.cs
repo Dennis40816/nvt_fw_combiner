@@ -29,6 +29,7 @@ public static partial class WorkbenchCompositionService
         if (!TryCompileBuiltInV2DpReplace(
                 icId,
                 context!.Capacity,
+                context.SelectedParts,
                 out CompiledComposition? compiledComposition,
                 out IReadOnlyList<CompositionIssue> issues))
         {
@@ -57,17 +58,21 @@ public static partial class WorkbenchCompositionService
                 issue.Message);
         }
 
+        var slotsByAddressSpace =
+            GetDpReplaceInputSlots(icId).ToDictionary(
+                static slot => slot.AddressSpaceId,
+                StringComparer.Ordinal);
         InputArtifactBinding[] bindings =
         [
-            CompiledCompositionInputBindingFactory.Create(
-                compiledComposition,
-                CompositionAddressSpaceIds.ReferenceBase,
-                context.BasePath),
-            .. GetDpReplaceInputSlots(icId).Select(slot =>
-                CompiledCompositionInputBindingFactory.Create(
+            .. compiledComposition.Plan.RequiredInputAddressSpaceIds
+                .Order(StringComparer.Ordinal)
+                .Select(addressSpaceId => CompiledCompositionInputBindingFactory.Create(
                     compiledComposition,
-                    slot.AddressSpaceId,
-                    Path.GetFullPath(context.SlotPaths[slot.SlotId]))),
+                    addressSpaceId,
+                    addressSpaceId == CompositionAddressSpaceIds.ReferenceBase
+                        ? context.BasePath
+                        : Path.GetFullPath(
+                            context.SlotPaths[slotsByAddressSpace[addressSpaceId].SlotId]))),
         ];
 
         return await RunCompiledCompositionAsync(
@@ -85,15 +90,19 @@ public static partial class WorkbenchCompositionService
 
     private static List<WorkbenchReplaceInputSlot> GetDpReplaceInputSlots(string icId)
     {
+        bool nt51928OptionalParts = string.Equals(
+            IcSupportCatalog.NormalizeIcId(icId),
+            Nt51928DpReplaceIcId,
+            StringComparison.Ordinal);
         List<WorkbenchReplaceInputSlot> slots =
         [
             new(
                 WorkbenchSlotIds.ReplaceDp,
-                "DP replacement BIN",
+                nt51928OptionalParts ? "Initial Code replacement BIN" : "DP replacement BIN",
                 TryGetV2DpReplaceInputDescription(icId, out string v2Description)
                     ? v2Description
                     : "Replacement DP payload. Build stays gated until this IC has approved DP Replace mapping evidence.",
-                false,
+                nt51928OptionalParts,
                 CompositionAddressSpaceIds.DpReplacement,
                 "dp"),
         ];
@@ -103,7 +112,7 @@ public static partial class WorkbenchCompositionService
                 rule.SlotId,
                 rule.Title,
                 rule.Description,
-                false,
+                nt51928OptionalParts,
                 rule.AddressSpaceId,
                 rule.RegionId));
         }

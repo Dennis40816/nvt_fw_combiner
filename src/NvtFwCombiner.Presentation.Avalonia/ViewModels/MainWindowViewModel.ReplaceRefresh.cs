@@ -69,7 +69,8 @@ public sealed partial class MainWindowViewModel
                     selectedAbMergeDpInputLength),
                 _ => UiCompositionRunner.GetStandardMergeMemoryDisplay(
                     SelectedIc,
-                    selectedMergeDpInputLength),
+                    selectedMergeDpInputLength,
+                    _mergeLdSlot.HasFile),
             };
         MergeMemoryRangeLabel = rangeLabel;
         ReplaceRows(MergeMemoryRows, rows);

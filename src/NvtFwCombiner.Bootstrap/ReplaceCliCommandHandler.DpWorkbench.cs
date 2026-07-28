@@ -13,8 +13,7 @@ internal static partial class ReplaceCliCommandHandler
         CancellationToken cancellationToken)
     {
         if (!RequireOption(options, "--ic-num", error, out string? icNumber) ||
-            !RequireOption(options, "--base", error, out string? basePath) ||
-            !RequireOption(options, "--dp", error, out string? dpPath))
+            !RequireOption(options, "--base", error, out string? basePath))
         {
             return UsageError;
         }
@@ -28,23 +27,42 @@ internal static partial class ReplaceCliCommandHandler
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
             [WorkbenchSlotIds.ReplaceBase] = Path.GetFullPath(basePath),
-            [WorkbenchSlotIds.ReplaceDp] = Path.GetFullPath(dpPath),
         };
-        bool requiresLdc = DpReplaceAuthoringCatalog.GetAdditionalPayloads(icId)
+        bool declaresLdc = DpReplaceAuthoringCatalog.GetAdditionalPayloads(icId)
             .Any(static rule => rule.SlotId == WorkbenchSlotIds.ReplaceLdc);
-        if (requiresLdc)
+        if (declaresLdc)
         {
-            if (!RequireOption(options, "--ldc", error, out string? ldcPath))
+            bool hasDp = options.Values.TryGetValue("--dp", out string? dpPath);
+            bool hasLdc = options.Values.TryGetValue("--ldc", out string? ldcPath);
+            if (!hasDp && !hasLdc)
+            {
+                error.WriteLine($"error: at least one of --dp or --ldc is required for {icId} DP Replace");
+                return UsageError;
+            }
+
+            if (hasDp)
+            {
+                slotPaths[WorkbenchSlotIds.ReplaceDp] = Path.GetFullPath(dpPath!);
+            }
+
+            if (hasLdc)
+            {
+                slotPaths[WorkbenchSlotIds.ReplaceLdc] = Path.GetFullPath(ldcPath!);
+            }
+        }
+        else
+        {
+            if (!RequireOption(options, "--dp", error, out string? dpPath))
             {
                 return UsageError;
             }
 
-            slotPaths[WorkbenchSlotIds.ReplaceLdc] = Path.GetFullPath(ldcPath);
-        }
-        else if (options.Values.ContainsKey("--ldc"))
-        {
-            error.WriteLine($"error: --ldc is not declared by the {icId} DP Replace profile");
-            return UsageError;
+            slotPaths[WorkbenchSlotIds.ReplaceDp] = Path.GetFullPath(dpPath);
+            if (options.Values.ContainsKey("--ldc"))
+            {
+                error.WriteLine($"error: --ldc is not declared by the {icId} DP Replace profile");
+                return UsageError;
+            }
         }
 
         return await RunWorkbenchReplaceAsync(

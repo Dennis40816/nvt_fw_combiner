@@ -64,6 +64,54 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 .Select(static slot => slot.ArtifactClass.ToString()));
     }
 
+    /// <summary>NT51928 selects the 256 KiB or existing 512 KiB trusted route solely from LDC presence.</summary>
+    [Theory]
+    [InlineData(
+        false,
+        "nt51928-standard-merge-no-ldc",
+        "a2291e1f2aa7643caa1bcfc5284538e95051b07659a983a514f36ec2d7156b30",
+        0x40000,
+        "dp-input,tp-input",
+        "copy-tp,copy-dp")]
+    [InlineData(
+        true,
+        "nt51928-standard-merge-gen-flash",
+        "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af",
+        0x80000,
+        "dp-input,ld-input,tp-input",
+        "copy-tp,copy-dp,copy-ld")]
+    public void Nt51928StandardMergeLdcPresenceSelectsTrustedOutputGeometry(
+        bool includeLdc,
+        string profileId,
+        string bundleContentHash,
+        long outputCapacity,
+        string requiredInputAddressSpaces,
+        string operationIds)
+    {
+        ArgumentNullException.ThrowIfNull(requiredInputAddressSpaces);
+        ArgumentNullException.ThrowIfNull(operationIds);
+        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+            "NT51928",
+            dpInputLength: null,
+            includeLdc,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        Assert.Equal(profileId, artifact.ProfileId);
+        Assert.Equal(outputCapacity, artifact.Plan.OutputInitialization.Capacity);
+        Assert.Equal(
+            requiredInputAddressSpaces.Split(','),
+            artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
+        Assert.Equal(
+            operationIds.Split(','),
+            artifact.Plan.OrderedOperations.Select(static operation => operation.OperationId));
+        V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
+        Assert.Equal(bundleContentHash, details.Provenance.Bundle.ContentHash);
+    }
+
     /// <summary>Verifies DP Perspective routing selects the trusted map that exactly matches the supplied DP container length.</summary>
     [Theory]
     [InlineData("NT51950", "nt51950-standard-merge-dp-perspective", 0x40000)]

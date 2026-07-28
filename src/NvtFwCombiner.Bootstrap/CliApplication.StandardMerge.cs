@@ -74,7 +74,7 @@ public static partial class CliApplication
         }
 
         if (!TryCreateBindings(
-                selectedProfile.RequiredInputAddressSpaceIds,
+                WorkbenchCompositionService.GetStandardMergeInputSlots(selectedProfile.IcId),
                 options,
                 error,
                 out IReadOnlyList<InputArtifactBinding> bindings))
@@ -94,9 +94,14 @@ public static partial class CliApplication
             return SoftwareError;
         }
 
+        bool includeOptionalLdc = bindings.Any(binding => string.Equals(
+            binding.AddressSpaceId,
+            CompositionAddressSpaceIds.LdInput,
+            StringComparison.Ordinal));
         if (!WorkbenchCompositionService.TryCompileStandardMerge(
                 selectedProfile.IcId,
                 dpInputLength,
+                includeOptionalLdc,
                 out CompiledComposition? compiledComposition,
                 out IReadOnlyList<CompositionIssue> issues))
         {
@@ -104,12 +109,12 @@ public static partial class CliApplication
             return SoftwareError;
         }
 
-        if (!selectedProfile.RequiredInputAddressSpaceIds.SequenceEqual(
+        if (!bindings.Select(static binding => binding.AddressSpaceId).SequenceEqual(
                 compiledComposition.Plan.RequiredInputAddressSpaceIds,
                 StringComparer.Ordinal))
         {
             await error.WriteLineAsync(
-                    $"error: Standard Merge profile '{selectedProfile.ProfileId}' changed required input address spaces during DP-length resolution.")
+                    $"error: Standard Merge profile '{selectedProfile.ProfileId}' changed selected input address spaces during resolution.")
                 .ConfigureAwait(false);
             return SoftwareError;
         }
@@ -166,15 +171,21 @@ public static partial class CliApplication
     }
 
     private static bool TryCreateBindings(
-        IReadOnlyList<string> requiredInputAddressSpaceIds,
+        IReadOnlyList<WorkbenchStandardMergeInputSlot> inputSlots,
         ParsedCliOptions options,
         TextWriter error,
         out IReadOnlyList<InputArtifactBinding> bindings)
     {
         List<InputArtifactBinding> items = [];
-        HashSet<string> requiredAddressSpaces = [.. requiredInputAddressSpaceIds];
-        foreach (string addressSpaceId in requiredAddressSpaces.Order(StringComparer.Ordinal))
+        HashSet<string> exposedAddressSpaces =
+        [
+            .. inputSlots.Select(static slot => slot.AddressSpaceId),
+        ];
+        foreach (WorkbenchStandardMergeInputSlot slot in inputSlots.OrderBy(
+                     static slot => slot.AddressSpaceId,
+                     StringComparer.Ordinal))
         {
+            string addressSpaceId = slot.AddressSpaceId;
             if (!InputOptionsByAddressSpace.TryGetValue(addressSpaceId, out string? optionName))
             {
                 error.WriteLine($"error: profile requires unsupported address space '{addressSpaceId}'");
@@ -184,9 +195,14 @@ public static partial class CliApplication
 
             if (!options.Values.TryGetValue(optionName, out string? path))
             {
-                error.WriteLine($"error: {optionName} is required for address space '{addressSpaceId}'");
-                bindings = [];
-                return false;
+                if (slot.Required)
+                {
+                    error.WriteLine($"error: {optionName} is required for address space '{addressSpaceId}'");
+                    bindings = [];
+                    return false;
+                }
+
+                continue;
             }
 
             string fullPath = Path.GetFullPath(path);
@@ -195,7 +211,7 @@ public static partial class CliApplication
 
         foreach ((string addressSpaceId, string optionName) in InputOptionsByAddressSpace)
         {
-            if (options.Values.ContainsKey(optionName) && !requiredAddressSpaces.Contains(addressSpaceId))
+            if (options.Values.ContainsKey(optionName) && !exposedAddressSpaces.Contains(addressSpaceId))
             {
                 error.WriteLine($"error: {optionName} is not used by this profile");
                 bindings = [];

@@ -63,6 +63,32 @@ public sealed class CanonicalV2StandardMergeGoldenTests
         }
     }
 
+    /// <summary>NT51928 without LDC produces the owner-approved 256 KiB prefix instead of a padded 512 KiB image.</summary>
+    [Fact]
+    public async Task Nt51928WithoutLdcMatchesOwnerApprovedGoldenPrefix()
+    {
+        CompiledComposition composition = V2StandardMergeGoldenTestSupport.CompileV2(
+            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+                "nt51928-standard-merge-no-ldc",
+                "a2291e1f2aa7643caa1bcfc5284538e95051b07659a983a514f36ec2d7156b30"),
+            "nt51928-standard-merge-no-ldc",
+            "0.1.0",
+            "NT51928");
+        System.Text.Json.JsonElement goldenCase = V2StandardMergeGoldenTestSupport.ReadGoldenCase("51928");
+        Dictionary<string, byte[]> inputs =
+            V2StandardMergeGoldenTestSupport.ReadInputs(goldenCase.GetProperty("inputs"));
+        Assert.True(inputs.Remove("ld-input"));
+        byte[] fullExpectedOutput =
+            V2StandardMergeGoldenTestSupport.ReadManifestFile(goldenCase.GetProperty("expectedOutput"));
+        byte[] expectedOutput = fullExpectedOutput[..0x40000];
+
+        Assert.Equal(["dp-input", "tp-input"], composition.Plan.RequiredInputAddressSpaceIds);
+        AssertDeclaredStandardMergePlan(composition.Plan, expectedOutput.LongLength, expectsLdc: false);
+        CompositionRunResult result = await V2StandardMergeGoldenTestSupport.PreviewAsync(composition, inputs);
+
+        V2StandardMergeGoldenTestSupport.AssertSuccessfulGoldenOutput(result, composition, expectedOutput);
+    }
+
     private static void AssertRegionSetProvenance(CompiledComposition composition, bool expectsAlias)
     {
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
