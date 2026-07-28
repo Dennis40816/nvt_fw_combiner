@@ -22,9 +22,6 @@ public static class GenFlashVersionCatalog
         "standard-merge-gen-flash 2 MiB DP input.";
     private const string Nt51919CmiEvidence =
         "Owner-confirmed NT51919 perfect-family reuse of the Reg16h-18h layout.";
-    private const string Nt51930CmiEvidence =
-        "Owner-confirmed NT51930 FlashCode CMI Reg16h-18h location [0x18, 0x1B), 2026-07-22; " +
-        "ctrlram-replace direct owner golden expected FlashCode cross-checks AUTO_PRJ-302 / D05.";
     private const string Nt51923CmiEvidence =
         "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
         "standard-merge-gen-flash expected output cross-checks the retained DP CMI bytes with legacy DP major.";
@@ -155,12 +152,10 @@ public static class GenFlashVersionCatalog
         Dictionary<string, GenFlashDpVersionRule> rules = new(StringComparer.Ordinal)
         {
             ["51919"] = Rule("51919", 0x00000, 0x06000, 0x67),
-            ["51920"] = Rule("51920", 0x3E000, 0x40000, 0x15),
             ["51923"] = Rule("51923", 0x3E000, 0x40000, 0x15),
             ["51926"] = Rule("51926", 0x3E000, 0x40000, 0x15),
             ["51927"] = Rule("51927", 0x3C000, 0x40000, 0x1D),
             ["51928"] = Rule("51928", 0x3C000, 0x40000, 0x1D),
-            ["51931"] = Rule("51931", 0x3E000, 0x40000, 0x19),
             ["51932"] = Rule("51932", 0x00000, 0x06000, 0x67),
         };
 
@@ -176,7 +171,6 @@ public static class GenFlashVersionCatalog
             ["51923"] = new CmiDpCodeRule("51923", Sizes(0x40000), 0x3E014, Nt51923CmiEvidence),
             ["51926"] = new CmiDpCodeRule("51926", Sizes(0x40000), 0x3E014, Nt51926CmiEvidence),
             ["51927"] = new CmiDpCodeRule("51927", Sizes(0x40000, 0x200000), 0x3C01C, Nt51927CmiEvidence),
-            ["51930"] = new CmiDpCodeRule("51930", Sizes(0x40000), 0x18, Nt51930CmiEvidence),
             ["51932"] = new CmiDpCodeRule("51932", Sizes(0x40000), 0x401A, Nt51932CmiEvidence),
             ["51950"] = new CmiDpCodeRule(
                 "51950",

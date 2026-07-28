@@ -5,40 +5,6 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
-    /// <summary>Verifies every NT51930 selector reaches the canonical-map V2 DP Replace route.</summary>
-    [Theory]
-    [InlineData("NT51930")]
-    [InlineData("51930")]
-    [InlineData("nt51930-dp-replace-flashmap")]
-    public async Task DpReplaceBuildUsesNt51930CanonicalDpRange(string profileSelector)
-    {
-        using var workspace = TempWorkspace.Create();
-        string output = workspace.PathFor("nt51930-dp-replace.bin");
-        CliRunResult result = await RunCliAsync([
-            "dp-replace",
-            "build",
-            "--profile",
-            profileSelector,
-            "--ic-num",
-            "single",
-            "--base",
-            workspace.Write("reference.bin", [.. Enumerable.Repeat((byte)0xA5, 0x40000)]),
-            "--dp",
-            workspace.Write("dp.bin", [.. Enumerable.Repeat((byte)0x11, 0x40000)]),
-            "--output",
-            output,
-        ]);
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.Contains("nt51930-dp-replace-flashmap", result.Output, StringComparison.Ordinal);
-        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
-        Assert.Equal(0x40000, bytes.Length);
-        Assert.Equal(0x11, bytes[0]);
-        Assert.Equal(0x11, bytes[0x5FFF]);
-        Assert.Equal(0xA5, bytes[0x6000]);
-        Assert.Equal(0xA5, bytes[^1]);
-    }
-
     /// <summary>Verifies NT51950 DP Replace restores TP only while customer information follows replacement DP.</summary>
     [Theory]
     [InlineData("NT51950")]

@@ -270,9 +270,9 @@ public sealed class GeneralMergeCliCommandTests
         Assert.False(rejected.Succeeded);
 
         string dp = workspace.Write("standard-dp.bin", new byte[0x40000]);
-        string tp = workspace.Write("standard-tp.bin", new byte[0x30000]);
+        string tp = workspace.Write("standard-tp.bin", new byte[0x3C000]);
         WorkbenchRunResult standardMerge = await WorkbenchCompositionService.RunStandardMergeAsync(
-            "NT51920",
+            "NT51923",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 [CompositionAddressSpaceIds.DpInput] = dp,
@@ -304,7 +304,6 @@ public sealed class GeneralMergeCliCommandTests
 
     /// <summary>Locks the reviewed legacy General Merge bytes through the default V2 route for every built-in IC.</summary>
     [Theory]
-    [InlineData("NT51920", "nt51920-general-merge-logical-candidate")]
     [InlineData("NT51917", "nt51917-general-merge-logical-candidate")]
     [InlineData("NT51919", "nt51919-general-merge-logical-candidate")]
     [InlineData("NT51929", "nt51929-general-merge-logical-candidate")]
@@ -313,8 +312,6 @@ public sealed class GeneralMergeCliCommandTests
     [InlineData("NT51926", "nt51926-general-merge-logical-candidate")]
     [InlineData("NT51927", "nt51927-general-merge-logical-candidate")]
     [InlineData("NT51928", "nt51928-general-merge-logical-candidate")]
-    [InlineData("NT51930", "nt51930-general-merge-logical-candidate")]
-    [InlineData("NT51931", "nt51931-general-merge-logical-candidate")]
     [InlineData("NT51950", "nt51950-general-merge-logical-candidate")]
     [InlineData("NT51951", "nt51951-general-merge-logical-candidate")]
     public async Task GeneralMergeV2DefaultRoutePreservesReviewedLegacyBytes(

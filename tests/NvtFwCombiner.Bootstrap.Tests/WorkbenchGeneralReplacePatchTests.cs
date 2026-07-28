@@ -166,8 +166,8 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x72));
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51930",
-            "14",
+            "NT51929",
+            "9",
             "General",
             CreateBaseSlots(basePath),
             [],

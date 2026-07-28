@@ -82,10 +82,10 @@ public sealed partial class CompositionRunServiceTests
             new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]));
 
         CompositionRunResult first = await service.PreviewAsync(
-            CreateDpReplaceRequest("51920"),
+            CreateDpReplaceRequest("51923"),
             CancellationToken.None);
         CompositionRunResult second = await service.PreviewAsync(
-            CreateDpReplaceRequest("51921"),
+            CreateDpReplaceRequest("51926"),
             CancellationToken.None);
 
         Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());

@@ -56,7 +56,7 @@ public sealed partial class CompositionRunServiceTests
             new FakeArtifactReader([]),
             new FakeClock([FirstTimestamp, SecondTimestamp]));
         CompositionRunResult failedReplace = await failedReplaceService.PreviewAsync(
-            CreateDpReplaceRequest("51920"),
+            CreateDpReplaceRequest("51923"),
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, merge.Status);

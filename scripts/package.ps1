@@ -655,8 +655,8 @@ function Invoke-ExternalToolPolicyDryRun {
 
         $GoldenPaths = @(Get-DeclaredStandardMergeGoldenPaths)
         $GoldenBinPaths = @($GoldenPaths | Where-Object { $_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase) })
-        if ($GoldenBinPaths.Count -ne 34 -or $script:StandardMergeGoldenPackageManifest.cases.Count -ne 13) {
-            throw 'Standard Merge canonical package selection did not retain 34 direct BIN artifacts and 13 direct/alias cases.'
+        if ($GoldenBinPaths.Count -ne 25 -or $script:StandardMergeGoldenPackageManifest.cases.Count -ne 10) {
+            throw 'Standard Merge canonical package selection did not retain 25 direct BIN artifacts and 10 direct/alias cases.'
         }
         if (@($GoldenPaths | Where-Object {
             $_ -like 'testdata/diagnostics/*' -or
@@ -708,6 +708,27 @@ function Invoke-ExternalToolPolicyDryRun {
             }
         }
 
+        $RetiredGoldenAllowlistPath = Join-Path $DryRunRoot 'invalid-standard-merge-retired-ic.json'
+        $RetiredGoldenAllowlist = Get-Content -LiteralPath $StandardMergeGoldenReleaseAllowlistPath -Raw |
+            ConvertFrom-Json
+        $RetiredGoldenAllowlist.cases[0].caseId = 'nt51920-retired-publication-probe'
+        $RetiredGoldenAllowlist |
+            ConvertTo-Json -Depth 8 |
+            Set-Content -LiteralPath $RetiredGoldenAllowlistPath -Encoding utf8NoBOM
+        $RetiredGoldenAllowlistRejected = $false
+        try {
+            Get-DeclaredStandardMergeGoldenPaths -ReleaseAllowlistPath $RetiredGoldenAllowlistPath | Out-Null
+        }
+        catch {
+            if ($_.Exception.Message -notlike '*cannot publish retired IC NT51920*') {
+                throw
+            }
+            $RetiredGoldenAllowlistRejected = $true
+        }
+        if (-not $RetiredGoldenAllowlistRejected) {
+            throw 'Standard Merge canonical package selection accepted a retired IC publication probe.'
+        }
+
         $UnicodeRelativePath = 'reference/多語/請先看.md'
         $UnicodeFixturePath = Join-Path $DryRunPackageRoot $UnicodeRelativePath
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $UnicodeFixturePath) | Out-Null
@@ -735,7 +756,7 @@ function Invoke-ExternalToolPolicyDryRun {
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included and unexpected file rejected.'
         Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
         Write-Host 'Support publication policy package dry-run passed: exact path, role, and SHA-256 pinned; empty contract and wrong published hash rejected.'
-        Write-Host 'Canonical golden package policy dry-run passed: 34 direct Standard Merge BIN artifacts and 13 direct/alias cases selected; diagnostics and other workflows excluded.'
+        Write-Host 'Canonical golden package policy dry-run passed: 25 direct Standard Merge BIN artifacts and 10 direct/alias cases selected; diagnostics and other workflows excluded.'
         Write-Host 'Canonical golden package policy direct/alias drift and strict-type rejection passed.'
         Write-Host 'Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8.'
     }
@@ -832,10 +853,22 @@ function Get-DeclaredStandardMergeGoldenPaths {
         throw 'Standard Merge golden release allowlist has invalid schema, workflow, or release status.'
     }
     $ApprovedCases = @{}
+    $RetiredIcTokens = @('51920', '51925', '51930', '51931')
     foreach ($ApprovedCase in $ReleaseAllowlist.cases) {
         $ApprovedCaseId = [string]$ApprovedCase.caseId
         if ([string]::IsNullOrWhiteSpace($ApprovedCaseId) -or $ApprovedCases.ContainsKey($ApprovedCaseId)) {
             throw "Standard Merge golden release allowlist contains an invalid or duplicate case id: '$ApprovedCaseId'"
+        }
+        $PublicationFields = @(
+            $ApprovedCaseId,
+            [string]$ApprovedCase.manifestPath
+        ) + @($ApprovedCase.artifacts | ForEach-Object { [string]$_.path })
+        foreach ($RetiredIcToken in $RetiredIcTokens) {
+            if (@($PublicationFields | Where-Object {
+                $_.IndexOf($RetiredIcToken, [StringComparison]::OrdinalIgnoreCase) -ge 0
+            }).Count -ne 0) {
+                throw "Standard Merge golden release allowlist cannot publish retired IC NT$RetiredIcToken."
+            }
         }
         $ApprovedCases[$ApprovedCaseId] = $ApprovedCase
     }
@@ -1130,15 +1163,12 @@ $ApprovedProcessorIds = @(
     'nfc.crc32-mpeg2.calculate-v1',
     'nfc.nt51917.ctrlram-postbuild-v1',
     'nfc.nt51919.ctrlram-postbuild-v1',
-    'nfc.nt51920.ctrlram-postbuild-v1',
     'nfc.nt51923.ctrlram-postbuild-v1',
     'nfc.nt51926.ctrlram-postbuild-fw1.4.1',
     'nfc.nt51926.ctrlram-postbuild-v1',
     'nfc.nt51927.ctrlram-postbuild-v1',
     'nfc.nt51928.ctrlram-postbuild-v1',
     'nfc.nt51929.ctrlram-postbuild-v1',
-    'nfc.nt51930.ctrlram-postbuild-fw1.x',
-    'nfc.nt51931.ctrlram-postbuild-v1',
     'nfc.nt51932.ctrlram-postbuild-v1',
     'nfc.nt51950.ctrlram-postbuild-v1',
     'nfc.nt51951.ctrlram-postbuild-v1'

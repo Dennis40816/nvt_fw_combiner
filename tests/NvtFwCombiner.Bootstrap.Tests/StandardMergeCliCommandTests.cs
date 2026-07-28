@@ -8,14 +8,14 @@ public sealed class StandardMergeCliCommandTests
 {
     /// <summary>Verifies Standard Merge preview can export a structured JSON report.</summary>
     [Theory]
-    [InlineData("51920")]
-    [InlineData("NT51920")]
-    [InlineData("nt51920-standard-merge-gen-flash")]
+    [InlineData("NT51923")]
+    [InlineData("51923")]
+    [InlineData("nt51923-standard-merge-gen-flash")]
     public async Task StandardMergePreviewWritesReportJson(string profileSelector)
     {
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
-        byte[] tp = new byte[0x30000];
+        byte[] tp = new byte[0x3C000];
         dp[0x3E000] = 0x11;
         tp[0] = 0x22;
         string dpPath = workspace.Write("dp.bin", dp);
@@ -42,46 +42,11 @@ public sealed class StandardMergeCliCommandTests
             report,
             TestContext.Current.CancellationToken));
         JsonElement root = document.RootElement;
-        Assert.Equal("nt51920-standard-merge-gen-flash", root.GetProperty("ProfileId").GetString());
-        Assert.Equal("NT51920", root.GetProperty("IcId").GetString());
+        Assert.Equal("nt51923-standard-merge-gen-flash", root.GetProperty("ProfileId").GetString());
+        Assert.Equal("NT51923", root.GetProperty("IcId").GetString());
         Assert.Equal("standard-merge", root.GetProperty("ExperienceId").GetString());
         Assert.Equal(2, root.GetProperty("Operations").GetArrayLength());
         Assert.Equal("copy-tp", root.GetProperty("Operations")[0].GetProperty("OperationId").GetString());
-    }
-
-    /// <summary>Verifies the NT51920 V2 profile accepts a caller-selected plain output path through the Standard Merge CLI.</summary>
-    [Fact]
-    public async Task StandardMergeBuildWritesCallerOutputThroughNt51920V2Profile()
-    {
-        using var workspace = TempWorkspace.Create();
-        byte[] dp = new byte[0x40000];
-        byte[] tp = new byte[0x30000];
-        dp[0x3E000] = 0x11;
-        tp[0] = 0x22;
-        string dpPath = workspace.Write("dp.bin", dp);
-        string tpPath = workspace.Write("tp.bin", tp);
-        string outputPath = workspace.PathFor("caller-output.bin");
-
-        CliRunResult result = await RunCliAsync(
-        [
-            "standard-merge",
-            "build",
-            "--profile",
-            "NT51920",
-            "--dp",
-            dpPath,
-            "--tp",
-            tpPath,
-            "--output",
-            outputPath,
-        ]);
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.True(File.Exists(outputPath));
-        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
-        Assert.Equal(0x40000, output.Length);
-        Assert.Equal(0x22, output[0]);
-        Assert.Equal(0x11, output[0x3E000]);
     }
 
     /// <summary>Verifies the packaged NT51923 V2 profile accepts a caller-selected plain output path through the Standard Merge CLI.</summary>
@@ -153,77 +118,6 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(0x40000, output.Length);
         Assert.Equal(0x11, output[0]);
         Assert.Equal(0x22, output[0x7000]);
-    }
-
-    /// <summary>Verifies the packaged NT51930 V2 profile accepts a caller-selected plain output path through the Standard Merge CLI.</summary>
-    [Fact]
-    public async Task StandardMergeBuildWritesCallerOutputThroughNt51930V2Profile()
-    {
-        using var workspace = TempWorkspace.Create();
-        byte[] dp = new byte[0x40000];
-        byte[] tp = new byte[0x40000];
-        dp[0] = 0x11;
-        tp[0x7000] = 0x22;
-        string dpPath = workspace.Write("dp.bin", dp);
-        string tpPath = workspace.Write("tp.bin", tp);
-        string outputPath = workspace.PathFor("caller-output.bin");
-
-        CliRunResult result = await RunCliAsync(
-        [
-            "standard-merge",
-            "build",
-            "--profile",
-            "NT51930",
-            "--dp",
-            dpPath,
-            "--tp",
-            tpPath,
-            "--output",
-            outputPath,
-        ]);
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.True(File.Exists(outputPath));
-        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
-        Assert.Equal(0x40000, output.Length);
-        Assert.Equal(0x11, output[0]);
-        Assert.Equal(0x22, output[0x7000]);
-    }
-
-    /// <summary>Verifies the NT51931 V2 route accepts its approved outer DP container without an extraction warning.</summary>
-    [Fact]
-    public async Task StandardMergeBuildWritesCallerOutputThroughNt51931V2Profile()
-    {
-        using var workspace = TempWorkspace.Create();
-        byte[] dp = new byte[0x80000];
-        byte[] tp = new byte[0x3C000];
-        dp[0x3E000] = 0x11;
-        tp[0] = 0x22;
-        string dpPath = workspace.Write("dp.bin", dp);
-        string tpPath = workspace.Write("tp.bin", tp);
-        string outputPath = workspace.PathFor("caller-output.bin");
-
-        CliRunResult result = await RunCliAsync(
-        [
-            "standard-merge",
-            "build",
-            "--profile",
-            "NT51931",
-            "--dp",
-            dpPath,
-            "--tp",
-            tpPath,
-            "--output",
-            outputPath,
-        ]);
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.DoesNotContain("Issues:", result.Output, StringComparison.Ordinal);
-        Assert.True(File.Exists(outputPath));
-        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
-        Assert.Equal(0x40000, output.Length);
-        Assert.Equal(0x22, output[0]);
-        Assert.Equal(0x11, output[0x3E000]);
     }
 
     /// <summary>Verifies the NT51917 alias and NT51927 direct V2 routes accept their approved two-mebibyte DP container without an extraction warning.</summary>
@@ -372,7 +266,7 @@ public sealed class StandardMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         string missingDpPath = workspace.PathFor("missing-dp.bin");
-        string tpPath = workspace.Write("tp.bin", new byte[0x30000]);
+        string tpPath = workspace.Write("tp.bin", new byte[0x3C000]);
 
         CliRunResult result = await RunCliAsync([
             "standard-merge",
@@ -421,14 +315,14 @@ public sealed class StandardMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         string dpPath = workspace.Write("dp.bin", new byte[0x40000]);
-        string tpPath = workspace.Write("tp.bin", new byte[0x30000]);
+        string tpPath = workspace.Write("tp.bin", new byte[0x3C000]);
         string ldPath = workspace.Write("ld.bin", [0x11]);
 
         CliRunResult result = await RunCliAsync([
             "standard-merge",
             "preview",
             "--profile",
-            "51920",
+            "51923",
             "--dp",
             dpPath,
             "--tp",
@@ -447,7 +341,7 @@ public sealed class StandardMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
-        byte[] tp = new byte[0x30000];
+        byte[] tp = new byte[0x3C000];
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
 
@@ -455,7 +349,7 @@ public sealed class StandardMergeCliCommandTests
             "standard-merge",
             "preview",
             "--profile",
-            "51920",
+            "51923",
             "--dp",
             dpPath,
             "--tp",
@@ -475,7 +369,7 @@ public sealed class StandardMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
-        byte[] tp = new byte[0x30000];
+        byte[] tp = new byte[0x3C000];
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
 
@@ -483,7 +377,7 @@ public sealed class StandardMergeCliCommandTests
             "standard-merge",
             "build",
             "--profile",
-            "51920",
+            "51923",
             "--dp",
             dpPath,
             "--tp",
@@ -503,7 +397,7 @@ public sealed class StandardMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
-        byte[] tp = new byte[0x30000];
+        byte[] tp = new byte[0x3C000];
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string outputPath = workspace.PathFor("out.bin");
@@ -512,7 +406,7 @@ public sealed class StandardMergeCliCommandTests
             "standard-merge",
             "build",
             "--profile",
-            "51920",
+            "51923",
             "--dp",
             dpPath,
             "--tp",
@@ -534,14 +428,14 @@ public sealed class StandardMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
-        byte[] tp = new byte[0x30000];
+        byte[] tp = new byte[0x3C000];
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
 
         ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
             WorkbenchCompositionService
                 .RunStandardMergeAsync(
-                    "NT51920",
+                    "NT51923",
                     new Dictionary<string, string>(StringComparer.Ordinal)
                     {
                         ["dp-input"] = dpPath,

@@ -12,12 +12,10 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [Theory]
     [InlineData("NT51917", 0x40000, "nt51917-dp-replace-gen-flash-alias", "bcf3a6ec6e2371717df39934bcf80a40989379da2667591b0da72d0166737274", 0x3C000, 0x4000)]
     [InlineData("NT51919", 0x40000, "nt51919-dp-replace-gen-flash-alias", "ce5a57eb6df377335be081b5eecf7f9eb379ce9a43cc51dd3bcae161febcdbcc", 0x00000, 0x6000)]
-    [InlineData("NT51920", 0x40000, "nt51920-dp-replace-gen-flash", "74b48f23401f713fb5f465a18187589359b28d5d043689283fa0d39857081978", 0x3E000, 0x2000)]
     [InlineData("NT51923", 0x40000, "nt51923-dp-replace-gen-flash", "8a3efe8ffe4a3df89d025efbbb882d89c193e46a728127b03c1ca8f0c8797ca8", 0x3E000, 0x2000)]
     [InlineData("NT51926", 0x40000, "nt51926-dp-replace-gen-flash", "8a3efe8ffe4a3df89d025efbbb882d89c193e46a728127b03c1ca8f0c8797ca8", 0x3E000, 0x2000)]
     [InlineData("NT51927", 0x40000, "nt51927-dp-replace-gen-flash", "bcf3a6ec6e2371717df39934bcf80a40989379da2667591b0da72d0166737274", 0x3C000, 0x4000)]
     [InlineData("NT51929", 0x40000, "nt51929-dp-replace-gen-flash", "ce5a57eb6df377335be081b5eecf7f9eb379ce9a43cc51dd3bcae161febcdbcc", 0x00000, 0x6000)]
-    [InlineData("NT51931", 0x40000, "nt51931-dp-replace-gen-flash", "6a0b3e953a6df1b3026b850dd548634cc56e43fb0a1abbb0746a0f1484e26301", 0x3E000, 0x2000)]
     [InlineData("NT51932", 0x40000, "nt51932-dp-replace-gen-flash", "ce5a57eb6df377335be081b5eecf7f9eb379ce9a43cc51dd3bcae161febcdbcc", 0x00000, 0x6000)]
     public void GenFlashDpReplaceUsesCanonicalDpPartition(
         string icId,
@@ -88,14 +86,6 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     public void DpPerspectiveClassificationNormalizesRegisteredV2IcIds(string icId)
     {
         Assert.True(WorkbenchCompositionService.IsDpPerspectiveIc(icId));
-    }
-
-    /// <summary>Verifies NT51930 has a V2 DP Replace route without being misclassified as a DP Perspective family.</summary>
-    [Fact]
-    public void Nt51930DpReplaceAvailabilityDoesNotChangeStandardMergeFamilyShape()
-    {
-        Assert.True(WorkbenchCompositionService.HasBuiltInV2DpReplace("NT51930"));
-        Assert.False(WorkbenchCompositionService.IsDpPerspectiveIc("NT51930"));
     }
 
     /// <summary>Verifies empty ids and registered non-DP-Perspective ICs remain outside the DP Perspective family.</summary>

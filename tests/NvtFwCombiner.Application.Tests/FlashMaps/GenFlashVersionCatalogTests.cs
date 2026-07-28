@@ -11,7 +11,7 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void DpVersionRulesAreContiguousAndInsideDeclaredDpRange()
     {
-        string[] ruleIds = ["51917", "51919", "51920", "51923", "51926", "51927", "51928", "51931", "51932"];
+        string[] ruleIds = ["51917", "51919", "51923", "51926", "51927", "51928", "51932"];
         foreach (string ruleId in ruleIds)
         {
             Assert.True(GenFlashVersionCatalog.TryGetDpVersionRule(ruleId, out GenFlashDpVersionRule rule));
@@ -26,12 +26,10 @@ public sealed class GenFlashVersionCatalogTests
 
     /// <summary>Reads contiguous DP main/sub version bytes from owner-approved gen_flash standard-merge DP inputs.</summary>
     [Theory]
-    [InlineData("51920", "0101")]
     [InlineData("51923", "8100")]
     [InlineData("51926", "0102")]
     [InlineData("51927", "5401")]
     [InlineData("51928", "8211")]
-    [InlineData("51931", "8D60")]
     [InlineData("51932", "8201")]
     public void GoldenDpInputsExposeExpectedGenFlashVersion(string ic, string expectedToken)
     {
@@ -64,7 +62,7 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void CmiDpCodeRulesFitInsideExpectedPayloadLengths()
     {
-        string[] ruleIds = ["51919", "51923", "51926", "51927", "51930", "51932", "51950", "51951"];
+        string[] ruleIds = ["51919", "51923", "51926", "51927", "51932", "51950", "51951"];
         foreach (string ruleId in ruleIds)
         {
             Assert.True(GenFlashVersionCatalog.TryGetCmiDpCodeRule(ruleId, out CmiDpCodeRule rule));
@@ -245,29 +243,6 @@ public sealed class GenFlashVersionCatalogTests
         Assert.False(GenFlashVersionCatalog.TryReadCmiDpCode("NT51929", image, out _));
     }
 
-    /// <summary>Reads the owner-confirmed NT51930 FlashCode CMI register triple without guessing a legacy DP offset.</summary>
-    [Fact]
-    public void GoldenNt51930OutputExposesOwnerConfirmedCmiJiraAndDpVersion()
-    {
-        byte[] image = ReadCanonicalGolden(
-            "nt51930-fw130-cascade3-auto-prj-302-inx-20260718",
-            "expected-output");
-
-        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
-            "NT51930",
-            image,
-            out CmiDpCodeMetadata metadata));
-
-        Assert.Equal(0x18, metadata.Register16Offset);
-        Assert.Equal(0x1A, metadata.Register18Offset);
-        Assert.Equal(0x2E, metadata.SystemCodeLowByte);
-        Assert.Equal(0x05, metadata.MajorVersionByte);
-        Assert.Equal(0x0, metadata.MinorVersionNibble);
-        Assert.Equal(302, metadata.JiraNumber);
-        Assert.True(metadata.IsExpectedPayloadLength);
-        Assert.Contains("[0x18, 0x1B), 2026-07-22", metadata.EvidenceSource, StringComparison.Ordinal);
-    }
-
     /// <summary>Unobserved DP sizes remain readable for metadata and are surfaced as warnings rather than build blockers.</summary>
     [Fact]
     public void CmiDpCodeAcceptsUnexpectedPayloadLengthWithWarning()
@@ -311,7 +286,6 @@ public sealed class GenFlashVersionCatalogTests
 
     /// <summary>ICs without a legacy contiguous DP rule retain only their separately declared CMI evidence.</summary>
     [Theory]
-    [InlineData("NT51930")]
     [InlineData("NT51950")]
     [InlineData("NT51951")]
     public void MissingDpVersionEvidenceDoesNotCreateRule(string ic)

@@ -67,58 +67,15 @@ public sealed class DpReplaceGoldenRegressionTests
                 .ToArray());
     }
 
-    /// <summary>Verifies NT51930 self-replacement preserves the owner Standard Merge output without promoting direct DP Replace golden status.</summary>
-    [Fact]
-    public async Task Nt51930DpReplaceWithOriginalDpInputMatchesGoldenBaseBytes()
-    {
-        string goldenRoot = CanonicalGoldenTestData.Root;
-        using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(item => item.GetProperty("ic").GetString() == "51930")
-            .Clone();
-        byte[] expectedBaseBytes = ReadManifestFile(goldenRoot, goldenCase.GetProperty("expectedOutput"));
-        byte[] replacementDpBytes = ReadManifestFile(goldenRoot, goldenCase.GetProperty("inputs").GetProperty("dp-input"));
-
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-dp-replace-golden-51930");
-        string outputPath = workspace.PathFor("nt51930-dp-replace.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51930",
-            "single",
-            "DP",
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["replace-base"] = workspace.Write("reference-flash.bin", expectedBaseBytes),
-                ["replace-dp"] = workspace.Write("replacement-dp.bin", replacementDpBytes),
-            },
-            build: true,
-            TestContext.Current.CancellationToken,
-            outputPath);
-
-        Assert.True(result.Succeeded, result.ReportJson);
-        byte[] actualBytes = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
-        Assert.Equal(expectedBaseBytes, actualBytes);
-        Assert.Equal(Sha256Hex(expectedBaseBytes), result.OutputSha256);
-        using var reportDocument = JsonDocument.Parse(result.ReportJson);
-        Assert.Equal("nt51930-dp-replace-flashmap", reportDocument.RootElement.GetProperty("ProfileId").GetString());
-        Assert.Equal(
-            ["replace-dp-code"],
-            reportDocument.RootElement.GetProperty("Operations")
-                .EnumerateArray()
-                .Select(static operation => operation.GetProperty("OperationId").GetString()));
-    }
-
     /// <summary>Every Gen Flash IC replaces its declared DP payload and NT51928 LDC without changing the approved base.</summary>
     [Theory]
     [InlineData("51917", "51927", "nt51917-dp-replace-gen-flash-alias", false)]
     [InlineData("51919", "51929", "nt51919-dp-replace-gen-flash-alias", false)]
-    [InlineData("51920", "51920", "nt51920-dp-replace-gen-flash", false)]
     [InlineData("51923", "51923", "nt51923-dp-replace-gen-flash", false)]
     [InlineData("51926", "51926", "nt51926-dp-replace-gen-flash", false)]
     [InlineData("51927", "51927", "nt51927-dp-replace-gen-flash", false)]
     [InlineData("51928", "51928", "nt51928-dp-replace-gen-flash", true)]
     [InlineData("51929", "51929", "nt51929-dp-replace-gen-flash", false)]
-    [InlineData("51931", "51931", "nt51931-dp-replace-gen-flash", false)]
     [InlineData("51932", "51932", "nt51932-dp-replace-gen-flash", false)]
     public async Task GenFlashDpReplaceWithOriginalInputsMatchesGoldenBaseBytes(
         string ic,

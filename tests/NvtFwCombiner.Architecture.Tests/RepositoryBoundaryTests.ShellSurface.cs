@@ -336,7 +336,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("NF CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
         Assert.Contains("Normal CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
         Assert.Contains("DIFF CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
-        Assert.Contains("Vector CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
         Assert.Contains("NT51917", flashMapCatalog, StringComparison.Ordinal);
         Assert.DoesNotContain("CtrlRamRegionCatalog", shell, StringComparison.Ordinal);
     }

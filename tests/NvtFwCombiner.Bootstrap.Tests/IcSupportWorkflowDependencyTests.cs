@@ -77,7 +77,7 @@ public sealed class IcSupportWorkflowDependencyTests
             Assert.Contains(icId, ctrlRamReplaceIcIds);
         }
 
-        Assert.Equal(13, ctrlRamReplaceIcIds.Count);
+        Assert.Equal(10, ctrlRamReplaceIcIds.Count);
     }
 
     /// <summary>DP Replace exposure stays closed to members with trusted V2 runtime registrations.</summary>

@@ -428,20 +428,20 @@ public sealed partial class ShellViewModelTests
     public void DpFirmwareSlotKeepsProfileSizeDiagnosticsOutOfBadges()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51920";
+        viewModel.SelectedIc = "NT51923";
         using var golden = StandardMergeGoldenManifest.Load();
-        JsonElement nt51920 = golden.CaseByIc("51920");
-        string sourcePath = golden.ManifestPath(nt51920.GetProperty("inputs").GetProperty("dp-input"));
+        JsonElement nt51923 = golden.CaseByIc("51923");
+        string sourcePath = golden.ManifestPath(nt51923.GetProperty("inputs").GetProperty("dp-input"));
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-profile-dp-size");
         byte[] oversizedDp = [.. File.ReadAllBytes(sourcePath), 0x00];
-        string oversizedPath = workspace.Write("nt51920-unexpected-size.bin", oversizedDp);
+        string oversizedPath = workspace.Write("nt51923-unexpected-size.bin", oversizedDp);
 
         viewModel.SetSlotFile("merge-dp", oversizedPath);
 
         FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
-            fact.Value == "D01-01" &&
+            fact.Value == "D81-00" &&
             !fact.IsWarning);
         Assert.DoesNotContain(dpSlot.FirmwareFacts, fact => fact.Label == "DP size");
     }

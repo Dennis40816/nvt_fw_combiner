@@ -13,8 +13,7 @@ public static partial class LegacyCombinerPostbuildPlanner
     {
         long[] crcWordOffsets = command.ModeArgument switch
         {
-            "NT51930BASED_NORMAL_MODE" or "NT51932BASED_NORMAL_MODE" => [0x100, 0x118],
-            "NT51931BASED_NORMAL_MODE" => [0x1C, 0xFC],
+            "NT51932BASED_NORMAL_MODE" => [0x100, 0x118],
             "NT51950BASED_NORMAL_MODE" => [0x11C, 0x130],
             _ => [],
         };
@@ -27,8 +26,7 @@ public static partial class LegacyCombinerPostbuildPlanner
         {
             foreach (long crcWordOffset in crcWordOffsets)
             {
-                if (crcWordOffset + 4 > block.FirmwareRange.Length &&
-                    !IsNt51930LegacyHeaderCopy(command, block))
+                if (crcWordOffset + 4 > block.FirmwareRange.Length)
                 {
                     continue;
                 }
@@ -43,16 +41,13 @@ public static partial class LegacyCombinerPostbuildPlanner
             ByteRange? cascadeDlmCrcOffsets = plan.Branch == LegacyCombinerPostbuildBranch.Cascade
                 ? command.ModeArgument switch
                 {
-                    "NT51930BASED_NORMAL_MODE" => new ByteRange(0x128, 0x30),
                     "NT51932BASED_NORMAL_MODE" => new ByteRange(0x128, 0x1C),
-                    "NT51931BASED_NORMAL_MODE" => new ByteRange(0x6C, 0x4C),
                     "NT51950BASED_NORMAL_MODE" => new ByteRange(0x134, 0x4C),
                     _ => null,
                 }
                 : null;
             if (cascadeDlmCrcOffsets is { } offsets &&
-                (offsets.EndExclusive <= block.FirmwareRange.Length ||
-                 IsNt51930LegacyHeaderCopy(command, block)))
+                offsets.EndExclusive <= block.FirmwareRange.Length)
             {
                 AddIfWithin(
                     ranges,
@@ -61,15 +56,6 @@ public static partial class LegacyCombinerPostbuildPlanner
                     TpHeaderSectionIds.FlashHeaderCrc);
             }
         }
-    }
-
-    private static bool IsNt51930LegacyHeaderCopy(
-        LegacyCombinerPostbuildCommand command,
-        LegacyCombinerBlockArgument block)
-    {
-        return command.ModeArgument == "NT51930BASED_NORMAL_MODE" &&
-            block.SourceOffset == 0x7000 &&
-            block.FirmwareRange.Length == 0x100;
     }
 
     private static void AddNt51927BasedCrcOnlyIntegrityRanges(

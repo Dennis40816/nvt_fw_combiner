@@ -38,6 +38,7 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/legacy-combiner/1.13.0/Combiner.exe",
     "external-tools/legacy-combiner/1.13.0/manifest.json",
 )
+RETIRED_PRODUCTION_IC_IDS = ("NT51920", "NT51925", "NT51930", "NT51931")
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
 PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
@@ -344,7 +345,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             result.stdout,
         )
         self.assertIn(
-            "Canonical golden package policy dry-run passed: 34 direct Standard Merge BIN artifacts and 13 direct/alias cases selected; diagnostics and other workflows excluded",
+            "Canonical golden package policy dry-run passed: 25 direct Standard Merge BIN artifacts and 10 direct/alias cases selected; diagnostics and other workflows excluded",
             result.stdout,
         )
         self.assertIn(
@@ -520,10 +521,20 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         )
 
         self.assertIsNotNone(match)
-        self.assertIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
+        self.assertNotIn("nfc.nt51920.ctrlram-postbuild-v1", match.group(1))
         self.assertNotIn("nfc.nt51930.ctrlram-postbuild-v1", match.group(1))
-        self.assertIn("nfc.nt51930.ctrlram-postbuild-fw1.x", match.group(1))
+        self.assertNotIn("nfc.nt51930.ctrlram-postbuild-fw1.x", match.group(1))
+        self.assertNotIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
         self.assertIn("nfc.nt51926.ctrlram-postbuild-fw1.4.1", match.group(1))
+
+    def test_standard_merge_release_allowlist_excludes_retired_ic_ids(self) -> None:
+        allowlist_path = ROOT / "testdata/golden/release-standard-merge-v1.json"
+        allowlist = json.loads(allowlist_path.read_text(encoding="utf-8"))
+        publication_text = json.dumps(allowlist, sort_keys=True).upper()
+
+        for retired_ic_id in RETIRED_PRODUCTION_IC_IDS:
+            with self.subTest(ic=retired_ic_id):
+                self.assertNotIn(retired_ic_id, publication_text)
 
     def test_sbom_file_ids_encode_every_package_path_as_valid_spdx_characters(
         self,

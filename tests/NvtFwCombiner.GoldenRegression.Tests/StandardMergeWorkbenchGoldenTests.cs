@@ -15,7 +15,16 @@ public sealed class StandardMergeWorkbenchGoldenTests
         using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-golden");
 
-        JsonElement[] goldenCases = [.. manifestDocument.RootElement.GetProperty("cases").EnumerateArray()];
+        var admittedIcIds = WorkbenchCompositionService.GetSupportedIcIds()
+            .ToHashSet(StringComparer.Ordinal);
+        JsonElement[] goldenCases =
+        [
+            .. manifestDocument.RootElement.GetProperty("cases")
+                .EnumerateArray()
+                // Retired fixtures remain immutable historical evidence, not runtime golden claims.
+                .Where(goldenCase =>
+                    admittedIcIds.Contains($"NT{goldenCase.GetProperty("ic").GetString()}")),
+        ];
 
         foreach (JsonElement goldenCase in goldenCases)
         {

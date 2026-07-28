@@ -1,11 +1,12 @@
-"""Verify the CtrlRAM Replace fixture handoff.
+"""Verify the active CtrlRAM Replace fixture handoff.
 
 The public smoke path exercises the workbench CtrlRAM Preview/Build flow with
 self-replacement inputs sliced from existing owner-approved Standard Merge
 golden data. Owner-approved CtrlRAM firmware fixtures may be committed under
 testdata/golden; this script validates their manifest and payload hashes so the
 same folder can be promoted to byte regression once owner golden outputs are
-supplied.
+supplied. Retired-IC fixtures are historical characterization only and are not
+admitted by this active verifier.
 """
 
 from __future__ import annotations
@@ -28,17 +29,17 @@ EXPECTED_PAYLOAD_CLASSES = {
     "private-owner-golden-firmware",
 }
 EXPECTED_RUNNER_STATUSES = {"ready-for-private-golden", "pending-golden-parity"}
+RETIRED_PRODUCTION_IC_IDS = frozenset(
+    {"NT51920", "NT51925", "NT51930", "NT51931"}
+)
 FWCONFIG_STARTS = {
     "NT51917": 0x16000,
     "NT51919": 0x1F200,
-    "NT51920": 0x22000,
     "NT51923": 0x22000,
     "NT51926": 0x22000,
     "NT51927": 0x16000,
     "NT51928": 0x16000,
     "NT51929": 0x1F200,
-    "NT51930": 0x1F200,
-    "NT51931": 0x16000,
     "NT51932": 0x1F200,
     "NT51950": 0x22200,
     "NT51951": 0x22200,
@@ -53,12 +54,10 @@ FWCONFIG_REQUIRED_LENGTH = PROJECT_ID_OFFSET + 2
 DEFAULT_POSTBUILD_CATEGORIES = {
     "NT51917": "PostbuildSetup_51927_1.4.1",
     "NT51919": "PostbuildSetup_51932_2.0.0",
-    "NT51920": "PostbuildSetup_51920_1.3.1",
     "NT51923": "PostbuildSetup_51923_1.4.1",
     "NT51927": "PostbuildSetup_51927_1.4.1",
     "NT51928": "PostbuildSetup_51927_1.4.1",
     "NT51929": "PostbuildSetup_51932_2.0.0",
-    "NT51931": "PostbuildSetup_51931_1.3.0",
     "NT51932": "PostbuildSetup_51932_2.0.0",
     "NT51950": "PostbuildSetup_51950_2.0.0",
     "NT51951": "PostbuildSetup_51950_2.0.0",
@@ -67,7 +66,7 @@ VERSIONED_POSTBUILD_CATEGORIES = {
     ("NT51926", "1.4.1"): "PostbuildSetup_51926_1.4.1",
     ("NT51926", "2.0.0"): "PostbuildSetup_51926_2.0.0",
 }
-VERSIONED_POSTBUILD_ICS = {"NT51926", "NT51930"}
+VERSIONED_POSTBUILD_ICS = {"NT51926"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -211,6 +210,10 @@ def verify_fixture_manifest(manifest_path: Path) -> None:
 def verify_case(root: Path, item: dict[str, Any], index: int) -> None:
     label = f"case[{index}]"
     ic_id = require_non_empty_string(item.get("ic"), f"{label}.ic")
+    require(
+        ic_id not in RETIRED_PRODUCTION_IC_IDS,
+        f"{label}.ic {ic_id} is retired and cannot be admitted by the active CtrlRAM fixture verifier",
+    )
     mode = require_non_empty_string(item.get("mode"), f"{label}.mode")
     common_fw_version = require_non_empty_string(
         item.get("commonFwVersion"), f"{label}.commonFwVersion"
@@ -285,8 +288,6 @@ def verify_postbuild_category(
 
 
 def expected_postbuild_category(ic_id: str, common_fw_version: str) -> str | None:
-    if ic_id == "NT51930" and common_fw_version.startswith("1."):
-        return "PostbuildSetup_51930_1.4.0"
     return VERSIONED_POSTBUILD_CATEGORIES.get((ic_id, common_fw_version))
 
 

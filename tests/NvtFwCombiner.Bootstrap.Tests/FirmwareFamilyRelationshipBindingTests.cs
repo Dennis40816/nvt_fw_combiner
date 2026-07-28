@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -131,14 +130,11 @@ public sealed class FirmwareFamilyRelationshipBindingTests
     [Theory]
     [InlineData("NT51917", 0x3C01C)]
     [InlineData("NT51919", 0x401A)]
-    [InlineData("NT51920", 0x3E014)]
     [InlineData("NT51923", 0x3E014)]
     [InlineData("NT51926", 0x3E014)]
     [InlineData("NT51927", 0x3C01C)]
     [InlineData("NT51928", 0x3C01C)]
     [InlineData("NT51929", 0x401A)]
-    [InlineData("NT51930", 0x18)]
-    [InlineData("NT51931", 0x3E018)]
     [InlineData("NT51932", 0x401A)]
     public void EvidencedDpRoutesReuseOneDpcmiDefinition(
         string icId,
@@ -163,36 +159,6 @@ public sealed class FirmwareFamilyRelationshipBindingTests
         Assert.Equal(
             expectedOffset,
             baseRegion.Range.Start + locator.Offset);
-    }
-
-    /// <summary>Owner-confirmed NT51920/31 locations decode through the shared DPCMI definition.</summary>
-    [Theory]
-    [InlineData("NT51920", 0x3E014)]
-    [InlineData("NT51931", 0x3E018)]
-    public void OwnerConfirmedDpRoutesDecodeCanonicalDpcmi(
-        string icId,
-        int expectedOffset)
-    {
-        byte[] image = new byte[0x40000];
-        image[expectedOffset] = 0x2E;
-        image[expectedOffset + 1] = 0x03;
-        image[expectedOffset + 2] = 0xA4;
-        MetadataPlanDefinition definition = CreateDpReplacePlan(icId);
-        ResolvedMetadataPlan plan = definition.Resolve(
-            new ResolutionToken($"owner-confirmed-dpcmi:{icId}"));
-        MetadataInspectionSnapshot snapshot = FirmwareMetadataInspector.Inspect(
-            plan,
-            [new FirmwareArtifactPayload(
-                CompositionAddressSpaceIds.DpReplacement,
-                image)]);
-
-        Assert.True(
-            DpcmiMetadataProjector.TryProject(
-                snapshot,
-                out DpcmiMetadataFacts facts));
-        Assert.Equal("030A", facts.VersionToken);
-        Assert.Equal((ushort)0x42E, facts.JiraNumber);
-        Assert.Equal(expectedOffset, facts.ResolvedRange.Start);
     }
 
     private static FirmwareMetadataStructure AssertStructure(

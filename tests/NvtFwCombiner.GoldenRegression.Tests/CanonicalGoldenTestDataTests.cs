@@ -123,10 +123,10 @@ public sealed class CanonicalGoldenTestDataTests
     {
         using var workspace = TempWorkspace.Create("canonical-explicit-root-golden");
         string root = workspace.PathFor("canonical");
-        const string caseId = "nt51930-explicit-root-direct-golden";
+        const string caseId = "nt51923-explicit-root-direct-golden";
         string caseDirectory = string.Join(
             '/',
-            "NT51930",
+            "NT51923",
             "standard-merge",
             "test",
             "topology-unscoped",
@@ -144,11 +144,11 @@ public sealed class CanonicalGoldenTestDataTests
             {
                 schemaVersion = "1.0",
                 caseId,
-                ic = "NT51930",
+                ic = "NT51923",
                 workflow = "standard-merge",
                 variantOrVersion = "test",
                 topology = "topology-unscoped",
-                profileId = "nt51930-explicit-root-test",
+                profileId = "nt51923-explicit-root-test",
                 directGolden = true,
                 sourceClassification = "owner-approved",
                 ownerApproval = "focused test",
@@ -175,7 +175,7 @@ public sealed class CanonicalGoldenTestDataTests
             caseId,
             root);
 
-        Assert.Equal("51930", goldenCase.GetProperty("ic").GetString());
+        Assert.Equal("51923", goldenCase.GetProperty("ic").GetString());
         Assert.Equal(inputBytes.Length, goldenCase.GetProperty("inputs").GetProperty("dp-input").GetProperty("size").GetInt64());
         Assert.Equal(expectedBytes.Length, goldenCase.GetProperty("expectedOutput").GetProperty("size").GetInt64());
         Assert.Equal(caseId, rawCase.GetProperty("caseId").GetString());
