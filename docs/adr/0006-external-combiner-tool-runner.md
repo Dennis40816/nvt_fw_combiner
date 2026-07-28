@@ -59,6 +59,27 @@ Some owner-provided Combiner `MERGE_MODE` postbuild commands rewrite the staging
 
 The temporary firmware file is an implementation detail of the host. Profiles should name address spaces and ranges, not host filesystem paths.
 
+### One adapter per tool protocol family
+
+Infrastructure owns one staged execution host and at most one adapter for each
+distinct reviewed executable protocol family. Legacy Combiner and the
+constrained Python CRC worker are different protocol families; NT51929,
+NT51950, AB, CtrlRAM, and individual processor stages are not.
+
+Canonical processor-plan data owns processor id/protocol kind, tokenized
+command-plan reference, staging bindings, declared read/write authority, and
+required tool identity/version/hash. The compiled plan carries one typed stage.
+The common host owns staging-copy creation, manifest resolution, tokenized argv,
+timeout/cancellation, process-tree cleanup, before/after diff, and mutation
+enforcement.
+
+Infrastructure cannot branch on IC, family, workflow, topology, or processor
+stage identity. Those differences are trusted processor-plan data. An IC using
+an existing protocol changes no production C#. A genuinely new executable
+protocol requires one new reviewed adapter and its R2/R3 protocol, packaging,
+security, and evidence gates; it cannot be introduced as an IC-specific runner
+or plugin.
+
 ## Profile expression
 
 The `composition-profile-v1` production adapter was retired in v0.9.9; its schema remains only as

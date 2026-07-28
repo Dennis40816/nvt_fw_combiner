@@ -113,6 +113,24 @@ inline/reference duplication, ambiguous bindings, dependency cycles, invalid
 field types, unsupported values, arithmetic overflow, and escaped ranges all
 fail closed.
 
+### Metadata follows the three-form semantic ceiling
+
+Metadata uses the repository-wide representation limit from ADR 0015:
+
+1. the serialized Contracts DTO;
+2. the one Domain-owned `FirmwareMetadataStructureDefinition` plus its
+   canonical located binding; and
+3. a reference-only resolved/inspection result with applicability, prerequisite
+   state, and per-run decoded values.
+
+Profiles normalization may use private ephemeral validation state but cannot
+retain a second metadata definition. Application plans, Workbench adapters, and
+Presentation/CLI projections may carry definition ids, readiness, decoded or
+formatted values, and typed issues; they may not copy field tables, assertions,
+locators, ranges, relations, or formatter rules. Repository callers migrate
+directly, and accidental public implementation DTOs receive no indefinite
+compatibility shim.
+
 ### #176 migration boundary
 
 GitHub issue #176 applies this contract to NT51950 and NT51951 DPCMI inspection:

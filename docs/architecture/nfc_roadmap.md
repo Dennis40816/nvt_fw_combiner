@@ -39,7 +39,7 @@ release.
 
 ## Later `0.10.x`: dependency-allocated implementation
 
-The exact GitHub issue inventory in the
+The approved GitHub issues named in the
 [`0.10.x` ticket dependency plan](../governance/0.10.x-ticket-dependency-plan.md)
 and each issue's `Blocked by` edges control the implementation frontier. Issue
 numbers are not assumed to be a contiguous range; later approved tickets such

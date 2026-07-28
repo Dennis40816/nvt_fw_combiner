@@ -224,6 +224,31 @@ check, report fact, golden, or test to lower source size.
 The executable counter scope and remaining record fields are maintained in the
 [v0.9.10 Replace Performance Baseline](../references/replace-performance-baseline.md).
 
+### 0.10.x Canonical Core Convergence amendment
+
+Within one accepted user operation/revision, every expensive semantic step is
+performed once and its immutable result is shared by downstream projections:
+
+- one trusted document parse/normalization per catalog publication;
+- one capability resolution per matching authoring revision and resolution
+  token;
+- one artifact read/inspection per matching file stamp and definition hash;
+- one compilation and one engine execution per Preview/Build attempt; and
+- one execution per declared processor stage.
+
+Output naming, Memory Layout, report generation, UI, and CLI formatting consume
+the accepted immutable result. They do not reread firmware, re-resolve,
+recompile, rerun the engine, or rerun a processor. This is orchestration-owned
+single evaluation, not correctness dependence on a process-global cache.
+Clearing optional caches may require recomputation in a later operation but
+cannot change results.
+
+Deterministic CI gates prefer invocation/work counts, byte parity, bounded
+allocation, and unique test ownership over flaky universal timing limits.
+Local/CI evidence still records cold/warm p50/p95, allocation, and peak memory;
+a timing ratchet is introduced only after a stable reproducible baseline.
+Canonical verifier lanes must not execute the same test owner twice.
+
 ## Consequences
 
 ### Positive
