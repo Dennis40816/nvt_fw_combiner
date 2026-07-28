@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -49,68 +48,26 @@ internal static partial class MergeCliCommandHandler
             return false;
         }
 
-        var operationIdsByRowId = rule.OperationFragments
-            .SelectMany(fragment => fragment.MappingRowIds.Select(rowId => new KeyValuePair<string, string>(
-                rowId,
-                fragment.OperationId)))
-            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
-        List<GeneralMappingDraftRow> items = [];
         foreach (SavedRuleMappingRow row in rule.MappingRows)
         {
-            if (!string.Equals(row.TargetAddressSpaceId, CompositionAddressSpaceIds.OutputImage, StringComparison.Ordinal))
-            {
-                error.WriteLine($"error: saved rule row '{row.RowId}' targets unsupported address space '{row.TargetAddressSpaceId}'");
-                return false;
-            }
-
-            if (!string.Equals(row.OverlapPolicy, SavedRuleSchemaTokens.MappingOverlapReject, StringComparison.Ordinal))
-            {
-                error.WriteLine($"error: saved rule row '{row.RowId}' uses unsupported overlap policy '{row.OverlapPolicy}'");
-                return false;
-            }
-
-            if (row.SourceRange is not { } sourceRange)
-            {
-                error.WriteLine($"error: saved rule row '{row.RowId}' has no sourceRange for General Merge");
-                return false;
-            }
-
-            if (!slotsById.TryGetValue(row.SourceReference, out string? sourcePath))
+            if (!slotsById.ContainsKey(row.SourceReference))
             {
                 error.WriteLine($"error: saved rule row '{row.RowId}' requires --slot {row.SourceReference}=<path>");
                 return false;
             }
-
-            if (!operationIdsByRowId.TryGetValue(row.RowId, out string? operationId))
-            {
-                error.WriteLine($"error: saved rule row '{row.RowId}' is not linked to a reviewed operation fragment");
-                return false;
-            }
-
-            items.Add(new GeneralMappingDraftRow(
-                operationId,
-                ExplicitMappingOperationKind.CopyRange,
-                GeneralMappingSource.File(sourcePath),
-                sourceRange,
-                row.TargetAddressSpaceId,
-                row.TargetRange,
-                OverlapPolicy.Reject,
-                row.Alignment,
-                row.Reason,
-                row.TargetRegionId,
-                OperationProvenance.SavedRule(rule.RuleId, rule.RuleVersion)));
         }
 
-        try
+        if (!SavedRuleGeneralMappingDraftAdapter.TryCreate(
+                rule,
+                row => slotsById[row.SourceReference],
+                out mappings,
+                out IReadOnlyList<SavedRuleValidationIssue> projectionIssues))
         {
-            mappings = new GeneralMappingDraftState(items);
-            return true;
-        }
-        catch (ArgumentException exception)
-        {
-            error.WriteLine($"error: saved rule mapping draft is invalid: {exception.Message}");
+            PrintSavedRuleIssues(projectionIssues, error);
             return false;
         }
+
+        return true;
     }
 
     private static bool TryCreateSlotBindings(

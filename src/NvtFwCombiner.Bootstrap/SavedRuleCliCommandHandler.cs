@@ -1,5 +1,5 @@
 using System.Globalization;
-
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -47,7 +47,17 @@ internal static class SavedRuleCliCommandHandler
         await PrintSummaryAsync(rule, output).ConfigureAwait(false);
         if (action == "mappings")
         {
-            await PrintMappingsAsync(rule, output).ConfigureAwait(false);
+            if (!SavedRuleGeneralMappingDraftAdapter.TryCreate(
+                    rule,
+                    static row => row.SourceReference,
+                    out GeneralMappingDraftState? draft,
+                    out IReadOnlyList<SavedRuleValidationIssue> projectionIssues))
+            {
+                await PrintIssuesAsync(projectionIssues, error).ConfigureAwait(false);
+                return CompositionFailed;
+            }
+
+            await PrintMappingsAsync(rule, draft, output).ConfigureAwait(false);
         }
 
         return Success;
@@ -67,7 +77,10 @@ internal static class SavedRuleCliCommandHandler
             .ConfigureAwait(false);
     }
 
-    private static async Task PrintMappingsAsync(SavedCompositionRule rule, TextWriter output)
+    private static async Task PrintMappingsAsync(
+        SavedCompositionRule rule,
+        GeneralMappingDraftState draft,
+        TextWriter output)
     {
         await output.WriteLineAsync("Mapping rows:").ConfigureAwait(false);
         foreach (SavedRuleMappingRow row in rule.MappingRows)
@@ -79,7 +92,7 @@ internal static class SavedRuleCliCommandHandler
         }
 
         await output.WriteLineAsync("CLI mapping fragments:").ConfigureAwait(false);
-        foreach (SavedRuleMappingRow row in rule.MappingRows)
+        foreach (GeneralMappingDraftRow row in draft.Rows)
         {
             string fragment = rule.SourceExperience == IcWorkflowIds.GeneralMerge
                 ? FormatGeneralMergeMapping(row)
@@ -88,20 +101,18 @@ internal static class SavedRuleCliCommandHandler
         }
     }
 
-    private static string FormatGeneralMergeMapping(SavedRuleMappingRow row)
-    {
-        return row.SourceRange is { } sourceRange
-            ? string.Create(
-                CultureInfo.InvariantCulture,
-                $"--mapping 0x{sourceRange.Start:X}+0x{row.TargetRange.Start:X}+0x{row.TargetRange.Length:X}=<{row.SourceReference}>")
-            : $"# unsupported: {row.RowId} has no sourceRange";
-    }
-
-    private static string FormatGeneralReplaceMapping(SavedRuleMappingRow row)
+    private static string FormatGeneralMergeMapping(GeneralMappingDraftRow row)
     {
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"--mapping 0x{row.TargetRange.Start:X}+0x{row.TargetRange.Length:X}=<{row.SourceReference}>");
+            $"--mapping 0x{row.SourceRange.Start:X}+0x{row.TargetRange.Start:X}+0x{row.TargetRange.Length:X}=<{row.Source.Reference}>");
+    }
+
+    private static string FormatGeneralReplaceMapping(GeneralMappingDraftRow row)
+    {
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"--mapping 0x{row.TargetRange.Start:X}+0x{row.TargetRange.Length:X}=<{row.Source.Reference}>");
     }
 
     private static async Task PrintIssuesAsync(IReadOnlyList<SavedRuleValidationIssue> issues, TextWriter error)

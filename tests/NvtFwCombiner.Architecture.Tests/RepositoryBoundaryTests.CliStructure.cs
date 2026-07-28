@@ -108,6 +108,8 @@ public sealed partial class RepositoryBoundaryTests
         string mappingRows = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.MappingRows.cs");
         string operationFragments = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.OperationFragments.cs");
         string savedRuleCli = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
+        string mappingDraftAdapter = ReadText(
+            "src/NvtFwCombiner.Bootstrap/SavedRuleGeneralMappingDraftAdapter.cs");
         string json = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Json.cs");
         string ranges = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Ranges.cs");
         string grammar = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Grammar.cs");
@@ -136,13 +138,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", operationFragments, StringComparison.Ordinal);
         Assert.Contains("SavedRuleSchemaTokens.OperationKindCopyRange", operationFragments, StringComparison.Ordinal);
         Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", savedRuleCli, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", savedRuleCli, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", mappingDraftAdapter, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.OperationKindCopyRange", mappingDraftAdapter, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.OperationKindReplaceRange", mappingDraftAdapter, StringComparison.Ordinal);
+        Assert.Contains("GeneralMappingDraftState", mappingDraftAdapter, StringComparison.Ordinal);
+        Assert.Contains("OperationProvenance.SavedRule", mappingDraftAdapter, StringComparison.Ordinal);
         foreach (string literal in new[] { "\"merge\"", "\"reject\"", "\"copy-range\"" })
         {
             Assert.DoesNotContain(literal, compatibility, StringComparison.Ordinal);
             Assert.DoesNotContain(literal, mappingRows, StringComparison.Ordinal);
             Assert.DoesNotContain(literal, operationFragments, StringComparison.Ordinal);
             Assert.DoesNotContain(literal, savedRuleCli, StringComparison.Ordinal);
+            Assert.DoesNotContain(literal, mappingDraftAdapter, StringComparison.Ordinal);
         }
 
         Assert.Contains("private static SavedRuleCompatibility ReadCompatibility", compatibility, StringComparison.Ordinal);
