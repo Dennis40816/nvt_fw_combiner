@@ -186,6 +186,14 @@ public sealed partial class RepositoryBoundaryTests
 
             Assert.Equal("Include", include.Name.LocalName);
             if (bundle.Attribute("Include")?.Value is
+                    "nt51928-dp-replace" or
+                    "nt51928-standard-merge")
+            {
+                Assert.Equal(
+                    "composition-profile-v2.12.schema.json",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
+            }
+            else if (bundle.Attribute("Include")?.Value is
                     "nt51929-standard-merge" or
                     "nt51919-nt51929-nt51932-ab-merge")
             {
@@ -251,10 +259,12 @@ public sealed partial class RepositoryBoundaryTests
             (string? canonicalSource, string? canonicalDestination) = include.Value switch
             {
                 "nt51917-nt51927-general-merge-logical-candidate" or
-                "nt51928-general-merge-logical-candidate" or
-                "nt51928-standard-merge" => (
+                "nt51928-general-merge-logical-candidate" => (
                     "nt51927-standard-merge\\families\\nt51927-nt51928.json",
                     "families\\nt51927-nt51928.json"),
+                "nt51928-dp-replace" => (
+                    "nt51928-standard-merge\\families\\nt51927-nt51928-v1.4.json",
+                    "families\\nt51927-nt51928-v1.4.json"),
                 "nt51950-nt51951-general-merge-logical-candidate" => (
                     "nt51950-nt51951-standard-merge\\families\\nt51950-nt51951-dp-perspective.json",
                     "families\\nt51950-nt51951-dp-perspective.json"),
@@ -378,7 +388,6 @@ public sealed partial class RepositoryBoundaryTests
                  {
                      "nt51917-nt51927-general-merge-logical-candidate",
                      "nt51928-general-merge-logical-candidate",
-                     "nt51928-standard-merge",
                  })
         {
             XElement sharedPartsConsumer = Assert.Single(
@@ -400,6 +409,32 @@ public sealed partial class RepositoryBoundaryTests
                 "families",
                 "nt51927-nt51928.json")));
         }
+
+        XElement nt51928DpReplace = Assert.Single(
+            document.Descendants("BuiltInProfileBundle"),
+            static bundle => StringComparer.Ordinal.Equals(
+                bundle.Attribute("Include")?.Value,
+                "nt51928-dp-replace"));
+        Assert.Equal(
+            "nt51928-standard-merge\\families\\nt51927-nt51928-v1.4.json",
+            nt51928DpReplace.Element("CanonicalFirmwareFamilySource")?.Value);
+        Assert.Equal(
+            "families\\nt51927-nt51928-v1.4.json",
+            nt51928DpReplace.Element("CanonicalFirmwareFamilyDestination")?.Value);
+        Assert.True(File.Exists(Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51928-standard-merge",
+            "families",
+            "nt51927-nt51928-v1.4.json")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51928-dp-replace",
+            "families",
+            "nt51927-nt51928-v1.4.json")));
 
         XElement dpPerspectiveConsumer = Assert.Single(
             document.Descendants("BuiltInProfileBundle"),

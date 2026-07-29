@@ -538,10 +538,12 @@ public sealed class CompiledInputContract
 {
     private readonly CompiledInputSlotRequirement[] _slots;
     private readonly CompiledInputSpaceBinding[] _spaceBindings;
+    private readonly CompiledInputSelectionGroup[] _selectionGroups;
 
     internal CompiledInputContract(
         IEnumerable<CompiledInputSlotRequirement> slots,
-        IEnumerable<CompiledInputSpaceBinding> spaceBindings)
+        IEnumerable<CompiledInputSpaceBinding> spaceBindings,
+        IEnumerable<CompiledInputSelectionGroup>? selectionGroups = null)
     {
         _slots = ImmutableReferenceSnapshot.CreateUnique(
             slots,
@@ -557,6 +559,13 @@ public sealed class CompiledInputContract
             "Input space bindings must be non-null, non-empty, and unique by address space.",
             StringComparer.Ordinal,
             requireValue: true);
+        _selectionGroups = ImmutableReferenceSnapshot.CreateUnique(
+            selectionGroups ?? [],
+            static group => group.GroupId,
+            "Input selection groups must be non-null and ordinally unique.",
+            "Input selection groups must be non-null and ordinally unique.",
+            StringComparer.Ordinal,
+            requireValue: false);
 
         var slotIds = _slots.Select(static slot => slot.SlotId).ToHashSet(StringComparer.Ordinal);
         if (_spaceBindings.Any(binding => !slotIds.Contains(binding.SlotId)) ||
@@ -574,8 +583,11 @@ public sealed class CompiledInputContract
             int space = StringComparer.Ordinal.Compare(left.AddressSpaceId, right.AddressSpaceId);
             return space != 0 ? space : StringComparer.Ordinal.Compare(left.SlotId, right.SlotId);
         });
+        Array.Sort(_selectionGroups, static (left, right) =>
+            StringComparer.Ordinal.Compare(left.GroupId, right.GroupId));
         Slots = Array.AsReadOnly(_slots);
         SpaceBindings = Array.AsReadOnly(_spaceBindings);
+        SelectionGroups = Array.AsReadOnly(_selectionGroups);
     }
 
     /// <summary>Canonical slot declarations by ordinal slot id.</summary>
@@ -583,4 +595,7 @@ public sealed class CompiledInputContract
 
     /// <summary>Canonical immutable plan-space bindings by address space then slot id.</summary>
     public IReadOnlyList<CompiledInputSpaceBinding> SpaceBindings { get; }
+
+    /// <summary>Resolved selection-group definitions and selected state.</summary>
+    public IReadOnlyList<CompiledInputSelectionGroup> SelectionGroups { get; }
 }

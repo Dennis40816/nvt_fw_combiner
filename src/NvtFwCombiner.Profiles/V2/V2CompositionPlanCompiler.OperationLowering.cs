@@ -11,11 +11,17 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues,
-        bool useProcessorWriteAuthority = false)
+        bool useProcessorWriteAuthority = false,
+        IReadOnlySet<string>? activeOperationIds = null)
     {
         var operations = new List<CompositionOperation>();
         foreach (CompositionProfileOperation operation in profile.Operations)
         {
+            if (activeOperationIds is not null && !activeOperationIds.Contains(operation.OperationId))
+            {
+                continue;
+            }
+
             if (!TryResolveSequence(operation, issues, out int sequence))
             {
                 continue;

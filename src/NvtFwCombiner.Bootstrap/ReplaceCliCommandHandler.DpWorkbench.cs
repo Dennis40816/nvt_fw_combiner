@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -13,8 +14,7 @@ internal static partial class ReplaceCliCommandHandler
         CancellationToken cancellationToken)
     {
         if (!RequireOption(options, "--ic-num", error, out string? icNumber) ||
-            !RequireOption(options, "--base", error, out string? basePath) ||
-            !RequireOption(options, "--dp", error, out string? dpPath))
+            !RequireOption(options, "--base", error, out string? basePath))
         {
             return UsageError;
         }
@@ -28,23 +28,65 @@ internal static partial class ReplaceCliCommandHandler
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
             [WorkbenchSlotIds.ReplaceBase] = Path.GetFullPath(basePath),
-            [WorkbenchSlotIds.ReplaceDp] = Path.GetFullPath(dpPath),
         };
+        bool replacementSelectionGroup =
+            WorkbenchCompositionService.HasBuiltInV2DpReplaceSelectionGroup(icId);
+        if (options.Values.TryGetValue("--dp", out string? dpPath))
+        {
+            slotPaths[WorkbenchSlotIds.ReplaceDp] = Path.GetFullPath(dpPath);
+        }
+        else if (!replacementSelectionGroup)
+        {
+            error.WriteLine("error: --dp is required");
+            return UsageError;
+        }
+
         bool requiresLdc = DpReplaceAuthoringCatalog.GetAdditionalPayloads(icId)
             .Any(static rule => rule.SlotId == WorkbenchSlotIds.ReplaceLdc);
         if (requiresLdc)
         {
-            if (!RequireOption(options, "--ldc", error, out string? ldcPath))
+            if (options.Values.TryGetValue("--ldc", out string? ldcPath))
             {
-                return UsageError;
+                slotPaths[WorkbenchSlotIds.ReplaceLdc] = Path.GetFullPath(ldcPath);
             }
-
-            slotPaths[WorkbenchSlotIds.ReplaceLdc] = Path.GetFullPath(ldcPath);
         }
         else if (options.Values.ContainsKey("--ldc"))
         {
             error.WriteLine($"error: --ldc is not declared by the {icId} DP Replace profile");
             return UsageError;
+        }
+
+        if (replacementSelectionGroup)
+        {
+            IReadOnlyList<WorkbenchReplaceInputSlot> declaredSlots =
+                WorkbenchCompositionService.GetReplaceInputSlots(
+                    icId,
+                    WorkbenchIcNumberTokens.SingleChip,
+                    WorkbenchReplaceModes.Dp);
+            string[] selectedInputSlotIds =
+            [
+                .. declaredSlots
+                    .Where(slot => slotPaths.ContainsKey(slot.SlotId))
+                    .Select(static slot => slot.AddressSpaceId),
+            ];
+            long? baseCapacity = File.Exists(basePath)
+                ? new FileInfo(basePath).Length
+                : null;
+            if ((baseCapacity is not null || selectedInputSlotIds.Length == 0) &&
+                WorkbenchCompositionService.TryResolveBuiltInV2DpReplaceInputSelection(
+                    icId,
+                    baseCapacity,
+                    selectedInputSlotIds,
+                    out InputSelectionReadinessSnapshot? readiness,
+                    out _) &&
+                !readiness!.CanBuild)
+            {
+                InputSelectionReadinessIssue issue = readiness.PrimaryIssue!;
+                error.WriteLine($"error: {issue.Code}: {issue.Message}");
+                return issue.Code == InputSelectionReadinessIssueCodes.SelectionPending
+                    ? UsageError
+                    : CompositionFailed;
+            }
         }
 
         return await RunWorkbenchReplaceAsync(

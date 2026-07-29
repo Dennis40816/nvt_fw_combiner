@@ -17,14 +17,14 @@ public static class WorkbenchAddressSpaceIds
     /// <summary>Immutable TP input address space used by Standard Merge.</summary>
     public const string TpInput = CompositionAddressSpaceIds.TpInput;
 
-    /// <summary>Immutable LD input address space used by Standard Merge.</summary>
-    public const string LdInput = CompositionAddressSpaceIds.LdInput;
+    /// <summary>Immutable LDC input address space used by Standard Merge.</summary>
+    public const string LdcInput = CompositionAddressSpaceIds.LdcInput;
 
     /// <summary>Immutable DP replacement address space used by DP Replace.</summary>
     public const string DpReplacement = CompositionAddressSpaceIds.DpReplacement;
 
-    /// <summary>Immutable LD replacement address space used by DP Replace.</summary>
-    public const string LdReplacement = CompositionAddressSpaceIds.LdReplacement;
+    /// <summary>Immutable LDC replacement address space used by DP Replace.</summary>
+    public const string LdcReplacement = CompositionAddressSpaceIds.LdcReplacement;
 
     /// <summary>Immutable CtrlRAM replacement address space used by CtrlRAM Replace.</summary>
     public const string CtrlRamReplacement = CompositionAddressSpaceIds.CtrlRamReplacement;

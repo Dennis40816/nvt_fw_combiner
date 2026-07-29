@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -5,6 +6,95 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
+    /// <summary>NT51928 CLI uses generic selection-group cardinality instead of a route-specific branch.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceRequiresOneSelectionThroughApplicationReadiness()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", new byte[0x80000]);
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "preview",
+            "--profile",
+            "NT51928",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains(
+            InputSelectionReadinessIssueCodes.SelectionPending,
+            result.Error,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "requires at least 1 applicable selection",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>NT51928 CLI exposes the profile-owned reason for LDC on a 256-KiB Reference.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceRejectsLdcForNoLdcReference()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", new byte[0x40000]);
+        string ldc = workspace.Write("ldc.bin", new byte[0x80000]);
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "preview",
+            "--profile",
+            "NT51928",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--ldc",
+            ldc,
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(
+            InputSelectionReadinessIssueCodes.SelectionNotApplicable,
+            result.Error,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Reference length does not include LDC",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>NT51928 selected LDC remains structurally exact for the resolved 512-KiB map.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceRejectsSelectedLdcWithWrongLength()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", new byte[0x80000]);
+        string ldc = workspace.Write("ldc.bin", new byte[0x40000]);
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "preview",
+            "--profile",
+            "NT51928",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--ldc",
+            ldc,
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(
+            CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies NT51950 DP Replace restores TP only while customer information follows replacement DP.</summary>
     [Theory]
     [InlineData("NT51950")]

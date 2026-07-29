@@ -17,7 +17,7 @@ internal static class BuiltInV2RegistrationRegistry
             new BuiltInV2Registration("NT51923", "nt51923-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51926", "nt51926-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51927", "nt51927-standard-merge-gen-flash", "0.7.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51928", "nt51928-standard-merge-gen-flash", "0.7.0", BuiltInV2BundleRegistry.All["nt51928-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51928", "nt51928-standard-merge-gen-flash", "0.8.0", BuiltInV2BundleRegistry.All["nt51928-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51929", "nt51929-standard-merge-gen-flash", "0.6.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51932", "nt51932-standard-merge-gen-flash", "0.6.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51950", "nt51950-standard-merge-dp-perspective", "0.6.0", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Merge),
@@ -68,7 +68,7 @@ internal static class BuiltInV2RegistrationRegistry
                 new("NT51923", "nt51923-dp-replace-gen-flash", "0.2.0", BuiltInV2BundleRegistry.All["nt51923-dp-replace"], CompositionKind.Replace),
                 new("NT51926", "nt51926-dp-replace-gen-flash", "0.2.0", BuiltInV2BundleRegistry.All["nt51923-dp-replace"], CompositionKind.Replace),
                 new("NT51927", "nt51927-dp-replace-gen-flash", "0.2.0", BuiltInV2BundleRegistry.All["nt51927-dp-replace"], CompositionKind.Replace),
-                new("NT51928", "nt51928-dp-replace-gen-flash", "0.2.0", BuiltInV2BundleRegistry.All["nt51928-dp-replace"], CompositionKind.Replace),
+                new("NT51928", "nt51928-dp-replace-gen-flash", "0.3.0", BuiltInV2BundleRegistry.All["nt51928-dp-replace"], CompositionKind.Replace),
                 new("NT51929", "nt51929-dp-replace-gen-flash", "0.3.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
                 new("NT51932", "nt51932-dp-replace-gen-flash", "0.2.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
                 new("NT51950", "nt51950-dp-replace-dp-perspective", "0.7.0", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
@@ -148,6 +148,9 @@ internal sealed class BuiltInV2Registration
         }
     }
 
+    internal IReadOnlyList<string> InputSelectionGroupMemberSlotIds =>
+        _bundle.GetInputSelectionGroupMemberSlotIds(ProfileId, ProfileVersion);
+
     internal bool MatchesSelector(string selector)
     {
         return string.Equals(ProfileId, selector, StringComparison.OrdinalIgnoreCase) ||
@@ -196,12 +199,46 @@ internal sealed class BuiltInV2Registration
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        TryCompile(inputLength, requestedTopology: null, out composition, out issues);
+        TryCompile(
+            inputLength,
+            requestedTopology: null,
+            selectedInputSlotIds: null,
+            out composition,
+            out issues);
+    }
+
+    internal void TryCompile(
+        long? inputLength,
+        IReadOnlyCollection<string> selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        TryCompile(
+            inputLength,
+            requestedTopology: null,
+            selectedInputSlotIds,
+            out composition,
+            out issues);
     }
 
     internal void TryCompile(
         long? inputLength,
         TopologySelection? requestedTopology,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        TryCompile(
+            inputLength,
+            requestedTopology,
+            selectedInputSlotIds: null,
+            out composition,
+            out issues);
+    }
+
+    internal void TryCompile(
+        long? inputLength,
+        TopologySelection? requestedTopology,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
@@ -228,9 +265,13 @@ internal sealed class BuiltInV2Registration
         TopologySelection? effectiveTopology = requestedTopology;
         if ((IsStandardMerge || IsAbMerge) && capacities.Count > 1)
         {
-            if (inputLength is null)
+            if (IsStandardMerge && InputSelectionGroupMemberSlotIds.Count != 0)
             {
-                if (IsStandardMerge)
+                requestedCapacity = null;
+            }
+            else if (inputLength is null)
+            {
+                if (IsStandardMerge && InputSelectionGroupMemberSlotIds.Count == 0)
                 {
                     composition = null;
                     issues = [];
@@ -275,7 +316,10 @@ internal sealed class BuiltInV2Registration
             requestedCapacity = inputLength;
         }
 
-        V2CompositionPlanCompileResult compilation = CompileExecutable(requestedCapacity, effectiveTopology);
+        V2CompositionPlanCompileResult compilation = CompileExecutable(
+            requestedCapacity,
+            effectiveTopology,
+            selectedInputSlotIds);
         composition = compilation.CompiledComposition;
         issues = compilation.Issues;
     }
@@ -342,7 +386,8 @@ internal sealed class BuiltInV2Registration
 
     private V2CompositionPlanCompileResult CompileExecutable(
         long? requestedMapCapacity,
-        TopologySelection? requestedTopology = null)
+        TopologySelection? requestedTopology = null,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         return IsAbMerge
             ? _bundle.CompileAbMergeFunctionOpen(
@@ -358,7 +403,8 @@ internal sealed class BuiltInV2Registration
                 IcId,
                 WorkflowId,
                 requestedMapCapacity,
-                $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.");
+                $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.",
+                selectedInputSlotIds);
     }
 
     private static TopologySelection CreateSummaryTopology()

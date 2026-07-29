@@ -68,8 +68,18 @@ public sealed class FirmwareFamilyRelationshipBindingTests
 
         Assert.Equal(["NT51917", "NT51927"], perfect.MemberIds);
         Assert.Equal(["NT51917", "NT51927", "NT51928"], initialCode.MemberIds);
+        string[] expectedInitialCodeMaps = icId == "NT51928"
+            ? [
+                "nt51927-standard-merge-256k",
+                "nt51928-standard-merge-256k",
+                "nt51928-standard-merge-512k",
+            ]
+            : [
+                "nt51927-standard-merge-256k",
+                "nt51928-standard-merge-512k",
+            ];
         Assert.Equal(
-            ["nt51927-standard-merge-256k", "nt51928-standard-merge-512k"],
+            expectedInitialCodeMaps,
             initialCode.ApplicableMaps.Select(static map => map.MapId));
         Assert.Equal(
             [
@@ -210,8 +220,13 @@ public sealed class FirmwareFamilyRelationshipBindingTests
     {
         MetadataPlanEntry provider =
             Assert.Single(CreateDpReplacePlan("NT51929").Entries);
-        MetadataPlanEntry candidate =
-            Assert.Single(CreateDpReplacePlan(icId).Entries);
+        MetadataPlanEntry candidate = Assert.Single(
+            (icId == "NT51928"
+                ? CreateStandardMergePlan(icId)
+                : CreateDpReplacePlan(icId)).Entries,
+            static entry => StringComparer.Ordinal.Equals(
+                entry.StructureDefinition.StructureId,
+                DpcmiMetadataContract.StructureId));
         FirmwareRegionRelativeLocator locator =
             Assert.IsType<FirmwareRegionRelativeLocator>(
                 candidate.StructureDefinition.Locator);

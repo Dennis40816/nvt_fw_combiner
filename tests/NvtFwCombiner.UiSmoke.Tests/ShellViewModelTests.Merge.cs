@@ -436,7 +436,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SelectedIc = "NT51928";
 
-        Assert.Equal(["DP BIN", "TP BIN", "LD BIN"], viewModel.MergeSlots.Select(slot => slot.Title));
+        Assert.Equal(["DP BIN", "TP BIN", "LDC BIN"], viewModel.MergeSlots.Select(slot => slot.Title));
     }
 
     /// <summary>Verifies memory-map rows expose readable operation details without relying on tooltips.</summary>

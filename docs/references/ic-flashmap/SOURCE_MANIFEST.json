@@ -18,6 +18,12 @@
       "sha256": "07a77229d6c88441f101f19d9703ddcaef04c5a7463b56fc189a1a626a9cc839",
       "lastWriteTimeTaipei": "2026-07-25T01:38:23+08:00",
       "notes": "Owner-provided IC FlashMap workbook update explicitly approved for inclusion in the 0.10.0 branch."
+    },
+    {
+      "name": "owner-workbook-update-20260730",
+      "sha256": "5102806a4001948ec3be10b6ce0fa651ea4753eb5530d9eee6e5ae2d0c6412b1",
+      "lastWriteTimeTaipei": "2026-07-30T02:39:47+08:00",
+      "notes": "Owner-approved IC FlashMap workbook update with the compact TP Address Tables sheet, unified hexadecimal ranges, separate Initial Code/LDC rows, and reviewed IC/row exclusions."
     }
   ],
   "additionalExtractedFiles": [
@@ -30,6 +36,11 @@
       "name": "IC_FlashMap_20260725.xlsx",
       "lastWriteTimeTaipei": "2026-07-25T01:38:23+08:00",
       "sha256": "07a77229d6c88441f101f19d9703ddcaef04c5a7463b56fc189a1a626a9cc839"
+    },
+    {
+      "name": "IC_FlashMap_20260730.xlsx",
+      "lastWriteTimeTaipei": "2026-07-30T02:39:47+08:00",
+      "sha256": "5102806a4001948ec3be10b6ce0fa651ea4753eb5530d9eee6e5ae2d0c6412b1"
     }
   ],
   "exclusions": [
@@ -48,6 +59,11 @@
       "path": "docs/references/ic-flashmap/IC_FlashMap_20260725.xlsx",
       "size": 214631,
       "sha256": "07a77229d6c88441f101f19d9703ddcaef04c5a7463b56fc189a1a626a9cc839"
+    },
+    {
+      "path": "docs/references/ic-flashmap/IC_FlashMap_20260730.xlsx",
+      "size": 218451,
+      "sha256": "5102806a4001948ec3be10b6ce0fa651ea4753eb5530d9eee6e5ae2d0c6412b1"
     },
     {
       "path": "docs/references/ic-flashmap/mmap/51920_1.3.1_mmap.h",

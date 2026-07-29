@@ -93,16 +93,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string ReferenceBase = \"reference-base\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string DpInput = \"dp-input\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string TpInput = \"tp-input\"", addressSpaceIds, StringComparison.Ordinal);
-        Assert.Contains("public const string LdInput = \"ld-input\"", addressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string LdcInput = \"ldc-input\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string DpReplacement = \"dp-replacement\"", addressSpaceIds, StringComparison.Ordinal);
-        Assert.Contains("public const string LdReplacement = \"ld-replacement\"", addressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string LdcReplacement = \"ldc-replacement\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string CtrlRamReplacement = \"ctrlram-replacement\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string DynamicCtrlRamReplacementPrefix = \"replace-ctrlram-\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.OutputImage", profileSources, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.DpReplacement", bootstrapSources, StringComparison.Ordinal);
         Assert.Contains("public const string DpInput = CompositionAddressSpaceIds.DpInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string TpInput = CompositionAddressSpaceIds.TpInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
-        Assert.Contains("public const string LdInput = CompositionAddressSpaceIds.LdInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string LdcInput = CompositionAddressSpaceIds.LdcInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string DpReplacement = CompositionAddressSpaceIds.DpReplacement;", workbenchAddressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string DynamicCtrlRamReplacementPrefix = CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix;", workbenchAddressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("WorkbenchAddressSpaceIds.DpInput", presentationSources, StringComparison.Ordinal);
@@ -117,9 +117,9 @@ public sealed partial class RepositoryBoundaryTests
             "\"reference-base\"",
             "\"dp-input\"",
             "\"tp-input\"",
-            "\"ld-input\"",
+            "\"ldc-input\"",
             "\"dp-replacement\"",
-            "\"ld-replacement\"",
+            "\"ldc-replacement\"",
             "\"ctrlram-replacement\"",
             "\"replace-ctrlram-\"",
         })

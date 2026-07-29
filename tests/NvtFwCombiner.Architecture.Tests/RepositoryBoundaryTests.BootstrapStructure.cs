@@ -499,7 +499,7 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("public const string MergeDp = \"merge-dp\"", slotIds, StringComparison.Ordinal);
         Assert.Contains("public const string MergeTp = \"merge-tp\"", slotIds, StringComparison.Ordinal);
-        Assert.Contains("public const string MergeLd = \"merge-ld\"", slotIds, StringComparison.Ordinal);
+        Assert.Contains("public const string MergeLdc = \"merge-ldc\"", slotIds, StringComparison.Ordinal);
         Assert.Contains("public const string ReplaceBase = \"replace-base\"", slotIds, StringComparison.Ordinal);
         Assert.Contains("public const string ReplaceDp = \"replace-dp\"", slotIds, StringComparison.Ordinal);
         Assert.Contains(
@@ -510,7 +510,7 @@ public sealed partial class RepositoryBoundaryTests
         {
             "\"merge-dp\"",
             "\"merge-tp\"",
-            "\"merge-ld\"",
+            "\"merge-ldc\"",
             "\"replace-base\"",
             "\"replace-dp\"",
             "\"replace-ctrlram-",
