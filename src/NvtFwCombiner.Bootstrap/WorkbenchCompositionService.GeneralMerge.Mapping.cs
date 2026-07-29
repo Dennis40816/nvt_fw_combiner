@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
@@ -6,7 +7,7 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private static bool TryCreateGeneralMergeMappings(
-        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs,
+        GeneralMappingDraftState mappingDraft,
         out IReadOnlyList<ExplicitMapping> explicitMappings,
         out IReadOnlyList<AddressSpace> requestAddressSpaces,
         out IReadOnlyList<InputArtifactBinding> mappingBindings,
@@ -16,21 +17,16 @@ public static partial class WorkbenchCompositionService
         List<AddressSpace> spaces = [];
         List<InputArtifactBinding> bindings = [];
         List<CompositionIssue> issueList = [];
-        for (int index = 0; index < mappingInputs.Count; index++)
+        for (int index = 0; index < mappingDraft.Rows.Count; index++)
         {
-            WorkbenchGeneralMergeMappingInput input = mappingInputs[index];
-            if (!TryParseGeneralMergeMapping(input, out ByteRange sourceRange, out ByteRange targetRange, out CompositionIssue? issue))
-            {
-                issueList.Add(issue);
-                continue;
-            }
+            GeneralMappingDraftRow input = mappingDraft.Rows[index];
 
             string addressSpaceId = $"{input.MappingId}-input";
-            string fullPath = Path.GetFullPath(input.FilePath);
+            string fullPath = Path.GetFullPath(input.Source.Reference);
             long declaredLength = File.Exists(fullPath)
                 ? new FileInfo(fullPath).Length
-                : sourceRange.EndExclusive;
-            if (declaredLength < sourceRange.EndExclusive)
+                : input.SourceRange.EndExclusive;
+            if (declaredLength < input.SourceRange.EndExclusive)
             {
                 issueList.Add(new CompositionIssue(
                     WorkbenchIssueCodes.GeneralMergeSourceOutOfBounds,
@@ -46,13 +42,13 @@ public static partial class WorkbenchCompositionService
                 100 + (index * 10),
                 ExplicitMappingOperationKind.CopyRange,
                 addressSpaceId,
-                sourceRange,
-                CompositionAddressSpaceIds.OutputImage,
-                targetRange,
-                OverlapPolicy.Reject,
+                input.SourceRange,
+                input.TargetAddressSpaceId,
+                input.TargetRange,
+                input.OverlapPolicy,
                 input.Alignment,
-                input.Reason ?? "Copy explicit General Merge mapping.",
-                targetRegionId: WorkbenchGeneralMergeIds.OutputRegionId,
+                input.Reason,
+                targetRegionId: input.TargetRegionId,
                 provenance: input.Provenance));
         }
 
@@ -63,63 +59,27 @@ public static partial class WorkbenchCompositionService
         return issueList.Count == 0;
     }
 
-    private static bool TryParseGeneralMergeMapping(
-        WorkbenchGeneralMergeMappingInput input,
-        out ByteRange sourceRange,
-        out ByteRange targetRange,
-        out CompositionIssue issue)
-    {
-        sourceRange = default;
-        targetRange = default;
-        if (!BootstrapRangeText.TryParseNonNegativeLong(input.SourceStart, out long sourceStart) ||
-            !BootstrapRangeText.TryParseNonNegativeLong(input.TargetStart, out long targetStart) ||
-            !BootstrapRangeText.TryParseNonNegativeLong(input.Length, out long length) ||
-            length <= 0)
-        {
-            issue = new CompositionIssue(
-                WorkbenchIssueCodes.GeneralMergeRangeInvalid,
-                $"General Merge mapping '{input.MappingId}' must use valid source start, target start, and positive length values.",
-                input.MappingId);
-            return false;
-        }
-
-        try
-        {
-            sourceRange = new ByteRange(sourceStart, length);
-            targetRange = new ByteRange(targetStart, length);
-            issue = default!;
-            return true;
-        }
-        catch (Exception exception) when (exception is ArgumentOutOfRangeException or OverflowException)
-        {
-            issue = new CompositionIssue(
-                WorkbenchIssueCodes.GeneralMergeRangeInvalid,
-                $"General Merge mapping '{input.MappingId}' range exceeds the supported address size.",
-                input.MappingId);
-            return false;
-        }
-    }
-
     private static Dictionary<string, string> CreateGeneralMergeReportSlotPaths(
-        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs)
+        GeneralMappingDraftState mappingDraft)
     {
         Dictionary<string, string> paths = new(StringComparer.Ordinal);
-        foreach (WorkbenchGeneralMergeMappingInput mapping in mappingInputs)
+        foreach (GeneralMappingDraftRow mapping in mappingDraft.Rows)
         {
-            if (!string.IsNullOrWhiteSpace(mapping.FilePath))
+            if (mapping.Source.Kind == GeneralMappingSourceKind.FileArtifact &&
+                !string.IsNullOrWhiteSpace(mapping.Source.Reference))
             {
-                paths[mapping.MappingId] = mapping.FilePath;
+                paths[mapping.MappingId] = mapping.Source.Reference;
             }
         }
 
         return paths;
     }
 
-    private static string GeneralMergeSourceLabel(WorkbenchGeneralMergeMappingInput mapping)
+    private static string GeneralMergeSourceLabel(GeneralMappingDraftRow mapping)
     {
-        return string.IsNullOrWhiteSpace(mapping.FilePath)
+        return string.IsNullOrWhiteSpace(mapping.Source.Reference)
             ? "Source BIN"
-            : Path.GetFileName(mapping.FilePath);
+            : Path.GetFileName(mapping.Source.Reference);
     }
 }
 

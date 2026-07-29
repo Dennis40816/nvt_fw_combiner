@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using static NvtFwCombiner.Bootstrap.WorkbenchMemoryDisplayProjection;
@@ -12,7 +13,52 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs)
     {
         ArgumentNullException.ThrowIfNull(mappingInputs);
+        if (!TryParseGeneralMergeCapacity(
+                outputLength,
+                out _,
+                out CompositionIssue? capacityIssue))
+        {
+            return CreateMessageDisplay(
+                "Enter a valid output length",
+                ("Output length", "No output", "Blocked", "No output", capacityIssue!.Message),
+                ("Output length", "Pending", "Enter a valid General Merge output length.", "#CBD5E1"));
+        }
 
+        List<GeneralMergeDisplayMapping> displayMappings = [];
+        foreach (WorkbenchGeneralMergeMappingInput input in mappingInputs)
+        {
+            _ = TryCreateGeneralMergeDraftRow(
+                input,
+                out GeneralMappingDraftRow? row,
+                out CompositionIssue? issue);
+            displayMappings.Add(new GeneralMergeDisplayMapping(
+                input.MappingId,
+                row,
+                issue));
+        }
+
+        return GetGeneralMergeMemoryDisplayCore(outputLength, displayMappings);
+    }
+
+    /// <summary>Gets one coherent General Merge display from the canonical typed draft.</summary>
+    public static WorkbenchMemoryDisplay GetGeneralMergeMemoryDisplay(
+        string outputLength,
+        GeneralMappingDraftState mappingDraft)
+    {
+        ArgumentNullException.ThrowIfNull(mappingDraft);
+
+        return GetGeneralMergeMemoryDisplayCore(
+            outputLength,
+            [
+                .. mappingDraft.Rows.Select(static row =>
+                    new GeneralMergeDisplayMapping(row.MappingId, row, null)),
+            ]);
+    }
+
+    private static WorkbenchMemoryDisplay GetGeneralMergeMemoryDisplayCore(
+        string outputLength,
+        IReadOnlyList<GeneralMergeDisplayMapping> displayMappings)
+    {
         if (!TryParseGeneralMergeCapacity(outputLength, out long capacity, out CompositionIssue? issue))
         {
             return CreateMessageDisplay(
@@ -42,31 +88,27 @@ public static partial class WorkbenchCompositionService
         ];
         ByteRange outputRange = new(0, capacity);
 
-        foreach (WorkbenchGeneralMergeMappingInput mapping in mappingInputs)
+        foreach (GeneralMergeDisplayMapping displayMapping in displayMappings)
         {
-            if (!TryParseGeneralMergeMapping(
-                    mapping,
-                    out ByteRange sourceRange,
-                    out ByteRange targetRange,
-                    out CompositionIssue parseIssue))
+            if (displayMapping.Mapping is not { } mapping)
             {
                 rows.Add(new WorkbenchMemoryMapRow(
-                    $"Mapping {mapping.MappingId}",
+                    $"Mapping {displayMapping.MappingId}",
                     "Pending",
                     "Blocked",
                     "No output",
-                    parseIssue.Message));
+                    displayMapping.Issue!.Message));
                 continue;
             }
 
             rows.Add(new WorkbenchMemoryMapRow(
-                FormatDisplayRange(targetRange),
+                FormatDisplayRange(mapping.TargetRange),
                 "Reserved",
                 "Copy",
                 "Source BIN",
-                $"Copy source {FormatDisplayRange(sourceRange)} from {GeneralMergeSourceLabel(mapping)} into output {FormatDisplayRange(targetRange)}."));
+                $"Copy source {FormatDisplayRange(mapping.SourceRange)} from {GeneralMergeSourceLabel(mapping)} into output {FormatDisplayRange(mapping.TargetRange)}."));
 
-            if (!outputRange.Contains(targetRange))
+            if (!outputRange.Contains(mapping.TargetRange))
             {
                 continue;
             }
@@ -74,7 +116,7 @@ public static partial class WorkbenchCompositionService
             segments = ApplyCoverageWrite(
                 segments,
                 new CoverageSegment(
-                    targetRange,
+                    mapping.TargetRange,
                     "Source BIN",
                     $"Written by {mapping.MappingId} from {GeneralMergeSourceLabel(mapping)}.",
                     CoverageFill("Source BIN"),
@@ -88,6 +130,11 @@ public static partial class WorkbenchCompositionService
             ToWorkbenchCoverageSegments(segments, capacity));
     }
 
+    private sealed record GeneralMergeDisplayMapping(
+        string MappingId,
+        GeneralMappingDraftRow? Mapping,
+        CompositionIssue? Issue);
+
     /// <summary>Runs General Merge preview or build through the admitted logical-output V2 profile.</summary>
     public static ValueTask<WorkbenchRunResult> RunGeneralMergeAsync(
         string icId,
@@ -97,10 +144,37 @@ public static partial class WorkbenchCompositionService
         CancellationToken cancellationToken,
         string? outputPath = null)
     {
+        ArgumentNullException.ThrowIfNull(mappingInputs);
+        _ = TryCreateGeneralMergeDraft(
+            mappingInputs,
+            out GeneralMappingDraftState? draft,
+            out IReadOnlyList<CompositionIssue> draftIssues);
         return RunGeneralMergeV2Async(
             icId,
             outputLength,
-            mappingInputs,
+            draft,
+            draftIssues,
+            build,
+            cancellationToken,
+            outputPath,
+            progress: null);
+    }
+
+    /// <summary>Runs General Merge from one canonical typed mapping draft.</summary>
+    public static ValueTask<WorkbenchRunResult> RunGeneralMergeDraftAsync(
+        string icId,
+        string outputLength,
+        GeneralMappingDraftState mappingDraft,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        ArgumentNullException.ThrowIfNull(mappingDraft);
+        return RunGeneralMergeV2Async(
+            icId,
+            outputLength,
+            mappingDraft,
+            draftIssues: null,
             build,
             cancellationToken,
             outputPath,
@@ -121,10 +195,15 @@ public static partial class WorkbenchCompositionService
         ArgumentNullException.ThrowIfNull(mappingInputs);
         ArgumentNullException.ThrowIfNull(progress);
 
+        _ = TryCreateGeneralMergeDraft(
+            mappingInputs,
+            out GeneralMappingDraftState? draft,
+            out IReadOnlyList<CompositionIssue> draftIssues);
         return await RunGeneralMergeV2Async(
             icId,
             outputLength,
-            mappingInputs,
+            draft,
+            draftIssues,
             build,
             cancellationToken,
             outputPath,

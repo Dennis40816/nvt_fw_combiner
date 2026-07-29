@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
@@ -23,7 +24,8 @@ public static partial class WorkbenchCompositionService
     {
         if (!StringComparer.Ordinal.Equals(icId, "NT51926") ||
             context.Selection.Mode != IcNumberInputMode.SingleSelector ||
-            context.SelectedPatches.Length != 0)
+            context.MappingDraft.Rows.Any(static row =>
+                row.Source.Kind != GeneralMappingSourceKind.FileArtifact))
         {
             return false;
         }

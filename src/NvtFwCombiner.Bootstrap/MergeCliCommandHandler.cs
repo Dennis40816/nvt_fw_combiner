@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -52,7 +53,7 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        if (!TryCreateMappings(options, icId, error, out WorkbenchGeneralMergeMappingInput[]? mappings))
+        if (!TryCreateMappings(options, icId, error, out GeneralMappingDraftState? mappingDraft))
         {
             return UsageError;
         }
@@ -63,8 +64,8 @@ internal static partial class MergeCliCommandHandler
         string? outputPath = action == "build" ? outputTarget.FullPath : null;
         List<ProtectedPathGuard.ProtectedPath> protectedPaths =
         [
-            .. mappings.Select(mapping => new ProtectedPathGuard.ProtectedPath(
-                Path.GetFullPath(mapping.FilePath),
+            .. mappingDraft.Rows.Select(mapping => new ProtectedPathGuard.ProtectedPath(
+                Path.GetFullPath(mapping.Source.Reference),
                 $"input mapping '{mapping.MappingId}'")),
         ];
         if (options.Values.TryGetValue("--rule", out string? savedRulePath))
@@ -94,10 +95,10 @@ internal static partial class MergeCliCommandHandler
                 "--report");
         }
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeDraftAsync(
                 icId,
                 outputLength,
-                mappings,
+                mappingDraft,
                 action == "build",
                 cancellationToken,
                 outputPath)

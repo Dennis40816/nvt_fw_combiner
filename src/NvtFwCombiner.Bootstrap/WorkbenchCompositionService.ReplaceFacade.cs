@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -131,6 +132,43 @@ public static partial class WorkbenchCompositionService
             display.Issues.Count == 0
                 ? BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities)
                 : null;
+    }
+
+    /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>
+    public static ValueTask<WorkbenchRunResult> RunGeneralReplaceDraftAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        GeneralMappingDraftState mappingDraft,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(number);
+        ArgumentNullException.ThrowIfNull(slotPaths);
+        ArgumentNullException.ThrowIfNull(mappingDraft);
+        return !IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.GeneralReplace)
+            ? ValueTask.FromResult(CreateReplaceReportRunResult(
+                icId,
+                WorkbenchReplaceModes.General,
+                new Dictionary<string, string>(StringComparer.Ordinal),
+                build,
+                [],
+                [new CompositionIssue(
+                    WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+                    $"{IcSupportCatalog.NormalizeIcId(icId)} General Replace is Not available under the current IC workflow policy.",
+                    IcWorkflowIds.GeneralReplace)],
+                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General)))
+            : RunGeneralReplaceDraftCoreAsync(
+                icId,
+                number,
+                slotPaths,
+                mappingDraft,
+                build,
+                outputPath,
+                progress: null,
+                cancellationToken);
     }
 
     /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>

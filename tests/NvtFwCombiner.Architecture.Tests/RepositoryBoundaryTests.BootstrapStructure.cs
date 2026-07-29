@@ -375,7 +375,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsNt51926GeneralReplaceDpV2Route", generalRuntime, StringComparison.Ordinal);
         Assert.Contains("StringComparer.Ordinal.Equals(icId, \"NT51926\")", generalV2, StringComparison.Ordinal);
         Assert.Contains("context.Selection.Mode != IcNumberInputMode.SingleSelector", generalV2, StringComparison.Ordinal);
-        Assert.Contains("context.SelectedPatches.Length != 0", generalV2, StringComparison.Ordinal);
+        Assert.Contains(
+            "row.Source.Kind != GeneralMappingSourceKind.FileArtifact",
+            generalV2,
+            StringComparison.Ordinal);
         Assert.Contains("region.Range.Contains(mapping.TargetRange)", generalV2, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", generalProfile, StringComparison.Ordinal);
         Assert.DoesNotContain("\"blockerId\": \"full-route-parity\"", generalProfile, StringComparison.Ordinal);

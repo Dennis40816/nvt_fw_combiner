@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -18,16 +19,17 @@ public static partial class WorkbenchCompositionService
     private static async ValueTask<WorkbenchRunResult> RunGeneralMergeV2Async(
         string icId,
         string outputLength,
-        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs,
+        GeneralMappingDraftState? mappingDraft,
+        IReadOnlyList<CompositionIssue>? draftIssues,
         bool build,
         CancellationToken cancellationToken,
         string? outputPath = null,
         CompositionRunProgressFeed? progress = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentNullException.ThrowIfNull(mappingInputs);
-
-        Dictionary<string, string> reportSlotPaths = CreateGeneralMergeReportSlotPaths(mappingInputs);
+        Dictionary<string, string> reportSlotPaths = mappingDraft is null
+            ? new Dictionary<string, string>(StringComparer.Ordinal)
+            : CreateGeneralMergeReportSlotPaths(mappingDraft);
         string defaultOutputFileName = GetGeneralMergeDefaultOutputFileName(icId);
         WorkbenchRunResult Blocked(
             IReadOnlyList<CompositionIssue> issues,
@@ -67,7 +69,12 @@ public static partial class WorkbenchCompositionService
                 profileId: registration.ProfileId);
         }
 
-        if (mappingInputs.Count == 0)
+        if (draftIssues is { Count: > 0 })
+        {
+            return Blocked(draftIssues, profileId: registration.ProfileId);
+        }
+
+        if (mappingDraft is null)
         {
             return Blocked(
                 [new CompositionIssue(
@@ -78,7 +85,7 @@ public static partial class WorkbenchCompositionService
         }
 
         if (!TryCreateGeneralMergeMappings(
-                mappingInputs,
+                mappingDraft,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,
                 out IReadOnlyList<InputArtifactBinding> mappingBindings,
