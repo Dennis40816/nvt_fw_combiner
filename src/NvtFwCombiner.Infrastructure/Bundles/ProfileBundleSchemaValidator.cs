@@ -101,14 +101,21 @@ internal static class ProfileBundleSchemaValidator
         }
     }
 
+    internal static bool IsInstanceValid(
+        JsonSchema schema,
+        JsonElement document)
+    {
+        ArgumentNullException.ThrowIfNull(schema);
+        return schema.Evaluate(document, EvaluationOptions).IsValid;
+    }
+
     private static void ValidateInstance(
         JsonSchema schema,
         JsonElement document,
         string documentPath,
         string schemaId)
     {
-        EvaluationResults result = schema.Evaluate(document, EvaluationOptions);
-        if (!result.IsValid)
+        if (!IsInstanceValid(schema, document))
         {
             throw Error(documentPath, $"Bundle document does not satisfy schema '{schemaId}'.");
         }

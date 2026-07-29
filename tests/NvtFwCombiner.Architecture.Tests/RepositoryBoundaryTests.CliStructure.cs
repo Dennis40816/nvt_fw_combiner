@@ -179,6 +179,55 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static void AddDuplicateIssues", issues, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies normal v2 rule execution admits the complete canonical contract before draft projection.</summary>
+    [Fact]
+    public void SavedRuleV2ExecutionUsesCanonicalSchemaBeforeMaterialization()
+    {
+        string handler = ReadText(
+            "src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
+        string draftLoader = ReadText(
+            "src/NvtFwCombiner.Bootstrap/SavedRuleV2GeneralMergeDraftLoader.cs");
+        string admission = ReadText(
+            "src/NvtFwCombiner.Bootstrap/SavedCompositionRuleV2Admission.cs");
+        string schema = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Contracts/SavedCompositionRuleV2Schema.cs");
+        string infrastructureProject = ReadText(
+            "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj");
+
+        Assert.Contains(
+            "GetGeneralMergeSavedRuleAdmissionContext",
+            handler,
+            StringComparison.Ordinal);
+        int admissionIndex = draftLoader.IndexOf(
+            "SavedCompositionRuleV2Admission.ValidateGeneralMerge",
+            StringComparison.Ordinal);
+        int materializationIndex = draftLoader.IndexOf(
+            "new GeneralMergeDraftState",
+            StringComparison.Ordinal);
+        Assert.True(admissionIndex >= 0);
+        Assert.True(materializationIndex > admissionIndex);
+        Assert.DoesNotContain(
+            "SavedRuleV2GeneralMergeInitializerLoader.Parse",
+            draftLoader,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "SavedCompositionRuleV2Schema.IsValid",
+            admission,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "TopLevelProperties",
+            admission,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "ProfileBundleSchemaValidator.IsInstanceValid",
+            schema,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            @"..\..\docs\contracts\saved-composition-rule-v2.schema.json",
+            infrastructureProject,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the root CLI entry point stays split from command-specific handlers and formatting helpers.</summary>
     [Fact]
     public void CliApplicationConcernsStaySplit()

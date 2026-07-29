@@ -7,6 +7,141 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class SavedRuleCliCommandTests
 {
+    /// <summary>Normal Preview and Build reject v2 documents outside the complete reviewed contract.</summary>
+    [Theory]
+    [InlineData("preview", "missing-governance", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "missing-governance", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "invalid-rule-id", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "invalid-rule-id", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "invalid-rule-version", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "invalid-rule-version", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "unsupported-promotion", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("build", "unsupported-promotion", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("preview", "blocking-promotion-debt", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("build", "blocking-promotion-debt", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("preview", "empty-reviewers", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("build", "empty-reviewers", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("preview", "empty-evidence", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "empty-evidence", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "unknown-parent-binding-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "unknown-parent-binding-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "unknown-slot-template-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "unknown-slot-template-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "unknown-mapping-fragment-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "unknown-mapping-fragment-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "unknown-source-slot-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "unknown-source-slot-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "unknown-source-range-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "unknown-source-range-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "unknown-access-envelope-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "unknown-access-envelope-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "unknown-slot-role", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("build", "unknown-slot-role", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("preview", "unsupported-slot-cardinality", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("build", "unsupported-slot-cardinality", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("preview", "broadened-slot-extension", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("build", "broadened-slot-extension", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("preview", "unknown-validation-reference", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("build", "unknown-validation-reference", "saved-rule.v2.parent-narrowing-invalid")]
+    public async Task GeneralMergeRuleExecutionRequiresCompleteV2Admission(
+        string action,
+        string mutation,
+        string expectedIssueCode)
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeV2RuleObject();
+        switch (mutation)
+        {
+            case "missing-governance":
+                _ = json.Remove("owner");
+                break;
+            case "invalid-rule-id":
+                json["ruleId"] = "Invalid Rule Id";
+                break;
+            case "invalid-rule-version":
+                json["ruleVersion"] = "1";
+                break;
+            case "unsupported-promotion":
+                json["promotion"]!["stage"] = "supported";
+                break;
+            case "blocking-promotion-debt":
+                json["promotion"]!["blockers"] = new JsonArray(new JsonObject
+                {
+                    ["blockerId"] = "mapping-review",
+                    ["kind"] = "mapping",
+                    ["reason"] = "Mapping review remains open.",
+                    ["evidenceRefs"] = new JsonArray("initializer-evidence"),
+                });
+                break;
+            case "empty-reviewers":
+                json["reviewers"] = new JsonArray();
+                break;
+            case "empty-evidence":
+                json["evidenceRefs"] = new JsonArray();
+                break;
+            case "unknown-parent-binding-property":
+                json["parentBinding"]!["unexpected"] = true;
+                break;
+            case "unknown-slot-template-property":
+                json["slotTemplates"]![0]!["unexpected"] = true;
+                break;
+            case "unknown-mapping-fragment-property":
+                json["mappingFragments"]![0]!["unexpected"] = true;
+                break;
+            case "unknown-source-slot-property":
+                json["mappingFragments"]![0]!["sourceSlot"]!["unexpected"] = true;
+                break;
+            case "unknown-source-range-property":
+                json["mappingFragments"]![0]!["sourceRange"]!["unexpected"] = true;
+                break;
+            case "unknown-access-envelope-property":
+                json["accessEnvelope"]!["unexpected"] = true;
+                break;
+            case "unknown-slot-role":
+                json["slotTemplates"]![0]!["role"] = "other-source";
+                break;
+            case "unsupported-slot-cardinality":
+                json["slotTemplates"]![0]!["cardinality"] = "many";
+                break;
+            case "broadened-slot-extension":
+                json["slotTemplates"]![0]!["acceptedExtensions"] =
+                    new JsonArray(".bin", ".hex");
+                break;
+            case "unknown-validation-reference":
+                json["validationRuleIds"] = new JsonArray("not-in-parent");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(mutation),
+                    mutation,
+                    "Unknown test mutation.");
+        }
+
+        string rule = await WriteRuleAsync(workspace, json);
+        string source = workspace.Write("source.bin", [0x10]);
+        List<string> args =
+        [
+            "general-merge",
+            action,
+            "--profile",
+            "NT51950",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+        ];
+        if (action == "build")
+        {
+            args.AddRange(["--output", workspace.PathFor("rejected.bin")]);
+        }
+
+        CliRunResult result = await RunCliAsync([.. args]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains(expectedIssueCode, result.Error, StringComparison.Ordinal);
+        Assert.False(File.Exists(workspace.PathFor("rejected.bin")));
+    }
+
     /// <summary>A normal saved-rule run cannot accept an out-of-band fill override.</summary>
     [Fact]
     public async Task GeneralMergeSavedRuleRejectsFillOverride()
@@ -119,9 +254,9 @@ public sealed partial class SavedRuleCliCommandTests
 
     /// <summary>Requires a saved-rule compatibility envelope to match IC, derived profile id, and mode.</summary>
     [Theory]
-    [InlineData("profileId", "nt51951-general-merge-logical-candidate", "not compatible")]
-    [InlineData("bundleContentHash", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "not compatible")]
-    [InlineData("sourceExperienceId", "general-replace", ExperienceKindMismatch)]
+    [InlineData("profileId", "nt51951-general-merge-logical-candidate", V2ParentNarrowingInvalid)]
+    [InlineData("bundleContentHash", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", V2ParentNarrowingInvalid)]
+    [InlineData("sourceExperienceId", "general-replace", V2ContractInvalid)]
     public async Task GeneralMergePreviewRequiresFullSavedRuleCompatibilityEnvelope(
         string propertyName,
         string incompatibleId,

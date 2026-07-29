@@ -11,6 +11,11 @@ internal static class SavedRuleSchemaTokens
     internal const string SupportStatusSupported = "supported";
     internal const string SupportStatusDeprecated = "deprecated";
 
+    internal const string PromotionStageExecutableCandidate =
+        "executable-candidate";
+    internal const string PromotionBlockerGolden = "golden";
+    internal const string PromotionBlockerHumanReview = "human-review";
+
     internal const string ProtectedRangePolicyDenyCrossing = "deny-crossing";
     internal const string ProtectedRangePolicyDenyTouch = "deny-touch";
     internal const string ProtectedRangePolicyProfileDefined = "profile-defined";

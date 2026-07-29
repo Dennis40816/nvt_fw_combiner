@@ -12,8 +12,9 @@ internal sealed record SavedRuleV2GeneralMergeInitializerLoadResult(
 }
 
 /// <summary>
-/// Strictly loads the Saved Rule v2 initialization contract without claiming
-/// the exact-parent lifecycle owned by the later complete v2 rule loader.
+/// Loads the Saved Rule v2 initialization slice for focused authoring tests.
+/// Production rule execution normalizes through SavedCompositionRuleV2Admission
+/// instead of this partial test seam.
 /// </summary>
 internal static class SavedRuleV2GeneralMergeInitializerLoader
 {

@@ -35,6 +35,13 @@ public static class SavedRuleIssueCodes
     public const string InitializerFillByteInvalid =
         "saved-rule.initializer.fill-byte-invalid";
 
+    /// <summary>Saved Rule v2 does not satisfy the complete canonical contract schema.</summary>
+    public const string V2ContractInvalid = "saved-rule.v2.contract-invalid";
+
+    /// <summary>Saved Rule v2 broadens or references facts outside its exact trusted parent.</summary>
+    public const string V2ParentNarrowingInvalid =
+        "saved-rule.v2.parent-narrowing-invalid";
+
     /// <summary>Saved-rule compatibility object is required.</summary>
     public const string CompatibilityRequired = "saved-rule.compatibility.required";
 

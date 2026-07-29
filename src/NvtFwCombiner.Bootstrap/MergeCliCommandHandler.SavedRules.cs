@@ -18,22 +18,24 @@ internal static partial class MergeCliCommandHandler
             return false;
         }
 
-        SavedRuleV2GeneralMergeDraftLoadResult load =
-            SavedRuleV2GeneralMergeDraftLoader.Load(rulePath, slotsById);
-        if (!load.IsValid)
+        if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
+                icId,
+                out GeneralMergeV2CandidateRegistration? registration))
         {
-            PrintSavedRuleIssues(load.Issues, error);
+            error.WriteLine(
+                $"error: no exact trusted {icId} / General Merge parent is registered");
             return false;
         }
 
-        if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
-                icId,
-                out GeneralMergeV2CandidateRegistration? registration) ||
-            load.ParentBinding != registration.Bundle
-                .GetGeneralMergeSavedRuleParentBinding(registration.ProfileId))
+        SavedRuleV2GeneralMergeDraftLoadResult load =
+            SavedRuleV2GeneralMergeDraftLoader.Load(
+                rulePath,
+                slotsById,
+                registration.Bundle.GetGeneralMergeSavedRuleAdmissionContext(
+                    registration.ProfileId));
+        if (!load.IsValid)
         {
-            error.WriteLine(
-                $"error: saved rule v2 parent is not compatible with the exact trusted {icId} / General Merge parent");
+            PrintSavedRuleIssues(load.Issues, error);
             return false;
         }
 

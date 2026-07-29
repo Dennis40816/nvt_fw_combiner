@@ -37,10 +37,12 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
 {
     internal static SavedRuleV2GeneralMergeDraftLoadResult Load(
         string path,
-        IReadOnlyDictionary<string, string> slotsById)
+        IReadOnlyDictionary<string, string> slotsById,
+        SavedRuleV2GeneralMergeAdmissionContext admissionContext)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(slotsById);
+        ArgumentNullException.ThrowIfNull(admissionContext);
 
         string fullPath = Path.GetFullPath(path);
         if (!File.Exists(fullPath))
@@ -55,7 +57,10 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
         try
         {
             using var document = JsonDocument.Parse(File.ReadAllText(fullPath));
-            return Parse(document.RootElement, slotsById);
+            return Parse(
+                document.RootElement,
+                slotsById,
+                admissionContext);
         }
         catch (JsonException exception)
         {
@@ -82,20 +87,28 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
 
     private static SavedRuleV2GeneralMergeDraftLoadResult Parse(
         JsonElement root,
-        IReadOnlyDictionary<string, string> slotsById)
+        IReadOnlyDictionary<string, string> slotsById,
+        SavedRuleV2GeneralMergeAdmissionContext admissionContext)
     {
-        SavedRuleV2GeneralMergeInitializerLoadResult initialization =
-            SavedRuleV2GeneralMergeInitializerLoader.Parse(root);
-        List<SavedRuleValidationIssue> issues = [.. initialization.Issues];
+        SavedCompositionRuleV2AdmissionResult admission =
+            SavedCompositionRuleV2Admission.ValidateGeneralMerge(
+                root,
+                admissionContext);
+        if (!admission.IsValid)
+        {
+            return new SavedRuleV2GeneralMergeDraftLoadResult(
+                null,
+                admission.ParentBinding,
+                admission.Issues);
+        }
+
+        List<SavedRuleValidationIssue> issues = [];
         string ruleId = ReadRequiredString(root, "ruleId", "$.ruleId", issues);
         string ruleVersion = ReadRequiredString(
             root,
             "ruleVersion",
             "$.ruleVersion",
             issues);
-        SavedRuleV2ParentBinding? parentBinding =
-            ReadParentBinding(root, issues);
-        ValidateProcessorStages(root, issues);
         HashSet<string> slotTemplateIds = ReadSlotTemplateIds(root, issues);
         GeneralMappingDraftRow[] rows = ReadMappings(
             root,
@@ -104,13 +117,12 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
             ruleId,
             ruleVersion,
             issues);
-        ValidateAccessEnvelope(root, rows, issues);
 
-        if (initialization.Initializer is null || issues.Count != 0)
+        if (issues.Count != 0)
         {
             return new SavedRuleV2GeneralMergeDraftLoadResult(
                 null,
-                parentBinding,
+                admission.ParentBinding,
                 issues);
         }
 
@@ -118,9 +130,9 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
         {
             return new SavedRuleV2GeneralMergeDraftLoadResult(
                 new GeneralMergeDraftState(
-                    initialization.Initializer,
+                    admission.Initializer!,
                     new GeneralMappingDraftState(rows)),
-                parentBinding,
+                admission.ParentBinding,
                 []);
         }
         catch (ArgumentException exception)
@@ -131,113 +143,8 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
                 "$.mappingFragments"));
             return new SavedRuleV2GeneralMergeDraftLoadResult(
                 null,
-                parentBinding,
+                admission.ParentBinding,
                 issues);
-        }
-    }
-
-    private static SavedRuleV2ParentBinding? ReadParentBinding(
-        JsonElement root,
-        List<SavedRuleValidationIssue> issues)
-    {
-        if (!root.TryGetProperty("parentBinding", out JsonElement parent) ||
-            parent.ValueKind != JsonValueKind.Object)
-        {
-            issues.Add(Issue(
-                SavedRuleIssueCodes.CompatibilityRequired,
-                "Saved Rule v2 requires an exact parentBinding object.",
-                "$.parentBinding"));
-            return null;
-        }
-
-        int issueCount = issues.Count;
-        string bundleId = ReadRequiredString(
-            parent,
-            "bundleId",
-            "$.parentBinding.bundleId",
-            issues);
-        string bundleVersion = ReadRequiredString(
-            parent,
-            "bundleVersion",
-            "$.parentBinding.bundleVersion",
-            issues);
-        string bundleContentHash = ReadSha256(
-            parent,
-            "bundleContentHash",
-            "$.parentBinding.bundleContentHash",
-            issues);
-        string profileId = ReadRequiredString(
-            parent,
-            "profileId",
-            "$.parentBinding.profileId",
-            issues);
-        string profileVersion = ReadRequiredString(
-            parent,
-            "profileVersion",
-            "$.parentBinding.profileVersion",
-            issues);
-        string profileContentHash = ReadSha256(
-            parent,
-            "profileContentHash",
-            "$.parentBinding.profileContentHash",
-            issues);
-        string familyId = ReadRequiredString(
-            parent,
-            "familyId",
-            "$.parentBinding.familyId",
-            issues);
-        string familyVersion = ReadRequiredString(
-            parent,
-            "familyVersion",
-            "$.parentBinding.familyVersion",
-            issues);
-        string familyContentHash = ReadSha256(
-            parent,
-            "familyContentHash",
-            "$.parentBinding.familyContentHash",
-            issues);
-        string mapId = ReadRequiredString(
-            parent,
-            "mapId",
-            "$.parentBinding.mapId",
-            issues);
-        return issues.Count == issueCount
-            ? new SavedRuleV2ParentBinding(
-                bundleId,
-                bundleVersion,
-                bundleContentHash,
-                profileId,
-                profileVersion,
-                profileContentHash,
-                familyId,
-                familyVersion,
-                familyContentHash,
-                mapId)
-            : null;
-    }
-
-    private static void ValidateProcessorStages(
-        JsonElement root,
-        List<SavedRuleValidationIssue> issues)
-    {
-        if (!root.TryGetProperty(
-                "processorStageIds",
-                out JsonElement stages) ||
-            stages.ValueKind != JsonValueKind.Array)
-        {
-            issues.Add(Issue(
-                SavedRuleIssueCodes.ArrayRequired,
-                "Saved Rule v2 requires processorStageIds.",
-                "$.processorStageIds"));
-            return;
-        }
-
-        if (stages.GetArrayLength() > 0)
-        {
-            issues.Add(Issue(
-                SavedRuleIssueCodes.ProcessorDependencyUnsupported,
-                "Current General Merge Saved Rule v2 consumption does not support processor stages.",
-                "$.processorStageIds"));
         }
     }
 
@@ -540,91 +447,6 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
         }
 
         return slotId;
-    }
-
-    private static void ValidateAccessEnvelope(
-        JsonElement root,
-        GeneralMappingDraftRow[] rows,
-        List<SavedRuleValidationIssue> issues)
-    {
-        if (!root.TryGetProperty(
-                "accessEnvelope",
-                out JsonElement envelope) ||
-            envelope.ValueKind != JsonValueKind.Object)
-        {
-            issues.Add(Issue(
-                SavedRuleIssueCodes.CompatibilityRequired,
-                "Saved Rule v2 requires accessEnvelope.",
-                "$.accessEnvelope"));
-            return;
-        }
-
-        HashSet<string> allowedRegionIds = ReadRequiredStringArray(
-            envelope,
-            "allowedRegionIds",
-            "$.accessEnvelope.allowedRegionIds",
-            issues);
-        if (!allowedRegionIds.SetEquals([WorkbenchGeneralMergeIds.OutputRegionId]))
-        {
-            issues.Add(Issue(
-                SavedRuleIssueCodes.MappingRowTargetRegionUnsupported,
-                $"General Merge Saved Rule v2 accessEnvelope must close over only '{WorkbenchGeneralMergeIds.OutputRegionId}'.",
-                "$.accessEnvelope.allowedRegionIds"));
-        }
-
-        string protectedRangePolicy = ReadRequiredString(
-            envelope,
-            "protectedRangePolicy",
-            "$.accessEnvelope.protectedRangePolicy",
-            issues);
-        if (protectedRangePolicy is not ("deny-touch" or "parent-profile"))
-        {
-            issues.Add(Issue(
-                SavedRuleIssueCodes.EnumInvalid,
-                "Saved Rule v2 protectedRangePolicy must be deny-touch or parent-profile.",
-                "$.accessEnvelope.protectedRangePolicy"));
-        }
-
-        if (!TryReadPositiveLong(
-                envelope,
-                "maximumMappingCount",
-                "$.accessEnvelope.maximumMappingCount",
-                issues,
-                out long maximumMappingCount) ||
-            !TryReadPositiveLong(
-                envelope,
-                "maximumTotalWriteBytes",
-                "$.accessEnvelope.maximumTotalWriteBytes",
-                issues,
-                out long maximumTotalWriteBytes))
-        {
-            return;
-        }
-
-        long totalWriteBytes;
-        try
-        {
-            totalWriteBytes = rows.Aggregate(
-                0L,
-                static (total, row) => checked(total + row.TargetRange.Length));
-        }
-        catch (OverflowException)
-        {
-            issues.Add(Issue(
-                SavedRuleIssueCodes.RangeOverflow,
-                "Saved Rule v2 total mapping length overflows.",
-                "$.mappingFragments"));
-            return;
-        }
-
-        if (rows.Length > maximumMappingCount ||
-            totalWriteBytes > maximumTotalWriteBytes)
-        {
-            issues.Add(Issue(
-                SavedRuleIssueCodes.MappingRowsEmpty,
-                "Saved Rule v2 mappings exceed their closed accessEnvelope.",
-                "$.accessEnvelope"));
-        }
     }
 
 }
