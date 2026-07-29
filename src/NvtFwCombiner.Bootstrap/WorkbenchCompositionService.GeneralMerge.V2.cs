@@ -18,8 +18,7 @@ public static partial class WorkbenchCompositionService
     /// <summary>Runs a registered logical-output V2 General Merge profile through the shared application core.</summary>
     private static async ValueTask<WorkbenchRunResult> RunGeneralMergeV2Async(
         string icId,
-        string outputLength,
-        GeneralMappingDraftState? mappingDraft,
+        GeneralMergeDraftState? draft,
         IReadOnlyList<CompositionIssue>? draftIssues,
         bool build,
         CancellationToken cancellationToken,
@@ -27,9 +26,9 @@ public static partial class WorkbenchCompositionService
         CompositionRunProgressFeed? progress = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        Dictionary<string, string> reportSlotPaths = mappingDraft is null
+        Dictionary<string, string> reportSlotPaths = draft is null
             ? new Dictionary<string, string>(StringComparer.Ordinal)
-            : CreateGeneralMergeReportSlotPaths(mappingDraft);
+            : CreateGeneralMergeReportSlotPaths(draft.Mappings);
         string defaultOutputFileName = GetGeneralMergeDefaultOutputFileName(icId);
         WorkbenchRunResult Blocked(
             IReadOnlyList<CompositionIssue> issues,
@@ -48,7 +47,12 @@ public static partial class WorkbenchCompositionService
                 build,
                 operations ?? [],
                 issues,
-                defaultOutputFileName);
+                defaultOutputFileName,
+                draft is null
+                    ? null
+                    : ImageInitializationSummary.FromCompiled(
+                        draft.OutputInitializer.ToImageInitialization(
+                            CompositionAddressSpaceIds.OutputImage)));
         }
 
         if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
@@ -62,19 +66,12 @@ public static partial class WorkbenchCompositionService
                     icId)]);
         }
 
-        if (!TryParseGeneralMergeCapacity(outputLength, out long capacity, out CompositionIssue? capacityIssue))
-        {
-            return Blocked(
-                [capacityIssue!],
-                profileId: registration.ProfileId);
-        }
-
         if (draftIssues is { Count: > 0 })
         {
             return Blocked(draftIssues, profileId: registration.ProfileId);
         }
 
-        if (mappingDraft is null)
+        if (draft is null)
         {
             return Blocked(
                 [new CompositionIssue(
@@ -85,7 +82,7 @@ public static partial class WorkbenchCompositionService
         }
 
         if (!TryCreateGeneralMergeMappings(
-                mappingDraft,
+                draft.Mappings,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,
                 out IReadOnlyList<InputArtifactBinding> mappingBindings,
@@ -113,7 +110,7 @@ public static partial class WorkbenchCompositionService
             GeneralMergeV2CandidateProfileVersion,
             icId,
             new V2LogicalOutputCompileRequest(
-                (int)capacity,
+                draft.OutputInitializer,
                 requestAddressSpaces.Select(static addressSpace => new V2LogicalOutputInputBinding(
                     addressSpace.AddressSpaceId,
                     "source",

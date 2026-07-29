@@ -18,6 +18,23 @@ public static class SavedRuleIssueCodes
     /// <summary>Saved-rule schema version is unsupported.</summary>
     public const string SchemaVersionUnsupported = "saved-rule.schema-version.unsupported";
 
+    /// <summary>Saved Rule v2 General Merge initializer is required.</summary>
+    public const string InitializerRequired = "saved-rule.initializer.required";
+
+    /// <summary>Saved Rule v2 initializer is forbidden for General Replace.</summary>
+    public const string InitializerForbidden = "saved-rule.initializer.forbidden";
+
+    /// <summary>Saved Rule v2 initializer object or kind is invalid.</summary>
+    public const string InitializerInvalid = "saved-rule.initializer.invalid";
+
+    /// <summary>Saved Rule v2 General Merge capacity is invalid or unsupported.</summary>
+    public const string InitializerCapacityInvalid =
+        "saved-rule.initializer.capacity-invalid";
+
+    /// <summary>Saved Rule v2 General Merge fill is outside one byte.</summary>
+    public const string InitializerFillByteInvalid =
+        "saved-rule.initializer.fill-byte-invalid";
+
     /// <summary>Saved-rule compatibility object is required.</summary>
     public const string CompatibilityRequired = "saved-rule.compatibility.required";
 

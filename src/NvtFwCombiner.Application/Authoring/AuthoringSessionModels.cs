@@ -433,6 +433,9 @@ public enum AuthoringDraftKind
 {
     /// <summary>One typed General Merge/Replace explicit-mapping draft.</summary>
     GeneralMapping,
+
+    /// <summary>One exact General Merge initializer plus shared mapping draft.</summary>
+    GeneralMerge,
 }
 
 /// <summary>

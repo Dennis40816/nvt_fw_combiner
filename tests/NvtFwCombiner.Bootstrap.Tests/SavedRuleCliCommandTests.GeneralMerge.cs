@@ -7,6 +7,36 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class SavedRuleCliCommandTests
 {
+    /// <summary>A normal saved-rule run cannot accept an out-of-band fill override.</summary>
+    [Fact]
+    public async Task GeneralMergeSavedRuleRejectsFillOverride()
+    {
+        using var workspace = TempWorkspace.Create();
+        string rule = await WriteRuleAsync(workspace, ValidGeneralMergeRuleObject());
+        string source = workspace.Write("source.bin", new byte[64]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--size",
+            "0x120",
+            "--fill",
+            "0xFF",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains(
+            "--fill cannot override a saved-rule initializer",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Rejects processor-dependent General Merge saved rules until processor fragments are actually supported.</summary>
     [Fact]
     public async Task GeneralMergePreviewRejectsProcessorDependentSavedRule()

@@ -801,6 +801,11 @@ checked `copy-range` operations; fixed profile stages may add the other closed p
 range in UI is equivalent to editing typed mapping data. Reviewed saved-rule fragments still compile
 through the same profile/compiler/engine and report `saved-rule` provenance.
 
+One immutable General Merge initializer owns the exact positive output capacity and blank fill byte
+for an authoring revision. Fill accepts the complete `0x00..0xFF` byte domain and defaults to
+`0x00` only when omitted. UI, CLI, profile compilation, Preview/Build identity, reports, and Saved
+Rule v2 consume that same value; General Replace cannot declare it.
+
 ### 10.6 Replace experiences
 
 - DP Replace：DP-focused; DP whole/declared-part access only. LDC replacement is included in this experience and may be supplied as its own LDC BIN。

@@ -1,43 +1,43 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private const byte GeneralMergeFillByte = 0x00;
-
     /// <summary>Gets the default General Merge output length text for the selected IC.</summary>
     public static string GetGeneralMergeDefaultOutputLength(string icId)
+    {
+        return BootstrapRangeText.FormatHex(
+            GetGeneralMergeDefaultOutputInitializer(icId).Capacity);
+    }
+
+    /// <summary>Gets the profile-derived default typed General Merge initializer.</summary>
+    public static GeneralMergeOutputInitializer GetGeneralMergeDefaultOutputInitializer(
+        string icId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
 
         _ = FindStandardMergeProfileSummaryByIc(icId) ?? throw new InvalidOperationException(
             $"No compiled V2 Standard Merge profile is registered for '{icId}'.");
 
-        if (TryGetBuiltInV2StandardMergeAuthoringDefaultCapacity(
-                icId,
-                out long capacitySelectionDefault,
-                out IReadOnlyList<CompositionIssue> capacityIssues))
-        {
-            return BootstrapRangeText.FormatHex(capacitySelectionDefault);
-        }
-
-        if (capacityIssues.Count != 0)
-        {
-            throw new InvalidOperationException(FormatIssues(capacityIssues));
-        }
-
-        if (!TryCompileStandardMerge(
-                icId,
-                dpInputLength: null,
-                out CompiledComposition? composition,
-                out IReadOnlyList<CompositionIssue> issues))
-        {
-            throw new InvalidOperationException(FormatIssues(issues));
-        }
-
-        long capacity = composition.Plan.OutputInitialization.Capacity;
-        return BootstrapRangeText.FormatHex(capacity);
+        return TryGetBuiltInV2StandardMergeAuthoringDefaultCapacity(
+                    icId,
+                    out long capacitySelectionDefault,
+                    out IReadOnlyList<CompositionIssue> capacityIssues)
+            ? new GeneralMergeOutputInitializer(capacitySelectionDefault)
+            : capacityIssues.Count != 0
+                ? throw new InvalidOperationException(
+                    FormatIssues(capacityIssues))
+                : TryCompileStandardMerge(
+                        icId,
+                        dpInputLength: null,
+                        out CompiledComposition? composition,
+                        out IReadOnlyList<CompositionIssue> issues)
+                    ? new GeneralMergeOutputInitializer(
+                        composition.Plan.OutputInitialization.Capacity)
+                    : throw new InvalidOperationException(
+                        FormatIssues(issues));
     }
 
     /// <summary>Gets the profile-owned default General Merge output file name for the selected IC.</summary>
@@ -56,30 +56,16 @@ public static partial class WorkbenchCompositionService
         return $"{icId.ToLowerInvariant()}-general-merge-workbench";
     }
 
-    private static bool TryParseGeneralMergeCapacity(
-        string outputLength,
-        out long capacity,
+    private static bool TryResolveGeneralMergeInitializer(
+        string? outputLength,
+        string? outputFillByte,
+        out GeneralMergeOutputInitializer? initializer,
         out CompositionIssue? issue)
     {
-        if (!BootstrapRangeText.TryParseNonNegativeLong(outputLength, out capacity) || capacity <= 0)
-        {
-            issue = new CompositionIssue(
-                WorkbenchIssueCodes.GeneralMergeCapacityInvalid,
-                "General Merge output length must be a positive byte count.",
-                "output-length");
-            return false;
-        }
-
-        if (capacity > int.MaxValue)
-        {
-            issue = new CompositionIssue(
-                WorkbenchIssueCodes.GeneralMergeCapacityUnsupported,
-                "General Merge output length exceeds the supported in-memory composition size.",
-                "output-length");
-            return false;
-        }
-
-        issue = null;
-        return true;
+        return new GeneralMergeInitializerInput(
+            outputLength,
+            outputFillByte).TryResolve(
+                out initializer,
+                out issue);
     }
 }

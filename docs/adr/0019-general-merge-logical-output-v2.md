@@ -5,14 +5,15 @@
 - Owners: Product owner + architecture owner
 - Amends: ADR 0015 and ADR 0018
 - Amended by: ADR 0020
+- Amended on 2026-07-30 by: issue #249 (typed runtime capacity/fill initializer)
 
 ## Context
 
 General Merge is a typed authoring workflow, not a physical firmware-map selection. A user chooses
 one or more source artifacts, declares explicit half-open source-to-output copy ranges, and chooses
 an arbitrary positive output capacity. The selected IC identifies the output/report context; it does
-not prove a unique canonical map. Existing behavior rejects overlapping targets, initializes the
-output with `0x00`, and lowers every mapping into the shared `CompositionPlan` and
+not prove a unique canonical map. Existing compatibility behavior rejects overlapping targets,
+initializes the output with an omitted/default `0x00`, and lowers every mapping into the shared `CompositionPlan` and
 `CompositionEngine`.
 
 The current V2 runtime admission intentionally supports only resolved-map Merge and DP Replace
@@ -30,13 +31,15 @@ The context is admitted only when the trusted V2 profile declares all of the fol
 
 - `compositionKind = merge`, `experienceId = general-merge`, `layoutPolicy = user-defined`, and
   `inputPolicy = extensible`;
-- one `output-image` with a new `runtime-request` capacity policy, blank initialized with `0x00`;
+- one `output-image` with a `runtime-request` capacity policy and blank initialization whose
+  profile value supplies the omitted/default `0x00`;
 - an auxiliary `one-or-more` input slot with `per-binding` instance materialization;
 - explicit `copy-range` mappings only, with `reject` overlap policy; and
 - no physical-map regions, metadata validation, processor stage, CRC/header stage, normalization,
   caller-owned mutable input, executable path, or script.
 
-A typed compile request supplies the requested output capacity, concrete immutable binding
+A typed compile request supplies one exact positive output capacity and one fill byte in
+`0x00..0xFF`, concrete immutable binding
 identities and exact lengths, plus mapping IDs, sequence, source binding/range, output range,
 alignment, reason, and provenance. It contains no host path, bytes, command, process argument,
 or decoded firmware fact. Profiles validates and materializes every binding as one immutable
@@ -44,14 +47,16 @@ address space and lowers every mapping through the existing `V2CompositionPlanCo
 existing operation algebra. No General Merge executor, operation kind, or fallback compiler is
 introduced.
 
-The output capacity must be in `1..Int32.MaxValue`. Source and target ranges are half-open and use
+The output capacity must be in `1..Int32.MaxValue`; omitted fill resolves to `0x00`. The pair is
+one immutable General Merge initializer and participates in compilation fingerprint, Preview
+token, report provenance, and output identity. Source and target ranges are half-open and use
 checked arithmetic. Binding IDs and mapping IDs are unique; mapping sequence is deterministic and
 unambiguous; source and target lengths are equal and positive; every source and target range is in
 bounds; and every target is the final logical output. Before reading, Application validates that
 runtime artifacts match the concrete compiled binding identities, artifact class, original
 filenames, and extensions. After reading and before execution, it validates each actual byte length
 against the compiled immutable space. Preview-to-Build identity includes the compiled bindings,
-mappings, output capacity, chosen output filename, and the read input hashes.
+mappings, output capacity and fill, chosen output filename, and the read input hashes.
 
 Application admits this `V2PlanCompiled` exception only when the context is logical-output and the
 promotion stage is exactly `executable-candidate`. The only other closed candidate exception is ADR
@@ -97,3 +102,9 @@ aliases during the cutover.
    logical-output profile remains `executable-candidate`, because it declares no physical firmware
    support or map authority. Delete the dynamic legacy profile construction only in that cutover
    commit.
+
+Issue #249 completed the fixed-fill compatibility deletion on 2026-07-30. The former
+Bootstrap `GeneralMergeFillByte` constant had two callers: the General Merge Memory Layout
+initialization row and its blank coverage segment. Both now consume the same typed initializer as
+compilation; the architecture test rejects restoration of that constant. Omitted UI/CLI fill still
+projects the typed `0x00` default and does not restore another byte owner.

@@ -46,6 +46,7 @@ public static partial class WorkbenchCompositionService
             DeliveryArtifacts = deliveredArtifacts is null ? [] : [.. deliveredArtifacts],
             IsDeliveryComplete = isDeliveryComplete,
             DeliveryFailureMessage = deliveryFailureMessage,
+            PreviewToken = result.PreviewToken,
         };
     }
 
@@ -111,7 +112,8 @@ public static partial class WorkbenchCompositionService
         bool build,
         IReadOnlyList<OperationRunSummary> operations,
         IReadOnlyList<CompositionIssue> issues,
-        string outputFileName)
+        string outputFileName,
+        ImageInitializationSummary? imageInitialization = null)
     {
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         var report = new CompositionRunReport(
@@ -128,7 +130,8 @@ public static partial class WorkbenchCompositionService
             operations,
             [],
             issues,
-            new OutputArtifactSummary(outputFileName, 0, EmptySha256, committed: false));
+            new OutputArtifactSummary(outputFileName, 0, EmptySha256, committed: false),
+            imageInitialization: imageInitialization);
         string reportJson = JsonSerializer.Serialize(report, ReportJsonOptions);
         return new WorkbenchRunResult(
             false,

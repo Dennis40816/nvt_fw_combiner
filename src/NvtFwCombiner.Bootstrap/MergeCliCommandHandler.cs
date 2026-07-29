@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -53,18 +54,44 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        if (!TryCreateMappings(options, icId, error, out GeneralMappingDraftState? mappingDraft))
+        if (options.Values.ContainsKey("--rule") &&
+            options.Values.ContainsKey("--fill"))
+        {
+            await error.WriteLineAsync(
+                "error: --fill cannot override a saved-rule initializer")
+                .ConfigureAwait(false);
+            return UsageError;
+        }
+
+        if (!new GeneralMergeInitializerInput(
+                outputLength,
+                options.Values.GetValueOrDefault("--fill")).TryResolve(
+                out GeneralMergeOutputInitializer? initializer,
+                out CompositionIssue? initializationIssue))
+        {
+            await error.WriteLineAsync(
+                $"error: {initializationIssue!.Code}: {initializationIssue.Message}")
+                .ConfigureAwait(false);
+            return UsageError;
+        }
+
+        if (!TryCreateMappings(
+                options,
+                icId,
+                error,
+                out GeneralMappingDraftState? mappings))
         {
             return UsageError;
         }
 
+        var draft = new GeneralMergeDraftState(initializer!, mappings);
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId));
         string? outputPath = action == "build" ? outputTarget.FullPath : null;
         List<ProtectedPathGuard.ProtectedPath> protectedPaths =
         [
-            .. mappingDraft.Rows.Select(mapping => new ProtectedPathGuard.ProtectedPath(
+            .. mappings.Rows.Select(mapping => new ProtectedPathGuard.ProtectedPath(
                 Path.GetFullPath(mapping.Source.Reference),
                 $"input mapping '{mapping.MappingId}'")),
         ];
@@ -97,8 +124,7 @@ internal static partial class MergeCliCommandHandler
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeDraftAsync(
                 icId,
-                outputLength,
-                mappingDraft,
+                draft,
                 action == "build",
                 cancellationToken,
                 outputPath)

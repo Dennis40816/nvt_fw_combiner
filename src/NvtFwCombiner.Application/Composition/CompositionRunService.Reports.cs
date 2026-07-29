@@ -72,7 +72,13 @@ public sealed partial class CompositionRunService
             outputDifferences,
             request.CompiledComposition.CompilationFingerprint,
             validations,
-            outputNaming);
+            outputNaming,
+            imageInitialization: StringComparer.Ordinal.Equals(
+                request.CompiledComposition.ExperienceId,
+                ExperienceIds.GeneralMerge)
+                    ? ImageInitializationSummary.FromCompiled(
+                        request.CompiledComposition.Plan.OutputInitialization)
+                    : null);
     }
 
     private static MutationRunSummary ToMutationSummary(MutationRecord mutation)
