@@ -23,9 +23,16 @@ public static partial class WorkbenchCompositionService
 
             string addressSpaceId = $"{input.MappingId}-input";
             string fullPath = Path.GetFullPath(input.Source.Reference);
-            long declaredLength = File.Exists(fullPath)
-                ? new FileInfo(fullPath).Length
-                : input.SourceRange.EndExclusive;
+            if (input.Source.AcceptedFileStamp is not { } acceptedStamp)
+            {
+                issueList.Add(new CompositionIssue(
+                    GeneralSelectedFileInspectionIssueCodes.SnapshotRequired,
+                    $"General Merge mapping '{input.MappingId}' has no accepted selected-file content snapshot.",
+                    input.MappingId));
+                continue;
+            }
+
+            long declaredLength = acceptedStamp.AcceptedLength;
             if (declaredLength < input.SourceRange.EndExclusive)
             {
                 issueList.Add(new CompositionIssue(
@@ -36,7 +43,11 @@ public static partial class WorkbenchCompositionService
             }
 
             spaces.Add(new AddressSpace(addressSpaceId, declaredLength, AddressSpaceMutability.Immutable));
-            bindings.Add(new InputArtifactBinding(addressSpaceId, input.MappingId, fullPath));
+            bindings.Add(new InputArtifactBinding(
+                addressSpaceId,
+                input.MappingId,
+                fullPath,
+                acceptedContentStamp: acceptedStamp));
             mappings.Add(new ExplicitMapping(
                 input.MappingId,
                 100 + (index * 10),

@@ -115,7 +115,11 @@ internal static class SavedRuleGeneralMappingDraftAdapter
                     row.Alignment,
                     row.Reason,
                     row.TargetRegionId,
-                    OperationProvenance.SavedRule(rule.RuleId, rule.RuleVersion)));
+                    OperationProvenance.SavedRule(rule.RuleId, rule.RuleVersion),
+                    operationKind == ExplicitMappingOperationKind.CopyRange ||
+                    sourceRange.Start != 0
+                        ? GeneralMappingFileRangePreset.SourceSlice
+                        : GeneralMappingFileRangePreset.FromFileStart));
             }
             catch (ArgumentException exception)
             {

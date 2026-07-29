@@ -81,6 +81,17 @@ public static partial class WorkbenchCompositionService
                 outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General));
         }
 
+        GeneralSelectedFileBindingResult acceptedFiles =
+            await AcceptGeneralSelectedFilesAsync(
+                context!.MappingDraft,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (!acceptedFiles.Succeeded)
+        {
+            return Blocked(acceptedFiles.Issues);
+        }
+
+        context = context with { MappingDraft = acceptedFiles.Draft! };
         if (!TryCreateGeneralReplaceMappings(
                 context!.MappingDraft,
                 context.Capacity,
@@ -210,7 +221,8 @@ public static partial class WorkbenchCompositionService
             .. mappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
                 compiledComposition,
                 binding.AddressSpaceId,
-                binding.ArtifactId)),
+                binding.ArtifactId,
+                acceptedContentStamp: binding.AcceptedContentStamp)),
         ];
 
         return await RunCompiledCompositionAsync(

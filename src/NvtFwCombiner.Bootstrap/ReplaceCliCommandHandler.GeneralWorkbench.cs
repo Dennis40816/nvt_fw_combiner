@@ -215,7 +215,8 @@ internal static partial class ReplaceCliCommandHandler
             targetRange,
             OverlapPolicy.Reject,
             alignment: 1,
-            "Replace explicit General range.");
+            "Replace explicit General range.",
+            fileRangePreset: GeneralMappingFileRangePreset.FromFileStart);
         return true;
     }
 

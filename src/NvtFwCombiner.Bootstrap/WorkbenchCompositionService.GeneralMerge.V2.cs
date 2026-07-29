@@ -84,6 +84,19 @@ public static partial class WorkbenchCompositionService
                 profileId: registration.ProfileId);
         }
 
+        GeneralSelectedFileBindingResult acceptedFiles =
+            await AcceptGeneralSelectedFilesAsync(
+                mappingDraft,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (!acceptedFiles.Succeeded)
+        {
+            return Blocked(
+                acceptedFiles.Issues,
+                profileId: registration.ProfileId);
+        }
+
+        mappingDraft = acceptedFiles.Draft!;
         if (!TryCreateGeneralMergeMappings(
                 mappingDraft,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
@@ -155,7 +168,8 @@ public static partial class WorkbenchCompositionService
             .. mappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
                 composition,
                 binding.AddressSpaceId,
-                binding.ArtifactId)),
+                binding.ArtifactId,
+                acceptedContentStamp: binding.AcceptedContentStamp)),
         ];
         return await RunCompiledCompositionAsync(
             GeneralMergeRunIdPrefix,

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -231,6 +232,16 @@ public sealed partial class CompositionRunService
                 buffer = bytes.ToArray();
                 sha256 = ToSha256Hex(buffer);
                 artifactSnapshots.Add(binding.ArtifactId, new ArtifactReadSnapshot(buffer, sha256));
+            }
+
+            if (binding.AcceptedContentStamp is { } acceptedStamp &&
+                acceptedStamp != new FileStamp(buffer.LongLength, sha256))
+            {
+                issues.Add(new CompositionIssue(
+                    CompositionRunIssueCodes.InputArtifactContentSnapshotMismatch,
+                    $"Artifact binding '{binding.BindingId}' no longer matches its accepted length and SHA-256.",
+                    binding.AddressSpaceId));
+                return;
             }
 
             inputBytes.Add(binding.AddressSpaceId, buffer);
