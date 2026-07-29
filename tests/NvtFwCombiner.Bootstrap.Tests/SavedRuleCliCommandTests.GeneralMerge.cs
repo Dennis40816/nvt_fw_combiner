@@ -12,16 +12,14 @@ public sealed partial class SavedRuleCliCommandTests
     public async Task GeneralMergeSavedRuleRejectsFillOverride()
     {
         using var workspace = TempWorkspace.Create();
-        string rule = await WriteRuleAsync(workspace, ValidGeneralMergeRuleObject());
-        string source = workspace.Write("source.bin", new byte[64]);
+        string rule = await WriteRuleAsync(workspace, ValidGeneralMergeV2RuleObject());
+        string source = workspace.Write("source.bin", [0x10]);
 
         CliRunResult result = await RunCliAsync([
             "general-merge",
             "preview",
             "--profile",
             "NT51950",
-            "--size",
-            "0x120",
             "--fill",
             "0xFF",
             "--rule",
@@ -37,15 +35,13 @@ public sealed partial class SavedRuleCliCommandTests
             StringComparison.Ordinal);
     }
 
-    /// <summary>Rejects processor-dependent General Merge saved rules until processor fragments are actually supported.</summary>
+    /// <summary>A normal v2 saved-rule run cannot accept an out-of-band capacity override.</summary>
     [Fact]
-    public async Task GeneralMergePreviewRejectsProcessorDependentSavedRule()
+    public async Task GeneralMergeSavedRuleRejectsSizeOverride()
     {
         using var workspace = TempWorkspace.Create();
-        JsonObject json = ValidGeneralMergeRuleObject();
-        json["processorDependencyIds"] = new JsonArray("crc-v1");
-        string rule = await WriteRuleAsync(workspace, json);
-        string source = workspace.Write("source.bin", [.. Enumerable.Range(0, 64).Select(value => (byte)value)]);
+        string rule = await WriteRuleAsync(workspace, ValidGeneralMergeV2RuleObject());
+        string source = workspace.Write("source.bin", [0x10]);
 
         CliRunResult result = await RunCliAsync([
             "general-merge",
@@ -53,7 +49,35 @@ public sealed partial class SavedRuleCliCommandTests
             "--profile",
             "NT51950",
             "--size",
-            "0x120",
+            "0x20",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains(
+            "--size cannot override a saved-rule initializer",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects processor-dependent General Merge saved rules until processor fragments are actually supported.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewRejectsProcessorDependentSavedRule()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeV2RuleObject();
+        json["processorStageIds"] = new JsonArray("crc-v1");
+        string rule = await WriteRuleAsync(workspace, json);
+        string source = workspace.Write("source.bin", [0x10]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
             "--rule",
             rule,
             "--slot",
@@ -64,25 +88,22 @@ public sealed partial class SavedRuleCliCommandTests
         Assert.Contains(ProcessorDependencyUnsupported, result.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>Requires a saved-rule compatibility envelope to match IC, derived profile id, and mode.</summary>
-    [Theory]
-    [InlineData("profileIds", "nt51951-general-merge-workbench")]
-    [InlineData("modeIds", "standard-merge")]
-    public async Task GeneralMergePreviewRequiresFullSavedRuleCompatibilityEnvelope(string propertyName, string incompatibleId)
+    /// <summary>Rejects a v2 access envelope that broadens the logical General output.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewRejectsBroadenedV2AccessEnvelope()
     {
         using var workspace = TempWorkspace.Create();
-        JsonObject json = ValidGeneralMergeRuleObject();
-        json["compatibility"]![propertyName] = new JsonArray(incompatibleId);
+        JsonObject json = ValidGeneralMergeV2RuleObject();
+        json["accessEnvelope"]!["allowedRegionIds"] =
+            new JsonArray("general-output", "other-output");
         string rule = await WriteRuleAsync(workspace, json);
-        string source = workspace.Write("source.bin", [.. Enumerable.Range(0, 64).Select(value => (byte)value)]);
+        string source = workspace.Write("source.bin", [0x10]);
 
         CliRunResult result = await RunCliAsync([
             "general-merge",
             "preview",
             "--profile",
             "NT51950",
-            "--size",
-            "0x120",
             "--rule",
             rule,
             "--slot",
@@ -91,30 +112,103 @@ public sealed partial class SavedRuleCliCommandTests
 
         Assert.Equal(64, result.ExitCode);
         Assert.Contains(
-            "not compatible with NT51950 / nt51950-general-merge-workbench / general-merge",
+            MappingRowTargetRegionUnsupported,
             result.Error,
             StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies General Merge can consume a saved rule through slot bindings and preserve report provenance.</summary>
-    [Fact]
-    public async Task GeneralMergeBuildConsumesSavedRuleMappings()
+    /// <summary>Requires a saved-rule compatibility envelope to match IC, derived profile id, and mode.</summary>
+    [Theory]
+    [InlineData("profileId", "nt51951-general-merge-logical-candidate", "not compatible")]
+    [InlineData("bundleContentHash", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "not compatible")]
+    [InlineData("sourceExperienceId", "general-replace", ExperienceKindMismatch)]
+    public async Task GeneralMergePreviewRequiresFullSavedRuleCompatibilityEnvelope(
+        string propertyName,
+        string incompatibleId,
+        string expectedError)
     {
         using var workspace = TempWorkspace.Create();
-        JsonObject json = ValidGeneralMergeRuleObject();
-        OperationFragments(json)[0]!.AsObject()["operationId"] = "reviewed-copy-operation";
+        JsonObject json = ValidGeneralMergeV2RuleObject();
+        if (propertyName is "profileId" or "bundleContentHash")
+        {
+            json["parentBinding"]![propertyName] = incompatibleId;
+        }
+        else
+        {
+            json[propertyName] = incompatibleId;
+        }
+
         string rule = await WriteRuleAsync(workspace, json);
-        string source = workspace.Write("source.bin", [.. Enumerable.Range(0, 64).Select(value => (byte)value)]);
-        string output = workspace.PathFor("out.bin");
-        string report = workspace.PathFor("report.json");
+        string source = workspace.Write("source.bin", [0x10]);
 
         CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains(expectedError, result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Documents that manual initializer flags are absent from both v2 rule forms.</summary>
+    [Fact]
+    public async Task GeneralMergeHelpKeepsV2RuleInitializerClosed()
+    {
+        CliRunResult result = await RunCliAsync(["general-merge", "--help"]);
+
+        Assert.Equal(0, result.ExitCode);
+        string[] ruleLines =
+        [
+            .. result.Output.Split(
+                    ['\r', '\n'],
+                    StringSplitOptions.RemoveEmptyEntries)
+                .Where(static line => line.Contains("--rule", StringComparison.Ordinal)),
+        ];
+        Assert.Equal(2, ruleLines.Length);
+        Assert.All(ruleLines, static line =>
+        {
+            Assert.Contains("<v2-rule.json>", line, StringComparison.Ordinal);
+            Assert.DoesNotContain("--size", line, StringComparison.Ordinal);
+            Assert.DoesNotContain("--fill", line, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>Normal v2 rule consumption closes over output bytes, report values, and Preview/Build identity.</summary>
+    [Fact]
+    public async Task GeneralMergeBuildConsumesV2InitializerAndPreservesPreviewIdentity()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeV2RuleObject(capacity: 4, fillByte: 0xA5);
+        string rule = await WriteRuleAsync(workspace, json);
+        string source = workspace.Write("source.bin", [0x10]);
+        string output = workspace.PathFor("out.bin");
+        string previewReport = workspace.PathFor("preview-report.json");
+        string buildReport = workspace.PathFor("build-report.json");
+
+        CliRunResult preview = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+            "--report",
+            previewReport,
+        ]);
+
+        CliRunResult build = await RunCliAsync([
             "general-merge",
             "build",
             "--profile",
             "NT51950",
-            "--size",
-            "0x120",
             "--rule",
             rule,
             "--slot",
@@ -122,20 +216,30 @@ public sealed partial class SavedRuleCliCommandTests
             "--output",
             output,
             "--report",
-            report,
+            buildReport,
         ]);
 
-        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(0, preview.ExitCode);
+        Assert.Equal(0, build.ExitCode);
         byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
-        Assert.Equal(0x120, outputBytes.Length);
-        Assert.Equal(
-            [.. Enumerable.Range(0x10, 0x20).Select(value => (byte)value)],
-            outputBytes[0x100..0x120]);
+        Assert.Equal([0xA5, 0x10, 0xA5, 0xA5], outputBytes);
 
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
-            report,
+        using var previewDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
+            previewReport,
             TestContext.Current.CancellationToken));
-        JsonElement operation = Assert.Single(document.RootElement.GetProperty("Operations").EnumerateArray());
+        using var buildDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
+            buildReport,
+            TestContext.Current.CancellationToken));
+        JsonElement previewRoot = previewDocument.RootElement;
+        JsonElement buildRoot = buildDocument.RootElement;
+        Assert.Equal(
+            previewRoot.GetProperty("CompilationFingerprint").GetString(),
+            buildRoot.GetProperty("CompilationFingerprint").GetString());
+        Assert.Contains("PreviewToken: ", preview.Output, StringComparison.Ordinal);
+        JsonElement initialization = buildRoot.GetProperty("ImageInitialization");
+        Assert.Equal(4, initialization.GetProperty("Capacity").GetInt64());
+        Assert.Equal(0xA5, initialization.GetProperty("FillByte").GetInt32());
+        JsonElement operation = Assert.Single(buildRoot.GetProperty("Operations").EnumerateArray());
         Assert.Equal("reviewed-copy-operation", operation.GetProperty("OperationId").GetString());
         JsonElement provenance = operation.GetProperty("Provenance");
         Assert.Equal("saved-rule", provenance.GetProperty("Kind").GetString());
@@ -148,16 +252,14 @@ public sealed partial class SavedRuleCliCommandTests
     public async Task GeneralMergePreviewRejectsReportPathAliasingSavedRule()
     {
         using var workspace = TempWorkspace.Create();
-        string rule = await WriteRuleAsync(workspace, ValidGeneralMergeRuleObject());
-        string source = workspace.Write("source.bin", [.. Enumerable.Range(0, 64).Select(value => (byte)value)]);
+        string rule = await WriteRuleAsync(workspace, ValidGeneralMergeV2RuleObject());
+        string source = workspace.Write("source.bin", [0x10]);
 
         CliRunResult result = await RunCliAsync([
             "general-merge",
             "preview",
             "--profile",
             "NT51950",
-            "--size",
-            "0x120",
             "--rule",
             rule,
             "--slot",

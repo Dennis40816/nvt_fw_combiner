@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 
@@ -10,6 +11,12 @@ public static partial class WorkbenchCompositionService
     {
         return BootstrapRangeText.FormatHex(
             GetGeneralMergeDefaultOutputInitializer(icId).Capacity);
+    }
+
+    /// <summary>Gets the default General Merge fill-byte text for the selected IC.</summary>
+    public static string GetGeneralMergeDefaultOutputFillByte(string icId)
+    {
+        return $"0x{GetGeneralMergeDefaultOutputInitializer(icId).FillByte:X2}";
     }
 
     /// <summary>Gets the profile-derived default typed General Merge initializer.</summary>
@@ -37,7 +44,24 @@ public static partial class WorkbenchCompositionService
                     ? new GeneralMergeOutputInitializer(
                         composition.Plan.OutputInitialization.Capacity)
                     : throw new InvalidOperationException(
-                        FormatIssues(issues));
+                    FormatIssues(issues));
+    }
+
+    /// <summary>Resolves editable UI text into one typed workbench initializer.</summary>
+    public static bool TryResolveGeneralMergeOutputInitializer(
+        string? outputLength,
+        string? outputFillByte,
+        [NotNullWhen(true)] out WorkbenchGeneralMergeInitializer? initializer)
+    {
+        bool resolved = TryResolveGeneralMergeInitializer(
+            outputLength,
+            outputFillByte,
+            out GeneralMergeOutputInitializer? value,
+            out _);
+        initializer = resolved
+            ? new WorkbenchGeneralMergeInitializer(value!)
+            : null;
+        return resolved;
     }
 
     /// <summary>Gets the profile-owned default General Merge output file name for the selected IC.</summary>
@@ -68,4 +92,23 @@ public static partial class WorkbenchCompositionService
                 out initializer,
                 out issue);
     }
+}
+
+/// <summary>Presentation-safe typed General Merge initializer resolved by the Bootstrap facade.</summary>
+public sealed class WorkbenchGeneralMergeInitializer
+{
+    internal WorkbenchGeneralMergeInitializer(
+        GeneralMergeOutputInitializer value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        Value = value;
+    }
+
+    /// <summary>Exact positive output capacity.</summary>
+    public long Capacity => Value.Capacity;
+
+    /// <summary>Exact blank-output fill byte.</summary>
+    public byte FillByte => Value.FillByte;
+
+    internal GeneralMergeOutputInitializer Value { get; }
 }

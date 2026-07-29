@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -9,8 +8,6 @@ internal static partial class MergeCliCommandHandler
     private const int Success = 0;
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
-    private const string GeneralMergeModeId = IcWorkflowIds.GeneralMerge;
-
     internal static async Task<int> RunAsync(
         string command,
         string[] args,
@@ -42,8 +39,7 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        if (!RequireOption(options, "--profile", error, out string? profileSelector) ||
-            !RequireOption(options, "--size", error, out string? outputLength))
+        if (!RequireOption(options, "--profile", error, out string? profileSelector))
         {
             return UsageError;
         }
@@ -54,8 +50,16 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        if (options.Values.ContainsKey("--rule") &&
-            options.Values.ContainsKey("--fill"))
+        bool usesSavedRule = options.Values.ContainsKey("--rule");
+        if (usesSavedRule && options.Values.ContainsKey("--size"))
+        {
+            await error.WriteLineAsync(
+                "error: --size cannot override a saved-rule initializer")
+                .ConfigureAwait(false);
+            return UsageError;
+        }
+
+        if (usesSavedRule && options.Values.ContainsKey("--fill"))
         {
             await error.WriteLineAsync(
                 "error: --fill cannot override a saved-rule initializer")
@@ -63,35 +67,22 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        if (!new GeneralMergeInitializerInput(
-                outputLength,
-                options.Values.GetValueOrDefault("--fill")).TryResolve(
-                out GeneralMergeOutputInitializer? initializer,
-                out CompositionIssue? initializationIssue))
-        {
-            await error.WriteLineAsync(
-                $"error: {initializationIssue!.Code}: {initializationIssue.Message}")
-                .ConfigureAwait(false);
-            return UsageError;
-        }
-
-        if (!TryCreateMappings(
+        if (!TryCreateGeneralMergeDraft(
                 options,
                 icId,
                 error,
-                out GeneralMappingDraftState? mappings))
+                out GeneralMergeDraftState? draft))
         {
             return UsageError;
         }
 
-        var draft = new GeneralMergeDraftState(initializer!, mappings);
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId));
         string? outputPath = action == "build" ? outputTarget.FullPath : null;
         List<ProtectedPathGuard.ProtectedPath> protectedPaths =
         [
-            .. mappings.Rows.Select(mapping => new ProtectedPathGuard.ProtectedPath(
+            .. draft.Mappings.Rows.Select(mapping => new ProtectedPathGuard.ProtectedPath(
                 Path.GetFullPath(mapping.Source.Reference),
                 $"input mapping '{mapping.MappingId}'")),
         ];
@@ -124,7 +115,7 @@ internal static partial class MergeCliCommandHandler
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeDraftAsync(
                 icId,
-                draft,
+                draft!,
                 action == "build",
                 cancellationToken,
                 outputPath)

@@ -82,10 +82,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static async Task PrintResultAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private static Task WriteUsageAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private sealed record ParsedOptions", dispatch, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryCreateMappings", manualMappings, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryCreateGeneralMergeDraft", manualMappings, StringComparison.Ordinal);
         Assert.Contains("private static bool TryParseMappingValue", manualMappings, StringComparison.Ordinal);
         Assert.Contains("private static bool TryResolveIc", manualMappings, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryCreateMappingsFromSavedRule", savedRules, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryCreateDraftFromSavedRule", savedRules, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleV2GeneralMergeDraftLoader.Load", savedRules, StringComparison.Ordinal);
         Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
         Assert.Contains("private static bool RequireOption", options, StringComparison.Ordinal);
         Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
@@ -108,6 +109,8 @@ public sealed partial class RepositoryBoundaryTests
         string mappingRows = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.MappingRows.cs");
         string operationFragments = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.OperationFragments.cs");
         string savedRuleCli = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
+        string savedRuleV2GeneralMerge = ReadText(
+            "src/NvtFwCombiner.Bootstrap/SavedRuleV2GeneralMergeDraftLoader.cs");
         string mappingDraftAdapter = ReadText(
             "src/NvtFwCombiner.Bootstrap/SavedRuleGeneralMappingDraftAdapter.cs");
         string json = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Json.cs");
@@ -137,7 +140,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", mappingRows, StringComparison.Ordinal);
         Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", operationFragments, StringComparison.Ordinal);
         Assert.Contains("SavedRuleSchemaTokens.OperationKindCopyRange", operationFragments, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", savedRuleCli, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleV2GeneralMergeDraftLoader.Load", savedRuleCli, StringComparison.Ordinal);
+        Assert.Contains(
+            "SavedRuleSchemaTokens.OperationKindCopyRange",
+            savedRuleV2GeneralMerge,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "SavedRuleSchemaTokens.MappingOverlapReject",
+            savedRuleV2GeneralMerge,
+            StringComparison.Ordinal);
         Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", mappingDraftAdapter, StringComparison.Ordinal);
         Assert.Contains("SavedRuleSchemaTokens.OperationKindCopyRange", mappingDraftAdapter, StringComparison.Ordinal);
         Assert.Contains("SavedRuleSchemaTokens.OperationKindReplaceRange", mappingDraftAdapter, StringComparison.Ordinal);

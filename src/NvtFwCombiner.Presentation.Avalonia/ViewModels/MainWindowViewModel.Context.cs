@@ -43,6 +43,8 @@ public sealed partial class MainWindowViewModel
             RefreshNumberChoicesForSelectedIc,
             () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(SelectedIc),
             value => GeneralMergeOutputLength = value,
+            () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputFillByte(SelectedIc),
+            value => GeneralMergeOutputFillByte = value,
             AddGeneralReplaceMapping,
             AddGeneralMergeMapping);
 
@@ -336,6 +338,8 @@ public sealed partial class MainWindowViewModel
         {
             RefreshNumberChoicesForSelectedIc();
             GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
+            GeneralMergeOutputFillByte =
+                WorkbenchCompositionService.GetGeneralMergeDefaultOutputFillByte(value);
         }
         finally
         {
@@ -410,6 +414,18 @@ public sealed partial class MainWindowViewModel
     }
 
     partial void OnGeneralMergeOutputLengthChanged(string value)
+    {
+        if (_deferredState.IsLoadingWorkflow || !_deferredState.IsWorkflowLoaded)
+        {
+            return;
+        }
+
+        RefreshMergeMemoryMapState();
+        ResetRunResultForContextChange();
+        RefreshCommandState();
+    }
+
+    partial void OnGeneralMergeOutputFillByteChanged(string value)
     {
         if (_deferredState.IsLoadingWorkflow || !_deferredState.IsWorkflowLoaded)
         {

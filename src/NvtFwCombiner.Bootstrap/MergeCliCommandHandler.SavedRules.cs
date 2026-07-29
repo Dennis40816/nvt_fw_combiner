@@ -5,68 +5,39 @@ namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class MergeCliCommandHandler
 {
-    private static bool TryCreateMappingsFromSavedRule(
+    private static bool TryCreateDraftFromSavedRule(
         string rulePath,
         IReadOnlyList<string> slotValues,
         string icId,
         TextWriter error,
-        [NotNullWhen(true)] out GeneralMappingDraftState? mappings)
+        [NotNullWhen(true)] out GeneralMergeDraftState? draft)
     {
-        mappings = null;
-        SavedCompositionRuleLoadResult load = SavedCompositionRuleLoader.Load(rulePath);
+        draft = null;
+        if (!TryCreateSlotBindings(slotValues, error, out Dictionary<string, string>? slotsById))
+        {
+            return false;
+        }
+
+        SavedRuleV2GeneralMergeDraftLoadResult load =
+            SavedRuleV2GeneralMergeDraftLoader.Load(rulePath, slotsById);
         if (!load.IsValid)
         {
             PrintSavedRuleIssues(load.Issues, error);
             return false;
         }
 
-        SavedCompositionRule rule = load.Rule!;
-        if (!string.Equals(rule.CompositionKind, SavedRuleSchemaTokens.CompositionKindMerge, StringComparison.Ordinal) ||
-            !string.Equals(rule.SourceExperience, GeneralMergeModeId, StringComparison.Ordinal))
+        if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
+                icId,
+                out GeneralMergeV2CandidateRegistration? registration) ||
+            load.ParentBinding != registration.Bundle
+                .GetGeneralMergeSavedRuleParentBinding(registration.ProfileId))
         {
-            error.WriteLine($"error: saved rule '{rule.RuleId}' is for {rule.CompositionKind} / {rule.SourceExperience}, not {SavedRuleSchemaTokens.CompositionKindMerge} / {GeneralMergeModeId}");
+            error.WriteLine(
+                $"error: saved rule v2 parent is not compatible with the exact trusted {icId} / General Merge parent");
             return false;
         }
 
-        string profileId = WorkbenchCompositionService.GetGeneralMergeWorkbenchProfileId(icId);
-        if (!MatchesCompatibility(rule.Compatibility.IcIds, icId, StringComparer.OrdinalIgnoreCase) ||
-            !MatchesCompatibility(rule.Compatibility.ProfileIds, profileId, StringComparer.Ordinal) ||
-            !MatchesCompatibility(rule.Compatibility.ModeIds, GeneralMergeModeId, StringComparer.Ordinal))
-        {
-            error.WriteLine($"error: saved rule '{rule.RuleId}' is not compatible with {icId} / {profileId} / {GeneralMergeModeId}");
-            return false;
-        }
-
-        if (rule.ProcessorDependencyIds.Count > 0)
-        {
-            error.WriteLine($"error: saved rule '{rule.RuleId}' requires processors that General Merge saved-rule CLI consumption does not support yet");
-            return false;
-        }
-
-        if (!TryCreateSlotBindings(slotValues, error, out Dictionary<string, string>? slotsById))
-        {
-            return false;
-        }
-
-        foreach (SavedRuleMappingRow row in rule.MappingRows)
-        {
-            if (!slotsById.ContainsKey(row.SourceReference))
-            {
-                error.WriteLine($"error: saved rule row '{row.RowId}' requires --slot {row.SourceReference}=<path>");
-                return false;
-            }
-        }
-
-        if (!SavedRuleGeneralMappingDraftAdapter.TryCreate(
-                rule,
-                row => slotsById[row.SourceReference],
-                out mappings,
-                out IReadOnlyList<SavedRuleValidationIssue> projectionIssues))
-        {
-            PrintSavedRuleIssues(projectionIssues, error);
-            return false;
-        }
-
+        draft = load.Draft!;
         return true;
     }
 
@@ -101,14 +72,6 @@ internal static partial class MergeCliCommandHandler
         }
 
         return true;
-    }
-
-    private static bool MatchesCompatibility(
-        IReadOnlyList<string> values,
-        string candidate,
-        IEqualityComparer<string> comparer)
-    {
-        return values.Count == 0 || values.Contains(candidate, comparer);
     }
 
     private static void PrintSavedRuleIssues(IReadOnlyList<SavedRuleValidationIssue> issues, TextWriter error)

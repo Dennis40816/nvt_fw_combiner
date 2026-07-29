@@ -139,8 +139,17 @@ public sealed partial class MainWindowViewModel
     private bool CanRunGeneralMerge()
     {
         return IsGeneralMergeModeSelected &&
-            !string.IsNullOrWhiteSpace(GeneralMergeOutputLength) &&
+            TryResolveGeneralMergeOutputInitializer(out _) &&
             GeneralMergeMappings.Any(mapping => mapping.HasFile);
+    }
+
+    private bool TryResolveGeneralMergeOutputInitializer(
+        out WorkbenchGeneralMergeInitializer? initializer)
+    {
+        return WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+            GeneralMergeOutputLength,
+            GeneralMergeOutputFillByte,
+            out initializer);
     }
 
     private bool CanRunAbMerge()
@@ -289,19 +298,35 @@ public sealed partial class MainWindowViewModel
         string icId = SelectedIc;
         string number = SelectedNumber;
         string outputLength = GeneralMergeOutputLength;
+        string outputFillByte = GeneralMergeOutputFillByte;
+        bool hasInitializer =
+            WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+                outputLength,
+                outputFillByte,
+                out WorkbenchGeneralMergeInitializer? initializer);
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs = CreateGeneralMergeMappingInputs();
         IReadOnlyDictionary<string, string> slotPaths = CreateGeneralMergeSlotPaths();
         string outputFileName = WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId);
         return RunCompositionAsync(
             build,
-            (progress, cancellationToken) => WorkbenchCompositionService.RunGeneralMergeWithProgressAsync(
-                icId,
-                outputLength,
-                mappingInputs,
-                build,
-                progress,
-                cancellationToken,
-                outputPath),
+            (progress, cancellationToken) => hasInitializer
+                ? WorkbenchCompositionService.RunGeneralMergeInitializerWithProgressAsync(
+                    icId,
+                    initializer!,
+                    mappingInputs,
+                    build,
+                    progress,
+                    cancellationToken,
+                    outputPath)
+                : WorkbenchCompositionService.RunGeneralMergeWithProgressAsync(
+                    icId,
+                    outputLength,
+                    outputFillByte,
+                    mappingInputs,
+                    build,
+                    progress,
+                    cancellationToken,
+                    outputPath),
             (action, errorMessage) => LoadRunErrorReport(
                 action,
                 outputFileName,

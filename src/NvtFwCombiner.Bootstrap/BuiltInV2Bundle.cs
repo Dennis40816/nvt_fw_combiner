@@ -66,6 +66,30 @@ internal sealed class BuiltInV2Bundle
 
     internal string ContentHash { get; }
 
+    /// <summary>Projects the exact trusted identity used by a General Merge Saved Rule v2 parent.</summary>
+    internal SavedRuleV2ParentBinding GetGeneralMergeSavedRuleParentBinding(
+        string profileId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
+        TrustedCompositionProfileCatalogEntry profile =
+            _catalog.Value.Profiles.Single(candidate =>
+                StringComparer.Ordinal.Equals(
+                    candidate.Profile.ProfileId,
+                    profileId));
+        ProfileBundleIdentity bundle = _catalog.Value.BundleIdentity;
+        return new SavedRuleV2ParentBinding(
+            bundle.BundleId,
+            bundle.BundleVersion,
+            bundle.ContentHash,
+            profile.Profile.ProfileId,
+            profile.Profile.ProfileVersion,
+            profile.Identity.ContentHash,
+            profile.Family.Family.FamilyId,
+            profile.Family.Family.FamilyVersion,
+            profile.Family.Family.FamilyContentHash,
+            WorkbenchGeneralMergeIds.LogicalOutputMapId);
+    }
+
     internal bool TryResolveMetadataDefinition(
         FirmwareMetadataStructureDefinitionReference reference,
         out FirmwareMetadataStructureDefinition? definition)
