@@ -81,8 +81,16 @@ public static partial class WorkbenchCompositionService
                 outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General));
         }
 
+        GeneralAuthoringAdmissionResult admission = AdmitGeneralMappingDraft(
+            context!.MappingDraft,
+            context.Capacity);
+        if (!admission.IsAdmitted)
+        {
+            return Blocked(admission.ToCompositionIssues());
+        }
+
         if (!TryCreateGeneralReplaceMappings(
-                context!.MappingDraft,
+                context.MappingDraft,
                 context.Capacity,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,

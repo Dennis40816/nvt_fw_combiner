@@ -1,0 +1,362 @@
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Domain.Composition;
+
+namespace NvtFwCombiner.Application.Tests.Authoring;
+
+/// <summary>Safety-contract tests for canonical General occupancy and resource admission.</summary>
+public sealed class GeneralAuthoringAdmissionTests
+{
+    /// <summary>Every authored source kind enters one order-independent occupancy ledger.</summary>
+    [Fact]
+    public void RejectsEveryTargetIntersectionWithStableIdsAndExactHalfOpenRange()
+    {
+        GeneralMappingDraftRow[] rows =
+        [
+            CreateRow("file", GeneralMappingSource.File("file.bin"), 0x10, 0x10),
+            CreateRow("overwrite", GeneralMappingSource.HexOverwrite("AA"), 0x18, 0x08),
+            CreateRow("fill", GeneralMappingSource.HexFill("FF"), 0x0F, 0x02),
+        ];
+
+        GeneralAuthoringAdmissionResult forward = Evaluate(rows);
+        GeneralAuthoringAdmissionResult reordered = Evaluate([rows[2], rows[0], rows[1]]);
+
+        Assert.False(forward.IsAdmitted);
+        Assert.Equal(
+            forward.Issues.Select(issue => issue.IssueId),
+            reordered.Issues.Select(issue => issue.IssueId));
+        GeneralAuthoringAdmissionIssue fileOverwrite = Assert.Single(
+            forward.Issues,
+            issue => issue.MappingIds.SequenceEqual(["file", "overwrite"]));
+        Assert.Equal(GeneralAuthoringIssueCodes.TargetIntersection, fileOverwrite.Code);
+        Assert.Equal(new ByteRange(0x18, 0x08), fileOverwrite.Intersection);
+        Assert.Contains("[0x18, 0x20)", fileOverwrite.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Boundary-touching half-open ranges are admitted and retain separate occupancy.</summary>
+    [Fact]
+    public void AdmitsBoundaryTouchingRanges()
+    {
+        GeneralAuthoringAdmissionResult result = Evaluate(
+        [
+            CreateRow("left", GeneralMappingSource.File("left.bin"), 0x00, 0x10),
+            CreateRow("right", GeneralMappingSource.File("right.bin"), 0x10, 0x10),
+        ]);
+
+        Assert.True(result.IsAdmitted);
+        Assert.Equal(2, result.OccupancySegments.Count);
+    }
+
+    /// <summary>Containment reports the contained half-open interval rather than row-order wording.</summary>
+    [Fact]
+    public void ReportsExactContainedIntersection()
+    {
+        GeneralAuthoringAdmissionResult result = Evaluate(
+        [
+            CreateRow("outer", GeneralMappingSource.File("outer.bin"), 0x10, 0x20),
+            CreateRow("inner", GeneralMappingSource.HexFill("00"), 0x18, 0x04),
+        ]);
+
+        GeneralAuthoringAdmissionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal(new ByteRange(0x18, 0x04), issue.Intersection);
+        Assert.Equal(["inner", "outer"], issue.MappingIds);
+    }
+
+    /// <summary>The resolved ceiling is the strict intersection of technical, Parent, and Saved Rule limits.</summary>
+    [Fact]
+    public void ResolvesTechnicalParentAndSavedRuleIntersection()
+    {
+        var technical = new GeneralResourceLimits(
+            maximumMappingCount: 8,
+            maximumTotalWriteBytes: 0x100,
+            maximumFileBytes: 0x100,
+            maximumSafeMaterializationBytes: 0x80,
+            [new GeneralSlotLengthLimits("slot", 1, 0x100)]);
+        var parent = new GeneralResourceLimits(
+            maximumMappingCount: 6,
+            maximumTotalWriteBytes: 0x80,
+            maximumFileBytes: 0x90,
+            maximumSafeMaterializationBytes: 0x60,
+            [new GeneralSlotLengthLimits("slot", 0x10, 0x80, [0x20, 0x40, 0x80])]);
+        var savedRule = new GeneralResourceLimits(
+            maximumMappingCount: 4,
+            maximumTotalWriteBytes: 0x40,
+            maximumFileBytes: 0x70,
+            maximumSafeMaterializationBytes: 0x50,
+            [new GeneralSlotLengthLimits("slot", 0x20, 0x40, [0x20, 0x40])]);
+
+        GeneralResourceResolutionResult result = GeneralResourceLimitResolver.Resolve(
+            technical,
+            parent,
+            savedRule);
+
+        Assert.True(result.IsResolved);
+        Assert.Equal(4, result.EffectiveLimits!.MaximumMappingCount);
+        Assert.Equal(0x40, result.EffectiveLimits.MaximumTotalWriteBytes);
+        Assert.Equal(0x70, result.EffectiveLimits.MaximumFileBytes);
+        Assert.Equal(0x50, result.EffectiveLimits.MaximumSafeMaterializationBytes);
+        GeneralSlotLengthLimits slot = Assert.Single(result.EffectiveLimits.SlotLimits);
+        Assert.Equal(0x20, slot.MinimumBytes);
+        Assert.Equal(0x40, slot.MaximumBytes);
+        Assert.Equal([0x20, 0x40], slot.AllowedLengths);
+    }
+
+    /// <summary>A Saved Rule cannot broaden its exact Trusted Parent or create an empty slot intersection.</summary>
+    [Fact]
+    public void RejectsBroaderOrEmptySavedRuleLimits()
+    {
+        GeneralResourceLimits technical = CreateLimits();
+        GeneralResourceLimits parent = new(
+            8,
+            0x100,
+            0x100,
+            0x100,
+            [new GeneralSlotLengthLimits("slot", 0x10, 0x40, [0x20, 0x40])]);
+        GeneralResourceLimits broader = new(
+            9,
+            0x100,
+            0x100,
+            0x100,
+            [new GeneralSlotLengthLimits("slot", 0x08, 0x40, [0x20, 0x40])]);
+        GeneralResourceLimits empty = new(
+            8,
+            0x100,
+            0x100,
+            0x100,
+            [new GeneralSlotLengthLimits("slot", 0x10, 0x40, [0x30])]);
+
+        GeneralResourceResolutionResult broaderResult =
+            GeneralResourceLimitResolver.Resolve(technical, parent, broader);
+        GeneralResourceResolutionResult emptyResult =
+            GeneralResourceLimitResolver.Resolve(technical, parent, empty);
+
+        Assert.False(broaderResult.IsResolved);
+        Assert.Contains(
+            broaderResult.Issues,
+            issue => issue.Code == GeneralAuthoringIssueCodes.SavedRuleBroadensParent);
+        Assert.False(emptyResult.IsResolved);
+        Assert.Contains(
+            emptyResult.Issues,
+            issue => issue.Code == GeneralAuthoringIssueCodes.EffectiveLimitsEmpty);
+    }
+
+    /// <summary>Count, total-write, whole-file, slot, and inline allocation ceilings block before execution.</summary>
+    [Fact]
+    public void ReportsEveryResourceCeilingBeforeExecution()
+    {
+        var technical = new GeneralResourceLimits(
+            maximumMappingCount: 1,
+            maximumTotalWriteBytes: 3,
+            maximumFileBytes: 5,
+            maximumSafeMaterializationBytes: 2,
+            [new GeneralSlotLengthLimits("file", 1, 4, [4])]);
+        GeneralMappingDraftRow[] rows =
+        [
+            CreateRow("file", GeneralMappingSource.File("file.bin"), 0, 2),
+            CreateRow("fill", GeneralMappingSource.HexFill("FF"), 4, 3),
+        ];
+
+        GeneralAuthoringAdmissionResult result = GeneralAuthoringAdmission.Evaluate(
+            new GeneralMappingDraftState(rows),
+            new Dictionary<string, long>(StringComparer.Ordinal)
+            {
+                [CompositionAddressSpaceIds.OutputImage] = 0x20,
+            },
+            [new GeneralInputResource("file", 6)],
+            technical,
+            technical,
+            savedRuleLimits: null);
+
+        Assert.False(result.IsAdmitted);
+        Assert.Contains(result.Issues, issue => issue.Code == GeneralAuthoringIssueCodes.MappingCountExceeded);
+        Assert.Contains(result.Issues, issue => issue.Code == GeneralAuthoringIssueCodes.TotalWriteBytesExceeded);
+        Assert.Contains(result.Issues, issue => issue.Code == GeneralAuthoringIssueCodes.FileSizeExceeded);
+        Assert.Contains(result.Issues, issue => issue.Code == GeneralAuthoringIssueCodes.SlotLengthRejected);
+        Assert.Contains(result.Issues, issue => issue.Code == GeneralAuthoringIssueCodes.InlineMaterializationExceeded);
+    }
+
+    /// <summary>An oversized overwrite payload is measured without allocating its byte array.</summary>
+    [Fact]
+    public void RejectsOversizedInlineOverwritePayload()
+    {
+        GeneralMappingDraftRow row = new(
+            "overwrite",
+            ExplicitMappingOperationKind.ReplaceRange,
+            GeneralMappingSource.HexOverwrite(new string('A', 18), "overwrite"),
+            new ByteRange(0, 1),
+            CompositionAddressSpaceIds.OutputImage,
+            new ByteRange(0, 1),
+            OverlapPolicy.Reject,
+            alignment: 1,
+            "Test overwrite.");
+        GeneralResourceLimits limits = new(
+            maximumMappingCount: 1,
+            maximumTotalWriteBytes: 1,
+            maximumFileBytes: 1,
+            maximumSafeMaterializationBytes: 4);
+
+        GeneralAuthoringAdmissionResult result = GeneralAuthoringAdmission.Evaluate(
+            new GeneralMappingDraftState([row]),
+            new Dictionary<string, long>(StringComparer.Ordinal)
+            {
+                [CompositionAddressSpaceIds.OutputImage] = 1,
+            },
+            [],
+            limits,
+            limits,
+            savedRuleLimits: null);
+
+        GeneralAuthoringAdmissionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal(GeneralAuthoringIssueCodes.InlineMaterializationExceeded, issue.Code);
+        Assert.Contains("requires 9 bytes", issue.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Unused file tails remain valid when whole-file and resolved slot admission allow them.</summary>
+    [Fact]
+    public void AllowsUnreferencedFileTailWithinResolvedLimits()
+    {
+        GeneralMappingDraftRow row =
+            CreateRow("file", GeneralMappingSource.File("file.bin"), 0x10, 0x10);
+
+        GeneralAuthoringAdmissionResult result = GeneralAuthoringAdmission.Evaluate(
+            new GeneralMappingDraftState([row]),
+            new Dictionary<string, long>(StringComparer.Ordinal)
+            {
+                [CompositionAddressSpaceIds.OutputImage] = 0x40,
+            },
+            [new GeneralInputResource("file", 0x30)],
+            CreateLimits(),
+            CreateLimits(),
+            savedRuleLimits: null);
+
+        Assert.True(result.IsAdmitted);
+    }
+
+    /// <summary>Total authored write arithmetic fails closed on Int64 overflow.</summary>
+    [Fact]
+    public void RejectsTotalWriteLengthOverflow()
+    {
+        long largeLength = (long.MaxValue / 2) + 1;
+        GeneralMappingDraftRow first = CreateInlineRow(
+            "first",
+            "first-output",
+            largeLength);
+        GeneralMappingDraftRow second = CreateInlineRow(
+            "second",
+            "second-output",
+            largeLength);
+        GeneralResourceLimits limits = new(
+            maximumMappingCount: 2,
+            maximumTotalWriteBytes: long.MaxValue,
+            maximumFileBytes: long.MaxValue,
+            maximumSafeMaterializationBytes: long.MaxValue);
+
+        GeneralAuthoringAdmissionResult result = GeneralAuthoringAdmission.Evaluate(
+            new GeneralMappingDraftState([first, second]),
+            new Dictionary<string, long>(StringComparer.Ordinal)
+            {
+                ["first-output"] = long.MaxValue,
+                ["second-output"] = long.MaxValue,
+            },
+            [],
+            limits,
+            limits,
+            savedRuleLimits: null);
+
+        Assert.False(result.IsAdmitted);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == GeneralAuthoringIssueCodes.TotalWriteBytesOverflow);
+    }
+
+    /// <summary>Out-of-bounds authored writes block, while profile POSTBUILD never enters authored occupancy.</summary>
+    [Fact]
+    public void RejectsOutOfBoundsWithoutInventingPostbuildOccupancy()
+    {
+        GeneralAuthoringAdmissionResult result = Evaluate(
+        [
+            CreateRow("authored", GeneralMappingSource.File("file.bin"), 0x1F, 0x02),
+        ],
+        targetCapacity: 0x20);
+
+        Assert.False(result.IsAdmitted);
+        _ = Assert.Single(result.OccupancySegments);
+        Assert.Equal("authored", result.OccupancySegments[0].MappingId);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == GeneralAuthoringIssueCodes.TargetOutOfBounds);
+        Assert.DoesNotContain(
+            result.OccupancySegments,
+            segment => segment.MappingId.Contains("postbuild", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static GeneralAuthoringAdmissionResult Evaluate(
+        IReadOnlyList<GeneralMappingDraftRow> rows,
+        long targetCapacity = 0x100)
+    {
+        GeneralInputResource[] inputs =
+        [
+            .. rows
+                .Where(row => row.Source.Kind == GeneralMappingSourceKind.FileArtifact)
+                .Select(row => new GeneralInputResource(
+                    row.MappingId,
+                    Math.Max(row.SourceRange.EndExclusive, 0x40))),
+        ];
+        GeneralResourceLimits limits = CreateLimits();
+        return GeneralAuthoringAdmission.Evaluate(
+            new GeneralMappingDraftState(rows),
+            new Dictionary<string, long>(StringComparer.Ordinal)
+            {
+                [CompositionAddressSpaceIds.OutputImage] = targetCapacity,
+            },
+            inputs,
+            limits,
+            limits,
+            savedRuleLimits: null);
+    }
+
+    private static GeneralResourceLimits CreateLimits()
+    {
+        return new GeneralResourceLimits(
+            maximumMappingCount: 64,
+            maximumTotalWriteBytes: 0x1000,
+            maximumFileBytes: 0x1000,
+            maximumSafeMaterializationBytes: 0x1000);
+    }
+
+    private static GeneralMappingDraftRow CreateRow(
+        string id,
+        GeneralMappingSource source,
+        long targetStart,
+        long length)
+    {
+        return new GeneralMappingDraftRow(
+            id,
+            source.Kind == GeneralMappingSourceKind.FileArtifact
+                ? ExplicitMappingOperationKind.CopyRange
+                : ExplicitMappingOperationKind.ReplaceRange,
+            source,
+            new ByteRange(0, length),
+            CompositionAddressSpaceIds.OutputImage,
+            new ByteRange(targetStart, length),
+            OverlapPolicy.Reject,
+            alignment: 1,
+            "Test mapping.");
+    }
+
+    private static GeneralMappingDraftRow CreateInlineRow(
+        string id,
+        string targetSpaceId,
+        long length)
+    {
+        return new GeneralMappingDraftRow(
+            id,
+            ExplicitMappingOperationKind.ReplaceRange,
+            GeneralMappingSource.HexFill("00", id),
+            new ByteRange(0, length),
+            targetSpaceId,
+            new ByteRange(0, length),
+            OverlapPolicy.Reject,
+            alignment: 1,
+            "Test inline mapping.");
+    }
+}

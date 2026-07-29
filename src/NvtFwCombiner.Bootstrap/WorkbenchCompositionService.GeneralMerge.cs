@@ -87,6 +87,8 @@ public static partial class WorkbenchCompositionService
                 WorkbenchMemoryCoverageRole.Standard),
         ];
         ByteRange outputRange = new(0, capacity);
+        Dictionary<string, GeneralAuthoringAdmissionIssue> blockersByMappingId =
+            ResolveGeneralMergeDisplayBlockers(displayMappings, capacity);
 
         foreach (GeneralMergeDisplayMapping displayMapping in displayMappings)
         {
@@ -98,6 +100,19 @@ public static partial class WorkbenchCompositionService
                     "Blocked",
                     "No output",
                     displayMapping.Issue!.Message));
+                continue;
+            }
+
+            if (blockersByMappingId.TryGetValue(
+                    mapping.MappingId,
+                    out GeneralAuthoringAdmissionIssue? blocker))
+            {
+                rows.Add(new WorkbenchMemoryMapRow(
+                    FormatDisplayRange(mapping.TargetRange),
+                    "Reserved",
+                    "Blocked",
+                    "No output",
+                    blocker.Message));
                 continue;
             }
 
@@ -128,6 +143,41 @@ public static partial class WorkbenchCompositionService
             FormatFullRange(capacity),
             rows,
             ToWorkbenchCoverageSegments(segments, capacity));
+    }
+
+    private static Dictionary<string, GeneralAuthoringAdmissionIssue>
+        ResolveGeneralMergeDisplayBlockers(
+            IReadOnlyList<GeneralMergeDisplayMapping> displayMappings,
+            long capacity)
+    {
+        GeneralMappingDraftRow[] validMappings =
+        [
+            .. displayMappings
+                .Where(static item => item.Mapping is not null)
+                .Select(static item => item.Mapping!),
+        ];
+        if (validMappings.Length == 0 ||
+            validMappings.Select(static row => row.MappingId)
+                .Distinct(StringComparer.Ordinal).Count() != validMappings.Length)
+        {
+            return new Dictionary<string, GeneralAuthoringAdmissionIssue>(
+                StringComparer.Ordinal);
+        }
+
+        GeneralAuthoringAdmissionResult admission = AdmitGeneralMappingDraft(
+            new GeneralMappingDraftState(validMappings),
+            capacity);
+        Dictionary<string, GeneralAuthoringAdmissionIssue> blockers =
+            new(StringComparer.Ordinal);
+        foreach (GeneralAuthoringAdmissionIssue issue in admission.Issues)
+        {
+            foreach (string mappingId in issue.MappingIds)
+            {
+                _ = blockers.TryAdd(mappingId, issue);
+            }
+        }
+
+        return blockers;
     }
 
     private sealed record GeneralMergeDisplayMapping(

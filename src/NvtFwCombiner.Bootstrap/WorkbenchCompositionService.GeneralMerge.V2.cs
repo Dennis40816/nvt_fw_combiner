@@ -84,6 +84,16 @@ public static partial class WorkbenchCompositionService
                 profileId: registration.ProfileId);
         }
 
+        GeneralAuthoringAdmissionResult admission = AdmitGeneralMappingDraft(
+            mappingDraft,
+            capacity);
+        if (!admission.IsAdmitted)
+        {
+            return Blocked(
+                admission.ToCompositionIssues(),
+                profileId: registration.ProfileId);
+        }
+
         if (!TryCreateGeneralMergeMappings(
                 mappingDraft,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
