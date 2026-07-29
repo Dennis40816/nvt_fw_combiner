@@ -111,6 +111,30 @@ public sealed partial class SavedRuleCliCommandTests
         Assert.Equal("saved-rule", provenance.GetProperty("Kind").GetString());
         Assert.Equal("copy-display-window", provenance.GetProperty("SourceId").GetString());
         Assert.Equal("1.0.0", provenance.GetProperty("SourceVersion").GetString());
+        JsonElement admission =
+            document.RootElement.GetProperty("GeneralAdmission");
+        Assert.Equal(
+            "nt51950-general-merge-logical-candidate",
+            admission.GetProperty("TrustedParentId").GetString());
+        Assert.Equal(
+            "copy-display-window",
+            admission.GetProperty("SavedRuleId").GetString());
+        JsonElement effective =
+            admission.GetProperty("EffectiveLimits");
+        Assert.Equal(
+            1,
+            effective.GetProperty("MaximumMappingCount").GetInt32());
+        Assert.Equal(
+            0x20,
+            effective.GetProperty("MaximumTotalWriteBytes").GetInt64());
+        JsonElement resource = Assert.Single(
+            admission.GetProperty("InputResources").EnumerateArray());
+        Assert.Equal(
+            "reviewed-copy-operation",
+            resource.GetProperty("SlotId").GetString());
+        Assert.Equal(
+            64,
+            resource.GetProperty("LengthBytes").GetInt64());
     }
 
     /// <summary>Rejects saved-rule report paths that would overwrite the reviewed rule JSON.</summary>

@@ -37,10 +37,12 @@ compilation or inline allocation.
    minimum, maximum, and optional discrete accepted lengths. An optional Saved
    Rule may only narrow that effective Parent contract. Empty intersections or
    attempted broadening block.
-5. The resolved result, including effective limits, occupancy, and typed
-   blockers, is the shared seam for Workbench, CLI/report, Saved Rule adapters,
-   memory projection, and compilation. Adapters may observe filesystem length
-   but do not redefine admission.
+5. The resolved result, including effective limits, observed path-free input
+   lengths, occupancy, and typed blockers, is the shared seam for Workbench,
+   CLI/report, Saved Rule adapters, memory projection, and compilation.
+   Application requests observations through an inward port. The filesystem
+   adapter may answer that port but cannot define Parent limits, and downstream
+   lowering must not inspect the file again or reconstruct admission.
 6. Unreferenced source-file tails are allowed. They block only when the
    whole-file technical ceiling or resolved slot contract rejects the observed
    file.
@@ -48,10 +50,19 @@ compilation or inline allocation.
    operation sequence, declared processor write authority, and staged mutation
    audit remain unchanged.
 
-Current headless callers use a default technical ceiling of 4096 mappings,
+Current callers use a default technical ceiling of 4096 mappings,
 `Int32.MaxValue` total write and whole-file bytes, and `0x800000` safely
 materialized inline bytes. Exact Parent or Saved Rule limits can only reduce
 those values.
+
+Current General V2 profile schema does not yet serialize its resource
+envelope. Until that schema is available, Bootstrap projects a compatibility
+Parent whose scalar limits equal the Application technical ceilings and whose
+named file slots are the exact typed-draft slot ids with a profile-confirmed
+`1..Int32.MaxValue` interval. This bridge never derives authority from an
+observed file length. Saved Rule v1 likewise has no `accessEnvelope`; its
+closed reviewed rows provide an exact compatibility narrowing for mapping
+count and total authored bytes.
 
 ## Alternatives rejected
 
@@ -78,11 +89,19 @@ those values.
 
 ## Compatibility deletion
 
-The General-specific translation from compiler operation-overlap diagnostics
-and any Bootstrap/CLI hardcoded resource checks may be deleted only after all
-General Merge, General Replace, Saved Rule, memory-projection, and desktop
-callers consume the Application result. The Domain plan overlap check remains;
-it protects compiled operation algebra rather than authoring policy.
+- Delete `CreateCurrentGeneralTrustedParentPolicy` when the composition-profile
+  schema declares a resource envelope and trusted-bundle projection supplies
+  its exact typed Parent policy to the Application use case.
+- Delete the Saved Rule v1 exact-row compatibility projection when Saved Rule
+  v2 `accessEnvelope` is the normal consumed policy. Migration must preserve
+  fail-closed Parent-slot matching and cannot infer limits from input bytes.
+- Delete the remaining General-specific translation from compiler
+  operation-overlap diagnostics and any duplicate Bootstrap/CLI resource
+  checks only after General Merge, General Replace, Saved Rule,
+  memory-projection, and desktop callers all consume the Application result.
+
+The Domain plan overlap check remains; it protects compiled operation algebra
+rather than authoring policy.
 
 ## Verification
 
@@ -92,7 +111,8 @@ it protects compiled operation algebra rather than authoring policy.
 - Mapping-count, total-write, overflow, whole-file, per-slot,
   safe-materialization, and empty-limit failures.
 - Unreferenced file-tail acceptance and POSTBUILD exclusion.
-- Workbench/CLI report projection before compiler or processor selection.
+- Workbench/CLI report, memory, Preview token, and compiler lowering consume
+  the same admitted snapshot, including observed input lengths.
 - Application and Bootstrap narrow suites, architecture tests, structure gate,
   final verifier, independent architecture/contract review, and scoped
   Polytail.

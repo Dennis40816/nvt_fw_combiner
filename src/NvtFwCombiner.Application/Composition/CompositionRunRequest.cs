@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -18,7 +19,8 @@ public sealed class CompositionRunRequest
         IcNumberSelection? icNumberSelection = null,
         bool outputFileNameIsOverride = false,
         TopologySelection? abMergeTopologySelection = null,
-        IEnumerable<CompositionIssue>? advisoryIssues = null)
+        IEnumerable<CompositionIssue>? advisoryIssues = null,
+        GeneralAuthoringAdmissionSummary? generalAdmission = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(compiledComposition);
@@ -47,6 +49,7 @@ public sealed class CompositionRunRequest
         IcNumberSelection = icNumberSelection;
         AbMergeTopologySelection = abMergeTopologySelection;
         AdvisoryIssues = CopyAdvisoryIssues(advisoryIssues);
+        GeneralAdmission = generalAdmission;
     }
 
     /// <summary>Stable run id for reports and diagnostics.</summary>
@@ -76,6 +79,9 @@ public sealed class CompositionRunRequest
     /// <summary>Caller-supplied typed warnings or information retained in Preview/Build reports.</summary>
     public IReadOnlyList<CompositionIssue> AdvisoryIssues { get; }
 
+    /// <summary>Path-free General admission provenance shared by Preview and Build.</summary>
+    public GeneralAuthoringAdmissionSummary? GeneralAdmission { get; }
+
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
     {
@@ -89,7 +95,8 @@ public sealed class CompositionRunRequest
             IcNumberSelection,
             IsOutputFileNameOverride,
             AbMergeTopologySelection,
-            AdvisoryIssues);
+            AdvisoryIssues,
+            GeneralAdmission);
     }
 
     private static ReadOnlyCollection<CompositionIssue> CopyAdvisoryIssues(

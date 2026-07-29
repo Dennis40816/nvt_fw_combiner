@@ -53,7 +53,12 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        if (!TryCreateMappings(options, icId, error, out GeneralMappingDraftState? mappingDraft))
+        if (!TryCreateMappings(
+                options,
+                icId,
+                error,
+                out GeneralMappingDraftState? mappingDraft,
+                out GeneralSavedRuleResourcePolicy? savedRulePolicy))
         {
             return UsageError;
         }
@@ -99,6 +104,7 @@ internal static partial class MergeCliCommandHandler
                 icId,
                 outputLength,
                 mappingDraft,
+                savedRulePolicy,
                 action == "build",
                 cancellationToken,
                 outputPath)

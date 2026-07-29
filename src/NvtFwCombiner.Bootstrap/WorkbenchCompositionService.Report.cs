@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
@@ -56,7 +57,8 @@ public static partial class WorkbenchCompositionService
         bool build,
         IReadOnlyList<OperationRunSummary> operations,
         IReadOnlyList<CompositionIssue> issues,
-        string outputFileName)
+        string outputFileName,
+        GeneralAuthoringAdmissionResult? generalAdmission = null)
     {
         string profileId = $"{icId.ToLowerInvariant()}-{replaceMode.ToLowerInvariant()}-replace-workbench";
         return CreateBlockedReportRunResult(
@@ -71,7 +73,8 @@ public static partial class WorkbenchCompositionService
             build,
             operations,
             issues,
-            outputFileName);
+            outputFileName,
+            generalAdmission);
     }
 
     private static IReadOnlyList<OperationRunSummary> CreateExplicitMappingPlanningOperations(
@@ -111,7 +114,8 @@ public static partial class WorkbenchCompositionService
         bool build,
         IReadOnlyList<OperationRunSummary> operations,
         IReadOnlyList<CompositionIssue> issues,
-        string outputFileName)
+        string outputFileName,
+        GeneralAuthoringAdmissionResult? generalAdmission = null)
     {
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         var report = new CompositionRunReport(
@@ -128,7 +132,8 @@ public static partial class WorkbenchCompositionService
             operations,
             [],
             issues,
-            new OutputArtifactSummary(outputFileName, 0, EmptySha256, committed: false));
+            new OutputArtifactSummary(outputFileName, 0, EmptySha256, committed: false),
+            generalAdmission: generalAdmission?.ToSummary());
         string reportJson = JsonSerializer.Serialize(report, ReportJsonOptions);
         return new WorkbenchRunResult(
             false,

@@ -72,7 +72,8 @@ public sealed partial class CompositionRunService
             outputDifferences,
             request.CompiledComposition.CompilationFingerprint,
             validations,
-            outputNaming);
+            outputNaming,
+            generalAdmission: request.GeneralAdmission);
     }
 
     private static MutationRunSummary ToMutationSummary(MutationRecord mutation)

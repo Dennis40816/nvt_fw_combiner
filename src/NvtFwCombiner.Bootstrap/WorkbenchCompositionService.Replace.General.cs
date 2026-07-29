@@ -66,6 +66,7 @@ public static partial class WorkbenchCompositionService
             return failure!;
         }
 
+        GeneralAuthoringAdmissionResult? admission = null;
         WorkbenchRunResult Blocked(
             IReadOnlyList<CompositionIssue> issues,
             IReadOnlyList<OperationRunSummary>? operations = null,
@@ -78,19 +79,23 @@ public static partial class WorkbenchCompositionService
                 build,
                 operations ?? [],
                 issues,
-                outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General));
+                outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
+                admission);
         }
 
-        GeneralAuthoringAdmissionResult admission = AdmitGeneralMappingDraft(
+        admission = AdmitGeneralMappingDraft(
             context!.MappingDraft,
-            context.Capacity);
+            context.Capacity,
+            CreateCurrentGeneralTrustedParentPolicy(
+                Nt51926GeneralReplaceDpProfileId,
+                context.MappingDraft));
         if (!admission.IsAdmitted)
         {
             return Blocked(admission.ToCompositionIssues());
         }
 
         if (!TryCreateGeneralReplaceMappings(
-                context.MappingDraft,
+                admission,
                 context.Capacity,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,
@@ -232,7 +237,8 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: context.Selection,
             cancellationToken,
             patchVirtualArtifacts,
-            progress).ConfigureAwait(false);
+            progress,
+            generalAdmission: admission).ConfigureAwait(false);
     }
 
     private static bool GeneralReplaceTouchesTpRegion(

@@ -1,4 +1,5 @@
 using System.Globalization;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
@@ -34,7 +35,8 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null,
         bool outputPathUsesAutomaticName = false,
         Action<string, OutputNamingSummary?>? additionalOutputPreflight = null,
-        IReadOnlyList<CompositionIssue>? advisoryIssues = null)
+        IReadOnlyList<CompositionIssue>? advisoryIssues = null,
+        GeneralAuthoringAdmissionResult? generalAdmission = null)
     {
         CompositionRunResult result = await RunCompiledCompositionResultAsync(
             runIdPrefix,
@@ -54,7 +56,8 @@ public static partial class WorkbenchCompositionService
             additionalOutputProtectedPaths,
             outputPathUsesAutomaticName,
             additionalOutputPreflight,
-            advisoryIssues).ConfigureAwait(false);
+            advisoryIssues,
+            generalAdmission).ConfigureAwait(false);
         return ToWorkbenchRunResult(result);
     }
 
@@ -77,7 +80,8 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths = null,
         bool outputPathUsesAutomaticName = false,
         Action<string, OutputNamingSummary?>? additionalOutputPreflight = null,
-        IReadOnlyList<CompositionIssue>? advisoryIssues = null)
+        IReadOnlyList<CompositionIssue>? advisoryIssues = null,
+        GeneralAuthoringAdmissionResult? generalAdmission = null)
     {
         if (outputPathUsesAutomaticName &&
             (string.IsNullOrWhiteSpace(outputPath) || previewOutputFileName is not null))
@@ -161,7 +165,8 @@ public static partial class WorkbenchCompositionService
             outputFileNameIsOverride: (outputPath is not null && !outputPathUsesAutomaticName) ||
                 previewOutputFileName is not null,
             abMergeTopologySelection: abMergeTopologySelection,
-            advisoryIssues: advisoryIssues);
+            advisoryIssues: advisoryIssues,
+            generalAdmission: generalAdmission?.ToSummary());
 
         CompositionRunResult result = progress is null
             ? await service.PreviewOrBuildAsync(request, build, cancellationToken).ConfigureAwait(false)

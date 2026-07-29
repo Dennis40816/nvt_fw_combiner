@@ -11,9 +11,11 @@ internal static partial class MergeCliCommandHandler
         ParsedOptions options,
         string icId,
         TextWriter error,
-        [NotNullWhen(true)] out GeneralMappingDraftState? mappings)
+        [NotNullWhen(true)] out GeneralMappingDraftState? mappings,
+        out GeneralSavedRuleResourcePolicy? savedRulePolicy)
     {
         mappings = null;
+        savedRulePolicy = null;
         List<string> values = options.GetValues("--mapping");
         bool usesRule = options.Values.TryGetValue("--rule", out string? rulePath);
         if (usesRule)
@@ -24,7 +26,13 @@ internal static partial class MergeCliCommandHandler
                 return false;
             }
 
-            return TryCreateMappingsFromSavedRule(rulePath!, options.GetValues("--slot"), icId, error, out mappings);
+            return TryCreateMappingsFromSavedRule(
+                rulePath!,
+                options.GetValues("--slot"),
+                icId,
+                error,
+                out mappings,
+                out savedRulePolicy);
         }
 
         if (options.GetValues("--slot").Count > 0)

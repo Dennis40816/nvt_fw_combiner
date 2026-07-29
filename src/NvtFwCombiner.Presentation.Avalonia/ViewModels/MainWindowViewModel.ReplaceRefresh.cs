@@ -61,6 +61,7 @@ public sealed partial class MainWindowViewModel
             IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) = SelectedMergeMode switch
             {
                 GeneralMergeMode => UiCompositionRunner.GetGeneralMergeMemoryDisplay(
+                    SelectedIc,
                     GeneralMergeOutputLength,
                     CreateGeneralMergeMappingInputs()),
                 AbCodeMergeMode => UiCompositionRunner.GetAbMergeMemoryDisplay(

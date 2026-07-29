@@ -7,34 +7,62 @@ public sealed record GeneralAuthoringAdmissionResult
 {
     private readonly GeneralOccupancySegment[] _occupancySegments;
     private readonly GeneralAuthoringAdmissionIssue[] _issues;
+    private readonly GeneralInputResource[] _inputResources;
 
     /// <summary>Creates one defensively copied admission result.</summary>
     public GeneralAuthoringAdmissionResult(
+        GeneralMappingDraftState draft,
+        string trustedParentId,
+        string? savedRuleId,
         GeneralResourceLimits? effectiveLimits,
+        IEnumerable<GeneralInputResource> inputResources,
         IEnumerable<GeneralOccupancySegment> occupancySegments,
         IEnumerable<GeneralAuthoringAdmissionIssue> issues)
     {
+        ArgumentNullException.ThrowIfNull(draft);
+        ArgumentException.ThrowIfNullOrWhiteSpace(trustedParentId);
         ArgumentNullException.ThrowIfNull(occupancySegments);
         ArgumentNullException.ThrowIfNull(issues);
+        ArgumentNullException.ThrowIfNull(inputResources);
+        _inputResources = [.. inputResources];
         _occupancySegments = [.. occupancySegments];
         _issues = [.. issues];
-        if (_occupancySegments.Any(static segment => segment is null) ||
+        if (_inputResources.Any(static resource => resource is null) ||
+            _occupancySegments.Any(static segment => segment is null) ||
             _issues.Any(static issue => issue is null))
         {
             throw new ArgumentException(
-                "General admission occupancy and issues cannot contain null.");
+                "General admission resources, occupancy, and issues cannot contain null.");
         }
 
+        Draft = draft;
+        TrustedParentId = trustedParentId;
+        SavedRuleId = string.IsNullOrWhiteSpace(savedRuleId)
+            ? null
+            : savedRuleId;
         EffectiveLimits = effectiveLimits;
         OccupancySegments = Array.AsReadOnly(_occupancySegments);
         Issues = Array.AsReadOnly(_issues);
+        InputResources = Array.AsReadOnly(_inputResources);
     }
 
     /// <summary>Resolved limits used for this admission, or null after resolution failure.</summary>
     public GeneralResourceLimits? EffectiveLimits { get; }
 
+    /// <summary>Exact immutable draft evaluated by this result.</summary>
+    public GeneralMappingDraftState Draft { get; }
+
+    /// <summary>Exact Parent policy used by this result.</summary>
+    public string TrustedParentId { get; }
+
+    /// <summary>Optional Saved Rule narrowing identity.</summary>
+    public string? SavedRuleId { get; }
+
     /// <summary>All authored writer segments in canonical target/range/id order.</summary>
     public IReadOnlyList<GeneralOccupancySegment> OccupancySegments { get; }
+
+    /// <summary>Observed path-free whole-file resources used by compilation.</summary>
+    public IReadOnlyList<GeneralInputResource> InputResources { get; }
 
     /// <summary>All deterministic typed blockers in stable issue-id order.</summary>
     public IReadOnlyList<GeneralAuthoringAdmissionIssue> Issues { get; }
@@ -50,6 +78,27 @@ public sealed record GeneralAuthoringAdmissionResult
             .. Issues.Select(static issue => issue.ToCompositionIssue()),
         ];
     }
+
+    /// <summary>Returns the exact admitted draft or fails closed for a blocked result.</summary>
+    public GeneralMappingDraftState RequireAdmittedDraft()
+    {
+        return IsAdmitted
+            ? Draft
+            : throw new InvalidOperationException(
+                "A blocked General admission result cannot be compiled.");
+    }
+
+    /// <summary>Projects path-free admission provenance for reports and Preview identity.</summary>
+    public GeneralAuthoringAdmissionSummary ToSummary()
+    {
+        return new GeneralAuthoringAdmissionSummary(
+            TrustedParentId,
+            SavedRuleId,
+            EffectiveLimits,
+            InputResources,
+            OccupancySegments,
+            Issues);
+    }
 }
 
 /// <summary>
@@ -64,17 +113,18 @@ public static class GeneralAuthoringAdmission
         IReadOnlyDictionary<string, long> targetAddressSpaceCapacities,
         IEnumerable<GeneralInputResource> inputResources,
         GeneralResourceLimits technicalLimits,
-        GeneralResourceLimits trustedParentLimits,
-        GeneralResourceLimits? savedRuleLimits)
+        GeneralTrustedParentResourcePolicy trustedParent,
+        GeneralSavedRuleResourcePolicy? savedRule)
     {
         ArgumentNullException.ThrowIfNull(draft);
         ArgumentNullException.ThrowIfNull(targetAddressSpaceCapacities);
         ArgumentNullException.ThrowIfNull(inputResources);
+        GeneralInputResource[] observedResources = [.. inputResources];
 
         GeneralResourceResolutionResult resolution = GeneralResourceLimitResolver.Resolve(
             technicalLimits,
-            trustedParentLimits,
-            savedRuleLimits);
+            trustedParent,
+            savedRule);
         List<GeneralAuthoringAdmissionIssue> issues = [.. resolution.Issues];
         GeneralOccupancySegment[] occupancy =
         [
@@ -92,15 +142,29 @@ public static class GeneralAuthoringAdmission
 
         if (resolution.EffectiveLimits is not { } effective)
         {
-            return CreateResult(null, occupancy, issues);
+            return CreateResult(
+                draft,
+                trustedParent.ParentId,
+                savedRule?.RuleId,
+                null,
+                observedResources,
+                occupancy,
+                issues);
         }
 
         Dictionary<string, GeneralInputResource> resources = BuildResourceIndex(
-            inputResources,
+            observedResources,
             issues);
         ValidateResourceUse(draft, targetAddressSpaceCapacities, resources, effective, issues);
         ValidateOccupancy(occupancy, issues);
-        return CreateResult(effective, occupancy, issues);
+        return CreateResult(
+            draft,
+            trustedParent.ParentId,
+            savedRule?.RuleId,
+            effective,
+            observedResources,
+            occupancy,
+            issues);
     }
 
     private static Dictionary<string, GeneralInputResource> BuildResourceIndex(
@@ -235,8 +299,20 @@ public static class GeneralAuthoringAdmission
                 slotId: row.MappingId));
         }
 
-        if (limits.TryGetSlot(row.MappingId, out GeneralSlotLengthLimits? slotLimits) &&
-            !slotLimits!.Accepts(resource.LengthBytes))
+        if (!limits.TryGetSlot(
+                row.MappingId,
+                out GeneralSlotLengthLimits? slotLimits))
+        {
+            issues.Add(CreateIssue(
+                GeneralAuthoringIssueCodes.TrustedParentSlotMissing,
+                row.MappingId,
+                $"The exact Trusted Parent does not declare General input slot '{row.MappingId}'.",
+                [row.MappingId],
+                slotId: row.MappingId));
+            return;
+        }
+
+        if (!slotLimits!.Accepts(resource.LengthBytes))
         {
             issues.Add(CreateIssue(
                 GeneralAuthoringIssueCodes.SlotLengthRejected,
@@ -329,7 +405,11 @@ public static class GeneralAuthoringAdmission
     }
 
     private static GeneralAuthoringAdmissionResult CreateResult(
+        GeneralMappingDraftState draft,
+        string trustedParentId,
+        string? savedRuleId,
         GeneralResourceLimits? effectiveLimits,
+        IEnumerable<GeneralInputResource> inputResources,
         GeneralOccupancySegment[] occupancy,
         IEnumerable<GeneralAuthoringAdmissionIssue> issues)
     {
@@ -341,7 +421,11 @@ public static class GeneralAuthoringAdmission
                 .OrderBy(static issue => issue.IssueId, StringComparer.Ordinal),
         ];
         return new GeneralAuthoringAdmissionResult(
+            draft,
+            trustedParentId,
+            savedRuleId,
             effectiveLimits,
+            inputResources,
             Array.AsReadOnly(occupancy),
             Array.AsReadOnly(orderedIssues));
     }
@@ -350,4 +434,67 @@ public static class GeneralAuthoringAdmission
     {
         return $"[0x{range.Start:X}, 0x{range.EndExclusive:X})";
     }
+}
+
+/// <summary>
+/// Path-free immutable General admission provenance carried by reports and
+/// Preview/Build identity.
+/// </summary>
+public sealed record GeneralAuthoringAdmissionSummary
+{
+    private readonly GeneralOccupancySegment[] _occupancySegments;
+    private readonly GeneralAuthoringAdmissionIssue[] _issues;
+    private readonly GeneralInputResource[] _inputResources;
+
+    /// <summary>Creates one immutable projection from an admission result.</summary>
+    public GeneralAuthoringAdmissionSummary(
+        string trustedParentId,
+        string? savedRuleId,
+        GeneralResourceLimits? effectiveLimits,
+        IEnumerable<GeneralInputResource> inputResources,
+        IEnumerable<GeneralOccupancySegment> occupancySegments,
+        IEnumerable<GeneralAuthoringAdmissionIssue> issues)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(trustedParentId);
+        ArgumentNullException.ThrowIfNull(occupancySegments);
+        ArgumentNullException.ThrowIfNull(issues);
+        ArgumentNullException.ThrowIfNull(inputResources);
+        TrustedParentId = trustedParentId;
+        SavedRuleId = string.IsNullOrWhiteSpace(savedRuleId)
+            ? null
+            : savedRuleId;
+        EffectiveLimits = effectiveLimits;
+        _inputResources = [.. inputResources];
+        _occupancySegments = [.. occupancySegments];
+        _issues = [.. issues];
+        if (_inputResources.Any(static resource => resource is null) ||
+            _occupancySegments.Any(static segment => segment is null) ||
+            _issues.Any(static issue => issue is null))
+        {
+            throw new ArgumentException(
+                "General admission summary collections cannot contain null.");
+        }
+
+        OccupancySegments = Array.AsReadOnly(_occupancySegments);
+        Issues = Array.AsReadOnly(_issues);
+        InputResources = Array.AsReadOnly(_inputResources);
+    }
+
+    /// <summary>Exact Parent identity.</summary>
+    public string TrustedParentId { get; }
+
+    /// <summary>Optional Saved Rule narrowing identity.</summary>
+    public string? SavedRuleId { get; }
+
+    /// <summary>Resolved effective limits, or null for failed resolution.</summary>
+    public GeneralResourceLimits? EffectiveLimits { get; }
+
+    /// <summary>Observed whole-file lengths without host paths.</summary>
+    public IReadOnlyList<GeneralInputResource> InputResources { get; }
+
+    /// <summary>Canonical authored occupancy.</summary>
+    public IReadOnlyList<GeneralOccupancySegment> OccupancySegments { get; }
+
+    /// <summary>Canonical blockers.</summary>
+    public IReadOnlyList<GeneralAuthoringAdmissionIssue> Issues { get; }
 }

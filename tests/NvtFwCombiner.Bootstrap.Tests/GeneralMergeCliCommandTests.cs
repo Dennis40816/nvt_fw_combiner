@@ -191,11 +191,15 @@ public sealed class GeneralMergeCliCommandTests
     [Fact]
     public void GeneralMergeCoverageKeepsAdjacentMappingRowsDistinct()
     {
+        using var workspace = TempWorkspace.Create();
+        string first = workspace.Write("first.bin", new byte[4]);
+        string second = workspace.Write("second.bin", new byte[4]);
         WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            "NT51950",
             "0x10",
             [
-                new WorkbenchGeneralMergeMappingInput("general-merge-map-1", "first.bin", "0x0", "0x0", "0x4"),
-                new WorkbenchGeneralMergeMappingInput("general-merge-map-2", "second.bin", "0x0", "0x4", "0x4"),
+                new WorkbenchGeneralMergeMappingInput("general-merge-map-1", first, "0x0", "0x0", "0x4"),
+                new WorkbenchGeneralMergeMappingInput("general-merge-map-2", second, "0x0", "0x4", "0x4"),
             ]);
 
         WorkbenchMemoryCoverageSegment[] changed = [.. display.CoverageSegments.Where(segment => segment.IsChanged)];
@@ -208,13 +212,18 @@ public sealed class GeneralMergeCliCommandTests
     [Fact]
     public void GeneralMergeDisplayKeepsBlockedRowsAndRangeStateTogether()
     {
-        WorkbenchMemoryDisplay invalid = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay("", []);
+        WorkbenchMemoryDisplay invalid =
+            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                "NT51950",
+                "",
+                []);
 
         Assert.Equal("Enter a valid output length", invalid.RangeLabel);
         Assert.Equal("Blocked", Assert.Single(invalid.MemoryMapRows).ActionLabel);
         Assert.Equal("Pending", Assert.Single(invalid.CoverageSegments).SourceLabel);
 
         WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            "NT51950",
             "0x10",
             [
                 new WorkbenchGeneralMergeMappingInput("invalid-map", "invalid.bin", "", "0x0", "0x1"),
@@ -232,18 +241,22 @@ public sealed class GeneralMergeCliCommandTests
     [Fact]
     public void GeneralMergeDisplayDoesNotPaintIntersectingMappingsAsAccepted()
     {
+        using var workspace = TempWorkspace.Create();
+        string first = workspace.Write("first.bin", new byte[4]);
+        string second = workspace.Write("second.bin", new byte[4]);
         WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            "NT51950",
             "0x10",
             [
                 new WorkbenchGeneralMergeMappingInput(
                     "stable-a",
-                    "first.bin",
+                    first,
                     "0x0",
                     "0x4",
                     "0x4"),
                 new WorkbenchGeneralMergeMappingInput(
                     "stable-b",
-                    "second.bin",
+                    second,
                     "0x0",
                     "0x6",
                     "0x4"),
@@ -254,6 +267,39 @@ public sealed class GeneralMergeCliCommandTests
         Assert.Contains(
             display.MemoryMapRows,
             row => row.Detail.Contains("[0x6, 0x8)", StringComparison.Ordinal));
+    }
+
+    /// <summary>Draft-wide admission blockers are visible in memory projection and prevent changed coverage.</summary>
+    [Fact]
+    public void GeneralMergeDisplayBlocksEveryRowWhenMappingCountExceedsCeiling()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0xA5]);
+        WorkbenchGeneralMergeMappingInput[] mappings =
+        [
+            .. Enumerable.Range(0, 4097).Select(index =>
+                new WorkbenchGeneralMergeMappingInput(
+                    $"map-{index:D4}",
+                    source,
+                    "0x0",
+                    $"0x{index:X}",
+                    "0x1")),
+        ];
+
+        WorkbenchMemoryDisplay display =
+            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                "NT51950",
+                "0x1001",
+                mappings);
+
+        Assert.Contains(
+            display.MemoryMapRows,
+            row => row.Detail.Contains(
+                "mapping count 4097 exceeds the effective maximum 4096",
+                StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            display.CoverageSegments,
+            segment => segment.IsChanged);
     }
 
     /// <summary>Rejects overlapping General Merge targets through Application admission.</summary>

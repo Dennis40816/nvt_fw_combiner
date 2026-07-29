@@ -67,6 +67,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
             "NT51926",
             dpInputLength: null);
         WorkbenchMemoryDisplay customized = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            "NT51950",
             "0x100",
             []);
 
@@ -91,6 +92,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
             WorkbenchCompositionService.GetStandardMergeMemoryDisplay("NT51926", dpInputLength: null),
             WorkbenchCompositionService.GetAbMergeMemoryDisplay("NT51929"),
             WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                "NT51950",
                 "0x100",
                 [new WorkbenchGeneralMergeMappingInput("map-1", "input.bin", "0x0", "0x0", "0x10")]),
         ];

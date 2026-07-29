@@ -7,12 +7,17 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private static bool TryCreateGeneralMergeMappings(
-        GeneralMappingDraftState mappingDraft,
+        GeneralAuthoringAdmissionResult admission,
         out IReadOnlyList<ExplicitMapping> explicitMappings,
         out IReadOnlyList<AddressSpace> requestAddressSpaces,
         out IReadOnlyList<InputArtifactBinding> mappingBindings,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        GeneralMappingDraftState mappingDraft = admission.RequireAdmittedDraft();
+        var resources =
+            admission.InputResources.ToDictionary(
+                static resource => resource.SlotId,
+                StringComparer.Ordinal);
         List<ExplicitMapping> mappings = [];
         List<AddressSpace> spaces = [];
         List<InputArtifactBinding> bindings = [];
@@ -23,18 +28,15 @@ public static partial class WorkbenchCompositionService
 
             string addressSpaceId = $"{input.MappingId}-input";
             string fullPath = Path.GetFullPath(input.Source.Reference);
-            long declaredLength = File.Exists(fullPath)
-                ? new FileInfo(fullPath).Length
-                : input.SourceRange.EndExclusive;
-            if (declaredLength < input.SourceRange.EndExclusive)
+            if (!resources.TryGetValue(
+                    input.MappingId,
+                    out GeneralInputResource? resource))
             {
-                issueList.Add(new CompositionIssue(
-                    WorkbenchIssueCodes.GeneralMergeSourceOutOfBounds,
-                    $"General Merge mapping '{input.MappingId}' source range exceeds the selected input file length.",
-                    input.MappingId));
-                continue;
+                throw new InvalidOperationException(
+                    $"Admitted General Merge mapping '{input.MappingId}' has no observed input resource.");
             }
 
+            long declaredLength = resource.LengthBytes;
             spaces.Add(new AddressSpace(addressSpaceId, declaredLength, AddressSpaceMutability.Immutable));
             bindings.Add(new InputArtifactBinding(addressSpaceId, input.MappingId, fullPath));
             mappings.Add(new ExplicitMapping(

@@ -70,7 +70,11 @@ public sealed class GeneralAuthoringAdmissionTests
             maximumTotalWriteBytes: 0x100,
             maximumFileBytes: 0x100,
             maximumSafeMaterializationBytes: 0x80,
-            [new GeneralSlotLengthLimits("slot", 1, 0x100)]);
+            [new GeneralSlotLengthLimits(
+                "slot",
+                0x20,
+                0x60,
+                [0x20, 0x40, 0x60])]);
         var parent = new GeneralResourceLimits(
             maximumMappingCount: 6,
             maximumTotalWriteBytes: 0x80,
@@ -86,8 +90,8 @@ public sealed class GeneralAuthoringAdmissionTests
 
         GeneralResourceResolutionResult result = GeneralResourceLimitResolver.Resolve(
             technical,
-            parent,
-            savedRule);
+            Parent(parent),
+            Saved(savedRule));
 
         Assert.True(result.IsResolved);
         Assert.Equal(4, result.EffectiveLimits!.MaximumMappingCount);
@@ -125,9 +129,15 @@ public sealed class GeneralAuthoringAdmissionTests
             [new GeneralSlotLengthLimits("slot", 0x10, 0x40, [0x30])]);
 
         GeneralResourceResolutionResult broaderResult =
-            GeneralResourceLimitResolver.Resolve(technical, parent, broader);
+            GeneralResourceLimitResolver.Resolve(
+                technical,
+                Parent(parent),
+                Saved(broader));
         GeneralResourceResolutionResult emptyResult =
-            GeneralResourceLimitResolver.Resolve(technical, parent, empty);
+            GeneralResourceLimitResolver.Resolve(
+                technical,
+                Parent(parent),
+                Saved(empty));
 
         Assert.False(broaderResult.IsResolved);
         Assert.Contains(
@@ -163,8 +173,8 @@ public sealed class GeneralAuthoringAdmissionTests
             },
             [new GeneralInputResource("file", 6)],
             technical,
-            technical,
-            savedRuleLimits: null);
+            Parent(technical),
+            savedRule: null);
 
         Assert.False(result.IsAdmitted);
         Assert.Contains(result.Issues, issue => issue.Code == GeneralAuthoringIssueCodes.MappingCountExceeded);
@@ -202,8 +212,8 @@ public sealed class GeneralAuthoringAdmissionTests
             },
             [],
             limits,
-            limits,
-            savedRuleLimits: null);
+            Parent(limits),
+            savedRule: null);
 
         GeneralAuthoringAdmissionIssue issue = Assert.Single(result.Issues);
         Assert.Equal(GeneralAuthoringIssueCodes.InlineMaterializationExceeded, issue.Code);
@@ -217,6 +227,8 @@ public sealed class GeneralAuthoringAdmissionTests
         GeneralMappingDraftRow row =
             CreateRow("file", GeneralMappingSource.File("file.bin"), 0x10, 0x10);
 
+        GeneralResourceLimits limits = CreateLimits(
+            [new GeneralSlotLengthLimits("file", 1, 0x1000)]);
         GeneralAuthoringAdmissionResult result = GeneralAuthoringAdmission.Evaluate(
             new GeneralMappingDraftState([row]),
             new Dictionary<string, long>(StringComparer.Ordinal)
@@ -224,11 +236,88 @@ public sealed class GeneralAuthoringAdmissionTests
                 [CompositionAddressSpaceIds.OutputImage] = 0x40,
             },
             [new GeneralInputResource("file", 0x30)],
-            CreateLimits(),
-            CreateLimits(),
-            savedRuleLimits: null);
+            limits,
+            Parent(limits),
+            savedRule: null);
 
         Assert.True(result.IsAdmitted);
+    }
+
+    /// <summary>The production use case observes lengths through its inward port and fails closed for an undeclared Parent slot.</summary>
+    [Fact]
+    public void UseCaseRejectsFileSlotMissingFromExactTrustedParent()
+    {
+        GeneralMappingDraftRow row =
+            CreateRow("file", GeneralMappingSource.File("opaque.bin"), 0, 4);
+        GeneralResourceLimits parent = CreateLimits();
+        var observer = new FakeResourceObserver(
+            new Dictionary<string, long>(StringComparer.Ordinal)
+            {
+                ["opaque.bin"] = 4,
+            });
+        var useCase = new GeneralAuthoringAdmissionUseCase(observer);
+
+        GeneralAuthoringAdmissionResult result = useCase.Resolve(
+            new GeneralAuthoringAdmissionRequest(
+                new GeneralMappingDraftState([row]),
+                new Dictionary<string, long>(StringComparer.Ordinal)
+                {
+                    [CompositionAddressSpaceIds.OutputImage] = 4,
+                },
+                Parent(parent)));
+
+        Assert.False(result.IsAdmitted);
+        Assert.Equal(4, Assert.Single(result.InputResources).LengthBytes);
+        GeneralAuthoringAdmissionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal(
+            GeneralAuthoringIssueCodes.TrustedParentSlotMissing,
+            issue.Code);
+        _ = Assert.Throws<InvalidOperationException>(
+            result.RequireAdmittedDraft);
+    }
+
+    /// <summary>Observed facts and Saved Rule narrowing are retained by the one admitted result.</summary>
+    [Fact]
+    public void UseCaseAppliesSavedRuleNarrowingToObservedLength()
+    {
+        GeneralMappingDraftRow row =
+            CreateRow("file", GeneralMappingSource.File("opaque.bin"), 0, 4);
+        GeneralResourceLimits parent = CreateLimits(
+            [new GeneralSlotLengthLimits("file", 1, 0x40)]);
+        GeneralResourceLimits savedRule = new(
+            maximumMappingCount: 1,
+            maximumTotalWriteBytes: 4,
+            maximumFileBytes: 0x20,
+            maximumSafeMaterializationBytes: 0x20,
+            [new GeneralSlotLengthLimits("file", 0x10, 0x20)]);
+        var useCase = new GeneralAuthoringAdmissionUseCase(
+            new FakeResourceObserver(
+                new Dictionary<string, long>(StringComparer.Ordinal)
+                {
+                    ["opaque.bin"] = 0x28,
+                }));
+
+        GeneralAuthoringAdmissionResult result = useCase.Resolve(
+            new GeneralAuthoringAdmissionRequest(
+                new GeneralMappingDraftState([row]),
+                new Dictionary<string, long>(StringComparer.Ordinal)
+                {
+                    [CompositionAddressSpaceIds.OutputImage] = 4,
+                },
+                Parent(parent),
+                Saved(savedRule)));
+
+        Assert.False(result.IsAdmitted);
+        Assert.Equal("test-parent", result.TrustedParentId);
+        Assert.Equal("test-rule", result.SavedRuleId);
+        Assert.Equal(0x20, result.EffectiveLimits!.MaximumFileBytes);
+        Assert.Equal(0x28, Assert.Single(result.InputResources).LengthBytes);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == GeneralAuthoringIssueCodes.FileSizeExceeded);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == GeneralAuthoringIssueCodes.SlotLengthRejected);
     }
 
     /// <summary>Total authored write arithmetic fails closed on Int64 overflow.</summary>
@@ -259,8 +348,8 @@ public sealed class GeneralAuthoringAdmissionTests
             },
             [],
             limits,
-            limits,
-            savedRuleLimits: null);
+            Parent(limits),
+            savedRule: null);
 
         Assert.False(result.IsAdmitted);
         Assert.Contains(
@@ -302,6 +391,15 @@ public sealed class GeneralAuthoringAdmissionTests
                     Math.Max(row.SourceRange.EndExclusive, 0x40))),
         ];
         GeneralResourceLimits limits = CreateLimits();
+        GeneralResourceLimits parentLimits = CreateLimits(
+            rows
+                .Where(row =>
+                    row.Source.Kind == GeneralMappingSourceKind.FileArtifact)
+                .Select(row =>
+                    new GeneralSlotLengthLimits(
+                        row.MappingId,
+                        1,
+                        0x1000)));
         return GeneralAuthoringAdmission.Evaluate(
             new GeneralMappingDraftState(rows),
             new Dictionary<string, long>(StringComparer.Ordinal)
@@ -310,17 +408,31 @@ public sealed class GeneralAuthoringAdmissionTests
             },
             inputs,
             limits,
-            limits,
-            savedRuleLimits: null);
+            Parent(parentLimits),
+            savedRule: null);
     }
 
-    private static GeneralResourceLimits CreateLimits()
+    private static GeneralResourceLimits CreateLimits(
+        IEnumerable<GeneralSlotLengthLimits>? slots = null)
     {
         return new GeneralResourceLimits(
             maximumMappingCount: 64,
             maximumTotalWriteBytes: 0x1000,
             maximumFileBytes: 0x1000,
-            maximumSafeMaterializationBytes: 0x1000);
+            maximumSafeMaterializationBytes: 0x1000,
+            slots);
+    }
+
+    private static GeneralTrustedParentResourcePolicy Parent(
+        GeneralResourceLimits limits)
+    {
+        return new GeneralTrustedParentResourcePolicy("test-parent", limits);
+    }
+
+    private static GeneralSavedRuleResourcePolicy Saved(
+        GeneralResourceLimits limits)
+    {
+        return new GeneralSavedRuleResourcePolicy("test-rule", limits);
     }
 
     private static GeneralMappingDraftRow CreateRow(
@@ -358,5 +470,19 @@ public sealed class GeneralAuthoringAdmissionTests
             OverlapPolicy.Reject,
             alignment: 1,
             "Test inline mapping.");
+    }
+
+    private sealed class FakeResourceObserver(
+        IReadOnlyDictionary<string, long> lengths) :
+        IGeneralInputResourceObservationPort
+    {
+        public bool TryObserveLength(
+            GeneralInputResourceObservationRequest request,
+            out long lengthBytes)
+        {
+            return lengths.TryGetValue(
+                request.ResourceReference,
+                out lengthBytes);
+        }
     }
 }

@@ -10,9 +10,11 @@ internal static partial class MergeCliCommandHandler
         IReadOnlyList<string> slotValues,
         string icId,
         TextWriter error,
-        [NotNullWhen(true)] out GeneralMappingDraftState? mappings)
+        [NotNullWhen(true)] out GeneralMappingDraftState? mappings,
+        [NotNullWhen(true)] out GeneralSavedRuleResourcePolicy? savedRulePolicy)
     {
         mappings = null;
+        savedRulePolicy = null;
         SavedCompositionRuleLoadResult load = SavedCompositionRuleLoader.Load(rulePath);
         if (!load.IsValid)
         {
@@ -67,7 +69,50 @@ internal static partial class MergeCliCommandHandler
             return false;
         }
 
+        savedRulePolicy = CreateSavedRuleResourcePolicy(rule, mappings);
         return true;
+    }
+
+    private static GeneralSavedRuleResourcePolicy CreateSavedRuleResourcePolicy(
+        SavedCompositionRule rule,
+        GeneralMappingDraftState mappings)
+    {
+        // Saved Rule v1 has no serialized accessEnvelope. Its exact closed rows
+        // are therefore the compatibility narrowing: no additional mapping or
+        // authored byte is admitted. Delete this bridge when normal
+        // consumption is fully migrated to Saved Rule v2 accessEnvelope.
+        long maximumTotalWriteBytes = 0;
+        foreach (GeneralMappingDraftRow row in mappings.Rows)
+        {
+            try
+            {
+                maximumTotalWriteBytes = checked(
+                    maximumTotalWriteBytes + row.TargetRange.Length);
+            }
+            catch (OverflowException)
+            {
+                maximumTotalWriteBytes = long.MaxValue;
+                break;
+            }
+        }
+        GeneralResourceLimits technical =
+            GeneralAuthoringTechnicalLimits.Default;
+        return new GeneralSavedRuleResourcePolicy(
+            rule.RuleId,
+            new GeneralResourceLimits(
+                maximumMappingCount: mappings.Rows.Count,
+                maximumTotalWriteBytes,
+                technical.MaximumFileBytes,
+                technical.MaximumSafeMaterializationBytes,
+                mappings.Rows
+                    .Where(static row =>
+                        row.Source.Kind ==
+                        GeneralMappingSourceKind.FileArtifact)
+                    .Select(static row =>
+                        new GeneralSlotLengthLimits(
+                            row.MappingId,
+                            minimumBytes: 1,
+                            maximumBytes: int.MaxValue))));
     }
 
     private static bool TryCreateSlotBindings(

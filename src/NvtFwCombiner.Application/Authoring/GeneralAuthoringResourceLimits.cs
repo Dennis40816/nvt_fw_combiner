@@ -21,6 +21,9 @@ public static class GeneralAuthoringIssueCodes
     public const string SourceOutOfBounds = "general.admission.source-out-of-bounds";
     /// <summary>A file-backed mapping has no observed resource identity.</summary>
     public const string InputResourceMissing = "general.admission.input-resource-missing";
+    /// <summary>The exact Trusted Parent does not declare a selected file slot.</summary>
+    public const string TrustedParentSlotMissing =
+        "general.admission.trusted-parent-slot-missing";
     /// <summary>An observed input resource id is declared more than once.</summary>
     public const string InputResourceDuplicate = "general.admission.input-resource-duplicate";
     /// <summary>An observed input length violates its resolved slot contract.</summary>
@@ -192,6 +195,51 @@ public sealed record GeneralResourceLimits
     }
 }
 
+/// <summary>
+/// Exact Trusted Parent resource authority supplied to the Application admission use case.
+/// Every file-backed mapping must have a named slot declaration in this policy.
+/// </summary>
+public sealed record GeneralTrustedParentResourcePolicy
+{
+    /// <summary>Creates one exact Parent policy with stable provenance.</summary>
+    public GeneralTrustedParentResourcePolicy(
+        string parentId,
+        GeneralResourceLimits limits)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(parentId);
+        ArgumentNullException.ThrowIfNull(limits);
+        ParentId = parentId;
+        Limits = limits;
+    }
+
+    /// <summary>Exact trusted profile/bundle identity used for this admission.</summary>
+    public string ParentId { get; }
+
+    /// <summary>Parent semantic ceilings and explicitly declared file slots.</summary>
+    public GeneralResourceLimits Limits { get; }
+}
+
+/// <summary>Optional Saved Rule narrowing authority supplied to the same admission use case.</summary>
+public sealed record GeneralSavedRuleResourcePolicy
+{
+    /// <summary>Creates one reviewed narrowing policy with stable provenance.</summary>
+    public GeneralSavedRuleResourcePolicy(
+        string ruleId,
+        GeneralResourceLimits limits)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
+        ArgumentNullException.ThrowIfNull(limits);
+        RuleId = ruleId;
+        Limits = limits;
+    }
+
+    /// <summary>Saved Rule identity responsible for the narrowing layer.</summary>
+    public string RuleId { get; }
+
+    /// <summary>Limits that may only narrow the exact Parent.</summary>
+    public GeneralResourceLimits Limits { get; }
+}
+
 /// <summary>One deterministic authored target occupancy segment.</summary>
 public sealed record GeneralOccupancySegment(
     string MappingId,
@@ -290,72 +338,94 @@ public static class GeneralResourceLimitResolver
     /// <summary>Intersects technical and Parent limits, then applies optional Saved Rule narrowing.</summary>
     public static GeneralResourceResolutionResult Resolve(
         GeneralResourceLimits technicalLimits,
-        GeneralResourceLimits trustedParentLimits,
-        GeneralResourceLimits? savedRuleLimits)
+        GeneralTrustedParentResourcePolicy trustedParent,
+        GeneralSavedRuleResourcePolicy? savedRule)
     {
         ArgumentNullException.ThrowIfNull(technicalLimits);
-        ArgumentNullException.ThrowIfNull(trustedParentLimits);
+        ArgumentNullException.ThrowIfNull(trustedParent);
 
         List<GeneralAuthoringAdmissionIssue> issues = [];
-        GeneralResourceLimits? parentEffective = Intersect(
+        GeneralResourceLimits? parentEffective = IntersectParent(
             technicalLimits,
-            trustedParentLimits,
+            trustedParent.Limits,
             issues);
         if (parentEffective is null)
         {
             return new GeneralResourceResolutionResult(null, OrderIssues(issues));
         }
 
-        if (savedRuleLimits is null)
+        if (savedRule is null)
         {
             return new GeneralResourceResolutionResult(parentEffective, []);
         }
 
         ValidateSavedRuleNarrowing(
             parentEffective,
-            trustedParentLimits,
-            savedRuleLimits,
+            trustedParent.Limits,
+            savedRule.Limits,
             issues);
-        GeneralResourceLimits? effective = Intersect(parentEffective, savedRuleLimits, issues);
+        GeneralResourceLimits? effective = IntersectSavedRule(
+            parentEffective,
+            savedRule.Limits,
+            issues);
         return issues.Count == 0
             ? new GeneralResourceResolutionResult(effective, [])
             : new GeneralResourceResolutionResult(null, OrderIssues(issues));
     }
 
-    private static GeneralResourceLimits? Intersect(
-        GeneralResourceLimits left,
-        GeneralResourceLimits right,
+    private static GeneralResourceLimits? IntersectParent(
+        GeneralResourceLimits technical,
+        GeneralResourceLimits parent,
         List<GeneralAuthoringAdmissionIssue> issues)
     {
         List<GeneralSlotLengthLimits> slots = [];
-        string[] slotIds =
-        [
-            .. left.SlotLimits.Select(static slot => slot.SlotId)
-                .Concat(right.SlotLimits.Select(static slot => slot.SlotId))
-                .Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal),
-        ];
-        foreach (string slotId in slotIds)
+        foreach (GeneralSlotLengthLimits parentSlot in parent.SlotLimits)
         {
-            GeneralSlotLengthLimits leftSlot = GetSlotOrGlobal(left, slotId);
-            GeneralSlotLengthLimits rightSlot = GetSlotOrGlobal(right, slotId);
-            long minimum = Math.Max(leftSlot.MinimumBytes, rightSlot.MinimumBytes);
-            long maximum = Math.Min(leftSlot.MaximumBytes, rightSlot.MaximumBytes);
-            long[] allowed = IntersectAllowedLengths(leftSlot, rightSlot, minimum, maximum);
+            bool hasTechnicalSlot = technical.TryGetSlot(
+                parentSlot.SlotId,
+                out GeneralSlotLengthLimits? technicalSlot);
+            long minimum = hasTechnicalSlot
+                ? Math.Max(
+                    parentSlot.MinimumBytes,
+                    technicalSlot!.MinimumBytes)
+                : parentSlot.MinimumBytes;
+            long maximum = Math.Min(
+                parentSlot.MaximumBytes,
+                Math.Min(parent.MaximumFileBytes, technical.MaximumFileBytes));
+            if (hasTechnicalSlot)
+            {
+                maximum = Math.Min(
+                    maximum,
+                    technicalSlot!.MaximumBytes);
+            }
+
             bool discreteConstraint =
-                leftSlot.AllowedLengths.Count > 0 || rightSlot.AllowedLengths.Count > 0;
+                parentSlot.AllowedLengths.Count > 0 ||
+                (hasTechnicalSlot &&
+                 technicalSlot!.AllowedLengths.Count > 0);
+            long[] allowed = hasTechnicalSlot
+                ? IntersectAllowedLengths(
+                    parentSlot,
+                    technicalSlot!,
+                    minimum,
+                    maximum)
+                :
+                [
+                    .. parentSlot.AllowedLengths.Where(length =>
+                        length >= minimum && length <= maximum),
+                ];
             if (minimum > maximum || (discreteConstraint && allowed.Length == 0))
             {
                 issues.Add(CreateSimpleIssue(
                     GeneralAuthoringIssueCodes.EffectiveLimitsEmpty,
-                    slotId,
-                    $"General input slot '{slotId}' has no length accepted by every active limit layer.",
-                    slotId));
+                    parentSlot.SlotId,
+                    $"General input slot '{parentSlot.SlotId}' has no length accepted by every active limit layer.",
+                    parentSlot.SlotId));
                 continue;
             }
 
             slots.Add(new GeneralSlotLengthLimits(
-                slotId,
+                parentSlot.SlotId,
                 minimum,
                 maximum,
                 discreteConstraint ? allowed : null));
@@ -364,12 +434,85 @@ public static class GeneralResourceLimitResolver
         return issues.Count > 0
             ? null
             : new GeneralResourceLimits(
-                Math.Min(left.MaximumMappingCount, right.MaximumMappingCount),
-                Math.Min(left.MaximumTotalWriteBytes, right.MaximumTotalWriteBytes),
-                Math.Min(left.MaximumFileBytes, right.MaximumFileBytes),
                 Math.Min(
-                    left.MaximumSafeMaterializationBytes,
-                    right.MaximumSafeMaterializationBytes),
+                    technical.MaximumMappingCount,
+                    parent.MaximumMappingCount),
+                Math.Min(
+                    technical.MaximumTotalWriteBytes,
+                    parent.MaximumTotalWriteBytes),
+                Math.Min(
+                    technical.MaximumFileBytes,
+                    parent.MaximumFileBytes),
+                Math.Min(
+                    technical.MaximumSafeMaterializationBytes,
+                    parent.MaximumSafeMaterializationBytes),
+                slots);
+    }
+
+    private static GeneralResourceLimits? IntersectSavedRule(
+        GeneralResourceLimits parentEffective,
+        GeneralResourceLimits savedRule,
+        List<GeneralAuthoringAdmissionIssue> issues)
+    {
+        List<GeneralSlotLengthLimits> slots =
+        [
+            .. parentEffective.SlotLimits,
+        ];
+        foreach (GeneralSlotLengthLimits savedSlot in savedRule.SlotLimits)
+        {
+            if (!parentEffective.TryGetSlot(
+                    savedSlot.SlotId,
+                    out GeneralSlotLengthLimits? parentSlot))
+            {
+                continue;
+            }
+
+            long minimum = Math.Max(parentSlot!.MinimumBytes, savedSlot.MinimumBytes);
+            long maximum = Math.Min(parentSlot.MaximumBytes, savedSlot.MaximumBytes);
+            long[] allowed = IntersectAllowedLengths(
+                parentSlot,
+                savedSlot,
+                minimum,
+                maximum);
+            bool discreteConstraint =
+                parentSlot.AllowedLengths.Count > 0 ||
+                savedSlot.AllowedLengths.Count > 0;
+            if (minimum > maximum || (discreteConstraint && allowed.Length == 0))
+            {
+                issues.Add(CreateSimpleIssue(
+                    GeneralAuthoringIssueCodes.EffectiveLimitsEmpty,
+                    savedSlot.SlotId,
+                    $"General input slot '{savedSlot.SlotId}' has no length accepted by every active limit layer.",
+                    savedSlot.SlotId));
+                continue;
+            }
+
+            int index = slots.FindIndex(slot =>
+                StringComparer.Ordinal.Equals(
+                    slot.SlotId,
+                    savedSlot.SlotId));
+            slots[index] = new GeneralSlotLengthLimits(
+                savedSlot.SlotId,
+                minimum,
+                maximum,
+                discreteConstraint ? allowed : null);
+        }
+
+        return issues.Count > 0
+            ? null
+            : new GeneralResourceLimits(
+                Math.Min(
+                    parentEffective.MaximumMappingCount,
+                    savedRule.MaximumMappingCount),
+                Math.Min(
+                    parentEffective.MaximumTotalWriteBytes,
+                    savedRule.MaximumTotalWriteBytes),
+                Math.Min(
+                    parentEffective.MaximumFileBytes,
+                    savedRule.MaximumFileBytes),
+                Math.Min(
+                    parentEffective.MaximumSafeMaterializationBytes,
+                    savedRule.MaximumSafeMaterializationBytes),
                 slots);
     }
 
@@ -394,15 +537,6 @@ public static class GeneralResourceLimitResolver
                 .Distinct()
                 .Order(),
         ];
-    }
-
-    private static GeneralSlotLengthLimits GetSlotOrGlobal(
-        GeneralResourceLimits layer,
-        string slotId)
-    {
-        return layer.TryGetSlot(slotId, out GeneralSlotLengthLimits? limits)
-            ? limits!
-            : new GeneralSlotLengthLimits(slotId, 0, layer.MaximumFileBytes);
     }
 
     private static void ValidateSavedRuleNarrowing(

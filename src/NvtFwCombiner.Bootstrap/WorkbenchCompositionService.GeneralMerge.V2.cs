@@ -21,6 +21,7 @@ public static partial class WorkbenchCompositionService
         string outputLength,
         GeneralMappingDraftState? mappingDraft,
         IReadOnlyList<CompositionIssue>? draftIssues,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy,
         bool build,
         CancellationToken cancellationToken,
         string? outputPath = null,
@@ -31,6 +32,7 @@ public static partial class WorkbenchCompositionService
             ? new Dictionary<string, string>(StringComparer.Ordinal)
             : CreateGeneralMergeReportSlotPaths(mappingDraft);
         string defaultOutputFileName = GetGeneralMergeDefaultOutputFileName(icId);
+        GeneralAuthoringAdmissionResult? admission = null;
         WorkbenchRunResult Blocked(
             IReadOnlyList<CompositionIssue> issues,
             IReadOnlyList<OperationRunSummary>? operations = null,
@@ -48,7 +50,8 @@ public static partial class WorkbenchCompositionService
                 build,
                 operations ?? [],
                 issues,
-                defaultOutputFileName);
+                defaultOutputFileName,
+                admission);
         }
 
         if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
@@ -84,9 +87,13 @@ public static partial class WorkbenchCompositionService
                 profileId: registration.ProfileId);
         }
 
-        GeneralAuthoringAdmissionResult admission = AdmitGeneralMappingDraft(
+        admission = AdmitGeneralMappingDraft(
             mappingDraft,
-            capacity);
+            capacity,
+            CreateCurrentGeneralTrustedParentPolicy(
+                registration.ProfileId,
+                mappingDraft),
+            savedRulePolicy);
         if (!admission.IsAdmitted)
         {
             return Blocked(
@@ -95,7 +102,7 @@ public static partial class WorkbenchCompositionService
         }
 
         if (!TryCreateGeneralMergeMappings(
-                mappingDraft,
+                admission,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,
                 out IReadOnlyList<InputArtifactBinding> mappingBindings,
@@ -177,7 +184,8 @@ public static partial class WorkbenchCompositionService
             externalProcessor: null,
             icNumberSelection: null,
             cancellationToken: cancellationToken,
-            progress: progress).ConfigureAwait(false);
+            progress: progress,
+            generalAdmission: admission).ConfigureAwait(false);
     }
 
     private static bool IsExpectedGeneralMergeV2Candidate(
