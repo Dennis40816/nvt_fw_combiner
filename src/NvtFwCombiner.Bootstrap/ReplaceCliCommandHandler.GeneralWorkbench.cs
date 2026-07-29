@@ -48,7 +48,7 @@ internal static partial class ReplaceCliCommandHandler
                 IcWorkflowIds.GeneralReplace,
                 options,
                 protectedInputPaths,
-                (build, outputPath, token) => WorkbenchCompositionService.RunGeneralReplaceDraftAsync(
+                (build, outputPath, token) => WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
                     icId,
                     icNumber,
                     slotPaths,

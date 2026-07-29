@@ -42,11 +42,15 @@ public sealed partial class AuthoringSessionState
                 selectedPath,
                 fileStamp: null,
                 AuthoringSlotLifecycle.Checking);
+            AuthoringDraftState? pendingDraft = ClearGeneralDraftStamp(
+                _current.DraftState,
+                slotDefinitionId,
+                selectedPath);
             ActiveSessionSnapshot snapshot = CopySnapshot(
                 _current,
                 _current.AuthoringRevision.Next(),
                 slots,
-                _current.DraftState,
+                pendingDraft,
                 _current.DraftCapabilityFingerprint,
                 []);
             var lease = new AuthoringSlotInspectionLease(
@@ -120,6 +124,20 @@ public sealed partial class AuthoringSessionState
                     inspection.DefinitionId);
             }
 
+            AuthoringDraftState? acceptedDraft = AcceptGeneralDraftStamp(
+                _current.DraftState,
+                lease.DefinitionId,
+                lease.SelectedPath,
+                inspection.FileStamp);
+            if (_current.DraftState is GeneralMappingDraftState &&
+                acceptedDraft is null)
+            {
+                return Failure(
+                    AuthoringSessionIssueCodes.StaleInspection,
+                    "The selected-file inspection no longer matches the General mapping draft.",
+                    inspection.DefinitionId);
+            }
+
             AuthoringSlotState[] slots = [.. _current.Slots];
             slots[index] = new AuthoringSlotState(
                 lease.DefinitionId,
@@ -130,7 +148,7 @@ public sealed partial class AuthoringSessionState
                 _current,
                 _current.AuthoringRevision,
                 slots,
-                _current.DraftState,
+                acceptedDraft,
                 _current.DraftCapabilityFingerprint,
                 []);
             Volatile.Write(ref _current, snapshot);
@@ -147,5 +165,70 @@ public sealed partial class AuthoringSessionState
             _current,
             Lease: null,
             new AuthoringSessionIssue(code, message, subject));
+    }
+
+    private static AuthoringDraftState? ClearGeneralDraftStamp(
+        AuthoringDraftState? draftState,
+        string definitionId,
+        string selectedPath)
+    {
+        return draftState is GeneralMappingDraftState generalDraft
+            ? ReplaceGeneralDraftRowByDefinition(
+                generalDraft,
+                definitionId,
+                row => row.RebindSelectedFile(selectedPath)) ??
+              draftState
+            : draftState;
+    }
+
+    private static AuthoringDraftState? AcceptGeneralDraftStamp(
+        AuthoringDraftState? draftState,
+        string definitionId,
+        string selectedPath,
+        FileStamp fileStamp)
+    {
+        return draftState is GeneralMappingDraftState generalDraft
+            ? ReplaceGeneralDraftRow(
+                generalDraft,
+                definitionId,
+                selectedPath,
+                row => row.WithAcceptedFileStamp(fileStamp))
+            : draftState;
+    }
+
+    private static GeneralMappingDraftState? ReplaceGeneralDraftRow(
+        GeneralMappingDraftState draft,
+        string definitionId,
+        string selectedPath,
+        Func<GeneralMappingDraftRow, GeneralMappingDraftRow> replace)
+    {
+        GeneralMappingDraftRow? selected = draft.Rows.SingleOrDefault(row =>
+            StringComparer.Ordinal.Equals(row.MappingId, definitionId) &&
+            row.Source.Kind == GeneralMappingSourceKind.FileArtifact &&
+            StringComparer.Ordinal.Equals(row.Source.Reference, selectedPath));
+        return selected is null
+            ? null
+            : new GeneralMappingDraftState(
+                draft.Rows.Select(row =>
+                    ReferenceEquals(row, selected)
+                        ? replace(row)
+                        : row));
+    }
+
+    private static GeneralMappingDraftState? ReplaceGeneralDraftRowByDefinition(
+        GeneralMappingDraftState draft,
+        string definitionId,
+        Func<GeneralMappingDraftRow, GeneralMappingDraftRow> replace)
+    {
+        GeneralMappingDraftRow? selected = draft.Rows.SingleOrDefault(row =>
+            StringComparer.Ordinal.Equals(row.MappingId, definitionId) &&
+            row.Source.Kind == GeneralMappingSourceKind.FileArtifact);
+        return selected is null
+            ? null
+            : new GeneralMappingDraftState(
+                draft.Rows.Select(row =>
+                    ReferenceEquals(row, selected)
+                        ? replace(row)
+                        : row));
     }
 }

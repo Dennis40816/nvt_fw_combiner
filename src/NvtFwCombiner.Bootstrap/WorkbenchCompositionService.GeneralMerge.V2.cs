@@ -48,7 +48,13 @@ public static partial class WorkbenchCompositionService
                 build,
                 operations ?? [],
                 issues,
-                defaultOutputFileName);
+                defaultOutputFileName) with
+            {
+                AcceptedGeneralMappingDraft =
+                    IsAcceptedGeneralMappingDraft(mappingDraft)
+                        ? mappingDraft
+                        : null,
+            };
         }
 
         if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
@@ -85,10 +91,7 @@ public static partial class WorkbenchCompositionService
         }
 
         GeneralSelectedFileBindingResult acceptedFiles =
-            await AcceptGeneralSelectedFilesAsync(
-                mappingDraft,
-                cancellationToken)
-            .ConfigureAwait(false);
+            RequireAcceptedGeneralSelectedFiles(mappingDraft);
         if (!acceptedFiles.Succeeded)
         {
             return Blocked(
@@ -171,7 +174,7 @@ public static partial class WorkbenchCompositionService
                 binding.ArtifactId,
                 acceptedContentStamp: binding.AcceptedContentStamp)),
         ];
-        return await RunCompiledCompositionAsync(
+        WorkbenchRunResult result = await RunCompiledCompositionAsync(
             GeneralMergeRunIdPrefix,
             composition,
             candidateBindings,
@@ -182,6 +185,7 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: null,
             cancellationToken: cancellationToken,
             progress: progress).ConfigureAwait(false);
+        return result with { AcceptedGeneralMappingDraft = mappingDraft };
     }
 
     private static bool IsExpectedGeneralMergeV2Candidate(

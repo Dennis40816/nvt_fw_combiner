@@ -33,12 +33,13 @@ public static partial class WorkbenchCompositionService
                     [],
                     draftIssues,
                     GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General)))
-                : RunGeneralReplaceDraftCoreAsync(
+                : RunGeneralReplaceWithInitialInspectionAsync(
                     icId,
-                    number,
-                    slotPaths,
-                    mappingDraft,
-                    build,
+                     number,
+                     slotPaths,
+                     mappingDraft,
+                     new AuthoringRevision(1),
+                     build,
                     outputPath,
                     progress,
                     cancellationToken);
@@ -78,14 +79,17 @@ public static partial class WorkbenchCompositionService
                 build,
                 operations ?? [],
                 issues,
-                outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General));
+                outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General)) with
+            {
+                AcceptedGeneralMappingDraft =
+                    IsAcceptedGeneralMappingDraft(context!.MappingDraft)
+                        ? context.MappingDraft
+                        : null,
+            };
         }
 
         GeneralSelectedFileBindingResult acceptedFiles =
-            await AcceptGeneralSelectedFilesAsync(
-                context!.MappingDraft,
-                cancellationToken)
-            .ConfigureAwait(false);
+            RequireAcceptedGeneralSelectedFiles(context!.MappingDraft);
         if (!acceptedFiles.Succeeded)
         {
             return Blocked(acceptedFiles.Issues);
@@ -225,7 +229,7 @@ public static partial class WorkbenchCompositionService
                 acceptedContentStamp: binding.AcceptedContentStamp)),
         ];
 
-        return await RunCompiledCompositionAsync(
+        WorkbenchRunResult result = await RunCompiledCompositionAsync(
             GeneralReplaceRunIdPrefix,
             compiledComposition,
             bindings,
@@ -237,6 +241,10 @@ public static partial class WorkbenchCompositionService
             cancellationToken,
             patchVirtualArtifacts,
             progress).ConfigureAwait(false);
+        return result with
+        {
+            AcceptedGeneralMappingDraft = context.MappingDraft,
+        };
     }
 
     private static bool GeneralReplaceTouchesTpRegion(

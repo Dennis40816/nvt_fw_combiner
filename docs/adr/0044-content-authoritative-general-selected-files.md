@@ -58,6 +58,12 @@ Saved Rule execution cross this same Application result before validation,
 compilation, Preview/Build, or report projection. Each unbound mapping file is
 inspected once for that definition and revision. The accepted stamp is copied
 into the immutable mapping source and then into the immutable run binding.
+Execution entry points reject an unbound file row with
+`authoring.general.selected-file-snapshot-required`; they never inspect or
+rebind it implicitly. Ephemeral CLI and Saved Rule adapters may inspect once at
+their invocation boundary and then pass the bound draft inward. The desktop
+retains the bound draft from Preview for Build, and clears it only on an
+explicit mapping edit or file selection/Reload.
 
 An explicit Reload/Rebind action advances `AuthoringRevision`, clears
 inspection/validation/Preview/Build publications, and places the slot in

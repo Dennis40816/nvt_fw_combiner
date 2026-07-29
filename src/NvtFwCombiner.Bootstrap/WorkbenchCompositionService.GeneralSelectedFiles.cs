@@ -13,6 +13,7 @@ public static partial class WorkbenchCompositionService
     private static async ValueTask<GeneralSelectedFileBindingResult>
         AcceptGeneralSelectedFilesAsync(
             GeneralMappingDraftState draft,
+            AuthoringRevision authoringRevision,
             CancellationToken cancellationToken)
     {
         GeneralMappingDraftRow[] pendingRows =
@@ -42,7 +43,7 @@ public static partial class WorkbenchCompositionService
         GeneralSelectedFileDraftInspectionResult result =
             await service.AcceptDraftAsync(
                 draft,
-                new AuthoringRevision(1),
+                authoringRevision,
                 cancellationToken)
             .ConfigureAwait(false);
         return result.Succeeded
@@ -56,6 +57,34 @@ public static partial class WorkbenchCompositionService
                             issue.Message,
                             issue.DefinitionId)),
                 ]);
+    }
+
+    private static GeneralSelectedFileBindingResult RequireAcceptedGeneralSelectedFiles(
+        GeneralMappingDraftState draft)
+    {
+        CompositionIssue[] issues =
+        [
+            .. draft.Rows
+                .Where(static row =>
+                    row.Source.Kind == GeneralMappingSourceKind.FileArtifact &&
+                    row.Source.AcceptedFileStamp is null)
+                .Select(static row => new CompositionIssue(
+                    GeneralSelectedFileInspectionIssueCodes.SnapshotRequired,
+                    "The selected General file requires explicit inspection or Reload/Rebind before execution.",
+                    row.MappingId)),
+        ];
+        return issues.Length == 0
+            ? new GeneralSelectedFileBindingResult(draft, [])
+            : new GeneralSelectedFileBindingResult(Draft: null, issues);
+    }
+
+    private static bool IsAcceptedGeneralMappingDraft(
+        GeneralMappingDraftState? draft)
+    {
+        return draft is not null &&
+            draft.Rows.All(static row =>
+                row.Source.Kind != GeneralMappingSourceKind.FileArtifact ||
+                row.Source.AcceptedFileStamp is not null);
     }
 
     private sealed record GeneralSelectedFileBindingResult(

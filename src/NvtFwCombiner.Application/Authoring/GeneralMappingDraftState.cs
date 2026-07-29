@@ -122,6 +122,15 @@ public sealed record GeneralMappingSource
             : throw new InvalidOperationException(
                 "Only file-backed General sources can accept a content stamp.");
     }
+
+    /// <summary>Returns a newly selected file reference pending inspection.</summary>
+    public GeneralMappingSource RebindSelectedFile(string selectedPath)
+    {
+        return Kind == GeneralMappingSourceKind.FileArtifact
+            ? File(selectedPath)
+            : throw new InvalidOperationException(
+                "Only file-backed General sources can be rebound.");
+    }
 }
 
 /// <summary>
@@ -295,6 +304,24 @@ public sealed record GeneralMappingDraftRow
             MappingId,
             OperationKind,
             Source.WithAcceptedFileStamp(fileStamp),
+            SourceRange,
+            TargetAddressSpaceId,
+            TargetRange,
+            OverlapPolicy,
+            Alignment,
+            Reason,
+            TargetRegionId,
+            Provenance,
+            FileRangePreset);
+    }
+
+    /// <summary>Returns this row rebound to a selected file pending inspection.</summary>
+    public GeneralMappingDraftRow RebindSelectedFile(string selectedPath)
+    {
+        return new GeneralMappingDraftRow(
+            MappingId,
+            OperationKind,
+            Source.RebindSelectedFile(selectedPath),
             SourceRange,
             TargetAddressSpaceId,
             TargetRange,

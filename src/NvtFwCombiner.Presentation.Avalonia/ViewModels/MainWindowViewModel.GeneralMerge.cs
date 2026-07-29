@@ -1,12 +1,16 @@
 using System.ComponentModel;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private GeneralMappingDraftState? _acceptedGeneralMergeDraft;
+
     private void AddGeneralMergeMapping()
     {
+        _acceptedGeneralMergeDraft = null;
         _generalMergeMappingCounter++;
         var mapping = new GeneralMergeMappingViewModel(
             $"general-merge-map-{_generalMergeMappingCounter}",
@@ -39,6 +43,7 @@ public sealed partial class MainWindowViewModel
             nameof(GeneralMergeMappingViewModel.Length) or
             nameof(GeneralMergeMappingViewModel.FilePath))
         {
+            _acceptedGeneralMergeDraft = null;
             RefreshMergeMemoryMapState();
             ResetRunResultForContextChange();
             RefreshCommandState();

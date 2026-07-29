@@ -59,7 +59,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", dp, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", ctrlRam, StringComparison.Ordinal);
         Assert.Contains(
-            "WorkbenchCompositionService.RunGeneralReplaceDraftAsync",
+            "WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync",
             general,
             StringComparison.Ordinal);
     }
