@@ -67,7 +67,8 @@ public static partial class WorkbenchCompositionService
                 StringComparer.Ordinal);
     }
 
-    internal static bool HasBuiltInV2DpReplaceSelectionGroup(string icId)
+    /// <summary>Returns true when the registered DP Replace profile declares an input-selection group.</summary>
+    public static bool HasBuiltInV2DpReplaceSelectionGroup(string icId)
     {
         return BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.TryGetValue(
                 icId,
@@ -123,6 +124,32 @@ public static partial class WorkbenchCompositionService
             selectedInputSlotIds,
             baseCapacity is null ? CompositionAddressSpaceIds.ReferenceBase : null);
         return true;
+    }
+
+    /// <summary>
+    /// Exposes the Application-owned DP Replace selection result unchanged to Presentation clients.
+    /// </summary>
+    public static bool TryGetDpReplaceInputSelectionReadiness(
+        string icId,
+        long? baseCapacity,
+        IEnumerable<string> selectedInputAddressSpaceIds,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
+        out InputSelectionReadinessSnapshot? readiness)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(selectedInputAddressSpaceIds);
+        if (!HasBuiltInV2DpReplaceSelectionGroup(icId))
+        {
+            readiness = null;
+            return false;
+        }
+
+        return TryResolveBuiltInV2DpReplaceInputSelection(
+            icId,
+            baseCapacity,
+            [.. selectedInputAddressSpaceIds],
+            out readiness,
+            out _);
     }
 
     /// <summary>Resolves the V2 DP Replace facts needed by the workbench display without consulting legacy maps.</summary>
