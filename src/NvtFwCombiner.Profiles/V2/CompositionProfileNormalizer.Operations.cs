@@ -9,7 +9,8 @@ internal static partial class CompositionProfileNormalizer
 {
     internal static CompositionProfileOperation NormalizeOperation(
         CompositionProfileOperationDocument document,
-        string path = "operations[0]")
+        string path = "operations[0]",
+        string schemaVersion = "2.0")
     {
         ArgumentNullException.ThrowIfNull(document);
         BigInteger sequence = ReadInteger(document.Sequence, $"{path}.sequence");
@@ -51,7 +52,12 @@ internal static partial class CompositionProfileNormalizer
                 ReadBytes(
                     RequireText(document.ValueHex, $"{path}.valueHex", "Patch value is missing."),
                     $"{path}.valueHex"))),
-            "transform-scalar" => NormalizeTransform(document, sequence, overlapPolicy, path),
+            "transform-scalar" => NormalizeTransform(
+                document,
+                sequence,
+                overlapPolicy,
+                schemaVersion,
+                path),
             "run-processor" => Wrap(path, () => new RunProcessorProfileOperation(
                 document.OperationId,
                 sequence,
@@ -86,6 +92,7 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileOperationDocument document,
         BigInteger sequence,
         OverlapPolicy overlapPolicy,
+        string schemaVersion,
         string path)
     {
         RequireConstant(
@@ -114,8 +121,64 @@ internal static partial class CompositionProfileNormalizer
             NormalizeScalarByteOrder(
                 RequireText(document.ByteOrder, $"{path}.byteOrder", "Scalar byte order is missing."),
                 $"{path}.byteOrder"),
-            ReadInteger(Require(document.Addend, $"{path}.addend"), $"{path}.addend"),
+            NormalizeTransformAddend(
+                Require(document.Addend, $"{path}.addend"),
+                schemaVersion,
+                $"{path}.addend"),
             expectedBefore));
+    }
+
+    private static TransformAddendSource NormalizeTransformAddend(
+        JsonElement document,
+        string schemaVersion,
+        string path)
+    {
+        if (document.ValueKind == JsonValueKind.Number)
+        {
+            return new FixedTransformAddendSource(ReadInteger(document, path));
+        }
+
+        if (document.ValueKind != JsonValueKind.Object)
+        {
+            throw Error(path, "Scalar addend must be an integer or a declared addend object.");
+        }
+
+        if (schemaVersion != "2.14")
+        {
+            throw Error(
+                path,
+                "Region-instance delta addends require composition-profile schema version '2.14'.");
+        }
+
+        CompositionProfileRegionInstanceDeltaAddendDocument addend;
+        try
+        {
+            addend = JsonSerializer.Deserialize(
+                document,
+                ProfileBundleSemanticJsonContext.Default
+                    .CompositionProfileRegionInstanceDeltaAddendDocument) ?? throw Error(
+                        path,
+                        "Region-instance delta addend is missing.");
+        }
+        catch (JsonException exception)
+        {
+            throw Error(path, exception.Message);
+        }
+
+        RequireConstant(
+            addend.Kind,
+            "region-instance-delta",
+            $"{path}.kind",
+            "Unknown scalar addend object kind.");
+        return Wrap(path, () => new RegionInstanceDeltaTransformAddendSource(
+            RequireText(
+                addend.SourceRegionInstanceId,
+                $"{path}.sourceRegionInstanceId",
+                "Source region instance is missing."),
+            RequireText(
+                addend.TargetRegionInstanceId,
+                $"{path}.targetRegionInstanceId",
+                "Target region instance is missing.")));
     }
 
     private static OverlapPolicy NormalizeOverlapPolicy(string value, string path)

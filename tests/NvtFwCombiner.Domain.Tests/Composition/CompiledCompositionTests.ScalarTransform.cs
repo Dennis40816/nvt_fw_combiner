@@ -77,6 +77,28 @@ public sealed partial class CompiledCompositionTests
             reasonOnly.IntegrityFingerprint);
     }
 
+    /// <summary>Verifies a resolved instance delta cannot collide with an equal fixed addend.</summary>
+    [Fact]
+    public void CompilationFingerprintBindsScalarTransformAddendSource()
+    {
+        CompiledComposition fixedAddend = CreateScalarTransformComposition(new ScalarTransform(
+            ScalarTransformWidth.FourBytes,
+            ScalarTransformByteOrder.LittleEndian,
+            0x40000,
+            expectedBefore: null,
+            ScalarTransformOverflowPolicy.Reject));
+        CompiledComposition instanceDelta = CreateScalarTransformComposition(new ScalarTransform(
+            ScalarTransformWidth.FourBytes,
+            ScalarTransformByteOrder.LittleEndian,
+            0x40000,
+            expectedBefore: null,
+            ScalarTransformOverflowPolicy.Reject,
+            ScalarTransformAddendSource.RegionInstanceDelta("a-bank", "b-bank")));
+
+        Assert.NotEqual(fixedAddend.CompilationFingerprint, instanceDelta.CompilationFingerprint);
+        Assert.NotEqual(fixedAddend.IntegrityFingerprint, instanceDelta.IntegrityFingerprint);
+    }
+
     private static CompiledComposition CreateScalarTransformComposition(
         ScalarTransform transform,
         string reason = "adjust scalar")

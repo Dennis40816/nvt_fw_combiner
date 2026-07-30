@@ -137,6 +137,7 @@ internal static partial class V2CompositionPlanCompiler
 
         CompositionOperation[] operations = LowerOperations(
             profile,
+            resolvedMap,
             spaces,
             views,
             regionAccess,
@@ -285,16 +286,37 @@ internal static partial class V2CompositionPlanCompiler
                 StringComparer.Ordinal.Equals(candidate.SpaceId, view.SpaceId));
             if (profileSpace.Kind == CompositionProfileSpaceKind.WorkBuffer)
             {
-                if (view.Selector is not SpaceRangeViewSelector)
+                if (view.Selector is not (SpaceRangeViewSelector or RegionTemplateRangeViewSelector))
                 {
                     issues.Add(new CompositionIssue(
                         InvalidView,
-                        $"Work-buffer view '{view.ViewId}' must use a space-range selector.",
+                        $"Work-buffer view '{view.ViewId}' must use a space-range or " +
+                        "region-template-range selector.",
                         view.ViewId));
                     continue;
                 }
 
-                views.Add(view.ViewId, new ResolvedView(view.SpaceId, range, []));
+                views.Add(view.ViewId, new ResolvedView(
+                    view.SpaceId,
+                    range,
+                    [],
+                    view.Selector is RegionTemplateRangeViewSelector));
+                continue;
+            }
+
+            if (view.Selector is RegionTemplateRangeViewSelector)
+            {
+                if (profileSpace.Kind != CompositionProfileSpaceKind.InputArtifact)
+                {
+                    issues.Add(new CompositionIssue(
+                        InvalidView,
+                        $"Region-template-range view '{view.ViewId}' must select an immutable input " +
+                        "or work-buffer source.",
+                        view.ViewId));
+                    continue;
+                }
+
+                views.Add(view.ViewId, new ResolvedView(view.SpaceId, range, [], IsSourceOnly: true));
                 continue;
             }
 
@@ -307,7 +329,11 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            views.Add(view.ViewId, new ResolvedView(view.SpaceId, range, governingRegionChain));
+            views.Add(view.ViewId, new ResolvedView(
+                view.SpaceId,
+                range,
+                governingRegionChain,
+                IsSourceOnly: false));
         }
 
         return views;
@@ -447,6 +473,15 @@ internal static partial class V2CompositionPlanCompiler
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues)
     {
+        if (target.IsSourceOnly)
+        {
+            issues.Add(new CompositionIssue(
+                InvalidView,
+                $"Operation '{operationId}' cannot use source-only view '{targetViewId}' as a target.",
+                operationId));
+            return false;
+        }
+
         if (target.GoverningRegionChain.Count == 0)
         {
             return true;
@@ -499,6 +534,15 @@ internal static partial class V2CompositionPlanCompiler
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues)
     {
+        if (target.IsSourceOnly)
+        {
+            issues.Add(new CompositionIssue(
+                InvalidView,
+                $"Operation '{operationId}' cannot use source-only view '{targetViewId}' as a processor target.",
+                operationId));
+            return false;
+        }
+
         ResolvedRegionAccessRule[] applicableRules =
         [
             .. regionAccess.Rules.Values.Where(rule => rule.Region.Range.Contains(target.Range)),
@@ -624,7 +668,8 @@ internal static partial class V2CompositionPlanCompiler
     private sealed record ResolvedView(
         string SpaceId,
         ByteRange Range,
-        IReadOnlyList<FirmwareRegion> GoverningRegionChain);
+        IReadOnlyList<FirmwareRegion> GoverningRegionChain,
+        bool IsSourceOnly);
 
     private sealed record ResolvedRegionAccessRule(
         FirmwareRegion Region,

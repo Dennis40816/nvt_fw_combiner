@@ -95,6 +95,26 @@ public sealed class CompositionProfileV2OperationNormalizerTests
         Assert.Equal(ulong.Parse(expectedBefore, System.Globalization.CultureInfo.InvariantCulture), transform.ExpectedBefore);
     }
 
+    /// <summary>Verifies a region-instance delta retains both explicit placement identities.</summary>
+    [Fact]
+    public void TransformMapsRegionInstanceDeltaAddend()
+    {
+        TransformScalarProfileOperation transform = Assert.IsType<TransformScalarProfileOperation>(Normalize(Transform(
+            Number("0"),
+            Number("4"),
+            "little",
+            RegionInstanceDeltaAddend(
+                "region-instance-delta",
+                sourceRegionInstanceId: "a-bank",
+                targetRegionInstanceId: "b-bank")),
+            "2.14"));
+
+        RegionInstanceDeltaTransformAddendSource addend =
+            Assert.IsType<RegionInstanceDeltaTransformAddendSource>(transform.AddendSource);
+        Assert.Equal("a-bank", addend.SourceRegionInstanceId);
+        Assert.Equal("b-bank", addend.TargetRegionInstanceId);
+    }
+
     /// <summary>Verifies unknown discriminators and fixed transform policies retain exact paths.</summary>
     [Fact]
     public void OperationRejectsUnknownPolicyTokensWithPaths()
@@ -193,6 +213,64 @@ public sealed class CompositionProfileV2OperationNormalizerTests
         Assert.Equal("operations[0].expectedBefore", expected.Path);
     }
 
+    /// <summary>Verifies region-instance addend objects reject unknown and incomplete identities.</summary>
+    [Fact]
+    public void TransformRejectsInvalidRegionInstanceDeltaWithPaths()
+    {
+        CompositionProfileNormalizationException kind = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(Transform(
+                Number("0"),
+                Number("4"),
+                "little",
+                RegionInstanceDeltaAddend(
+                    "future",
+                    sourceRegionInstanceId: "a-bank",
+                    targetRegionInstanceId: "b-bank")),
+                "2.14"));
+        CompositionProfileNormalizationException source = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(Transform(
+                Number("0"),
+                Number("4"),
+                "little",
+                RegionInstanceDeltaAddend(
+                    "region-instance-delta",
+                    targetRegionInstanceId: "b-bank")),
+                "2.14"));
+        CompositionProfileNormalizationException target = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(Transform(
+                Number("0"),
+                Number("4"),
+                "little",
+                RegionInstanceDeltaAddend(
+                    "region-instance-delta",
+                    sourceRegionInstanceId: "a-bank")),
+                "2.14"));
+
+        Assert.Equal("operations[0].addend.kind", kind.Path);
+        Assert.Equal("operations[0].addend.sourceRegionInstanceId", source.Path);
+        Assert.Equal("operations[0].addend.targetRegionInstanceId", target.Path);
+    }
+
+    /// <summary>Verifies older profile schemas cannot gain geometry-derived addend authority.</summary>
+    [Fact]
+    public void TransformRejectsRegionInstanceDeltaBeforeSchemaV214()
+    {
+        CompositionProfileNormalizationException exception =
+            Assert.Throws<CompositionProfileNormalizationException>(() =>
+                Normalize(
+                    Transform(
+                        Number("0"),
+                        Number("4"),
+                        "little",
+                        RegionInstanceDeltaAddend(
+                            "region-instance-delta",
+                            sourceRegionInstanceId: "a-bank",
+                            targetRegionInstanceId: "b-bank")),
+                    "2.13"));
+
+        Assert.Equal("operations[0].addend", exception.Path);
+    }
+
     /// <summary>Verifies expected-before must fit the selected scalar width.</summary>
     [Fact]
     public void TransformRejectsCrossFieldWidthOverflowAtOperationPath()
@@ -204,9 +282,13 @@ public sealed class CompositionProfileV2OperationNormalizerTests
         _ = Assert.IsType<ArgumentOutOfRangeException>(exception.InnerException, exactMatch: false);
     }
 
-    private static CompositionProfileOperation Normalize(CompositionProfileOperationDocument document)
+    private static CompositionProfileOperation Normalize(
+        CompositionProfileOperationDocument document,
+        string schemaVersion = "2.0")
     {
-        return CompositionProfileNormalizer.NormalizeOperation(document);
+        return CompositionProfileNormalizer.NormalizeOperation(
+            document,
+            schemaVersion: schemaVersion);
     }
 
     private static CompositionProfileOperationDocument Operation(
@@ -261,5 +343,27 @@ public sealed class CompositionProfileV2OperationNormalizerTests
     {
         using var document = JsonDocument.Parse(value);
         return document.RootElement.Clone();
+    }
+
+    private static JsonElement RegionInstanceDeltaAddend(
+        string kind,
+        string? sourceRegionInstanceId = null,
+        string? targetRegionInstanceId = null)
+    {
+        var properties = new Dictionary<string, string>
+        {
+            ["kind"] = kind,
+        };
+        if (sourceRegionInstanceId is not null)
+        {
+            properties["sourceRegionInstanceId"] = sourceRegionInstanceId;
+        }
+
+        if (targetRegionInstanceId is not null)
+        {
+            properties["targetRegionInstanceId"] = targetRegionInstanceId;
+        }
+
+        return JsonSerializer.SerializeToElement(properties);
     }
 }

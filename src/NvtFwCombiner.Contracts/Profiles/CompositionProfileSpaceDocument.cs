@@ -33,7 +33,7 @@ public sealed record CompositionProfileSpaceDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     CompositionProfileInitializerDocument? Initializer = null);
 
-/// <summary>DTO for one map-region, map-region-slice, or space-range selector.</summary>
+/// <summary>DTO for one closed logical-view selector.</summary>
 public sealed record CompositionProfileViewSelectorDocument(
     string Kind,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -43,7 +43,11 @@ public sealed record CompositionProfileViewSelectorDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     JsonElement? Length = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    CompositionProfileRelativeRangeDocument? Range = null);
+    CompositionProfileRelativeRangeDocument? Range = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? RegionInstanceId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? TemplateRegionId = null);
 
 /// <summary>DTO for one named logical view over a profile space.</summary>
 public sealed record CompositionProfileViewDocument(

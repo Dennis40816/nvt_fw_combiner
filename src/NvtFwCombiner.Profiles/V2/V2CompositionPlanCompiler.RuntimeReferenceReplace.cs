@@ -107,6 +107,7 @@ internal static partial class V2CompositionPlanCompiler
 
         CompositionOperation[] declaredProcessorOperations = LowerOperations(
             profile,
+            resolvedMap,
             spaces,
             views,
             regionAccess,
@@ -538,7 +539,11 @@ internal static partial class V2CompositionPlanCompiler
             _ = TryAuthorizeTargetWrite(
                 mapping.MappingId,
                 "runtime-request-target",
-                new ResolvedView(shape.Output.SpaceId, mapping.TargetRange, governingRegionChain),
+                new ResolvedView(
+                    shape.Output.SpaceId,
+                    mapping.TargetRange,
+                    governingRegionChain,
+                    IsSourceOnly: false),
                 regionAccess,
                 issues);
         }

@@ -207,6 +207,62 @@ internal enum CompositionProfileScalarByteOrder
     BigEndian,
 }
 
+/// <summary>Closed source of one scalar-transform addend before map lowering.</summary>
+internal enum TransformAddendSourceKind
+{
+    Fixed,
+    RegionInstanceDelta,
+}
+
+/// <summary>Base value for one normalized scalar-transform addend source.</summary>
+internal abstract record TransformAddendSource
+{
+    protected TransformAddendSource(TransformAddendSourceKind kind)
+    {
+        if (!Enum.IsDefined(kind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown transform addend source kind.");
+        }
+
+        Kind = kind;
+    }
+
+    internal TransformAddendSourceKind Kind { get; }
+}
+
+/// <summary>One legacy profile-owned fixed numeric addend.</summary>
+internal sealed record FixedTransformAddendSource : TransformAddendSource
+{
+    internal FixedTransformAddendSource(BigInteger value)
+        : base(TransformAddendSourceKind.Fixed)
+    {
+        Value = value;
+    }
+
+    internal BigInteger Value { get; }
+}
+
+/// <summary>One addend derived from two explicit placements of the same canonical template.</summary>
+internal sealed record RegionInstanceDeltaTransformAddendSource : TransformAddendSource
+{
+    internal RegionInstanceDeltaTransformAddendSource(
+        string sourceRegionInstanceId,
+        string targetRegionInstanceId)
+        : base(TransformAddendSourceKind.RegionInstanceDelta)
+    {
+        SourceRegionInstanceId = CompositionProfileValueRules.RequireId(
+            sourceRegionInstanceId,
+            nameof(sourceRegionInstanceId));
+        TargetRegionInstanceId = CompositionProfileValueRules.RequireId(
+            targetRegionInstanceId,
+            nameof(targetRegionInstanceId));
+    }
+
+    internal string SourceRegionInstanceId { get; }
+
+    internal string TargetRegionInstanceId { get; }
+}
+
 /// <summary>Reads an unsigned scalar, adds a checked signed value, and writes one target view.</summary>
 internal sealed record TransformScalarProfileOperation : CompositionProfileOperation
 {
@@ -220,6 +276,31 @@ internal sealed record TransformScalarProfileOperation : CompositionProfileOpera
         CompositionProfileScalarWidth width,
         CompositionProfileScalarByteOrder byteOrder,
         BigInteger addend,
+        ulong? expectedBefore)
+        : this(
+            operationId,
+            sequence,
+            overlapPolicy,
+            reason,
+            sourceViewId,
+            targetViewId,
+            width,
+            byteOrder,
+            new FixedTransformAddendSource(addend),
+            expectedBefore)
+    {
+    }
+
+    internal TransformScalarProfileOperation(
+        string operationId,
+        BigInteger sequence,
+        OverlapPolicy overlapPolicy,
+        string reason,
+        string sourceViewId,
+        string targetViewId,
+        CompositionProfileScalarWidth width,
+        CompositionProfileScalarByteOrder byteOrder,
+        TransformAddendSource addendSource,
         ulong? expectedBefore)
         : base(
             operationId,
@@ -248,9 +329,10 @@ internal sealed record TransformScalarProfileOperation : CompositionProfileOpera
                 "Expected scalar does not fit the declared width.");
         }
 
+        ArgumentNullException.ThrowIfNull(addendSource);
         Width = width;
         ByteOrder = byteOrder;
-        Addend = addend;
+        AddendSource = addendSource;
         ExpectedBefore = expectedBefore;
     }
 
@@ -262,7 +344,12 @@ internal sealed record TransformScalarProfileOperation : CompositionProfileOpera
 
     internal CompositionProfileScalarByteOrder ByteOrder { get; }
 
-    internal BigInteger Addend { get; }
+    internal BigInteger Addend => AddendSource is FixedTransformAddendSource fixedAddend
+        ? fixedAddend.Value
+        : throw new InvalidOperationException(
+            "A region-instance delta addend must be resolved against one firmware map.");
+
+    internal TransformAddendSource AddendSource { get; }
 
     internal ulong? ExpectedBefore { get; }
 

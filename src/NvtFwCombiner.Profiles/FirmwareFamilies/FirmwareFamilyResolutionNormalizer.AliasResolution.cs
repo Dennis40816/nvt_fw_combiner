@@ -17,7 +17,8 @@ public static partial class FirmwareFamilyResolutionNormalizer
             "members",
             "memberId");
         Dictionary<string, FirmwareRegionSet> regionSetsById = NormalizeRegionSets(
-            RequireList(document.RegionSets, "regionSets"));
+            RequireList(document.RegionSets, "regionSets"),
+            document.SchemaVersion);
         Dictionary<string, FirmwareMetadataSet> metadataSetsById = NormalizeMetadataSets(
             RequireList(document.MetadataSets, "metadataSets"),
             metadataDefinitionResolver);

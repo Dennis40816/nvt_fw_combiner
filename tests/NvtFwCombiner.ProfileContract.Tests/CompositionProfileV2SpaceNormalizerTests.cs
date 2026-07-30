@@ -170,12 +170,21 @@ public sealed class CompositionProfileV2SpaceNormalizerTests
             View(new CompositionProfileViewSelectorDocument(
                 "space-range",
                 Range: new CompositionProfileRelativeRangeDocument(Number("48"), Number("16"))))).Selector);
+        RegionTemplateRangeViewSelector templateRange = Assert.IsType<RegionTemplateRangeViewSelector>(
+            CompositionProfileNormalizer.NormalizeView(
+                View(new CompositionProfileViewSelectorDocument(
+                    "region-template-range",
+                    RegionInstanceId: "b-bank",
+                    TemplateRegionId: "tp-code")),
+                schemaVersion: "2.14").Selector);
 
         Assert.Equal("dp-code", region.RegionId);
         Assert.Equal(16, slice.RelativeRange.Start);
         Assert.Equal(48, slice.RelativeRange.EndExclusive);
         Assert.Equal(48, range.Range.Start);
         Assert.Equal(64, range.Range.EndExclusive);
+        Assert.Equal("b-bank", templateRange.RegionInstanceId);
+        Assert.Equal("tp-code", templateRange.TemplateRegionId);
     }
 
     /// <summary>Verifies incomplete and invalid selectors retain exact source paths.</summary>
@@ -193,11 +202,39 @@ public sealed class CompositionProfileV2SpaceNormalizerTests
                 Length: Number("1")))));
         CompositionProfileNormalizationException range = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.NormalizeView(View(new CompositionProfileViewSelectorDocument("space-range"))));
+        CompositionProfileNormalizationException instance = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeView(View(new CompositionProfileViewSelectorDocument(
+                "region-template-range",
+                TemplateRegionId: "tp-code")),
+                schemaVersion: "2.14"));
+        CompositionProfileNormalizationException templateRegion = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeView(View(new CompositionProfileViewSelectorDocument(
+                "region-template-range",
+                RegionInstanceId: "b-bank")),
+                schemaVersion: "2.14"));
 
         Assert.Equal("views[0].selector.kind", kind.Path);
         Assert.Equal("views[0].selector.regionId", region.Path);
         Assert.Equal("views[0].selector.offset", offset.Path);
         Assert.Equal("views[0].selector.range", range.Path);
+        Assert.Equal("views[0].selector.regionInstanceId", instance.Path);
+        Assert.Equal("views[0].selector.templateRegionId", templateRegion.Path);
+    }
+
+    /// <summary>Verifies older profile schemas cannot gain template-relative selector authority.</summary>
+    [Fact]
+    public void ViewRejectsRegionTemplateRangeBeforeSchemaV214()
+    {
+        CompositionProfileNormalizationException exception =
+            Assert.Throws<CompositionProfileNormalizationException>(() =>
+                CompositionProfileNormalizer.NormalizeView(
+                    View(new CompositionProfileViewSelectorDocument(
+                        "region-template-range",
+                        RegionInstanceId: "b-bank",
+                        TemplateRegionId: "tp-code")),
+                    schemaVersion: "2.13"));
+
+        Assert.Equal("views[0].selector.kind", exception.Path);
     }
 
     /// <summary>Verifies range scalars and end arithmetic reject invalid values without wrapping.</summary>

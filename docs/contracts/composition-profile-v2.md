@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0 through 2.13
+# Composition Profile Contract 2.0 through 2.14
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -12,8 +12,9 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.9.schema.json`](composition-profile-v2.9.schema.json), and
 [`composition-profile-v2.10.schema.json`](composition-profile-v2.10.schema.json), and
 [`composition-profile-v2.11.schema.json`](composition-profile-v2.11.schema.json), and
-[`composition-profile-v2.12.schema.json`](composition-profile-v2.12.schema.json), and
-[`composition-profile-v2.13.schema.json`](composition-profile-v2.13.schema.json). A trusted bundle
+[`composition-profile-v2.12.schema.json`](composition-profile-v2.12.schema.json),
+[`composition-profile-v2.13.schema.json`](composition-profile-v2.13.schema.json), and
+[`composition-profile-v2.14.schema.json`](composition-profile-v2.14.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -140,9 +141,13 @@ capacity, duplicate initializer, or unresolved graph reference before plan creat
 immutable artifacts only and cannot seed TPA, TPB, or other mutable work buffers.
 
 A `work-buffer` is a virtual engine-owned address space, not a physical firmware map region. Its
-views must use `space-range`; operations may use it as an intermediate source or target without
-creating a region-access rule. Only map-backed views are retained in physical access provenance and
-are subject to map write constraints. A work buffer can never be selected as final output.
+views normally use `space-range`; schema 2.14 also permits a source-only
+`region-template-range` selector to reuse one family-owned instance-relative
+range without converting that work buffer into a physical map space.
+Operations may use it as an intermediate source or target without creating a
+region-access rule. Only map-backed views are retained in physical access
+provenance and are subject to map write constraints. A work buffer can never
+be selected as final output.
 
 The pinned 2.0 schema intentionally forbids `stagedArtifactBindings`, so no existing trusted bundle
 can opt into it by accident. The 2.1 schema permits the property only on a `legacy-combiner-v1` stage
@@ -311,6 +316,29 @@ and adds the canonical `source-view-coverage` section-admission policy:
   sources may use this policy. Reference images, CtrlRAM payloads, and complete
   DP AB containers retain their explicit closed policies.
 
+Schema 2.14 keeps every 2.13 admission and execution constraint and adds two
+family-derived composition primitives:
+
+- source views in immutable input spaces or cloned work buffers may use
+  `region-template-range` with exact `regionInstanceId` and
+  `templateRegionId`; the compiler resolves one instance in the selected map,
+  verifies its address space, and exposes the template-relative range, so
+  symmetric A/B inputs read identical native coordinates;
+- a `transform-scalar` addend may remain a fixed integer or use
+  `region-instance-delta` with exact source and target instance ids; the
+  compiler requires one instance for each id, the same canonical template,
+  compatible address spaces, and a checked target-base-minus-source-base
+  result; and
+- for an instance-derived addend, the compiled fingerprint additionally
+  retains the addend source kind and both instance identities. Existing fixed
+  numeric-addend fingerprints remain byte-compatible, while a fixed value and
+  a geometry-derived value cannot collide merely because their current
+  numeric result is equal.
+
+Neither primitive grants a write range. Output views remain map-backed, and
+all writes still pass the existing region-access, overlap, containment, and
+write-constraint checks.
+
 ## Input size policy
 
 Every input declares an `artifactClass` and a closed length policy. The
@@ -399,8 +427,10 @@ behavior is exposed as a selectable possibility.
 
 All workflows compile to the same operation algebra: `copy-range`, `replace-range`, `fill-range`,
 `patch-scalar`, checked `transform-scalar`, and `run-processor`. `transform-scalar` is the bounded AB
-relocation primitive: fixed width and byte order, unsigned source value, checked signed addend,
-optional expected-before value, and reject-on-overflow. It is not an expression language.
+relocation primitive: fixed width and byte order, unsigned source value, a
+checked signed addend declared either as an integer or the schema-2.14
+`region-instance-delta`, optional expected-before value, and
+reject-on-overflow. It is not an expression language.
 
 Processor parameters are a closed union. `crc-worker-v1` references a registered calculation set and
 is fixed to `calculate`, checksum purpose, and zero write views; it may verify existing integrity but

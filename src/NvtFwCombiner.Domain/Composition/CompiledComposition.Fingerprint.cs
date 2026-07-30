@@ -281,6 +281,19 @@ public sealed partial class CompiledComposition
         AppendEnum(builder, $"{prefix}.width", transform.Width);
         AppendEnum(builder, $"{prefix}.byte-order", transform.ByteOrder);
         AppendField(builder, $"{prefix}.addend", transform.Addend.ToString(CultureInfo.InvariantCulture));
+        if (transform.AddendSource.Kind == ScalarTransformAddendSourceKind.RegionInstanceDelta)
+        {
+            AppendEnum(builder, $"{prefix}.addend-source-kind", transform.AddendSource.Kind);
+            AppendField(
+                builder,
+                $"{prefix}.addend-source-instance",
+                transform.AddendSource.SourceRegionInstanceId!);
+            AppendField(
+                builder,
+                $"{prefix}.addend-target-instance",
+                transform.AddendSource.TargetRegionInstanceId!);
+        }
+
         AppendField(
             builder,
             $"{prefix}.expected-before",

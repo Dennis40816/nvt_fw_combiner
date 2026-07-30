@@ -6,50 +6,6 @@ namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
 public static partial class FirmwareFamilyResolutionNormalizer
 {
-    private static Dictionary<string, FirmwareRegionSet> NormalizeRegionSets(
-        IReadOnlyList<FirmwareRegionSetDocument> documents)
-    {
-        Dictionary<string, FirmwareRegionSetDocument> documentsById = IndexUnique(
-            documents,
-            static document => document.RegionSetId,
-            "regionSets",
-            "regionSetId");
-        Dictionary<string, FirmwareRegionSet> normalized = new(StringComparer.Ordinal);
-        foreach ((string regionSetId, FirmwareRegionSetDocument document) in documentsById)
-        {
-            string path = $"regionSets[{regionSetId}]";
-            IReadOnlyList<FirmwareRegionDocument> regionDocuments =
-                RequireList(document.Regions, $"{path}.regions");
-            var regions = new FirmwareRegion[regionDocuments.Count];
-            for (int index = 0; index < regionDocuments.Count; index++)
-            {
-                regions[index] = NormalizeRegion(regionDocuments[index], $"{path}.regions[{index}]");
-            }
-
-            TranslateInvariant(path, () => normalized.Add(
-                regionSetId,
-                new FirmwareRegionSet(
-                    regionSetId,
-                    document.AddressSpaceId,
-                    regions,
-                    document.EvidenceRefs)));
-        }
-
-        return normalized;
-    }
-
-    private static FirmwareRegion NormalizeRegion(FirmwareRegionDocument document, string path)
-    {
-        return TranslateInvariant(path, () => new FirmwareRegion(
-                document.RegionId,
-                document.ParentRegionId,
-                NormalizeOwner(document.Owner, $"{path}.owner"),
-                NormalizeRegionKind(document.Kind, $"{path}.kind"),
-                NormalizeRange(document.Range, $"{path}.range"),
-                NormalizeWriteConstraint(document.WriteConstraint, $"{path}.writeConstraint"),
-                ReadInt32(document.Alignment, 1, int.MaxValue, $"{path}.alignment")));
-    }
-
     private static Dictionary<string, FirmwareMetadataSet> NormalizeMetadataSets(
         IReadOnlyList<FirmwareMetadataSetDocument> documents,
         IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver)
