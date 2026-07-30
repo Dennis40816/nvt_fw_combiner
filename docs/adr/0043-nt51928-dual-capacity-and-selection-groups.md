@@ -6,6 +6,7 @@
 - Owners: Product owner + architecture owner + firmware owner
 - Risk: R2 architecture contract; NT51928 profile and byte migrations remain R3
 - Builds on: ADR 0015, ADR 0020, ADR 0041
+- Amended by: ADR 0045 for source projection and FlashCode admission
 
 ## Context
 
@@ -110,6 +111,15 @@ required.
 Structural safety remains blocking: unreadable files, unsupported container
 lengths, missing selected ranges, wrong binding kind, and out-of-bounds
 operations cannot Build.
+
+Reference remains complete-container authoritative and therefore exact to the
+resolved `0x40000` or `0x80000` variant. Initial Code and LDC replacement
+artifacts are different: each is an address-bearing section source and needs to
+cover only its selected canonical source view. The same rule permits a
+compatible NT51928 FlashCode to provide either view. Standard Merge TP,
+Initial Code/DP, and LDC inputs use the same address-aligned source-view
+coverage. Neither a section's outer length nor the presence of LDC defines
+FlashCode.
 
 Profiles may separately attach a warning-only `non-uniform-region` plausibility
 validation to a canonical Initial Code, DP, or LDC source view. The validation

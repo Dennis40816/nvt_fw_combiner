@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-15
+- Amended: 2026-07-29 for author-selected blank fill
 - Owners: Product owner + architecture owner
 - Amends: ADR 0015 and ADR 0018
 - Amended by: ADR 0020
@@ -13,7 +14,11 @@ one or more source artifacts, declares explicit half-open source-to-output copy 
 an arbitrary positive output capacity. The selected IC identifies the output/report context; it does
 not prove a unique canonical map. Existing behavior rejects overlapping targets, initializes the
 output with `0x00`, and lowers every mapping into the shared `CompositionPlan` and
-`CompositionEngine`.
+`CompositionEngine`. The owner accepted a target amendment on 2026-07-29:
+General Merge retains `0x00` as the default blank fill while allowing the
+author to select any one byte in `0x00..0xFF`. This changes only initialization
+of otherwise unmapped output bytes; it grants no mapping, map, or processor
+authority.
 
 The current V2 runtime admission intentionally supports only resolved-map Merge and DP Replace
 profiles with exactly one singleton immutable input per slot. Treating General Merge output capacity
@@ -30,13 +35,16 @@ The context is admitted only when the trusted V2 profile declares all of the fol
 
 - `compositionKind = merge`, `experienceId = general-merge`, `layoutPolicy = user-defined`, and
   `inputPolicy = extensible`;
-- one `output-image` with a new `runtime-request` capacity policy, blank initialized with `0x00`;
+- one `output-image` with a new `runtime-request` capacity policy and one
+  request-selected blank fill byte; omission resolves to `0x00`, while an
+  explicit value may be any byte in `0x00..0xFF`;
 - an auxiliary `one-or-more` input slot with `per-binding` instance materialization;
 - explicit `copy-range` mappings only, with `reject` overlap policy; and
 - no physical-map regions, metadata validation, processor stage, CRC/header stage, normalization,
   caller-owned mutable input, executable path, or script.
 
-A typed compile request supplies the requested output capacity, concrete immutable binding
+A typed compile request supplies the requested output capacity, resolved blank
+fill byte, concrete immutable binding
 identities and exact lengths, plus mapping IDs, sequence, source binding/range, output range,
 alignment, reason, and provenance. It contains no host path, bytes, command, process argument,
 or decoded firmware fact. Profiles validates and materializes every binding as one immutable
@@ -44,14 +52,16 @@ address space and lowers every mapping through the existing `V2CompositionPlanCo
 existing operation algebra. No General Merge executor, operation kind, or fallback compiler is
 introduced.
 
-The output capacity must be in `1..Int32.MaxValue`. Source and target ranges are half-open and use
+The output capacity must be in `1..Int32.MaxValue`, and the blank fill must be
+one checked byte. Source and target ranges are half-open and use
 checked arithmetic. Binding IDs and mapping IDs are unique; mapping sequence is deterministic and
 unambiguous; source and target lengths are equal and positive; every source and target range is in
 bounds; and every target is the final logical output. Before reading, Application validates that
 runtime artifacts match the concrete compiled binding identities, artifact class, original
 filenames, and extensions. After reading and before execution, it validates each actual byte length
-against the compiled immutable space. Preview-to-Build identity includes the compiled bindings,
-mappings, output capacity, chosen output filename, and the read input hashes.
+against the compiled immutable space. Preview-to-Build identity includes the
+compiled bindings, mappings, output capacity, resolved blank fill byte, chosen
+output filename, and the read input hashes.
 
 Application admits this `V2PlanCompiled` exception only when the context is logical-output and the
 promotion stage is exactly `executable-candidate`. The only other closed candidate exception is ADR
@@ -74,8 +84,12 @@ aliases during the cutover.
 
 ## Consequences
 
-- Existing 0.9.2 workflows retain their current behavior; pending candidate intake remains scoped to
-  the requested member and cannot globally reject General Merge or other supported workflows.
+- Existing callers that omit the blank fill retain the current `0x00`
+  behavior. The configurable-fill target requires a versioned request/schema
+  migration; until that migration lands, the current fixed-`0x00` runtime
+  remains the compatibility implementation.
+- Pending candidate intake remains scoped to the requested member and cannot
+  globally reject General Merge or other supported workflows.
 - The V2 compiler gains one typed request overlay, not a second compiler or dynamic scripting API.
 - A new exact schema/profile contract version is required. The existing map-bound schemas and
   runtime admission rules remain unchanged for all other workflows.
@@ -89,10 +103,13 @@ aliases during the cutover.
    plan and compilation fingerprint.
 3. Extend Application's V2 binding admission for the resulting concrete immutable inputs.
 4. Register an `executable-candidate` General Merge profile; do not promote it automatically.
-5. Compare legacy and V2 output bytes, plans, report operation order/provenance, and Preview tokens
-   for single/multiple source mappings, repeated sources, blank gaps, adjacent ranges, arbitrary
-   capacities, bounds/overflow, duplicate IDs, overlap, missing/extra/swapped bindings, and failed
-   output promotion.
+5. Compare legacy and V2 output bytes, plans, report operation order/provenance,
+   and Preview tokens for single/multiple source mappings, repeated sources,
+   blank gaps, adjacent ranges, default `0x00`, explicit `0xFF`, at least one
+   other explicit fill byte, arbitrary capacities, bounds/overflow, duplicate
+   IDs, overlap, missing/extra/swapped bindings, and failed output promotion.
+   Mapped bytes are independent of the selected blank fill; only unmapped
+   output bytes may differ.
 6. Switch the workflow only after reviewed exact-parity evidence and owner acceptance. The
    logical-output profile remains `executable-candidate`, because it declares no physical firmware
    support or map authority. Delete the dynamic legacy profile construction only in that cutover

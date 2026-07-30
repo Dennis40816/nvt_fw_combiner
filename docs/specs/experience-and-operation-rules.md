@@ -27,6 +27,25 @@ Initial-Code/TP-only `0x40000` candidate; supplied LDC selects the NT51928
 and never falls back to absence. DP Replace resolves the variant from the
 accepted Reference length.
 
+Built-in Initial Code, DP, TP, LDC, TPA, and TPB slots are address-bearing
+section sources. Their outer file length is not an exact gate when every
+selected source/metadata/validation/processor read is covered; a compatible
+same-IC FlashCode may supply the same views. TPA copies at the same coordinates.
+TPB reads the TP-native source window and writes it at the resolved bank
+placement delta. Only current compact CtrlRAM replacement payloads normally
+map source byte `0` to a nonzero built-in firmware target.
+
+Replace Reference and complete DP AB seeds are whole-container inputs, not
+section projections. They must match one declared capacity variant. General
+Merge/Replace may explicitly author From File Start as a user mapping preset;
+that does not create another built-in firmware rule.
+
+FlashCode classification requires a resolved complete-container variant with
+required DP/Initial Code and TP views. LDC is variant-optional. NVT marker,
+ASCII IC hint, CMI, PID, version, length, and non-uniform checks are composable
+signals rather than one magic signature; inconclusive classification is
+`Unknown` and remains separate from section admission.
+
 ## Operation Algebra
 
 Only these composition primitives are allowed:
@@ -93,3 +112,9 @@ Inventory data may be `unknown`, but a supported profile may not. A transform ma
   attempts Preview with a runtime blocker, the headless workflow may return a
   blocked Preview report; Build remains unavailable until every execution gate
   is current.
+- For General Replace whose accepted targets require POSTBUILD, a missing
+  Parent stage or runtime dependency permits only a plan-only Diagnostic
+  Preview. It reports accepted/compiled mappings, projected coverage, the
+  required stage when compiled, and the blocker. It executes no mappings or
+  processor, emits no output BIN, and makes no final Header/CRC/hash claim.
+  Missing Parent authority and a missing runtime tool remain distinct issues.

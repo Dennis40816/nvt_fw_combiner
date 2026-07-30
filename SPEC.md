@@ -77,9 +77,13 @@
 - NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
 - Other Standard Merge profiles extract only their declared DP source views. A DP artifact that
   reaches every required end offset may have an arbitrary total length; a non-map length is a report
-  warning, not a build blocker. Every Standard Merge TP source must cover its declared views and be
-  `<= 0x40000`; oversize is a build error. NT51950/NT51951 remain the exception because they paste a
-  full DP container and require exact selected-map capacity.
+  warning, not a build blocker. Initial Code, DP, TP, LDC, TPA, and TPB are
+  address-bearing section sources: each must cover every profile-declared
+  source/metadata/validation read, and a compatible same-IC FlashCode may
+  provide the same window. An outer-size ceiling is Application resource
+  policy, not TP firmware geometry. NT51950/NT51951 remain the exception where
+  the operation consumes a full DP container and requires exact
+  selected-map/topology capacity.
 - NT51917 follows the complete NT51927 perfect-family definition, and NT51919
   follows the complete NT51929 perfect-family definition. NT51928 non-NB
   references only explicitly declared NT51927 Initial Code and TP facts through
@@ -97,6 +101,14 @@
   permits independently optional Initial Code `[0x3C000,0x40000)` and LDC
   `[0x40000,0x62000)` replacements but requires at least one selection.
   Authoring availability does not by itself grant a public support claim.
+- FlashCode is a complete resolved container with required DP/Initial Code and
+  TP parts; LDC exists only in variants that declare it. There is no single
+  FlashCode magic signature. The NVT marker, ASCII `519xx`, CMI, PID,
+  version/complement, length, and non-uniform checks are independent
+  profile-declared evidence or validation signals and none alone chooses IC,
+  family, route, map, support, or publication. Inconclusive classification is
+  `Unknown`; a section source may still be admitted when its own declared
+  window and validations pass.
 - NT51920, NT51925, NT51930, and NT51931 are retired from the `0.10.x`
   production capability set by the owner-approved retirement contract. Their
   former DiffDLM ranges remain historical evidence only and cannot be migrated,
@@ -500,7 +512,7 @@ The current Python worker is a constrained pure CRC calculation prototype. It is
 - Schema：JSON Schema Draft 2020-12。
 - Human authoring：第一階段直接編輯 JSON；後續可加入 Excel importer/compiler。
 - Automated IC intake（規劃於 0.9.4）：輸入必須是宣告完整的 IC intake manifest 與其檔案；輸出只能是 candidate bundle、materialization/validation report 與待補 evidence 清單。它不得成為 runtime source of truth，不得掃描未宣告的目錄、網路或使用者 BIN，也不得直接變更已核准 profile、support catalog 或 promotion。
-- General Merge / General Replace：UI 或 CLI 產生 typed mapping overlay，可保存成 versioned saved rule/profile fragment；不得產生 script、shell command 或 executable path。Saved-rule validation and General Merge CLI consumption must still compile back to normal explicit mappings.
+- General Merge / General Replace：UI 或 CLI 產生 typed mapping overlay，可保存成 versioned saved rule/profile fragment；不得產生 script、shell command 或 executable path。Saved-rule validation and consumption compile back to the same normal explicit mappings. A rule references one exact separately installed Trusted Parent rather than embedding trust. Local authoring files may be edited and saved in place, but semantic change creates a new hash and Draft; installed Catalog versions stay read-only/immutable and republication requires a new rule version.
 - Processor/tool recipe：JSON/typed declaration，與 memory mapping 分離但由 profile 明確引用。
 - Reports：JSON；UI 顯示由 typed report 轉換。
 - Spec/ADR/guide：Markdown。
@@ -739,7 +751,12 @@ Load profile and IC definition
 → atomically commit output
 ```
 
-Preview executes through plan/validation and processor dry-run capability where available, but does not commit output.
+Preview either executes through plan/validation and available processor dry-run
+capability without committing output, or produces an explicitly plan-only
+diagnostic report. When General Replace requires POSTBUILD but the Parent stage
+or runtime dependency is unavailable, Build is blocked and diagnostic Preview
+does not execute mappings/processors, produce a BIN, or claim final
+Header/CRC/hash validity.
 
 ### 10.2 Merge vs Replace
 
@@ -754,7 +771,9 @@ Preview executes through plan/validation and processor dry-run capability where 
 ### 10.2.1 Input size mismatch, padding, and truncation
 
 Profile address spaces distinguish the minimum required readable end from an
-expected outer length. A supplied BIN shorter than the required end is accepted
+expected outer length. For an address-bearing section source, the required end
+is the maximum end-exclusive byte used by selected source views, metadata,
+validations, and processor reads. A supplied BIN shorter than the required end is accepted
 only when the profile explicitly declares an input padding byte for that
 immutable source/replacement address space and the profile has no CRC/header/
 processor dependency. Runtime/request address spaces cannot declare padding or
@@ -768,8 +787,26 @@ inside that prefix. The actual source hash and length remain report evidence;
 the execution snapshot exposes only the declared span and reports ignored
 trailing bytes. This policy never grants padding, never changes operation ranges,
 and never applies because a UI label or filename resembles an approved profile.
-The first `v0.9.14` AB pilot uses this policy for DP_AB beyond `0x80000` and
-TPA/TPB beyond `0x40000`, subject to its R3 boundary/golden gates.
+The first `v0.9.14` AB compatibility pilot used this policy for DP_AB beyond
+`0x80000` and TPA/TPB beyond `0x40000`. ADR 0045 retains bounded section
+projection for TPA/TPB but requires a complete DP AB seed to match a declared
+container variant; that R3 migration requires the normal golden/owner gates.
+
+ADR 0045 supersedes workflow-named section admission with one generic
+source-view-coverage contract. Initial Code, DP, TP, LDC, TPA, and TPB normally
+use address-aligned firmware coordinates. TPA copies the same coordinates;
+TPB reads the same TP-native source window and writes it at the resolved bank
+placement delta, with stored-address relocation remaining a separate scalar
+transform. Only current compact CtrlRAM replacement payloads normally map
+source byte `0` to a nonzero built-in firmware target. Dynamic DiffDLM remains
+a CtrlRAM-specific masked scatter, not another general mapping kind.
+
+Whole-container authority is separate from a range projection. Replace
+Reference and DP AB/AB seed inputs must match one declared complete-container
+variant because bytes outside later section writes remain output authority.
+Source-view coverage cannot weaken those exact-capacity gates. General
+Merge/Replace may still explicitly author From File Start mappings; that is a
+user mapping preset, not an inferred built-in firmware rule.
 
 DP-only Replace flows that do not require CRC/header recalculation may use profile-declared padding.
 CtrlRAM Replace flows cannot declare input padding for shorter input. Because owner evidence shows
@@ -1424,6 +1461,44 @@ version.
 28. General Merge and General Replace use one `AuthoringMappingState`, one
     invariant range codec, one Start + Length editor, and one typed draft shared
     by UI, CLI, Saved Rules, validation, memory projection, and compilation.
+    File-backed rows expose only two authoring presets over the same operation:
+    Source Slice (`sourceStart + targetStart + length`) and From File Start
+    (`sourceStart = 0 + targetStart + length`). **Use full file length** only
+    materializes the inspected length into the draft; compilation never
+    re-derives it.
+    Each accepted file uses one content-authoritative `FileStamp` of byte
+    length plus SHA-256. A content change preserves editable rows but
+    invalidates inspection, layout, Preview, and readiness until explicit
+    Reload/Rebind; Build verifies the same identity immediately before
+    consuming the immutable run snapshot. A materialized full-file length never
+    silently follows a changed file.
+    One output occupancy ledger rejects every intersection between
+    user-authored File, Hex Overwrite, and Hex Fill target ranges and reports
+    both mapping ids plus the exact half-open intersection. A profile-owned
+    POSTBUILD stage is outside this authored-overlap ledger and retains its own
+    compiled sequence and write-authority audit.
+    Application technical ceilings, exact Trusted Parent semantic/slot limits,
+    and Saved Rule narrowing limits are intersected. UI/CLI do not own separate
+    limits; unreferenced file tails are allowed unless the whole file violates
+    the technical ceiling or resolved slot contract.
+    General Merge owns one positive logical-output capacity and one blank fill
+    byte (`0x00..0xFF`, omitted/default `0x00`) as compilation/Preview identity.
+    A reproducible General Merge Saved Rule closes over both. General Replace
+    declares neither and clones its immutable Reference.
+    Saved Rule execution resolves an exact parent bundle/profile/family/map
+    identity and may only narrow it. General Replace rules cannot add/remove
+    protected-range decisions, POSTBUILD stages, tool bindings, parameters, or
+    allowed writes. Local user-owned rule JSON supports Save-in-place; a
+    semantic edit changes the canonical rule hash, returns to Draft, invalidates
+    prior approvals/evidence/promotion, and requires a new version to publish.
+    Catalog-managed rules are read-only and Edit creates a separate working
+    copy. Historical reports retain exact rule id/version/hash/parent identity.
+    Legacy inclusive-end JSON translates once at an outer importer. Current UI,
+    CLI, Application, and Domain see only half-open Start + Length. V1 Saved
+    Rule runtime and workflow-specific DTO/parser adapters are removed only
+    after v2 initializer/parent-authority, round-trip, negative, parity, and
+    required golden gates pass; every temporary adapter declares callers and
+    executable deletion gates.
 29. Shared `AuthoringAvailability`, compiler-proved `ExecutionAdmission`,
     `EvidenceStatus`, `PublicationStatus`, `InputReadiness`, and refreshable
     `RuntimeDependencyReadiness` are independent results. Build requires
@@ -1436,9 +1511,22 @@ version.
     Run Report. A genuinely absent required input (`PendingInput`) blocks
     Preview; a supplied but invalid input (`Blocked`) remains diagnostically
     previewable while Build stays unavailable.
+    For General Replace that requires POSTBUILD, this is a labelled
+    plan-only Diagnostic Preview: it may show accepted/compiled mappings,
+    projected Kept/Changed coverage, required stage, and blocker, but executes
+    no mappings or processors, produces no downloadable BIN, and claims no
+    final Header/CRC/hash/output validity. Missing Parent stage authority and
+    missing runtime tool are distinct issues.
 31. Structural artifact admission remains blocking when a selected file is
-    unreadable, has an unsupported container length, cannot cover a required
-    range, or would create an out-of-bounds operation. A profile may separately
+    unreadable, cannot cover a required read, would create an out-of-bounds
+    operation, or is a complete-container input whose length matches no
+    declared variant. Initial Code, DP, TP, LDC, TPA, and TPB section slots use
+    address-bearing source-view coverage rather than an exact outer-size gate;
+    compatible same-IC FlashCode may provide those views. Replace Reference
+    and complete DP AB seeds remain exact. Built-in source-byte-zero to nonzero
+    target projection is reserved for compact CtrlRAM payloads; TPB instead
+    uses its TP-native source window plus a resolved bank placement delta.
+    A profile may separately
     attach a warning-only `non-uniform-region` plausibility rule to one
     canonical Initial Code, DP, or LDC source view. A view with only one
     distinct byte emits the same typed warning through Application, UI, CLI,
@@ -1522,6 +1610,16 @@ remaining headless routes resolve through the canonical capability owner.
     identity, diagnostics, observed change, selection, and focus use orthogonal
     effects. Profiles and Application results never carry HEX colors or pixel
     widths.
+    General Merge renders blank output as a low-emphasis neutral fine-dot
+    surface with the exact blank byte in its summary; it never calls blank
+    bytes `Kept`. Selected mappings are `WillWrite`. General Replace renders
+    untouched Reference ranges as striped/icon-labelled `Kept` and mappings as
+    `WillReplace`. File/overwrite/fill sources share that disposition color and
+    use compact source-kind icons. Mapping conflicts mark only the exact
+    intersection with Error state and name both mapping ids. A compact legend
+    appears only when multiple non-obvious states lack an adjacent self-labeling
+    list; segment/supporting hover and focus cards remain the primary
+    explanation.
 39. CRC, Header, and Header Copy do not receive primary Memory Layout roles.
     They remain trace/safety facts and appear visually only through a report
     issue when necessary.
@@ -1756,7 +1854,11 @@ after the grill closes so issues do not become a competing draft specification.
     runtime/dictionary order, C# type names, storage paths, and JSON paths
     cannot influence semantic identities, and IC/family/workflow-specific hash
     builders are forbidden. `RouteId`, `ResolutionToken`, `AuthoringRevision`,
-    and `FileStamp` retain their separate accepted meanings. A semantic
+    and `FileStamp` retain their separate accepted meanings outside the
+    firmware-semantic fingerprint chain. `FileStamp` captures one selected
+    external file's accepted byte length and SHA-256; path and filesystem
+    timestamp are non-authoritative hints. It is not a canonical-definition
+    hash or `CapabilityFingerprint`. A semantic
     fingerprint-format change bumps its version, makes pinned policy stale, and
     requires reviewed repinning plus cross-language vectors.
 25. Every runtime invariant has one validating owner. Schema/Contracts intake

@@ -31,7 +31,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 | Home | Clean launcher | workflow groups for Replace, Merge, and Util Tools | Memory coverage, reports, mixed workflow controls, IC/Number context |
 | Settings | Configure folders, profile packs, strictness, theme, diagnostics access | compact settings groups, profile catalog status, log/report access | direct GitHub secret editing, firmware mutation logic |
 | Merge | Normal / AB Code merge entry point | mode selector with Normal enabled and AB Code disabled, shared IC/profile context, slot cards, visual-first memory coverage preview, preview/build actions | Replace controls, hard-coded copy/offset rules |
-| Replace | DP / CtrlRAM / General replace entry point | shared IC/Number context, persona selector, base/reference slot cards, overlay slot cards including separate DP/LD cards when a DP Replace profile requires them, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI |
+| Replace | DP / CtrlRAM / General replace entry point | shared IC/IC Count context, persona selector, base/reference slot cards, overlay slot cards including separate Initial Code/LDC cards when a DP Replace profile requires them, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI |
 | Hex Editor | Raw BIN utility | source BIN, compact bounded 16-byte viewport with full-document scrollbar, in-memory edits, original rows, undo/redo, confirmed Save As | IC/Number context, Flash Map, profile restrictions, CRC/postbuild, General Replace, firmware report |
 
 ## Production shell constraints
@@ -73,7 +73,10 @@ Shell
 - Merge and Replace report modals must be persisted into a history view. History entries need the operation step list, IC/IC-num context, input/output hashes, external Combiner command sequence, warnings, artifact path, one-click clear, and local size warning/cleanup affordance so a user can audit or prune what happened after closing the modal.
 - Terminal/log panes are read-only and sanitized.
 - The shared Memory coverage area must support before/after display for both Merge and Replace without moving position between pages.
-- Memory coverage should read as a light workbench component with labels and legend, not as a dominant dark banner.
+- Memory coverage should read as a light workbench component with direct labels
+  and inspectable details, not as a dominant dark banner. A compact legend is
+  conditional: show it only when multiple non-obvious states lack an adjacent
+  self-labeling list.
 - Display strings must be structured for bilingual English/Chinese support.
 - Technical fixed-width content such as addresses, byte values, hashes, and terminal snippets should use Cascadia Mono, then Consolas as fallback.
 

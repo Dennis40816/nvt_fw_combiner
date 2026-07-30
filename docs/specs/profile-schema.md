@@ -51,10 +51,16 @@ The table is a product catalog baseline, not an executor enum. New experiences r
 
 ## Inputs and Region Access
 
-Input slots declare artifact class, role, cardinality, accepted extensions, and one closed length/
-normalization policy. TP firmware is capped by `tp-maximum-256k`; Normal DP extraction warns on outer
-size mismatch but requires every declared view in bounds; whole-DP and reference inputs bind exact
-resolved-map capacity. Original filenames are always trace metadata and never IC/range truth.
+Input slots declare artifact class, role, cardinality, accepted extensions, and
+one closed length/normalization policy. Canonical Initial Code, DP, TP, LDC,
+TPA, and TPB section sources use `source-view-coverage`: every selected
+source/metadata/validation/processor read must be in bounds, while optional
+expected outer lengths produce diagnostics only. A compatible same-IC
+FlashCode may provide a section window. Whole-container DP AB and Reference
+inputs bind an exact declared capacity. `tp-maximum-256k` and
+`normal-dp-extract-with-warning` are temporary migration tokens under ADR 0045,
+not new-profile vocabulary. Original filenames are always trace metadata and
+never IC/range truth.
 
 An input selection group references existing slot definitions and declares
 `minimumSelected` plus `maximumSelected`. Member slots retain their own
@@ -73,6 +79,9 @@ DP Replace selects those same declared variants from an accepted `0x40000` or
 group requires one or two applicable selections. On the `0x40000` variant LDC
 is `NotApplicable`, remains visible with the reason that Reference does not
 contain LDC, and stale/manual LDC bindings are rejected.
+Reference length is exact because Reference is the cloned complete container.
+Initial Code and LDC replacement inputs are address-bearing section sources and
+need only cover their selected canonical views.
 
 Structural acceptance remains blocking. A profile may separately reference a
 warning-only `non-uniform-region` validation over a canonical Initial Code,

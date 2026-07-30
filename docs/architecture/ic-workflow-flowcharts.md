@@ -124,9 +124,9 @@ not runtime routes.
 ```mermaid
 flowchart TD
     A["Select built-in Standard Merge profile"] --> B["Create blank output image with profile flash size and fill byte"]
-    B --> C{"TP matches declared length (at most 0x40000)?"}
+    B --> C{"TP source covers every declared TP read?"}
     C -- "no" --> D["Reject input"]
-    C -- "yes" --> E{"DP reaches the declared source-range end?"}
+    C -- "yes" --> E{"DP source covers every declared DP read?"}
     E -- "no" --> D
     E -- "yes" --> F["Extract declared DP range; warn only when total DP size is unexpected"]
     F --> G["Copy TP input range to output, sequence 100"]
@@ -136,7 +136,12 @@ flowchart TD
     J --> K["Preview/Build report records input hashes, copied ranges, warnings, and output hash"]
 ```
 
-The DP source-size notes below are expected golden lengths, not exact-size execution gates. A DP input must cover the listed DP range; other total lengths are accepted with a warning. TP input remains exact-length for its declared profile range.
+The DP source-size notes below are expected golden lengths, not exact-size
+execution gates. DP and TP inputs must cover their listed address-bearing source
+views; other total lengths are accepted under the profile's source-view policy
+with a diagnostic when the outer length is unexpected. A compatible same-IC
+FlashCode may provide either section. Replace Reference and complete DP AB
+inputs remain exact declared container variants.
 
 | IC | Output size | TP range | DP range | DP input length note |
 | --- | ---: | --- | --- | --- |

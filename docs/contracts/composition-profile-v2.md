@@ -123,10 +123,13 @@ The reserved future-schema `legacy-combiner-v1` stage lowers through the existin
 only with profile-declared read/write ranges, staged sources, and, when required, named artifact bindings; it never grants
 C# checksum or header calculation authority.
 
-For this subset, an `exact-resolved-map-capacity` input binds an immutable source space at the resolved map
-capacity. A `tp-maximum-256k` input retains its maximum-policy contract while its immutable source space is
-the exact maximum end-exclusive span of its resolved source views; it never pads, truncates, or silently
-accepts bytes outside that plan geometry.
+For this subset, an `exact-resolved-map-capacity` input binds an immutable
+complete-container source space at the resolved map capacity. A canonical
+`source-view-coverage` section input binds its immutable execution space to the
+maximum end-exclusive selected read; it never pads, truncates, or grants access
+to bytes outside that snapshot. The compatibility `tp-maximum-256k` token
+currently lowers only a restricted subset of that behavior and is removed by
+the ADR 0045 migration.
 
 Every mutable space has exactly one engine-owned `blank` or immutable-slot `clone` initializer.
 `clone.sourceSlotId` cannot reference a mutable space, which removes mutable initializer cycles by
@@ -286,32 +289,42 @@ not recreate cardinality or map-applicability rules.
 
 ## Input size policy
 
-Every input declares an `artifactClass` and a closed length policy. `tp-firmware` uses
-`tp-maximum-256k`, `exact-bytes` no greater than 262144 bytes, or `declared-prefix-with-warning` whose
-`requiredEndExclusive` is no greater than 262144, always without normalization.
-`tp-maximum-256k` extracts the exact declared source span from a TP artifact within the fixed owner
-limit; `exact-bytes` requires one exact TP artifact length and permits a same-capacity engine-owned
-work buffer to clone it. A normal
-`dp-firmware` source whose outer file length is not controlled uses
-`normal-dp-extract-with-warning`: all referenced views must be in bounds, any difference from the
-declared expected outer-container lengths emits the declared warning, and operations copy only those
-views. The optional `expectedInputLengths` list has one to eight positive, strictly ascending entries;
-when omitted, the compiler materializes the selected map capacity as the sole expectation. Every
-declared expectation must cover the greatest end-exclusive source view. A whole DP flow such as the
-NT51950/NT51951 full-copy path uses `exact-resolved-map-capacity` and fails on mismatch.
-`bounded` remains available only for artifact classes whose owner policy does not require one of
-those firmware-specific rules. `exact-bytes` is otherwise available only for artifact classes whose
-owner policy permits it.
+Every input declares an `artifactClass` and a closed length policy. The
+canonical section policy is `source-view-coverage`. The compiler derives its
+required end from every selected source view, metadata binding, input
+validation, and processor read for that input space. The selected artifact must
+cover that end. Optional expected outer-container lengths have one to eight
+positive, strictly ascending entries; a nonmatching accepted length emits the
+declared warning while execution exposes only the bounded declared snapshot.
 
-`declared-prefix-with-warning` is available only to unnormalized immutable Merge sources with artifact
+Initial Code, DP, TP, LDC, TPA, and TPB are address-bearing section sources. A
+standalone section artifact and a compatible same-IC FlashCode are admitted by
+the same source views; outer length does not change source coordinates or grant
+write/processor authority. Application technical file ceilings remain
+resource policy rather than firmware length rules.
+
+The current `tp-maximum-256k` and `normal-dp-extract-with-warning` wire tokens
+are migration aliases for subsets of source-view coverage and accept no new
+profile authority. They are deleted after ADR 0045 profiles, compiled
+requirements, CLI/report consumers, and tests converge. `exact-bytes` and
+`bounded` remain available only where owner policy explicitly requires a
+payload/container bound.
+
+A complete-container flow uses `exact-resolved-map-capacity` or another closed
+declared-capacity variant and fails on mismatch. This includes Replace
+Reference and a complete DP AB seed. A section input must not use whole-map
+capacity merely because its range is inside that map.
+
+`declared-prefix-with-warning` is a compatibility form available only to unnormalized immutable Merge sources with artifact
 class `dp-firmware`, `tp-firmware`, or `auxiliary`. A source shorter than `requiredEndExclusive` is
 blocking and receives no accepted execution snapshot. An accepted source exposes exactly the half-open
 prefix `[0, requiredEndExclusive)`; bytes after that end remain immutable, are ignored by execution, and
 must be retained as actual-source identity plus an ignored trailing range by the Application/report
 integration. A supplied length absent from `expectedOuterLengths` emits the declared warning without
-granting padding or changing any operation, metadata, or processor range. The first v0.9.14 pilot is
-expected to declare `0x80000` for DP_AB and `0x40000` independently for TPA and TPB, each also as its sole
-expected outer length; built-in profile wiring and firmware-owner/golden approval remain separate R3 gates.
+granting padding or changing any operation, metadata, or processor range. ADR
+0045 migrates TPA/TPB to generic address-bearing section coverage and the
+complete DP AB seed to an exact declared container variant; built-in profile
+wiring and firmware-owner/golden approval remain separate R3 gates.
 
 `pad-shorter` and `truncate-ctrlram` require evidence and mutate only a transient input buffer.
 Padding is DP-only, `dp-replace` only, and forbidden when any processor/integrity stage exists.
@@ -319,6 +332,10 @@ Truncation is `ctrlram-replace` only and valid only when every affected operatio
 a physical TP `ctrlram` region; it always emits the declared warning. These target-kind and capacity
 checks are mandatory compiler semantic validation because they cross-reference the resolved family
 map. Reference images, mutable work buffers, and processor-owned non-CtrlRAM flows remain exact.
+Compact CtrlRAM replacement is the only current built-in payload-relative
+source: byte `0` maps to the declared CtrlRAM target. Dynamic DiffDLM masked
+scatter remains inside that CtrlRAM authority. TPB instead reads a TP-native
+source window and applies a resolved bank placement delta.
 Original input file names are an unconditional v2 provenance/UI invariant rather than a configurable
 profile flag; a V2 runtime binding supplies its original plain filename and caller-declared typed slot
 assertion, which Application matches to the compiled slot and accepted extension before reading bytes.
