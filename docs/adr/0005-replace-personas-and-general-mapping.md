@@ -4,7 +4,7 @@
 - Date: 2026-06-25
 - Amended: 2026-07-29 for canonical LDC terminology
 - Owners: Product owner + architecture owner + DP/CtrlRAM firmware reviewers
-- Amended by: ADR 0015
+- Amended by: ADR 0015, ADR 0044
 
 ## Context
 

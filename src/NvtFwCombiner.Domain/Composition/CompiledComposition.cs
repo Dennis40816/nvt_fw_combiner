@@ -392,12 +392,11 @@ public sealed partial class CompiledComposition
     {
         if (compositionKind != CompositionKind.Merge ||
             plan.OutputInitialization.Kind != ImageInitializationKind.Blank ||
-            plan.OutputInitialization.FillByte != 0 ||
             details.RegionAccessContract.Requirements.Count != 0 ||
             details.RegionAccessContract.ResolvedViews.Count != 0)
         {
             throw new ArgumentException(
-                "Logical-output V2 artifacts require a zero-filled Merge output with no physical region access.",
+                "Logical-output V2 artifacts require a blank Merge output with no physical region access.",
                 nameof(details));
         }
 

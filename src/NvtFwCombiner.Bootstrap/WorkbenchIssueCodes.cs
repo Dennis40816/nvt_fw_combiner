@@ -25,10 +25,16 @@ public static class WorkbenchIssueCodes
     public const string GeneralMergeRangeInvalid = "ui.general-merge.range-invalid";
 
     /// <summary>General Merge output capacity text is invalid.</summary>
-    public const string GeneralMergeCapacityInvalid = "ui.general-merge.capacity-invalid";
+    public const string GeneralMergeCapacityInvalid =
+        Application.Authoring.GeneralMergeInitializerIssueCodes.CapacityInvalid;
 
     /// <summary>General Merge output capacity exceeds supported in-memory composition limits.</summary>
-    public const string GeneralMergeCapacityUnsupported = "ui.general-merge.capacity-unsupported";
+    public const string GeneralMergeCapacityUnsupported =
+        Application.Authoring.GeneralMergeInitializerIssueCodes.CapacityUnsupported;
+
+    /// <summary>General Merge fill-byte text is outside the complete byte domain.</summary>
+    public const string GeneralMergeFillByteInvalid =
+        Application.Authoring.GeneralMergeInitializerIssueCodes.FillByteInvalid;
 
     /// <summary>Standard Merge DP Perspective input length is not approved by the profile.</summary>
     public const string StandardMergeDpLengthUnsupported = "standard-merge.dp-length-unsupported";

@@ -49,6 +49,12 @@ but it becomes a Draft when its semantic bytes change and requires a new
 `ruleVersion` before republication. Save-in-place authority applies only to an
 ordinary user-owned/imported authoring path, never to Catalog storage.
 
+General Merge additionally closes over one `imageInitialization` object. It declares
+`kind = blank`, one exact positive `capacity` in the supported in-memory range, and an optional
+`fillByte` in `0..255`; omitted fill is exactly `0`. General Replace cannot declare this object.
+Normal rule consumption uses the closed-over value and cannot accept an out-of-band capacity or
+fill override. Changing capacity or fill changes the rule and compiled output identity.
+
 `slotTemplates` may add declarative BIN slots. `mappingFragments` compile to the parent's normal
 `copy-range` or `replace-range` operation. Source ranges are relative to a named parent/rule slot;
 targets are offsets within canonical map regions, never absolute unowned writes. Equal length,

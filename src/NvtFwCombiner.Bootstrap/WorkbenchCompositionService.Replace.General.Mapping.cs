@@ -9,7 +9,7 @@ public static partial class WorkbenchCompositionService
     private const int GeneralReplaceMappingSequenceStart = 100;
 
     private static bool TryCreateGeneralReplaceMappings(
-        GeneralMappingDraftState mappingDraft,
+        GeneralAuthoringAdmissionResult admission,
         long referenceCapacity,
         out IReadOnlyList<ExplicitMapping> explicitMappings,
         out IReadOnlyList<AddressSpace> requestAddressSpaces,
@@ -17,6 +17,11 @@ public static partial class WorkbenchCompositionService
         out IReadOnlyList<GeneralReplacePatchArtifact> patchArtifacts,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        GeneralMappingDraftState mappingDraft = admission.RequireAdmittedDraft();
+        var resources =
+            admission.InputResources.ToDictionary(
+                static resource => resource.SlotId,
+                StringComparer.Ordinal);
         List<ExplicitMapping> mappings = [];
         List<AddressSpace> spaces = [];
         List<InputArtifactBinding> bindings = [];
@@ -39,6 +44,7 @@ public static partial class WorkbenchCompositionService
                 if (!TryCreateFileGeneralReplaceMapping(
                     input,
                     operationIndex,
+                    resources,
                     out ExplicitMapping? mapping,
                     out AddressSpace? space,
                     out InputArtifactBinding? binding,
@@ -98,6 +104,7 @@ public static partial class WorkbenchCompositionService
     private static bool TryCreateFileGeneralReplaceMapping(
         GeneralMappingDraftRow input,
         int operationIndex,
+        Dictionary<string, GeneralInputResource> resources,
         out ExplicitMapping? mapping,
         out AddressSpace? addressSpace,
         out InputArtifactBinding? binding,
@@ -108,9 +115,33 @@ public static partial class WorkbenchCompositionService
         binding = null;
         string addressSpaceId = $"{input.MappingId}-input";
         string fullPath = Path.GetFullPath(input.Source.Reference);
-        long declaredLength = File.Exists(fullPath)
-            ? new FileInfo(fullPath).Length
-            : input.SourceRange.EndExclusive;
+        if (!resources.TryGetValue(
+                input.MappingId,
+                out GeneralInputResource? resource))
+        {
+            throw new InvalidOperationException(
+                $"Admitted General Replace mapping '{input.MappingId}' has no observed input resource.");
+        }
+
+        if (input.Source.AcceptedFileStamp is not { } acceptedStamp)
+        {
+            issue = new CompositionIssue(
+                GeneralSelectedFileInspectionIssueCodes.SnapshotRequired,
+                $"General Replace mapping '{input.MappingId}' has no accepted selected-file content snapshot.",
+                input.MappingId);
+            return false;
+        }
+
+        long declaredLength = acceptedStamp.AcceptedLength;
+        if (resource.LengthBytes != declaredLength)
+        {
+            issue = new CompositionIssue(
+                CompositionRunIssueCodes.InputArtifactContentSnapshotMismatch,
+                $"General Replace mapping '{input.MappingId}' no longer matches its accepted selected-file length.",
+                input.MappingId);
+            return false;
+        }
+
         if (declaredLength < input.SourceRange.EndExclusive)
         {
             issue = new CompositionIssue(
@@ -121,7 +152,11 @@ public static partial class WorkbenchCompositionService
         }
 
         addressSpace = new AddressSpace(addressSpaceId, declaredLength, AddressSpaceMutability.Immutable);
-        binding = new InputArtifactBinding(addressSpaceId, input.MappingId, fullPath);
+        binding = new InputArtifactBinding(
+            addressSpaceId,
+            input.MappingId,
+            fullPath,
+            acceptedContentStamp: acceptedStamp);
         mapping = CreateGeneralReplaceMapping(
             input,
             operationIndex,

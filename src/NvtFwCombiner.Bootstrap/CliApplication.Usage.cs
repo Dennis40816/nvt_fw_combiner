@@ -11,10 +11,10 @@ public static partial class CliApplication
         await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ldc <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner ab-merge preview --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path>] [--report <path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner ab-merge build --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path>] [--report <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner general-merge preview --profile <ic> --size <length> --mapping <source-start+target-start+length=path> [--mapping ...] [--report <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner general-merge build --profile <ic> --size <length> --mapping <source-start+target-start+length=path> [--mapping ...] [--output <path>] [--report <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner general-merge preview --profile <ic> --size <length> --rule <rule.json> --slot <slot-id=path> [--slot ...] [--report <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner general-merge build --profile <ic> --size <length> --rule <rule.json> --slot <slot-id=path> [--slot ...] [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner general-merge preview --profile <ic> --size <length> [--fill <0x00..0xFF>] --mapping <source-start+target-start+length=path> [--mapping ...] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner general-merge build --profile <ic> --size <length> [--fill <0x00..0xFF>] --mapping <source-start+target-start+length=path> [--mapping ...] [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner general-merge preview --profile <ic> --rule <v2-rule.json> --slot <slot-id=path> [--slot ...] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner general-merge build --profile <ic> --rule <v2-rule.json> --slot <slot-id=path> [--slot ...] [--output <path>] [--report <path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner saved-rule validate <rule.json>").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner saved-rule mappings <rule.json>").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ldc <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);

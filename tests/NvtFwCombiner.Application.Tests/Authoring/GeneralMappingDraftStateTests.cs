@@ -126,6 +126,49 @@ public sealed class GeneralMappingDraftStateTests
         Assert.Equal(expectedKind, Assert.IsType<AuthoringRangeTextIssue>(issue).Kind);
     }
 
+    /// <summary>UI and CLI text resolve through one capacity/fill validation contract.</summary>
+    [Theory]
+    [InlineData("0x10", null, 0x10, 0x00)]
+    [InlineData("16", "90", 0x10, 0x5A)]
+    [InlineData("0x10", "0xFF", 0x10, 0xFF)]
+    public void InitializerInputResolvesCanonicalTypedValue(
+        string capacity,
+        string? fill,
+        long expectedCapacity,
+        int expectedFill)
+    {
+        bool resolved = new GeneralMergeInitializerInput(
+            capacity,
+            fill).TryResolve(
+                out GeneralMergeOutputInitializer? initializer,
+                out CompositionIssue? issue);
+
+        Assert.True(resolved, issue?.Message);
+        Assert.Null(issue);
+        Assert.Equal(expectedCapacity, initializer!.Capacity);
+        Assert.Equal(expectedFill, initializer.FillByte);
+    }
+
+    /// <summary>Out-of-domain fill text fails with the same stable adapter issue.</summary>
+    [Theory]
+    [InlineData("-1")]
+    [InlineData("0x100")]
+    [InlineData("invalid")]
+    public void InitializerInputRejectsInvalidFill(string fill)
+    {
+        bool resolved = new GeneralMergeInitializerInput(
+            "0x10",
+            fill).TryResolve(
+                out GeneralMergeOutputInitializer? initializer,
+                out CompositionIssue? issue);
+
+        Assert.False(resolved);
+        Assert.Null(initializer);
+        Assert.Equal(
+            GeneralMergeInitializerIssueCodes.FillByteInvalid,
+            issue!.Code);
+    }
+
     private static GeneralMappingDraftRow FileRow(
         string mappingId,
         ExplicitMappingOperationKind operationKind,

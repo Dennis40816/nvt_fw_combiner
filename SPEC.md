@@ -838,6 +838,11 @@ checked `copy-range` operations; fixed profile stages may add the other closed p
 range in UI is equivalent to editing typed mapping data. Reviewed saved-rule fragments still compile
 through the same profile/compiler/engine and report `saved-rule` provenance.
 
+One immutable General Merge initializer owns the exact positive output capacity and blank fill byte
+for an authoring revision. Fill accepts the complete `0x00..0xFF` byte domain and defaults to
+`0x00` only when omitted. UI, CLI, profile compilation, Preview/Build identity, reports, and Saved
+Rule v2 consume that same value; General Replace cannot declare it.
+
 ### 10.6 Replace experiences
 
 - DP Replace：DP-focused; DP whole/declared-part access only. LDC replacement is included in this experience and may be supplied as its own LDC BIN。
@@ -1060,7 +1065,12 @@ version.
 19. As a report reader, I want Hex Diff to reuse the same high-performance read-only viewport foundation, so that reports and the editor share rendering quality without sharing mutation authority.
 20. As a BIN inspector user, I want metadata structures formatted through the same read-only viewer and formatter pipeline, so that identical bytes are not interpreted differently by each screen.
 21. As a CLI user, I want the same IC resolution, mapping draft, inspection, validation, naming, and composition contracts as the UI, so that automation and desktop behavior cannot diverge.
-22. As a General Merge or General Replace user, I want one Start + Length range editor with a derived read-only inclusive end, so that every surface uses the same half-open range semantics.
+22. As a General Merge or General Replace user, I want one Start + Length
+    range editor with a derived read-only inclusive end and selected files
+    bound to accepted length and SHA-256 snapshots through explicit
+    Reload/Rebind, so that every surface uses the same half-open ranges and
+    same-size mutation cannot silently change validation, Preview, or Build
+    bytes.
 23. As a Saved Rule user, I want mappings to round-trip through the same typed draft used by UI and CLI, so that saving a rule cannot silently lose unsupported semantics.
 24. As a firmware profile author, I want an IC to be the root of artifact, map, IC-count, metadata, workflow, and integrity resolution, so that related facts are discoverable through one coherent model.
 25. As a firmware profile author, I want DP represented as required Initial Code plus optional LDC and TP represented separately, so that artifact structure matches firmware meaning.
@@ -1900,7 +1910,9 @@ after the grill closes so issues do not become a competing draft specification.
     artifact-inspection cache, bounded Hex viewport/page cache, and
     runtime-dependency snapshot. Keys use complete applicable definition/hash,
     `CapabilityFingerprint`, `FileStamp`, selection/topology identity, and
-    environment generation; IC/mode/filename alone is invalid. Authoring state
+    environment generation; IC/mode/filename alone is invalid. `FileStamp` is
+    the accepted complete-file byte length plus SHA-256; path, display name,
+    existence, and last-write time cannot define it. Authoring state
     stores selected-file identity/revision rather than full BIN/cache ownership,
     and UI/workflows cannot create parallel caches. Every cache has explicit
     capacity/lifetime, invalidation owner, and stale-publication tests; clearing

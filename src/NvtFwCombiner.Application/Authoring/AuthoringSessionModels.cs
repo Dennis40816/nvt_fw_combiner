@@ -100,45 +100,6 @@ public readonly record struct AuthoringRevision
     }
 }
 
-/// <summary>
-/// Host-captured file identity. Application compares it but never reads the
-/// filesystem or treats it as firmware evidence.
-/// </summary>
-public readonly record struct FileStamp
-{
-    /// <summary>Creates one caller-captured file stamp.</summary>
-    public FileStamp(bool exists, long length, DateTimeOffset lastWriteTimeUtc)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(length);
-        if (!exists && length != 0)
-        {
-            throw new ArgumentException(
-                "A missing file stamp cannot declare a non-zero length.",
-                nameof(length));
-        }
-
-        if (lastWriteTimeUtc.Offset != TimeSpan.Zero)
-        {
-            throw new ArgumentException(
-                "File-stamp timestamps must be normalized to UTC.",
-                nameof(lastWriteTimeUtc));
-        }
-
-        Exists = exists;
-        Length = length;
-        LastWriteTimeUtc = lastWriteTimeUtc;
-    }
-
-    /// <summary>Whether the host observed the selected path.</summary>
-    public bool Exists { get; }
-
-    /// <summary>Observed file length.</summary>
-    public long Length { get; }
-
-    /// <summary>Observed UTC last-write time.</summary>
-    public DateTimeOffset LastWriteTimeUtc { get; }
-}
-
 /// <summary>Reference to one canonical resolved input-slot definition.</summary>
 public sealed record AuthoringSlotDefinitionReference
 {
@@ -353,16 +314,18 @@ public sealed record AuthoringSlotState
         AuthoringSlotIssueReference? blockingIssue = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
-        if ((selectedPath is null) != (fileStamp is null))
+        if (selectedPath is null && fileStamp is not null)
         {
             throw new ArgumentException(
-                "Selected path and file stamp must be supplied or cleared together.",
-                nameof(selectedPath));
+                "A file stamp cannot exist without a selected path.",
+                nameof(fileStamp));
         }
 
         if (!Enum.IsDefined(lifecycle) ||
             (selectedPath is null && lifecycle != AuthoringSlotLifecycle.Empty) ||
-            (selectedPath is not null && lifecycle == AuthoringSlotLifecycle.Empty))
+            (selectedPath is not null && lifecycle == AuthoringSlotLifecycle.Empty) ||
+            (lifecycle is AuthoringSlotLifecycle.Verified or
+                AuthoringSlotLifecycle.Warning && fileStamp is null))
         {
             throw new ArgumentException(
                 "Authoring slot lifecycle must match selected-file state.",
@@ -433,6 +396,9 @@ public enum AuthoringDraftKind
 {
     /// <summary>One typed General Merge/Replace explicit-mapping draft.</summary>
     GeneralMapping,
+
+    /// <summary>One exact General Merge initializer plus shared mapping draft.</summary>
+    GeneralMerge,
 }
 
 /// <summary>
@@ -582,6 +548,9 @@ public static class AuthoringSessionIssueCodes
 
     /// <summary>The asynchronous result belongs to older session state.</summary>
     public const string StalePublication = "authoring.session.publication-stale";
+
+    /// <summary>The selected-file inspection belongs to older session state.</summary>
+    public const string StaleInspection = "authoring.session.inspection-stale";
 
     /// <summary>The result kind does not match its captured lease.</summary>
     public const string InvalidPublication = "authoring.session.publication-invalid";

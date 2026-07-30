@@ -173,7 +173,7 @@
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsGeneralMergeModeSelected}">
       <StackPanel Spacing="{DynamicResource NfcSpace16}">
-        <Grid ColumnDefinitions="*,180" ColumnSpacing="14">
+        <Grid ColumnDefinitions="*,180,120" ColumnSpacing="14">
           <StackPanel Spacing="3">
             <TextBlock Classes="sectionTitle" Text="{Binding Text.GeneralMergeMappingTitle}" />
             <TextBlock Classes="mutedText" Text="{Binding Text.GeneralMergeMappingDetail}" TextWrapping="Wrap" />
@@ -182,8 +182,17 @@
             <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputLengthLabel}" />
             <TextBox
                 Classes="technicalCenteredInput addressInput"
+                AutomationProperties.Name="{Binding Text.OutputLengthLabel}"
                 Text="{Binding GeneralMergeOutputLength, Mode=TwoWay}"
                 PlaceholderText="{Binding Text.OutputLengthPlaceholder}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Spacing="{DynamicResource NfcSpace4}">
+            <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputFillByteLabel}" />
+            <TextBox
+                Classes="technicalCenteredInput addressInput"
+                AutomationProperties.Name="{Binding Text.OutputFillByteLabel}"
+                Text="{Binding GeneralMergeOutputFillByte, Mode=TwoWay}"
+                PlaceholderText="{Binding Text.OutputFillBytePlaceholder}" />
           </StackPanel>
         </Grid>
 

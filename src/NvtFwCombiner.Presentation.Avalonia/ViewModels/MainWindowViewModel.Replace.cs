@@ -117,18 +117,42 @@ public sealed partial class MainWindowViewModel
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs = CreateGeneralReplaceMappingInputs();
         return RunCompositionAsync(
             build,
-            (progress, cancellationToken) => WorkbenchCompositionService.RunReplaceWithProgressAsync(
-                icId,
-                number,
-                replaceMode,
-                slotPaths,
-                mappingInputs,
-                [],
-                build,
-                progress,
-                cancellationToken,
-                outputPath,
-                ctrlRamFirmwareVersionEdit),
+            async (progress, cancellationToken) =>
+            {
+                WorkbenchRunResult result =
+                    replaceMode == GeneralReplaceMode &&
+                    _acceptedGeneralReplaceDraft is not null
+                        ? await WorkbenchCompositionService
+                            .RunGeneralReplaceAcceptedDraftWithProgressAsync(
+                                icId,
+                                number,
+                                slotPaths,
+                                _acceptedGeneralReplaceDraft,
+                                build,
+                                progress,
+                                cancellationToken,
+                                outputPath)
+                            .ConfigureAwait(false)
+                        : await WorkbenchCompositionService.RunReplaceWithProgressAsync(
+                            icId,
+                            number,
+                            replaceMode,
+                            slotPaths,
+                            mappingInputs,
+                            [],
+                            build,
+                            progress,
+                            cancellationToken,
+                            outputPath,
+                            ctrlRamFirmwareVersionEdit).ConfigureAwait(false);
+                if (replaceMode == GeneralReplaceMode)
+                {
+                    _acceptedGeneralReplaceDraft =
+                        result.AcceptedGeneralMappingDraft ??
+                        _acceptedGeneralReplaceDraft;
+                }
+                return result;
+            },
             (action, errorMessage) => LoadRunErrorReport(
                 action,
                 $"{icId.ToLowerInvariant()}-{replaceMode.ToLowerInvariant()}-replace",

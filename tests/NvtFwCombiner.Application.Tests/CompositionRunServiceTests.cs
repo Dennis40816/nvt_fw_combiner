@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -47,6 +48,51 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(2, result.Report.Mutations.Count);
         Assert.Empty(result.Report.OutputDifferences);
         Assert.Empty(result.Report.Issues);
+    }
+
+    /// <summary>Preview identity and report preserve the exact General admission snapshot.</summary>
+    [Fact]
+    public async Task PreviewTokenChangesWhenGeneralAdmissionObservationChanges()
+    {
+        CompositionRunService service = CreateService(out _);
+        CompositionRunRequest request = CreateRequest();
+        GeneralResourceLimits limits = new(
+            maximumMappingCount: 1,
+            maximumTotalWriteBytes: 4,
+            maximumFileBytes: 8,
+            maximumSafeMaterializationBytes: 8,
+            [new GeneralSlotLengthLimits("source", 1, 8)]);
+        var firstAdmission = new GeneralAuthoringAdmissionSummary(
+            "trusted-parent",
+            "saved-rule",
+            limits,
+            [new GeneralInputResource("source", 4)],
+            [],
+            []);
+        var secondAdmission = new GeneralAuthoringAdmissionSummary(
+            "trusted-parent",
+            "saved-rule",
+            limits,
+            [new GeneralInputResource("source", 5)],
+            [],
+            []);
+
+        CompositionRunResult first = await service.PreviewAsync(
+            WithGeneralAdmission(request, firstAdmission),
+            CancellationToken.None);
+        CompositionRunResult second = await service.PreviewAsync(
+            WithGeneralAdmission(request, secondAdmission),
+            CancellationToken.None);
+
+        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
+        Assert.Equal(
+            4,
+            Assert.Single(
+                first.Report.GeneralAdmission!.InputResources).LengthBytes);
+        Assert.Equal(
+            5,
+            Assert.Single(
+                second.Report.GeneralAdmission!.InputResources).LengthBytes);
     }
 
     /// <summary>Verifies synthetic standard merge build commits only after an approved preview token is supplied.</summary>
@@ -125,6 +171,23 @@ public sealed partial class CompositionRunServiceTests
 
         Assert.Equal(IcNumberInputMode.NumericSelector, request.IcNumberSelection!.Mode);
         Assert.Equal("2", Assert.Single(request.IcNumberSelection.Parts));
+    }
+
+    private static CompositionRunRequest WithGeneralAdmission(
+        CompositionRunRequest request,
+        GeneralAuthoringAdmissionSummary admission)
+    {
+        return new CompositionRunRequest(
+            request.RunId,
+            request.CompiledComposition,
+            request.ArtifactBindings.Values,
+            request.OutputFileName,
+            request.ApprovedPreviewToken,
+            request.IcNumberSelection,
+            request.IsOutputFileNameOverride,
+            request.AbMergeTopologySelection,
+            request.AdvisoryIssues,
+            admission);
     }
 
     /// <summary>Verifies numeric IC number selections reject non-integer values before execution.</summary>

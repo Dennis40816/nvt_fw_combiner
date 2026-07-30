@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Application.Authoring;
 /// Host-independent state and transition policy for one workflow mode. The
 /// desktop owns one instance per mode; CLI creates an ephemeral instance.
 /// </summary>
-public sealed class AuthoringSessionState
+public sealed partial class AuthoringSessionState
 {
     private readonly Lock _transitionLock = new();
     private readonly object _publicationIdentity = new();
@@ -452,9 +452,14 @@ public sealed class AuthoringSessionState
         string workflowId,
         AuthoringDraftKind? draftKind)
     {
-        return (workflowId is
-                ExperienceIds.GeneralMerge or ExperienceIds.GeneralReplace) &&
-            (draftKind is null or AuthoringDraftKind.GeneralMapping);
+        return workflowId switch
+        {
+            ExperienceIds.GeneralMerge =>
+                draftKind is null or AuthoringDraftKind.GeneralMerge,
+            ExperienceIds.GeneralReplace =>
+                draftKind is null or AuthoringDraftKind.GeneralMapping,
+            _ => draftKind is null,
+        };
     }
 
     private static ActiveSessionSnapshot CreateSnapshot(

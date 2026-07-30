@@ -6,6 +6,7 @@
 - Owners: Product owner + architecture owner
 - Amends: ADR 0015 and ADR 0018
 - Amended by: ADR 0020
+- Amended on 2026-07-30 by: issue #249 (typed runtime capacity/fill initializer)
 
 ## Context
 
@@ -53,7 +54,10 @@ existing operation algebra. No General Merge executor, operation kind, or fallba
 introduced.
 
 The output capacity must be in `1..Int32.MaxValue`, and the blank fill must be
-one checked byte. Source and target ranges are half-open and use
+one checked byte; omitted fill resolves to `0x00`. The pair is one immutable
+General Merge initializer and participates in compilation fingerprint, Preview
+token, report provenance, and output identity. Source and target ranges are
+half-open and use
 checked arithmetic. Binding IDs and mapping IDs are unique; mapping sequence is deterministic and
 unambiguous; source and target lengths are equal and positive; every source and target range is in
 bounds; and every target is the final logical output. Before reading, Application validates that
@@ -114,3 +118,9 @@ aliases during the cutover.
    logical-output profile remains `executable-candidate`, because it declares no physical firmware
    support or map authority. Delete the dynamic legacy profile construction only in that cutover
    commit.
+
+Issue #249 completed the fixed-fill compatibility deletion on 2026-07-30. The former
+Bootstrap `GeneralMergeFillByte` constant had two callers: the General Merge Memory Layout
+initialization row and its blank coverage segment. Both now consume the same typed initializer as
+compilation; the architecture test rejects restoration of that constant. Omitted UI/CLI fill still
+projects the typed `0x00` default and does not restore another byte owner.
