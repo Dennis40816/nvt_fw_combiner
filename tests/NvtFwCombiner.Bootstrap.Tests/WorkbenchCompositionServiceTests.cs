@@ -25,7 +25,9 @@ public sealed class WorkbenchCompositionServiceTests
         MethodInfo[] replace = [.. methods.Where(static method => method.Name == "RunReplaceAsync")];
 
         Assert.Equal([5], standardMerge.Select(static method => method.GetParameters().Length));
-        Assert.Equal([6], generalMerge.Select(static method => method.GetParameters().Length));
+        Assert.Equal(
+            [6, 7],
+            generalMerge.Select(static method => method.GetParameters().Length).Order());
         Assert.Equal([8, 9, 10], replace.Select(static method => method.GetParameters().Length).Order());
         Assert.All(
             standardMerge.Concat(generalMerge).Concat(replace),
@@ -34,6 +36,7 @@ public sealed class WorkbenchCompositionServiceTests
                 static parameter => parameter.ParameterType == typeof(CompositionRunProgressFeed)));
         AssertProgressAwareMethod(methods, "RunStandardMergeWithProgressAsync", expectedParameterCount: 6);
         AssertProgressAwareMethod(methods, "RunGeneralMergeWithProgressAsync", expectedParameterCount: 7);
+        AssertProgressAwareMethod(methods, "RunGeneralMergeWithProgressAsync", expectedParameterCount: 8);
         AssertProgressAwareMethod(methods, "RunReplaceWithProgressAsync", expectedParameterCount: 11);
     }
 
@@ -595,8 +598,11 @@ public sealed class WorkbenchCompositionServiceTests
         string name,
         int expectedParameterCount)
     {
-        MethodInfo method = Assert.Single(methods, candidate => candidate.Name == name);
-        Assert.Equal(expectedParameterCount, method.GetParameters().Length);
+        MethodInfo method = Assert.Single(
+            methods,
+            candidate =>
+                candidate.Name == name &&
+                candidate.GetParameters().Length == expectedParameterCount);
         Assert.Contains(
             method.GetParameters(),
             static parameter => parameter.ParameterType == typeof(CompositionRunProgressFeed));

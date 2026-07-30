@@ -47,6 +47,7 @@ public static partial class WorkbenchCompositionService
             DeliveryArtifacts = deliveredArtifacts is null ? [] : [.. deliveredArtifacts],
             IsDeliveryComplete = isDeliveryComplete,
             DeliveryFailureMessage = deliveryFailureMessage,
+            PreviewToken = result.PreviewToken,
         };
     }
 
@@ -74,7 +75,7 @@ public static partial class WorkbenchCompositionService
             operations,
             issues,
             outputFileName,
-            generalAdmission);
+            generalAdmission: generalAdmission);
     }
 
     private static IReadOnlyList<OperationRunSummary> CreateExplicitMappingPlanningOperations(
@@ -115,7 +116,8 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<OperationRunSummary> operations,
         IReadOnlyList<CompositionIssue> issues,
         string outputFileName,
-        GeneralAuthoringAdmissionResult? generalAdmission = null)
+        GeneralAuthoringAdmissionResult? generalAdmission = null,
+        ImageInitializationSummary? imageInitialization = null)
     {
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         var report = new CompositionRunReport(
@@ -133,7 +135,8 @@ public static partial class WorkbenchCompositionService
             [],
             issues,
             new OutputArtifactSummary(outputFileName, 0, EmptySha256, committed: false),
-            generalAdmission: generalAdmission?.ToSummary());
+            generalAdmission: generalAdmission?.ToSummary(),
+            imageInitialization: imageInitialization);
         string reportJson = JsonSerializer.Serialize(report, ReportJsonOptions);
         return new WorkbenchRunResult(
             false,

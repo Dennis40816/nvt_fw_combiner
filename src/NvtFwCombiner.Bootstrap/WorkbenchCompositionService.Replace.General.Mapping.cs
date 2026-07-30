@@ -123,9 +123,40 @@ public static partial class WorkbenchCompositionService
                 $"Admitted General Replace mapping '{input.MappingId}' has no observed input resource.");
         }
 
-        long declaredLength = resource.LengthBytes;
+        if (input.Source.AcceptedFileStamp is not { } acceptedStamp)
+        {
+            issue = new CompositionIssue(
+                GeneralSelectedFileInspectionIssueCodes.SnapshotRequired,
+                $"General Replace mapping '{input.MappingId}' has no accepted selected-file content snapshot.",
+                input.MappingId);
+            return false;
+        }
+
+        long declaredLength = acceptedStamp.AcceptedLength;
+        if (resource.LengthBytes != declaredLength)
+        {
+            issue = new CompositionIssue(
+                CompositionRunIssueCodes.InputArtifactContentSnapshotMismatch,
+                $"General Replace mapping '{input.MappingId}' no longer matches its accepted selected-file length.",
+                input.MappingId);
+            return false;
+        }
+
+        if (declaredLength < input.SourceRange.EndExclusive)
+        {
+            issue = new CompositionIssue(
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                $"General Replace mapping '{input.MappingId}' source range exceeds the selected replacement file length.",
+                input.MappingId);
+            return false;
+        }
+
         addressSpace = new AddressSpace(addressSpaceId, declaredLength, AddressSpaceMutability.Immutable);
-        binding = new InputArtifactBinding(addressSpaceId, input.MappingId, fullPath);
+        binding = new InputArtifactBinding(
+            addressSpaceId,
+            input.MappingId,
+            fullPath,
+            acceptedContentStamp: acceptedStamp);
         mapping = CreateGeneralReplaceMapping(
             input,
             operationIndex,

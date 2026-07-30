@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
@@ -8,6 +9,141 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>CLI and workbench facade tests for General Merge command groups.</summary>
 public sealed class GeneralMergeCliCommandTests
 {
+    /// <summary>Verifies an explicit arbitrary blank byte initializes every unmapped output byte.</summary>
+    [Theory]
+    [InlineData("0x00", 0x00)]
+    [InlineData("0x5A", 0x5A)]
+    [InlineData("0xFF", 0xFF)]
+    public async Task GeneralMergeBuildUsesCanonicalFillByte(
+        string fillText,
+        int expectedFill)
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10, 0x11]);
+        string output = workspace.PathFor("out.bin");
+        string report = workspace.PathFor("report.json");
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "build",
+            "--profile",
+            "51950",
+            "--size",
+            "0x4",
+            "--fill",
+            fillText,
+            "--mapping",
+            $"0x0+0x1+0x2={source}",
+            "--output",
+            output,
+            "--report",
+            report,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(
+            [checked((byte)expectedFill), 0x10, 0x11, checked((byte)expectedFill)],
+            await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+            report,
+            TestContext.Current.CancellationToken));
+        JsonElement initialization = document.RootElement.GetProperty("ImageInitialization");
+        Assert.Equal("Blank", initialization.GetProperty("Kind").GetString());
+        Assert.Equal(4, initialization.GetProperty("Capacity").GetInt64());
+        Assert.Equal(expectedFill, initialization.GetProperty("FillByte").GetInt32());
+    }
+
+    /// <summary>Verifies the shared initializer validation rejects fill values outside one byte.</summary>
+    [Theory]
+    [InlineData("-1")]
+    [InlineData("0x100")]
+    [InlineData("not-a-byte")]
+    public async Task GeneralMergeCliRejectsInvalidFillThroughCanonicalValidation(string fillText)
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "51950",
+            "--size",
+            "0x4",
+            "--fill",
+            fillText,
+            "--mapping",
+            $"0x0+0x0+0x1={source}",
+        ]);
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("ui.general-merge.fill-byte-invalid", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Capacity and fill both bind Preview and report identity.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewIdentityIncludesCompleteInitializer()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10]);
+        WorkbenchGeneralMergeMappingInput[] mappings =
+        [
+            new("general-merge-map-1", source, "0x0", "0x0", "0x1"),
+        ];
+
+        WorkbenchRunResult zero = await WorkbenchCompositionService.RunGeneralMergeAsync(
+            "NT51950",
+            "0x4",
+            "0x00",
+            mappings,
+            build: false,
+            TestContext.Current.CancellationToken);
+        WorkbenchRunResult ff = await WorkbenchCompositionService.RunGeneralMergeAsync(
+            "NT51950",
+            "0x4",
+            "0xFF",
+            mappings,
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(zero.Succeeded);
+        Assert.True(ff.Succeeded);
+        Assert.NotNull(zero.PreviewToken);
+        Assert.NotNull(ff.PreviewToken);
+        Assert.NotEqual(zero.PreviewToken, ff.PreviewToken);
+        using var zeroReport = JsonDocument.Parse(zero.ReportJson);
+        using var ffReport = JsonDocument.Parse(ff.ReportJson);
+        Assert.NotEqual(
+            zeroReport.RootElement.GetProperty("CompilationFingerprint").GetString(),
+            ffReport.RootElement.GetProperty("CompilationFingerprint").GetString());
+        Assert.Equal(
+            0xFF,
+            ffReport.RootElement.GetProperty("ImageInitialization")
+                .GetProperty("FillByte").GetInt32());
+    }
+
+    /// <summary>The typed display seam uses the same exact initializer as execution.</summary>
+    [Fact]
+    public void GeneralMergeDisplayConsumesCanonicalDraftInitializer()
+    {
+        var draft = new GeneralMergeDraftState(
+            new GeneralMergeOutputInitializer(4, 0x5A),
+            new GeneralMappingDraftState([]));
+
+        WorkbenchMemoryDisplay display =
+            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                "NT51950",
+                draft);
+
+        Assert.Equal(
+            "Blank output 0x5A",
+            Assert.Single(display.MemoryMapRows).AfterSource);
+        Assert.Equal(
+            "Blank 0x5A",
+            Assert.Single(display.CoverageSegments).SourceLabel);
+    }
+
     /// <summary>Verifies General Merge build copies explicit source ranges over a blank output image.</summary>
     [Fact]
     public async Task GeneralMergeBuildWritesExplicitMappingsOverBlankOutput()

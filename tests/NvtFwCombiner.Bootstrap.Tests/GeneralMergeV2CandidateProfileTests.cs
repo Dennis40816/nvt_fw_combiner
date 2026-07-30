@@ -117,7 +117,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
             "0.1.0",
             memberId,
             new V2LogicalOutputCompileRequest(
-                16,
+                new GeneralMergeOutputInitializer(16),
                 [new V2LogicalOutputInputBinding("source-a", "source", 4)],
                 [new ExplicitMapping(
                     "copy-source",

@@ -53,6 +53,8 @@ internal sealed class DeferredShellState
         Action loadNumberChoices,
         Func<string> loadGeneralMergeOutputLength,
         Action<string> applyGeneralMergeOutputLength,
+        Func<string> loadGeneralMergeOutputFillByte,
+        Action<string> applyGeneralMergeOutputFillByte,
         Action loadGeneralReplaceMapping,
         Action loadGeneralMergeMapping)
     {
@@ -66,6 +68,7 @@ internal sealed class DeferredShellState
         {
             loadNumberChoices();
             applyGeneralMergeOutputLength(loadGeneralMergeOutputLength());
+            applyGeneralMergeOutputFillByte(loadGeneralMergeOutputFillByte());
             loadGeneralReplaceMapping();
             loadGeneralMergeMapping();
             IsWorkflowLoaded = true;

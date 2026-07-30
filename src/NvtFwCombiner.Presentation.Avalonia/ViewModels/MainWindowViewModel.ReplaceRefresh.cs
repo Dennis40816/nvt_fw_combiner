@@ -60,10 +60,7 @@ public sealed partial class MainWindowViewModel
             IReadOnlyList<MemoryMapRowViewModel> rows,
             IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) = SelectedMergeMode switch
             {
-                GeneralMergeMode => UiCompositionRunner.GetGeneralMergeMemoryDisplay(
-                    SelectedIc,
-                    GeneralMergeOutputLength,
-                    CreateGeneralMergeMappingInputs()),
+                GeneralMergeMode => GetGeneralMergeMemoryDisplay(),
                 AbCodeMergeMode => UiCompositionRunner.GetAbMergeMemoryDisplay(
                     SelectedIc,
                     GetSelectedAbMergeTopologyToken(),
@@ -78,6 +75,26 @@ public sealed partial class MainWindowViewModel
 
         OnPropertyChanged(nameof(MergeMemoryRangeLabel));
         OnPropertyChanged(nameof(MergeMemorySummary));
+    }
+
+    private (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay()
+    {
+        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings =
+            CreateGeneralMergeMappingInputs();
+        return TryResolveGeneralMergeOutputInitializer(
+                out WorkbenchGeneralMergeInitializer? initializer)
+            ? UiCompositionRunner.GetGeneralMergeMemoryDisplay(
+                SelectedIc,
+                initializer!,
+                mappings)
+            : UiCompositionRunner.GetGeneralMergeMemoryDisplay(
+                SelectedIc,
+                GeneralMergeOutputLength,
+                GeneralMergeOutputFillByte,
+                mappings);
     }
 
     private void RefreshReplaceMemoryMapState()

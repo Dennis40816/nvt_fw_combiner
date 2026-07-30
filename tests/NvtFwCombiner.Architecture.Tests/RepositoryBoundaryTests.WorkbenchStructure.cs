@@ -71,6 +71,13 @@ public sealed partial class RepositoryBoundaryTests
             "WorkbenchCompositionService.GeneralMerge.Report.cs")));
         Assert.Contains("private static bool TryCreateGeneralMergeMappings", mapping, StringComparison.Ordinal);
         Assert.Contains("public sealed record WorkbenchGeneralMergeMappingInput", mapping, StringComparison.Ordinal);
+        Assert.Contains("TryResolveGeneralMergeInitializer", profile, StringComparison.Ordinal);
+        Assert.Contains("GeneralMergeDraftState", orchestration, StringComparison.Ordinal);
+        Assert.Contains("draft.OutputInitializer", candidate, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "GeneralMergeFillByte",
+            orchestration + mapping + profile + candidate,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", profile, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", orchestration, StringComparison.Ordinal);
         Assert.Contains("CreateBlockedReportRunResult(", candidate, StringComparison.Ordinal);

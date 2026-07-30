@@ -663,10 +663,7 @@ public sealed partial class MemoryLayoutProjectorTests
             empty ? null : $"{slotId}.bin",
             empty
                 ? null
-                : new FileStamp(
-                    exists: true,
-                    length,
-                    DateTimeOffset.UnixEpoch),
+                : new FileStamp(length, new string('0', 64)),
             lifecycle,
             blockingIssue);
     }

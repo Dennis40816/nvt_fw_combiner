@@ -20,6 +20,28 @@ public static partial class UiCompositionRunner
             [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
     }
 
+    /// <summary>Projects editable General Merge initializer text, including typed validation failures.</summary>
+    public static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay(
+        string icId,
+        string outputLength,
+        string? outputFillByte,
+        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings)
+    {
+        WorkbenchMemoryDisplay display =
+            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                icId,
+                outputLength,
+                outputFillByte,
+                mappings);
+        return (
+            display.RangeLabel,
+            [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
+            [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
+    }
+
     /// <summary>Projects one compiled AB Merge memory display snapshot.</summary>
     public static (
         string RangeLabel,
@@ -52,6 +74,26 @@ public static partial class UiCompositionRunner
             WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
                 icId,
                 outputLength,
+                mappings);
+        return (
+            display.RangeLabel,
+            [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
+            [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
+    }
+
+    /// <summary>Projects one General Merge memory display from a resolved initializer.</summary>
+    public static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay(
+        string icId,
+        WorkbenchGeneralMergeInitializer initializer,
+        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings)
+    {
+        WorkbenchMemoryDisplay display =
+            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                icId,
+                initializer,
                 mappings);
         return (
             display.RangeLabel,

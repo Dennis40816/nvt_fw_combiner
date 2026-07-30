@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -11,7 +12,8 @@ public sealed class InputArtifactBinding
         string bindingId,
         string artifactId,
         string? originalFileName = null,
-        CompiledInputArtifactClass? artifactClass = null)
+        CompiledInputArtifactClass? artifactClass = null,
+        FileStamp? acceptedContentStamp = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(bindingId);
@@ -32,6 +34,7 @@ public sealed class InputArtifactBinding
         ArtifactId = artifactId;
         OriginalFileName = originalFileName;
         ArtifactClass = artifactClass;
+        AcceptedContentStamp = acceptedContentStamp;
     }
 
     /// <summary>Address space populated by this binding.</summary>
@@ -48,6 +51,12 @@ public sealed class InputArtifactBinding
 
     /// <summary>Caller-declared typed slot assertion matched to a V2 compiled input slot; null for legacy bindings.</summary>
     public CompiledInputArtifactClass? ArtifactClass { get; }
+
+    /// <summary>
+    /// Accepted immutable content identity verified immediately after the run
+    /// opens this artifact and before any bytes are consumed.
+    /// </summary>
+    public FileStamp? AcceptedContentStamp { get; }
 
     private static void EnsureReportSafeId(string value)
     {

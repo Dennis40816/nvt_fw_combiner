@@ -77,7 +77,7 @@ public sealed partial class CompositionRunServiceTests
             {
                 ["reference-artifact"] = [0, 0, 0, 0, 0, 0, 0, 0],
                 ["dp-artifact"] = [1, 2, 3, 4],
-                ["ld-artifact"] = [5, 6],
+                ["ldc-artifact"] = [5, 6],
             }),
             new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]));
 

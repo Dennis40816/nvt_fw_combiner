@@ -452,4 +452,11 @@ public sealed partial class MainWindowViewModel
     [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
     [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
     public partial string GeneralMergeOutputLength { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets General Merge blank-output fill-byte text.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
+    [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
+    [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
+    public partial string GeneralMergeOutputFillByte { get; set; } = string.Empty;
 }

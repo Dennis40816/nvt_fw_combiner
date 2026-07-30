@@ -87,12 +87,14 @@
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51928-dp-replace">
+      <CompositionProfileSchemaFile>composition-profile-v2.12.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
+      <CanonicalFirmwareFamilySource>nt51928-standard-merge\families\nt51927-nt51928-v1.4.json</CanonicalFirmwareFamilySource>
+      <CanonicalFirmwareFamilyDestination>families\nt51927-nt51928-v1.4.json</CanonicalFirmwareFamilyDestination>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51928-standard-merge">
+      <CompositionProfileSchemaFile>composition-profile-v2.12.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
-      <CanonicalFirmwareFamilySource>nt51927-standard-merge\families\nt51927-nt51928.json</CanonicalFirmwareFamilySource>
-      <CanonicalFirmwareFamilyDestination>families\nt51927-nt51928.json</CanonicalFirmwareFamilyDestination>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51929-dp-replace">
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>

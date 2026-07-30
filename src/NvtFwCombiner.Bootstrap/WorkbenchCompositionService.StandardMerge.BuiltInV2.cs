@@ -21,6 +21,25 @@ public static partial class WorkbenchCompositionService
                 out issues);
     }
 
+    private static bool TryGetBuiltInV2StandardMergeCompilation(
+        string icId,
+        long? dpInputLength,
+        IReadOnlyCollection<string> selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        return TryCompilePublishedStandardMergeCapability(
+                icId,
+                out composition,
+                out issues) ||
+            TryCompileStandardMergeThroughMigrationAdapter(
+                icId,
+                dpInputLength,
+                selectedInputSlotIds,
+                out composition,
+                out issues);
+    }
+
     private static bool TryCompileStandardMergeThroughMigrationAdapter(
         string icId,
         long? dpInputLength,
@@ -37,6 +56,26 @@ public static partial class WorkbenchCompositionService
         }
 
         registration.TryCompile(dpInputLength, out composition, out issues);
+        return true;
+    }
+
+    private static bool TryCompileStandardMergeThroughMigrationAdapter(
+        string icId,
+        long? dpInputLength,
+        IReadOnlyCollection<string> selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        if (!BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
+                icId,
+                out BuiltInV2Registration? registration))
+        {
+            composition = null;
+            issues = [];
+            return false;
+        }
+
+        registration.TryCompile(dpInputLength, selectedInputSlotIds, out composition, out issues);
         return true;
     }
 

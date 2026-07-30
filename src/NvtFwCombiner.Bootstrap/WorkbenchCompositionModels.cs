@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -393,6 +394,14 @@ public sealed record WorkbenchRunResult(
     [JsonIgnore]
     public CompositionRunInspectionSnapshot? InspectionSnapshot { get; internal init; }
 
+    /// <summary>
+    /// Non-serialized content-bound General draft accepted for this result.
+    /// Desktop Preview and Build reuse this exact immutable draft until an
+    /// explicit edit or Reload/Rebind replaces it.
+    /// </summary>
+    [JsonIgnore]
+    public GeneralMappingDraftState? AcceptedGeneralMappingDraft { get; internal init; }
+
     /// <summary>Non-serialized immutable output bytes retained only for a declared follow-up delivery artifact.</summary>
     [JsonIgnore]
     internal ReadOnlyMemory<byte> OutputBytes { get; init; }
@@ -412,6 +421,10 @@ public sealed record WorkbenchRunResult(
     /// <summary>Operator-safe detail when the primary output committed but a requested additional delivery did not.</summary>
     [JsonIgnore]
     public string? DeliveryFailureMessage { get; init; }
+
+    /// <summary>Deterministic Preview identity, retained for adapter parity and Build approval.</summary>
+    [JsonIgnore]
+    public string? PreviewToken { get; internal init; }
 }
 
 /// <summary>One profile-declared optional A-bank delivery proposed before a Build commits output.</summary>

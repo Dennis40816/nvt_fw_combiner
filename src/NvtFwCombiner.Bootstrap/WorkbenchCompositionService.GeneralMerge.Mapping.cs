@@ -36,9 +36,40 @@ public static partial class WorkbenchCompositionService
                     $"Admitted General Merge mapping '{input.MappingId}' has no observed input resource.");
             }
 
-            long declaredLength = resource.LengthBytes;
+            if (input.Source.AcceptedFileStamp is not { } acceptedStamp)
+            {
+                issueList.Add(new CompositionIssue(
+                    GeneralSelectedFileInspectionIssueCodes.SnapshotRequired,
+                    $"General Merge mapping '{input.MappingId}' has no accepted selected-file content snapshot.",
+                    input.MappingId));
+                continue;
+            }
+
+            long declaredLength = acceptedStamp.AcceptedLength;
+            if (resource.LengthBytes != declaredLength)
+            {
+                issueList.Add(new CompositionIssue(
+                    CompositionRunIssueCodes.InputArtifactContentSnapshotMismatch,
+                    $"General Merge mapping '{input.MappingId}' no longer matches its accepted selected-file length.",
+                    input.MappingId));
+                continue;
+            }
+
+            if (declaredLength < input.SourceRange.EndExclusive)
+            {
+                issueList.Add(new CompositionIssue(
+                    WorkbenchIssueCodes.GeneralMergeSourceOutOfBounds,
+                    $"General Merge mapping '{input.MappingId}' source range exceeds the selected input file length.",
+                    input.MappingId));
+                continue;
+            }
+
             spaces.Add(new AddressSpace(addressSpaceId, declaredLength, AddressSpaceMutability.Immutable));
-            bindings.Add(new InputArtifactBinding(addressSpaceId, input.MappingId, fullPath));
+            bindings.Add(new InputArtifactBinding(
+                addressSpaceId,
+                input.MappingId,
+                fullPath,
+                acceptedContentStamp: acceptedStamp));
             mappings.Add(new ExplicitMapping(
                 input.MappingId,
                 100 + (index * 10),

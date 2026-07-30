@@ -132,9 +132,9 @@ public sealed partial class MainWindowViewModel
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
-        _mergeLdSlot.ApplyDisplayText(
-            "LD BIN",
-            Text.MergeLdSlotDescription,
+        _mergeLdcSlot.ApplyDisplayText(
+            "LDC BIN",
+            Text.MergeLdcSlotDescription,
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);

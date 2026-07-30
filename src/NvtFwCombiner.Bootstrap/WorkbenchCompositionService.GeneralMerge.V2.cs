@@ -18,8 +18,7 @@ public static partial class WorkbenchCompositionService
     /// <summary>Runs a registered logical-output V2 General Merge profile through the shared application core.</summary>
     private static async ValueTask<WorkbenchRunResult> RunGeneralMergeV2Async(
         string icId,
-        string outputLength,
-        GeneralMappingDraftState? mappingDraft,
+        GeneralMergeDraftState? draft,
         IReadOnlyList<CompositionIssue>? draftIssues,
         GeneralSavedRuleResourcePolicy? savedRulePolicy,
         bool build,
@@ -28,9 +27,10 @@ public static partial class WorkbenchCompositionService
         CompositionRunProgressFeed? progress = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        Dictionary<string, string> reportSlotPaths = mappingDraft is null
+        GeneralMappingDraftState? mappingDraft = draft?.Mappings;
+        Dictionary<string, string> reportSlotPaths = draft is null
             ? new Dictionary<string, string>(StringComparer.Ordinal)
-            : CreateGeneralMergeReportSlotPaths(mappingDraft);
+            : CreateGeneralMergeReportSlotPaths(draft.Mappings);
         string defaultOutputFileName = GetGeneralMergeDefaultOutputFileName(icId);
         GeneralAuthoringAdmissionResult? admission = null;
         WorkbenchRunResult Blocked(
@@ -51,7 +51,18 @@ public static partial class WorkbenchCompositionService
                 operations ?? [],
                 issues,
                 defaultOutputFileName,
-                admission);
+                imageInitialization: draft is null
+                    ? null
+                    : ImageInitializationSummary.FromCompiled(
+                        draft.OutputInitializer.ToImageInitialization(
+                            CompositionAddressSpaceIds.OutputImage)),
+                generalAdmission: admission) with
+            {
+                AcceptedGeneralMappingDraft =
+                    IsAcceptedGeneralMappingDraft(mappingDraft)
+                        ? mappingDraft
+                        : null,
+            };
         }
 
         if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
@@ -65,19 +76,12 @@ public static partial class WorkbenchCompositionService
                     icId)]);
         }
 
-        if (!TryParseGeneralMergeCapacity(outputLength, out long capacity, out CompositionIssue? capacityIssue))
-        {
-            return Blocked(
-                [capacityIssue!],
-                profileId: registration.ProfileId);
-        }
-
         if (draftIssues is { Count: > 0 })
         {
             return Blocked(draftIssues, profileId: registration.ProfileId);
         }
 
-        if (mappingDraft is null)
+        if (draft is null)
         {
             return Blocked(
                 [new CompositionIssue(
@@ -87,9 +91,22 @@ public static partial class WorkbenchCompositionService
                 profileId: registration.ProfileId);
         }
 
+        GeneralSelectedFileBindingResult acceptedFiles =
+            RequireAcceptedGeneralSelectedFiles(mappingDraft!);
+        if (!acceptedFiles.Succeeded)
+        {
+            return Blocked(
+                acceptedFiles.Issues,
+                profileId: registration.ProfileId);
+        }
+
+        mappingDraft = acceptedFiles.Draft!;
+        draft = new GeneralMergeDraftState(
+            draft.OutputInitializer,
+            mappingDraft);
         admission = AdmitGeneralMappingDraft(
             mappingDraft,
-            capacity,
+            draft.OutputInitializer.Capacity,
             CreateCurrentGeneralTrustedParentPolicy(
                 registration.ProfileId,
                 mappingDraft),
@@ -130,7 +147,7 @@ public static partial class WorkbenchCompositionService
             GeneralMergeV2CandidateProfileVersion,
             icId,
             new V2LogicalOutputCompileRequest(
-                (int)capacity,
+                draft.OutputInitializer,
                 requestAddressSpaces.Select(static addressSpace => new V2LogicalOutputInputBinding(
                     addressSpace.AddressSpaceId,
                     "source",
@@ -172,9 +189,10 @@ public static partial class WorkbenchCompositionService
             .. mappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
                 composition,
                 binding.AddressSpaceId,
-                binding.ArtifactId)),
+                binding.ArtifactId,
+                acceptedContentStamp: binding.AcceptedContentStamp)),
         ];
-        return await RunCompiledCompositionAsync(
+        WorkbenchRunResult result = await RunCompiledCompositionAsync(
             GeneralMergeRunIdPrefix,
             composition,
             candidateBindings,
@@ -186,6 +204,7 @@ public static partial class WorkbenchCompositionService
             cancellationToken: cancellationToken,
             progress: progress,
             generalAdmission: admission).ConfigureAwait(false);
+        return result with { AcceptedGeneralMappingDraft = mappingDraft };
     }
 
     private static bool IsExpectedGeneralMergeV2Candidate(

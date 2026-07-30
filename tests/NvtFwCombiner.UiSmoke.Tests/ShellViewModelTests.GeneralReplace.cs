@@ -142,10 +142,24 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal("nt51926-general-replace-dp-single-candidate", viewModel.LoadedReport.ProfileId);
 
+        await File.WriteAllBytesAsync(
+            replacementPath,
+            [0xA5, 0xC3],
+            TestContext.Current.CancellationToken);
+        await viewModel.BuildReplaceAsync(outputPath);
+
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Contains(
+            "no longer matches",
+            viewModel.LastRunResult.Detail,
+            StringComparison.Ordinal);
+        Assert.False(File.Exists(outputPath));
+
+        viewModel.SetSlotFile(mapping.MappingId, replacementPath);
         await viewModel.BuildReplaceAsync(outputPath);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.Equal([0xA5, 0x5A], File.ReadAllBytes(outputPath)[0x3E020..0x3E022]);
+        Assert.Equal([0xA5, 0xC3], File.ReadAllBytes(outputPath)[0x3E020..0x3E022]);
         Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
     }
 

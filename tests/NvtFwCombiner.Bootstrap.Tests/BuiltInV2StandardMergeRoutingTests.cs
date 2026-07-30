@@ -16,7 +16,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "631bf40e6f5f6aee14be7a5b834243def7c6a37cdb88f49e0d854471d5de6015", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "63cc636b72a63e6bd34c7e45769bb21342b7885120f483ff70432e35350eadbb", "dp-input,ld-input,tp-input", "DpFirmware,Auxiliary,TpFirmware")]
+    [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "8078a46da81b650436d25ce444904b88b29f5e4a0a7c7c169da73115f890a188", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "14a3b2808a5377af39b683fe44f60f152e9c7f4a15c18e5c9e264ad6ea2b0827", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "14a3b2808a5377af39b683fe44f60f152e9c7f4a15c18e5c9e264ad6ea2b0827", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     public void RegisteredStandardMergeUsesDeployedTrustedV2Artifact(
@@ -59,6 +59,77 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             details.InputContract.Slots
                 .OrderBy(static slot => slot.SlotId, StringComparer.Ordinal)
                 .Select(static slot => slot.ArtifactClass.ToString()));
+    }
+
+    /// <summary>NT51928 selects its LDC-capable map only when the optional LDC slot is selected.</summary>
+    [Fact]
+    public void Nt51928StandardMergeLdcSelectionResolvesThe512KVariant()
+    {
+        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+            "NT51928",
+            dpInputLength: null,
+            [
+                CompositionAddressSpaceIds.DpInput,
+                CompositionAddressSpaceIds.TpInput,
+                CompositionAddressSpaceIds.LdcInput,
+            ],
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        Assert.Equal(0x80000, artifact.Plan.OutputInitialization.Capacity);
+        Assert.Equal(
+            [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.LdcInput, CompositionAddressSpaceIds.TpInput],
+            artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
+        CompiledInputSelectionGroup group = Assert.Single(artifact.V2Details!.InputContract.SelectionGroups);
+        Assert.Equal("ldc-selection", group.GroupId);
+        Assert.Equal([CompositionAddressSpaceIds.LdcInput], group.ApplicableMemberSlotIds);
+        Assert.Equal([CompositionAddressSpaceIds.LdcInput], group.SelectedSlotIds);
+        Assert.Empty(group.NotApplicableReasons);
+    }
+
+    /// <summary>Exact byte oracles cover the no-LDC 256-KiB and selected-LDC 512-KiB Standard Merge variants.</summary>
+    [Theory]
+    [InlineData(false, 0x40000)]
+    [InlineData(true, 0x80000)]
+    public async Task Nt51928StandardMergeBuildsTheSelectedCapacityWithoutImplicitLdcAsync(
+        bool selectLdc,
+        int expectedCapacity)
+    {
+        using var workspace = TempWorkspace.Create($"nfc-nt51928-standard-{expectedCapacity:X}");
+        byte[] tp = CreatePattern(0x40000, 0x31);
+        byte[] dp = CreatePattern(expectedCapacity, 0x72);
+        byte[] ldc = CreatePattern(0x80000, 0xB5);
+        string outputPath = workspace.PathFor("output.bin");
+        var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionAddressSpaceIds.TpInput] = workspace.Write("tp.bin", tp),
+            [CompositionAddressSpaceIds.DpInput] = workspace.Write("dp.bin", dp),
+        };
+        if (selectLdc)
+        {
+            slotPaths[CompositionAddressSpaceIds.LdcInput] = workspace.Write("ldc.bin", ldc);
+        }
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+            "NT51928",
+            slotPaths,
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        byte[] expected = new byte[expectedCapacity];
+        tp.AsSpan(0, 0x35000).CopyTo(expected.AsSpan(0, 0x35000));
+        dp.AsSpan(0x3C000, 0x4000).CopyTo(expected.AsSpan(0x3C000, 0x4000));
+        if (selectLdc)
+        {
+            ldc.AsSpan(0x40000, 0x22000).CopyTo(expected.AsSpan(0x40000, 0x22000));
+        }
+
+        Assert.Equal(expected, File.ReadAllBytes(outputPath));
     }
 
     /// <summary>Verifies DP Perspective routing selects the trusted map that exactly matches the supplied DP container length.</summary>
@@ -220,6 +291,17 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 .EnumerateArray()
                 .Select(static input => input.GetProperty("OriginalFileName").GetString())
                 .Order(StringComparer.Ordinal));
+    }
+
+    private static byte[] CreatePattern(int length, byte salt)
+    {
+        byte[] bytes = new byte[length];
+        for (int index = 0; index < bytes.Length; index++)
+        {
+            bytes[index] = unchecked((byte)(salt + (index * 37)));
+        }
+
+        return bytes;
     }
 
 }

@@ -6,6 +6,7 @@ namespace NvtFwCombiner.Profiles.V2;
 internal sealed partial class CompositionProfileDefinition
 {
     private readonly CompositionProfileInputSlot[] _inputSlots;
+    private readonly CompositionProfileInputSelectionGroup[] _inputSelectionGroups;
     private readonly CompositionProfileSpace[] _spaces;
     private readonly CompositionProfileView[] _views;
     private readonly CompositionProfileMetadataBinding[] _metadataBindings;
@@ -32,7 +33,8 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<CompositionProfileValidation> validations,
         IEnumerable<CompositionProfileProcessorStage> processorStages,
         CompositionProfileOutput output,
-        IEnumerable<string> evidenceRefs)
+        IEnumerable<string> evidenceRefs,
+        IEnumerable<CompositionProfileInputSelectionGroup>? inputSelectionGroups = null)
         : this(
             profileId,
             profileVersion,
@@ -50,7 +52,8 @@ internal sealed partial class CompositionProfileDefinition
             validations,
             processorStages,
             output,
-            evidenceRefs)
+            evidenceRefs,
+            inputSelectionGroups)
     {
     }
 
@@ -71,7 +74,8 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<CompositionProfileValidation> validations,
         IEnumerable<CompositionProfileProcessorStage> processorStages,
         CompositionProfileOutput output,
-        IEnumerable<string> evidenceRefs)
+        IEnumerable<string> evidenceRefs,
+        IEnumerable<CompositionProfileInputSelectionGroup>? inputSelectionGroups = null)
     {
         ProfileId = CompositionProfileValueRules.RequireId(profileId, nameof(profileId));
         ProfileVersion = CompositionProfileValueRules.RequireSemanticVersion(
@@ -100,6 +104,11 @@ internal sealed partial class CompositionProfileDefinition
             static slot => slot.SlotId,
             nameof(inputSlots),
             requireValue: true);
+        _inputSelectionGroups = SnapshotUnique(
+            inputSelectionGroups ?? [],
+            static group => group.GroupId,
+            nameof(inputSelectionGroups),
+            requireValue: false);
         _spaces = SnapshotUnique(
             spaces,
             static space => space.SpaceId,
@@ -160,6 +169,7 @@ internal sealed partial class CompositionProfileDefinition
         Experience = experience;
         CompilationContext = compilationContext;
         InputSlots = Array.AsReadOnly(_inputSlots);
+        InputSelectionGroups = Array.AsReadOnly(_inputSelectionGroups);
         Spaces = Array.AsReadOnly(_spaces);
         Views = Array.AsReadOnly(_views);
         MetadataBindings = Array.AsReadOnly(_metadataBindings);
@@ -201,6 +211,8 @@ internal sealed partial class CompositionProfileDefinition
         ?? throw new InvalidOperationException("This profile is not admitted through the logical-output context.");
 
     internal IReadOnlyList<CompositionProfileInputSlot> InputSlots { get; }
+
+    internal IReadOnlyList<CompositionProfileInputSelectionGroup> InputSelectionGroups { get; }
 
     internal IReadOnlyList<CompositionProfileSpace> Spaces { get; }
 

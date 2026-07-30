@@ -15,7 +15,7 @@ public sealed class DpReplaceAuthoringCatalogTests
         Assert.Equal("NT51928", rule.IcId);
         Assert.Equal("dp-ldc-51928", rule.RegionId);
         Assert.Equal("replace-ldc", rule.SlotId);
-        Assert.Equal(CompositionAddressSpaceIds.LdReplacement, rule.AddressSpaceId);
+        Assert.Equal(CompositionAddressSpaceIds.LdcReplacement, rule.AddressSpaceId);
     }
 
     /// <summary>NT51928 LDC authoring does not leak to the shared NT51927 TP Overview profile.</summary>
@@ -27,7 +27,7 @@ public sealed class DpReplaceAuthoringCatalogTests
             "51928",
             "dp-ldc-51928",
             out DpReplaceAdditionalPayloadRule? rule));
-        Assert.Equal(CompositionAddressSpaceIds.LdReplacement, rule.AddressSpaceId);
+        Assert.Equal(CompositionAddressSpaceIds.LdcReplacement, rule.AddressSpaceId);
 
         Assert.False(DpReplaceAuthoringCatalog.IsAdditionalPayloadRegion("NT51927", "dp-ldc-51928"));
         Assert.Empty(DpReplaceAuthoringCatalog.GetAdditionalPayloads("NT51927"));

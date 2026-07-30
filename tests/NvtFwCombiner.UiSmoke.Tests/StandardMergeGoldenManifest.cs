@@ -93,7 +93,7 @@ internal sealed class StandardMergeGoldenManifest : IDisposable
         {
             "dp-input" => "merge-dp",
             "tp-input" => "merge-tp",
-            "ld-input" => "merge-ld",
+            "ldc-input" => "merge-ldc",
             _ => throw new InvalidOperationException($"Unknown address space '{addressSpaceId}'."),
         };
     }

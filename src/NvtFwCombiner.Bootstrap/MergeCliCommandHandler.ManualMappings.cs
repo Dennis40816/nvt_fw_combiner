@@ -7,14 +7,14 @@ namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class MergeCliCommandHandler
 {
-    private static bool TryCreateMappings(
+    private static bool TryCreateGeneralMergeDraft(
         ParsedOptions options,
         string icId,
         TextWriter error,
-        [NotNullWhen(true)] out GeneralMappingDraftState? mappings,
+        [NotNullWhen(true)] out GeneralMergeDraftState? draft,
         out GeneralSavedRuleResourcePolicy? savedRulePolicy)
     {
-        mappings = null;
+        draft = null;
         savedRulePolicy = null;
         List<string> values = options.GetValues("--mapping");
         bool usesRule = options.Values.TryGetValue("--rule", out string? rulePath);
@@ -26,12 +26,12 @@ internal static partial class MergeCliCommandHandler
                 return false;
             }
 
-            return TryCreateMappingsFromSavedRule(
+            return TryCreateDraftFromSavedRule(
                 rulePath!,
                 options.GetValues("--slot"),
                 icId,
                 error,
-                out mappings,
+                out draft,
                 out savedRulePolicy);
         }
 
@@ -44,6 +44,22 @@ internal static partial class MergeCliCommandHandler
         if (values.Count == 0)
         {
             error.WriteLine("error: at least one --mapping <source-start+target-start+length=path> value or --rule <rule.json> is required for General Merge");
+            return false;
+        }
+
+        if (!RequireOption(options, "--size", error, out string? outputLength))
+        {
+            return false;
+        }
+
+        if (!new GeneralMergeInitializerInput(
+                outputLength,
+                options.Values.GetValueOrDefault("--fill")).TryResolve(
+                out GeneralMergeOutputInitializer? initializer,
+                out CompositionIssue? initializationIssue))
+        {
+            error.WriteLine(
+                $"error: {initializationIssue!.Code}: {initializationIssue.Message}");
             return false;
         }
 
@@ -60,7 +76,9 @@ internal static partial class MergeCliCommandHandler
 
         try
         {
-            mappings = new GeneralMappingDraftState(items);
+            draft = new GeneralMergeDraftState(
+                initializer!,
+                new GeneralMappingDraftState(items));
             return true;
         }
         catch (ArgumentException exception)
@@ -120,7 +138,8 @@ internal static partial class MergeCliCommandHandler
             OverlapPolicy.Reject,
             alignment: 1,
             "Copy explicit General Merge mapping.",
-            WorkbenchGeneralMergeIds.OutputRegionId);
+            WorkbenchGeneralMergeIds.OutputRegionId,
+            fileRangePreset: GeneralMappingFileRangePreset.SourceSlice);
         return true;
     }
 

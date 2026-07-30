@@ -1,0 +1,425 @@
+{
+  "schemaVersion": "1.1",
+  "familyId": "nt51917-nt51927-nt51928-canonical-container",
+  "familyVersion": "1.4.0",
+  "members": [
+    {
+      "memberId": "NT51917",
+      "displayName": "NT51917"
+    },
+    {
+      "memberId": "NT51927",
+      "displayName": "NT51927"
+    },
+    {
+      "memberId": "NT51928",
+      "displayName": "NT51928"
+    }
+  ],
+  "capabilities": [],
+  "regionSets": [
+    {
+      "regionSetId": "nt51927-standard-merge-flash",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "flash-image",
+          "owner": "system",
+          "kind": "image",
+          "range": {
+            "start": 0,
+            "length": 262144
+          },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "unmapped-gap",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": {
+            "start": 217088,
+            "length": 28672
+          },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51927-golden"
+      ]
+    },
+    {
+      "regionSetId": "nt51928-standard-merge-flash",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "flash-image",
+          "owner": "system",
+          "kind": "image",
+          "range": {
+            "start": 0,
+            "length": 524288
+          },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "unmapped-gap-before-dp",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": {
+            "start": 217088,
+            "length": 28672
+          },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "ldc-code",
+          "parentRegionId": "flash-image",
+          "owner": "ldc",
+          "kind": "code",
+          "range": {
+            "start": 262144,
+            "length": 139264
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "unmapped-tail",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": {
+            "start": 401408,
+            "length": 122880
+          },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51928-golden"
+      ]
+    },
+    {
+      "regionSetId": "nt51927-nt51928-shared-initial-tp",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "tp-code",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "code",
+          "range": {
+            "start": 0,
+            "length": 217088
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "dp-code",
+          "parentRegionId": "flash-image",
+          "owner": "dp",
+          "kind": "code",
+          "range": {
+            "start": 245760,
+            "length": 16384
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "adr-0041-owner-accepted-2026-07-27",
+        "gen-flash-bin-v2-51927-golden",
+        "gen-flash-bin-v2-51928-golden"
+      ]
+    }
+  ],
+  "metadataSets": [
+    {
+      "metadataSetId": "firmware-config-general-parameters",
+      "structures": [
+        {
+          "structureId": "firmware-config-general-parameters",
+          "artifactBindingId": "tp-input",
+          "length": 41,
+          "locator": {
+            "kind": "marker-relative",
+            "searchRange": {
+              "addressSpaceId": "flash",
+              "start": 0,
+              "length": 217088
+            },
+            "markerHex": "004e5654",
+            "selection": {
+              "kind": "unique"
+            },
+            "resultOffset": -4092,
+            "allowedResultRegionId": "tp-code"
+          },
+          "fields": [
+            { "fieldId": "tp-firmware-version", "sourceName": "u8FWVersion", "offset": 0, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "tp-firmware-version-complement", "sourceName": "u8FWVersionBar", "offset": 1, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "sensor-count-x", "sourceName": "u8AlgNumberX", "offset": 2, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "sensor-count-y", "sourceName": "u8AlgNumberY", "offset": 3, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "display-resolution-x", "sourceName": "u16LCMResolutionX", "offset": 4, "widthBytes": 2, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "display-resolution-y", "sourceName": "u16LCMResolutionY", "offset": 6, "widthBytes": 2, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "common-firmware-format-version", "sourceName": "u8CommonFwFormatVersion", "offset": 8, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "maximum-operable-fingers", "sourceName": "u8ReportFingerNum", "offset": 9, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "button-count", "sourceName": "u8ButtonNum", "offset": 10, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "report-irq-type", "sourceName": "u8IRQ_Type", "offset": 11, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "event-buffer-format-version", "sourceName": "u8EventBufferFormatVersion", "offset": 12, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "customized-function", "sourceName": "u8CustomizedFunction", "offset": 13, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "customer-tuning-version", "sourceName": "u8CustomerTuningVersion", "offset": 14, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "hardware-sensor-count-x", "sourceName": "u8HWNumberX", "offset": 15, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "hardware-sensor-count-y", "sourceName": "u8HWNumberY", "offset": 16, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "tp-firmware-subversion", "sourceName": "u8FWSubVersion", "offset": 17, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "tp-resolution-x", "sourceName": "u16TPResolutionX", "offset": 18, "widthBytes": 2, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "tp-resolution-y", "sourceName": "u16TPResolutionY", "offset": 20, "widthBytes": 2, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "report-by-command-buffer", "sourceName": "u8ReportByComBuf", "offset": 22, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "observed-ic-count", "sourceName": "u8Chip_Num", "offset": 23, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "outermost-ic-master-enable", "sourceName": "u8BC_EN", "offset": 24, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "maximum-buffer-count", "sourceName": "u8MaxBufferNum", "offset": 25, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "common-firmware-major-version", "sourceName": "u8CommonFwMajorVersion", "offset": 26, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "common-firmware-minor-version", "sourceName": "u8CommonFwMinorVersion", "offset": 27, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "common-firmware-additional-version", "sourceName": "u8CommonFwAdditionalVersion", "offset": 28, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "auto-build-svn-byte-1", "sourceName": "u8AutoBuildSvnVer1", "offset": 29, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "auto-build-svn-byte-2", "sourceName": "u8AutoBuildSvnVer2", "offset": 30, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "auto-build-svn-byte-3", "sourceName": "u8AutoBuildSvnVer3", "offset": 31, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "auto-build-svn-byte-4", "sourceName": "u8AutoBuildSvnVer4", "offset": 32, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "cascade-enable", "sourceName": "u8CascadeEn", "offset": 33, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "pid", "sourceName": "u16NovaTekProjectID", "offset": 34, "widthBytes": 2, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "x-one-dimensional-count", "sourceName": "u8X1DNum", "offset": 36, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "y-one-dimensional-count", "sourceName": "u8Y1DNum", "offset": 37, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "afe-count", "sourceName": "u8AFE_Num", "offset": 38, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "event-buffer-high-byte", "sourceName": "u8EventBufHbyte", "offset": 39, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "event-buffer-middle-byte", "sourceName": "u8EventBufMbyte", "offset": 40, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" }
+          ],
+          "assertions": [],
+          "relations": [
+            {
+              "relationId": "firmware-version-complement",
+              "kind": "bitwise-complement",
+              "sourceFieldId": "tp-firmware-version",
+              "relatedFieldId": "tp-firmware-version-complement"
+            }
+          ]
+        }
+      ],
+      "evidenceRefs": [
+        "common-fw-ap-fwconfig-general-parameters",
+        "gen-flash-bin-v2-51927-golden",
+        "gen-flash-bin-v2-51928-golden"
+      ]
+    },
+    {
+      "metadataSetId": "nt51927-nt51928-initial-code-metadata",
+      "structures": [
+        {
+          "structureId": "dpcmi",
+          "artifactBindingId": "dp-input",
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "dp-code",
+            "offset": 28,
+            "allowedResultRegionId": "dp-code"
+          },
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.3.0",
+            "familyContentHash": "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
+            "structureId": "dpcmi"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "adr-0039-owner-accepted-2026-07-26",
+        "gen-flash-bin-v2-51927-golden",
+        "gen-flash-bin-v2-51928-golden"
+      ]
+    }
+  ],
+  "imageMaps": [
+    {
+      "mapId": "nt51927-standard-merge-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51917",
+          "NT51927"
+        ],
+        "modeIds": [
+          "standard-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51927-standard-merge-flash",
+        "nt51927-nt51928-shared-initial-tp"
+      ],
+      "metadataSetIds": [
+        "firmware-config-general-parameters",
+        "nt51927-nt51928-initial-code-metadata"
+      ],
+      "evidenceRefs": [
+        "common-fw-ap-fwconfig-general-parameters",
+        "gen-flash-bin-v2-51927-golden",
+        "standard-merge-alias-51917-to-51927"
+      ]
+    },
+    {
+      "mapId": "nt51928-standard-merge-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51928"
+        ],
+        "modeIds": [
+          "standard-merge",
+          "dp-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51927-standard-merge-flash",
+        "nt51927-nt51928-shared-initial-tp"
+      ],
+      "metadataSetIds": [
+        "firmware-config-general-parameters",
+        "nt51927-nt51928-initial-code-metadata"
+      ],
+      "evidenceRefs": [
+        "common-fw-ap-fwconfig-general-parameters",
+        "gen-flash-bin-v2-51927-golden",
+        "adr-0043-owner-accepted-2026-07-28"
+      ]
+    },
+    {
+      "mapId": "nt51928-standard-merge-512k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51928"
+        ],
+        "modeIds": [
+          "standard-merge",
+          "dp-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 524288
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51928-standard-merge-flash",
+        "nt51927-nt51928-shared-initial-tp"
+      ],
+      "metadataSetIds": [
+        "firmware-config-general-parameters",
+        "nt51927-nt51928-initial-code-metadata"
+      ],
+      "evidenceRefs": [
+        "common-fw-ap-fwconfig-general-parameters",
+        "gen-flash-bin-v2-51928-golden"
+      ]
+    }
+  ],
+  "factAliases": [],
+  "familyRelationships": [
+    {
+      "relationshipId": "nt51917-nt51927-perfect-like-family",
+      "relationshipKind": "perfect-like-family",
+      "memberIds": [
+        "NT51917",
+        "NT51927"
+      ],
+      "reason": "The firmware owner confirmed NT51917 and NT51927 share one complete modeled firmware definition while requested-member evidence and publication remain separate.",
+      "evidenceRefs": [
+        "adr-0039-owner-accepted-2026-07-26",
+        "gen-flash-bin-v2-51927-golden",
+        "standard-merge-alias-51917-to-51927"
+      ]
+    },
+    {
+      "relationshipId": "nt51927-nt51928-initial-code-shared-family",
+      "relationshipKind": "shared-fact-relationship",
+      "memberIds": [
+        "NT51917",
+        "NT51927",
+        "NT51928"
+      ],
+      "role": "initial-code-shared",
+      "applicability": {
+        "mapIds": [
+          "nt51927-standard-merge-256k",
+          "nt51928-standard-merge-256k",
+          "nt51928-standard-merge-512k"
+        ]
+      },
+      "sharedFactReferences": [
+        {
+          "factKind": "region",
+          "factId": "dp-code"
+        }
+      ],
+      "reason": "NT51917 inherits NT51927 Initial Code geometry through their perfect-like relationship, and the firmware owner confirmed NT51927/NT51928 share that geometry while NT51928 retains its distinct LDC and complete container map. The all-IC DPCMI definition is canonical independently of this partial family relationship.",
+      "evidenceRefs": [
+        "adr-0039-owner-accepted-2026-07-26",
+        "gen-flash-bin-v2-51927-golden",
+        "gen-flash-bin-v2-51928-golden"
+      ]
+    },
+    {
+      "relationshipId": "nt51927-nt51928-tp-shared-family",
+      "relationshipKind": "shared-fact-relationship",
+      "memberIds": [
+        "NT51917",
+        "NT51927",
+        "NT51928"
+      ],
+      "role": "tp-shared",
+      "applicability": {
+        "mapIds": [
+          "nt51927-standard-merge-256k",
+          "nt51928-standard-merge-256k",
+          "nt51928-standard-merge-512k"
+        ]
+      },
+      "sharedFactReferences": [
+        {
+          "factKind": "region",
+          "factId": "tp-code"
+        }
+      ],
+      "reason": "NT51917 inherits NT51927 TP geometry through their perfect-like relationship, and the firmware owner confirmed NT51927/NT51928 share that geometry without importing LDC or another workflow. The all-IC FirmwareConfig definition is canonical independently of this partial family relationship.",
+      "evidenceRefs": [
+        "adr-0039-owner-accepted-2026-07-26",
+        "gen-flash-bin-v2-51927-golden",
+        "gen-flash-bin-v2-51928-golden"
+      ]
+    }
+  ],
+  "evidenceRefs": [
+    "adr-0039-owner-accepted-2026-07-26",
+    "common-fw-ap-fwconfig-general-parameters",
+    "gen-flash-bin-v2-51927-golden",
+    "gen-flash-bin-v2-51928-golden",
+    "standard-merge-alias-51917-to-51927"
+  ]
+}
