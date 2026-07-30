@@ -143,11 +143,11 @@ internal static partial class CompositionProfileNormalizer
             throw Error(path, "Scalar addend must be an integer or a declared addend object.");
         }
 
-        if (schemaVersion != "2.14")
+        if (schemaVersion is not "2.14" and not "2.15")
         {
             throw Error(
                 path,
-                "Region-instance delta addends require composition-profile schema version '2.14'.");
+                "Region-instance delta addends require composition-profile schema version '2.14' or later.");
         }
 
         CompositionProfileRegionInstanceDeltaAddendDocument addend;

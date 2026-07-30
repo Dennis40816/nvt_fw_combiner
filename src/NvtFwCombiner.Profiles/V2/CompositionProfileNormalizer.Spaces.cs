@@ -94,15 +94,15 @@ internal static partial class CompositionProfileNormalizer
                 1,
                 long.MaxValue,
                 $"{path}.bytes"))),
-            "runtime-request" when schemaVersion is "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" &&
+            "runtime-request" when schemaVersion is "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15" &&
                                    spaceKind == CompositionProfileSpaceKind.OutputImage =>
                 new RuntimeRequestProfileCapacity(),
-            "runtime-request" when schemaVersion is "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" => throw Error(
+            "runtime-request" when schemaVersion is "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15" => throw Error(
                 $"{path}.kind",
                 "The runtime-request capacity kind is valid only for an output-image space."),
             "runtime-request" => throw Error(
                 $"{path}.kind",
-                "The runtime-request capacity kind requires composition-profile schema version '2.3' through '2.14'."),
+                "The runtime-request capacity kind requires composition-profile schema version '2.3' through '2.15'."),
             _ => throw Error($"{path}.kind", "Unknown profile capacity kind."),
         };
     }
@@ -143,7 +143,7 @@ internal static partial class CompositionProfileNormalizer
             "space-range" => new SpaceRangeViewSelector(ReadRange(
                 document.Range ?? throw Error($"{path}.range", "Space range is missing."),
                 $"{path}.range")),
-            "region-template-range" when schemaVersion == "2.14" =>
+            "region-template-range" when schemaVersion is "2.14" or "2.15" =>
                 Wrap(path, () => new RegionTemplateRangeViewSelector(
                 document.RegionInstanceId ?? throw Error(
                     $"{path}.regionInstanceId",
@@ -153,7 +153,7 @@ internal static partial class CompositionProfileNormalizer
                     "Template region is missing."))),
             "region-template-range" => throw Error(
                 $"{path}.kind",
-                "Region-template-range selectors require composition-profile schema version '2.14'."),
+                "Region-template-range selectors require composition-profile schema version '2.14' or later."),
             _ => throw Error($"{path}.kind", "Unknown profile view selector kind."),
         };
     }

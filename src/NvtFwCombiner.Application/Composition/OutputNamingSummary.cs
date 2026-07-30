@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -14,7 +15,8 @@ public sealed class OutputNamingSummary
         bool isExplicitOverride,
         string dateSource,
         DateTimeOffset resolvedAtUtc,
-        IReadOnlyList<OutputNamingTokenSummary> tokens)
+        IReadOnlyList<OutputNamingTokenSummary> tokens,
+        OutputNamingAdmissionSummary? admission = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rendererKind);
         ArgumentException.ThrowIfNullOrWhiteSpace(template);
@@ -31,6 +33,7 @@ public sealed class OutputNamingSummary
         DateSource = dateSource;
         ResolvedAtUtc = resolvedAtUtc;
         Tokens = Array.AsReadOnly([.. tokens]);
+        Admission = admission;
     }
 
     /// <summary>Closed compiled renderer identifier.</summary>
@@ -56,6 +59,49 @@ public sealed class OutputNamingSummary
 
     /// <summary>Stable token values and their immutable parsing provenance.</summary>
     public IReadOnlyList<OutputNamingTokenSummary> Tokens { get; }
+
+    /// <summary>Exact publication and revision used by normal naming.</summary>
+    public OutputNamingAdmissionSummary? Admission { get; }
+}
+
+/// <summary>Report-safe identity of one admitted output-naming publication.</summary>
+public sealed record OutputNamingAdmissionSummary
+{
+    /// <summary>Creates one checked report-safe publication identity.</summary>
+    public OutputNamingAdmissionSummary(
+        string routeId,
+        string capabilityFingerprint,
+        string resolutionToken,
+        long authoringRevision)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
+        if (!CapabilityRouteIdentity.IsSha256(capabilityFingerprint))
+        {
+            throw new ArgumentException(
+                "Output naming admission summary requires a lowercase SHA-256 capability fingerprint.",
+                nameof(capabilityFingerprint));
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(resolutionToken);
+        ArgumentOutOfRangeException.ThrowIfNegative(authoringRevision);
+        RouteId = routeId;
+        CapabilityFingerprint = capabilityFingerprint;
+        ResolutionToken = resolutionToken;
+        AuthoringRevision = authoringRevision;
+    }
+
+    /// <summary>Stable exact capability route.</summary>
+    public string RouteId { get; }
+
+    /// <summary>Executable semantic fingerprint.</summary>
+    public string CapabilityFingerprint { get; }
+
+    /// <summary>Exact publication token value.</summary>
+    public string ResolutionToken { get; }
+
+    /// <summary>Authoring revision current at admission.</summary>
+    public long AuthoringRevision { get; }
 }
 
 /// <summary>One report-safe output-name token and its parsing provenance.</summary>

@@ -366,6 +366,7 @@ public sealed class MetadataPlanDefinition
     /// <summary>Binds the plan to one immutable catalog publication.</summary>
     public ResolvedMetadataPlan Resolve(ResolutionToken resolutionToken)
     {
+        resolutionToken.EnsureValid(nameof(resolutionToken));
         return new ResolvedMetadataPlan(this, resolutionToken);
     }
 }
@@ -385,6 +386,7 @@ public sealed class ResolvedMetadataPlan
         ResolutionToken resolutionToken)
     {
         ArgumentNullException.ThrowIfNull(definition);
+        resolutionToken.EnsureValid(nameof(resolutionToken));
         _entries =
         [
             .. definition.Entries.Select(static entry =>

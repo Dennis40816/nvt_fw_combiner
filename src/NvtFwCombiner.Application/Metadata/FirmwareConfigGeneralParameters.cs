@@ -110,9 +110,27 @@ public static class FirmwareConfigGeneralParametersProjector
         MetadataInspectionSnapshot snapshot,
         out FirmwareConfigGeneralParametersFacts facts)
     {
+        return TryProjectCore(snapshot, bindingId: null, out facts);
+    }
+
+    /// <summary>Projects canonical General Parameters selected by one exact profile binding.</summary>
+    public static bool TryProject(
+        MetadataInspectionSnapshot snapshot,
+        string bindingId,
+        out FirmwareConfigGeneralParametersFacts facts)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bindingId);
+        return TryProjectCore(snapshot, bindingId, out facts);
+    }
+
+    private static bool TryProjectCore(
+        MetadataInspectionSnapshot snapshot,
+        string? bindingId,
+        out FirmwareConfigGeneralParametersFacts facts)
+    {
         ArgumentNullException.ThrowIfNull(snapshot);
         facts = null!;
-        MetadataInspectionResult? result = FindSingle(snapshot);
+        MetadataInspectionResult? result = FindSingle(snapshot, bindingId);
         if (result is not { State: MetadataInspectionState.Value } ||
             result.Resolution?.Resolved?.DecodedStructure is not { } decoded)
         {
@@ -191,7 +209,7 @@ public static class FirmwareConfigGeneralParametersProjector
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         diagnostic = null!;
-        MetadataInspectionResult? result = FindSingle(snapshot);
+        MetadataInspectionResult? result = FindSingle(snapshot, bindingId: null);
         if (result?.Resolution is not
             {
                 Failure: FirmwareMetadataStructureResolutionFailure.MarkerCardinalityMismatch,
@@ -208,14 +226,20 @@ public static class FirmwareConfigGeneralParametersProjector
         return true;
     }
 
-    private static MetadataInspectionResult? FindSingle(MetadataInspectionSnapshot snapshot)
+    private static MetadataInspectionResult? FindSingle(
+        MetadataInspectionSnapshot snapshot,
+        string? bindingId)
     {
         MetadataInspectionResult[] matches =
         [
             .. snapshot.Results.Where(result =>
                 StringComparer.Ordinal.Equals(
                     result.PlanEntry.Definition.StructureDefinition.Definition.DefinitionId,
-                    FirmwareConfigGeneralParametersContract.StructureId)),
+                    FirmwareConfigGeneralParametersContract.StructureId) &&
+                (bindingId is null ||
+                 StringComparer.Ordinal.Equals(
+                     result.PlanEntry.Definition.BindingId,
+                     bindingId))),
         ];
         return matches.Length == 1 ? matches[0] : null;
     }

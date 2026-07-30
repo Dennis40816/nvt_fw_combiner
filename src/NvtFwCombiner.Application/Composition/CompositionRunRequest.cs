@@ -20,7 +20,9 @@ public sealed class CompositionRunRequest
         bool outputFileNameIsOverride = false,
         TopologySelection? abMergeTopologySelection = null,
         IEnumerable<CompositionIssue>? advisoryIssues = null,
-        GeneralAuthoringAdmissionSummary? generalAdmission = null)
+        GeneralAuthoringAdmissionSummary? generalAdmission = null,
+        AcceptedOutputNamingInspection? outputNamingInspection = null,
+        OutputNamingAdmissionIdentity? outputNamingAdmission = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(compiledComposition);
@@ -34,6 +36,10 @@ public sealed class CompositionRunRequest
         ValidateRuntimeValidationRequirements(compiledComposition);
         ValidateIcNumberSelection(compiledComposition, icNumberSelection);
         ValidateAbMergeTopologySelection(compiledComposition, abMergeTopologySelection);
+        ValidateOutputNamingAdmission(
+            compiledComposition,
+            outputNamingInspection,
+            outputNamingAdmission);
         ValidateV2RuntimeRequest(
             compiledComposition,
             copiedBindings,
@@ -50,6 +56,8 @@ public sealed class CompositionRunRequest
         AbMergeTopologySelection = abMergeTopologySelection;
         AdvisoryIssues = CopyAdvisoryIssues(advisoryIssues);
         GeneralAdmission = generalAdmission;
+        OutputNamingInspection = outputNamingInspection;
+        OutputNamingAdmission = outputNamingAdmission;
     }
 
     /// <summary>Stable run id for reports and diagnostics.</summary>
@@ -82,10 +90,45 @@ public sealed class CompositionRunRequest
     /// <summary>Path-free General admission provenance shared by Preview and Build.</summary>
     public GeneralAuthoringAdmissionSummary? GeneralAdmission { get; }
 
+    /// <summary>
+    /// Accepted canonical metadata inspection used only by a compiled normal output-name renderer.
+    /// </summary>
+    public AcceptedOutputNamingInspection? OutputNamingInspection { get; }
+
+    /// <summary>Current publication and revision admitted for normal output naming.</summary>
+    public OutputNamingAdmissionIdentity? OutputNamingAdmission { get; }
+
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(previewToken);
+        return OutputNamingAdmission is not null
+            ? throw new InvalidOperationException(
+                "Normal output naming requires a freshly captured build admission.")
+            : new CompositionRunRequest(
+                RunId,
+                CompiledComposition,
+                ArtifactBindings.Values,
+                OutputFileName,
+                previewToken,
+                IcNumberSelection,
+                IsOutputFileNameOverride,
+                AbMergeTopologySelection,
+                AdvisoryIssues,
+                GeneralAdmission,
+                OutputNamingInspection);
+    }
+
+    /// <summary>
+    /// Returns a build request only when the freshly captured admission still
+    /// matches the accepted inspection used by the preview.
+    /// </summary>
+    public CompositionRunRequest WithApprovedPreviewToken(
+        string previewToken,
+        OutputNamingAdmissionIdentity currentAdmission)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(previewToken);
+        ArgumentNullException.ThrowIfNull(currentAdmission);
         return new CompositionRunRequest(
             RunId,
             CompiledComposition,
@@ -96,7 +139,9 @@ public sealed class CompositionRunRequest
             IsOutputFileNameOverride,
             AbMergeTopologySelection,
             AdvisoryIssues,
-            GeneralAdmission);
+            GeneralAdmission,
+            OutputNamingInspection,
+            currentAdmission);
     }
 
     private static ReadOnlyCollection<CompositionIssue> CopyAdvisoryIssues(
@@ -202,14 +247,17 @@ public sealed class CompositionRunRequest
                 nameof(compiledComposition));
         }
 
-        bool isAbCodeAutomatic = output.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
+        bool isSnapshotRenderedAutomatic = (output.RendererKind is
+                CompiledOutputNameRendererKind.AbCodeV1 or
+                CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+                CompiledOutputNameRendererKind.TpFirmwareV1) &&
             !outputFileNameIsOverride;
-        if (isAbCodeAutomatic)
+        if (isSnapshotRenderedAutomatic)
         {
             if (!string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal))
             {
                 throw new ArgumentException(
-                    "Automatic AB Code output naming must retain the compiled template until execution snapshots are read.",
+                    "Automatic output naming must retain the compiled template until accepted snapshots are read.",
                     nameof(outputFileName));
             }
         }
@@ -301,6 +349,58 @@ public sealed class CompositionRunRequest
                     $"V2 runtime binding '{expected.AddressSpaceId}' has an unaccepted original file extension.",
                     nameof(bindings));
             }
+        }
+    }
+
+    private static void ValidateOutputNamingAdmission(
+        CompiledComposition compiledComposition,
+        AcceptedOutputNamingInspection? inspection,
+        OutputNamingAdmissionIdentity? admission)
+    {
+        CompiledOutputNameRendererKind? renderer =
+            compiledComposition.V2Details?.OutputNamingRequirement.RendererKind;
+        bool requiresAcceptedInspection = renderer is
+            CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+            CompiledOutputNameRendererKind.TpFirmwareV1;
+        if (inspection is null)
+        {
+            if (requiresAcceptedInspection || admission is not null)
+            {
+                throw new ArgumentException(
+                    "Compiled normal output naming requires one accepted inspection and current admission.",
+                    nameof(inspection));
+            }
+
+            return;
+        }
+
+        if (admission is null)
+        {
+            throw new ArgumentException(
+                "Compiled normal output naming requires a current publication admission.",
+                nameof(admission));
+        }
+
+        if (!StringComparer.Ordinal.Equals(
+                inspection.CapabilityFingerprint,
+                compiledComposition.CompilationFingerprint) ||
+            !StringComparer.Ordinal.Equals(
+                admission.CapabilityFingerprint,
+                compiledComposition.CompilationFingerprint) ||
+            !StringComparer.Ordinal.Equals(inspection.RouteId, admission.RouteId) ||
+            inspection.ResolutionToken != admission.ResolutionToken ||
+            inspection.AuthoringRevision != admission.AuthoringRevision)
+        {
+            throw new ArgumentException(
+                "Output naming inspection and admission must belong to the exact current route, publication, revision, and compiled capability.",
+                nameof(inspection));
+        }
+
+        if (!requiresAcceptedInspection)
+        {
+            throw new ArgumentException(
+                "Output naming inspection and admission are valid only for a compiled normal output-name renderer.",
+                nameof(inspection));
         }
     }
 

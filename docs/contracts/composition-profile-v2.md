@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0 through 2.14
+# Composition Profile Contract 2.0 through 2.15
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -14,7 +14,8 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.11.schema.json`](composition-profile-v2.11.schema.json), and
 [`composition-profile-v2.12.schema.json`](composition-profile-v2.12.schema.json),
 [`composition-profile-v2.13.schema.json`](composition-profile-v2.13.schema.json), and
-[`composition-profile-v2.14.schema.json`](composition-profile-v2.14.schema.json). A trusted bundle
+[`composition-profile-v2.14.schema.json`](composition-profile-v2.14.schema.json), and
+[`composition-profile-v2.15.schema.json`](composition-profile-v2.15.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -62,10 +63,14 @@ not an experience, UI, or member-id inference. The
 contexts in ADR 0019 and ADR 0020. The separate `V2RuntimeExecutable` eligibility is minted only by
 the Profiles compiler for the closed blank-output Merge or reference-clone DP Replace subset when
 promotion is exactly `supported`, blockers are empty, each input slot has exactly one immutable
-singleton space, and the output template is either token-free or the exact closed AB Code v1 template
-with the `reject` invalid-character policy. The AB exception is admitted only for the AB Merge
-execution context and is rendered by Application from accepted execution snapshots; arbitrary token
-templates remain non-executable.
+singleton space, and output naming is one of: a token-free legacy-schema
+template, the exact closed AB Code v1 compatibility template, or a complete
+schema-2.15 typed normal naming rule, all with the `reject` invalid-character
+policy. The AB exception is admitted only for the AB Merge execution context
+and is rendered by Application from accepted execution snapshots. A normal
+FlashCode or TP-firmware template without its schema-2.15 rule id, artifact
+type, typed token sources, and missing-value policies remains non-executable.
+Arbitrary token templates remain non-executable.
 An `executable-candidate` never creates generic runtime authority, production routing, or support;
 ADR 0019 logical-output and ADR 0020 runtime-reference-replace are the only explicit Application
 admission shapes.
@@ -339,6 +344,34 @@ Neither primitive grants a write range. Output views remain map-backed, and
 all writes still pass the existing region-access, overlap, containment, and
 write-constraint checks.
 
+Schema 2.15 keeps every 2.14 firmware range and execution constraint and adds
+typed normal output naming authority:
+
+- `output.ruleId` is one of `normal-flashcode-v1` or `tp-firmware-v1`;
+- `output.outputArtifactType` is the closed `flash-code` or `tp-firmware`
+  artifact identity and must match the selected rule;
+- `output.invalidCharacterPolicy` is exactly `reject`; schema 2.15 does not
+  admit a typed renderer that can lower only as deferred;
+- `output.tokenRequirements` exactly matches `requiredTokenIds` and declares
+  one closed source plus one `block` or `use-placeholder` policy per token;
+- the closed sources are `compiled-ic`, `run-date-utc`, `dpcmi-version`, and
+  `firmware-config-tp-version`;
+- metadata-backed sources require one exact `metadataBindingId`. That binding
+  must declare purpose `output-naming` and resolve the canonical `dpcmi` or
+  `firmware-config-general-parameters` structure owned by the selected source;
+- the normal FlashCode contract requires IC, UTC date, DPCMI version, and
+  FirmwareConfig TP version. The TP-firmware contract omits DPCMI by rule;
+- both metadata version tokens use the exact compiled `xxxx` placeholder when
+  their accepted value is unavailable, while IC and date block when missing;
+  and
+- the compiled fingerprint retains rule id, artifact type, token source,
+  metadata binding and exact input space, missing policy, and placeholder. A
+  template string alone cannot collide with or infer typed runtime authority.
+
+Schema 2.15 does not migrate existing profile files implicitly. A profile that
+selects 2.15 must declare the complete typed output block; older schema
+snapshots retain their exact static and AB compatibility contracts.
+
 ## Input size policy
 
 Every input declares an `artifactClass` and a closed length policy. The
@@ -388,18 +421,36 @@ Compact CtrlRAM replacement is the only current built-in payload-relative
 source: byte `0` maps to the declared CtrlRAM target. Dynamic DiffDLM masked
 scatter remains inside that CtrlRAM authority. TPB instead reads a TP-native
 source window and applies a resolved bank placement delta.
-Original input file names are an unconditional v2 provenance/UI invariant rather than a configurable
-profile flag; a V2 runtime binding supplies its original plain filename and caller-declared typed slot
-assertion, which Application matches to the compiled slot and accepted extension before reading bytes.
-The original filename remains in reports and preview-token identity. Runtime templates are normally
-token-free. The sole exception is the exact AB Code v1 template
-`NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin`, which Application renders from accepted execution
-snapshots under ADR 0034; no other token template is executable. A static template supplies the
-default output filename; the AB renderer supplies its automatic candidate. `allowOverride: false`
-requires that automatic result, while `allowOverride: true` accepts another Windows-safe caller
-filename that is bound to the Preview-to-Build token. Runtime admission requires the `reject`
-invalid-character policy; `replace-underscore` remains non-executable. Output names still follow
-`output.fileNameTemplate`.
+Original input file names are an unconditional v2 provenance/UI invariant
+rather than a configurable profile flag; a V2 runtime binding supplies its
+original plain filename and caller-declared typed slot assertion, which
+Application matches to the compiled slot and accepted extension before reading
+bytes. The original filename remains in reports and preview-token identity.
+
+Legacy runtime templates are normally token-free. The exact AB Code v1
+compatibility template
+`NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin` remains executable
+only for AB Merge under ADR 0034. Schema 2.15 additionally admits the exact
+typed normal FlashCode and TP-firmware rules described above; matching template
+text in an older schema does not select those renderers.
+
+Application resolves a normal name only from the compiled token-source
+declarations and one already accepted metadata inspection. It selects metadata
+by compiled binding id, never by presentation text or a new read. The run
+boundary requires the accepted inspection and a current admission identity to
+match exact route id, capability fingerprint, metadata-plan resolution token,
+and authoring revision. A changed publication or revision is stale even when
+compiled bytes and the compilation fingerprint are otherwise identical. That
+identity is retained in the report and Preview-to-Build token, and Build
+requires a freshly captured matching admission.
+
+A static template supplies the default output filename; dynamic renderers
+supply their automatic candidate. `allowOverride: false` requires that
+automatic result, while `allowOverride: true` accepts another Windows-safe
+caller filename that is bound to the Preview-to-Build token. Runtime admission
+requires the `reject` invalid-character policy. Older schema snapshots may
+retain `replace-underscore` only as non-executable legacy policy; schema 2.15
+rejects it. Output names still follow `output.fileNameTemplate`.
 
 ## Metadata and validation
 

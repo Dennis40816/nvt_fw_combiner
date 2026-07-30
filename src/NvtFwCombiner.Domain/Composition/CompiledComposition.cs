@@ -549,8 +549,20 @@ public sealed partial class CompiledComposition
         }
 
         CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
+        if (output.RendererKind is
+            CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+            CompiledOutputNameRendererKind.TpFirmwareV1)
+        {
+            CompiledOutputNamingRequirement.ValidateCanonicalIcIdentity(
+                details.Provenance.Context.MemberId,
+                nameof(details));
+        }
+
         bool hasExecutableOutputContract = output.InvalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.Reject &&
-            (output.RendererKind == CompiledOutputNameRendererKind.Static ||
+            (output.RendererKind is
+                CompiledOutputNameRendererKind.Static or
+                CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+                CompiledOutputNameRendererKind.TpFirmwareV1 ||
              (output.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
               compositionKind == CompositionKind.Merge &&
               StringComparer.Ordinal.Equals(experienceId, ExperienceIds.AbMerge)));

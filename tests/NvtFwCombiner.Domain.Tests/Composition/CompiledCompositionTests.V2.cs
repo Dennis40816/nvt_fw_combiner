@@ -82,6 +82,47 @@ public sealed partial class CompiledCompositionTests
         _ = Assert.Throws<ArgumentException>(() => CreateV2(runtimeExecutable: true));
     }
 
+    /// <summary>Canonical normal FlashCode and TP-firmware renderers are closed executable contracts.</summary>
+    [Fact]
+    public void V2RuntimeArtifactAdmitsCanonicalNormalOutputRenderers()
+    {
+        CompiledProfilePromotion supported =
+            new(CompiledProfilePromotionStage.Supported, []);
+        CompiledComposition flashCode = CreateV2(
+            promotion: supported,
+            resolvedMap: CreateResolvedMap(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                memberId: "NT51929"),
+            outputNaming: NormalFlashCodeOutput(),
+            runtimeExecutable: true);
+        CompiledComposition tpFirmware = CreateV2(
+            promotion: supported,
+            resolvedMap: CreateResolvedMap(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                memberId: "NT51950"),
+            outputNaming: TpFirmwareOutput(),
+            runtimeExecutable: true);
+
+        Assert.Equal(
+            CompiledOutputNameRendererKind.NormalFlashCodeV1,
+            flashCode.V2Details!.OutputNamingRequirement.RendererKind);
+        Assert.Equal(
+            CompiledOutputNameRendererKind.TpFirmwareV1,
+            tpFirmware.V2Details!.OutputNamingRequirement.RendererKind);
+        Assert.Equal(
+            CompiledCompositionEligibility.V2RuntimeExecutable,
+            flashCode.Eligibility);
+        Assert.Equal(
+            CompiledCompositionEligibility.V2RuntimeExecutable,
+            tpFirmware.Eligibility);
+        _ = Assert.Throws<ArgumentException>(() => CreateV2(
+            promotion: supported,
+            outputTemplate: CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+            outputInvalidCharacterPolicy: CompiledOutputInvalidCharacterPolicy.Reject,
+            requiredOutputTokenIds: ["date", "dp-version", "ic", "tp-version"],
+            runtimeExecutable: true));
+    }
+
     /// <summary>Verifies profile-bundle and output requirement values cannot be forged with malformed or ambiguous identities.</summary>
     [Fact]
     public void V2IdentityAndOutputRequirementsRejectInvalidValues()
@@ -151,6 +192,71 @@ public sealed partial class CompiledCompositionTests
             CompiledOutputInvalidCharacterPolicy.Reject,
             ["original-name"]);
         Assert.Equal(["original-name"], repeated.RequiredTokenIds);
+    }
+
+    /// <summary>
+    /// Normal FlashCode and TP-firmware names are closed compiled contracts whose
+    /// metadata placeholders are explicit rather than Bootstrap-owned defaults.
+    /// </summary>
+    [Fact]
+    public void NormalOutputNamingContractsOwnRendererAndMissingMetadataPolicy()
+    {
+        CompiledOutputNamingRequirement flashCode = NormalFlashCodeOutput();
+        CompiledOutputNamingRequirement tpFirmware = TpFirmwareOutput();
+
+        Assert.Equal(
+            CompiledOutputNamingRequirement.NormalFlashCodeV1RuleId,
+            flashCode.RuleId);
+        Assert.Equal(CompiledOutputArtifactType.FlashCode, flashCode.OutputArtifactType);
+        Assert.Equal(
+            CompiledOutputNameRendererKind.NormalFlashCodeV1,
+            flashCode.RendererKind);
+        Assert.Equal(
+            CompiledOutputNamingRequirement.TpFirmwareV1RuleId,
+            tpFirmware.RuleId);
+        Assert.Equal(CompiledOutputArtifactType.TpFirmware, tpFirmware.OutputArtifactType);
+        Assert.Equal(
+            CompiledOutputNameRendererKind.TpFirmwareV1,
+            tpFirmware.RendererKind);
+        Assert.Equal(
+            ("dp-inspection", CompiledOutputTokenSourceKind.DpcmiVersion, "xxxx",
+                CompiledOutputTokenMissingPolicy.UsePlaceholder),
+            MissingPolicy(flashCode, "dp-version"));
+        Assert.Equal(
+            ("tp-inspection", CompiledOutputTokenSourceKind.FirmwareConfigTpVersion, "xxxx",
+                CompiledOutputTokenMissingPolicy.UsePlaceholder),
+            MissingPolicy(flashCode, "tp-version"));
+        Assert.Equal(
+            (null, CompiledOutputTokenSourceKind.CompiledIc, null,
+                CompiledOutputTokenMissingPolicy.Block),
+            MissingPolicy(flashCode, "ic"));
+        Assert.Equal(
+            (null, CompiledOutputTokenSourceKind.RunDateUtc, null,
+                CompiledOutputTokenMissingPolicy.Block),
+            MissingPolicy(flashCode, "date"));
+        Assert.Equal(
+            ("tp-inspection", CompiledOutputTokenSourceKind.FirmwareConfigTpVersion, "xxxx",
+                CompiledOutputTokenMissingPolicy.UsePlaceholder),
+            MissingPolicy(tpFirmware, "tp-version"));
+        Assert.DoesNotContain(
+            tpFirmware.TokenRequirements,
+            static requirement => requirement.TokenId == "dp-version");
+
+        static (string? MetadataBindingId, CompiledOutputTokenSourceKind SourceKind,
+            string? Placeholder, CompiledOutputTokenMissingPolicy Policy)
+            MissingPolicy(
+                CompiledOutputNamingRequirement output,
+                string tokenId)
+        {
+            CompiledOutputTokenRequirement requirement =
+                Assert.Single(output.TokenRequirements, candidate =>
+                    candidate.TokenId == tokenId);
+            return (
+                requirement.MetadataBindingId,
+                requirement.SourceKind,
+                requirement.Placeholder,
+                requirement.MissingPolicy);
+        }
     }
 
     /// <summary>Verifies v2 identity, resolved physical provenance, promotion, and unrendered naming all bind the fingerprint.</summary>
@@ -379,6 +485,7 @@ public sealed partial class CompiledCompositionTests
         IEnumerable<CompiledCapabilityAdmission>? requiredCapabilities = null,
         CompiledInputContract? inputContract = null,
         CompiledRegionAccessContract? regionAccessContract = null,
+        CompiledOutputNamingRequirement? outputNaming = null,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? resolvedMap = null,
         CompositionPlan? plan = null,
         bool runtimeExecutable = false,
@@ -402,7 +509,7 @@ public sealed partial class CompiledCompositionTests
             profileEvidenceRefs ?? ["profile-evidence"],
             validationRequirements ?? [],
             requiredCapabilities ?? []);
-        var output = new CompiledOutputNamingRequirement(
+        CompiledOutputNamingRequirement output = outputNaming ?? new CompiledOutputNamingRequirement(
             outputTemplate,
             allowOutputOverride,
             outputInvalidCharacterPolicy,
@@ -492,13 +599,14 @@ public sealed partial class CompiledCompositionTests
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap(
         string familyContentHash,
         long capacity = 4,
-        string modeId = "standard")
+        string modeId = "standard",
+        string memberId = "NT-SYNTHETIC")
     {
         FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             "map",
             "flash",
             new FirmwareMapApplicability(
-                ["NT-SYNTHETIC"],
+                [memberId],
                 [modeId],
                 TopologyRequirement.NoTopologyConstraint(),
                 capacity),
@@ -523,7 +631,7 @@ public sealed partial class CompiledCompositionTests
             [map],
             []);
         FirmwareMapResolutionResult result = definition.ResolveMap(new FirmwareMapResolutionInputs(
-            "NT-SYNTHETIC",
+            memberId,
             modeId,
             capacity,
             requestedTopology: null,
