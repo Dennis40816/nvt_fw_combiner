@@ -16,7 +16,7 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
     {
         var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
         Activate(session);
-        GeneralMappingDraftState draft = Draft(length: 4);
+        GeneralMergeDraftState draft = Draft(length: 4);
         Assert.True(session.SetDraft(draft).Succeeded);
 
         AuthoringSlotInspectionStartResult firstStart =
@@ -49,7 +49,8 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
         Assert.Equal(acceptedRevision.Next(), reload.Snapshot!.AuthoringRevision);
         Assert.Empty(reload.Snapshot.DerivedPublications);
         GeneralMappingDraftRow pendingRow = Assert.Single(
-            Assert.IsType<GeneralMappingDraftState>(reload.Snapshot.DraftState).Rows);
+            Assert.IsType<GeneralMergeDraftState>(
+                reload.Snapshot.DraftState).Mappings.Rows);
         Assert.Null(pendingRow.Source.AcceptedFileStamp);
         Assert.Equal(@"C:\firmware\replacement.bin", pendingRow.Source.Reference);
         Assert.Equal(4, pendingRow.SourceRange.Length);
@@ -84,7 +85,8 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
         Assert.True(accepted.Succeeded);
         Assert.Equal(mutatedStamp, Assert.Single(accepted.Snapshot!.Slots).FileStamp);
         GeneralMappingDraftRow acceptedRow = Assert.Single(
-            Assert.IsType<GeneralMappingDraftState>(accepted.Snapshot.DraftState).Rows);
+            Assert.IsType<GeneralMergeDraftState>(
+                accepted.Snapshot.DraftState).Mappings.Rows);
         Assert.Equal(mutatedStamp, acceptedRow.Source.AcceptedFileStamp);
         Assert.Equal(@"C:\firmware\replacement.bin", acceptedRow.Source.Reference);
         Assert.Equal(4, acceptedRow.SourceRange.Length);
@@ -117,8 +119,8 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
             AuthoringSessionIssueCodes.StaleInspection,
             result.Issue!.Code);
         GeneralMappingDraftRow unchanged = Assert.Single(
-            Assert.IsType<GeneralMappingDraftState>(
-                session.CurrentSnapshot!.DraftState).Rows);
+            Assert.IsType<GeneralMergeDraftState>(
+                session.CurrentSnapshot!.DraftState).Mappings.Rows);
         Assert.Equal("different-mapping", unchanged.MappingId);
         Assert.Null(unchanged.Source.AcceptedFileStamp);
     }
@@ -127,7 +129,7 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
     [Fact]
     public void InspectionPreservesOtherTypedDraftContracts()
     {
-        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        var session = new AuthoringSessionState(ExperienceIds.GeneralReplace);
         Activate(session);
         var draft = new TestDraftState("draft");
         Assert.True(session.SetDraft(draft).Succeeded);
@@ -154,7 +156,7 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
         var route = new AuthoringCapabilityRoute(
             new CapabilityRouteIdentity(
                 "NT51926",
-                ExperienceIds.GeneralMerge,
+                session.WorkflowId,
                 "selector-free",
                 "general-map"),
             "general-fingerprint",
@@ -162,29 +164,31 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
             [new AuthoringSlotDefinitionReference("mapping-1")]);
         AuthoringSessionTransitionResult result = session.Activate(
             new AuthoringCapabilityCatalogSnapshot(
-                ExperienceIds.GeneralMerge,
+                session.WorkflowId,
                 new ResolutionToken("general-token"),
                 [route]));
         Assert.True(result.Succeeded, result.Issue?.Message);
     }
 
-    private static GeneralMappingDraftState Draft(
+    private static GeneralMergeDraftState Draft(
         long length,
         string mappingId = "mapping-1")
     {
-        return new GeneralMappingDraftState(
-        [
-            new GeneralMappingDraftRow(
-                mappingId,
-                ExplicitMappingOperationKind.CopyRange,
-                GeneralMappingSource.File(@"C:\firmware\source.bin"),
-                new ByteRange(0, length),
-                CompositionAddressSpaceIds.OutputImage,
-                new ByteRange(0x100, length),
-                OverlapPolicy.Reject,
-                alignment: 1,
-                "Copy selected General file."),
-        ]);
+        return new GeneralMergeDraftState(
+            new GeneralMergeOutputInitializer(0x200, 0),
+            new GeneralMappingDraftState(
+            [
+                new GeneralMappingDraftRow(
+                    mappingId,
+                    ExplicitMappingOperationKind.CopyRange,
+                    GeneralMappingSource.File(@"C:\firmware\source.bin"),
+                    new ByteRange(0, length),
+                    CompositionAddressSpaceIds.OutputImage,
+                    new ByteRange(0x100, length),
+                    OverlapPolicy.Reject,
+                    alignment: 1,
+                    "Copy selected General file."),
+            ]));
     }
 
     private sealed record TestDraftState(string Value)

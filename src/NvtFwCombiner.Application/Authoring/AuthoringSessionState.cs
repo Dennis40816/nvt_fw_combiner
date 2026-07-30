@@ -452,9 +452,14 @@ public sealed partial class AuthoringSessionState
         string workflowId,
         AuthoringDraftKind? draftKind)
     {
-        return (workflowId is
-                ExperienceIds.GeneralMerge or ExperienceIds.GeneralReplace) &&
-            (draftKind is null or AuthoringDraftKind.GeneralMapping);
+        return workflowId switch
+        {
+            ExperienceIds.GeneralMerge =>
+                draftKind is null or AuthoringDraftKind.GeneralMerge,
+            ExperienceIds.GeneralReplace =>
+                draftKind is null or AuthoringDraftKind.GeneralMapping,
+            _ => draftKind is null,
+        };
     }
 
     private static ActiveSessionSnapshot CreateSnapshot(

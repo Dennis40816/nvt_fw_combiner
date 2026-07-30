@@ -27,7 +27,8 @@ public sealed class CompositionRunReport
         string? compilationFingerprint = null,
         IReadOnlyList<ValidationRunSummary>? validations = null,
         OutputNamingSummary? outputNaming = null,
-        IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null)
+        IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null,
+        ImageInitializationSummary? imageInitialization = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
@@ -68,6 +69,7 @@ public sealed class CompositionRunReport
         DeliveryArtifacts = deliveryArtifacts is { Count: > 0 }
             ? Array.AsReadOnly([.. deliveryArtifacts])
             : null;
+        ImageInitialization = imageInitialization;
     }
 
     /// <summary>Stable run id.</summary>
@@ -128,6 +130,10 @@ public sealed class CompositionRunReport
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<DeliveryArtifactSummary>? DeliveryArtifacts { get; }
 
+    /// <summary>Exact compiled output capacity/fill or reference-clone provenance.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImageInitializationSummary? ImageInitialization { get; }
+
     /// <summary>Creates an immutable report revision after an adapter-owned delivery phase.</summary>
     public CompositionRunReport WithDeliveryArtifacts(
         IReadOnlyList<DeliveryArtifactSummary> deliveryArtifacts,
@@ -153,6 +159,7 @@ public sealed class CompositionRunReport
             CompilationFingerprint,
             Validations,
             OutputNaming,
-            deliveryArtifacts);
+            deliveryArtifacts,
+            ImageInitialization);
     }
 }

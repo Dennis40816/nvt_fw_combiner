@@ -140,8 +140,17 @@ public sealed partial class MainWindowViewModel
     private bool CanRunGeneralMerge()
     {
         return IsGeneralMergeModeSelected &&
-            !string.IsNullOrWhiteSpace(GeneralMergeOutputLength) &&
+            TryResolveGeneralMergeOutputInitializer(out _) &&
             GeneralMergeMappings.Any(mapping => mapping.HasFile);
+    }
+
+    private bool TryResolveGeneralMergeOutputInitializer(
+        out WorkbenchGeneralMergeInitializer? initializer)
+    {
+        return WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+            GeneralMergeOutputLength,
+            GeneralMergeOutputFillByte,
+            out initializer);
     }
 
     private bool CanRunAbMerge()
@@ -290,6 +299,12 @@ public sealed partial class MainWindowViewModel
         string icId = SelectedIc;
         string number = SelectedNumber;
         string outputLength = GeneralMergeOutputLength;
+        string outputFillByte = GeneralMergeOutputFillByte;
+        bool hasInitializer =
+            WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+                outputLength,
+                outputFillByte,
+                out WorkbenchGeneralMergeInitializer? initializer);
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs = CreateGeneralMergeMappingInputs();
         IReadOnlyDictionary<string, string> slotPaths = CreateGeneralMergeSlotPaths();
         string outputFileName = WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId);
@@ -297,23 +312,39 @@ public sealed partial class MainWindowViewModel
             build,
             async (progress, cancellationToken) =>
             {
-                WorkbenchRunResult result = _acceptedGeneralMergeDraft is null
+                WorkbenchRunResult result = !hasInitializer
                     ? await WorkbenchCompositionService.RunGeneralMergeWithProgressAsync(
-                        icId,
-                        outputLength,
-                        mappingInputs,
-                        build,
-                        progress,
-                        cancellationToken,
-                        outputPath).ConfigureAwait(false)
-                    : await WorkbenchCompositionService.RunGeneralMergeAcceptedDraftWithProgressAsync(
-                        icId,
-                        outputLength,
-                        _acceptedGeneralMergeDraft,
-                        build,
-                        progress,
-                        cancellationToken,
-                        outputPath).ConfigureAwait(false);
+                            icId,
+                            outputLength,
+                            outputFillByte,
+                            mappingInputs,
+                            build,
+                            progress,
+                            cancellationToken,
+                            outputPath)
+                        .ConfigureAwait(false)
+                    : _acceptedGeneralMergeDraft is null
+                        ? await WorkbenchCompositionService
+                            .RunGeneralMergeInitializerWithProgressAsync(
+                                icId,
+                                initializer!,
+                                mappingInputs,
+                                build,
+                                progress,
+                                cancellationToken,
+                                outputPath)
+                            .ConfigureAwait(false)
+                        : await WorkbenchCompositionService
+                            .RunGeneralMergeAcceptedDraftWithProgressAsync(
+                                icId,
+                                initializer!,
+                                _acceptedGeneralMergeDraft,
+                                build,
+                                progress,
+                                cancellationToken,
+                                outputPath)
+                            .ConfigureAwait(false);
+
                 _acceptedGeneralMergeDraft =
                     result.AcceptedGeneralMappingDraft ??
                     _acceptedGeneralMergeDraft;

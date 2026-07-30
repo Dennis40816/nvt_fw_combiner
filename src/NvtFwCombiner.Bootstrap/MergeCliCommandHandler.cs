@@ -8,8 +8,6 @@ internal static partial class MergeCliCommandHandler
     private const int Success = 0;
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
-    private const string GeneralMergeModeId = IcWorkflowIds.GeneralMerge;
-
     internal static async Task<int> RunAsync(
         string command,
         string[] args,
@@ -41,8 +39,7 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        if (!RequireOption(options, "--profile", error, out string? profileSelector) ||
-            !RequireOption(options, "--size", error, out string? outputLength))
+        if (!RequireOption(options, "--profile", error, out string? profileSelector))
         {
             return UsageError;
         }
@@ -53,7 +50,28 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        if (!TryCreateMappings(options, icId, error, out GeneralMappingDraftState? mappingDraft))
+        bool usesSavedRule = options.Values.ContainsKey("--rule");
+        if (usesSavedRule && options.Values.ContainsKey("--size"))
+        {
+            await error.WriteLineAsync(
+                "error: --size cannot override a saved-rule initializer")
+                .ConfigureAwait(false);
+            return UsageError;
+        }
+
+        if (usesSavedRule && options.Values.ContainsKey("--fill"))
+        {
+            await error.WriteLineAsync(
+                "error: --fill cannot override a saved-rule initializer")
+                .ConfigureAwait(false);
+            return UsageError;
+        }
+
+        if (!TryCreateGeneralMergeDraft(
+                options,
+                icId,
+                error,
+                out GeneralMergeDraftState? draft))
         {
             return UsageError;
         }
@@ -64,7 +82,7 @@ internal static partial class MergeCliCommandHandler
         string? outputPath = action == "build" ? outputTarget.FullPath : null;
         List<ProtectedPathGuard.ProtectedPath> protectedPaths =
         [
-            .. mappingDraft.Rows.Select(mapping => new ProtectedPathGuard.ProtectedPath(
+            .. draft.Mappings.Rows.Select(mapping => new ProtectedPathGuard.ProtectedPath(
                 Path.GetFullPath(mapping.Source.Reference),
                 $"input mapping '{mapping.MappingId}'")),
         ];
@@ -97,8 +115,7 @@ internal static partial class MergeCliCommandHandler
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
                 icId,
-                outputLength,
-                mappingDraft,
+                draft!,
                 action == "build",
                 cancellationToken,
                 outputPath)

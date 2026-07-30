@@ -129,7 +129,7 @@ public sealed partial class AuthoringSessionState
                 lease.DefinitionId,
                 lease.SelectedPath,
                 inspection.FileStamp);
-            if (_current.DraftState is GeneralMappingDraftState &&
+            if (GetGeneralMappings(_current.DraftState) is not null &&
                 acceptedDraft is null)
             {
                 return Failure(
@@ -172,13 +172,20 @@ public sealed partial class AuthoringSessionState
         string definitionId,
         string selectedPath)
     {
-        return draftState is GeneralMappingDraftState generalDraft
-            ? ReplaceGeneralDraftRowByDefinition(
-                generalDraft,
+        GeneralMappingDraftState? mappings = GetGeneralMappings(draftState);
+        if (mappings is null)
+        {
+            return draftState;
+        }
+
+        GeneralMappingDraftState? updated =
+            ReplaceGeneralDraftRowByDefinition(
+                mappings,
                 definitionId,
-                row => row.RebindSelectedFile(selectedPath)) ??
-              draftState
-            : draftState;
+                row => row.RebindSelectedFile(selectedPath));
+        return updated is null
+            ? draftState
+            : ReplaceGeneralMappings(draftState!, updated);
     }
 
     private static AuthoringDraftState? AcceptGeneralDraftStamp(
@@ -187,13 +194,47 @@ public sealed partial class AuthoringSessionState
         string selectedPath,
         FileStamp fileStamp)
     {
-        return draftState is GeneralMappingDraftState generalDraft
-            ? ReplaceGeneralDraftRow(
-                generalDraft,
+        GeneralMappingDraftState? mappings = GetGeneralMappings(draftState);
+        if (mappings is null)
+        {
+            return draftState;
+        }
+
+        GeneralMappingDraftState? updated = ReplaceGeneralDraftRow(
+                mappings,
                 definitionId,
                 selectedPath,
-                row => row.WithAcceptedFileStamp(fileStamp))
-            : draftState;
+                row => row.WithAcceptedFileStamp(fileStamp));
+        return updated is null
+            ? null
+            : ReplaceGeneralMappings(draftState!, updated);
+    }
+
+    private static GeneralMappingDraftState? GetGeneralMappings(
+        AuthoringDraftState? draftState)
+    {
+        return draftState switch
+        {
+            GeneralMappingDraftState mappings => mappings,
+            GeneralMergeDraftState merge => merge.Mappings,
+            _ => null,
+        };
+    }
+
+    private static AuthoringDraftState ReplaceGeneralMappings(
+        AuthoringDraftState draftState,
+        GeneralMappingDraftState mappings)
+    {
+        return draftState switch
+        {
+            GeneralMappingDraftState => mappings,
+            GeneralMergeDraftState merge =>
+                new GeneralMergeDraftState(
+                    merge.OutputInitializer,
+                    mappings),
+            _ => throw new InvalidOperationException(
+                "The draft does not own General mapping rows."),
+        };
     }
 
     private static GeneralMappingDraftState? ReplaceGeneralDraftRow(

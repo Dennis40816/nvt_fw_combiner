@@ -421,6 +421,10 @@ public sealed record WorkbenchRunResult(
     /// <summary>Operator-safe detail when the primary output committed but a requested additional delivery did not.</summary>
     [JsonIgnore]
     public string? DeliveryFailureMessage { get; init; }
+
+    /// <summary>Deterministic Preview identity, retained for adapter parity and Build approval.</summary>
+    [JsonIgnore]
+    public string? PreviewToken { get; internal init; }
 }
 
 /// <summary>One profile-declared optional A-bank delivery proposed before a Build commits output.</summary>

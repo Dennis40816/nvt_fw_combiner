@@ -124,6 +124,8 @@ public sealed partial class ShellTextResources
             ReplacementBinLabel = "Replacement BIN",
             OutputLengthLabel = Pick("Output length", "輸出長度"),
             OutputLengthPlaceholder = "0x...",
+            OutputFillByteLabel = Pick("Fill byte", "填充值元組"),
+            OutputFillBytePlaceholder = "0x00",
             BrowseLabel = Pick("Browse", "瀏覽"),
             RequiredLabel = Pick("Required", "必填"),
             OptionalLabel = Pick("Optional", "選填"),

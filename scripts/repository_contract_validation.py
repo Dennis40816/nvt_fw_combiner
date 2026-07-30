@@ -654,8 +654,25 @@ def _validate_saved_rule(saved_rule: dict[str, Any], errors: list[str]) -> None:
     root_properties = saved_rule.get("properties", {})
     for forbidden in {"processorStages", "output", "operations"} & set(root_properties):
         errors.append(f"saved-composition-rule-v2 must not redefine parent policy: {forbidden}")
+    if "imageInitialization" not in root_properties:
+        errors.append("saved-composition-rule-v2 is missing General Merge image initialization")
 
     definitions = saved_rule.get("$defs", {})
+    initializer = definitions.get("generalMergeInitialization", {})
+    initializer_required = set(initializer.get("required", []))
+    if {"kind", "capacity"} - initializer_required:
+        errors.append(
+            "saved-composition-rule-v2 General Merge initializer must require kind and capacity"
+        )
+    fill = initializer.get("properties", {}).get("fillByte", {})
+    if (
+        fill.get("minimum") != 0
+        or fill.get("maximum") != 255
+        or fill.get("default") != 0
+    ):
+        errors.append(
+            "saved-composition-rule-v2 fill byte must cover 0..255 with default 0"
+        )
     parent_required = set(definitions.get("parentBinding", {}).get("required", []))
     parent_hashes = {"bundleContentHash", "profileContentHash", "familyContentHash"}
     for key in parent_hashes - parent_required:

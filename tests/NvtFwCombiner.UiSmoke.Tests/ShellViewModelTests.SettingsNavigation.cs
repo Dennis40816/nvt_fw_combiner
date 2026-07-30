@@ -16,6 +16,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.Empty(viewModel.NumberSelectionChoices);
         Assert.Empty(viewModel.GeneralMergeOutputLength);
+        Assert.Empty(viewModel.GeneralMergeOutputFillByte);
         Assert.Empty(viewModel.MergeSlots);
         Assert.Empty(viewModel.ReplaceSlots);
         Assert.Empty(viewModel.GeneralMergeMappings);
@@ -26,6 +27,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.NotEmpty(viewModel.NumberSelectionChoices);
         Assert.NotEmpty(viewModel.GeneralMergeOutputLength);
+        Assert.NotEmpty(viewModel.GeneralMergeOutputFillByte);
         Assert.NotEmpty(viewModel.MergeSlots);
         _ = Assert.Single(viewModel.GeneralMergeMappings);
         _ = Assert.Single(viewModel.GeneralReplaceMappings);

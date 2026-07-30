@@ -49,6 +49,10 @@ public sealed partial class ShellTextResources
 
     public string OutputLengthPlaceholder { get; private init; } = string.Empty;
 
+    public string OutputFillByteLabel { get; private init; } = string.Empty;
+
+    public string OutputFillBytePlaceholder { get; private init; } = string.Empty;
+
     public string BrowseLabel { get; private init; } = string.Empty;
 
     public string RequiredLabel { get; private init; } = string.Empty;

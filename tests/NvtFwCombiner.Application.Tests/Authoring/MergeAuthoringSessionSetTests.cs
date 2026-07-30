@@ -177,6 +177,70 @@ public sealed class MergeAuthoringSessionSetTests
         Assert.Null(incompatible.DraftState);
     }
 
+    /// <summary>Initializer edits revise General Merge state and remain invalid for General Replace.</summary>
+    [Fact]
+    public void GeneralMergeInitializerParticipatesInRevisionAndCannotEnterReplace()
+    {
+        var merge = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        _ = Activate(
+            merge,
+            Catalog(
+                ExperienceIds.GeneralMerge,
+                "general-token",
+                Route(
+                    "NT51950",
+                    ExperienceIds.GeneralMerge,
+                    "selector-free",
+                    "general",
+                    "general-fingerprint",
+                    "mapping-source")));
+        var mappings = new GeneralMappingDraftState([]);
+        ActiveSessionSnapshot zero = SetDraft(
+            merge,
+            new GeneralMergeDraftState(
+                new GeneralMergeOutputInitializer(0x10),
+                mappings));
+        AuthoringPublicationLease lease = merge.CapturePublicationLease(
+            AuthoringDerivedResultKind.Preview);
+        Assert.True(merge.TryPublish(
+            lease,
+            new AuthoringDerivedPublication(
+                AuthoringDerivedResultKind.Preview,
+                "zero-preview")).Succeeded);
+
+        ActiveSessionSnapshot ff = SetDraft(
+            merge,
+            new GeneralMergeDraftState(
+                new GeneralMergeOutputInitializer(0x10, 0xFF),
+                mappings));
+
+        Assert.Equal(zero.AuthoringRevision.Next(), ff.AuthoringRevision);
+        Assert.Empty(ff.DerivedPublications);
+
+        var replace = new AuthoringSessionState(ExperienceIds.GeneralReplace);
+        _ = Activate(
+            replace,
+            Catalog(
+                ExperienceIds.GeneralReplace,
+                "replace-token",
+                Route(
+                    "NT51950",
+                    ExperienceIds.GeneralReplace,
+                    "selector-free",
+                    "general-replace",
+                    "replace-fingerprint",
+                    "reference")));
+        AuthoringSessionTransitionResult rejected = replace.SetDraft(
+            new GeneralMergeDraftState(
+                new GeneralMergeOutputInitializer(0x10),
+                mappings));
+
+        Assert.False(rejected.Succeeded);
+        Assert.Equal(
+            AuthoringSessionIssueCodes.DraftUnavailable,
+            rejected.Issue!.Code);
+    }
+
     /// <summary>Session publication stores a defensive immutable draft projection.</summary>
     [Fact]
     public void DraftStateIsDefensivelySnapshottedBeforePublication()
@@ -506,7 +570,7 @@ public sealed class MergeAuthoringSessionSetTests
     }
 
     private sealed record TestDraftState(string Value)
-        : AuthoringDraftState(AuthoringDraftKind.GeneralMapping)
+        : AuthoringDraftState(AuthoringDraftKind.GeneralMerge)
     {
         internal override AuthoringDraftState CreateImmutableSnapshot()
         {
@@ -515,7 +579,7 @@ public sealed class MergeAuthoringSessionSetTests
     }
 
     private sealed record MutableTestDraftState(IReadOnlyList<string> Rows)
-        : AuthoringDraftState(AuthoringDraftKind.GeneralMapping)
+        : AuthoringDraftState(AuthoringDraftKind.GeneralMerge)
     {
         internal override AuthoringDraftState CreateImmutableSnapshot()
         {

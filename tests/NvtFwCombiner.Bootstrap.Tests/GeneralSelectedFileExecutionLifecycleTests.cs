@@ -34,7 +34,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         WorkbenchRunResult result =
             await WorkbenchCompositionService.RunGeneralMergeAcceptedDraftWithProgressAsync(
                 "NT51950",
-                "0x10",
+                ResolveGeneralMergeInitializer("0x10"),
                 unboundDraft,
                 build: false,
                 new CompositionRunProgressFeed(),
@@ -85,7 +85,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         WorkbenchRunResult staleBuild =
             await WorkbenchCompositionService.RunGeneralMergeAcceptedDraftWithProgressAsync(
                 "NT51950",
-                "0x10",
+                ResolveGeneralMergeInitializer("0x10"),
                 acceptedDraft,
                 build: true,
                 new CompositionRunProgressFeed(),
@@ -119,7 +119,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         WorkbenchRunResult build =
             await WorkbenchCompositionService.RunGeneralMergeAcceptedDraftWithProgressAsync(
                 "NT51950",
-                "0x10",
+                ResolveGeneralMergeInitializer("0x10"),
                 reloaded.Draft,
                 build: true,
                 new CompositionRunProgressFeed(),
@@ -261,6 +261,17 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             issue => StringComparer.Ordinal.Equals(
                 issue.GetProperty("Code").GetString(),
                 issueCode));
+    }
+
+    private static WorkbenchGeneralMergeInitializer ResolveGeneralMergeInitializer(
+        string outputLength)
+    {
+        Assert.True(
+            WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+                outputLength,
+                outputFillByte: null,
+                out WorkbenchGeneralMergeInitializer? initializer));
+        return initializer;
     }
 
     private static void AssertReportInputHash(

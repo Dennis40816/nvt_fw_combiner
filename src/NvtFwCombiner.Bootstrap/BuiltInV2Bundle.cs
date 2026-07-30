@@ -66,6 +66,68 @@ internal sealed class BuiltInV2Bundle
 
     internal string ContentHash { get; }
 
+    /// <summary>Projects the exact trusted identity used by a General Merge Saved Rule v2 parent.</summary>
+    internal SavedRuleV2ParentBinding GetGeneralMergeSavedRuleParentBinding(
+        string profileId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
+        TrustedCompositionProfileCatalogEntry profile =
+            _catalog.Value.Profiles.Single(candidate =>
+                StringComparer.Ordinal.Equals(
+                    candidate.Profile.ProfileId,
+                    profileId));
+        ProfileBundleIdentity bundle = _catalog.Value.BundleIdentity;
+        return new SavedRuleV2ParentBinding(
+            bundle.BundleId,
+            bundle.BundleVersion,
+            bundle.ContentHash,
+            profile.Profile.ProfileId,
+            profile.Profile.ProfileVersion,
+            profile.Identity.ContentHash,
+            profile.Family.Family.FamilyId,
+            profile.Family.Family.FamilyVersion,
+            profile.Family.Family.FamilyContentHash,
+            WorkbenchGeneralMergeIds.LogicalOutputMapId);
+    }
+
+    /// <summary>
+    /// Projects the exact trusted parent facts required to admit a complete
+    /// General Merge Saved Rule v2 document before draft materialization.
+    /// </summary>
+    internal SavedRuleV2GeneralMergeAdmissionContext
+        GetGeneralMergeSavedRuleAdmissionContext(string profileId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
+        TrustedCompositionProfileCatalogEntry profileEntry =
+            _catalog.Value.Profiles.Single(candidate =>
+                StringComparer.Ordinal.Equals(
+                    candidate.Profile.ProfileId,
+                    profileId));
+        V2CompositionProfileDefinition profile =
+            profileEntry.Profile.Promotion.Stage ==
+            CompositionProfilePromotionStage.ExecutableCandidate
+                ? profileEntry.Profile
+                : throw new InvalidDataException(
+                    "General Merge Saved Rule admission requires the exact executable-candidate parent.");
+
+        return new SavedRuleV2GeneralMergeAdmissionContext(
+            GetGeneralMergeSavedRuleParentBinding(profileId),
+            SavedRuleSchemaTokens.PromotionStageExecutableCandidate,
+            [
+                .. profile.InputSlots.Select(static slot =>
+                    new SavedRuleV2ParentInputPolicy(
+                        slot.SlotId,
+                        slot.Role,
+                        slot.Cardinality,
+                        [.. slot.AcceptedExtensions])),
+            ],
+            [.. profile.Validations.Select(static validation => validation.RuleId)],
+            [
+                .. profile.ProcessorStages.Select(
+                    static processor => processor.ProcessorStageId),
+            ]);
+    }
+
     internal bool TryResolveMetadataDefinition(
         FirmwareMetadataStructureDefinitionReference reference,
         out FirmwareMetadataStructureDefinition? definition)
