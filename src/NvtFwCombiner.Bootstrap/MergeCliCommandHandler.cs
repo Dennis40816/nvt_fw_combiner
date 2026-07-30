@@ -71,7 +71,8 @@ internal static partial class MergeCliCommandHandler
                 options,
                 icId,
                 error,
-                out GeneralMergeDraftState? draft))
+                out GeneralMergeDraftState? draft,
+                out GeneralSavedRuleResourcePolicy? savedRulePolicy))
         {
             return UsageError;
         }
@@ -116,6 +117,7 @@ internal static partial class MergeCliCommandHandler
         WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
                 icId,
                 draft!,
+                savedRulePolicy,
                 action == "build",
                 cancellationToken,
                 outputPath)

@@ -67,6 +67,7 @@ public static partial class WorkbenchCompositionService
             return failure!;
         }
 
+        GeneralAuthoringAdmissionResult? admission = null;
         WorkbenchRunResult Blocked(
             IReadOnlyList<CompositionIssue> issues,
             IReadOnlyList<OperationRunSummary>? operations = null,
@@ -79,7 +80,8 @@ public static partial class WorkbenchCompositionService
                 build,
                 operations ?? [],
                 issues,
-                outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General)) with
+                outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
+                generalAdmission: admission) with
             {
                 AcceptedGeneralMappingDraft =
                     IsAcceptedGeneralMappingDraft(context!.MappingDraft)
@@ -96,8 +98,19 @@ public static partial class WorkbenchCompositionService
         }
 
         context = context with { MappingDraft = acceptedFiles.Draft! };
+        admission = AdmitGeneralMappingDraft(
+            context.MappingDraft,
+            context.Capacity,
+            CreateCurrentGeneralTrustedParentPolicy(
+                Nt51926GeneralReplaceDpProfileId,
+                context.MappingDraft));
+        if (!admission.IsAdmitted)
+        {
+            return Blocked(admission.ToCompositionIssues());
+        }
+
         if (!TryCreateGeneralReplaceMappings(
-                context!.MappingDraft,
+                admission,
                 context.Capacity,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,
@@ -240,7 +253,8 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: context.Selection,
             cancellationToken,
             patchVirtualArtifacts,
-            progress).ConfigureAwait(false);
+            progress,
+            generalAdmission: admission).ConfigureAwait(false);
         return result with
         {
             AcceptedGeneralMappingDraft = context.MappingDraft,

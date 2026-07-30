@@ -73,6 +73,7 @@ public sealed partial class CompositionRunService
             request.CompiledComposition.CompilationFingerprint,
             validations,
             outputNaming,
+            generalAdmission: request.GeneralAdmission,
             imageInitialization: StringComparer.Ordinal.Equals(
                 request.CompiledComposition.ExperienceId,
                 ExperienceIds.GeneralMerge)

@@ -252,6 +252,62 @@ public sealed partial class SavedRuleCliCommandTests
             StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Threads the reviewed Saved Rule resource policy into canonical admission,
+    /// where an envelope broader than the exact Trusted Parent is rejected.
+    /// </summary>
+    [Fact]
+    public async Task GeneralMergePreviewRejectsSavedRuleResourceEnvelopeThatBroadensParent()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeV2RuleObject();
+        json["accessEnvelope"]!["maximumMappingCount"] = 4097;
+        string rule = await WriteRuleAsync(workspace, json);
+        string source = workspace.Write("source.bin", [0x10]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(
+            "general.admission.saved-rule-broadens-parent",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects a schema-valid mapping ceiling that cannot be represented by runtime admission.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewRejectsMappingCeilingOutsideRuntimeIntegerRange()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeV2RuleObject();
+        json["accessEnvelope"]!["maximumMappingCount"] = 2147483648L;
+        string rule = await WriteRuleAsync(workspace, json);
+        string source = workspace.Write("source.bin", [0x10]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains(RangeOverflow, result.Error, StringComparison.Ordinal);
+    }
+
     /// <summary>Requires a saved-rule compatibility envelope to match IC, derived profile id, and mode.</summary>
     [Theory]
     [InlineData("profileId", "nt51951-general-merge-logical-candidate", V2ParentNarrowingInvalid)]
@@ -380,6 +436,30 @@ public sealed partial class SavedRuleCliCommandTests
         Assert.Equal("saved-rule", provenance.GetProperty("Kind").GetString());
         Assert.Equal("copy-display-window", provenance.GetProperty("SourceId").GetString());
         Assert.Equal("1.0.0", provenance.GetProperty("SourceVersion").GetString());
+        JsonElement admission =
+            buildRoot.GetProperty("GeneralAdmission");
+        Assert.Equal(
+            "nt51950-general-merge-logical-candidate",
+            admission.GetProperty("TrustedParentId").GetString());
+        Assert.Equal(
+            "copy-display-window",
+            admission.GetProperty("SavedRuleId").GetString());
+        JsonElement effective =
+            admission.GetProperty("EffectiveLimits");
+        Assert.Equal(
+            1,
+            effective.GetProperty("MaximumMappingCount").GetInt32());
+        Assert.Equal(
+            1,
+            effective.GetProperty("MaximumTotalWriteBytes").GetInt64());
+        JsonElement resource = Assert.Single(
+            admission.GetProperty("InputResources").EnumerateArray());
+        Assert.Equal(
+            "reviewed-copy-operation",
+            resource.GetProperty("SlotId").GetString());
+        Assert.Equal(
+            1,
+            resource.GetProperty("LengthBytes").GetInt64());
     }
 
     /// <summary>Rejects saved-rule report paths that would overwrite the reviewed rule JSON.</summary>

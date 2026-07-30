@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Application.Authoring;
 
 using System.Text.Json.Serialization;
 
@@ -28,6 +29,7 @@ public sealed class CompositionRunReport
         IReadOnlyList<ValidationRunSummary>? validations = null,
         OutputNamingSummary? outputNaming = null,
         IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null,
+        GeneralAuthoringAdmissionSummary? generalAdmission = null,
         ImageInitializationSummary? imageInitialization = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
@@ -69,6 +71,7 @@ public sealed class CompositionRunReport
         DeliveryArtifacts = deliveryArtifacts is { Count: > 0 }
             ? Array.AsReadOnly([.. deliveryArtifacts])
             : null;
+        GeneralAdmission = generalAdmission;
         ImageInitialization = imageInitialization;
     }
 
@@ -130,6 +133,10 @@ public sealed class CompositionRunReport
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<DeliveryArtifactSummary>? DeliveryArtifacts { get; }
 
+    /// <summary>General authoring admission provenance when this run uses a General route.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public GeneralAuthoringAdmissionSummary? GeneralAdmission { get; }
+
     /// <summary>Exact compiled output capacity/fill or reference-clone provenance.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ImageInitializationSummary? ImageInitialization { get; }
@@ -160,6 +167,7 @@ public sealed class CompositionRunReport
             Validations,
             OutputNaming,
             deliveryArtifacts,
-            ImageInitialization);
+            generalAdmission: GeneralAdmission,
+            imageInitialization: ImageInitialization);
     }
 }

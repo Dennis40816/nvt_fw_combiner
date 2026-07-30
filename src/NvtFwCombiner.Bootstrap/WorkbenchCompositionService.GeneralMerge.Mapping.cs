@@ -7,12 +7,17 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private static bool TryCreateGeneralMergeMappings(
-        GeneralMappingDraftState mappingDraft,
+        GeneralAuthoringAdmissionResult admission,
         out IReadOnlyList<ExplicitMapping> explicitMappings,
         out IReadOnlyList<AddressSpace> requestAddressSpaces,
         out IReadOnlyList<InputArtifactBinding> mappingBindings,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        GeneralMappingDraftState mappingDraft = admission.RequireAdmittedDraft();
+        var resources =
+            admission.InputResources.ToDictionary(
+                static resource => resource.SlotId,
+                StringComparer.Ordinal);
         List<ExplicitMapping> mappings = [];
         List<AddressSpace> spaces = [];
         List<InputArtifactBinding> bindings = [];
@@ -23,6 +28,14 @@ public static partial class WorkbenchCompositionService
 
             string addressSpaceId = $"{input.MappingId}-input";
             string fullPath = Path.GetFullPath(input.Source.Reference);
+            if (!resources.TryGetValue(
+                    input.MappingId,
+                    out GeneralInputResource? resource))
+            {
+                throw new InvalidOperationException(
+                    $"Admitted General Merge mapping '{input.MappingId}' has no observed input resource.");
+            }
+
             if (input.Source.AcceptedFileStamp is not { } acceptedStamp)
             {
                 issueList.Add(new CompositionIssue(
@@ -33,6 +46,15 @@ public static partial class WorkbenchCompositionService
             }
 
             long declaredLength = acceptedStamp.AcceptedLength;
+            if (resource.LengthBytes != declaredLength)
+            {
+                issueList.Add(new CompositionIssue(
+                    CompositionRunIssueCodes.InputArtifactContentSnapshotMismatch,
+                    $"General Merge mapping '{input.MappingId}' no longer matches its accepted selected-file length.",
+                    input.MappingId));
+                continue;
+            }
+
             if (declaredLength < input.SourceRange.EndExclusive)
             {
                 issueList.Add(new CompositionIssue(

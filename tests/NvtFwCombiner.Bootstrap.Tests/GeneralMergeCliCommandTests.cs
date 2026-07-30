@@ -132,7 +132,9 @@ public sealed class GeneralMergeCliCommandTests
             new GeneralMappingDraftState([]));
 
         WorkbenchMemoryDisplay display =
-            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(draft);
+            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                "NT51950",
+                draft);
 
         Assert.Equal(
             "Blank output 0x5A",
@@ -252,7 +254,9 @@ public sealed class GeneralMergeCliCommandTests
         Assert.False(result.Succeeded);
         using var document = JsonDocument.Parse(result.ReportJson);
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(GeneralMergeSourceOutOfBounds, issue.GetProperty("Code").GetString());
+        Assert.Equal(
+            "general.admission.source-out-of-bounds",
+            issue.GetProperty("Code").GetString());
     }
 
     /// <summary>Prints General Merge issues directly when no report path is requested.</summary>
@@ -275,8 +279,11 @@ public sealed class GeneralMergeCliCommandTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("General Merge failed; no JSON report was written. Issues:", result.Error, StringComparison.Ordinal);
-        Assert.Contains(GeneralMergeSourceOutOfBounds, result.Error, StringComparison.Ordinal);
-        Assert.Contains("source range exceeds the selected input file length", result.Error, StringComparison.Ordinal);
+        Assert.Contains(
+            "general.admission.source-out-of-bounds",
+            result.Error,
+            StringComparison.Ordinal);
+        Assert.Contains("source [0x1, 0x4) exceeds", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Turns a blank output length into a report issue instead of throwing.</summary>
@@ -320,11 +327,15 @@ public sealed class GeneralMergeCliCommandTests
     [Fact]
     public void GeneralMergeCoverageKeepsAdjacentMappingRowsDistinct()
     {
+        using var workspace = TempWorkspace.Create();
+        string first = workspace.Write("first.bin", new byte[4]);
+        string second = workspace.Write("second.bin", new byte[4]);
         WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            "NT51950",
             "0x10",
             [
-                new WorkbenchGeneralMergeMappingInput("general-merge-map-1", "first.bin", "0x0", "0x0", "0x4"),
-                new WorkbenchGeneralMergeMappingInput("general-merge-map-2", "second.bin", "0x0", "0x4", "0x4"),
+                new WorkbenchGeneralMergeMappingInput("general-merge-map-1", first, "0x0", "0x0", "0x4"),
+                new WorkbenchGeneralMergeMappingInput("general-merge-map-2", second, "0x0", "0x4", "0x4"),
             ]);
 
         WorkbenchMemoryCoverageSegment[] changed = [.. display.CoverageSegments.Where(segment => segment.IsChanged)];
@@ -337,13 +348,18 @@ public sealed class GeneralMergeCliCommandTests
     [Fact]
     public void GeneralMergeDisplayKeepsBlockedRowsAndRangeStateTogether()
     {
-        WorkbenchMemoryDisplay invalid = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay("", []);
+        WorkbenchMemoryDisplay invalid =
+            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                "NT51950",
+                "",
+                []);
 
         Assert.Equal("Enter a valid output length", invalid.RangeLabel);
         Assert.Equal("Blocked", Assert.Single(invalid.MemoryMapRows).ActionLabel);
         Assert.Equal("Pending", Assert.Single(invalid.CoverageSegments).SourceLabel);
 
         WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            "NT51950",
             "0x10",
             [
                 new WorkbenchGeneralMergeMappingInput("invalid-map", "invalid.bin", "", "0x0", "0x1"),
@@ -357,7 +373,72 @@ public sealed class GeneralMergeCliCommandTests
         Assert.DoesNotContain(display.CoverageSegments, segment => segment.IsChanged);
     }
 
-    /// <summary>Rejects overlapping General Merge target mappings through the shared profile compiler.</summary>
+    /// <summary>Memory projection consumes the same occupancy result as Preview/Build.</summary>
+    [Fact]
+    public void GeneralMergeDisplayDoesNotPaintIntersectingMappingsAsAccepted()
+    {
+        using var workspace = TempWorkspace.Create();
+        string first = workspace.Write("first.bin", new byte[4]);
+        string second = workspace.Write("second.bin", new byte[4]);
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            "NT51950",
+            "0x10",
+            [
+                new WorkbenchGeneralMergeMappingInput(
+                    "stable-a",
+                    first,
+                    "0x0",
+                    "0x4",
+                    "0x4"),
+                new WorkbenchGeneralMergeMappingInput(
+                    "stable-b",
+                    second,
+                    "0x0",
+                    "0x6",
+                    "0x4"),
+            ]);
+
+        Assert.Equal(2, display.MemoryMapRows.Count(row => row.ActionLabel == "Blocked"));
+        Assert.DoesNotContain(display.CoverageSegments, segment => segment.IsChanged);
+        Assert.Contains(
+            display.MemoryMapRows,
+            row => row.Detail.Contains("[0x6, 0x8)", StringComparison.Ordinal));
+    }
+
+    /// <summary>Draft-wide admission blockers are visible in memory projection and prevent changed coverage.</summary>
+    [Fact]
+    public void GeneralMergeDisplayBlocksEveryRowWhenMappingCountExceedsCeiling()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0xA5]);
+        WorkbenchGeneralMergeMappingInput[] mappings =
+        [
+            .. Enumerable.Range(0, 4097).Select(index =>
+                new WorkbenchGeneralMergeMappingInput(
+                    $"map-{index:D4}",
+                    source,
+                    "0x0",
+                    $"0x{index:X}",
+                    "0x1")),
+        ];
+
+        WorkbenchMemoryDisplay display =
+            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                "NT51950",
+                "0x1001",
+                mappings);
+
+        Assert.Contains(
+            display.MemoryMapRows,
+            row => row.Detail.Contains(
+                "mapping count 4097 exceeds the effective maximum 4096",
+                StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            display.CoverageSegments,
+            segment => segment.IsChanged);
+    }
+
+    /// <summary>Rejects overlapping General Merge targets through Application admission.</summary>
     [Fact]
     public async Task GeneralMergePreviewRejectsOverlappingTargetMappings()
     {
@@ -377,11 +458,57 @@ public sealed class GeneralMergeCliCommandTests
         Assert.False(result.Succeeded);
         using var document = JsonDocument.Parse(result.ReportJson);
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal("profile.plan.invalid", issue.GetProperty("Code").GetString());
-        Assert.Contains("overlaps earlier operation", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
+        Assert.Equal(
+            "general.admission.target-intersection",
+            issue.GetProperty("Code").GetString());
+        Assert.Contains(
+            "[0x5, 0x7)",
+            issue.GetProperty("Message").GetString(),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "general-merge-map-1",
+            issue.GetProperty("Message").GetString(),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "general-merge-map-2",
+            issue.GetProperty("Message").GetString(),
+            StringComparison.Ordinal);
         Assert.All(
             document.RootElement.GetProperty("Operations").EnumerateArray(),
             operation => Assert.Equal("CopyRange", operation.GetProperty("Kind").GetString()));
+    }
+
+    /// <summary>Reordering stable General mapping ids preserves the same overlap blocker.</summary>
+    [Fact]
+    public async Task GeneralMergeOverlapReportIsIndependentOfRowOrder()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
+        WorkbenchGeneralMergeMappingInput first =
+            new("stable-a", source, "0x0", "0x4", "0x3");
+        WorkbenchGeneralMergeMappingInput second =
+            new("stable-b", source, "0x1", "0x5", "0x2");
+
+        WorkbenchRunResult forward = await WorkbenchCompositionService.RunGeneralMergeAsync(
+            "NT51950",
+            "0x10",
+            [first, second],
+            build: false,
+            TestContext.Current.CancellationToken);
+        WorkbenchRunResult reverse = await WorkbenchCompositionService.RunGeneralMergeAsync(
+            "NT51950",
+            "0x10",
+            [second, first],
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        using var forwardDocument = JsonDocument.Parse(forward.ReportJson);
+        using var reverseDocument = JsonDocument.Parse(reverse.ReportJson);
+        JsonElement forwardIssue = Assert.Single(
+            forwardDocument.RootElement.GetProperty("Issues").EnumerateArray());
+        JsonElement reverseIssue = Assert.Single(
+            reverseDocument.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal(forwardIssue.GetRawText(), reverseIssue.GetRawText());
     }
 
     /// <summary>Verifies a rejected V2 General Merge request does not disable unrelated Standard Merge or Replace workflows.</summary>

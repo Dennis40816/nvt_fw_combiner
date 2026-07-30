@@ -8,11 +8,13 @@ namespace NvtFwCombiner.Bootstrap;
 internal sealed record SavedRuleV2GeneralMergeDraftLoadResult(
     GeneralMergeDraftState? Draft,
     SavedRuleV2ParentBinding? ParentBinding,
+    GeneralSavedRuleResourcePolicy? ResourcePolicy,
     IReadOnlyList<SavedRuleValidationIssue> Issues)
 {
     internal bool IsValid =>
         Draft is not null &&
         ParentBinding is not null &&
+        ResourcePolicy is not null &&
         Issues.Count == 0;
 }
 
@@ -99,6 +101,7 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
             return new SavedRuleV2GeneralMergeDraftLoadResult(
                 null,
                 admission.ParentBinding,
+                null,
                 admission.Issues);
         }
 
@@ -123,6 +126,7 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
             return new SavedRuleV2GeneralMergeDraftLoadResult(
                 null,
                 admission.ParentBinding,
+                null,
                 issues);
         }
 
@@ -133,6 +137,7 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
                     admission.Initializer!,
                     new GeneralMappingDraftState(rows)),
                 admission.ParentBinding,
+                CreateSavedRuleResourcePolicy(root, ruleId, rows),
                 []);
         }
         catch (ArgumentException exception)
@@ -144,8 +149,35 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
             return new SavedRuleV2GeneralMergeDraftLoadResult(
                 null,
                 admission.ParentBinding,
+                null,
                 issues);
         }
+    }
+
+    private static GeneralSavedRuleResourcePolicy CreateSavedRuleResourcePolicy(
+        JsonElement root,
+        string ruleId,
+        IReadOnlyList<GeneralMappingDraftRow> rows)
+    {
+        JsonElement accessEnvelope = root.GetProperty("accessEnvelope");
+        GeneralResourceLimits technical =
+            GeneralAuthoringTechnicalLimits.Default;
+        return new GeneralSavedRuleResourcePolicy(
+            ruleId,
+            new GeneralResourceLimits(
+                accessEnvelope.GetProperty("maximumMappingCount").GetInt32(),
+                accessEnvelope.GetProperty("maximumTotalWriteBytes").GetInt64(),
+                technical.MaximumFileBytes,
+                technical.MaximumSafeMaterializationBytes,
+                rows
+                    .Where(static row =>
+                        row.Source.Kind ==
+                        GeneralMappingSourceKind.FileArtifact)
+                    .Select(static row =>
+                        new GeneralSlotLengthLimits(
+                            row.MappingId,
+                            minimumBytes: 1,
+                            maximumBytes: int.MaxValue))));
     }
 
     private static HashSet<string> ReadSlotTemplateIds(

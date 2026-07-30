@@ -25,12 +25,14 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay(
+        string icId,
         string outputLength,
         string? outputFillByte,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings)
     {
         WorkbenchMemoryDisplay display =
             WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                icId,
                 outputLength,
                 outputFillByte,
                 mappings);
@@ -64,10 +66,15 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay(
+        string icId,
         string outputLength,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings)
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(outputLength, mappings);
+        WorkbenchMemoryDisplay display =
+            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                icId,
+                outputLength,
+                mappings);
         return (
             display.RangeLabel,
             [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
@@ -79,11 +86,13 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay(
+        string icId,
         WorkbenchGeneralMergeInitializer initializer,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings)
     {
         WorkbenchMemoryDisplay display =
             WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                icId,
                 initializer,
                 mappings);
         return (

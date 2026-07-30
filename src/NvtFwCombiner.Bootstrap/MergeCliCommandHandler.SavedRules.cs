@@ -10,9 +10,11 @@ internal static partial class MergeCliCommandHandler
         IReadOnlyList<string> slotValues,
         string icId,
         TextWriter error,
-        [NotNullWhen(true)] out GeneralMergeDraftState? draft)
+        [NotNullWhen(true)] out GeneralMergeDraftState? draft,
+        [NotNullWhen(true)] out GeneralSavedRuleResourcePolicy? savedRulePolicy)
     {
         draft = null;
+        savedRulePolicy = null;
         if (!TryCreateSlotBindings(slotValues, error, out Dictionary<string, string>? slotsById))
         {
             return false;
@@ -40,6 +42,7 @@ internal static partial class MergeCliCommandHandler
         }
 
         draft = load.Draft!;
+        savedRulePolicy = load.ResourcePolicy!;
         return true;
     }
 

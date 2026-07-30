@@ -87,9 +87,11 @@ public sealed partial class MainWindowViewModel
         return TryResolveGeneralMergeOutputInitializer(
                 out WorkbenchGeneralMergeInitializer? initializer)
             ? UiCompositionRunner.GetGeneralMergeMemoryDisplay(
+                SelectedIc,
                 initializer!,
                 mappings)
             : UiCompositionRunner.GetGeneralMergeMemoryDisplay(
+                SelectedIc,
                 GeneralMergeOutputLength,
                 GeneralMergeOutputFillByte,
                 mappings);

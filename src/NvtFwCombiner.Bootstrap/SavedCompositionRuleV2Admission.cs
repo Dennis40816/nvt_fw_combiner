@@ -403,8 +403,8 @@ internal static class SavedCompositionRuleV2Admission
             index++;
         }
 
-        if (!envelope.GetProperty("maximumMappingCount").TryGetInt64(
-                out long maximumMappingCount) ||
+        if (!envelope.GetProperty("maximumMappingCount").TryGetInt32(
+                out int maximumMappingCount) ||
             !envelope.GetProperty("maximumTotalWriteBytes").TryGetInt64(
                 out long maximumTotalWriteBytes))
         {

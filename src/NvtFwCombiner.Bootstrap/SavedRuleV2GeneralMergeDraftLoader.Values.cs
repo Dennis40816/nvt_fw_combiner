@@ -103,7 +103,11 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
     private static SavedRuleV2GeneralMergeDraftLoadResult Failed(
         SavedRuleValidationIssue issue)
     {
-        return new SavedRuleV2GeneralMergeDraftLoadResult(null, null, [issue]);
+        return new SavedRuleV2GeneralMergeDraftLoadResult(
+            null,
+            null,
+            null,
+            [issue]);
     }
 
     private static SavedRuleValidationIssue Issue(

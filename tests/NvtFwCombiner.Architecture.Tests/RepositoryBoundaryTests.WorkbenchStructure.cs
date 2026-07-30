@@ -83,6 +83,85 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CreateBlockedReportRunResult(", candidate, StringComparison.Ordinal);
     }
 
+    /// <summary>General authoring has one Application admission snapshot from observation through compilation and report.</summary>
+    [Fact]
+    public void GeneralAuthoringAdmissionStaysApplicationOwnedAndFailClosed()
+    {
+        string useCase = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/GeneralAuthoringAdmissionUseCase.cs");
+        string resolver = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/GeneralAuthoringResourceLimits.cs");
+        string bootstrapAdmission = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralAdmission.cs");
+        string mergeMapping = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Mapping.cs");
+        string mergeRun = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
+        string mergeDisplay = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.cs");
+        string replaceMapping = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Mapping.cs");
+        string replaceRun = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
+        string savedRules = ReadText(
+            "src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
+        string runner = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
+
+        Assert.Contains(
+            "public sealed class GeneralAuthoringAdmissionUseCase",
+            useCase,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "IGeneralInputResourceObservationPort",
+            useCase,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("File.", useCase, StringComparison.Ordinal);
+        Assert.DoesNotContain("FileInfo", useCase, StringComparison.Ordinal);
+        Assert.Contains(
+            "GeneralFileResourceObservationAdapter",
+            bootstrapAdmission,
+            StringComparison.Ordinal);
+        Assert.Contains("new FileInfo", bootstrapAdmission, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetSlotOrGlobal", resolver, StringComparison.Ordinal);
+        Assert.Contains(
+            "TrustedParentSlotMissing",
+            resolver,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "GeneralSavedRuleResourcePolicy",
+            savedRules,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "admission.RequireAdmittedDraft()",
+            mergeMapping,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "admission.RequireAdmittedDraft()",
+            replaceMapping,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("File.Exists", mergeMapping, StringComparison.Ordinal);
+        Assert.DoesNotContain("FileInfo", mergeMapping, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.Exists", replaceMapping, StringComparison.Ordinal);
+        Assert.DoesNotContain("FileInfo", replaceMapping, StringComparison.Ordinal);
+        Assert.Contains(
+            "generalAdmission: admission",
+            mergeRun,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "generalAdmission: admission",
+            replaceRun,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "AdmitGeneralMappingDraft(",
+            mergeDisplay,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "GeneralAuthoringAdmissionResult? generalAdmission",
+            runner,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies General Merge workbench target-region ids stay Bootstrap-owned.</summary>
     [Fact]
     public void GeneralMergeWorkbenchIdsStayBootstrapOwned()

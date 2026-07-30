@@ -20,6 +20,7 @@ public static partial class WorkbenchCompositionService
         string icId,
         GeneralMergeDraftState? draft,
         IReadOnlyList<CompositionIssue>? draftIssues,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy,
         bool build,
         CancellationToken cancellationToken,
         string? outputPath = null,
@@ -31,6 +32,7 @@ public static partial class WorkbenchCompositionService
             ? new Dictionary<string, string>(StringComparer.Ordinal)
             : CreateGeneralMergeReportSlotPaths(draft.Mappings);
         string defaultOutputFileName = GetGeneralMergeDefaultOutputFileName(icId);
+        GeneralAuthoringAdmissionResult? admission = null;
         WorkbenchRunResult Blocked(
             IReadOnlyList<CompositionIssue> issues,
             IReadOnlyList<OperationRunSummary>? operations = null,
@@ -49,11 +51,12 @@ public static partial class WorkbenchCompositionService
                 operations ?? [],
                 issues,
                 defaultOutputFileName,
-                draft is null
+                imageInitialization: draft is null
                     ? null
                     : ImageInitializationSummary.FromCompiled(
                         draft.OutputInitializer.ToImageInitialization(
-                            CompositionAddressSpaceIds.OutputImage))) with
+                            CompositionAddressSpaceIds.OutputImage)),
+                generalAdmission: admission) with
             {
                 AcceptedGeneralMappingDraft =
                     IsAcceptedGeneralMappingDraft(mappingDraft)
@@ -101,8 +104,22 @@ public static partial class WorkbenchCompositionService
         draft = new GeneralMergeDraftState(
             draft.OutputInitializer,
             mappingDraft);
+        admission = AdmitGeneralMappingDraft(
+            mappingDraft,
+            draft.OutputInitializer.Capacity,
+            CreateCurrentGeneralTrustedParentPolicy(
+                registration.ProfileId,
+                mappingDraft),
+            savedRulePolicy);
+        if (!admission.IsAdmitted)
+        {
+            return Blocked(
+                admission.ToCompositionIssues(),
+                profileId: registration.ProfileId);
+        }
+
         if (!TryCreateGeneralMergeMappings(
-                mappingDraft,
+                admission,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,
                 out IReadOnlyList<InputArtifactBinding> mappingBindings,
@@ -185,7 +202,8 @@ public static partial class WorkbenchCompositionService
             externalProcessor: null,
             icNumberSelection: null,
             cancellationToken: cancellationToken,
-            progress: progress).ConfigureAwait(false);
+            progress: progress,
+            generalAdmission: admission).ConfigureAwait(false);
         return result with { AcceptedGeneralMappingDraft = mappingDraft };
     }
 

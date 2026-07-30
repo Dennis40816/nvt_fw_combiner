@@ -9,10 +9,12 @@ public static partial class WorkbenchCompositionService
 {
     /// <summary>Gets one coherent General Merge range, row, and coverage snapshot.</summary>
     public static WorkbenchMemoryDisplay GetGeneralMergeMemoryDisplay(
+        string icId,
         string outputLength,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs)
     {
         return GetGeneralMergeMemoryDisplay(
+            icId,
             outputLength,
             outputFillByte: null,
             mappingInputs);
@@ -20,10 +22,12 @@ public static partial class WorkbenchCompositionService
 
     /// <summary>Gets one coherent General Merge snapshot with an explicit fill-byte selection.</summary>
     public static WorkbenchMemoryDisplay GetGeneralMergeMemoryDisplay(
+        string icId,
         string outputLength,
         string? outputFillByte,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(mappingInputs);
         bool isResolved = TryResolveGeneralMergeInitializer(
             outputLength,
@@ -32,6 +36,7 @@ public static partial class WorkbenchCompositionService
             out CompositionIssue? initializationIssue);
         return isResolved
             ? GetGeneralMergeMemoryDisplay(
+                icId,
                 new WorkbenchGeneralMergeInitializer(initializer!),
                 mappingInputs)
             : CreateMessageDisplay(
@@ -42,9 +47,11 @@ public static partial class WorkbenchCompositionService
 
     /// <summary>Gets one coherent General Merge snapshot from an already resolved initializer.</summary>
     public static WorkbenchMemoryDisplay GetGeneralMergeMemoryDisplay(
+        string icId,
         WorkbenchGeneralMergeInitializer initializer,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(initializer);
         ArgumentNullException.ThrowIfNull(mappingInputs);
         List<GeneralMergeDisplayMapping> displayMappings = [];
@@ -60,15 +67,21 @@ public static partial class WorkbenchCompositionService
                 issue));
         }
 
-        return GetGeneralMergeMemoryDisplayCore(initializer.Value, displayMappings);
+        return GetGeneralMergeMemoryDisplayCore(
+            icId,
+            initializer.Value,
+            displayMappings);
     }
 
     /// <summary>Gets one coherent General Merge display from the canonical typed draft.</summary>
     public static WorkbenchMemoryDisplay GetGeneralMergeMemoryDisplay(
+        string icId,
         GeneralMergeDraftState draft)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(draft);
         return GetGeneralMergeMemoryDisplayCore(
+            icId,
             draft.OutputInitializer,
             [
                 .. draft.Mappings.Rows.Select(static row =>
@@ -77,6 +90,7 @@ public static partial class WorkbenchCompositionService
     }
 
     private static WorkbenchMemoryDisplay GetGeneralMergeMemoryDisplayCore(
+        string icId,
         GeneralMergeOutputInitializer initializer,
         IReadOnlyList<GeneralMergeDisplayMapping> displayMappings)
     {
@@ -101,6 +115,40 @@ public static partial class WorkbenchCompositionService
                 WorkbenchMemoryCoverageRole.Standard),
         ];
         ByteRange outputRange = new(0, capacity);
+        GeneralAuthoringAdmissionResult? admission =
+            ResolveGeneralMergeDisplayAdmission(
+                icId,
+                displayMappings,
+                capacity);
+        Dictionary<string, GeneralAuthoringAdmissionIssue> blockersByMappingId =
+            new(StringComparer.Ordinal);
+        GeneralAuthoringAdmissionIssue[] draftBlockers = admission is null
+            ? []
+            :
+            [
+                .. admission.Issues.Where(static issue =>
+                    issue.MappingIds.Count == 0),
+            ];
+        if (admission is not null)
+        {
+            foreach (GeneralAuthoringAdmissionIssue admissionIssue in admission.Issues)
+            {
+                foreach (string mappingId in admissionIssue.MappingIds)
+                {
+                    _ = blockersByMappingId.TryAdd(
+                        mappingId,
+                        admissionIssue);
+                }
+            }
+        }
+
+        rows.AddRange(draftBlockers.Select(static blocker =>
+            new WorkbenchMemoryMapRow(
+                "General draft",
+                "Authored mappings",
+                "Blocked",
+                "No output",
+                blocker.Message)));
 
         foreach (GeneralMergeDisplayMapping displayMapping in displayMappings)
         {
@@ -112,6 +160,30 @@ public static partial class WorkbenchCompositionService
                     "Blocked",
                     "No output",
                     displayMapping.Issue!.Message));
+                continue;
+            }
+
+            if (draftBlockers.Length > 0)
+            {
+                rows.Add(new WorkbenchMemoryMapRow(
+                    FormatDisplayRange(mapping.TargetRange),
+                    "Reserved",
+                    "Blocked",
+                    "No output",
+                    draftBlockers[0].Message));
+                continue;
+            }
+
+            if (blockersByMappingId.TryGetValue(
+                    mapping.MappingId,
+                    out GeneralAuthoringAdmissionIssue? blocker))
+            {
+                rows.Add(new WorkbenchMemoryMapRow(
+                    FormatDisplayRange(mapping.TargetRange),
+                    "Reserved",
+                    "Blocked",
+                    "No output",
+                    blocker.Message));
                 continue;
             }
 
@@ -142,6 +214,38 @@ public static partial class WorkbenchCompositionService
             FormatFullRange(capacity),
             rows,
             ToWorkbenchCoverageSegments(segments, capacity));
+    }
+
+    private static GeneralAuthoringAdmissionResult?
+        ResolveGeneralMergeDisplayAdmission(
+            string icId,
+            IReadOnlyList<GeneralMergeDisplayMapping> displayMappings,
+            long capacity)
+    {
+        GeneralMappingDraftRow[] validMappings =
+        [
+            .. displayMappings
+                .Where(static item => item.Mapping is not null)
+                .Select(static item => item.Mapping!),
+        ];
+        if (validMappings.Length == 0 ||
+            validMappings.Select(static row => row.MappingId)
+                .Distinct(StringComparer.Ordinal).Count() != validMappings.Length)
+        {
+            return null;
+        }
+
+        var draft = new GeneralMappingDraftState(validMappings);
+        string parentId =
+            BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
+                icId,
+                out GeneralMergeV2CandidateRegistration? registration)
+                ? registration.ProfileId
+                : $"{icId}:general-merge-unavailable";
+        return AdmitGeneralMappingDraft(
+            draft,
+            capacity,
+            CreateCurrentGeneralTrustedParentPolicy(parentId, draft));
     }
 
     private sealed record GeneralMergeDisplayMapping(
@@ -198,6 +302,7 @@ public static partial class WorkbenchCompositionService
             initializationIssue is null
                 ? draftIssues
                 : [initializationIssue, .. draftIssues],
+            savedRulePolicy: null,
             new AuthoringRevision(1),
             build,
             outputPath,
@@ -216,15 +321,12 @@ public static partial class WorkbenchCompositionService
         CancellationToken cancellationToken,
         string? outputPath = null)
     {
-        ArgumentNullException.ThrowIfNull(draft);
-        return RunGeneralMergeWithInitialInspectionAsync(
+        return RunGeneralMergeDraftAsync(
             icId,
             draft,
-            draftIssues: null,
-            new AuthoringRevision(1),
+            savedRulePolicy: null,
             build,
             outputPath,
-            progress: null,
             cancellationToken);
     }
 
@@ -242,9 +344,51 @@ public static partial class WorkbenchCompositionService
         return RunGeneralMergeDraftAsync(
             icId,
             draft,
+            savedRulePolicy: null,
             build,
-            cancellationToken,
-            outputPath);
+            outputPath,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Runs a Saved Rule draft with its separate resource-narrowing authority.
+    /// </summary>
+    internal static ValueTask<WorkbenchRunResult> RunGeneralMergeEphemeralDraftAsync(
+        string icId,
+        GeneralMergeDraftState draft,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        return RunGeneralMergeDraftAsync(
+            icId,
+            draft,
+            savedRulePolicy,
+            build,
+            outputPath,
+            cancellationToken);
+    }
+
+    private static ValueTask<WorkbenchRunResult> RunGeneralMergeDraftAsync(
+        string icId,
+        GeneralMergeDraftState draft,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy,
+        bool build,
+        string? outputPath,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(draft);
+        return RunGeneralMergeWithInitialInspectionAsync(
+            icId,
+            draft,
+            draftIssues: null,
+            savedRulePolicy,
+            new AuthoringRevision(1),
+            build,
+            outputPath,
+            progress: null,
+            cancellationToken);
     }
 
     /// <summary>Runs General Merge and publishes bounded Application-owned lifecycle phases.</summary>
@@ -302,6 +446,7 @@ public static partial class WorkbenchCompositionService
             initializationIssue is null
                 ? draftIssues
                 : [initializationIssue, .. draftIssues],
+            savedRulePolicy: null,
             new AuthoringRevision(1),
             build,
             outputPath,
@@ -335,6 +480,7 @@ public static partial class WorkbenchCompositionService
             icId,
             draft,
             draftIssues,
+            savedRulePolicy: null,
             new AuthoringRevision(1),
             build,
             outputPath,
@@ -365,6 +511,7 @@ public static partial class WorkbenchCompositionService
                 initializer.Value,
                 acceptedMappingDraft),
             draftIssues: null,
+            savedRulePolicy: null,
             build,
             cancellationToken,
             outputPath,
@@ -376,6 +523,7 @@ public static partial class WorkbenchCompositionService
             string icId,
             GeneralMergeDraftState? draft,
             IReadOnlyList<CompositionIssue>? draftIssues,
+            GeneralSavedRuleResourcePolicy? savedRulePolicy,
             AuthoringRevision inspectionRevision,
             bool build,
             string? outputPath,
@@ -407,6 +555,7 @@ public static partial class WorkbenchCompositionService
             icId,
             draft,
             draftIssues,
+            savedRulePolicy,
             build,
             cancellationToken,
             outputPath,
