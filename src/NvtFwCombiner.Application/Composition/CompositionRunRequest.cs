@@ -21,7 +21,8 @@ public sealed class CompositionRunRequest
         TopologySelection? abMergeTopologySelection = null,
         IEnumerable<CompositionIssue>? advisoryIssues = null,
         GeneralAuthoringAdmissionSummary? generalAdmission = null,
-        AcceptedOutputNamingInspection? outputNamingInspection = null)
+        AcceptedOutputNamingInspection? outputNamingInspection = null,
+        OutputNamingAdmissionIdentity? outputNamingAdmission = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(compiledComposition);
@@ -35,7 +36,10 @@ public sealed class CompositionRunRequest
         ValidateRuntimeValidationRequirements(compiledComposition);
         ValidateIcNumberSelection(compiledComposition, icNumberSelection);
         ValidateAbMergeTopologySelection(compiledComposition, abMergeTopologySelection);
-        ValidateOutputNamingInspection(compiledComposition, outputNamingInspection);
+        ValidateOutputNamingAdmission(
+            compiledComposition,
+            outputNamingInspection,
+            outputNamingAdmission);
         ValidateV2RuntimeRequest(
             compiledComposition,
             copiedBindings,
@@ -53,6 +57,7 @@ public sealed class CompositionRunRequest
         AdvisoryIssues = CopyAdvisoryIssues(advisoryIssues);
         GeneralAdmission = generalAdmission;
         OutputNamingInspection = outputNamingInspection;
+        OutputNamingAdmission = outputNamingAdmission;
     }
 
     /// <summary>Stable run id for reports and diagnostics.</summary>
@@ -90,10 +95,40 @@ public sealed class CompositionRunRequest
     /// </summary>
     public AcceptedOutputNamingInspection? OutputNamingInspection { get; }
 
+    /// <summary>Current publication and revision admitted for normal output naming.</summary>
+    public OutputNamingAdmissionIdentity? OutputNamingAdmission { get; }
+
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(previewToken);
+        return OutputNamingAdmission is not null
+            ? throw new InvalidOperationException(
+                "Normal output naming requires a freshly captured build admission.")
+            : new CompositionRunRequest(
+                RunId,
+                CompiledComposition,
+                ArtifactBindings.Values,
+                OutputFileName,
+                previewToken,
+                IcNumberSelection,
+                IsOutputFileNameOverride,
+                AbMergeTopologySelection,
+                AdvisoryIssues,
+                GeneralAdmission,
+                OutputNamingInspection);
+    }
+
+    /// <summary>
+    /// Returns a build request only when the freshly captured admission still
+    /// matches the accepted inspection used by the preview.
+    /// </summary>
+    public CompositionRunRequest WithApprovedPreviewToken(
+        string previewToken,
+        OutputNamingAdmissionIdentity currentAdmission)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(previewToken);
+        ArgumentNullException.ThrowIfNull(currentAdmission);
         return new CompositionRunRequest(
             RunId,
             CompiledComposition,
@@ -105,7 +140,8 @@ public sealed class CompositionRunRequest
             AbMergeTopologySelection,
             AdvisoryIssues,
             GeneralAdmission,
-            OutputNamingInspection);
+            OutputNamingInspection,
+            currentAdmission);
     }
 
     private static ReadOnlyCollection<CompositionIssue> CopyAdvisoryIssues(
@@ -316,9 +352,10 @@ public sealed class CompositionRunRequest
         }
     }
 
-    private static void ValidateOutputNamingInspection(
+    private static void ValidateOutputNamingAdmission(
         CompiledComposition compiledComposition,
-        AcceptedOutputNamingInspection? inspection)
+        AcceptedOutputNamingInspection? inspection,
+        OutputNamingAdmissionIdentity? admission)
     {
         CompiledOutputNameRendererKind? renderer =
             compiledComposition.V2Details?.OutputNamingRequirement.RendererKind;
@@ -327,29 +364,42 @@ public sealed class CompositionRunRequest
             CompiledOutputNameRendererKind.TpFirmwareV1;
         if (inspection is null)
         {
-            if (requiresAcceptedInspection)
+            if (requiresAcceptedInspection || admission is not null)
             {
                 throw new ArgumentException(
-                    "Compiled normal output naming requires one accepted metadata inspection.",
+                    "Compiled normal output naming requires one accepted inspection and current admission.",
                     nameof(inspection));
             }
 
             return;
         }
 
-        if (!StringComparer.Ordinal.Equals(
-                inspection.CapabilityFingerprint,
-                compiledComposition.CompilationFingerprint))
+        if (admission is null)
         {
             throw new ArgumentException(
-                "Output naming inspection must belong to the exact compiled capability.",
+                "Compiled normal output naming requires a current publication admission.",
+                nameof(admission));
+        }
+
+        if (!StringComparer.Ordinal.Equals(
+                inspection.CapabilityFingerprint,
+                compiledComposition.CompilationFingerprint) ||
+            !StringComparer.Ordinal.Equals(
+                admission.CapabilityFingerprint,
+                compiledComposition.CompilationFingerprint) ||
+            !StringComparer.Ordinal.Equals(inspection.RouteId, admission.RouteId) ||
+            inspection.ResolutionToken != admission.ResolutionToken ||
+            inspection.AuthoringRevision != admission.AuthoringRevision)
+        {
+            throw new ArgumentException(
+                "Output naming inspection and admission must belong to the exact current route, publication, revision, and compiled capability.",
                 nameof(inspection));
         }
 
         if (!requiresAcceptedInspection)
         {
             throw new ArgumentException(
-                "Accepted metadata inspection is valid only for a compiled normal output-name renderer.",
+                "Output naming inspection and admission are valid only for a compiled normal output-name renderer.",
                 nameof(inspection));
         }
     }

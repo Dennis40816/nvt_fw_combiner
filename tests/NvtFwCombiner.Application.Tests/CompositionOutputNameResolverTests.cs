@@ -16,6 +16,8 @@ public sealed partial class CompositionOutputNameResolverTests
 {
     private const int CapacityBytes = 0x40;
     private const string ArtifactBindingId = "input";
+    private const string ArtifactSlotId = "input-slot";
+    private const string OutputNamingRouteId = "test-output-naming-route";
     private const string CapabilityFingerprint =
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     private const string FamilyHash =
@@ -54,16 +56,63 @@ public sealed partial class CompositionOutputNameResolverTests
         Assert.Empty(resolved.Issues);
     }
 
+    /// <summary>The compiled binding id selects one DPCMI result even when another canonical structure is inspected.</summary>
+    [Fact]
+    public void NormalFlashCodeUsesExactCompiledMetadataBinding()
+    {
+        InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
+        MetadataPlanEntry selected = fixture.Plan.Entries.Single(entry =>
+            StringComparer.Ordinal.Equals(
+                entry.Definition.BindingId,
+                "dpcmi-naming")).Definition;
+        var duplicate = new MetadataPlanEntry(
+            "other-dpcmi-naming",
+            selected.SpaceId,
+            selected.SlotId,
+            selected.FamilyDefinition,
+            selected.ResolvedMap,
+            selected.MetadataSetBinding,
+            selected.StructureDefinition,
+            selected.TargetReferences,
+            selected.Purposes,
+            selected.EvidenceRefs);
+        ResolvedMetadataPlan plan = new MetadataPlanDefinition(
+            fixture.Plan.Entries
+                .Select(static entry => entry.Definition)
+                .Append(duplicate))
+            .Resolve(new ResolutionToken("duplicate-dpcmi-publication"));
+        MetadataInspectionSnapshot snapshot = FirmwareMetadataInspector.Inspect(
+            new MetadataInspectionRequest(
+                plan,
+                fixture.Snapshot.AuthoringRevision,
+                [fixture.Artifact]));
+        var accepted = new AcceptedOutputNamingInspection(
+            OutputNamingRouteId,
+            CapabilityFingerprint,
+            plan,
+            snapshot);
+
+        OutputNameResolution resolved = CompiledOutputNameResolver.ResolveNormal(
+            "NT51929",
+            NormalFlashCodeOutput(),
+            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+            isExplicitOverride: false,
+            accepted,
+            [fixture.InputSummary],
+            RunTime);
+
+        Assert.Equal(
+            "NT51929_FlashCode_D8205T8004_20260728.bin",
+            resolved.FileName);
+        Assert.Empty(resolved.Issues);
+    }
+
     /// <summary>A TP-firmware rule omits DP by contract instead of inventing a missing DP token.</summary>
     [Fact]
     public void TpFirmwareUsesOnlyDeclaredTpVersion()
     {
         InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: false);
-        var output = new CompiledOutputNamingRequirement(
-            CompiledOutputNamingRequirement.TpFirmwareV1Template,
-            allowOverride: true,
-            CompiledOutputInvalidCharacterPolicy.Reject,
-            ["date", "ic", "tp-version"]);
+        CompiledOutputNamingRequirement output = TpFirmwareOutput();
 
         OutputNameResolution resolved = CompiledOutputNameResolver.ResolveNormal(
             "NT51950",
@@ -231,6 +280,7 @@ public sealed partial class CompositionOutputNameResolverTests
             new ResolutionToken("different-publication"));
 
         _ = Assert.Throws<ArgumentException>(() => new AcceptedOutputNamingInspection(
+            OutputNamingRouteId,
             CapabilityFingerprint,
             differentPlan,
             fixture.Snapshot));
@@ -264,14 +314,23 @@ public sealed partial class CompositionOutputNameResolverTests
             fixture.Plan,
             fixture.Plan.ResolutionToken);
 
-        AcceptedOutputNamingInspection accepted =
+        var accepted =
             AcceptedOutputNamingInspection.Accept(
                 capability,
                 fixture.Snapshot,
                 currentAuthoringRevision: 7,
                 [fixture.Artifact]);
+        var admission =
+            OutputNamingAdmissionIdentity.Capture(
+                capability,
+                currentAuthoringRevision: 7);
 
+        Assert.Equal(route.RouteId, accepted.RouteId);
         Assert.Equal(fingerprint, accepted.CapabilityFingerprint);
+        Assert.Equal(route.RouteId, admission.RouteId);
+        Assert.Equal(fingerprint, admission.CapabilityFingerprint);
+        Assert.Equal(fixture.Plan.ResolutionToken, admission.ResolutionToken);
+        Assert.Equal(7, admission.AuthoringRevision);
         _ = Assert.Throws<ArgumentException>(() =>
             AcceptedOutputNamingInspection.Accept(
                 capability,
@@ -291,15 +350,6 @@ public sealed partial class CompositionOutputNameResolverTests
                 value,
                 "synthetic-output-naming");
         }
-    }
-
-    private static CompiledOutputNamingRequirement NormalFlashCodeOutput()
-    {
-        return new CompiledOutputNamingRequirement(
-            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
-            allowOverride: true,
-            CompiledOutputInvalidCharacterPolicy.Reject,
-            ["date", "dp-version", "ic", "tp-version"]);
     }
 
     private static InspectionFixture CreateInspectionFixture(bool includeDpcmi)
@@ -367,7 +417,7 @@ public sealed partial class CompositionOutputNameResolverTests
             .. structures.Select(structure => new MetadataPlanEntry(
                 $"{structure.StructureId}-naming",
                 ArtifactBindingId,
-                ArtifactBindingId,
+                ArtifactSlotId,
                 family,
                 resolvedMap,
                 metadataBinding,
@@ -380,6 +430,7 @@ public sealed partial class CompositionOutputNameResolverTests
         MetadataInspectionSnapshot snapshot = FirmwareMetadataInspector.Inspect(
             new MetadataInspectionRequest(plan, authoringRevision: 7, [artifact]));
         var accepted = new AcceptedOutputNamingInspection(
+            OutputNamingRouteId,
             CapabilityFingerprint,
             plan,
             snapshot);
@@ -420,7 +471,7 @@ public sealed partial class CompositionOutputNameResolverTests
         var inputContract = new CompiledInputContract(
             [
                 new CompiledInputSlotRequirement(
-                    "input-slot",
+                    ArtifactSlotId,
                     "input",
                     CompiledInputArtifactClass.ReferenceImage,
                     required: true,
@@ -432,7 +483,7 @@ public sealed partial class CompositionOutputNameResolverTests
             [
                 new CompiledInputSpaceBinding(
                     ArtifactBindingId,
-                    "input-slot",
+                    ArtifactSlotId,
                     CompiledInputInstancePolicy.Singleton),
             ]);
         CompiledOutputNamingRequirement output = NormalFlashCodeOutput();
@@ -484,6 +535,17 @@ public sealed partial class CompositionOutputNameResolverTests
             "input-artifact",
             "input.bin",
             CompiledInputArtifactClass.ReferenceImage);
+    }
+
+    private static OutputNamingAdmissionIdentity CreateAdmission(
+        CompiledComposition composition,
+        InspectionFixture fixture)
+    {
+        return new OutputNamingAdmissionIdentity(
+            fixture.AcceptedInspection.RouteId,
+            composition.CompilationFingerprint,
+            fixture.Plan.ResolutionToken,
+            fixture.Snapshot.AuthoringRevision);
     }
 
     private static FirmwareMetadataStructure CreateDpcmiStructure()

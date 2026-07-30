@@ -11,10 +11,12 @@ namespace NvtFwCombiner.Application.Composition;
 public sealed class AcceptedOutputNamingInspection
 {
     internal AcceptedOutputNamingInspection(
+        string routeId,
         string capabilityFingerprint,
         ResolvedMetadataPlan plan,
         MetadataInspectionSnapshot snapshot)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
         ValidateFingerprint(capabilityFingerprint, nameof(capabilityFingerprint));
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(snapshot);
@@ -34,6 +36,7 @@ public sealed class AcceptedOutputNamingInspection
                 nameof(snapshot));
         }
 
+        RouteId = routeId;
         CapabilityFingerprint = capabilityFingerprint;
         Plan = plan;
         Snapshot = snapshot;
@@ -53,12 +56,9 @@ public sealed class AcceptedOutputNamingInspection
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentOutOfRangeException.ThrowIfNegative(currentAuthoringRevision);
         ArgumentNullException.ThrowIfNull(currentArtifacts);
+        CapabilityPublicationCoherence.ValidateResolved(capability);
         FirmwareArtifactPayload[] artifacts = [.. currentArtifacts];
-        return !StringComparer.Ordinal.Equals(
-                   capability.CapabilityFingerprint,
-                   capability.CompiledComposition.CompilationFingerprint) ||
-               capability.ResolutionToken != capability.MetadataPlan.ResolutionToken ||
-               !MetadataInspectionPublicationGate.IsCurrent(
+        return !MetadataInspectionPublicationGate.IsCurrent(
                    snapshot,
                    capability.MetadataPlan,
                    currentAuthoringRevision,
@@ -67,10 +67,14 @@ public sealed class AcceptedOutputNamingInspection
                 "Output naming inspection must match the current capability publication, authoring revision, and immutable artifacts.",
                 nameof(snapshot))
             : new AcceptedOutputNamingInspection(
+                capability.Identity.RouteId,
                 capability.CapabilityFingerprint,
                 capability.MetadataPlan,
                 snapshot);
     }
+
+    /// <summary>Stable exact route of the accepted capability publication.</summary>
+    public string RouteId { get; }
 
     /// <summary>Fingerprint of the exact compiled capability used for naming.</summary>
     public string CapabilityFingerprint { get; }
@@ -159,12 +163,14 @@ public sealed class AcceptedOutputNamingInspection
     }
 
     internal bool TryGetOutputNamingSource(
-        string structureId,
+        string metadataBindingId,
+        string metadataSpaceId,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         out string? spaceId,
         out string? acceptedSha256)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(structureId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(metadataBindingId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(metadataSpaceId);
         ArgumentNullException.ThrowIfNull(inputSummaries);
         spaceId = null;
         acceptedSha256 = null;
@@ -173,8 +179,8 @@ public sealed class AcceptedOutputNamingInspection
             .. Plan.Entries.Where(entry =>
                 entry.Definition.Purposes.Contains(MetadataReferencePurpose.OutputNaming) &&
                 StringComparer.Ordinal.Equals(
-                    entry.Definition.StructureDefinition.StructureId,
-                    structureId)),
+                    entry.Definition.BindingId,
+                    metadataBindingId)),
         ];
         if (matches.Length != 1)
         {
@@ -182,6 +188,11 @@ public sealed class AcceptedOutputNamingInspection
         }
 
         string selectedSpaceId = matches[0].Definition.SpaceId;
+        if (!StringComparer.Ordinal.Equals(selectedSpaceId, metadataSpaceId))
+        {
+            return false;
+        }
+
         spaceId = selectedSpaceId;
         FirmwareArtifactIdentity? identity = Snapshot.ArtifactIdentities.SingleOrDefault(
             candidate => StringComparer.Ordinal.Equals(candidate.ArtifactId, selectedSpaceId));

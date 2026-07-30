@@ -180,6 +180,37 @@ public sealed partial class CompiledComposition
         AppendEnum(builder, "output.invalid-character-policy", output.InvalidCharacterPolicy);
         AppendEnum(builder, "output.renderer", output.RendererKind);
         AppendStringList(builder, "output.required-token", output.RequiredTokenIds);
+        if (output.RuleId is not null)
+        {
+            AppendField(builder, "output.rule-id", output.RuleId);
+            AppendEnum(builder, "output.artifact-type", output.OutputArtifactType);
+            AppendInteger(
+                builder,
+                "output.token-requirement.count",
+                output.TokenRequirements.Count);
+            for (int index = 0; index < output.TokenRequirements.Count; index++)
+            {
+                CompiledOutputTokenRequirement requirement =
+                    output.TokenRequirements[index];
+                string prefix =
+                    FormattableString.Invariant($"output.token-requirement.{index}");
+                AppendField(builder, $"{prefix}.id", requirement.TokenId);
+                AppendEnum(builder, $"{prefix}.source", requirement.SourceKind);
+                AppendField(
+                    builder,
+                    $"{prefix}.metadata-binding",
+                    requirement.MetadataBindingId ?? string.Empty);
+                AppendField(
+                    builder,
+                    $"{prefix}.metadata-space",
+                    requirement.MetadataSpaceId ?? string.Empty);
+                AppendEnum(builder, $"{prefix}.missing", requirement.MissingPolicy);
+                AppendField(
+                    builder,
+                    $"{prefix}.placeholder",
+                    requirement.Placeholder ?? string.Empty);
+            }
+        }
         AppendPlan(builder, composition.Plan);
 
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())))

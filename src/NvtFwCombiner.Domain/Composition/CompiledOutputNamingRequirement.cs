@@ -24,6 +24,32 @@ public enum CompiledOutputNameRendererKind
     TpFirmwareV1,
 }
 
+/// <summary>Closed output artifact selected by one typed naming rule.</summary>
+public enum CompiledOutputArtifactType
+{
+    /// <summary>No typed artifact was declared by a legacy profile schema.</summary>
+    Unspecified,
+    /// <summary>A normal combined FlashCode image.</summary>
+    FlashCode,
+    /// <summary>A TP-firmware image.</summary>
+    TpFirmware,
+}
+
+/// <summary>Closed execution fact used to resolve one output-name token.</summary>
+public enum CompiledOutputTokenSourceKind
+{
+    /// <summary>No typed source was declared by a legacy profile schema.</summary>
+    Unspecified,
+    /// <summary>The canonical IC identity retained by the compiled composition.</summary>
+    CompiledIc,
+    /// <summary>The UTC date captured once when the run starts.</summary>
+    RunDateUtc,
+    /// <summary>The DPCMI version projected from one accepted metadata binding.</summary>
+    DpcmiVersion,
+    /// <summary>The TP version projected from one accepted FirmwareConfig binding.</summary>
+    FirmwareConfigTpVersion,
+}
+
 /// <summary>Closed behavior when one compiled output-name token has no accepted value.</summary>
 public enum CompiledOutputTokenMissingPolicy
 {
@@ -38,10 +64,36 @@ public sealed record CompiledOutputTokenRequirement
 {
     internal CompiledOutputTokenRequirement(
         string tokenId,
+        CompiledOutputTokenSourceKind sourceKind,
+        string? metadataBindingId,
         CompiledOutputTokenMissingPolicy missingPolicy,
-        string? placeholder)
+        string? placeholder,
+        string? metadataSpaceId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tokenId);
+        if (!Enum.IsDefined(sourceKind))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(sourceKind),
+                sourceKind,
+                "Unknown output token source kind.");
+        }
+
+        bool isMetadataSource = sourceKind is
+            CompiledOutputTokenSourceKind.DpcmiVersion or
+            CompiledOutputTokenSourceKind.FirmwareConfigTpVersion;
+        if (isMetadataSource)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(metadataBindingId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(metadataSpaceId);
+        }
+        else if (metadataBindingId is not null || metadataSpaceId is not null)
+        {
+            throw new ArgumentException(
+                "Only metadata-backed output tokens can declare metadata binding authority.",
+                nameof(metadataBindingId));
+        }
+
         if (!Enum.IsDefined(missingPolicy))
         {
             throw new ArgumentOutOfRangeException(
@@ -62,12 +114,24 @@ public sealed record CompiledOutputTokenRequirement
         }
 
         TokenId = tokenId;
+        SourceKind = sourceKind;
+        MetadataBindingId = metadataBindingId;
+        MetadataSpaceId = metadataSpaceId;
         MissingPolicy = missingPolicy;
         Placeholder = placeholder;
     }
 
     /// <summary>Canonical token identifier from the compiled template.</summary>
     public string TokenId { get; }
+
+    /// <summary>Typed execution fact that owns this token value.</summary>
+    public CompiledOutputTokenSourceKind SourceKind { get; }
+
+    /// <summary>Profile metadata binding used only by metadata-backed sources.</summary>
+    public string? MetadataBindingId { get; }
+
+    /// <summary>Exact compiled input space selected by the profile metadata binding.</summary>
+    public string? MetadataSpaceId { get; }
 
     /// <summary>Explicit behavior when accepted inspection has no value.</summary>
     public CompiledOutputTokenMissingPolicy MissingPolicy { get; }
@@ -79,6 +143,12 @@ public sealed record CompiledOutputTokenRequirement
 /// <summary>Profile-owned output naming requirements retained for runtime rendering.</summary>
 public sealed class CompiledOutputNamingRequirement
 {
+    /// <summary>Stable canonical rule id for normal FlashCode naming.</summary>
+    public const string NormalFlashCodeV1RuleId = "normal-flashcode-v1";
+
+    /// <summary>Stable canonical rule id for TP-firmware naming.</summary>
+    public const string TpFirmwareV1RuleId = "tp-firmware-v1";
+
     /// <summary>Canonical template for the AB Code v1 execution-path renderer.</summary>
     public const string AbCodeV1Template = "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin";
 
@@ -104,6 +174,25 @@ public sealed class CompiledOutputNamingRequirement
         bool allowOverride,
         CompiledOutputInvalidCharacterPolicy invalidCharacterPolicy,
         IEnumerable<string> requiredTokenIds)
+        : this(
+            fileNameTemplate,
+            allowOverride,
+            invalidCharacterPolicy,
+            requiredTokenIds,
+            ruleId: null,
+            CompiledOutputArtifactType.Unspecified,
+            tokenRequirements: null)
+    {
+    }
+
+    internal CompiledOutputNamingRequirement(
+        string fileNameTemplate,
+        bool allowOverride,
+        CompiledOutputInvalidCharacterPolicy invalidCharacterPolicy,
+        IEnumerable<string> requiredTokenIds,
+        string? ruleId,
+        CompiledOutputArtifactType outputArtifactType,
+        IEnumerable<CompiledOutputTokenRequirement>? tokenRequirements)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileNameTemplate);
         if (fileNameTemplate.IndexOfAny(['/', '\\', ':']) >= 0 ||
@@ -119,6 +208,34 @@ public sealed class CompiledOutputNamingRequirement
                 nameof(invalidCharacterPolicy),
                 invalidCharacterPolicy,
                 "Unknown output invalid-character policy.");
+        }
+
+        if (!Enum.IsDefined(outputArtifactType))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(outputArtifactType),
+                outputArtifactType,
+                "Unknown compiled output artifact type.");
+        }
+
+        bool hasTypedRule = ruleId is not null;
+        if (hasTypedRule)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
+            if (outputArtifactType == CompiledOutputArtifactType.Unspecified ||
+                tokenRequirements is null)
+            {
+                throw new ArgumentException(
+                    "Typed output naming requires one rule id, artifact type, and token requirement set.",
+                    nameof(ruleId));
+            }
+        }
+        else if (outputArtifactType != CompiledOutputArtifactType.Unspecified ||
+                 tokenRequirements is not null)
+        {
+            throw new ArgumentException(
+                "Legacy output naming cannot declare partial typed authority.",
+                nameof(ruleId));
         }
 
         _requiredTokenIds = ImmutableStringSnapshot.Create(
@@ -146,13 +263,20 @@ public sealed class CompiledOutputNamingRequirement
         AllowOverride = allowOverride;
         InvalidCharacterPolicy = invalidCharacterPolicy;
         RequiredTokenIds = Array.AsReadOnly(_requiredTokenIds);
+        RuleId = ruleId;
+        OutputArtifactType = outputArtifactType;
         RendererKind = ResolveRendererKind(
             fileNameTemplate,
             invalidCharacterPolicy,
-            _requiredTokenIds);
-        _tokenRequirements = CreateTokenRequirements(
-            RendererKind,
-            _requiredTokenIds);
+            _requiredTokenIds,
+            ruleId,
+            outputArtifactType);
+        _tokenRequirements = tokenRequirements is null
+            ? CreateLegacyTokenRequirements(RendererKind, _requiredTokenIds)
+            : ValidateTypedTokenRequirements(
+                RendererKind,
+                _requiredTokenIds,
+                tokenRequirements);
         TokenRequirements = Array.AsReadOnly(_tokenRequirements);
     }
 
@@ -167,6 +291,12 @@ public sealed class CompiledOutputNamingRequirement
 
     /// <summary>Profile tokens required before a future runtime may render this template.</summary>
     public IReadOnlyList<string> RequiredTokenIds { get; }
+
+    /// <summary>Stable profile-declared rule id, or null for legacy schemas.</summary>
+    public string? RuleId { get; }
+
+    /// <summary>Closed profile-declared output artifact type.</summary>
+    public CompiledOutputArtifactType OutputArtifactType { get; }
 
     /// <summary>Typed rendering behavior admitted by the compiled output contract.</summary>
     public CompiledOutputNameRendererKind RendererKind { get; }
@@ -213,27 +343,38 @@ public sealed class CompiledOutputNamingRequirement
     private static CompiledOutputNameRendererKind ResolveRendererKind(
         string fileNameTemplate,
         CompiledOutputInvalidCharacterPolicy invalidCharacterPolicy,
-        string[] requiredTokenIds)
+        string[] requiredTokenIds,
+        string? ruleId,
+        CompiledOutputArtifactType outputArtifactType)
     {
         return invalidCharacterPolicy switch
         {
             CompiledOutputInvalidCharacterPolicy.Reject
-                when IsContract(fileNameTemplate, requiredTokenIds, AbCodeV1Template, s_abCodeV1TokenIds) =>
-                    CompiledOutputNameRendererKind.AbCodeV1,
-            CompiledOutputInvalidCharacterPolicy.Reject
-                when IsContract(
-                    fileNameTemplate,
-                    requiredTokenIds,
-                    NormalFlashCodeV1Template,
-                    s_normalFlashCodeV1TokenIds) =>
+                when StringComparer.Ordinal.Equals(ruleId, NormalFlashCodeV1RuleId) &&
+                     outputArtifactType == CompiledOutputArtifactType.FlashCode &&
+                     IsContract(
+                         fileNameTemplate,
+                         requiredTokenIds,
+                         NormalFlashCodeV1Template,
+                         s_normalFlashCodeV1TokenIds) =>
                     CompiledOutputNameRendererKind.NormalFlashCodeV1,
             CompiledOutputInvalidCharacterPolicy.Reject
-                when IsContract(
-                    fileNameTemplate,
-                    requiredTokenIds,
-                    TpFirmwareV1Template,
-                    s_tpFirmwareV1TokenIds) =>
+                when StringComparer.Ordinal.Equals(ruleId, TpFirmwareV1RuleId) &&
+                     outputArtifactType == CompiledOutputArtifactType.TpFirmware &&
+                     IsContract(
+                         fileNameTemplate,
+                         requiredTokenIds,
+                         TpFirmwareV1Template,
+                         s_tpFirmwareV1TokenIds) =>
                     CompiledOutputNameRendererKind.TpFirmwareV1,
+            CompiledOutputInvalidCharacterPolicy.Reject
+                when ruleId is not null =>
+                    throw new ArgumentException(
+                        "Typed output naming must match one canonical rule, artifact, template, and token contract.",
+                        nameof(ruleId)),
+            CompiledOutputInvalidCharacterPolicy.Reject
+                when IsContract(fileNameTemplate, requiredTokenIds, AbCodeV1Template, s_abCodeV1TokenIds) =>
+                    CompiledOutputNameRendererKind.AbCodeV1,
             CompiledOutputInvalidCharacterPolicy.Reject or
                 CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore =>
                     requiredTokenIds.Length == 0
@@ -256,7 +397,7 @@ public sealed class CompiledOutputNamingRequirement
                actualTokenIds.SequenceEqual(expectedTokenIds, StringComparer.Ordinal);
     }
 
-    private static CompiledOutputTokenRequirement[] CreateTokenRequirements(
+    private static CompiledOutputTokenRequirement[] CreateLegacyTokenRequirements(
         CompiledOutputNameRendererKind rendererKind,
         IEnumerable<string> requiredTokenIds)
     {
@@ -272,12 +413,10 @@ public sealed class CompiledOutputNamingRequirement
                         "tp-a" or "tp-b" => "Txxxx",
                         _ => null,
                     },
-                    CompiledOutputNameRendererKind.NormalFlashCodeV1 =>
-                        tokenId is "dp-version" or "tp-version" ? "xxxx" : null,
-                    CompiledOutputNameRendererKind.TpFirmwareV1 =>
-                        tokenId == "tp-version" ? "xxxx" : null,
                     CompiledOutputNameRendererKind.Static or
-                        CompiledOutputNameRendererKind.DeferredTokenTemplate => null,
+                        CompiledOutputNameRendererKind.DeferredTokenTemplate or
+                        CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+                        CompiledOutputNameRendererKind.TpFirmwareV1 => null,
                     _ => throw new ArgumentOutOfRangeException(
                         nameof(rendererKind),
                         rendererKind,
@@ -285,12 +424,87 @@ public sealed class CompiledOutputNamingRequirement
                 };
                 return new CompiledOutputTokenRequirement(
                     tokenId,
+                    CompiledOutputTokenSourceKind.Unspecified,
+                    metadataBindingId: null,
                     placeholder is null
                         ? CompiledOutputTokenMissingPolicy.Block
                         : CompiledOutputTokenMissingPolicy.UsePlaceholder,
-                    placeholder);
+                    placeholder,
+                    metadataSpaceId: null);
             }),
         ];
+    }
+
+    private static CompiledOutputTokenRequirement[] ValidateTypedTokenRequirements(
+        CompiledOutputNameRendererKind rendererKind,
+        string[] requiredTokenIds,
+        IEnumerable<CompiledOutputTokenRequirement> tokenRequirements)
+    {
+        CompiledOutputTokenRequirement[] requirements = [.. tokenRequirements];
+        if (requirements.Any(static requirement => requirement is null))
+        {
+            throw new ArgumentException(
+                "Compiled output token requirements cannot contain null.",
+                nameof(tokenRequirements));
+        }
+
+        Array.Sort(
+            requirements,
+            static (left, right) =>
+                StringComparer.Ordinal.Compare(left.TokenId, right.TokenId));
+        if (!requirements.Select(static requirement => requirement.TokenId)
+                .SequenceEqual(requiredTokenIds, StringComparer.Ordinal))
+        {
+            throw new ArgumentException(
+                "Typed output token requirements must exactly match the template token ids.",
+                nameof(tokenRequirements));
+        }
+
+        foreach (CompiledOutputTokenRequirement requirement in requirements)
+        {
+            ValidateCanonicalTokenRequirement(rendererKind, requirement);
+        }
+
+        return requirements;
+    }
+
+    private static void ValidateCanonicalTokenRequirement(
+        CompiledOutputNameRendererKind rendererKind,
+        CompiledOutputTokenRequirement requirement)
+    {
+        (CompiledOutputTokenSourceKind expectedSource,
+            CompiledOutputTokenMissingPolicy expectedMissing,
+            string? expectedPlaceholder) = (rendererKind, requirement.TokenId) switch
+            {
+                (_, "date") => (
+                    CompiledOutputTokenSourceKind.RunDateUtc,
+                    CompiledOutputTokenMissingPolicy.Block,
+                    null),
+                (_, "ic") => (
+                    CompiledOutputTokenSourceKind.CompiledIc,
+                    CompiledOutputTokenMissingPolicy.Block,
+                    null),
+                (CompiledOutputNameRendererKind.NormalFlashCodeV1, "dp-version") => (
+                    CompiledOutputTokenSourceKind.DpcmiVersion,
+                    CompiledOutputTokenMissingPolicy.UsePlaceholder,
+                    "xxxx"),
+                (CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+                    CompiledOutputNameRendererKind.TpFirmwareV1, "tp-version") => (
+                    CompiledOutputTokenSourceKind.FirmwareConfigTpVersion,
+                    CompiledOutputTokenMissingPolicy.UsePlaceholder,
+                    "xxxx"),
+                _ => throw new ArgumentException(
+                    "Typed output token is not part of the selected canonical renderer.",
+                    nameof(requirement)),
+            };
+        if (requirement.SourceKind != expectedSource ||
+            requirement.MissingPolicy != expectedMissing ||
+            !StringComparer.Ordinal.Equals(requirement.Placeholder, expectedPlaceholder))
+        {
+            throw new ArgumentException(
+                "Typed output token source and missing policy must match the selected canonical renderer.",
+                nameof(requirement));
+        }
     }
 
     private static string[] ExtractTokenIds(string template)

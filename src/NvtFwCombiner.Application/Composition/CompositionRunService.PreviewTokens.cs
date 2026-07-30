@@ -26,6 +26,7 @@ public sealed partial class CompositionRunService
             AppendTokenField(builder, "output.automatic-name", outputNaming.AutomaticFileName);
             AppendTokenField(builder, "output.explicit-override", outputNaming.IsExplicitOverride ? "1" : "0");
             AppendTokenField(builder, "output.date-source", outputNaming.DateSource);
+            AppendOutputNamingAdmission(builder, outputNaming.Admission);
             foreach (OutputNamingTokenSummary token in outputNaming.Tokens.OrderBy(static token => token.TokenId, StringComparer.Ordinal))
             {
                 AppendTokenField(builder, "output.token.id", token.TokenId);
@@ -48,6 +49,34 @@ public sealed partial class CompositionRunService
         AppendTokenField(builder, "execution.status", execution.Status.ToString());
         AppendTokenField(builder, "execution.output.sha256", ToSha256Hex(execution.OutputBytes.Span));
         return ToSha256Hex(Encoding.UTF8.GetBytes(builder.ToString()));
+    }
+
+    private static void AppendOutputNamingAdmission(
+        StringBuilder builder,
+        OutputNamingAdmissionSummary? admission)
+    {
+        AppendTokenField(
+            builder,
+            "output.admission.present",
+            admission is null ? "0" : "1");
+        if (admission is null)
+        {
+            return;
+        }
+
+        AppendTokenField(builder, "output.admission.route", admission.RouteId);
+        AppendTokenField(
+            builder,
+            "output.admission.fingerprint",
+            admission.CapabilityFingerprint);
+        AppendTokenField(
+            builder,
+            "output.admission.resolution",
+            admission.ResolutionToken);
+        AppendTokenField(
+            builder,
+            "output.admission.authoring-revision",
+            admission.AuthoringRevision.ToString(CultureInfo.InvariantCulture));
     }
 
     private static void AppendGeneralAdmission(

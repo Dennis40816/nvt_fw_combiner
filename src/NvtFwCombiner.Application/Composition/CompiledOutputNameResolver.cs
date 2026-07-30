@@ -35,7 +35,8 @@ internal static class CompiledOutputNameResolver
                         request.IsOutputFileNameOverride,
                         request.OutputNamingInspection,
                         inputSummaries,
-                        startedAtUtc),
+                        startedAtUtc,
+                        request.OutputNamingAdmission),
             CompiledOutputNameRendererKind.DeferredTokenTemplate =>
                 throw new InvalidOperationException(
                     "A deferred output-name template cannot execute."),
@@ -53,7 +54,8 @@ internal static class CompiledOutputNameResolver
         bool isExplicitOverride,
         AcceptedOutputNamingInspection? acceptedInspection,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
-        DateTimeOffset startedAtUtc)
+        DateTimeOffset startedAtUtc,
+        OutputNamingAdmissionIdentity? admission = null)
     {
         ArgumentNullException.ThrowIfNull(output);
         ArgumentException.ThrowIfNullOrWhiteSpace(requestedFileName);
@@ -169,7 +171,14 @@ internal static class CompiledOutputNameResolver
             isExplicitOverride,
             "utc",
             startedAtUtc,
-            tokens);
+            tokens,
+            admission is null
+                ? null
+                : new OutputNamingAdmissionSummary(
+                    admission.RouteId,
+                    admission.CapabilityFingerprint,
+                    admission.ResolutionToken.Value,
+                    admission.AuthoringRevision));
         return new OutputNameResolution(actualFileName, summary, issues);
     }
 
@@ -188,16 +197,23 @@ internal static class CompiledOutputNameResolver
         List<CompositionIssue> issues)
     {
         const string TokenId = "dp-version";
+        CompiledOutputTokenRequirement requirement =
+            GetTokenRequirement(
+                output,
+                TokenId,
+                CompiledOutputTokenSourceKind.DpcmiVersion);
         string? sourceSpaceId = null;
         string? sourceSha256 = null;
         TokenResolution? known = acceptedInspection is not null &&
             acceptedInspection.TryGetOutputNamingSource(
-                DpcmiMetadataContract.StructureId,
+                requirement.MetadataBindingId!,
+                requirement.MetadataSpaceId!,
                 inputSummaries,
                 out sourceSpaceId,
                 out sourceSha256) &&
             DpcmiMetadataProjector.TryProject(
                 acceptedInspection.Snapshot,
+                requirement.MetadataBindingId!,
                 out DpcmiMetadataFacts facts)
             ? new TokenResolution(new OutputNamingTokenSummary(
                 TokenId,
@@ -223,16 +239,23 @@ internal static class CompiledOutputNameResolver
         List<CompositionIssue> issues)
     {
         const string TokenId = "tp-version";
+        CompiledOutputTokenRequirement requirement =
+            GetTokenRequirement(
+                output,
+                TokenId,
+                CompiledOutputTokenSourceKind.FirmwareConfigTpVersion);
         string? sourceSpaceId = null;
         string? sourceSha256 = null;
         TokenResolution? known = acceptedInspection is not null &&
             acceptedInspection.TryGetOutputNamingSource(
-                FirmwareConfigGeneralParametersContract.StructureId,
+                requirement.MetadataBindingId!,
+                requirement.MetadataSpaceId!,
                 inputSummaries,
                 out sourceSpaceId,
                 out sourceSha256) &&
             FirmwareConfigGeneralParametersProjector.TryProject(
                 acceptedInspection.Snapshot,
+                requirement.MetadataBindingId!,
                 out FirmwareConfigGeneralParametersFacts facts) &&
             facts.IsTpFirmwareVersionComplementValid
             ? new TokenResolution(new OutputNamingTokenSummary(
@@ -287,6 +310,22 @@ internal static class CompiledOutputNameResolver
             sourceSpaceId,
             sourceSha256,
             parserId));
+    }
+
+    private static CompiledOutputTokenRequirement GetTokenRequirement(
+        CompiledOutputNamingRequirement output,
+        string tokenId,
+        CompiledOutputTokenSourceKind sourceKind)
+    {
+        CompiledOutputTokenRequirement requirement =
+            output.TokenRequirements.Single(candidate =>
+                StringComparer.Ordinal.Equals(candidate.TokenId, tokenId));
+        return requirement.SourceKind != sourceKind ||
+               requirement.MetadataBindingId is null ||
+               requirement.MetadataSpaceId is null
+            ? throw new InvalidOperationException(
+                $"Compiled output token '{tokenId}' does not retain its typed metadata source.")
+            : requirement;
     }
 
     private sealed record TokenResolution(OutputNamingTokenSummary Summary);

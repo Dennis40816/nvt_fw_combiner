@@ -28,7 +28,7 @@ internal sealed partial class CompositionProfileDefinition
         if (CompilationContext.Kind == CompositionProfileCompilationContextKind.LogicalOutput)
         {
             ValidateLogicalOutputShape();
-            ValidateOutputNaming();
+            ValidateOutputNaming(metadataBindings);
             return;
         }
 
@@ -39,7 +39,7 @@ internal sealed partial class CompositionProfileDefinition
             ValidateRegionAccess();
             ValidateOperations(views, spaces, processors);
             ValidateProcessors(views, spaces);
-            ValidateOutputNaming();
+            ValidateOutputNaming(metadataBindings);
             return;
         }
 
@@ -49,7 +49,7 @@ internal sealed partial class CompositionProfileDefinition
         ValidateOperations(views, spaces, processors);
         ValidateProcessors(views, spaces);
         ValidateValidations(views, metadataBindings);
-        ValidateOutputNaming();
+        ValidateOutputNaming(metadataBindings);
     }
 
     private void ValidateLogicalOutputShape()
@@ -522,17 +522,6 @@ internal sealed partial class CompositionProfileDefinition
                     break;
                 default:
                     throw new InvalidOperationException("Unknown composition profile validation shape.");
-            }
-        }
-    }
-
-    private void ValidateOutputNaming()
-    {
-        foreach (string tokenId in Output.RequiredTokenIds)
-        {
-            if (!Output.FileNameTemplate.Contains($"{{{tokenId}}}", StringComparison.Ordinal))
-            {
-                throw new ArgumentException($"Output template does not contain required token '{tokenId}'.");
             }
         }
     }

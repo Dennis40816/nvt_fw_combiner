@@ -93,20 +93,14 @@ public sealed partial class CompiledCompositionTests
             resolvedMap: CreateResolvedMap(
                 "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
                 memberId: "NT51929"),
-            outputTemplate: CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
-            allowOutputOverride: true,
-            outputInvalidCharacterPolicy: CompiledOutputInvalidCharacterPolicy.Reject,
-            requiredOutputTokenIds: ["date", "dp-version", "ic", "tp-version"],
+            outputNaming: NormalFlashCodeOutput(),
             runtimeExecutable: true);
         CompiledComposition tpFirmware = CreateV2(
             promotion: supported,
             resolvedMap: CreateResolvedMap(
                 "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
                 memberId: "NT51950"),
-            outputTemplate: CompiledOutputNamingRequirement.TpFirmwareV1Template,
-            allowOutputOverride: true,
-            outputInvalidCharacterPolicy: CompiledOutputInvalidCharacterPolicy.Reject,
-            requiredOutputTokenIds: ["date", "ic", "tp-version"],
+            outputNaming: TpFirmwareOutput(),
             runtimeExecutable: true);
 
         Assert.Equal(
@@ -207,43 +201,49 @@ public sealed partial class CompiledCompositionTests
     [Fact]
     public void NormalOutputNamingContractsOwnRendererAndMissingMetadataPolicy()
     {
-        var flashCode = new CompiledOutputNamingRequirement(
-            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
-            allowOverride: true,
-            CompiledOutputInvalidCharacterPolicy.Reject,
-            ["date", "dp-version", "ic", "tp-version"]);
-        var tpFirmware = new CompiledOutputNamingRequirement(
-            CompiledOutputNamingRequirement.TpFirmwareV1Template,
-            allowOverride: true,
-            CompiledOutputInvalidCharacterPolicy.Reject,
-            ["date", "ic", "tp-version"]);
+        CompiledOutputNamingRequirement flashCode = NormalFlashCodeOutput();
+        CompiledOutputNamingRequirement tpFirmware = TpFirmwareOutput();
 
+        Assert.Equal(
+            CompiledOutputNamingRequirement.NormalFlashCodeV1RuleId,
+            flashCode.RuleId);
+        Assert.Equal(CompiledOutputArtifactType.FlashCode, flashCode.OutputArtifactType);
         Assert.Equal(
             CompiledOutputNameRendererKind.NormalFlashCodeV1,
             flashCode.RendererKind);
         Assert.Equal(
+            CompiledOutputNamingRequirement.TpFirmwareV1RuleId,
+            tpFirmware.RuleId);
+        Assert.Equal(CompiledOutputArtifactType.TpFirmware, tpFirmware.OutputArtifactType);
+        Assert.Equal(
             CompiledOutputNameRendererKind.TpFirmwareV1,
             tpFirmware.RendererKind);
         Assert.Equal(
-            ("xxxx", CompiledOutputTokenMissingPolicy.UsePlaceholder),
+            ("dp-inspection", CompiledOutputTokenSourceKind.DpcmiVersion, "xxxx",
+                CompiledOutputTokenMissingPolicy.UsePlaceholder),
             MissingPolicy(flashCode, "dp-version"));
         Assert.Equal(
-            ("xxxx", CompiledOutputTokenMissingPolicy.UsePlaceholder),
+            ("tp-inspection", CompiledOutputTokenSourceKind.FirmwareConfigTpVersion, "xxxx",
+                CompiledOutputTokenMissingPolicy.UsePlaceholder),
             MissingPolicy(flashCode, "tp-version"));
         Assert.Equal(
-            (null, CompiledOutputTokenMissingPolicy.Block),
+            (null, CompiledOutputTokenSourceKind.CompiledIc, null,
+                CompiledOutputTokenMissingPolicy.Block),
             MissingPolicy(flashCode, "ic"));
         Assert.Equal(
-            (null, CompiledOutputTokenMissingPolicy.Block),
+            (null, CompiledOutputTokenSourceKind.RunDateUtc, null,
+                CompiledOutputTokenMissingPolicy.Block),
             MissingPolicy(flashCode, "date"));
         Assert.Equal(
-            ("xxxx", CompiledOutputTokenMissingPolicy.UsePlaceholder),
+            ("tp-inspection", CompiledOutputTokenSourceKind.FirmwareConfigTpVersion, "xxxx",
+                CompiledOutputTokenMissingPolicy.UsePlaceholder),
             MissingPolicy(tpFirmware, "tp-version"));
         Assert.DoesNotContain(
             tpFirmware.TokenRequirements,
             static requirement => requirement.TokenId == "dp-version");
 
-        static (string? Placeholder, CompiledOutputTokenMissingPolicy Policy)
+        static (string? MetadataBindingId, CompiledOutputTokenSourceKind SourceKind,
+            string? Placeholder, CompiledOutputTokenMissingPolicy Policy)
             MissingPolicy(
                 CompiledOutputNamingRequirement output,
                 string tokenId)
@@ -251,7 +251,11 @@ public sealed partial class CompiledCompositionTests
             CompiledOutputTokenRequirement requirement =
                 Assert.Single(output.TokenRequirements, candidate =>
                     candidate.TokenId == tokenId);
-            return (requirement.Placeholder, requirement.MissingPolicy);
+            return (
+                requirement.MetadataBindingId,
+                requirement.SourceKind,
+                requirement.Placeholder,
+                requirement.MissingPolicy);
         }
     }
 
@@ -481,6 +485,7 @@ public sealed partial class CompiledCompositionTests
         IEnumerable<CompiledCapabilityAdmission>? requiredCapabilities = null,
         CompiledInputContract? inputContract = null,
         CompiledRegionAccessContract? regionAccessContract = null,
+        CompiledOutputNamingRequirement? outputNaming = null,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? resolvedMap = null,
         CompositionPlan? plan = null,
         bool runtimeExecutable = false,
@@ -504,7 +509,7 @@ public sealed partial class CompiledCompositionTests
             profileEvidenceRefs ?? ["profile-evidence"],
             validationRequirements ?? [],
             requiredCapabilities ?? []);
-        var output = new CompiledOutputNamingRequirement(
+        CompiledOutputNamingRequirement output = outputNaming ?? new CompiledOutputNamingRequirement(
             outputTemplate,
             allowOutputOverride,
             outputInvalidCharacterPolicy,
