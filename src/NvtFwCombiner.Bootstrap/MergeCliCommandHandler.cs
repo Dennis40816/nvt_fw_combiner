@@ -95,7 +95,7 @@ internal static partial class MergeCliCommandHandler
                 "--report");
         }
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeDraftAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
                 icId,
                 outputLength,
                 mappingDraft,

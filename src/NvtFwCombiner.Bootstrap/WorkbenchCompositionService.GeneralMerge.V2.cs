@@ -48,7 +48,13 @@ public static partial class WorkbenchCompositionService
                 build,
                 operations ?? [],
                 issues,
-                defaultOutputFileName);
+                defaultOutputFileName) with
+            {
+                AcceptedGeneralMappingDraft =
+                    IsAcceptedGeneralMappingDraft(mappingDraft)
+                        ? mappingDraft
+                        : null,
+            };
         }
 
         if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
@@ -84,6 +90,16 @@ public static partial class WorkbenchCompositionService
                 profileId: registration.ProfileId);
         }
 
+        GeneralSelectedFileBindingResult acceptedFiles =
+            RequireAcceptedGeneralSelectedFiles(mappingDraft);
+        if (!acceptedFiles.Succeeded)
+        {
+            return Blocked(
+                acceptedFiles.Issues,
+                profileId: registration.ProfileId);
+        }
+
+        mappingDraft = acceptedFiles.Draft!;
         if (!TryCreateGeneralMergeMappings(
                 mappingDraft,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
@@ -155,9 +171,10 @@ public static partial class WorkbenchCompositionService
             .. mappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
                 composition,
                 binding.AddressSpaceId,
-                binding.ArtifactId)),
+                binding.ArtifactId,
+                acceptedContentStamp: binding.AcceptedContentStamp)),
         ];
-        return await RunCompiledCompositionAsync(
+        WorkbenchRunResult result = await RunCompiledCompositionAsync(
             GeneralMergeRunIdPrefix,
             composition,
             candidateBindings,
@@ -168,6 +185,7 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: null,
             cancellationToken: cancellationToken,
             progress: progress).ConfigureAwait(false);
+        return result with { AcceptedGeneralMappingDraft = mappingDraft };
     }
 
     private static bool IsExpectedGeneralMergeV2Candidate(

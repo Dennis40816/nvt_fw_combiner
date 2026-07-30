@@ -467,10 +467,7 @@ public sealed class MergeAuthoringSessionSetTests
 
     private static FileStamp Stamp(long length, int revision)
     {
-        return new FileStamp(
-            exists: true,
-            length,
-            DateTimeOffset.UnixEpoch.AddSeconds(revision));
+        return new FileStamp(length, $"{revision:x64}");
     }
 
     private static ActiveSessionSnapshot Activate(

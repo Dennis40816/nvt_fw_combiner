@@ -295,14 +295,30 @@ public sealed partial class MainWindowViewModel
         string outputFileName = WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId);
         return RunCompositionAsync(
             build,
-            (progress, cancellationToken) => WorkbenchCompositionService.RunGeneralMergeWithProgressAsync(
-                icId,
-                outputLength,
-                mappingInputs,
-                build,
-                progress,
-                cancellationToken,
-                outputPath),
+            async (progress, cancellationToken) =>
+            {
+                WorkbenchRunResult result = _acceptedGeneralMergeDraft is null
+                    ? await WorkbenchCompositionService.RunGeneralMergeWithProgressAsync(
+                        icId,
+                        outputLength,
+                        mappingInputs,
+                        build,
+                        progress,
+                        cancellationToken,
+                        outputPath).ConfigureAwait(false)
+                    : await WorkbenchCompositionService.RunGeneralMergeAcceptedDraftWithProgressAsync(
+                        icId,
+                        outputLength,
+                        _acceptedGeneralMergeDraft,
+                        build,
+                        progress,
+                        cancellationToken,
+                        outputPath).ConfigureAwait(false);
+                _acceptedGeneralMergeDraft =
+                    result.AcceptedGeneralMappingDraft ??
+                    _acceptedGeneralMergeDraft;
+                return result;
+            },
             (action, errorMessage) => LoadRunErrorReport(
                 action,
                 outputFileName,

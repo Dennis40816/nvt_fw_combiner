@@ -539,12 +539,26 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsGeneralMergeModeSelected);
 
         string outputPath = workspace.PathFor("general-merge.bin");
+        await File.WriteAllBytesAsync(
+            source,
+            [0x10, 0x11, 0x99, 0x13, 0x14],
+            TestContext.Current.CancellationToken);
+        await viewModel.BuildMergeAsync(outputPath);
+
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Contains(
+            "no longer matches",
+            viewModel.LastRunResult.Detail,
+            StringComparison.Ordinal);
+        Assert.False(File.Exists(outputPath));
+
+        viewModel.SetSlotFile(mapping.MappingId, source);
         await viewModel.BuildMergeAsync(outputPath);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.LastRunResult.Output);
         Assert.Equal(
-            [0, 0, 0, 0, 0x11, 0x12, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0x11, 0x99, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             File.ReadAllBytes(outputPath));
 
         using var document = JsonDocument.Parse(viewModel.LoadedReportJson);

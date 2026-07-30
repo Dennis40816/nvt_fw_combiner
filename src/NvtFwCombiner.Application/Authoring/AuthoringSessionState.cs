@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Application.Authoring;
 /// Host-independent state and transition policy for one workflow mode. The
 /// desktop owns one instance per mode; CLI creates an ephemeral instance.
 /// </summary>
-public sealed class AuthoringSessionState
+public sealed partial class AuthoringSessionState
 {
     private readonly Lock _transitionLock = new();
     private readonly object _publicationIdentity = new();

@@ -16,6 +16,19 @@ public enum GeneralMappingSourceKind
 }
 
 /// <summary>
+/// File authoring presets over the same explicit Start + Length operation.
+/// They do not introduce execution-time range behavior.
+/// </summary>
+public enum GeneralMappingFileRangePreset
+{
+    /// <summary>An explicit, potentially non-zero file source start.</summary>
+    SourceSlice,
+
+    /// <summary>Source start is fixed at zero.</summary>
+    FromFileStart,
+}
+
+/// <summary>
 /// Immutable source identity for one General mapping row. The Application
 /// retains references and authoring payload text, never filesystem bytes.
 /// </summary>
@@ -24,7 +37,8 @@ public sealed record GeneralMappingSource
     private GeneralMappingSource(
         GeneralMappingSourceKind kind,
         string reference,
-        string? inlineValue)
+        string? inlineValue,
+        FileStamp? acceptedFileStamp)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reference);
         if (kind != GeneralMappingSourceKind.FileArtifact &&
@@ -35,9 +49,18 @@ public sealed record GeneralMappingSource
                 nameof(inlineValue));
         }
 
+        if (kind != GeneralMappingSourceKind.FileArtifact &&
+            acceptedFileStamp is not null)
+        {
+            throw new ArgumentException(
+                "Only file-backed General sources can carry an accepted content stamp.",
+                nameof(acceptedFileStamp));
+        }
+
         Kind = kind;
         Reference = reference;
         InlineValue = inlineValue;
+        AcceptedFileStamp = acceptedFileStamp;
     }
 
     /// <summary>Closed source kind used by adapters and compilers.</summary>
@@ -49,13 +72,22 @@ public sealed record GeneralMappingSource
     /// <summary>Inline hexadecimal text for patch sources, otherwise null.</summary>
     public string? InlineValue { get; }
 
+    /// <summary>
+    /// Accepted complete-file content identity. Null means the selected file
+    /// still requires explicit inspection.
+    /// </summary>
+    public FileStamp? AcceptedFileStamp { get; }
+
     /// <summary>Creates one file-backed source reference.</summary>
-    public static GeneralMappingSource File(string reference)
+    public static GeneralMappingSource File(
+        string reference,
+        FileStamp? acceptedFileStamp = null)
     {
         return new GeneralMappingSource(
             GeneralMappingSourceKind.FileArtifact,
             reference,
-            inlineValue: null);
+            inlineValue: null,
+            acceptedFileStamp);
     }
 
     /// <summary>Creates one inline hexadecimal overwrite source.</summary>
@@ -66,7 +98,8 @@ public sealed record GeneralMappingSource
         return new GeneralMappingSource(
             GeneralMappingSourceKind.HexOverwrite,
             reference,
-            value);
+            value,
+            acceptedFileStamp: null);
     }
 
     /// <summary>Creates one inline hexadecimal fill source.</summary>
@@ -77,7 +110,26 @@ public sealed record GeneralMappingSource
         return new GeneralMappingSource(
             GeneralMappingSourceKind.HexFill,
             reference,
-            value);
+            value,
+            acceptedFileStamp: null);
+    }
+
+    /// <summary>Returns the same selected reference bound to accepted bytes.</summary>
+    public GeneralMappingSource WithAcceptedFileStamp(FileStamp fileStamp)
+    {
+        return Kind == GeneralMappingSourceKind.FileArtifact
+            ? File(Reference, fileStamp)
+            : throw new InvalidOperationException(
+                "Only file-backed General sources can accept a content stamp.");
+    }
+
+    /// <summary>Returns a newly selected file reference pending inspection.</summary>
+    public GeneralMappingSource RebindSelectedFile(string selectedPath)
+    {
+        return Kind == GeneralMappingSourceKind.FileArtifact
+            ? File(selectedPath)
+            : throw new InvalidOperationException(
+                "Only file-backed General sources can be rebound.");
     }
 }
 
@@ -99,7 +151,8 @@ public sealed record GeneralMappingDraftRow
         int alignment,
         string reason,
         string? targetRegionId = null,
-        OperationProvenance? provenance = null)
+        OperationProvenance? provenance = null,
+        GeneralMappingFileRangePreset? fileRangePreset = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mappingId);
         ArgumentNullException.ThrowIfNull(source);
@@ -160,6 +213,30 @@ public sealed record GeneralMappingDraftRow
                 nameof(source));
         }
 
+        if (source.Kind != GeneralMappingSourceKind.FileArtifact &&
+            fileRangePreset is not null)
+        {
+            throw new ArgumentException(
+                "Only file-backed General mappings can declare a file range preset.",
+                nameof(fileRangePreset));
+        }
+
+        GeneralMappingFileRangePreset? effectiveFileRangePreset =
+            source.Kind == GeneralMappingSourceKind.FileArtifact
+                ? fileRangePreset ??
+                    (sourceRange.Start == 0
+                        ? GeneralMappingFileRangePreset.FromFileStart
+                        : GeneralMappingFileRangePreset.SourceSlice)
+                : null;
+        if (effectiveFileRangePreset ==
+                GeneralMappingFileRangePreset.FromFileStart &&
+            sourceRange.Start != 0)
+        {
+            throw new ArgumentException(
+                "From File Start requires source start zero.",
+                nameof(fileRangePreset));
+        }
+
         MappingId = mappingId;
         OperationKind = operationKind;
         Source = source;
@@ -174,6 +251,7 @@ public sealed record GeneralMappingDraftRow
         Reason = reason;
         Provenance = provenance ??
             OperationProvenance.RuntimeGeneralMapping(mappingId);
+        FileRangePreset = effectiveFileRangePreset;
     }
 
     /// <summary>Stable operation/mapping identity.</summary>
@@ -209,9 +287,68 @@ public sealed record GeneralMappingDraftRow
     /// <summary>Traceable mapping or saved-rule origin.</summary>
     public OperationProvenance Provenance { get; }
 
+    /// <summary>
+    /// Authoring preset inferred from the concrete source start. Both presets
+    /// compile through this row's same explicit operation.
+    /// </summary>
+    public GeneralMappingFileRangePreset? FileRangePreset { get; }
+
     /// <summary>Derived read-only inclusive target end for display adapters.</summary>
     public long TargetEndInclusive =>
         AuthoringByteRangeCodec.GetEndInclusive(TargetRange);
+
+    /// <summary>Returns this row bound to one accepted complete-file stamp.</summary>
+    public GeneralMappingDraftRow WithAcceptedFileStamp(FileStamp fileStamp)
+    {
+        return new GeneralMappingDraftRow(
+            MappingId,
+            OperationKind,
+            Source.WithAcceptedFileStamp(fileStamp),
+            SourceRange,
+            TargetAddressSpaceId,
+            TargetRange,
+            OverlapPolicy,
+            Alignment,
+            Reason,
+            TargetRegionId,
+            Provenance,
+            FileRangePreset);
+    }
+
+    /// <summary>Returns this row rebound to a selected file pending inspection.</summary>
+    public GeneralMappingDraftRow RebindSelectedFile(string selectedPath)
+    {
+        return new GeneralMappingDraftRow(
+            MappingId,
+            OperationKind,
+            Source.RebindSelectedFile(selectedPath),
+            SourceRange,
+            TargetAddressSpaceId,
+            TargetRange,
+            OverlapPolicy,
+            Alignment,
+            Reason,
+            TargetRegionId,
+            Provenance,
+            FileRangePreset);
+    }
+
+    internal GeneralMappingDraftRow WithLength(long length)
+    {
+        return new GeneralMappingDraftRow(
+            MappingId,
+            OperationKind,
+            Source,
+            new ByteRange(SourceRange.Start, length),
+            TargetAddressSpaceId,
+            new ByteRange(TargetRange.Start, length),
+            OverlapPolicy,
+            Alignment,
+            Reason,
+            TargetRegionId,
+            Provenance,
+            FileRangePreset);
+    }
 }
 
 /// <summary>
@@ -248,6 +385,37 @@ public sealed record GeneralMappingDraftState : AuthoringDraftState
 
     /// <summary>Ordered typed mapping rows; row order determines operation order.</summary>
     public IReadOnlyList<GeneralMappingDraftRow> Rows { get; }
+
+    /// <summary>
+    /// Materializes the currently accepted full file length into one From File
+    /// Start row. Reload never reapplies this helper.
+    /// </summary>
+    public GeneralMappingDraftState MaterializeFullFileLength(string mappingId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(mappingId);
+        GeneralMappingDraftRow selected = _rows.SingleOrDefault(row =>
+            StringComparer.Ordinal.Equals(row.MappingId, mappingId)) ??
+            throw new ArgumentException(
+                "The General mapping draft does not contain the requested row.",
+                nameof(mappingId));
+        FileStamp stamp =
+            selected.Source.Kind == GeneralMappingSourceKind.FileArtifact &&
+            selected.FileRangePreset ==
+                GeneralMappingFileRangePreset.FromFileStart &&
+            selected.Source.AcceptedFileStamp is { } accepted
+                ? accepted
+                : throw new InvalidOperationException(
+                    "Use full file length requires an inspected From File Start row.");
+
+        return stamp.AcceptedLength > 0
+            ? new GeneralMappingDraftState(
+                _rows.Select(row =>
+                    ReferenceEquals(row, selected)
+                        ? row.WithLength(stamp.AcceptedLength)
+                        : row))
+            : throw new InvalidOperationException(
+                "Use full file length requires a non-empty accepted file.");
+    }
 
     internal override AuthoringDraftState CreateImmutableSnapshot()
     {

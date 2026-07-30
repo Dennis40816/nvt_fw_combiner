@@ -149,15 +149,16 @@ public static partial class WorkbenchCompositionService
             mappingInputs,
             out GeneralMappingDraftState? draft,
             out IReadOnlyList<CompositionIssue> draftIssues);
-        return RunGeneralMergeV2Async(
+        return RunGeneralMergeWithInitialInspectionAsync(
             icId,
             outputLength,
             draft,
             draftIssues,
+            new AuthoringRevision(1),
             build,
-            cancellationToken,
             outputPath,
-            progress: null);
+            progress: null,
+            cancellationToken);
     }
 
     /// <summary>Runs General Merge from one canonical typed mapping draft.</summary>
@@ -181,6 +182,31 @@ public static partial class WorkbenchCompositionService
             progress: null);
     }
 
+    /// <summary>
+    /// Ephemeral CLI/Saved Rule boundary: inspect once, then execute the exact
+    /// content-bound draft through the strict General Merge runner.
+    /// </summary>
+    public static ValueTask<WorkbenchRunResult> RunGeneralMergeEphemeralDraftAsync(
+        string icId,
+        string outputLength,
+        GeneralMappingDraftState mappingDraft,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        ArgumentNullException.ThrowIfNull(mappingDraft);
+        return RunGeneralMergeWithInitialInspectionAsync(
+            icId,
+            outputLength,
+            mappingDraft,
+            draftIssues: null,
+            new AuthoringRevision(1),
+            build,
+            outputPath,
+            progress: null,
+            cancellationToken);
+    }
+
     /// <summary>Runs General Merge and publishes bounded Application-owned lifecycle phases.</summary>
     public static async ValueTask<WorkbenchRunResult> RunGeneralMergeWithProgressAsync(
         string icId,
@@ -199,10 +225,80 @@ public static partial class WorkbenchCompositionService
             mappingInputs,
             out GeneralMappingDraftState? draft,
             out IReadOnlyList<CompositionIssue> draftIssues);
-        return await RunGeneralMergeV2Async(
+        return await RunGeneralMergeWithInitialInspectionAsync(
             icId,
             outputLength,
             draft,
+            draftIssues,
+            new AuthoringRevision(1),
+            build,
+            outputPath,
+            progress,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs General Merge from the exact content-bound draft returned by an
+    /// earlier desktop Preview or explicit Reload/Rebind.
+    /// </summary>
+    public static ValueTask<WorkbenchRunResult> RunGeneralMergeAcceptedDraftWithProgressAsync(
+        string icId,
+        string outputLength,
+        GeneralMappingDraftState acceptedMappingDraft,
+        bool build,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(acceptedMappingDraft);
+        ArgumentNullException.ThrowIfNull(progress);
+        return RunGeneralMergeV2Async(
+            icId,
+            outputLength,
+            acceptedMappingDraft,
+            draftIssues: null,
+            build,
+            cancellationToken,
+            outputPath,
+            progress);
+    }
+
+    private static async ValueTask<WorkbenchRunResult>
+        RunGeneralMergeWithInitialInspectionAsync(
+            string icId,
+            string outputLength,
+            GeneralMappingDraftState? mappingDraft,
+            IReadOnlyList<CompositionIssue>? draftIssues,
+            AuthoringRevision inspectionRevision,
+            bool build,
+            string? outputPath,
+            CompositionRunProgressFeed? progress,
+            CancellationToken cancellationToken)
+    {
+        if (mappingDraft is not null &&
+            draftIssues is not { Count: > 0 })
+        {
+            GeneralSelectedFileBindingResult accepted =
+                await AcceptGeneralSelectedFilesAsync(
+                    mappingDraft,
+                    inspectionRevision,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (accepted.Succeeded)
+            {
+                mappingDraft = accepted.Draft;
+            }
+            else
+            {
+                draftIssues = accepted.Issues;
+            }
+        }
+
+        return await RunGeneralMergeV2Async(
+            icId,
+            outputLength,
+            mappingDraft,
             draftIssues,
             build,
             cancellationToken,

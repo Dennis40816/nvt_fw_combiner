@@ -74,7 +74,8 @@ public static partial class WorkbenchCompositionService
                 input.Alignment,
                 input.Reason ?? "Copy explicit General Merge mapping.",
                 WorkbenchGeneralMergeIds.OutputRegionId,
-                input.Provenance);
+                input.Provenance,
+                GeneralMappingFileRangePreset.SourceSlice);
             issue = null;
             return true;
         }
@@ -193,7 +194,11 @@ public static partial class WorkbenchCompositionService
                 targetRange,
                 OverlapPolicy.Reject,
                 alignment: 1,
-                reason));
+                reason,
+                fileRangePreset:
+                    source.Kind == GeneralMappingSourceKind.FileArtifact
+                        ? GeneralMappingFileRangePreset.FromFileStart
+                        : null));
         }
         catch (ArgumentException exception)
         {

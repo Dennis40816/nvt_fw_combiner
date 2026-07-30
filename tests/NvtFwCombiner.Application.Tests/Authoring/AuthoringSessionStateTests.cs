@@ -548,21 +548,12 @@ public sealed class AuthoringSessionStateTests
             new AuthoringRevision(long.MaxValue).Next());
         _ = Assert.Throws<ArgumentException>(() =>
             new FileStamp(
-                exists: false,
-                length: 1,
-                DateTimeOffset.UnixEpoch));
+                acceptedLength: 1,
+                "not-a-sha256"));
         _ = Assert.Throws<ArgumentException>(() =>
             new FileStamp(
-                exists: true,
-                length: 0,
-                new DateTimeOffset(
-                    2026,
-                    1,
-                    1,
-                    0,
-                    0,
-                    0,
-                    TimeSpan.FromHours(8))));
+                acceptedLength: 0,
+                new string('A', 64)));
         _ = Assert.Throws<ArgumentException>(() =>
             new AuthoringSlotState(
                 "dp",
@@ -626,10 +617,7 @@ public sealed class AuthoringSessionStateTests
 
     private static FileStamp Stamp(long length, int revision)
     {
-        return new FileStamp(
-            exists: true,
-            length,
-            DateTimeOffset.UnixEpoch.AddSeconds(revision));
+        return new FileStamp(length, $"{revision:x64}");
     }
 
     private static ActiveSessionSnapshot Activate(

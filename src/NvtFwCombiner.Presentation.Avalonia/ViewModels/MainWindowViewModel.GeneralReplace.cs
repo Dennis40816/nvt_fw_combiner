@@ -1,12 +1,16 @@
 using System.ComponentModel;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private GeneralMappingDraftState? _acceptedGeneralReplaceDraft;
+
     private void AddGeneralReplaceMapping()
     {
+        _acceptedGeneralReplaceDraft = null;
         _generalReplaceMappingCounter++;
         var mapping = new GeneralReplaceMappingViewModel(
             $"general-map-{_generalReplaceMappingCounter}",
@@ -39,6 +43,7 @@ public sealed partial class MainWindowViewModel
 
     private void GeneralReplaceMappingPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        _acceptedGeneralReplaceDraft = null;
         RefreshCommandState();
     }
 }
