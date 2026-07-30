@@ -186,7 +186,6 @@ public sealed partial class RepositoryBoundaryTests
             "nt51928-standard-merge",
             "nt51929-dp-replace",
             "nt51929-standard-merge",
-            "nt51919-nt51929-nt51932-ab-merge",
             "nt51950-ab-merge",
             "nt51950-nt51951-standard-merge",
         ];
@@ -199,7 +198,13 @@ public sealed partial class RepositoryBoundaryTests
             XAttribute include = Assert.Single(bundle.Attributes());
 
             Assert.Equal("Include", include.Name.LocalName);
-            if (sourceProjectionSchemaBundleIds.Contains(
+            if (include.Value == "nt51919-nt51929-nt51932-ab-merge")
+            {
+                Assert.Equal(
+                    "composition-profile-v2.14.schema.json",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
+            }
+            else if (sourceProjectionSchemaBundleIds.Contains(
                     bundle.Attribute("Include")?.Value,
                     StringComparer.Ordinal))
             {
@@ -235,10 +240,15 @@ public sealed partial class RepositoryBoundaryTests
                 Assert.Empty(bundle.Elements("CompositionProfileSchemaFile"));
             }
 
-            if (include.Value is
+            if (include.Value == "nt51919-nt51929-nt51932-ab-merge")
+            {
+                Assert.Equal(
+                    "firmware-family-v1.2-bank-instances.schema.json",
+                    Assert.Single(bundle.Elements("FirmwareFamilySchemaFile")).Value);
+            }
+            else if (include.Value is
                     "nt51919-nt51929-nt51932-general-merge-logical-candidate" or
-                    "nt51929-standard-merge" or
-                    "nt51919-nt51929-nt51932-ab-merge")
+                    "nt51929-standard-merge")
             {
                 Assert.Equal(
                     "firmware-family-v1.1-tp-header.schema.json",

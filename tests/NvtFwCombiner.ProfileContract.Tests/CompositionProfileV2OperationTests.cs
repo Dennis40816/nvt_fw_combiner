@@ -26,8 +26,12 @@ public sealed class CompositionProfileV2OperationTests
             "relocate", 4, OverlapPolicy.ReplaceExisting, "relocate", "source-scalar", "target-scalar",
             CompositionProfileScalarWidth.FourBytes, CompositionProfileScalarByteOrder.LittleEndian,
             -16, 32);
+        var instanceDelta = new TransformScalarProfileOperation(
+            "relocate-instance", 5, OverlapPolicy.Reject, "relocate", "source-scalar", "target-scalar",
+            CompositionProfileScalarWidth.FourBytes, CompositionProfileScalarByteOrder.LittleEndian,
+            new RegionInstanceDeltaTransformAddendSource("a-bank", "b-bank"), null);
         var processor = new RunProcessorProfileOperation(
-            "postbuild", 5, OverlapPolicy.ReplaceExisting, "postbuild", "legacy-postbuild");
+            "postbuild", 6, OverlapPolicy.ReplaceExisting, "postbuild", "legacy-postbuild");
 
         Assert.Equal(CompositionProfileOperationKind.CopyRange, copy.Kind);
         Assert.Equal("target", replace.TargetViewId);
@@ -35,6 +39,10 @@ public sealed class CompositionProfileV2OperationTests
         Assert.Equal("0102", patch.Value.Hex);
         Assert.Equal(CompositionProfileScalarWidth.FourBytes, transform.Width);
         Assert.Equal(-16, transform.Addend);
+        RegionInstanceDeltaTransformAddendSource delta =
+            Assert.IsType<RegionInstanceDeltaTransformAddendSource>(instanceDelta.AddendSource);
+        Assert.Equal("a-bank", delta.SourceRegionInstanceId);
+        Assert.Equal("b-bank", delta.TargetRegionInstanceId);
         Assert.Equal("legacy-postbuild", processor.ProcessorStageId);
     }
 

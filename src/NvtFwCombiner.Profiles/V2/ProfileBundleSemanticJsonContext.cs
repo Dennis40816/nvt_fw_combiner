@@ -13,6 +13,7 @@ namespace NvtFwCombiner.Profiles.V2;
     GenerationMode = JsonSourceGenerationMode.Metadata)]
 [JsonSerializable(typeof(FirmwareFamilyDocument))]
 [JsonSerializable(typeof(CompositionProfileDocument))]
+[JsonSerializable(typeof(CompositionProfileRegionInstanceDeltaAddendDocument))]
 internal sealed partial class ProfileBundleSemanticJsonContext : JsonSerializerContext
 {
 }

@@ -406,6 +406,39 @@ internal static partial class V2CompositionPlanCompiler
                 case SpaceRangeViewSelector spaceSelector:
                     range = spaceSelector.Range;
                     return true;
+                case RegionTemplateRangeViewSelector templateSelector:
+                    if (!TryResolveRegionInstance(
+                            resolvedMap,
+                            templateSelector.RegionInstanceId,
+                            out _,
+                            out FirmwareRegionInstance? instance,
+                            out string? instanceError) ||
+                        instance is null)
+                    {
+                        error = $"View '{view.ViewId}' names {instanceError}.";
+                        return false;
+                    }
+
+                    FirmwareRelativeRegion? relativeRegion = instance.Template.Regions.SingleOrDefault(candidate =>
+                        StringComparer.Ordinal.Equals(
+                            candidate.RegionId,
+                            templateSelector.TemplateRegionId));
+                    if (relativeRegion is null ||
+                        !instance.ResolvedRegionIds.TryGetValue(
+                            templateSelector.TemplateRegionId,
+                            out string? resolvedRegionId) ||
+                        !resolvedMap.ImageMap.Regions.Any(candidate => StringComparer.Ordinal.Equals(
+                            candidate.RegionId,
+                            resolvedRegionId)))
+                    {
+                        error = $"View '{view.ViewId}' names unknown template region " +
+                            $"'{templateSelector.TemplateRegionId}' in instance " +
+                            $"'{templateSelector.RegionInstanceId}'.";
+                        return false;
+                    }
+
+                    range = relativeRegion.Range;
+                    return true;
                 default:
                     error = $"View '{view.ViewId}' uses an unsupported selector.";
                     return false;
@@ -416,5 +449,55 @@ internal static partial class V2CompositionPlanCompiler
             error = $"View '{view.ViewId}' range overflows its declared bounds.";
             return false;
         }
+    }
+
+    private static bool TryResolveRegionInstance(
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        string instanceId,
+        out FirmwareRegionSet? regionSet,
+        out FirmwareRegionInstance? instance,
+        out string? error)
+    {
+        (
+            FirmwareRegionSet RegionSet,
+            FirmwareRegionInstance Instance
+        )[] matches =
+        [
+            .. resolvedMap.ImageMap.RegionSets
+                .SelectMany(candidateSet => candidateSet.RegionInstances.Select(candidateInstance =>
+                    (RegionSet: candidateSet, Instance: candidateInstance)))
+                .Where(candidate => StringComparer.Ordinal.Equals(
+                    candidate.Instance.InstanceId,
+                    instanceId)),
+        ];
+        if (matches.Length == 0)
+        {
+            regionSet = null;
+            instance = null;
+            error = $"unknown region instance '{instanceId}'";
+            return false;
+        }
+
+        if (matches.Length != 1)
+        {
+            regionSet = null;
+            instance = null;
+            error = $"ambiguous region instance '{instanceId}'";
+            return false;
+        }
+
+        (regionSet, instance) = matches[0];
+        if (!StringComparer.Ordinal.Equals(
+                regionSet.AddressSpaceId,
+                resolvedMap.ImageMap.AddressSpaceId))
+        {
+            regionSet = null;
+            instance = null;
+            error = $"region instance '{instanceId}' with an incompatible address space";
+            return false;
+        }
+
+        error = null;
+        return true;
     }
 }

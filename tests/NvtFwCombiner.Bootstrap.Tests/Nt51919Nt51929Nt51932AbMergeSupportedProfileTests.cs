@@ -10,7 +10,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
 {
     private const string BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string BundleContentHash = "da99e8f6563ad89cbab8853c9e4169dd0821edd39416a9788300f5c73cf6bdb7";
+    private const string BundleContentHash = "2c54c025d2afd3c8c15de6587894fb166a2a8cb7879f90fa241cba8dddeb5544";
     private const int Capacity = 0x80000;
     private const int TpCodeStart = 0x7000;
     private const int TpCodeLength = 0x39000;
@@ -36,6 +36,19 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
         Assert.Empty(details.Provenance.Promotion.Blockers);
         Assert.Equal(expectedMapId, details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(Capacity, composition.Plan.OutputInitialization.Capacity);
+        FirmwareRegionSet regionSet = Assert.Single(
+            details.Provenance.ResolvedMap.ImageMap.RegionSets,
+            static set => StringComparer.Ordinal.Equals(
+                set.RegionSetId,
+                "nt51929-nt51932-ab-merge-flash"));
+        FirmwareRegionTemplate bank = Assert.Single(regionSet.RegionTemplates);
+        Assert.Equal("ab-bank", bank.TemplateId);
+        Assert.Equal(0x40000, bank.Capacity);
+        Assert.Equal(["a-bank", "b-bank"], regionSet.RegionInstances.Select(static instance => instance.InstanceId));
+        Assert.All(regionSet.RegionInstances, instance => Assert.Same(bank, instance.Template));
+        Assert.Equal(
+            Relocation,
+            checked((uint)(regionSet.RegionInstances[1].BaseOffset - regionSet.RegionInstances[0].BaseOffset)));
         AssertRegionRange(details, "a-cmi-dp-version", 0x401A, 3);
         AssertRegionRange(details, "b-cmi-dp-version", 0x4401A, 3);
         Assert.Equal(
@@ -55,7 +68,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
         V2CompositionPlanCompileResult wrongCapacity = TrustedV2CompositionCompiler.Compile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.3.0",
+            "0.4.0",
             icId,
             ExperienceIds.AbMerge,
             requestedMapCapacity: 0x40000);
@@ -138,7 +151,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.3.0",
+            "0.4.0",
             icId,
             ExperienceIds.AbMerge,
             Capacity);

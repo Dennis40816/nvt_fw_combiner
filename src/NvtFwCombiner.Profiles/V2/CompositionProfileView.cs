@@ -9,6 +9,7 @@ internal enum CompositionProfileViewSelectorKind
     MapRegion,
     MapRegionSlice,
     SpaceRange,
+    RegionTemplateRange,
 }
 
 /// <summary>Base value for one normalized logical-view selector.</summary>
@@ -64,6 +65,27 @@ internal sealed record SpaceRangeViewSelector : CompositionProfileViewSelector
     }
 
     internal ByteRange Range { get; }
+}
+
+/// <summary>Selects one template-relative range through an explicit region instance.</summary>
+internal sealed record RegionTemplateRangeViewSelector : CompositionProfileViewSelector
+{
+    internal RegionTemplateRangeViewSelector(
+        string regionInstanceId,
+        string templateRegionId)
+        : base(CompositionProfileViewSelectorKind.RegionTemplateRange)
+    {
+        RegionInstanceId = CompositionProfileValueRules.RequireId(
+            regionInstanceId,
+            nameof(regionInstanceId));
+        TemplateRegionId = CompositionProfileValueRules.RequireId(
+            templateRegionId,
+            nameof(templateRegionId));
+    }
+
+    internal string RegionInstanceId { get; }
+
+    internal string TemplateRegionId { get; }
 }
 
 /// <summary>One named logical view over a profile address space.</summary>
