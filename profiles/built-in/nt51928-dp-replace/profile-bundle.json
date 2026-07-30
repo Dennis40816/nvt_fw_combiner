@@ -3,12 +3,12 @@
   "bundleId": "nt51928-dp-replace-family",
   "bundleVersion": "0.10.1-nt51928-dual-capacity.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "4acc49cca62303298de399493cc9585bf3edebf2363ac0a9f5ef20d2456ec63c",
+  "contentHash": "9b1e8e49c48561d24877ca08c21888b56b2c93947c71752019ddbede18ebc5f7",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
-    { "entryId": "composition-profile-v2-schema", "kind": "schema", "path": "schemas/composition-profile-v2.schema.json", "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json", "contentHash": "659b95f832067a9f00e06cf4f045287761851fd64b8775dbcd57e7f9ee96c37f" },
+    { "entryId": "composition-profile-v2-schema", "kind": "schema", "path": "schemas/composition-profile-v2.schema.json", "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json", "contentHash": "97540ff527b8929726949629aa9fff46819be3a413f757c007a44a1025e31100" },
     { "entryId": "firmware-family-v1-schema", "kind": "schema", "path": "schemas/firmware-family-v1.schema.json", "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json", "contentHash": "695e43c4c89b647b83333a776dc26e2a27b925c46448048ef0c38e839456a0e3" },
     { "entryId": "nt51927-nt51928-family-v1-4", "kind": "firmware-family", "path": "families/nt51927-nt51928-v1.4.json", "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json", "contentHash": "4c45c4e1346632bfee569d7387abe9ee5226b5624e083f02b554ad985a52b694" },
-    { "entryId": "nt51928-dp-replace-profile", "kind": "composition-profile", "path": "profiles/nt51928-dp-replace.json", "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json", "contentHash": "af419773ad55f8bd2984bd30ed2885248c05df4e3f83783f6c4a9952c0064853" }
+    { "entryId": "nt51928-dp-replace-profile", "kind": "composition-profile", "path": "profiles/nt51928-dp-replace.json", "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json", "contentHash": "c144eb848e4ff4b4d51681b6bc81c6b790ae2d81ccc5372ef1b82c0fd89b38e1" }
   ]
 }

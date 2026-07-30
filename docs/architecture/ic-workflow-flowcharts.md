@@ -124,11 +124,11 @@ not runtime routes.
 ```mermaid
 flowchart TD
     A["Select built-in Standard Merge profile"] --> B["Create blank output image with profile flash size and fill byte"]
-    B --> C{"TP matches declared length (at most 0x40000)?"}
+    B --> C{"TP source covers every declared TP read?"}
     C -- "no" --> D["Reject input"]
-    C -- "yes" --> E{"DP reaches the declared source-range end?"}
+    C -- "yes" --> E{"DP source covers every declared DP read?"}
     E -- "no" --> D
-    E -- "yes" --> F["Extract declared DP range; warn only when total DP size is unexpected"]
+    E -- "yes" --> F["Bind compiled source views; optional outer-length diagnostics remain profile-declared"]
     F --> G["Copy TP input range to output, sequence 100"]
     G --> H["Copy DP input range to output, sequence 200"]
     H --> I["Validate declared output ranges and overlap policy"]
@@ -136,9 +136,15 @@ flowchart TD
     J --> K["Preview/Build report records input hashes, copied ranges, warnings, and output hash"]
 ```
 
-The DP source-size notes below are expected golden lengths, not exact-size execution gates. A DP input must cover the listed DP range; other total lengths are accepted with a warning. TP input remains exact-length for its declared profile range.
+The DP source-size notes below are expected golden lengths, not exact-size
+execution gates. DP and TP inputs must cover their listed address-bearing source
+views; other total lengths are accepted under the profile's source-view policy.
+No outer-length warning is implied unless the profile explicitly declares that
+optional diagnostic. A compatible same-IC FlashCode may provide either section.
+Replace Reference and complete DP AB inputs remain exact declared container
+variants.
 
-| IC | Output size | TP range | DP range | DP input length note |
+| IC | Output size | TP range | DP range | Observed fixture length (diagnostic only) |
 | --- | ---: | --- | --- | --- |
 | NT51917 | `0x40000` | `[0x00000, 0x35000)` | `[0x3C000, 0x40000)` | Owner-confirmed alias of NT51927; declared source length `0x200000`; alias golden regression uses NT51927 fixtures. |
 | NT51919 | `0x40000` | `[0x07000, 0x40000)` | `[0x00000, 0x06000)` | Owner-confirmed alias of NT51929; declared source length `0x40000`; alias golden regression uses NT51929 fixtures. |

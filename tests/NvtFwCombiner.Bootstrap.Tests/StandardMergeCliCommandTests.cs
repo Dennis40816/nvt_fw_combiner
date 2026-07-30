@@ -220,7 +220,8 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
+        Assert.Contains("DP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal);
+        Assert.Contains("TP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal);
         Assert.Contains("Size: 262144 bytes", result.Output, StringComparison.Ordinal);
     }
 

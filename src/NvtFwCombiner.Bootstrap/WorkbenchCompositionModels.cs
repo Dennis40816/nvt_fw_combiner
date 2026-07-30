@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -262,6 +263,9 @@ public sealed record WorkbenchFirmwareInspection(
     WorkbenchCtrlRamInspectionDisplay? CtrlRamDisplay,
     WorkbenchBaseFirmwareArtifactKind BaseFirmwareArtifactKind = WorkbenchBaseFirmwareArtifactKind.Unknown)
 {
+    /// <summary>Application-owned profile-declared artifact classification and its typed evidence.</summary>
+    public CompiledFirmwareArtifactClassification? ArtifactClassification { get; init; }
+
     /// <summary>AB-specific typed inspection when the request names one compiled AB input space.</summary>
     public WorkbenchAbMergeInputInspection? AbMergeInput { get; init; }
 }

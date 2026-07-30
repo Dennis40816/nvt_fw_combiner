@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "2.12",
+  "schemaVersion": "2.13",
   "profileId": "nt51928-dp-replace-gen-flash",
   "profileVersion": "0.3.0",
   "promotion": { "stage": "supported", "blockers": [] },
@@ -33,13 +33,13 @@
     {
       "slotId": "initial-code-replacement", "role": "initial-code", "artifactClass": "dp-firmware",
       "required": false, "cardinality": "zero-or-one", "acceptedExtensions": [".bin"],
-      "acceptance": { "lengthRule": { "kind": "normal-dp-extract-with-warning", "issueCode": "DP_SIZE_WARNING" }, "normalization": { "kind": "none" } }
+      "acceptance": { "lengthRule": { "kind": "source-view-coverage" }, "normalization": { "kind": "none" } }
     },
     {
       "slotId": "ldc-replacement", "role": "ldc", "artifactClass": "auxiliary",
       "required": false, "cardinality": "zero-or-one", "acceptedExtensions": [".bin"],
       "notApplicableReason": "Reference length does not include LDC",
-      "acceptance": { "lengthRule": { "kind": "exact-resolved-map-capacity" }, "normalization": { "kind": "none" } }
+      "acceptance": { "lengthRule": { "kind": "source-view-coverage" }, "normalization": { "kind": "none" } }
     }
   ],
   "inputSelectionGroups": [

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "2.10",
+  "schemaVersion": "2.13",
   "profileId": "nt51951-ab-merge",
   "profileVersion": "0.2.0",
   "promotion": {
@@ -83,14 +83,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "declared-prefix-with-warning",
-          "requiredEndExclusive": 225280,
-          "expectedOuterLengths": [
-            225280,
-            262144
-          ],
-          "shortInputIssueCode": "AB_TPA_INPUT_TOO_SHORT",
-          "unexpectedOuterLengthIssueCode": "AB_TPA_INPUT_OUTER_LENGTH_UNEXPECTED"
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -108,14 +101,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "declared-prefix-with-warning",
-          "requiredEndExclusive": 225280,
-          "expectedOuterLengths": [
-            225280,
-            262144
-          ],
-          "shortInputIssueCode": "AB_TPB_INPUT_TOO_SHORT",
-          "unexpectedOuterLengthIssueCode": "AB_TPB_INPUT_OUTER_LENGTH_UNEXPECTED"
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"

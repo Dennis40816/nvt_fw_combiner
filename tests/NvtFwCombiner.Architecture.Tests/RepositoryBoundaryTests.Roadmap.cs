@@ -61,14 +61,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("| 0 | Canonical pilot | #173 | Deliver the NT51929 Standard Merge canonical capability tracer | — |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 0 | Headless retirement | #221 | Retire NT51920/NT51925/NT51930/NT51931 production capabilities | — |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 4 | Headless data | #177 | Migrate remaining admitted metadata family bindings | #174, #175, #176, #221 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 5 | Headless firmware | #187 | Migrate admitted legacy TP Header families | #186, #221, and matching #177 family slice |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 12 | Deferred UI | #214 | Deliver Message Center and System Information diagnostics | #173, #185, #208 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 14 | Core convergence | #230 | Converge Domain + Profiles to one canonical firmware model | #195, #196 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 15 | Core convergence | #231 | Converge Application on capability-centered use cases | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 15 | Core convergence | #232 | Converge Infrastructure, Contracts, and CRC worker protocol ownership | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 16 | Core convergence | #233 | Converge Bootstrap + CLI to wiring-only composition | #195, #196, #230, #231, #232 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 17 | Core convergence | #229 | Complete Canonical Core Convergence under the hard production-size gate | #230, #231, #232, #233 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 18 | Integration | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #229 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 5 | Headless firmware | #259 | Canonicalize source projections and FlashCode admission | #219, #239 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 6 | Headless firmware | #187 | Migrate admitted legacy TP Header families | #186, #221, #259, and matching #177 family slice |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 15 | Deferred UI | #214 | Deliver Message Center and System Information diagnostics | #173, #185, #208 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 17 | Core convergence | #230 | Converge Domain + Profiles to one canonical firmware model | #195, #196, #259 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 18 | Core convergence | #231 | Converge Application on capability-centered use cases | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 18 | Core convergence | #232 | Converge Infrastructure, Contracts, and CRC worker protocol ownership | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 19 | Core convergence | #233 | Converge Bootstrap + CLI to wiring-only composition | #195, #196, #230, #231, #232 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 20 | Core convergence | #229 | Complete Canonical Core Convergence under the hard production-size gate | #230, #231, #232, #233 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 21 | Integration | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #229 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains(
             "Live completion and dependency-ready frontier state are queried from GitHub;",
             dependencyPlan,

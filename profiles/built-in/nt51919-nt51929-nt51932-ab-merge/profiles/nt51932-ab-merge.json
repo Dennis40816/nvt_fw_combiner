@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "2.11",
+  "schemaVersion": "2.13",
   "profileId": "nt51932-ab-merge",
   "profileVersion": "0.3.0",
   "promotion": {
@@ -38,11 +38,7 @@
       "acceptedExtensions": [".bin"],
       "acceptance": {
         "lengthRule": {
-          "kind": "declared-prefix-with-warning",
-          "requiredEndExclusive": 524288,
-          "expectedOuterLengths": [524288],
-          "shortInputIssueCode": "AB_DP_INPUT_TOO_SHORT",
-          "unexpectedOuterLengthIssueCode": "AB_DP_INPUT_OUTER_LENGTH_UNEXPECTED"
+          "kind": "exact-resolved-map-capacity"
         },
         "normalization": { "kind": "none" }
       }
@@ -56,11 +52,7 @@
       "acceptedExtensions": [".bin"],
       "acceptance": {
         "lengthRule": {
-          "kind": "declared-prefix-with-warning",
-          "requiredEndExclusive": 262144,
-          "expectedOuterLengths": [262144],
-          "shortInputIssueCode": "AB_TPA_INPUT_TOO_SHORT",
-          "unexpectedOuterLengthIssueCode": "AB_TPA_INPUT_OUTER_LENGTH_UNEXPECTED"
+          "kind": "source-view-coverage"
         },
         "normalization": { "kind": "none" }
       }
@@ -74,11 +66,7 @@
       "acceptedExtensions": [".bin"],
       "acceptance": {
         "lengthRule": {
-          "kind": "declared-prefix-with-warning",
-          "requiredEndExclusive": 262144,
-          "expectedOuterLengths": [262144],
-          "shortInputIssueCode": "AB_TPB_INPUT_TOO_SHORT",
-          "unexpectedOuterLengthIssueCode": "AB_TPB_INPUT_OUTER_LENGTH_UNEXPECTED"
+          "kind": "source-view-coverage"
         },
         "normalization": { "kind": "none" }
       }

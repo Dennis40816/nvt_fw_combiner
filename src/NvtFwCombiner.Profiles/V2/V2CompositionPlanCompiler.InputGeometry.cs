@@ -5,10 +5,76 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class V2CompositionPlanCompiler
 {
+    private static AddressSpace CreateInputAddressSpace(
+        string addressSpaceId,
+        long length,
+        CompositionProfileInputSlot slot,
+        long resolvedMapCapacity,
+        CompositionKind compositionKind,
+        bool isCloneSource)
+    {
+        return slot.LengthRule switch
+        {
+            NormalDpExtractWithWarningLengthRule normalDp => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: ResolveNormalDpExpectedInputLengths(normalDp, resolvedMapCapacity),
+                unexpectedInputLengthIssueCode: normalDp.IssueCode),
+            DeclaredPrefixWithWarningLengthRule declaredPrefix => new AddressSpace(
+                addressSpaceId,
+                declaredPrefix.RequiredEndExclusive,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: declaredPrefix.ExpectedOuterLengths,
+                unexpectedInputLengthIssueCode: declaredPrefix.UnexpectedOuterLengthIssueCode),
+            SourceViewCoverageLengthRule sourceView => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: sourceView.ExpectedOuterLengths.Count == 0
+                    ? null
+                    : sourceView.ExpectedOuterLengths,
+                unexpectedInputLengthIssueCode: sourceView.UnexpectedOuterLengthIssueCode),
+            TpMaximum256KLengthRule => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
+            ExactBytesLengthRule when slot.Normalization is TruncateCtrlRamInputNormalization => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+            ExactBytesLengthRule => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable),
+            ExactResolvedMapCapacityLengthRule when slot.Normalization is PadShorterInputNormalization padded => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                inputPaddingByte: padded.FillByte),
+            ExactResolvedMapCapacityLengthRule when isCloneSource ||
+                                                   (compositionKind == CompositionKind.Replace &&
+                                                    slot.ArtifactClass == CompositionProfileArtifactClass.ReferenceImage) => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable),
+            _ => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                allowedInputLengths: [length]),
+        };
+    }
+
     private static bool IsCurrentInputLengthRuleSupported(CompositionProfileInputSlot slot)
     {
         return slot.LengthRule is ExactResolvedMapCapacityLengthRule or NormalDpExtractWithWarningLengthRule or
-            DeclaredPrefixWithWarningLengthRule ||
+            DeclaredPrefixWithWarningLengthRule or SourceViewCoverageLengthRule ||
             (slot.ArtifactClass == CompositionProfileArtifactClass.TpFirmware &&
              (slot.LengthRule is TpMaximum256KLengthRule ||
               slot.LengthRule is ExactBytesLengthRule { Bytes: <= TpMaximum256KLengthRule.MaximumBytes })) ||
@@ -19,6 +85,7 @@ internal static partial class V2CompositionPlanCompiler
 
     private static bool TryResolveInputSpaceLength(
         CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition family,
         InputArtifactProfileSpace input,
         CompositionProfileInputSlot slot,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
@@ -34,9 +101,19 @@ internal static partial class V2CompositionPlanCompiler
                 length = resolvedMap.CapacityBytes;
                 return true;
             case TpMaximum256KLengthRule:
-                return TryResolveTpSourceSpan(profile, input, resolvedMap, issues, out length);
+                return TryResolveTpSourceSpan(profile, family, input, resolvedMap, issues, out length);
             case NormalDpExtractWithWarningLengthRule:
-                return TryResolveNormalDpSourceSpan(profile, input, resolvedMap, issues, out length);
+                return TryResolveNormalDpSourceSpan(profile, family, input, resolvedMap, issues, out length);
+            case SourceViewCoverageLengthRule:
+                return TryResolveInputSourceSpan(
+                    profile,
+                    family,
+                    input,
+                    resolvedMap,
+                    "Section",
+                    "source-view coverage",
+                    issues,
+                    out length);
             case DeclaredPrefixWithWarningLengthRule declaredPrefix:
                 length = declaredPrefix.RequiredEndExclusive;
                 return true;
@@ -47,12 +124,21 @@ internal static partial class V2CompositionPlanCompiler
 
     private static bool TryResolveTpSourceSpan(
         CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition family,
         InputArtifactProfileSpace input,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         List<CompositionIssue> issues,
         out long length)
     {
-        if (!TryResolveInputSourceSpan(profile, input, resolvedMap, "TP", "exact plan", issues, out length))
+        if (!TryResolveInputSourceSpan(
+                profile,
+                family,
+                input,
+                resolvedMap,
+                "TP",
+                "exact plan",
+                issues,
+                out length))
         {
             return false;
         }
@@ -72,6 +158,7 @@ internal static partial class V2CompositionPlanCompiler
 
     private static bool TryResolveNormalDpSourceSpan(
         CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition family,
         InputArtifactProfileSpace input,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         List<CompositionIssue> issues,
@@ -79,6 +166,7 @@ internal static partial class V2CompositionPlanCompiler
     {
         return TryResolveInputSourceSpan(
             profile,
+            family,
             input,
             resolvedMap,
             "Normal DP",
@@ -98,6 +186,7 @@ internal static partial class V2CompositionPlanCompiler
 
     private static bool TryResolveInputSourceSpan(
         CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition family,
         InputArtifactProfileSpace input,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         string inputKind,
@@ -106,7 +195,7 @@ internal static partial class V2CompositionPlanCompiler
         out long length)
     {
         long maximumEndExclusive = 0;
-        bool hasView = false;
+        bool hasRead = false;
         foreach (CompositionProfileView view in profile.Views.Where(view =>
                      StringComparer.Ordinal.Equals(view.SpaceId, input.SpaceId)))
         {
@@ -121,14 +210,56 @@ internal static partial class V2CompositionPlanCompiler
             }
 
             maximumEndExclusive = Math.Max(maximumEndExclusive, range.EndExclusive);
-            hasView = true;
+            hasRead = true;
         }
 
-        if (!hasView)
+        foreach (CompositionProfileMetadataBinding binding in profile.MetadataBindings.Where(binding =>
+                     StringComparer.Ordinal.Equals(binding.SpaceId, input.SpaceId)))
+        {
+            string? error = null;
+            if (!family.TryResolveStructure(
+                    resolvedMap.ImageMap.MapId,
+                    binding.StructureId,
+                    out FirmwareMetadataStructure? structure) ||
+                structure is null ||
+                !TryResolveMetadataReadEnd(
+                    family,
+                    resolvedMap,
+                    structure,
+                    new HashSet<string>(StringComparer.Ordinal),
+                    out long metadataEnd,
+                    out error))
+            {
+                issues.Add(new CompositionIssue(
+                    InvalidInputGeometry,
+                    $"{inputKind} input space '{input.SpaceId}' cannot resolve metadata binding " +
+                    $"'{binding.BindingId}': {error ?? "the selected structure is unavailable."}",
+                    binding.BindingId));
+                length = 0;
+                return false;
+            }
+
+            maximumEndExclusive = Math.Max(maximumEndExclusive, metadataEnd);
+            hasRead = true;
+        }
+
+        foreach (MutableCompositionProfileSpace cloneTarget in profile.Spaces
+                     .OfType<MutableCompositionProfileSpace>()
+                     .Where(space => space.Initializer is CloneProfileInitializer clone &&
+                         StringComparer.Ordinal.Equals(clone.SourceSlotId, input.SlotId)))
+        {
+            maximumEndExclusive = Math.Max(
+                maximumEndExclusive,
+                ResolveMutableSpaceCapacity(cloneTarget, resolvedMap.CapacityBytes));
+            hasRead = true;
+        }
+
+        if (!hasRead)
         {
             issues.Add(new CompositionIssue(
                 InvalidInputGeometry,
-                $"{inputKind} input space '{input.SpaceId}' has no source view from which to derive its {spanDescription} span.",
+                $"{inputKind} input space '{input.SpaceId}' has no source view, metadata read, or clone " +
+                $"initialization from which to derive its {spanDescription} span.",
                 input.SpaceId));
             length = 0;
             return false;
@@ -136,6 +267,98 @@ internal static partial class V2CompositionPlanCompiler
 
         length = maximumEndExclusive;
         return true;
+    }
+
+    private static bool TryResolveMetadataReadEnd(
+        FirmwareFamilyResolutionDefinition family,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        FirmwareMetadataStructure structure,
+        HashSet<string> visitedStructureIds,
+        out long endExclusive,
+        out string? error)
+    {
+        endExclusive = 0;
+        error = null;
+        if (!visitedStructureIds.Add(structure.StructureId))
+        {
+            error = $"metadata dependency cycle at '{structure.StructureId}'.";
+            return false;
+        }
+
+        try
+        {
+            switch (structure.Locator)
+            {
+                case FirmwareAbsoluteRangeLocator absolute:
+                    endExclusive = absolute.Range.Range.EndExclusive;
+                    return true;
+                case FirmwareRegionRelativeLocator relative:
+                    FirmwareRegion? region = resolvedMap.ImageMap.Regions.SingleOrDefault(candidate =>
+                        StringComparer.Ordinal.Equals(candidate.RegionId, relative.RegionId));
+                    if (region is null)
+                    {
+                        error = $"unknown metadata base region '{relative.RegionId}'.";
+                        return false;
+                    }
+
+                    endExclusive = checked(region.Range.Start + relative.Offset + structure.LengthBytes);
+                    return true;
+                case FirmwareMarkerRelativeLocator marker:
+                    long maximumMarkerStart = checked(
+                        marker.SearchRange.Range.EndExclusive - marker.MarkerBytes.Length);
+                    long maximumResultStart = checked(maximumMarkerStart + marker.ResultOffset);
+                    if (maximumResultStart < 0)
+                    {
+                        error = $"marker-relative structure '{structure.StructureId}' can resolve below zero.";
+                        return false;
+                    }
+
+                    endExclusive = Math.Max(
+                        marker.SearchRange.Range.EndExclusive,
+                        checked(maximumResultStart + structure.LengthBytes));
+                    return true;
+                case FirmwareMetadataFieldSelectedLocator selected:
+                    if (!family.TryResolveStructure(
+                            resolvedMap.ImageMap.MapId,
+                            selected.PrerequisiteStructureId,
+                            out FirmwareMetadataStructure? prerequisite) ||
+                        prerequisite is null ||
+                        !TryResolveMetadataReadEnd(
+                            family,
+                            resolvedMap,
+                            prerequisite,
+                            visitedStructureIds,
+                            out long prerequisiteEnd,
+                            out error))
+                    {
+                        error ??= $"unknown metadata prerequisite '{selected.PrerequisiteStructureId}'.";
+                        return false;
+                    }
+
+                    long maximumResultEnd = selected.Branches.Max(branch =>
+                        checked(branch.AnchorRange.Range.Start + selected.ResultOffset + structure.LengthBytes));
+                    if (maximumResultEnd < 0)
+                    {
+                        error = $"field-selected structure '{structure.StructureId}' can resolve below zero.";
+                        return false;
+                    }
+
+                    endExclusive = Math.Max(prerequisiteEnd, maximumResultEnd);
+                    return true;
+                default:
+                    error = $"unsupported locator for metadata structure '{structure.StructureId}'.";
+                    return false;
+            }
+        }
+        catch (OverflowException)
+        {
+            error = $"metadata structure '{structure.StructureId}' read range overflows.";
+            return false;
+        }
+        finally
+        {
+            _ = visitedStructureIds.Remove(structure.StructureId);
+        }
     }
 
     private static bool TryResolveSelectorRange(

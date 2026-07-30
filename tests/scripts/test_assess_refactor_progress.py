@@ -30,15 +30,15 @@ class AssessRefactorProgressTests(unittest.TestCase):
             REPOSITORY_ROOT / "docs" / "governance" / "0.10.x-ticket-dependency-plan.md"
         )
 
-        self.assertEqual(39, len(tickets))
+        self.assertEqual(48, len(tickets))
         self.assertEqual(
             {
                 "baseline": 3,
-                "headlessCanonicalFoundation": 21,
+                "headlessCanonicalFoundation": 28,
                 "deferredUi": 7,
-                "deletion": 2,
+                "deletion": 3,
                 "coreConvergence": 5,
-                "integration": 1,
+                "integration": 2,
             },
             {
                 group: sum(ticket.group == group for ticket in tickets)

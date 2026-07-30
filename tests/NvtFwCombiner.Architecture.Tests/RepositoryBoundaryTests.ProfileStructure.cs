@@ -176,6 +176,20 @@ public sealed partial class RepositoryBoundaryTests
             "nt51929-dp-replace",
             "nt51950-nt51951-standard-merge",
         ];
+        string[] sourceProjectionSchemaBundleIds =
+        [
+            "nt51923-dp-replace",
+            "nt51923-standard-merge",
+            "nt51927-dp-replace",
+            "nt51927-standard-merge",
+            "nt51928-dp-replace",
+            "nt51928-standard-merge",
+            "nt51929-dp-replace",
+            "nt51929-standard-merge",
+            "nt51919-nt51929-nt51932-ab-merge",
+            "nt51950-ab-merge",
+            "nt51950-nt51951-standard-merge",
+        ];
 
         Assert.Equal(
             expectedBundleIds,
@@ -185,27 +199,12 @@ public sealed partial class RepositoryBoundaryTests
             XAttribute include = Assert.Single(bundle.Attributes());
 
             Assert.Equal("Include", include.Name.LocalName);
-            if (bundle.Attribute("Include")?.Value is
-                    "nt51928-dp-replace" or
-                    "nt51928-standard-merge")
+            if (sourceProjectionSchemaBundleIds.Contains(
+                    bundle.Attribute("Include")?.Value,
+                    StringComparer.Ordinal))
             {
                 Assert.Equal(
-                    "composition-profile-v2.12.schema.json",
-                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
-            }
-            else if (bundle.Attribute("Include")?.Value is
-                    "nt51929-standard-merge" or
-                    "nt51919-nt51929-nt51932-ab-merge")
-            {
-                Assert.Equal(
-                    "composition-profile-v2.11.schema.json",
-                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
-            }
-            else if (bundle.Attribute("Include")?.Value is
-                         "nt51950-ab-merge")
-            {
-                Assert.Equal(
-                    "composition-profile-v2.10.schema.json",
+                    "composition-profile-v2.13.schema.json",
                     Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
             else if (logicalOutputCandidateBundleIds.Contains(

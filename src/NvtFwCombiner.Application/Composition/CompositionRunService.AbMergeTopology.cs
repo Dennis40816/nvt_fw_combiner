@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -16,8 +17,8 @@ public sealed partial class CompositionRunService
     {
         if (!request.CompiledComposition.IsV2AbFunctionOpenCandidate ||
             request.AbMergeTopologySelection is not { } selected ||
-            !TryGetDeclaredTpPrefix(request, inputBytes, CompositionAddressSpaceIds.TpAInput, out ReadOnlySpan<byte> tpA) ||
-            !TryGetDeclaredTpPrefix(request, inputBytes, CompositionAddressSpaceIds.TpBInput, out ReadOnlySpan<byte> tpB))
+            !TryGetAcceptedTpSourceView(request, inputBytes, CompositionAddressSpaceIds.TpAInput, out ReadOnlySpan<byte> tpA) ||
+            !TryGetAcceptedTpSourceView(request, inputBytes, CompositionAddressSpaceIds.TpBInput, out ReadOnlySpan<byte> tpB))
         {
             return;
         }
@@ -76,33 +77,30 @@ public sealed partial class CompositionRunService
         }
     }
 
-    private static bool TryGetDeclaredTpPrefix(
+    private static bool TryGetAcceptedTpSourceView(
         CompositionRunRequest request,
         Dictionary<string, byte[]> inputBytes,
         string addressSpaceId,
         out ReadOnlySpan<byte> prefix)
     {
         prefix = default;
-        if (!inputBytes.TryGetValue(addressSpaceId, out byte[]? bytes) ||
-            request.CompiledComposition.V2Details is not { } details)
+        if (!inputBytes.TryGetValue(addressSpaceId, out byte[]? bytes))
         {
             return false;
         }
 
-        CompiledInputSpaceBinding? binding = details.InputContract.SpaceBindings.SingleOrDefault(candidate =>
-            StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId));
-        CompiledInputSlotRequirement? slot = binding is null
-            ? null
-            : details.InputContract.Slots.SingleOrDefault(candidate =>
-                StringComparer.Ordinal.Equals(candidate.SlotId, binding.SlotId));
-        if (slot?.LengthRequirement is not CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix ||
-            bytes.LongLength < declaredPrefix.RequiredEndExclusive ||
-            declaredPrefix.RequiredEndExclusive > int.MaxValue)
+        CompiledInputArtifactInspectionResult inspection =
+            CompiledInputArtifactInspectionService.Inspect(
+                request.CompiledComposition,
+                addressSpaceId,
+                bytes);
+        if (inspection.AcceptedSnapshotRange is not { Start: 0 } accepted ||
+            accepted.Length > int.MaxValue)
         {
             return false;
         }
 
-        prefix = bytes.AsSpan(0, checked((int)declaredPrefix.RequiredEndExclusive));
+        prefix = bytes.AsSpan(0, checked((int)accepted.Length));
         return true;
     }
 

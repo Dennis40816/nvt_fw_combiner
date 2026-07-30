@@ -2,6 +2,7 @@
 
 - Status: Accepted for repository bootstrap
 - Date: 2026-06-25
+- Amended: 2026-07-29 for canonical LDC terminology
 - Owners: Product owner + architecture owner + DP/CtrlRAM firmware reviewers
 - Amended by: ADR 0015, ADR 0044
 
@@ -13,7 +14,9 @@ DP and CtrlRAM workflows reason about different parts of the same IC memory map.
 
 Keep one canonical IC region catalog and apply deny-by-default `RegionAccessRule` policies per experience:
 
-- **DP Replace** — DP whole or declared partitions, including profile-declared LD replacement slots when LD is replaced separately from the DP BIN.
+- **DP Replace** — DP whole or declared partitions, including
+  profile-declared LDC replacement slots when LDC is replaced separately from
+  the DP BIN. `LD` is legacy source terminology only.
 - **CtrlRAM Replace** — named CtrlRAM regions/groups tagged `tp-ctrlram` only.
 - **General Replace** — explicit mappings only inside profile-enabled ranges; those ranges are not limited to the DP or CtrlRAM persona categories, while protected ranges remain blocked.
 
@@ -30,7 +33,8 @@ Persona checks live in the profile/compiler/application layer. UI merely display
 
 ## Verification
 
-- DP Replace rejects non-DP targets while allowing profile-declared LD targets under the DP Replace policy.
+- DP Replace rejects non-DP targets while allowing profile-declared LDC
+  targets under the DP Replace policy.
 - CtrlRAM Replace rejects non-CtrlRAM targets.
 - General mappings reject protected/out-of-bounds/misaligned/overlapping targets.
 - Canvas/table serialization round-trips exactly.

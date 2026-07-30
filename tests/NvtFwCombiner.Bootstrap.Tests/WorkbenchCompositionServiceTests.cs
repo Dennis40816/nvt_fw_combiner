@@ -75,9 +75,9 @@ public sealed class WorkbenchCompositionServiceTests
         }
     }
 
-    /// <summary>Verifies Standard Merge extracts a sufficient nonstandard DP artifact and reports the size warning.</summary>
+    /// <summary>Verifies Standard Merge reads its DP source view and ignores a non-authoritative trailing byte.</summary>
     [Fact]
-    public async Task StandardMergePreviewWarnsButDoesNotBlockUnexpectedDpLength()
+    public async Task StandardMergePreviewIgnoresNonAuthoritativeDpTail()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-dp-length");
         byte[] dp = File.ReadAllBytes(GoldenArtifactPath("51926", "dp-input"));
@@ -101,11 +101,7 @@ public sealed class WorkbenchCompositionServiceTests
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output")))).ToLowerInvariant(),
             result.OutputSha256);
         using var document = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
-            document.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue =>
-                issue.GetProperty("Code").GetString() == "DP_SIZE_WARNING" &&
-                issue.GetProperty("Severity").GetString() == "warning");
+        Assert.Empty(document.RootElement.GetProperty("Issues").EnumerateArray());
     }
 
     /// <summary>Verifies firmware metadata exposes display-ready postbuild category names outside the UI layer.</summary>

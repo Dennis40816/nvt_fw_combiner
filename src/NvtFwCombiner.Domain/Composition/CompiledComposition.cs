@@ -267,6 +267,7 @@ public sealed partial class CompiledComposition
         var tpInputSpaces = new List<AddressSpace>();
         var normalDpInputRequirements = new List<(AddressSpace AddressSpace, CompiledNormalDpExtractWithWarningInputLengthRequirement Requirement)>();
         var declaredPrefixInputRequirements = new List<(AddressSpace AddressSpace, CompiledDeclaredPrefixWithWarningInputLengthRequirement Requirement)>();
+        var sourceViewInputRequirements = new List<(AddressSpace AddressSpace, CompiledSourceViewCoverageInputLengthRequirement Requirement)>();
         var slots = details.InputContract.Slots.ToDictionary(
             static requirement => requirement.SlotId,
             StringComparer.Ordinal);
@@ -341,9 +342,19 @@ public sealed partial class CompiledComposition
 
                     declaredPrefixInputRequirements.Add((addressSpace, declaredPrefix));
                     break;
+                case CompiledSourceViewCoverageInputLengthRequirement sourceView:
+                    if (requirement.Normalization is not CompiledNoInputNormalization)
+                    {
+                        throw new ArgumentException(
+                            "Source-view coverage requires an unnormalized immutable section source.",
+                            nameof(details));
+                    }
+
+                    sourceViewInputRequirements.Add((addressSpace, sourceView));
+                    break;
                 default:
                     throw new ArgumentException(
-                        "Current V2 plan artifacts support only exact-map-capacity, declared-prefix, normal-DP extraction, TP-maximum, or exact TP input requirements.",
+                        "Current V2 plan artifacts support only exact-map-capacity, source-view, declared-prefix, normal-DP extraction, TP-maximum, or exact TP input requirements.",
                         nameof(details));
             }
         }
@@ -382,6 +393,11 @@ public sealed partial class CompiledComposition
         foreach ((AddressSpace addressSpace, CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement) in declaredPrefixInputRequirements)
         {
             ValidateDeclaredPrefixInputGeometry(addressSpace, requirement);
+        }
+
+        foreach ((AddressSpace addressSpace, CompiledSourceViewCoverageInputLengthRequirement requirement) in sourceViewInputRequirements)
+        {
+            ValidateSourceViewInputGeometry(addressSpace, requirement);
         }
     }
 
@@ -618,6 +634,25 @@ public sealed partial class CompiledComposition
         {
             throw new ArgumentException(
                 "Declared-prefix input requirements must bind the exact execution prefix, outer-length expectations, extraction policy, and warning code.",
+                nameof(addressSpace));
+        }
+    }
+
+    private static void ValidateSourceViewInputGeometry(
+        AddressSpace addressSpace,
+        CompiledSourceViewCoverageInputLengthRequirement requirement)
+    {
+        if (addressSpace.InputPaddingByte is not null ||
+            addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
+            addressSpace.AllowedInputLengths.Count != 0 ||
+            !addressSpace.ExpectedInputLengths.SequenceEqual(requirement.ExpectedOuterLengths) ||
+            requirement.ExpectedOuterLengths.Any(length => length < addressSpace.Length) ||
+            !StringComparer.Ordinal.Equals(
+                addressSpace.UnexpectedInputLengthIssueCode,
+                requirement.UnexpectedOuterLengthIssueCode))
+        {
+            throw new ArgumentException(
+                "Source-view coverage requirements must bind one compiler-derived source span, optional outer-length diagnostics, and declared-range extraction.",
                 nameof(addressSpace));
         }
     }

@@ -97,14 +97,12 @@ public sealed partial class CompositionPlan
             throw new ArgumentException("Reference address space cannot declare input padding.", nameof(initialization));
         }
 
-        bool clonesDeclaredPrefixIntoWorkBuffer =
+        bool clonesCheckedSourceIntoWorkBuffer =
             !StringComparer.Ordinal.Equals(initialization.TargetSpaceId, OutputSpaceId) &&
             referenceSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange &&
-            referenceSpace.AllowedInputLengths.Count == 0 &&
-            referenceSpace.ExpectedInputLengths.Count > 0 &&
-            referenceSpace.UnexpectedInputLengthIssueCode is not null;
+            referenceSpace.AllowedInputLengths.Count == 0;
         if (referenceSpace.InputOversizePolicy != InputOversizePolicy.Reject &&
-            !clonesDeclaredPrefixIntoWorkBuffer)
+            !clonesCheckedSourceIntoWorkBuffer)
         {
             throw new ArgumentException("Reference address space cannot declare input truncation.", nameof(initialization));
         }
@@ -117,7 +115,7 @@ public sealed partial class CompositionPlan
         }
 
         if (referenceSpace.ExpectedInputLengths.Count > 0 &&
-            !clonesDeclaredPrefixIntoWorkBuffer)
+            !clonesCheckedSourceIntoWorkBuffer)
         {
             throw new ArgumentException(
                 "Reference address space cannot declare expected input lengths.",

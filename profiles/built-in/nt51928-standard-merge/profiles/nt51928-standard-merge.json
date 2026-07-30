@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "2.12",
+  "schemaVersion": "2.13",
   "profileId": "nt51928-standard-merge-gen-flash",
   "profileVersion": "0.8.0",
   "promotion": {
@@ -51,8 +51,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "tp-maximum-256k",
-          "maximumBytes": 262144
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -70,8 +69,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "normal-dp-extract-with-warning",
-          "issueCode": "DP_SIZE_WARNING"
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -90,7 +88,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "exact-resolved-map-capacity"
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -285,6 +283,22 @@
     }
   ],
   "validations": [
+    {
+      "ruleId": "dp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "DP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "dp-source"
+    },
+    {
+      "ruleId": "tp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "TP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "tp-source"
+    },
     {
       "ruleId": "ldc-content-plausibility",
       "stage": "input-load",

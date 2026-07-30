@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0",
   "catalogId": "canonical-capability-policy",
-  "catalogVersion": "1.2.0",
-  "issuedOn": "2026-07-28",
+  "catalogVersion": "1.3.0",
+  "issuedOn": "2026-07-30",
   "routes": [
     {
       "icId": "NT51929",
@@ -10,25 +10,25 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51929-standard-merge-256k",
       "routeId": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
-      "capabilityFingerprint": "898b77fa6124e461d35e0e180f32b265ff7320f62ad560c50cde672b02668542",
+      "capabilityFingerprint": "2e09330b709941985ac3986d02bdcb1dd69cccddd32e1f7d8b91197a091a14b7",
       "authoring": {
         "decisionId": "nt51929-standard-merge-authoring-v2",
         "routeId": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
-        "capabilityFingerprint": "898b77fa6124e461d35e0e180f32b265ff7320f62ad560c50cde672b02668542",
+        "capabilityFingerprint": "2e09330b709941985ac3986d02bdcb1dd69cccddd32e1f7d8b91197a091a14b7",
         "value": "available",
         "sourceReference": "owner-approved:github-issue-186"
       },
       "publication": {
         "decisionId": "nt51929-standard-merge-publication-v2",
         "routeId": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
-        "capabilityFingerprint": "898b77fa6124e461d35e0e180f32b265ff7320f62ad560c50cde672b02668542",
+        "capabilityFingerprint": "2e09330b709941985ac3986d02bdcb1dd69cccddd32e1f7d8b91197a091a14b7",
         "value": "supported",
         "sourceReference": "owner-approved:github-issue-186"
       },
       "evidence": {
         "decisionId": "nt51929-standard-merge-evidence-v2",
         "routeId": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
-        "capabilityFingerprint": "898b77fa6124e461d35e0e180f32b265ff7320f62ad560c50cde672b02668542",
+        "capabilityFingerprint": "2e09330b709941985ac3986d02bdcb1dd69cccddd32e1f7d8b91197a091a14b7",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51929-gen-flash"
       }
@@ -39,25 +39,25 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51919-nt51929-nt51932-perfect-map-256k",
       "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-40-nt51919-nt51929-nt51932-perfect-map-256k",
-      "capabilityFingerprint": "08cc5133d1dcd8c5111e6be05cee4cccfc3d626b7dfd70aa951d7782eb90f6cb",
+      "capabilityFingerprint": "3d937f93a0cf0714b8d13ab5480d7f65a27da04a5c78aaab7a53ba25fb8a200c",
       "authoring": {
         "decisionId": "nt51929-dp-replace-authoring-v1",
         "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-40-nt51919-nt51929-nt51932-perfect-map-256k",
-        "capabilityFingerprint": "08cc5133d1dcd8c5111e6be05cee4cccfc3d626b7dfd70aa951d7782eb90f6cb",
+        "capabilityFingerprint": "3d937f93a0cf0714b8d13ab5480d7f65a27da04a5c78aaab7a53ba25fb8a200c",
         "value": "available",
         "sourceReference": "owner-approved:github-issue-174"
       },
       "publication": {
         "decisionId": "nt51929-dp-replace-publication-v1",
         "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-40-nt51919-nt51929-nt51932-perfect-map-256k",
-        "capabilityFingerprint": "08cc5133d1dcd8c5111e6be05cee4cccfc3d626b7dfd70aa951d7782eb90f6cb",
+        "capabilityFingerprint": "3d937f93a0cf0714b8d13ab5480d7f65a27da04a5c78aaab7a53ba25fb8a200c",
         "value": "supported",
         "sourceReference": "owner-approved:github-issue-174"
       },
       "evidence": {
         "decisionId": "nt51929-dp-replace-evidence-v1",
         "routeId": "route-7-nt51929-10-dp-replace-13-selector-free-40-nt51919-nt51929-nt51932-perfect-map-256k",
-        "capabilityFingerprint": "08cc5133d1dcd8c5111e6be05cee4cccfc3d626b7dfd70aa951d7782eb90f6cb",
+        "capabilityFingerprint": "3d937f93a0cf0714b8d13ab5480d7f65a27da04a5c78aaab7a53ba25fb8a200c",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51929-gen-flash"
       }

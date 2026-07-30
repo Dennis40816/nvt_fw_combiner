@@ -61,6 +61,32 @@ public sealed record CompiledInputArtifactInspectionResult(
 /// </summary>
 public static class CompiledInputArtifactInspectionService
 {
+    /// <summary>
+    /// Inspects one immutable source using its complete compiled contract and compiler-derived
+    /// address-space projection.
+    /// </summary>
+    public static CompiledInputArtifactInspectionResult Inspect(
+        CompiledComposition composition,
+        string addressSpaceId,
+        ReadOnlyMemory<byte> sourceBytes)
+    {
+        ArgumentNullException.ThrowIfNull(composition);
+        V2CompiledCompositionDetails details = composition.V2Details ??
+            throw new ArgumentException(
+                "Compiled input inspection requires V2 composition details.",
+                nameof(composition));
+        (CompiledInputSpaceBinding binding, CompiledInputSlotRequirement slot) =
+            ResolveBinding(details.InputContract, addressSpaceId);
+        if (slot.LengthRequirement is not CompiledSourceViewCoverageInputLengthRequirement sourceView)
+        {
+            return Inspect(details.InputContract, addressSpaceId, sourceBytes);
+        }
+
+        AddressSpace addressSpace = composition.Plan.AddressSpaces.Single(candidate =>
+            StringComparer.Ordinal.Equals(candidate.AddressSpaceId, binding.AddressSpaceId));
+        return InspectSourceView(binding, slot, sourceView, addressSpace, sourceBytes);
+    }
+
     /// <summary>Inspects one immutable source using its complete compiled length contract.</summary>
     public static CompiledInputArtifactInspectionResult Inspect(
         CompiledInputContract inputContract,
@@ -77,6 +103,10 @@ public static class CompiledInputArtifactInspectionService
                 InspectExact(binding, slot, exact.Bytes, sourceBytes),
             CompiledExactResolvedMapCapacityInputLengthRequirement exact =>
                 InspectExact(binding, slot, exact.Bytes, sourceBytes),
+            CompiledSourceViewCoverageInputLengthRequirement =>
+                throw new ArgumentException(
+                    $"Compiled input address space '{addressSpaceId}' requires the complete compiled composition to inspect its source-view projection.",
+                    nameof(inputContract)),
             _ => throw new ArgumentException(
                 $"Compiled input address space '{addressSpaceId}' has no supported inspection projection.",
                 nameof(addressSpaceId)),
@@ -169,6 +199,63 @@ public static class CompiledInputArtifactInspectionService
             matches
                 ? CompiledInputArtifactInspectionNextAction.None
                 : CompiledInputArtifactInspectionNextAction.SelectCompatibleInput);
+    }
+
+    private static CompiledInputArtifactInspectionResult InspectSourceView(
+        CompiledInputSpaceBinding binding,
+        CompiledInputSlotRequirement slot,
+        CompiledSourceViewCoverageInputLengthRequirement requirement,
+        AddressSpace addressSpace,
+        ReadOnlyMemory<byte> sourceBytes)
+    {
+        string actualSha256 = Convert.ToHexStringLower(SHA256.HashData(sourceBytes.Span));
+        long requiredEndExclusive = addressSpace.Length;
+        if (sourceBytes.Length < requiredEndExclusive)
+        {
+            return new CompiledInputArtifactInspectionResult(
+                binding.AddressSpaceId,
+                slot.SlotId,
+                sourceBytes.Length,
+                actualSha256,
+                requiredEndExclusive,
+                requirement.ExpectedOuterLengths,
+                AcceptedSnapshotRange: null,
+                AcceptedSnapshotSha256: null,
+                IgnoredTrailingRange: null,
+                CompiledInputArtifactInspectionSeverity.Blocking,
+                CompositionIssueCodes.InputSourceViewIncomplete,
+                BlocksBuild: true,
+                CompiledInputArtifactInspectionNextAction.SelectCompatibleInput);
+        }
+
+        var acceptedRange = new ByteRange(0, requiredEndExclusive);
+        string acceptedSha256 = Convert.ToHexStringLower(SHA256.HashData(
+            sourceBytes.Span[..checked((int)requiredEndExclusive)]));
+        ByteRange? ignoredTrailingRange = sourceBytes.Length > requiredEndExclusive
+            ? new ByteRange(requiredEndExclusive, sourceBytes.Length - requiredEndExclusive)
+            : null;
+        bool unexpectedOuterLength = requirement.ExpectedOuterLengths.Count > 0 &&
+            !requirement.ExpectedOuterLengths.Contains(sourceBytes.Length);
+        return new CompiledInputArtifactInspectionResult(
+            binding.AddressSpaceId,
+            slot.SlotId,
+            sourceBytes.Length,
+            actualSha256,
+            requiredEndExclusive,
+            requirement.ExpectedOuterLengths,
+            acceptedRange,
+            acceptedSha256,
+            ignoredTrailingRange,
+            unexpectedOuterLength
+                ? CompiledInputArtifactInspectionSeverity.Warning
+                : CompiledInputArtifactInspectionSeverity.Valid,
+            unexpectedOuterLength
+                ? requirement.UnexpectedOuterLengthIssueCode!
+                : InputArtifactInspectionIssueCodes.Ready,
+            BlocksBuild: false,
+            unexpectedOuterLength
+                ? CompiledInputArtifactInspectionNextAction.ReviewUnexpectedOuterLength
+                : CompiledInputArtifactInspectionNextAction.None);
     }
 
     private static CompiledInputArtifactInspectionSeverity MapSeverity(InputArtifactInspectionSeverity severity)

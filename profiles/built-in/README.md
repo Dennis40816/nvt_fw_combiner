@@ -34,9 +34,10 @@ keeps AB evidence isolated from Standard Merge routing: the fixed `0x80000` DP A
 copied first, TPA is overlaid at `[0x07000, 0x40000)`, and a cloned TPB is relocated at
 `0x7164/0x7168/0x716C` before its overlay at `[0x47000, 0x80000)`. NT51919 is a map-bound alias
 of NT51929, and NT51932 uses the same owner-approved fact scope. Bootstrap and CLI admit exactly
-NT51919, NT51929, and NT51932 through the shared composition service. Short DP_AB/TPA/TPB sources
-fail closed; longer sources warn while execution consumes only the declared prefix and reports both
-the full source and accepted snapshot identities. NT51950/NT51951 remain separate candidates, and
+NT51919, NT51929, and NT51932 through the shared composition service. ADR 0045/#259 migrates DP_AB
+to one exact complete-container variant while TPA/TPB use address-bearing source-view coverage;
+TPA is same-coordinate and TPB is bank-relocated. Short required windows fail closed and accepted
+section tails remain outside execution authority. NT51950/NT51951 remain separate candidates, and
 product-support/release promotion still requires the recorded firmware-owner gate.
 
 `nt51923-standard-merge` is a canonical V2 candidate family for NT51923 and NT51926. Its shared
@@ -56,10 +57,10 @@ its content-hash anchor and selects both V2 artifacts without a legacy compile f
 firmware-owner migration review remains required.
 
 `nt51928-standard-merge` is the hash-anchored V2 Standard Merge route for standalone non-NB
-NT51928. Its `0x80000` physical map models TP `[0x00000, 0x35000)`, DP
-`[0x3C000, 0x40000)`, LDC `[0x40000, 0x62000)`, and both forbidden gaps. The third input is a typed
-`auxiliary` LDC slot with exact map capacity, not a special execution path. Bootstrap packages this
-bundle by its content-hash anchor and selects its V2 artifact without a legacy compile fallback.
+NT51928. One capability resolves an NT51927-compatible `0x40000` form without LDC or an `0x80000`
+form with LDC `[0x40000,0x62000)`. TP, DP/Initial Code, and LDC are address-bearing section sources;
+ADR 0045/#259 replaces the temporary exact-map LDC and TP-size rules with source-view coverage.
+Reference-initialized DP Replace still requires an exact declared complete-container variant.
 Firmware-owner review is still required before support promotion; NT51928 NB remains unmodeled.
 
 `nt51950-nt51951-standard-merge` also carries the supported DP Perspective Replace profiles for

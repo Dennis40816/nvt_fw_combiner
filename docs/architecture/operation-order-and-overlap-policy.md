@@ -31,6 +31,18 @@ Allowed policies:
 
 If an input artifact contains multiple logical regions, such as DP_AB, the profile must declare logical views and copy operations for that container. The executor must not infer coverage from a file name.
 
+Source and target views also own coordinate meaning. Initial Code, DP, TP, LDC,
+and TPA normally use the same firmware coordinates. TPB reads the TP-native
+source view and writes it at the resolved bank placement delta. Compact CtrlRAM
+is the only current built-in payload-relative case whose source begins at byte
+`0` and targets a nonzero firmware region. General authoring may explicitly
+choose From File Start, but the executor never infers it.
+
+A section source needs only cover every declared read and may be supplied by a
+compatible same-IC FlashCode. A complete DP AB seed or Replace Reference is
+different: its exact declared container variant is authoritative outside later
+overlays and cannot be admitted by section coverage alone.
+
 Example AB shape:
 
 ```text
@@ -46,7 +58,7 @@ Example Standard shape:
 ```text
 operation 100: copy DP source view into DP target
 operation 200: copy TP source view into TP target
-operation 300: copy LD/extra source view into extra target if declared
+operation 300: copy LDC/extra source view into extra target if declared
 operation 900: run approved combiner/header processor stage if required
 ```
 
