@@ -107,7 +107,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 alignment: 1,
                 "General Replace V2 DP parity mapping."),
         ]);
-        WorkbenchRunResult routed = await WorkbenchCompositionService.RunGeneralReplaceDraftAsync(
+        WorkbenchRunResult routed = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51926",
             "single",
             new Dictionary<string, string>(StringComparer.Ordinal)

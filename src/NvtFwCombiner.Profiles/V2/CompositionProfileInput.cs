@@ -288,7 +288,8 @@ internal sealed partial class CompositionProfileInputSlot
         CompositionProfileSlotCardinality cardinality,
         IEnumerable<string> acceptedExtensions,
         CompositionProfileLengthRule lengthRule,
-        CompositionProfileInputNormalization normalization)
+        CompositionProfileInputNormalization normalization,
+        string? notApplicableReason = null)
     {
         SlotId = CompositionProfileValueRules.RequireId(slotId, nameof(slotId));
         Role = CompositionProfileValueRules.RequireId(role, nameof(role));
@@ -313,6 +314,12 @@ internal sealed partial class CompositionProfileInputSlot
         AcceptedExtensions = Array.AsReadOnly(_acceptedExtensions);
         LengthRule = lengthRule;
         Normalization = normalization;
+        if (notApplicableReason is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(notApplicableReason);
+        }
+
+        NotApplicableReason = notApplicableReason;
     }
 
     internal string SlotId { get; }
@@ -330,6 +337,8 @@ internal sealed partial class CompositionProfileInputSlot
     internal CompositionProfileLengthRule LengthRule { get; }
 
     internal CompositionProfileInputNormalization Normalization { get; }
+
+    internal string? NotApplicableReason { get; }
 
     private static void ValidateFirmwarePolicy(
         CompositionProfileArtifactClass artifactClass,

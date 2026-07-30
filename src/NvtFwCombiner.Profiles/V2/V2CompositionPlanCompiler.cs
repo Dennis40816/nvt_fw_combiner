@@ -72,7 +72,9 @@ internal static partial class V2CompositionPlanCompiler
     private const string RegionAccessDenied = "profile.v2.plan.region-access-denied";
 
     /// <summary>Lowers the closed V2 operation subset and grants runtime eligibility only for supported token-free profiles.</summary>
-    internal static V2CompositionPlanCompileResult Compile(V2CompositionPreparationResult preparation)
+    internal static V2CompositionPlanCompileResult Compile(
+        V2CompositionPreparationResult preparation,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         ArgumentNullException.ThrowIfNull(preparation);
         if (!preparation.IsAdmitted || preparation.Selection is null || preparation.Admission is null)
@@ -90,25 +92,55 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        Dictionary<string, AddressSpace> spaces = LowerAddressSpaces(profile, resolvedMap, issues);
+        ResolvedInputSelection inputSelection = ResolveInputSelection(
+            profile,
+            resolvedMap,
+            selectedInputSlotIds,
+            issues);
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        Dictionary<string, ResolvedView> views = LowerViews(profile, resolvedMap, spaces, issues);
+        Dictionary<string, AddressSpace> spaces = LowerAddressSpaces(
+            profile,
+            resolvedMap,
+            issues,
+            inputSelection.ActiveSlotIds);
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        LoweredRegionAccess regionAccess = LowerRegionAccess(profile, resolvedMap, views, issues);
+        Dictionary<string, ResolvedView> views = LowerViews(
+            profile,
+            resolvedMap,
+            spaces,
+            issues,
+            inputSelection.ActiveViewIds);
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        CompositionOperation[] operations = LowerOperations(profile, spaces, views, regionAccess, issues);
+        LoweredRegionAccess regionAccess = LowerRegionAccess(
+            profile,
+            resolvedMap,
+            views,
+            issues,
+            inputSelection.ActiveRegionIds);
+        if (issues.Count != 0)
+        {
+            return V2CompositionPlanCompileResult.Failed(issues);
+        }
+
+        CompositionOperation[] operations = LowerOperations(
+            profile,
+            spaces,
+            views,
+            regionAccess,
+            issues,
+            activeOperationIds: inputSelection.ActiveOperationIds);
         ValidateOperationOverlaps(operations, issues);
         if (issues.Count != 0)
         {
@@ -132,49 +164,22 @@ internal static partial class V2CompositionPlanCompiler
             preparation.Selection,
             new ResolvedMapV2CompilationContext(resolvedMap),
             plan,
-            profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap)),
-            profile.Spaces.OfType<InputArtifactProfileSpace>().Select(MapInputSpaceBinding),
+            profile.InputSlots
+                .Where(slot => inputSelection.ActiveSlotIds.Contains(slot.SlotId))
+                .Select(slot => MapInputSlot(
+                    slot,
+                    resolvedMap,
+                    forceRequired: !slot.Required)),
+            profile.Spaces
+                .OfType<InputArtifactProfileSpace>()
+                .Where(space => inputSelection.ActiveSlotIds.Contains(space.SlotId))
+                .Select(MapInputSpaceBinding),
             regionAccess.Contract,
             CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
             preparation.Admission,
-            runtimeExecutable: profile.Promotion.Stage == CompositionProfilePromotionStage.Supported);
-    }
-
-    private static Dictionary<string, AddressSpace> LowerAddressSpaces(
-        CompositionProfileDefinition profile,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        List<CompositionIssue> issues)
-    {
-        var spaces = new Dictionary<string, AddressSpace>(StringComparer.Ordinal);
-        foreach (InputArtifactProfileSpace input in profile.Spaces.OfType<InputArtifactProfileSpace>())
-        {
-            CompositionProfileInputSlot slot = profile.InputSlots.Single(candidate =>
-                StringComparer.Ordinal.Equals(candidate.SlotId, input.SlotId));
-            if (!TryResolveInputSpaceLength(profile, input, slot, resolvedMap, issues, out long length))
-            {
-                continue;
-            }
-
-            spaces.Add(input.SpaceId, CreateInputAddressSpace(
-                input.SpaceId,
-                length,
-                slot,
-                resolvedMap.CapacityBytes,
-                profile.CompositionKind,
-                IsCloneSourceSlot(profile, input.SlotId)));
-        }
-
-        foreach (MutableCompositionProfileSpace mutableSpace in profile.Spaces.OfType<MutableCompositionProfileSpace>())
-        {
-            spaces.Add(
-                mutableSpace.SpaceId,
-                new AddressSpace(
-                    mutableSpace.SpaceId,
-                    ResolveMutableSpaceCapacity(mutableSpace, resolvedMap.CapacityBytes),
-                    AddressSpaceMutability.Mutable));
-        }
-
-        return spaces;
+            runtimeExecutable: profile.Promotion.Stage == CompositionProfilePromotionStage.Supported,
+            additionalValidationRequirements: LowerInputValidations(profile, views),
+            inputSelectionGroups: inputSelection.Groups);
     }
 
     private static string ResolveCloneReferenceSourceSpaceId(
@@ -306,7 +311,8 @@ internal static partial class V2CompositionPlanCompiler
         CompositionProfileDefinition profile,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         Dictionary<string, AddressSpace> spaces,
-        List<CompositionIssue> issues)
+        List<CompositionIssue> issues,
+        IReadOnlySet<string>? activeViewIds = null)
     {
         var views = new Dictionary<string, ResolvedView>(StringComparer.Ordinal);
         var regionsById = resolvedMap.ImageMap.Regions.ToDictionary(
@@ -314,6 +320,11 @@ internal static partial class V2CompositionPlanCompiler
             StringComparer.Ordinal);
         foreach (CompositionProfileView view in profile.Views)
         {
+            if (activeViewIds is not null && !activeViewIds.Contains(view.ViewId))
+            {
+                continue;
+            }
+
             if (!spaces.TryGetValue(view.SpaceId, out AddressSpace? space))
             {
                 issues.Add(new CompositionIssue(InvalidView, $"View '{view.ViewId}' names an unsupported space '{view.SpaceId}'.", view.ViewId));
@@ -362,7 +373,8 @@ internal static partial class V2CompositionPlanCompiler
         CompositionProfileDefinition profile,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         IReadOnlyDictionary<string, ResolvedView> views,
-        List<CompositionIssue> issues)
+        List<CompositionIssue> issues,
+        IReadOnlySet<string>? activeRegionIds = null)
     {
         var regionsById = resolvedMap.ImageMap.Regions.ToDictionary(
             static region => region.RegionId,
@@ -371,6 +383,11 @@ internal static partial class V2CompositionPlanCompiler
         var requirements = new List<CompiledRegionAccessRequirement>();
         foreach (CompositionProfileRegionAccess rule in profile.RegionAccessRules)
         {
+            if (activeRegionIds is not null && !activeRegionIds.Contains(rule.RegionId))
+            {
+                continue;
+            }
+
             if (!regionsById.TryGetValue(rule.RegionId, out FirmwareRegion? region))
             {
                 issues.Add(new CompositionIssue(

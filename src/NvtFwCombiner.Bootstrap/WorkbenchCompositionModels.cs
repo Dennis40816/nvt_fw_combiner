@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -392,6 +393,14 @@ public sealed record WorkbenchRunResult(
     /// <summary>Non-serialized in-memory bytes available to the current desktop inspection session.</summary>
     [JsonIgnore]
     public CompositionRunInspectionSnapshot? InspectionSnapshot { get; internal init; }
+
+    /// <summary>
+    /// Non-serialized content-bound General draft accepted for this result.
+    /// Desktop Preview and Build reuse this exact immutable draft until an
+    /// explicit edit or Reload/Rebind replaces it.
+    /// </summary>
+    [JsonIgnore]
+    public GeneralMappingDraftState? AcceptedGeneralMappingDraft { get; internal init; }
 
     /// <summary>Non-serialized immutable output bytes retained only for a declared follow-up delivery artifact.</summary>
     [JsonIgnore]

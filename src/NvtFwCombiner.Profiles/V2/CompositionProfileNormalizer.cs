@@ -61,7 +61,20 @@ internal static partial class CompositionProfileNormalizer
             RequireList(
                 document.RequiredMetadataStructureIds,
                 $"{path}.requiredMetadataStructureIds"),
-            RequireList(document.RequiredCapabilityIds, $"{path}.requiredCapabilityIds")));
+            RequireList(document.RequiredCapabilityIds, $"{path}.requiredCapabilityIds"),
+            document.OptionalRegionIds ?? []));
+    }
+
+    internal static CompositionProfileInputSelectionGroup NormalizeInputSelectionGroup(
+        CompositionProfileInputSelectionGroupDocument document,
+        string path = "inputSelectionGroups[0]")
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return Wrap(path, () => new CompositionProfileInputSelectionGroup(
+            document.GroupId,
+            RequireList(document.MemberSlotIds, $"{path}.memberSlotIds"),
+            document.MinimumSelected,
+            document.MaximumSelected));
     }
 
     private static CompositionProfilePromotionStage NormalizePromotionStage(string value, string path)

@@ -59,7 +59,9 @@ public static partial class WorkbenchCompositionService
                 {
                     CompositionAddressSpaceIds.DpReplacement =>
                         ("Base flash", ActionLabel(operation.Kind), "DP replacement", "Changed DP BIN", true, WorkbenchMemoryCoverageRole.Standard),
-                    CompositionAddressSpaceIds.LdReplacement =>
+                    CompositionAddressSpaceIds.InitialCodeReplacement =>
+                        ("Base flash", ActionLabel(operation.Kind), "Initial Code replacement", "Changed Initial Code BIN", true, WorkbenchMemoryCoverageRole.Standard),
+                    CompositionAddressSpaceIds.LdcReplacement =>
                         ("Base flash", ActionLabel(operation.Kind), "LDC replacement", "Changed LDC BIN", true, WorkbenchMemoryCoverageRole.Standard),
                     CompositionAddressSpaceIds.ReferenceBase =>
                         ("DP replacement", "Restore", "Base TP", "Base flash", false, WorkbenchMemoryCoverageRole.BaseFirmware),
@@ -114,12 +116,13 @@ public static partial class WorkbenchCompositionService
         }
 
         AddressSpace replacement = composition.Plan.AddressSpaces.Single(static space =>
-            space.AddressSpaceId == CompositionAddressSpaceIds.DpReplacement);
+            space.AddressSpaceId is CompositionAddressSpaceIds.DpReplacement or
+                CompositionAddressSpaceIds.InitialCodeReplacement);
         bool restoresReference = composition.Plan.OrderedOperations.Any(static operation =>
             string.Equals(operation.SourceSpaceId, CompositionAddressSpaceIds.ReferenceBase, StringComparison.Ordinal));
         description = replacement.InputPaddingByte is not null && restoresReference
             ? $"Use a DP/FlashCode-shaped BIN no larger than the selected Reference FlashCode ({BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities)}); shorter input is zero-padded and the original TP range is restored from the reference."
-            : $"Use a same-IC DP/FlashCode BIN containing the complete declared DP range ({BootstrapRangeText.FormatHex(replacement.Length)} bytes; expected outer length {BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities)}). Only declared DP ranges are copied; every other byte stays from Reference FlashCode.";
+            : $"Use a same-IC DP/FlashCode BIN containing the complete declared Initial Code range ({BootstrapRangeText.FormatHex(replacement.Length)} bytes; expected outer length {BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities)}). Only declared Initial Code ranges are copied; every other byte stays from Reference FlashCode.";
         return true;
     }
 

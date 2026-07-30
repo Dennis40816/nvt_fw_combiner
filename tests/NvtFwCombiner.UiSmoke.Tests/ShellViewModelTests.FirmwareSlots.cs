@@ -61,8 +61,8 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Required", required.RequirementLabel);
 
         FirmwareSlotViewModel optional = new(
-            "merge-ld",
-            "LD BIN",
+            "merge-ldc",
+            "LDC BIN",
             "Optional payload",
             FirmwareSlotKind.Dp,
             isOptional: true);

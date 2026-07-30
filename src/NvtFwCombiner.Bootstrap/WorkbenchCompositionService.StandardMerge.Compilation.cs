@@ -17,4 +17,24 @@ public static partial class WorkbenchCompositionService
         return TryGetBuiltInV2StandardMergeCompilation(icId, dpInputLength, out composition, out issues) &&
             composition is not null;
     }
+
+    internal static bool TryCompileStandardMerge(
+        string icId,
+        long? dpInputLength,
+        IReadOnlyCollection<string> selectedInputSlotIds,
+        [NotNullWhen(true)] out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(selectedInputSlotIds);
+        composition = null;
+        issues = [];
+        return TryGetBuiltInV2StandardMergeCompilation(
+                icId,
+                dpInputLength,
+                selectedInputSlotIds,
+                out composition,
+                out issues) &&
+            composition is not null;
+    }
 }

@@ -287,6 +287,7 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshCommandState()
     {
+        RefreshDpReplaceInputSelectionReadiness();
         PreviewMergeCommand.NotifyCanExecuteChanged();
         BuildMergeCommand.NotifyCanExecuteChanged();
         PreviewReplaceCommand.NotifyCanExecuteChanged();

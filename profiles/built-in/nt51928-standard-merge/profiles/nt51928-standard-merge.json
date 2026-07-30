@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.12",
   "profileId": "nt51928-standard-merge-gen-flash",
-  "profileVersion": "0.7.0",
+  "profileVersion": "0.8.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -15,16 +15,22 @@
     "topologyAuthoring": "hidden",
     "displayNameKey": "profile.nt51928.standard-merge"
   },
+  "compilationContext": {
+    "kind": "resolved-map"
+  },
   "mapBinding": {
     "familyId": "nt51917-nt51927-nt51928-canonical-container",
-    "familyVersion": "1.3.0",
-    "familyContentHash": "cba6c93b4b23c10fc1e2372b227c994a857b498d6e3d58ee65d540994da64f8f",
+    "familyVersion": "1.4.0",
+    "familyContentHash": "4c45c4e1346632bfee569d7387abe9ee5226b5624e083f02b554ad985a52b694",
     "mapIds": [
+      "nt51928-standard-merge-256k",
       "nt51928-standard-merge-512k"
     ],
     "requiredRegionIds": [
       "tp-code",
-      "dp-code",
+      "dp-code"
+    ],
+    "optionalRegionIds": [
       "ldc-code"
     ],
     "requiredMetadataStructureIds": [
@@ -73,11 +79,12 @@
       }
     },
     {
-      "slotId": "ld-input",
+      "slotId": "ldc-input",
       "role": "ldc",
       "artifactClass": "auxiliary",
-      "required": true,
-      "cardinality": "exactly-one",
+      "required": false,
+      "cardinality": "zero-or-one",
+      "notApplicableReason": "Reference length does not include LDC",
       "acceptedExtensions": [
         ".bin"
       ],
@@ -89,6 +96,16 @@
           "kind": "none"
         }
       }
+    }
+  ],
+  "inputSelectionGroups": [
+    {
+      "groupId": "ldc-selection",
+      "memberSlotIds": [
+        "ldc-input"
+      ],
+      "minimumSelected": 0,
+      "maximumSelected": 1
     }
   ],
   "spaces": [
@@ -105,9 +122,9 @@
       "instancePolicy": "singleton"
     },
     {
-      "spaceId": "ld-input",
+      "spaceId": "ldc-input",
       "kind": "input-artifact",
-      "slotId": "ld-input",
+      "slotId": "ldc-input",
       "instancePolicy": "singleton"
     },
     {
@@ -140,8 +157,8 @@
       }
     },
     {
-      "viewId": "ld-source",
-      "spaceId": "ld-input",
+      "viewId": "ldc-source",
+      "spaceId": "ldc-input",
       "selector": {
         "kind": "map-region",
         "regionId": "ldc-code"
@@ -164,7 +181,7 @@
       }
     },
     {
-      "viewId": "ld-output",
+      "viewId": "ldc-output",
       "spaceId": "output-image",
       "selector": {
         "kind": "map-region",
@@ -258,16 +275,25 @@
       "targetViewId": "dp-output"
     },
     {
-      "operationId": "copy-ld",
+      "operationId": "copy-ldc",
       "sequence": 300,
       "overlapPolicy": "reject",
       "reason": "Copy the reviewed NT51928 LDC range.",
       "kind": "copy-range",
-      "sourceViewId": "ld-source",
-      "targetViewId": "ld-output"
+      "sourceViewId": "ldc-source",
+      "targetViewId": "ldc-output"
     }
   ],
-  "validations": [],
+  "validations": [
+    {
+      "ruleId": "ldc-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "LDC_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "ldc-source"
+    }
+  ],
   "processorStages": [],
   "output": {
     "fileNameTemplate": "nt51928-standard-merge-gen-flash.bin",
@@ -276,6 +302,7 @@
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "gen-flash-bin-v2-51928-golden"
+    "gen-flash-bin-v2-51928-golden",
+    "adr-0043-owner-accepted-2026-07-28"
   ]
 }

@@ -135,7 +135,8 @@ internal static partial class MergeCliCommandHandler
             OverlapPolicy.Reject,
             alignment: 1,
             "Copy explicit General Merge mapping.",
-            WorkbenchGeneralMergeIds.OutputRegionId);
+            WorkbenchGeneralMergeIds.OutputRegionId,
+            fileRangePreset: GeneralMappingFileRangePreset.SourceSlice);
         return true;
     }
 

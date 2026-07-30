@@ -104,7 +104,7 @@
           "sha256": "01e385aa60dcdbeeea343e8755af76cd0b282555494c8796e9ff687cd254ad6a"
         },
         {
-          "artifactId": "ld-input",
+          "artifactId": "ldc-input",
           "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/ld-input.bin",
           "size": 524288,
           "sha256": "a77fe6a40e4feebf100b7ef72addb4308f28579e4d8b291e3b555eb4b98886c3"

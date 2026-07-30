@@ -192,19 +192,23 @@ public static partial class WorkbenchCompositionService
             initializer is not null && mappings is not null
                 ? new GeneralMergeDraftState(initializer, mappings)
                 : null;
-        return RunGeneralMergeV2Async(
+        return RunGeneralMergeWithInitialInspectionAsync(
             icId,
             draft,
             initializationIssue is null
                 ? draftIssues
                 : [initializationIssue, .. draftIssues],
+            new AuthoringRevision(1),
             build,
-            cancellationToken,
             outputPath,
-            progress: null);
+            progress: null,
+            cancellationToken);
     }
 
-    /// <summary>Runs General Merge from one canonical typed mapping draft.</summary>
+    /// <summary>
+    /// Runs a canonical typed General Merge draft after binding its selected
+    /// files to immutable content snapshots.
+    /// </summary>
     public static ValueTask<WorkbenchRunResult> RunGeneralMergeDraftAsync(
         string icId,
         GeneralMergeDraftState draft,
@@ -213,14 +217,34 @@ public static partial class WorkbenchCompositionService
         string? outputPath = null)
     {
         ArgumentNullException.ThrowIfNull(draft);
-        return RunGeneralMergeV2Async(
+        return RunGeneralMergeWithInitialInspectionAsync(
             icId,
             draft,
             draftIssues: null,
+            new AuthoringRevision(1),
+            build,
+            outputPath,
+            progress: null,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Ephemeral CLI/Saved Rule boundary: inspect once, then execute the exact
+    /// content-bound draft through the strict General Merge runner.
+    /// </summary>
+    public static ValueTask<WorkbenchRunResult> RunGeneralMergeEphemeralDraftAsync(
+        string icId,
+        GeneralMergeDraftState draft,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        return RunGeneralMergeDraftAsync(
+            icId,
+            draft,
             build,
             cancellationToken,
-            outputPath,
-            progress: null);
+            outputPath);
     }
 
     /// <summary>Runs General Merge and publishes bounded Application-owned lifecycle phases.</summary>
@@ -272,16 +296,17 @@ public static partial class WorkbenchCompositionService
             initializer is not null && mappings is not null
                 ? new GeneralMergeDraftState(initializer, mappings)
                 : null;
-        return await RunGeneralMergeV2Async(
+        return await RunGeneralMergeWithInitialInspectionAsync(
             icId,
             draft,
             initializationIssue is null
                 ? draftIssues
                 : [initializationIssue, .. draftIssues],
+            new AuthoringRevision(1),
             build,
-            cancellationToken,
             outputPath,
-            progress).ConfigureAwait(false);
+            progress,
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Runs General Merge with one already resolved initializer and progress contract.</summary>
@@ -306,6 +331,78 @@ public static partial class WorkbenchCompositionService
         GeneralMergeDraftState? draft = mappings is null
             ? null
             : new GeneralMergeDraftState(initializer.Value, mappings);
+        return await RunGeneralMergeWithInitialInspectionAsync(
+            icId,
+            draft,
+            draftIssues,
+            new AuthoringRevision(1),
+            build,
+            outputPath,
+            progress,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs General Merge from the exact content-bound draft returned by an
+    /// earlier desktop Preview or explicit Reload/Rebind.
+    /// </summary>
+    public static ValueTask<WorkbenchRunResult> RunGeneralMergeAcceptedDraftWithProgressAsync(
+        string icId,
+        WorkbenchGeneralMergeInitializer initializer,
+        GeneralMappingDraftState acceptedMappingDraft,
+        bool build,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(initializer);
+        ArgumentNullException.ThrowIfNull(acceptedMappingDraft);
+        ArgumentNullException.ThrowIfNull(progress);
+        return RunGeneralMergeV2Async(
+            icId,
+            new GeneralMergeDraftState(
+                initializer.Value,
+                acceptedMappingDraft),
+            draftIssues: null,
+            build,
+            cancellationToken,
+            outputPath,
+            progress);
+    }
+
+    private static async ValueTask<WorkbenchRunResult>
+        RunGeneralMergeWithInitialInspectionAsync(
+            string icId,
+            GeneralMergeDraftState? draft,
+            IReadOnlyList<CompositionIssue>? draftIssues,
+            AuthoringRevision inspectionRevision,
+            bool build,
+            string? outputPath,
+            CompositionRunProgressFeed? progress,
+            CancellationToken cancellationToken)
+    {
+        if (draft is not null &&
+            draftIssues is not { Count: > 0 })
+        {
+            GeneralSelectedFileBindingResult accepted =
+                await AcceptGeneralSelectedFilesAsync(
+                    draft.Mappings,
+                    inspectionRevision,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (accepted.Succeeded)
+            {
+                draft = new GeneralMergeDraftState(
+                    draft.OutputInitializer,
+                    accepted.Draft!);
+            }
+            else
+            {
+                draftIssues = accepted.Issues;
+            }
+        }
+
         return await RunGeneralMergeV2Async(
             icId,
             draft,

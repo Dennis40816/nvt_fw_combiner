@@ -184,7 +184,7 @@ public sealed class StandardMergeCliCommandTests
             dpPath,
             "--tp",
             tpPath,
-            "--ld",
+            "--ldc",
             ldPath,
             "--output",
             outputPath,
@@ -199,12 +199,12 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(0x33, output[0x40000]);
     }
 
-    /// <summary>Verifies the NT51928 V2 route rejects a missing required LDC BIN before composition starts.</summary>
+    /// <summary>Verifies omitted NT51928 LDC selects the 256-KiB Initial-Code/TP variant.</summary>
     [Fact]
-    public async Task StandardMergePreviewRejectsMissingLdcForNt51928V2Profile()
+    public async Task StandardMergePreviewAcceptsOmittedLdcForNt51928V2Profile()
     {
         using var workspace = TempWorkspace.Create();
-        string dpPath = workspace.Write("dp.bin", new byte[0x80000]);
+        string dpPath = workspace.Write("dp.bin", new byte[0x40000]);
         string tpPath = workspace.Write("tp.bin", new byte[0x35000]);
 
         CliRunResult result = await RunCliAsync(
@@ -219,8 +219,9 @@ public sealed class StandardMergeCliCommandTests
             tpPath,
         ]);
 
-        Assert.Equal(64, result.ExitCode);
-        Assert.Contains("--ld is required for address space 'ld-input'", result.Error, StringComparison.Ordinal);
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(result.Error);
+        Assert.Contains("Size: 262144 bytes", result.Output, StringComparison.Ordinal);
     }
 
     /// <summary>Unknown Standard Merge selectors remain a usage error.</summary>
@@ -327,12 +328,12 @@ public sealed class StandardMergeCliCommandTests
             dpPath,
             "--tp",
             tpPath,
-            "--ld",
+            "--ldc",
             ldPath,
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("--ld is not used by this profile", result.Error, StringComparison.Ordinal);
+        Assert.Contains("--ldc is not used by this profile", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Rejects report paths that would overwrite an input BIN.</summary>

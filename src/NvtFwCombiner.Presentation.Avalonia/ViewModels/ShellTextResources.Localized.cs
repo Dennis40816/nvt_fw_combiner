@@ -132,7 +132,7 @@ public sealed partial class ShellTextResources
             NoBinSelectedLabel = Pick("No BIN selected", "尚未選擇 BIN"),
             MergeDpSlotDescription = Pick("Display payload for Standard Merge", "Standard Merge 的 Display payload"),
             MergeTpSlotDescription = Pick("Touch payload for Standard Merge", "Standard Merge 的 Touch payload"),
-            MergeLdSlotDescription = Pick("Required only when the selected profile uses LD", "只有選定 profile 使用 LD 時才需要"),
+            MergeLdcSlotDescription = Pick("Optional LDC input when the selected profile exposes an LDC region", "選定 profile 包含 LDC 區域時可選擇 LDC 輸入"),
             DpReplacementBinTitle = "DP replacement source",
             SelectReplacementBinTooltip = Pick("Select replacement BIN", "選擇 replacement BIN"),
             SelectSourceBinTooltip = Pick("Select source BIN", "選擇 source BIN"),

@@ -65,7 +65,7 @@ public sealed partial class ShellTextResources
 
     public string MergeTpSlotDescription { get; private init; } = string.Empty;
 
-    public string MergeLdSlotDescription { get; private init; } = string.Empty;
+    public string MergeLdcSlotDescription { get; private init; } = string.Empty;
 
     public string DpReplacementBinTitle { get; private init; } = string.Empty;
 

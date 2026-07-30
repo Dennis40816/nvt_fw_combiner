@@ -108,9 +108,16 @@ public static partial class WorkbenchCompositionService
         binding = null;
         string addressSpaceId = $"{input.MappingId}-input";
         string fullPath = Path.GetFullPath(input.Source.Reference);
-        long declaredLength = File.Exists(fullPath)
-            ? new FileInfo(fullPath).Length
-            : input.SourceRange.EndExclusive;
+        if (input.Source.AcceptedFileStamp is not { } acceptedStamp)
+        {
+            issue = new CompositionIssue(
+                GeneralSelectedFileInspectionIssueCodes.SnapshotRequired,
+                $"General Replace mapping '{input.MappingId}' has no accepted selected-file content snapshot.",
+                input.MappingId);
+            return false;
+        }
+
+        long declaredLength = acceptedStamp.AcceptedLength;
         if (declaredLength < input.SourceRange.EndExclusive)
         {
             issue = new CompositionIssue(
@@ -121,7 +128,11 @@ public static partial class WorkbenchCompositionService
         }
 
         addressSpace = new AddressSpace(addressSpaceId, declaredLength, AddressSpaceMutability.Immutable);
-        binding = new InputArtifactBinding(addressSpaceId, input.MappingId, fullPath);
+        binding = new InputArtifactBinding(
+            addressSpaceId,
+            input.MappingId,
+            fullPath,
+            acceptedContentStamp: acceptedStamp);
         mapping = CreateGeneralReplaceMapping(
             input,
             operationIndex,

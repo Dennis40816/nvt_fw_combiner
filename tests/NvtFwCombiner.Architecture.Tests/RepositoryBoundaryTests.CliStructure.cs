@@ -59,7 +59,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", dp, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", ctrlRam, StringComparison.Ordinal);
         Assert.Contains(
-            "WorkbenchCompositionService.RunGeneralReplaceDraftAsync",
+            "WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync",
             general,
             StringComparison.Ordinal);
     }
@@ -324,7 +324,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(1, CountOccurrences(display, "TryCompileStandardMerge("));
         Assert.Equal(1, CountOccurrences(generalMergeProfile, "TryCompileStandardMerge("));
         Assert.Contains("out CompiledComposition? composition", resolver, StringComparison.Ordinal);
-        Assert.Contains("SequenceEqual", cli, StringComparison.Ordinal);
+        Assert.Contains("GetStandardMergeInputAddressSpaces", cli, StringComparison.Ordinal);
+        Assert.Contains("InputOptionsByAddressSpace", cli, StringComparison.Ordinal);
         Assert.Contains("TryGetBuiltInV2StandardMergeCompilation", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateDpPerspectiveProfileForInputLength", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler.Compile", resolver, StringComparison.Ordinal);

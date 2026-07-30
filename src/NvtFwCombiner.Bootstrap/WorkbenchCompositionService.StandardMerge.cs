@@ -26,4 +26,24 @@ public static partial class WorkbenchCompositionService
     {
         return FindStandardMergeProfileSummaryByIc(icId)?.RequiredInputAddressSpaceIds ?? [];
     }
+
+    /// <summary>
+    /// Gets every fixed Standard Merge input address space exposed for authoring,
+    /// including optional members of a profile-owned selection group.
+    /// </summary>
+    public static IReadOnlyList<string> GetStandardMergeInputAddressSpaces(string icId)
+    {
+        IReadOnlyList<string> required = GetStandardMergeRequiredAddressSpaces(icId);
+        return !BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
+                icId,
+                out BuiltInV2Registration? registration)
+            ? required
+            : Array.AsReadOnly(
+            [
+                .. required
+                    .Concat(registration.InputSelectionGroupMemberSlotIds)
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal),
+            ]);
+    }
 }

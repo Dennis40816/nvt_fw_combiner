@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
@@ -10,14 +11,19 @@ internal static class CompiledCompositionInputBindingFactory
         CompiledComposition compiledComposition,
         string addressSpaceId,
         string artifactId,
-        string? legacyBindingId = null)
+        string? legacyBindingId = null,
+        FileStamp? acceptedContentStamp = null)
     {
         ArgumentNullException.ThrowIfNull(compiledComposition);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
         if (compiledComposition.V2Details is not { } details)
         {
-            return new InputArtifactBinding(addressSpaceId, legacyBindingId ?? addressSpaceId, artifactId);
+            return new InputArtifactBinding(
+                addressSpaceId,
+                legacyBindingId ?? addressSpaceId,
+                artifactId,
+                acceptedContentStamp: acceptedContentStamp);
         }
 
         CompiledInputSpaceBinding spaceBinding = details.InputContract.SpaceBindings.SingleOrDefault(binding =>
@@ -34,6 +40,7 @@ internal static class CompiledCompositionInputBindingFactory
             addressSpaceId,
             artifactId,
             originalFileName,
-            slot.ArtifactClass);
+            slot.ArtifactClass,
+            acceptedContentStamp);
     }
 }

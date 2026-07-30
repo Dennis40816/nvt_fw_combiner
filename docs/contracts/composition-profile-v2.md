@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0 through 2.11
+# Composition Profile Contract 2.0 through 2.12
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -11,7 +11,8 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.8.schema.json`](composition-profile-v2.8.schema.json), and
 [`composition-profile-v2.9.schema.json`](composition-profile-v2.9.schema.json), and
 [`composition-profile-v2.10.schema.json`](composition-profile-v2.10.schema.json), and
-[`composition-profile-v2.11.schema.json`](composition-profile-v2.11.schema.json). A trusted bundle
+[`composition-profile-v2.11.schema.json`](composition-profile-v2.11.schema.json), and
+[`composition-profile-v2.12.schema.json`](composition-profile-v2.12.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -259,6 +260,29 @@ The 2.11 closed metadata-purpose vocabulary is `map-resolution`,
 `memory-projection`, and `report-classification`. A purpose states why a
 read-only metadata reference is consumed; it does not authorize execution or
 derive firmware facts.
+
+Schema 2.12 keeps every 2.11 execution, input, processor, and metadata
+constraint and adds canonical input-selection groups plus warning-only
+plausibility validation:
+
+- `inputSelectionGroups` declare a closed set of input slot ids with
+  `minimumSelected` and `maximumSelected` cardinality. A group references
+  canonical inputs; it does not redefine their ranges, operations, or
+  validation.
+- `optionalRegionIds` on a map binding declare which canonical regions may be
+  absent for that resolved map. A selected group member whose bound region is
+  absent is `NotApplicable`, with its optional profile-owned
+  `notApplicableReason`; it is never silently ignored.
+- optional input operations and views are lowered only when their input is
+  selected and applicable. Profiles without a selection group preserve their
+  prior required-input behavior.
+- `non-uniform-region` reads one declared source view and emits its typed
+  warning when every byte has the same value. It is advisory only and cannot
+  block execution or alter output bytes.
+
+Application resolves group readiness from the compiled group references and
+the selected inputs. UI and CLI consume that same typed result; adapters must
+not recreate cardinality or map-applicability rules.
 
 ## Input size policy
 

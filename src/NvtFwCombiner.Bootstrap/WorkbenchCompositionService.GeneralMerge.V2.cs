@@ -26,6 +26,7 @@ public static partial class WorkbenchCompositionService
         CompositionRunProgressFeed? progress = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        GeneralMappingDraftState? mappingDraft = draft?.Mappings;
         Dictionary<string, string> reportSlotPaths = draft is null
             ? new Dictionary<string, string>(StringComparer.Ordinal)
             : CreateGeneralMergeReportSlotPaths(draft.Mappings);
@@ -52,7 +53,13 @@ public static partial class WorkbenchCompositionService
                     ? null
                     : ImageInitializationSummary.FromCompiled(
                         draft.OutputInitializer.ToImageInitialization(
-                            CompositionAddressSpaceIds.OutputImage)));
+                            CompositionAddressSpaceIds.OutputImage))) with
+            {
+                AcceptedGeneralMappingDraft =
+                    IsAcceptedGeneralMappingDraft(mappingDraft)
+                        ? mappingDraft
+                        : null,
+            };
         }
 
         if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
@@ -81,8 +88,21 @@ public static partial class WorkbenchCompositionService
                 profileId: registration.ProfileId);
         }
 
+        GeneralSelectedFileBindingResult acceptedFiles =
+            RequireAcceptedGeneralSelectedFiles(mappingDraft!);
+        if (!acceptedFiles.Succeeded)
+        {
+            return Blocked(
+                acceptedFiles.Issues,
+                profileId: registration.ProfileId);
+        }
+
+        mappingDraft = acceptedFiles.Draft!;
+        draft = new GeneralMergeDraftState(
+            draft.OutputInitializer,
+            mappingDraft);
         if (!TryCreateGeneralMergeMappings(
-                draft.Mappings,
+                mappingDraft,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,
                 out IReadOnlyList<InputArtifactBinding> mappingBindings,
@@ -152,9 +172,10 @@ public static partial class WorkbenchCompositionService
             .. mappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
                 composition,
                 binding.AddressSpaceId,
-                binding.ArtifactId)),
+                binding.ArtifactId,
+                acceptedContentStamp: binding.AcceptedContentStamp)),
         ];
-        return await RunCompiledCompositionAsync(
+        WorkbenchRunResult result = await RunCompiledCompositionAsync(
             GeneralMergeRunIdPrefix,
             composition,
             candidateBindings,
@@ -165,6 +186,7 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: null,
             cancellationToken: cancellationToken,
             progress: progress).ConfigureAwait(false);
+        return result with { AcceptedGeneralMappingDraft = mappingDraft };
     }
 
     private static bool IsExpectedGeneralMergeV2Candidate(
