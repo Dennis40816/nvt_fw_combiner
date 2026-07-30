@@ -250,6 +250,14 @@ public sealed class SupportMatrixProjectionTests
         Assert.Equal(
             firstRouteIds.Length,
             firstRouteIds.Distinct(StringComparer.Ordinal).Count());
+        SupportMatrixRow nt51928StandardMerge = Assert.Single(
+            first.Rows,
+            static row =>
+                row.Route.Identity.IcId == "NT51928" &&
+                row.Route.Identity.WorkflowId == IcWorkflowIds.StandardMerge);
+        Assert.Equal(
+            "nt51928-standard-merge-512k",
+            nt51928StandardMerge.Route.Identity.MapVariant);
         Assert.Equal(
             first.Rows.Count,
             first.Rows.Select(static row => row.Route.Identity)

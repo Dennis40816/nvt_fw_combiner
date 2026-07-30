@@ -128,11 +128,11 @@ internal static partial class CompositionProfileNormalizer
             artifactBindings,
             RequireText(document.EvidenceRef, $"{path}.evidenceRef", "Processor evidence is missing."),
             schemaVersion,
-            schemaVersion is "2.8" or "2.9" or "2.10" or "2.11"
+            schemaVersion is "2.8" or "2.9" or "2.10" or "2.11" or "2.12"
                 ? RequireText(document.TargetViewId, $"{path}.targetViewId", "Processor target view is missing.")
                 : document.TargetViewId is null
                     ? null
-                    : throw Error($"{path}.targetViewId", "Processor target views require schema 2.8 through 2.11.")));
+                    : throw Error($"{path}.targetViewId", "Processor target views require schema 2.8 through 2.12.")));
     }
 
     private static CompositionProfileProcessorPurpose NormalizeProcessorPurpose(string value, string path)

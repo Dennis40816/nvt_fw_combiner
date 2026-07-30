@@ -27,7 +27,13 @@ internal static partial class CurrentSupportMatrixCatalog
                 continue;
             }
 
-            foreach (FirmwareImageMap map in maps)
+            IReadOnlyList<string> selectionGroupMemberSlotIds =
+                registration.InputSelectionGroupMemberSlotIds;
+            IEnumerable<FirmwareImageMap> publishedRouteMaps =
+                selectionGroupMemberSlotIds.Count == 0
+                    ? maps
+                    : maps.TakeLast(1);
+            foreach (FirmwareImageMap map in publishedRouteMaps)
             {
                 string? countVariant = TryFormatIcCountVariant(
                     map.Applicability.TopologyRequirement,
@@ -50,6 +56,9 @@ internal static partial class CurrentSupportMatrixCatalog
                 registration.TryCompile(
                     map.Applicability.CapacityBytes,
                     topology,
+                    selectionGroupMemberSlotIds.Count == 0
+                        ? null
+                        : selectionGroupMemberSlotIds,
                     out CompiledComposition? composition,
                     out IReadOnlyList<CompositionIssue> compileIssues);
                 FirmwareImageMap? compiledMap =

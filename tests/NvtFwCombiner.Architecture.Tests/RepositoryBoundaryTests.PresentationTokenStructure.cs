@@ -31,16 +31,16 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("WorkbenchAddressSpaceIds.DpInput", presentationSource, StringComparison.Ordinal);
         Assert.Contains("WorkbenchAddressSpaceIds.TpInput", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchAddressSpaceIds.LdInput", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchAddressSpaceIds.LdcInput", presentationSource, StringComparison.Ordinal);
         foreach (string addressSpaceLiteral in new[]
         {
             "\"dp-input\"",
             "\"tp-input\"",
-            "\"ld-input\"",
+            "\"ldc-input\"",
             "\"output-image\"",
             "\"reference-base\"",
             "\"dp-replacement\"",
-            "\"ld-replacement\"",
+            "\"ldc-replacement\"",
             "\"ctrlram-replacement\"",
         })
         {
@@ -56,7 +56,7 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("WorkbenchSlotIds.MergeDp", presentationSource, StringComparison.Ordinal);
         Assert.Contains("WorkbenchSlotIds.MergeTp", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.MergeLd", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.MergeLdc", presentationSource, StringComparison.Ordinal);
         Assert.Contains("WorkbenchSlotIds.ReplaceBase", presentationSource, StringComparison.Ordinal);
         Assert.Contains("WorkbenchSlotIds.ReplaceDp", presentationSource, StringComparison.Ordinal);
         Assert.Contains("WorkbenchSlotIds.TryFormatReplaceCtrlRamLabel", presentationSource, StringComparison.Ordinal);
@@ -64,7 +64,7 @@ public sealed partial class RepositoryBoundaryTests
         {
             "\"merge-dp\"",
             "\"merge-tp\"",
-            "\"merge-ld\"",
+            "\"merge-ldc\"",
             "\"replace-base\"",
             "\"replace-dp\"",
             "\"replace-ctrlram-",

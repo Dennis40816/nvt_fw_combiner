@@ -8,9 +8,9 @@ internal static partial class CompositionProfileNormalizer
     internal static CompositionProfileDefinition Normalize(CompositionProfileDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (document.SchemaVersion is not ("2.0" or "2.1" or "2.2" or "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11"))
+        if (document.SchemaVersion is not ("2.0" or "2.1" or "2.2" or "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12"))
         {
-            throw Error("schemaVersion", "Expected composition-profile schema version '2.0' through '2.11'.");
+            throw Error("schemaVersion", "Expected composition-profile schema version '2.0' through '2.12'.");
         }
 
         CompositionKind compositionKind = NormalizeCompositionKind(
@@ -30,6 +30,13 @@ internal static partial class CompositionProfileNormalizer
             document.InputSlots,
             "inputSlots",
             (slot, path) => NormalizeInputSlot(slot, document.SchemaVersion, path));
+        CompositionProfileInputSelectionGroup[] inputSelectionGroups =
+            document.InputSelectionGroups is null
+                ? []
+                : NormalizeList(
+                    document.InputSelectionGroups,
+                    "inputSelectionGroups",
+                    NormalizeInputSelectionGroup);
         CompositionProfileSpace[] spaces = NormalizeList(
             document.Spaces,
             "spaces",
@@ -80,7 +87,8 @@ internal static partial class CompositionProfileNormalizer
             validations,
             processorStages,
             output,
-            evidenceRefs));
+            evidenceRefs,
+            inputSelectionGroups));
     }
 
     private static CompositionKind NormalizeCompositionKind(string value, string path)

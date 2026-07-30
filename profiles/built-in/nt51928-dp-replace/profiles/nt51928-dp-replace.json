@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.12",
   "profileId": "nt51928-dp-replace-gen-flash",
-  "profileVersion": "0.2.0",
+  "profileVersion": "0.3.0",
   "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "single-selector",
@@ -13,13 +13,15 @@
     "topologyAuthoring": "hidden",
     "displayNameKey": "profile.nt51928.dp-replace"
   },
+  "compilationContext": { "kind": "resolved-map" },
   "mapBinding": {
-    "familyId": "nt51928",
-    "familyVersion": "1.3.0",
-    "familyContentHash": "b4838c770784f4a8655e64192b3b0b2f0b732093a25d94a75405dcb863c90e4d",
-    "mapIds": ["nt51928-standard-merge-512k"],
-    "requiredRegionIds": ["dp-code", "ldc-code"],
-    "requiredMetadataStructureIds": ["dpcmi"],
+    "familyId": "nt51917-nt51927-nt51928-canonical-container",
+    "familyVersion": "1.4.0",
+    "familyContentHash": "4c45c4e1346632bfee569d7387abe9ee5226b5624e083f02b554ad985a52b694",
+    "mapIds": ["nt51928-standard-merge-256k", "nt51928-standard-merge-512k"],
+    "requiredRegionIds": ["dp-code"],
+    "optionalRegionIds": ["ldc-code"],
+    "requiredMetadataStructureIds": [],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -29,20 +31,29 @@
       "acceptance": { "lengthRule": { "kind": "exact-resolved-map-capacity" }, "normalization": { "kind": "none" } }
     },
     {
-      "slotId": "dp-replacement", "role": "dp", "artifactClass": "dp-firmware",
-      "required": true, "cardinality": "exactly-one", "acceptedExtensions": [".bin"],
+      "slotId": "initial-code-replacement", "role": "initial-code", "artifactClass": "dp-firmware",
+      "required": false, "cardinality": "zero-or-one", "acceptedExtensions": [".bin"],
       "acceptance": { "lengthRule": { "kind": "normal-dp-extract-with-warning", "issueCode": "DP_SIZE_WARNING" }, "normalization": { "kind": "none" } }
     },
     {
-      "slotId": "ld-replacement", "role": "ldc", "artifactClass": "auxiliary",
-      "required": true, "cardinality": "exactly-one", "acceptedExtensions": [".bin"],
+      "slotId": "ldc-replacement", "role": "ldc", "artifactClass": "auxiliary",
+      "required": false, "cardinality": "zero-or-one", "acceptedExtensions": [".bin"],
+      "notApplicableReason": "Reference length does not include LDC",
       "acceptance": { "lengthRule": { "kind": "exact-resolved-map-capacity" }, "normalization": { "kind": "none" } }
+    }
+  ],
+  "inputSelectionGroups": [
+    {
+      "groupId": "dp-replacement-selection",
+      "memberSlotIds": ["initial-code-replacement", "ldc-replacement"],
+      "minimumSelected": 1,
+      "maximumSelected": 2
     }
   ],
   "spaces": [
     { "spaceId": "reference-base", "kind": "input-artifact", "slotId": "reference-base", "instancePolicy": "singleton" },
-    { "spaceId": "dp-replacement", "kind": "input-artifact", "slotId": "dp-replacement", "instancePolicy": "singleton" },
-    { "spaceId": "ld-replacement", "kind": "input-artifact", "slotId": "ld-replacement", "instancePolicy": "singleton" },
+    { "spaceId": "initial-code-replacement", "kind": "input-artifact", "slotId": "initial-code-replacement", "instancePolicy": "singleton" },
+    { "spaceId": "ldc-replacement", "kind": "input-artifact", "slotId": "ldc-replacement", "instancePolicy": "singleton" },
     {
       "spaceId": "output-image", "kind": "output-image",
       "capacity": { "kind": "resolved-map" },
@@ -50,20 +61,12 @@
     }
   ],
   "views": [
-    { "viewId": "dp-code-source", "spaceId": "dp-replacement", "selector": { "kind": "map-region", "regionId": "dp-code" } },
+    { "viewId": "dp-code-source", "spaceId": "initial-code-replacement", "selector": { "kind": "map-region", "regionId": "dp-code" } },
     { "viewId": "dp-code-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "dp-code" } },
-    { "viewId": "ldc-code-source", "spaceId": "ld-replacement", "selector": { "kind": "map-region", "regionId": "ldc-code" } },
+    { "viewId": "ldc-code-source", "spaceId": "ldc-replacement", "selector": { "kind": "map-region", "regionId": "ldc-code" } },
     { "viewId": "ldc-code-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "ldc-code" } }
   ],
-  "metadataBindings": [
-    {
-      "bindingId": "dpcmi-inspection",
-      "spaceId": "dp-replacement",
-      "structureId": "dpcmi",
-      "fieldIds": ["jira-low", "dp-major", "dp-minor", "jira-high"],
-      "purposes": ["validation", "output-naming", "display", "version"]
-    }
-  ],
+  "metadataBindings": [],
   "regionAccessRules": [
     { "regionId": "dp-code", "access": "whole", "reason": "Replace the complete owner-approved NT51928 DP region [0x3C000, 0x40000)." },
     { "regionId": "ldc-code", "access": "whole", "reason": "Replace the separate owner-approved NT51928 LDC region [0x40000, 0x62000)." }
@@ -80,8 +83,25 @@
       "kind": "replace-range", "sourceViewId": "ldc-code-source", "targetViewId": "ldc-code-output"
     }
   ],
-  "validations": [],
+  "validations": [
+    {
+      "ruleId": "initial-code-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "DP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "dp-code-source"
+    },
+    {
+      "ruleId": "ldc-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "LDC_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "ldc-code-source"
+    }
+  ],
   "processorStages": [],
   "output": { "fileNameTemplate": "nt51928-dp-replace.bin", "allowOverride": true, "invalidCharacterPolicy": "reject", "requiredTokenIds": [] },
-  "evidenceRefs": ["gen-flash-bin-v2-51928-golden", "dp-replace-owner-decision-2026-07-20"]
+  "evidenceRefs": ["gen-flash-bin-v2-51928-golden", "dp-replace-owner-decision-2026-07-20", "adr-0043-owner-accepted-2026-07-28"]
 }

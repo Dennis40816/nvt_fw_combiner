@@ -11,7 +11,16 @@ public sealed record CompositionProfileInputSlotDocument(
     bool Required,
     string Cardinality,
     IReadOnlyList<string> AcceptedExtensions,
-    CompositionProfileInputAcceptanceDocument Acceptance);
+    CompositionProfileInputAcceptanceDocument Acceptance,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? NotApplicableReason = null);
+
+/// <summary>DTO for one checked selection constraint across existing optional input slots.</summary>
+public sealed record CompositionProfileInputSelectionGroupDocument(
+    string GroupId,
+    IReadOnlyList<string> MemberSlotIds,
+    int MinimumSelected,
+    int MaximumSelected);
 
 /// <summary>DTO for input length acceptance and transient normalization policy.</summary>
 public sealed record CompositionProfileInputAcceptanceDocument(

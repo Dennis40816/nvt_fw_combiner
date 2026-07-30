@@ -29,8 +29,8 @@ internal static class BuiltInV2BundleRegistry
             ("nt51927-standard-merge", "631bf40e6f5f6aee14be7a5b834243def7c6a37cdb88f49e0d854471d5de6015"),
             ("nt51928-ctrlram-replace-candidate", "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634"),
             ("nt51928-general-merge-logical-candidate", "a774a7622aedfac94fc045b56e7fe04902359ebe59747acd5486ed336b6d5da2"),
-            ("nt51928-dp-replace", "19fa3f39c8341052a0614bcdf4e21638fe76f1a9c471888ae7586b21937c77c9"),
-            ("nt51928-standard-merge", "63cc636b72a63e6bd34c7e45769bb21342b7885120f483ff70432e35350eadbb"),
+            ("nt51928-dp-replace", "4acc49cca62303298de399493cc9585bf3edebf2363ac0a9f5ef20d2456ec63c"),
+            ("nt51928-standard-merge", "8078a46da81b650436d25ce444904b88b29f5e4a0a7c7c169da73115f890a188"),
             ("nt51929-ctrlram-replace-candidate", "ea9cf1fe05a1462ddff67ece4a037757375100b67d91da3eb1eac1dd0417a4a5"),
             ("nt51929-dp-replace", "169b9334a57328504fbe463c96dda1e8d749109896ae8d0143088b747b0ab596"),
             ("nt51929-standard-merge", "14a3b2808a5377af39b683fe44f60f152e9c7f4a15c18e5c9e264ad6ea2b0827"),
@@ -102,7 +102,8 @@ internal sealed class BuiltInV2Bundle
         string icId,
         string experienceId,
         long? requestedMapCapacity,
-        string failureMessage)
+        string failureMessage,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         V2CompositionPlanCompileResult compilation = Compile(
             profileId,
@@ -110,13 +111,42 @@ internal sealed class BuiltInV2Bundle
             icId,
             experienceId,
             requestedMapCapacity,
-            []);
+            requestedTopology: null,
+            resolutionArtifacts: [],
+            selectedInputSlotIds);
         return compilation.CompiledComposition is { Eligibility: CompiledCompositionEligibility.V2RuntimeExecutable }
             ? compilation
             : V2CompositionPlanCompileResult.Failed(
             compilation.Issues.Count == 0
                 ? [new CompositionIssue(CompilationFailed, failureMessage)]
                 : compilation.Issues);
+    }
+
+    internal IReadOnlyList<string> GetInputSelectionGroupMemberSlotIds(
+        string profileId,
+        string profileVersion)
+    {
+        try
+        {
+            TrustedProfileBundleCatalog.ProfileSelectionResult result =
+                _catalog.Value.SelectProfile(profileId, profileVersion);
+            return result.Selection is { } selection &&
+                   _catalog.Value.TryResolveSelection(
+                       selection,
+                       out TrustedCompositionProfileCatalogEntry? entry)
+                ? Array.AsReadOnly(
+                [
+                    .. entry.Profile.InputSelectionGroups
+                        .SelectMany(static group => group.MemberSlotIds)
+                        .Distinct(StringComparer.Ordinal)
+                        .Order(StringComparer.Ordinal),
+                ])
+                : [];
+        }
+        catch (Exception exception) when (IsBundleLoadFailure(exception))
+        {
+            return [];
+        }
     }
 
     /// <summary>
@@ -175,7 +205,8 @@ internal sealed class BuiltInV2Bundle
         string experienceId,
         long? requestedMapCapacity,
         TopologySelection? requestedTopology,
-        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts)
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         try
@@ -188,7 +219,8 @@ internal sealed class BuiltInV2Bundle
                 experienceId,
                 requestedMapCapacity,
                 requestedTopology,
-                resolutionArtifacts);
+                resolutionArtifacts,
+                selectedInputSlotIds);
         }
         catch (Exception exception) when (IsBundleLoadFailure(exception))
         {

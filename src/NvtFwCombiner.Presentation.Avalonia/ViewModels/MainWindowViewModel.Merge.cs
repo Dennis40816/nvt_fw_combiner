@@ -33,23 +33,24 @@ public sealed partial class MainWindowViewModel
         }
 
         IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
+        IReadOnlyList<string> available = WorkbenchCompositionService.GetStandardMergeInputAddressSpaces(SelectedIc);
         _mergeDpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal);
         _mergeTpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal);
-        _mergeLdSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.LdInput, StringComparer.Ordinal);
+        _mergeLdcSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.LdcInput, StringComparer.Ordinal);
         MergeSlots.Clear();
-        if (required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal))
+        if (available.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(_mergeDpSlot);
         }
 
-        if (required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal))
+        if (available.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(_mergeTpSlot);
         }
 
-        if (required.Contains(WorkbenchAddressSpaceIds.LdInput, StringComparer.Ordinal))
+        if (available.Contains(WorkbenchAddressSpaceIds.LdcInput, StringComparer.Ordinal))
         {
-            MergeSlots.Add(_mergeLdSlot);
+            MergeSlots.Add(_mergeLdcSlot);
         }
     }
 
@@ -123,7 +124,7 @@ public sealed partial class MainWindowViewModel
         {
             WorkbenchAddressSpaceIds.DpInput => "DP",
             WorkbenchAddressSpaceIds.TpInput => "TP",
-            WorkbenchAddressSpaceIds.LdInput => "LD",
+            WorkbenchAddressSpaceIds.LdcInput => "LDC",
             _ => addressSpaceId,
         };
     }
@@ -379,7 +380,7 @@ public sealed partial class MainWindowViewModel
         Dictionary<string, string> paths = new(StringComparer.Ordinal);
         AddPath(paths, WorkbenchAddressSpaceIds.DpInput, _mergeDpSlot);
         AddPath(paths, WorkbenchAddressSpaceIds.TpInput, _mergeTpSlot);
-        AddPath(paths, WorkbenchAddressSpaceIds.LdInput, _mergeLdSlot);
+        AddPath(paths, WorkbenchAddressSpaceIds.LdcInput, _mergeLdcSlot);
         return paths;
     }
 
@@ -463,7 +464,7 @@ public sealed partial class MainWindowViewModel
         {
             WorkbenchAddressSpaceIds.DpInput => _mergeDpSlot,
             WorkbenchAddressSpaceIds.TpInput => _mergeTpSlot,
-            WorkbenchAddressSpaceIds.LdInput => _mergeLdSlot,
+            WorkbenchAddressSpaceIds.LdcInput => _mergeLdcSlot,
             _ => null,
         };
     }

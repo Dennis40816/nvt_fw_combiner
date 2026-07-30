@@ -414,6 +414,35 @@ public sealed partial class CompiledComposition
             AppendField(builder, $"{prefix}.slot", binding.SlotId);
             AppendEnum(builder, $"{prefix}.instance-policy", binding.InstancePolicy);
         }
+
+        if (contract.SelectionGroups.Count == 0)
+        {
+            return;
+        }
+
+        AppendInteger(builder, "input.selection-group.count", contract.SelectionGroups.Count);
+        for (int index = 0; index < contract.SelectionGroups.Count; index++)
+        {
+            CompiledInputSelectionGroup group = contract.SelectionGroups[index];
+            string prefix = FormattableString.Invariant($"input.selection-group.{index}");
+            AppendField(builder, $"{prefix}.id", group.GroupId);
+            AppendStringList(builder, $"{prefix}.member", group.MemberSlotIds);
+            AppendStringList(builder, $"{prefix}.applicable", group.ApplicableMemberSlotIds);
+            AppendStringList(builder, $"{prefix}.selected", group.SelectedSlotIds);
+            AppendInteger(builder, $"{prefix}.minimum-selected", group.MinimumSelected);
+            AppendInteger(builder, $"{prefix}.maximum-selected", group.MaximumSelected);
+            AppendInteger(builder, $"{prefix}.not-applicable-reason.count", group.NotApplicableReasons.Count);
+            int reasonIndex = 0;
+            foreach ((string slotId, string reason) in group.NotApplicableReasons.OrderBy(
+                         static pair => pair.Key,
+                         StringComparer.Ordinal))
+            {
+                string reasonPrefix = FormattableString.Invariant(
+                    $"{prefix}.not-applicable-reason.{reasonIndex++}");
+                AppendField(builder, $"{reasonPrefix}.slot", slotId);
+                AppendField(builder, $"{reasonPrefix}.message", reason);
+            }
+        }
     }
 
     private static void AppendInputLengthRequirement(

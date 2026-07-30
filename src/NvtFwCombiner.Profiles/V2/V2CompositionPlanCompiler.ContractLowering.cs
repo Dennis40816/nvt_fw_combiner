@@ -5,6 +5,49 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class V2CompositionPlanCompiler
 {
+    private static Dictionary<string, AddressSpace> LowerAddressSpaces(
+        CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        List<CompositionIssue> issues,
+        IReadOnlySet<string>? activeSlotIds = null)
+    {
+        var spaces = new Dictionary<string, AddressSpace>(StringComparer.Ordinal);
+        foreach (InputArtifactProfileSpace input in profile.Spaces.OfType<InputArtifactProfileSpace>())
+        {
+            if (activeSlotIds is not null && !activeSlotIds.Contains(input.SlotId))
+            {
+                continue;
+            }
+
+            CompositionProfileInputSlot slot = profile.InputSlots.Single(candidate =>
+                StringComparer.Ordinal.Equals(candidate.SlotId, input.SlotId));
+            if (!TryResolveInputSpaceLength(profile, input, slot, resolvedMap, issues, out long length))
+            {
+                continue;
+            }
+
+            spaces.Add(input.SpaceId, CreateInputAddressSpace(
+                input.SpaceId,
+                length,
+                slot,
+                resolvedMap.CapacityBytes,
+                profile.CompositionKind,
+                IsCloneSourceSlot(profile, input.SlotId)));
+        }
+
+        foreach (MutableCompositionProfileSpace mutableSpace in profile.Spaces.OfType<MutableCompositionProfileSpace>())
+        {
+            spaces.Add(
+                mutableSpace.SpaceId,
+                new AddressSpace(
+                    mutableSpace.SpaceId,
+                    ResolveMutableSpaceCapacity(mutableSpace, resolvedMap.CapacityBytes),
+                    AddressSpaceMutability.Mutable));
+        }
+
+        return spaces;
+    }
+
     private static MutableCompositionProfileSpace AssertOutputSpace(CompositionProfileDefinition profile)
     {
         return profile.Spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
@@ -22,7 +65,8 @@ internal static partial class V2CompositionPlanCompiler
         CompiledIcNumberPolicy icNumberPolicy,
         CompositionProfileMapAdmission? admission = null,
         bool runtimeExecutable = false,
-        IEnumerable<CompiledValidationRequirement>? additionalValidationRequirements = null)
+        IEnumerable<CompiledValidationRequirement>? additionalValidationRequirements = null,
+        IEnumerable<CompiledInputSelectionGroup>? inputSelectionGroups = null)
     {
         var provenance = new V2CompilationProvenance(
             selection.BundleIdentity,
@@ -43,7 +87,7 @@ internal static partial class V2CompositionPlanCompiler
             profile.CompositionKind,
             new V2CompiledCompositionDetails(
                 provenance,
-                new CompiledInputContract(inputSlots, inputBindings),
+                new CompiledInputContract(inputSlots, inputBindings, inputSelectionGroups),
                 regionAccess,
                 new CompiledOutputNamingRequirement(
                     profile.Output.FileNameTemplate,
@@ -58,8 +102,21 @@ internal static partial class V2CompositionPlanCompiler
 
     private static CompiledInputSlotRequirement MapInputSlot(
         CompositionProfileInputSlot slot,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        bool forceRequired = false)
     {
+        CompiledInputSlotCardinality cardinality = forceRequired
+            ? CompiledInputSlotCardinality.ExactlyOne
+            : slot.Cardinality switch
+            {
+                CompositionProfileSlotCardinality.ExactlyOne => CompiledInputSlotCardinality.ExactlyOne,
+                CompositionProfileSlotCardinality.ZeroOrOne => CompiledInputSlotCardinality.ZeroOrOne,
+                CompositionProfileSlotCardinality.OneOrMore => CompiledInputSlotCardinality.OneOrMore,
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(slot),
+                    slot.Cardinality,
+                    "Unknown profile input slot cardinality."),
+            };
         return new CompiledInputSlotRequirement(
             slot.SlotId,
             slot.Role,
@@ -72,14 +129,8 @@ internal static partial class V2CompositionPlanCompiler
                 CompositionProfileArtifactClass.Auxiliary => CompiledInputArtifactClass.Auxiliary,
                 _ => throw new ArgumentOutOfRangeException(nameof(slot), slot.ArtifactClass, "Unknown profile input artifact class."),
             },
-            slot.Required,
-            slot.Cardinality switch
-            {
-                CompositionProfileSlotCardinality.ExactlyOne => CompiledInputSlotCardinality.ExactlyOne,
-                CompositionProfileSlotCardinality.ZeroOrOne => CompiledInputSlotCardinality.ZeroOrOne,
-                CompositionProfileSlotCardinality.OneOrMore => CompiledInputSlotCardinality.OneOrMore,
-                _ => throw new ArgumentOutOfRangeException(nameof(slot), slot.Cardinality, "Unknown profile input slot cardinality."),
-            },
+            slot.Required || forceRequired,
+            cardinality,
             slot.AcceptedExtensions,
             MapInputLengthRequirement(slot.LengthRule, resolvedMap.CapacityBytes),
             MapInputNormalization(slot.Normalization));
