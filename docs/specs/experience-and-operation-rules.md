@@ -41,10 +41,14 @@ Merge/Replace may explicitly author From File Start as a user mapping preset;
 that does not create another built-in firmware rule.
 
 FlashCode classification requires a resolved complete-container variant with
-required DP/Initial Code and TP views. LDC is variant-optional. NVT marker,
-ASCII IC hint, CMI, PID, version, length, and non-uniform checks are composable
-signals rather than one magic signature; inconclusive classification is
-`Unknown` and remains separate from section admission.
+required DP/Initial Code and TP views. Application requires exact variant
+capacity, complete DP and TP source coverage, and satisfied profile-declared
+warning-only non-uniform checks for both parts before returning `FlashCode`.
+A full-length Initial Code whose TP view is uniform therefore remains
+`Unknown`. LDC is variant-optional. NVT marker, ASCII IC hint, CMI, PID,
+version, length, and non-uniform checks are composable signals rather than one
+magic signature; inconclusive classification is `Unknown` and remains
+separate from section admission.
 
 ## Operation Algebra
 
@@ -105,7 +109,7 @@ Inventory data may be `unknown`, but a supported profile may not. A transform ma
   corrected.
 - Structural input safety remains blocking. A profile-declared
   `non-uniform-region` plausibility validation is different: one uniform
-  Initial Code/DP/LDC source view emits a typed warning through the shared
+  Initial Code/DP/TP/LDC source view emits a typed warning through the shared
   Application result, UI, CLI, Preview, and Build Report, but does not block
   Build or change output bytes.
 - Check-time state never creates a Run Report. When the user explicitly

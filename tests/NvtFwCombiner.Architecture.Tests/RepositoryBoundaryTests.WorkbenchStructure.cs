@@ -318,7 +318,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(1, CountOccurrences(bundle, "nt51919-nt51929-nt51932-ab-merge"));
         Assert.Equal(1, CountOccurrences(bundle, "nt51950-ab-merge"));
         Assert.Contains(
-            "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206",
+            "069719655976439153a0d2d2f06f1289f3bcc76437463f89aa81ee19827b312f",
             bundle,
             StringComparison.Ordinal);
         Assert.Equal(

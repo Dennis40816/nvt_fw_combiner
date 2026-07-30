@@ -1,5 +1,6 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.13",
+  "compilationContext": { "kind": "resolved-map" },
   "profileId": "nt51923-dp-replace-gen-flash",
   "profileVersion": "0.2.0",
   "promotion": { "stage": "supported", "blockers": [] },
@@ -24,7 +25,7 @@
     {
       "slotId": "dp-replacement", "role": "dp", "artifactClass": "dp-firmware",
       "required": true, "cardinality": "exactly-one", "acceptedExtensions": [".bin"],
-      "acceptance": { "lengthRule": { "kind": "normal-dp-extract-with-warning", "issueCode": "DP_SIZE_WARNING" }, "normalization": { "kind": "none" } }
+      "acceptance": { "lengthRule": { "kind": "source-view-coverage" }, "normalization": { "kind": "none" } }
     }
   ],
   "spaces": [

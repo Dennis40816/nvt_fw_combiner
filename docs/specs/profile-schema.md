@@ -85,10 +85,19 @@ need only cover their selected canonical views.
 
 Structural acceptance remains blocking. A profile may separately reference a
 warning-only `non-uniform-region` validation over a canonical Initial Code,
-DP, or LDC source view. A view containing only one distinct byte emits a typed
+DP, TP, or LDC source view. A view containing only one distinct byte emits a typed
 warning without changing map resolution, readiness, execution admission, or
 output bytes. This validation is explicit profile authority, never a global
 inference from artifact class.
+
+FlashCode classification is an Application-owned read-only result over one
+resolved compiled profile. It references the resolved map capacity, DP and TP
+input bindings/source projections, and their declared non-uniform validations;
+it does not copy offsets or introduce a second firmware definition. `FlashCode`
+requires exact declared capacity plus satisfied DP/Initial-Code and TP coverage
+and plausibility signals. Missing declaration or inconclusive content yields
+`Unknown`. A separately admitted section input may still execute through its
+own source-view contract.
 
 Region access is deny-by-default:
 

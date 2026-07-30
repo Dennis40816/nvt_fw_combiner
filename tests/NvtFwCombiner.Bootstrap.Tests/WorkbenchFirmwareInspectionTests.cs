@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.InputInspection;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -8,14 +9,16 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Parity and read-count evidence for the shell firmware inspection facade.</summary>
 public sealed partial class WorkbenchFirmwareInspectionTests
 {
-    /// <summary>NT51950/NT51951 alone recognize their owner-declared standalone 0x37000 TP FW shape.</summary>
+    /// <summary>NT51950/NT51951 recognize a plausible TP overlay in their standalone 0x37000 TP FW shape.</summary>
     [Theory]
     [InlineData("NT51950")]
     [InlineData("NT51951")]
+    [InlineData("51950")]
+    [InlineData("51951")]
     public void Nt51950FamilyTpPrefixClassifiesBeforeDpContent(string icId)
     {
         byte[] tpFirmware = new byte[0x37000];
-        tpFirmware[0] = 0x5A;
+        tpFirmware[0xA000] = 0x5A;
 
         WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
             icId,
@@ -29,58 +32,79 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         Assert.Null(inspection.CmiDpCode);
     }
 
-    /// <summary>Other ICs classify a full base only from their declared DP bytes, even at TP-prefix length.</summary>
+    /// <summary>Other ICs require both declared DP and TP plausibility before claiming FlashCode.</summary>
     [Fact]
     public void OtherIcFullBaseClassifiesFromDeclaredDpContent()
     {
-        byte[] erasedDp = new byte[0x40000];
-        byte[] programmedDp = (byte[])erasedDp.Clone();
-        programmedDp[0] = 0x5A;
+        byte[] tpOnly = new byte[0x40000];
+        tpOnly[0x7000] = 0x3C;
+        byte[] flashCode = (byte[])tpOnly.Clone();
+        flashCode[0] = 0x5A;
 
-        WorkbenchFirmwareInspection erased = WorkbenchCompositionService.InspectFirmware(
+        WorkbenchFirmwareInspection tp = WorkbenchCompositionService.InspectFirmware(
             "NT51929",
-            "erased.bin",
+            "tp.bin",
             tpPath: null,
             ctrlRamRequest: null,
-            _ => erasedDp);
-        WorkbenchFirmwareInspection programmed = WorkbenchCompositionService.InspectFirmware(
+            _ => tpOnly);
+        WorkbenchFirmwareInspection flash = WorkbenchCompositionService.InspectFirmware(
             "NT51929",
-            "programmed.bin",
+            "flash.bin",
             tpPath: null,
             ctrlRamRequest: null,
-            _ => programmedDp);
+            _ => flashCode);
 
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, erased.BaseFirmwareArtifactKind);
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, programmed.BaseFirmwareArtifactKind);
-        Assert.Null(erased.DpVersion);
-        Assert.Null(erased.CmiDpCode);
-        _ = Assert.NotNull(programmed.DpVersion);
-        _ = Assert.NotNull(programmed.CmiDpCode);
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, tp.BaseFirmwareArtifactKind);
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, flash.BaseFirmwareArtifactKind);
+        Assert.Null(tp.DpVersion);
+        Assert.Null(tp.CmiDpCode);
+        Assert.NotNull(flash.ArtifactClassification);
     }
 
-    /// <summary>NT51950 full containers classify from their declared post-prefix DP region after the length check.</summary>
+    /// <summary>A full-length Initial Code candidate with a dummy TP range is not promoted to FlashCode.</summary>
+    [Fact]
+    public void FullLengthInitialCodeWithoutTpContentRemainsUnknown()
+    {
+        byte[] initialCode = new byte[0x40000];
+        initialCode[0] = 0x5A;
+
+        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51929",
+            "initial-code.bin",
+            tpPath: null,
+            ctrlRamRequest: null,
+            _ => initialCode);
+
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.Unknown, inspection.BaseFirmwareArtifactKind);
+        Assert.Equal(
+            CompiledFirmwareArtifactKind.Unknown,
+            Assert.IsType<CompiledFirmwareArtifactClassification>(inspection.ArtifactClassification).Kind);
+    }
+
+    /// <summary>NT51950 full containers require plausible Initial Code and TP overlay ranges.</summary>
     [Fact]
     public void Nt51950FullBaseClassifiesFromDeclaredDpContent()
     {
-        byte[] erasedDp = new byte[0x40000];
-        byte[] programmedDp = (byte[])erasedDp.Clone();
-        programmedDp[0x38000] = 0x5A;
+        byte[] tpOnly = new byte[0x40000];
+        tpOnly[0xA000] = 0x3C;
+        byte[] flashCode = (byte[])tpOnly.Clone();
+        flashCode[0] = 0x5A;
 
-        WorkbenchFirmwareInspection erased = WorkbenchCompositionService.InspectFirmware(
+        WorkbenchFirmwareInspection tp = WorkbenchCompositionService.InspectFirmware(
             "NT51950",
-            "erased.bin",
+            "tp.bin",
             tpPath: null,
             ctrlRamRequest: null,
-            _ => erasedDp);
-        WorkbenchFirmwareInspection programmed = WorkbenchCompositionService.InspectFirmware(
+            _ => tpOnly);
+        WorkbenchFirmwareInspection flash = WorkbenchCompositionService.InspectFirmware(
             "NT51950",
-            "programmed.bin",
+            "flash.bin",
             tpPath: null,
             ctrlRamRequest: null,
-            _ => programmedDp);
+            _ => flashCode);
 
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, erased.BaseFirmwareArtifactKind);
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, programmed.BaseFirmwareArtifactKind);
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, tp.BaseFirmwareArtifactKind);
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, flash.BaseFirmwareArtifactKind);
     }
 
     /// <summary>The consolidated snapshot preserves existing metadata and CtrlRAM display projections.</summary>

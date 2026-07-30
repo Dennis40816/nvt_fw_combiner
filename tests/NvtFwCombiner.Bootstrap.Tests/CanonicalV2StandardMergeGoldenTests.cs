@@ -9,15 +9,15 @@ public sealed class CanonicalV2StandardMergeGoldenTests
 {
     /// <summary>Verifies every family member declares the V2 copy plan and produces owner-approved reference bytes.</summary>
     [Theory]
-    [InlineData("nt51929-standard-merge", "14a3b2808a5377af39b683fe44f60f152e9c7f4a15c18e5c9e264ad6ea2b0827", "NT51919", "nt51919-standard-merge-gen-flash-alias", "51929", "nt51919-standard-merge-gen-flash-alias.bin", 0x6000, 0x40000, true, true, false)]
-    [InlineData("nt51929-standard-merge", "14a3b2808a5377af39b683fe44f60f152e9c7f4a15c18e5c9e264ad6ea2b0827", "NT51929", "nt51929-standard-merge-gen-flash", "51929", "nt51929-standard-merge-gen-flash.bin", 0x6000, 0x40000, false, true, false)]
-    [InlineData("nt51929-standard-merge", "14a3b2808a5377af39b683fe44f60f152e9c7f4a15c18e5c9e264ad6ea2b0827", "NT51932", "nt51932-standard-merge-gen-flash", "51932", "nt51932-standard-merge-gen-flash.bin", 0x6000, 0x40000, false, true, false)]
-    [InlineData("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "NT51923", "nt51923-standard-merge-gen-flash", "51923", "nt51923-standard-merge-gen-flash.bin", 0x40000, 0x40000, false, true, false)]
-    [InlineData("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "NT51926", "nt51926-standard-merge-gen-flash", "51926", "nt51926-standard-merge-gen-flash.bin", 0x40000, 0x40000, false, true, false)]
-    [InlineData("nt51927-standard-merge", "631bf40e6f5f6aee14be7a5b834243def7c6a37cdb88f49e0d854471d5de6015", "NT51917", "nt51917-standard-merge-gen-flash-alias", "51927", "nt51917-standard-merge-gen-flash-alias.bin", 0x40000, 0x200000, false, true, false)]
-    [InlineData("nt51927-standard-merge", "631bf40e6f5f6aee14be7a5b834243def7c6a37cdb88f49e0d854471d5de6015", "NT51927", "nt51927-standard-merge-gen-flash", "51927", "nt51927-standard-merge-gen-flash.bin", 0x40000, 0x200000, false, true, false)]
-    [InlineData("nt51928-standard-merge", "8078a46da81b650436d25ce444904b88b29f5e4a0a7c7c169da73115f890a188", "NT51928", "nt51928-standard-merge-gen-flash", "51927", "nt51928-standard-merge-gen-flash.bin", 0x40000, 0x40000, false, true, false)]
-    [InlineData("nt51928-standard-merge", "8078a46da81b650436d25ce444904b88b29f5e4a0a7c7c169da73115f890a188", "NT51928", "nt51928-standard-merge-gen-flash", "51928", "nt51928-standard-merge-gen-flash.bin", 0x40000, 0x80000, false, true, true)]
+    [InlineData("nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380", "NT51919", "nt51919-standard-merge-gen-flash-alias", "51929", "nt51919-standard-merge-gen-flash-alias.bin", 0x6000, true, false)]
+    [InlineData("nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380", "NT51929", "nt51929-standard-merge-gen-flash", "51929", "nt51929-standard-merge-gen-flash.bin", 0x6000, false, false)]
+    [InlineData("nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380", "NT51932", "nt51932-standard-merge-gen-flash", "51932", "nt51932-standard-merge-gen-flash.bin", 0x6000, false, false)]
+    [InlineData("nt51923-standard-merge", "8f95387d0bd00a6b07b651151c17170e0e36e4a9f7f23c9085ed97cabc84b4a0", "NT51923", "nt51923-standard-merge-gen-flash", "51923", "nt51923-standard-merge-gen-flash.bin", 0x40000, false, false)]
+    [InlineData("nt51923-standard-merge", "8f95387d0bd00a6b07b651151c17170e0e36e4a9f7f23c9085ed97cabc84b4a0", "NT51926", "nt51926-standard-merge-gen-flash", "51926", "nt51926-standard-merge-gen-flash.bin", 0x40000, false, false)]
+    [InlineData("nt51927-standard-merge", "74cf544dd7e7c6a834b8c4e31359a1a19fa1b7892d1b5fd2c5d96476a4fd7b8e", "NT51917", "nt51917-standard-merge-gen-flash-alias", "51927", "nt51917-standard-merge-gen-flash-alias.bin", 0x40000, false, false)]
+    [InlineData("nt51927-standard-merge", "74cf544dd7e7c6a834b8c4e31359a1a19fa1b7892d1b5fd2c5d96476a4fd7b8e", "NT51927", "nt51927-standard-merge-gen-flash", "51927", "nt51927-standard-merge-gen-flash.bin", 0x40000, false, false)]
+    [InlineData("nt51928-standard-merge", "ebd187cf19770529649ce5dbbb21d3799ea667dccfa5322b3ef83a8e912272d5", "NT51928", "nt51928-standard-merge-gen-flash", "51927", "nt51928-standard-merge-gen-flash.bin", 0x40000, false, false)]
+    [InlineData("nt51928-standard-merge", "ebd187cf19770529649ce5dbbb21d3799ea667dccfa5322b3ef83a8e912272d5", "NT51928", "nt51928-standard-merge-gen-flash", "51928", "nt51928-standard-merge-gen-flash.bin", 0x40000, false, true)]
     public async Task TrustedV2BundleMatchesDeclaredPlanAndOwnerApprovedGoldenBytes(
         string bundleDirectory,
         string bundleContentHash,
@@ -26,9 +26,7 @@ public sealed class CanonicalV2StandardMergeGoldenTests
         string referenceIc,
         string expectedOutputFileName,
         int expectedDpSourceLength,
-        int expectedDpInputLength,
         bool expectsRegionSetAlias,
-        bool expectsDpExtraction,
         bool expectsLdc)
     {
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
@@ -50,7 +48,7 @@ public sealed class CanonicalV2StandardMergeGoldenTests
         Assert.Equal(profileId, v2.ProfileId);
         Assert.Equal(icId, v2.IcId);
         Assert.Equal(expectedOutputFileName, v2.DefaultOutputFileName);
-        AssertNormalDpInputContract(v2.Plan, expectedDpSourceLength, expectedDpInputLength, expectsDpExtraction);
+        AssertNormalDpInputContract(v2, expectedDpSourceLength);
         if (expectsLdc)
         {
             AssertNt51928LdcInputContract(v2);
@@ -66,10 +64,7 @@ public sealed class CanonicalV2StandardMergeGoldenTests
         V2StandardMergeGoldenTestSupport.AssertSuccessfulGoldenOutput(
             result,
             v2,
-            expectedOutput,
-            icId == "NT51928" && !expectsLdc && expectedDpInputLength != inputs[CompositionAddressSpaceIds.DpInput].Length
-                ? ["DP_SIZE_WARNING"]
-                : null);
+            expectedOutput);
     }
 
     private static void AssertRegionSetProvenance(CompiledComposition composition, bool expectsAlias)
@@ -122,24 +117,23 @@ public sealed class CanonicalV2StandardMergeGoldenTests
     }
 
     private static void AssertNormalDpInputContract(
-        CompositionPlan plan,
-        int expectedSourceLength,
-        int expectedInputLength,
-        bool expectsExtraction)
+        CompiledComposition composition,
+        int expectedSourceLength)
     {
-        AddressSpace dpInput = plan.AddressSpaces.Single(space => space.AddressSpaceId == "dp-input");
-        Assert.Equal(expectedSourceLength, dpInput.Length);
-        if (expectsExtraction)
-        {
-            Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, dpInput.InputOversizePolicy);
-            Assert.Empty(dpInput.AllowedInputLengths);
-            Assert.Equal([expectedInputLength], dpInput.ExpectedInputLengths);
-            Assert.Equal("DP_SIZE_WARNING", dpInput.UnexpectedInputLengthIssueCode);
-            return;
-        }
+        V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
+        CompiledInputSlotRequirement dpSlot = Assert.Single(
+            details.InputContract.Slots,
+            slot => slot.SlotId == CompositionAddressSpaceIds.DpInput);
+        CompiledSourceViewCoverageInputLengthRequirement lengthRequirement =
+            Assert.IsType<CompiledSourceViewCoverageInputLengthRequirement>(dpSlot.LengthRequirement);
+        Assert.Empty(lengthRequirement.ExpectedOuterLengths);
+        Assert.Null(lengthRequirement.UnexpectedOuterLengthIssueCode);
 
-        Assert.Equal(InputOversizePolicy.Reject, dpInput.InputOversizePolicy);
-        Assert.Equal([expectedInputLength], dpInput.AllowedInputLengths);
+        AddressSpace dpInput = composition.Plan.AddressSpaces.Single(
+            space => space.AddressSpaceId == CompositionAddressSpaceIds.DpInput);
+        Assert.Equal(expectedSourceLength, dpInput.Length);
+        Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, dpInput.InputOversizePolicy);
+        Assert.Empty(dpInput.AllowedInputLengths);
         Assert.Empty(dpInput.ExpectedInputLengths);
         Assert.Null(dpInput.UnexpectedInputLengthIssueCode);
     }
@@ -178,9 +172,11 @@ public sealed class CanonicalV2StandardMergeGoldenTests
         Assert.Equal(CompiledInputArtifactClass.Auxiliary, ldcSlot.ArtifactClass);
         Assert.True(ldcSlot.Required);
         Assert.Equal(CompiledInputSlotCardinality.ExactlyOne, ldcSlot.Cardinality);
-        Assert.Equal(0x80000, Assert.IsType<CompiledExactResolvedMapCapacityInputLengthRequirement>(
-            ldcSlot.LengthRequirement).Bytes);
-        Assert.Equal(0x80000, Assert.Single(composition.Plan.AddressSpaces,
+        CompiledSourceViewCoverageInputLengthRequirement lengthRequirement =
+            Assert.IsType<CompiledSourceViewCoverageInputLengthRequirement>(ldcSlot.LengthRequirement);
+        Assert.Empty(lengthRequirement.ExpectedOuterLengths);
+        Assert.Null(lengthRequirement.UnexpectedOuterLengthIssueCode);
+        Assert.Equal(0x62000, Assert.Single(composition.Plan.AddressSpaces,
             space => space.AddressSpaceId == CompositionAddressSpaceIds.LdcInput).Length);
     }
 }

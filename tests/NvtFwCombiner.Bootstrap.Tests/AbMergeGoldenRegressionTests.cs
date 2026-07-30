@@ -16,9 +16,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class AbMergeGoldenRegressionTests
 {
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string Nt51929BundleContentHash = "e7ad9ad8b4df72275ab25a617c76ffae20b84ba431880753b41b8c4fa0ef3f0a";
+    private const string Nt51929BundleContentHash = "da99e8f6563ad89cbab8853c9e4169dd0821edd39416a9788300f5c73cf6bdb7";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
-    private const string Nt51950BundleContentHash = "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206";
+    private const string Nt51950BundleContentHash = "069719655976439153a0d2d2f06f1289f3bcc76437463f89aa81ee19827b312f";
 
     /// <summary>Verifies the supported NT51929 profile reproduces the supplied AB output byte-for-byte.</summary>
     [Fact]

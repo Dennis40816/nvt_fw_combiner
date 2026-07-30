@@ -88,7 +88,16 @@ internal static partial class CompositionProfileNormalizer
                     "Warning issue code is missing."),
                     NormalizeExpectedInputLengths(document.ExpectedInputLengths, $"{path}.expectedInputLengths"))),
             "tp-maximum-256k" => NormalizeTpMaximum(document, path),
-            "declared-prefix-with-warning" when schemaVersion is "2.10" or "2.11" or "2.12" => Wrap(path, () =>
+            "source-view-coverage" when schemaVersion is "2.13" => Wrap(path, () =>
+                new SourceViewCoverageLengthRule(
+                    NormalizeExpectedInputLengths(
+                        document.ExpectedOuterLengths,
+                        $"{path}.expectedOuterLengths"),
+                    document.UnexpectedOuterLengthIssueCode)),
+            "source-view-coverage" => throw Error(
+                $"{path}.kind",
+                "Source-view coverage requires composition-profile schema version '2.13'."),
+            "declared-prefix-with-warning" when schemaVersion is "2.10" or "2.11" or "2.12" or "2.13" => Wrap(path, () =>
                 new DeclaredPrefixWithWarningLengthRule(
                     ReadInt64(
                         Require(document.RequiredEndExclusive, $"{path}.requiredEndExclusive"),
@@ -108,7 +117,7 @@ internal static partial class CompositionProfileNormalizer
                         "Unexpected outer-length issue code is missing."))),
             "declared-prefix-with-warning" => throw Error(
                 $"{path}.kind",
-                "Declared-prefix input authority requires composition-profile schema version '2.10' through '2.12'."),
+                "Declared-prefix input authority requires composition-profile schema version '2.10' through '2.13'."),
             _ => throw Error($"{path}.kind", "Unknown input length rule."),
         };
     }

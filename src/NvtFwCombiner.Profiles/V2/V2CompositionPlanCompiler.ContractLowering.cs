@@ -7,6 +7,7 @@ internal static partial class V2CompositionPlanCompiler
 {
     private static Dictionary<string, AddressSpace> LowerAddressSpaces(
         CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition family,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         List<CompositionIssue> issues,
         IReadOnlySet<string>? activeSlotIds = null)
@@ -21,7 +22,14 @@ internal static partial class V2CompositionPlanCompiler
 
             CompositionProfileInputSlot slot = profile.InputSlots.Single(candidate =>
                 StringComparer.Ordinal.Equals(candidate.SlotId, input.SlotId));
-            if (!TryResolveInputSpaceLength(profile, input, slot, resolvedMap, issues, out long length))
+            if (!TryResolveInputSpaceLength(
+                    profile,
+                    family,
+                    input,
+                    slot,
+                    resolvedMap,
+                    issues,
+                    out long length))
             {
                 continue;
             }
@@ -165,6 +173,12 @@ internal static partial class V2CompositionPlanCompiler
                 new CompiledNormalDpExtractWithWarningInputLengthRequirement(
                     normalDp.IssueCode,
                     ResolveNormalDpExpectedInputLengths(normalDp, resolvedMapCapacity)),
+            SourceViewCoverageLengthRule sourceView =>
+                new CompiledSourceViewCoverageInputLengthRequirement(
+                    sourceView.ExpectedOuterLengths.Count == 0
+                        ? null
+                        : sourceView.ExpectedOuterLengths,
+                    sourceView.UnexpectedOuterLengthIssueCode),
             DeclaredPrefixWithWarningLengthRule declaredPrefix =>
                 new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
                     declaredPrefix.RequiredEndExclusive,

@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0 through 2.12
+# Composition Profile Contract 2.0 through 2.13
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -12,7 +12,8 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.9.schema.json`](composition-profile-v2.9.schema.json), and
 [`composition-profile-v2.10.schema.json`](composition-profile-v2.10.schema.json), and
 [`composition-profile-v2.11.schema.json`](composition-profile-v2.11.schema.json), and
-[`composition-profile-v2.12.schema.json`](composition-profile-v2.12.schema.json). A trusted bundle
+[`composition-profile-v2.12.schema.json`](composition-profile-v2.12.schema.json), and
+[`composition-profile-v2.13.schema.json`](composition-profile-v2.13.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -283,9 +284,32 @@ plausibility validation:
   warning when every byte has the same value. It is advisory only and cannot
   block execution or alter output bytes.
 
+Application may compose these retained validations with the resolved map
+capacity and DP/TP input-space bindings to classify a candidate. A `FlashCode`
+result requires exact declared capacity plus complete and plausible
+DP/Initial-Code and TP projections. Missing DP/TP validation authority,
+incomplete coverage, or a repeated-byte TP view cannot produce `FlashCode`;
+the result is `Unknown` unless the declarations positively establish a TP-only
+artifact. Classification never changes slot admission or selects a route.
+
 Application resolves group readiness from the compiled group references and
 the selected inputs. UI and CLI consume that same typed result; adapters must
 not recreate cardinality or map-applicability rules.
+
+Schema 2.13 keeps every 2.12 execution, selection, and plausibility constraint
+and adds the canonical `source-view-coverage` section-admission policy:
+
+- the compiler derives the minimum required source end from the profile's
+  canonical views, metadata reads, validations, processor reads, and cloned
+  work buffers for that input space;
+- the runtime rejects an artifact that does not cover that derived end;
+- bytes outside the compiled source projection do not become execution,
+  processor, validation, or write authority;
+- optional `expectedOuterLengths` and
+  `unexpectedOuterLengthIssueCode` are paired advisory diagnostics only; and
+- only unnormalized `tp-firmware`, `dp-firmware`, and `auxiliary` section
+  sources may use this policy. Reference images, CtrlRAM payloads, and complete
+  DP AB containers retain their explicit closed policies.
 
 ## Input size policy
 

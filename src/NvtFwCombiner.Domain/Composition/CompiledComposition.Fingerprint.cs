@@ -476,6 +476,20 @@ public sealed partial class CompiledComposition
                     $"{prefix}.unexpected-outer-length-issue-code",
                     declaredPrefix.UnexpectedOuterLengthIssueCode);
                 break;
+            case CompiledSourceViewCoverageInputLengthRequirement sourceView:
+                AppendIntegerList(
+                    builder,
+                    $"{prefix}.expected-outer-length",
+                    sourceView.ExpectedOuterLengths);
+                if (sourceView.UnexpectedOuterLengthIssueCode is { } unexpectedOuterLengthIssueCode)
+                {
+                    AppendField(
+                        builder,
+                        $"{prefix}.unexpected-outer-length-issue-code",
+                        unexpectedOuterLengthIssueCode);
+                }
+
+                break;
             case CompiledTpMaximum256KInputLengthRequirement:
                 AppendInteger(builder, $"{prefix}.maximum-bytes", CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);
                 break;

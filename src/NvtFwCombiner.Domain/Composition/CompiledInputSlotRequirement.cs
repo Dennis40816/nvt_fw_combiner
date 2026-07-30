@@ -50,6 +50,8 @@ public enum CompiledInputLengthRequirementKind
     TpMaximum256K,
     /// <inheritdoc/>
     DeclaredPrefixWithWarning,
+    /// <inheritdoc/>
+    SourceViewCoverage,
 }
 
 /// <summary>Base value for one immutable compiled input length requirement.</summary>
@@ -256,6 +258,75 @@ public sealed record CompiledTpMaximum256KInputLengthRequirement()
     public const long MaximumBytes = 262144;
 }
 
+/// <summary>
+/// Accepts an immutable source that covers the compiled address-space reads,
+/// with optional complete-container diagnostics.
+/// </summary>
+public sealed record CompiledSourceViewCoverageInputLengthRequirement :
+    CompiledInputLengthRequirement
+{
+    private readonly long[] _expectedOuterLengths;
+
+    /// <summary>Creates one checked source-view coverage requirement.</summary>
+    public CompiledSourceViewCoverageInputLengthRequirement(
+        IReadOnlyList<long>? expectedOuterLengths = null,
+        string? unexpectedOuterLengthIssueCode = null)
+        : base(CompiledInputLengthRequirementKind.SourceViewCoverage)
+    {
+        if ((expectedOuterLengths is null) != (unexpectedOuterLengthIssueCode is null))
+        {
+            throw new ArgumentException(
+                "Expected outer lengths and their warning issue code must be declared together.");
+        }
+
+        _expectedOuterLengths = expectedOuterLengths is null
+            ? []
+            : SnapshotExpectedOuterLengths(expectedOuterLengths);
+        if (unexpectedOuterLengthIssueCode is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(unexpectedOuterLengthIssueCode);
+        }
+
+        ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
+        UnexpectedOuterLengthIssueCode = unexpectedOuterLengthIssueCode;
+    }
+
+    /// <summary>Known complete-container lengths that suppress an optional warning.</summary>
+    public IReadOnlyList<long> ExpectedOuterLengths { get; }
+
+    /// <summary>Optional stable warning code for an unexpected complete-container length.</summary>
+    public string? UnexpectedOuterLengthIssueCode { get; }
+
+    private static long[] SnapshotExpectedOuterLengths(IReadOnlyList<long> expectedOuterLengths)
+    {
+        if (expectedOuterLengths.Count is 0 or
+            > InputLengthPolicyLimits.MaximumExpectedInputLengths)
+        {
+            throw new ArgumentException(
+                $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
+                nameof(expectedOuterLengths));
+        }
+
+        long[] snapshot = new long[expectedOuterLengths.Count];
+        long previous = 0;
+        for (int index = 0; index < expectedOuterLengths.Count; index++)
+        {
+            long value = expectedOuterLengths[index];
+            if (value <= 0 || (index > 0 && value <= previous))
+            {
+                throw new ArgumentException(
+                    "Expected outer lengths must be positive and strictly ascending.",
+                    nameof(expectedOuterLengths));
+            }
+
+            snapshot[index] = value;
+            previous = value;
+        }
+
+        return snapshot;
+    }
+}
+
 /// <summary>Closed transient input-normalization kind retained by a compiled artifact.</summary>
 public enum CompiledInputNormalizationKind
 {
@@ -426,7 +497,7 @@ public sealed class CompiledInputSlotRequirement
              normalization.Kind != CompiledInputNormalizationKind.None))
         {
             throw new ArgumentException(
-                "TP firmware requires an unnormalized maximum-256-KiB or exact-within-256-KiB length rule.");
+                "TP firmware requires one approved unnormalized section or exact length rule.");
         }
 
         if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.TpMaximum256K &&
@@ -438,7 +509,8 @@ public sealed class CompiledInputSlotRequirement
         if (artifactClass == CompiledInputArtifactClass.DpFirmware &&
             lengthRequirement.Kind is not CompiledInputLengthRequirementKind.ExactResolvedMapCapacity and
                 not CompiledInputLengthRequirementKind.NormalDpExtractWithWarning and
-                not CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning)
+                not CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning and
+                not CompiledInputLengthRequirementKind.SourceViewCoverage)
         {
             throw new ArgumentException("DP firmware requires an approved DP length rule.");
         }
@@ -483,11 +555,21 @@ public sealed class CompiledInputSlotRequirement
             throw new ArgumentException(
                 "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
         }
+
+        if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.SourceViewCoverage &&
+            (artifactClass is CompiledInputArtifactClass.ReferenceImage or
+                CompiledInputArtifactClass.CtrlRamReplacement ||
+             normalization.Kind != CompiledInputNormalizationKind.None))
+        {
+            throw new ArgumentException(
+                "Source-view coverage is restricted to unnormalized immutable section sources.");
+        }
     }
 
     private static bool IsApprovedTpLengthRequirement(CompiledInputLengthRequirement lengthRequirement)
     {
         return lengthRequirement is CompiledTpMaximum256KInputLengthRequirement or
+            CompiledSourceViewCoverageInputLengthRequirement or
             CompiledDeclaredPrefixWithWarningInputLengthRequirement
         {
             RequiredEndExclusive: <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,

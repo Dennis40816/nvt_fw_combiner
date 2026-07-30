@@ -3,7 +3,7 @@
   "bundleId": "nt51929-dp-replace-family",
   "bundleVersion": "0.10.1-shared-facts.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "169b9334a57328504fbe463c96dda1e8d749109896ae8d0143088b747b0ab596",
+  "contentHash": "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -11,7 +11,7 @@
       "kind": "schema",
       "path": "schemas/composition-profile-v2.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0"
+      "contentHash": "97540ff527b8929726949629aa9fff46819be3a413f757c007a44a1025e31100"
     },
     {
       "entryId": "firmware-family-v1-schema",
@@ -25,7 +25,7 @@
       "kind": "composition-profile",
       "path": "profiles/nt51919-dp-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "2365fa9c11b3a56a1621f9269208deba2cb9bd094a8ed9aae0391e760e551715"
+      "contentHash": "df87dde1ea229034caa6bc9e4cfcec02d34fec91030e4a5a5f827f3db8a1d9a8"
     },
     {
       "entryId": "nt51929-nt51932-family",
@@ -39,14 +39,14 @@
       "kind": "composition-profile",
       "path": "profiles/nt51929-dp-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "23a86f79fe53df7ef03f7b6d0e0884d74e2ebcccef3ee6e7efe0d46c1600799e"
+      "contentHash": "e0c8f376dd144737750fdf2143cb1878986d91005edf3708e858fe882e7a0927"
     },
     {
       "entryId": "nt51932-dp-replace-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51932-dp-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "ca45b160a8e0e21fc216cb43836a4d309243610f5b169126bc02e25ce14056c5"
+      "contentHash": "fcba71a8a88e95da67d20decd5fc6265ee8bd10add7e2747b01066346cef0cd0"
     }
   ]
 }

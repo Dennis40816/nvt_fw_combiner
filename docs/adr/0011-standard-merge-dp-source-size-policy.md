@@ -37,7 +37,11 @@ Add `InputOversizePolicy.ExtractDeclaredRange` and non-blocking `ExpectedInputLe
 
 - Domain test: expected outer containers suppress the warning, a sufficient unexpected container produces declared-range output and a warning, and a too-short input fails.
 - Profile test: only Standard Merge `dp-input` can enable the extraction policy; runtime sources and non-DP flows are rejected.
-- Workbench test: NT51926 DP with one trailing byte produces the existing golden output hash and a warning.
+- Original compatibility evidence covered NT51926 DP with one trailing byte
+  producing the existing golden output hash and a warning. ADR 0045 migration
+  evidence now proves the same output through generic source-view coverage;
+  absent an explicitly declared optional outer-length diagnostic, the
+  non-authoritative tail does not create a warning.
 - Existing DP Perspective tests continue to reject unapproved full-container sizes.
 - Source-view migration tests accept standalone address-bearing section
   artifacts and compatible same-IC FlashCode containers, while a missing

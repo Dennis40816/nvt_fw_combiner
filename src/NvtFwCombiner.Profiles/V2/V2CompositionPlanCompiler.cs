@@ -104,6 +104,7 @@ internal static partial class V2CompositionPlanCompiler
 
         Dictionary<string, AddressSpace> spaces = LowerAddressSpaces(
             profile,
+            preparation.Admission.Family,
             resolvedMap,
             issues,
             inputSelection.ActiveSlotIds);
@@ -248,63 +249,6 @@ internal static partial class V2CompositionPlanCompiler
             operation.OperationId,
             $"DP Replace payload class '{artifactClass}' cannot target physical owner '{targetOwner?.ToString() ?? "none"}'");
         return false;
-    }
-
-    private static AddressSpace CreateInputAddressSpace(
-        string addressSpaceId,
-        long length,
-        CompositionProfileInputSlot slot,
-        long resolvedMapCapacity,
-        CompositionKind compositionKind,
-        bool isCloneSource)
-    {
-        return slot.LengthRule switch
-        {
-            NormalDpExtractWithWarningLengthRule normalDp => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable,
-                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
-                expectedInputLengths: ResolveNormalDpExpectedInputLengths(normalDp, resolvedMapCapacity),
-                unexpectedInputLengthIssueCode: normalDp.IssueCode),
-            DeclaredPrefixWithWarningLengthRule declaredPrefix => new AddressSpace(
-                addressSpaceId,
-                declaredPrefix.RequiredEndExclusive,
-                AddressSpaceMutability.Immutable,
-                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
-                expectedInputLengths: declaredPrefix.ExpectedOuterLengths,
-                unexpectedInputLengthIssueCode: declaredPrefix.UnexpectedOuterLengthIssueCode),
-            TpMaximum256KLengthRule => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable,
-                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
-            ExactBytesLengthRule when slot.Normalization is TruncateCtrlRamInputNormalization => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable,
-                inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
-            ExactBytesLengthRule => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable),
-            ExactResolvedMapCapacityLengthRule when slot.Normalization is PadShorterInputNormalization padded => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable,
-                inputPaddingByte: padded.FillByte),
-            ExactResolvedMapCapacityLengthRule when isCloneSource ||
-                                                   (compositionKind == CompositionKind.Replace &&
-                                                    slot.ArtifactClass == CompositionProfileArtifactClass.ReferenceImage) => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable),
-            _ => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable,
-                allowedInputLengths: [length]),
-        };
     }
 
     private static Dictionary<string, ResolvedView> LowerViews(

@@ -1,5 +1,6 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.13",
+  "compilationContext": { "kind": "resolved-map" },
   "profileId": "nt51951-dp-replace-dp-perspective",
   "profileVersion": "0.7.0",
   "promotion": {

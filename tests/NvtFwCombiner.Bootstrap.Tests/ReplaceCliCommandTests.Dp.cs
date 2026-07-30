@@ -67,7 +67,7 @@ public sealed partial class ReplaceCliCommandTests
             StringComparison.Ordinal);
     }
 
-    /// <summary>NT51928 selected LDC remains structurally exact for the resolved 512-KiB map.</summary>
+    /// <summary>NT51928 selected LDC must cover the complete compiled LDC source view.</summary>
     [Fact]
     public async Task Nt51928DpReplaceRejectsSelectedLdcWithWrongLength()
     {
@@ -90,7 +90,7 @@ public sealed partial class ReplaceCliCommandTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.Contains(
-            CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+            CompositionIssueCodes.InputSourceViewIncomplete,
             result.Error,
             StringComparison.Ordinal);
     }

@@ -107,7 +107,8 @@ internal sealed class CanonicalCapabilityCatalogMigrationSource :
                 composition.CompilationFingerprint,
                 route.CapabilityFingerprint)
             ? throw new InvalidDataException(
-                $"Compiler fingerprint does not match route '{route.Identity.RouteId}'.")
+                $"Compiler fingerprint does not match route '{route.Identity.RouteId}' " +
+                $"(compiled {composition.CompilationFingerprint}, policy {route.CapabilityFingerprint}).")
             : new CanonicalCapabilityDefinition(
             route.Identity,
             composition,

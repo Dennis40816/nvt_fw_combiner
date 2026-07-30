@@ -607,15 +607,14 @@ public sealed partial class ShellViewModelTests
         File.WriteAllBytes(oversizedTpPath, new byte[0x40001]);
         viewModel.SetSlotFile(StandardMergeGoldenManifest.SlotIdForAddressSpace("tp-input"), oversizedTpPath);
 
-        string outputPath = workspace.PathFor("blocked-standard-merge.bin");
+        string outputPath = workspace.PathFor("source-view-standard-merge.bin");
         await viewModel.BuildMergeAsync(outputPath);
 
-        Assert.False(viewModel.LastRunResult.Succeeded);
-        Assert.Equal("Build blocked", viewModel.LastRunResult.Title);
-        Assert.False(File.Exists(outputPath), outputPath);
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.Equal("Build succeeded", viewModel.LastRunResult.Title);
+        Assert.True(File.Exists(outputPath), outputPath);
         Assert.True(viewModel.HasLoadedReport);
-        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, viewModel.LoadedReport.PrimaryIssue.Title);
-        Assert.Contains("tp-input", viewModel.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
+        Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
     }
 
     /// <summary>Verifies NT51950 accepts a TP BIN within the 256 KiB limit even when it exceeds the declared overlay span.</summary>
@@ -639,7 +638,8 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.HasLoadedReport);
         Assert.True(viewModel.CanOpenReport);
         Assert.True(viewModel.HasReportToast);
-        Assert.Empty(viewModel.LoadedReport.Issues);
+        Assert.NotEmpty(viewModel.LoadedReport.Issues);
+        Assert.All(viewModel.LoadedReport.Issues, static issue => Assert.Equal("warning", issue.Severity));
         Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
         Assert.True(viewModel.LoadedReport.HasInputs);
         Assert.True(viewModel.LoadedReport.HasOperations);

@@ -67,7 +67,7 @@
 
 - AB Code architecture was re-admitted under ADR 0032 in `v0.9.14`. The `0.9.15` release scope exposes only the declared NT51919/NT51929/NT51932, NT51950 `1 IC`/`Cascade`, and selector-free NT51951 function-open profiles through the shared Application boundary. Typed profile authority, exact ranges, relocation/integrity contracts, direct golden evidence, and firmware-owner approval still gate support certification and release; metadata cannot admit, select, or promote a route.
 - NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919/NT51929/NT51932 consume one owner-declared `PerfectFamilyRelationship` firmware definition; requested-member evidence and publication remain explicit. This direction does not infer NT51950/NT51951 ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
-- The first `v0.9.14` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect family whose AB layout is version-independent and whose route does not depend on IC Number. Its required/expected 512 KiB DP_AB execution span exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB have independent required/expected 256 KiB execution spans, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning. A shorter input remains Build-blocking because it does not cover the compiled required end. An oversized input is accepted only through the profile-declared declared-prefix policy, emits a warning, preserves its actual identity in the report, and ignores trailing bytes without mutating the source.
+- The first `v0.9.14` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect family whose AB layout is version-independent and whose route does not depend on IC Number. Its exact 512 KiB DP_AB container exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB each require the complete compiled 256 KiB TP-native source view, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning. A shorter input remains Build-blocking because it does not cover the compiled required end. A compatible FlashCode may supply either TP view; non-authoritative trailing bytes are ignored without mutating the source, while the report preserves the actual source identity and accepted execution snapshot.
 - Firmware ranges, aliases, metadata locators, capability evidence, workflow profiles, and execution promotion must converge through the versioned family/profile bundle and one compiled composition boundary defined by ADR 0015. Migration preserves current promotion stages and blockers; map coverage never grants Build authority.
 - Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
@@ -76,8 +76,9 @@
 - Output naming is profile-owned and resolves the selected canonical IC plus accepted execution snapshots. AB follows ADR 0036's `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` form; its DP tokens use CMI Reg16h-18h facts and its TP tokens use validated FW version/sub-version bytes. Every mode uses the one UTC run-start date and the effective user override as its public output/report identity. An existing output may be atomically replaced only when it is not any selected input path. UI never infers version bytes from file names.
 - NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
 - Other Standard Merge profiles extract only their declared DP source views. A DP artifact that
-  reaches every required end offset may have an arbitrary total length; a non-map length is a report
-  warning, not a build blocker. Initial Code, DP, TP, LDC, TPA, and TPB are
+  reaches every required end offset may have an arbitrary total length; non-authoritative trailing
+  bytes are ignored. An outer-length warning exists only when the profile explicitly declares
+  optional complete-container diagnostics. Initial Code, DP, TP, LDC, TPA, and TPB are
   address-bearing section sources: each must cover every profile-declared
   source/metadata/validation read, and a compatible same-IC FlashCode may
   provide the same window. An outer-size ceiling is Application resource
@@ -103,7 +104,12 @@
   Authoring availability does not by itself grant a public support claim.
 - FlashCode is a complete resolved container with required DP/Initial Code and
   TP parts; LDC exists only in variants that declare it. There is no single
-  FlashCode magic signature. The NVT marker, ASCII `519xx`, CMI, PID,
+  FlashCode magic signature. Application classifies only after IC/capability
+  resolution and requires exact declared container capacity, complete compiled
+  DP and TP source coverage, and satisfied profile-declared warning-only
+  non-uniform checks for both DP/Initial Code and TP. A full-length Initial
+  Code whose TP view is a repeated-byte placeholder is therefore `Unknown`,
+  not FlashCode. The NVT marker, ASCII `519xx`, CMI, PID,
   version/complement, length, and non-uniform checks are independent
   profile-declared evidence or validation signals and none alone chooses IC,
   family, route, map, support, or publication. Inconclusive classification is
@@ -781,7 +787,7 @@ normalization policy. The engine pads or normalizes only a transient execution
 snapshot; source BIN files are never modified. Unapproved oversized input still
 fails closed.
 
-An immutable Merge source may declare a reviewed declared-prefix oversize policy
+Legacy compatibility profiles may declare a reviewed declared-prefix oversize policy
 only when all source views, metadata extraction, and processor reads are bounded
 inside that prefix. The actual source hash and length remain report evidence;
 the execution snapshot exposes only the declared span and reports ignored
@@ -790,7 +796,8 @@ and never applies because a UI label or filename resembles an approved profile.
 The first `v0.9.14` AB compatibility pilot used this policy for DP_AB beyond
 `0x80000` and TPA/TPB beyond `0x40000`. ADR 0045 retains bounded section
 projection for TPA/TPB but requires a complete DP AB seed to match a declared
-container variant; that R3 migration requires the normal golden/owner gates.
+container variant; current built-ins use the generic source-view contract below
+rather than this workflow-named compatibility rule.
 
 ADR 0045 supersedes workflow-named section admission with one generic
 source-view-coverage contract. Initial Code, DP, TP, LDC, TPA, and TPB normally
@@ -1120,7 +1127,7 @@ version.
     profiles, routes, or Support Matrix rows.
 57. As a firmware operator, I want an applicable replacement group to require
     at least one selected part while leaving each member optional, and I want a
-    uniform Initial Code/DP/LDC region reported as a warning rather than a Build
+    uniform Initial Code/DP/TP/LDC region reported as a warning rather than a Build
     blocker, so optional composition and firmware plausibility remain distinct
     from execution safety.
 
@@ -1538,7 +1545,7 @@ version.
     uses its TP-native source window plus a resolved bank placement delta.
     A profile may separately
     attach a warning-only `non-uniform-region` plausibility rule to one
-    canonical Initial Code, DP, or LDC source view. A view with only one
+    canonical Initial Code, DP, TP, or LDC source view. A view with only one
     distinct byte emits the same typed warning through Application, UI, CLI,
     Preview, and Build Report but does not alter map resolution, selection,
     execution admission, or output bytes. The rule is explicit per profile and

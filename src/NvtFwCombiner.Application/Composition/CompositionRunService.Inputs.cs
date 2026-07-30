@@ -102,6 +102,9 @@ public sealed partial class CompositionRunService
         var slots = details.InputContract.Slots.ToDictionary(
             static slot => slot.SlotId,
             StringComparer.Ordinal);
+        var compiledAddressSpaces = request.CompiledComposition.Plan.AddressSpaces.ToDictionary(
+            static addressSpace => addressSpace.AddressSpaceId,
+            StringComparer.Ordinal);
         foreach (CompiledInputSpaceBinding binding in details.InputContract.SpaceBindings)
         {
             if (!inputBytes.TryGetValue(binding.AddressSpaceId, out byte[]? bytes))
@@ -140,6 +143,17 @@ public sealed partial class CompositionRunService
                     issues.Add(new CompositionIssue(
                         declaredPrefix.ShortInputIssueCode,
                         $"Input bytes for address space '{binding.AddressSpaceId}' end at 0x{bytes.LongLength:X}, before required end 0x{declaredPrefix.RequiredEndExclusive:X}; no padding is authorized.",
+                        binding.AddressSpaceId));
+                    break;
+                case CompiledSourceViewCoverageInputLengthRequirement
+                    when bytes.LongLength < compiledAddressSpaces[binding.AddressSpaceId].Length:
+                    long requiredEndExclusive = compiledAddressSpaces[binding.AddressSpaceId].Length;
+                    issues.Add(new CompositionIssue(
+                        CompositionIssueCodes.InputSourceViewIncomplete,
+                        $"Input bytes for address space '{binding.AddressSpaceId}' end at " +
+                        $"0x{bytes.LongLength:X}, before the final compiled source read at " +
+                        $"0x{requiredEndExclusive:X}; select a section or compatible FlashCode " +
+                        "that covers the complete source view.",
                         binding.AddressSpaceId));
                     break;
                 default:
@@ -197,7 +211,7 @@ public sealed partial class CompositionRunService
 
         await TryReadBindingAsync(
                 binding,
-                TryCreateDeclaredPrefixInspectionPolicy(request, addressSpaceId),
+                request.CompiledComposition,
                 inputBytes,
                 inputSummaries,
                 artifactSnapshots,
@@ -208,7 +222,7 @@ public sealed partial class CompositionRunService
 
     private async ValueTask TryReadBindingAsync(
         InputArtifactBinding binding,
-        DeclaredPrefixInputInspectionPolicy? inspectionPolicy,
+        CompiledComposition composition,
         Dictionary<string, byte[]> inputBytes,
         List<InputArtifactSummary> inputSummaries,
         Dictionary<string, ArtifactReadSnapshot> artifactSnapshots,
@@ -245,21 +259,8 @@ public sealed partial class CompositionRunService
             }
 
             inputBytes.Add(binding.AddressSpaceId, buffer);
-            InputArtifactExecutionSnapshotSummary? executionSnapshot = null;
-            if (inspectionPolicy is not null)
-            {
-                InputArtifactInspection inspection = DeclaredPrefixInputInspector.Inspect(
-                    inspectionPolicy,
-                    buffer);
-                if (inspection.AcceptedSnapshot is { } accepted &&
-                    inspection.AcceptedSnapshotRange is { } acceptedRange)
-                {
-                    executionSnapshot = new InputArtifactExecutionSnapshotSummary(
-                        acceptedRange,
-                        accepted.Sha256,
-                        inspection.IgnoredTrailingRange);
-                }
-            }
+            InputArtifactExecutionSnapshotSummary? executionSnapshot =
+                TryCreateExecutionSnapshotSummary(composition, binding.AddressSpaceId, buffer);
 
             inputSummaries.Add(new InputArtifactSummary(
                 binding.AddressSpaceId,
@@ -282,11 +283,12 @@ public sealed partial class CompositionRunService
         }
     }
 
-    private static DeclaredPrefixInputInspectionPolicy? TryCreateDeclaredPrefixInspectionPolicy(
-        CompositionRunRequest request,
-        string addressSpaceId)
+    private static InputArtifactExecutionSnapshotSummary? TryCreateExecutionSnapshotSummary(
+        CompiledComposition composition,
+        string addressSpaceId,
+        ReadOnlyMemory<byte> sourceBytes)
     {
-        if (request.CompiledComposition.V2Details is not { } details ||
+        if (composition.V2Details is not { } details ||
             details.Provenance.Context is LogicalOutputV2CompilationContext)
         {
             return null;
@@ -301,12 +303,26 @@ public sealed partial class CompositionRunService
 
         CompiledInputSlotRequirement? slot = details.InputContract.Slots.SingleOrDefault(
             candidate => StringComparer.Ordinal.Equals(candidate.SlotId, spaceBinding.SlotId));
-        return slot?.LengthRequirement is CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix
-            ? new DeclaredPrefixInputInspectionPolicy(
-                declaredPrefix.RequiredEndExclusive,
-                declaredPrefix.ExpectedOuterLengths,
-                declaredPrefix.ShortInputIssueCode,
-                declaredPrefix.UnexpectedOuterLengthIssueCode)
+        if (slot?.LengthRequirement is not (
+                CompiledDeclaredPrefixWithWarningInputLengthRequirement or
+                CompiledSourceViewCoverageInputLengthRequirement or
+                CompiledExactBytesInputLengthRequirement or
+                CompiledExactResolvedMapCapacityInputLengthRequirement))
+        {
+            return null;
+        }
+
+        CompiledInputArtifactInspectionResult inspection =
+            CompiledInputArtifactInspectionService.Inspect(
+                composition,
+                addressSpaceId,
+                sourceBytes);
+        return inspection.AcceptedSnapshotRange is { } acceptedRange &&
+               inspection.AcceptedSnapshotSha256 is { } acceptedSha256
+            ? new InputArtifactExecutionSnapshotSummary(
+                acceptedRange,
+                acceptedSha256,
+                inspection.IgnoredTrailingRange)
             : null;
     }
 
