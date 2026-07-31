@@ -10,9 +10,9 @@ public sealed class CtrlRamV2PlanClosureProfileTests
 {
     private const string Nt51923BundleHash = "8c1318f9e83a658028b1e0a07b2c38a28bcdeb6031d3a393d6b4912c2cdba14f";
     private const string Nt51926BundleHash = "25d5adc9697eacedcf238835da197b0359c41f8cc6d82110c181496038469529";
-    private const string Nt51929BundleHash = "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365";
+    private const string Nt51929BundleHash = "ea9cf1fe05a1462ddff67ece4a037757375100b67d91da3eb1eac1dd0417a4a5";
     private const string Nt51928BundleHash = "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634";
-    private const string Nt51932BundleHash = "7184a75733724cf85c0c63d219b24abbeac372eee1197063c2b2d2179aca7257";
+    private const string Nt51932BundleHash = "9a2c69c1b4bc4b5c047b9534c12f3e03b6be5492c9aa26eb626c9a657d101daf";
     private const string Nt51950BundleHash = "d3f745c68d948e7e3a3a07d5717de2114742f881444076d93d2232343f98049e";
     private const string Nt51951BundleHash = "f48429f505f71fbe7c258780dc1ef848c1d9a402d79906c1e24b3a1097192728";
 
@@ -91,7 +91,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0x7128,
         0x1C,
         0x40000,
-        "0.3.0")]
+        "0.4.0")]
     [InlineData(
         "nt51929-ctrlram-replace-candidate",
         Nt51929BundleHash,
@@ -102,18 +102,18 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0x7128,
         0x1C,
         0x40000,
-        "0.3.0")]
+        "0.4.0")]
     [InlineData(
         "nt51932-ctrlram-replace-candidate",
         Nt51932BundleHash,
-        "nt51932-ctrlram-replace-fw200-cascade3",
+        "nt51932-ctrlram-replace-fw200-cascade",
         "NT51932",
         3,
         0x1FC00,
         0x7128,
         0x1C,
         0x40000,
-        "0.3.0")]
+        "0.4.0")]
     [InlineData(
         "nt51950-ctrlram-replace-candidate",
         Nt51950BundleHash,
@@ -258,7 +258,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             chipCount: 2,
             targetStart: 0x2D100,
             targetLength: 0x8C00,
-            profileVersion: "0.3.0");
+            profileVersion: "0.4.0");
 
         Assert.Equal("nt51929-ctrlram-fw1x-cascade-full-flash", composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(processorId, Processor(composition).ProcessorId);

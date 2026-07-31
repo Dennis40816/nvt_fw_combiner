@@ -64,7 +64,7 @@ internal static class WorkbenchAbMergeInputProjection
 
         CompiledInputArtifactInspectionResult inspected =
             CompiledInputArtifactInspectionService.Inspect(
-                details.InputContract,
+                composition,
                 addressSpaceId,
                 image);
         List<WorkbenchAbVersionValue> versions = ReadVersions(composition, slot.Role, image, inspected);
@@ -109,7 +109,10 @@ internal static class WorkbenchAbMergeInputProjection
                 CompiledInputSlotRequirement slot = details.InputContract.Slots.Single(candidate =>
                     StringComparer.Ordinal.Equals(candidate.SlotId, binding.SlotId));
                 (long requiredEndExclusive, IReadOnlyList<long> expectedOuterLengths) =
-                    ProjectLengthRequirement(slot.LengthRequirement, addressSpaceId);
+                    ProjectLengthRequirement(
+                        composition,
+                        slot.LengthRequirement,
+                        addressSpaceId);
                 return new WorkbenchAbMergeInputSlot(
                     slot.SlotId,
                     binding.AddressSpaceId,
@@ -254,6 +257,7 @@ internal static class WorkbenchAbMergeInputProjection
     }
 
     private static (long RequiredEndExclusive, IReadOnlyList<long> ExpectedOuterLengths) ProjectLengthRequirement(
+        CompiledComposition composition,
         CompiledInputLengthRequirement requirement,
         string addressSpaceId)
     {
@@ -265,6 +269,10 @@ internal static class WorkbenchAbMergeInputProjection
                 (exact.Bytes, [exact.Bytes]),
             CompiledExactResolvedMapCapacityInputLengthRequirement exact =>
                 (exact.Bytes, [exact.Bytes]),
+            CompiledSourceViewCoverageInputLengthRequirement sourceView =>
+                (composition.Plan.AddressSpaces.Single(candidate =>
+                        StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId)).Length,
+                    sourceView.ExpectedOuterLengths),
             _ => throw new InvalidOperationException(
                 $"Supported AB input '{addressSpaceId}' has no displayable length contract."),
         };

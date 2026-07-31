@@ -25,7 +25,10 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
     public void Nt51927AndNt51928ReuseOneMetadataDefinitionButRetainDistinctMaps()
     {
         MetadataPlanEntry nt51927 = CreatePlanEntry("NT51927");
-        MetadataPlanEntry nt51928 = CreatePlanEntry("NT51928");
+        MetadataPlanEntry nt51928 = CreatePlanEntry(
+            "NT51928",
+            inputLength: 0x80000,
+            selectedInputSlotIds: [CompositionAddressSpaceIds.LdcInput]);
 
         Assert.Equal(
             "nt51917-nt51927-nt51928-canonical-container",
@@ -33,12 +36,8 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         Assert.Equal(
             nt51927.FamilyDefinition.FamilyId,
             nt51928.FamilyDefinition.FamilyId);
-        Assert.Equal(
-            nt51927.FamilyDefinition.FamilyVersion,
-            nt51928.FamilyDefinition.FamilyVersion);
-        Assert.Equal(
-            nt51927.FamilyDefinition.FamilyContentHash,
-            nt51928.FamilyDefinition.FamilyContentHash);
+        Assert.Equal("1.4.0", nt51927.FamilyDefinition.FamilyVersion);
+        Assert.Equal("1.5.0", nt51928.FamilyDefinition.FamilyVersion);
         Assert.Equal(
             "firmware-config-general-parameters",
             nt51927.StructureDefinition.StructureId);
@@ -284,14 +283,23 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
             new ResolutionToken($"fwconfig-pilot:{icId}"));
     }
 
-    private static MetadataPlanEntry CreatePlanEntry(string icId)
+    private static MetadataPlanEntry CreatePlanEntry(
+        string icId,
+        long? inputLength = null,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         BuiltInV2Registration registration =
             BuiltInV2RegistrationRegistry.StandardMergeByIc[icId];
-        registration.TryCompile(
-            inputLength: null,
-            out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues);
+        CompiledComposition? composition;
+        IReadOnlyList<CompositionIssue> issues;
+        if (selectedInputSlotIds is null)
+        {
+            registration.TryCompile(inputLength, out composition, out issues);
+        }
+        else
+        {
+            registration.TryCompile(inputLength, selectedInputSlotIds, out composition, out issues);
+        }
         Assert.Empty(issues);
         CompiledComposition compiled = Assert.IsType<CompiledComposition>(composition);
         return Assert.Single(

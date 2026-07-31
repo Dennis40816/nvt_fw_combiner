@@ -230,7 +230,8 @@ internal static class TrustedV2CompositionCompiler
         string memberId,
         string modeId,
         long? requestedMapCapacity,
-        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts)
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         return Compile(
             catalog,
@@ -240,7 +241,8 @@ internal static class TrustedV2CompositionCompiler
             modeId,
             requestedMapCapacity,
             requestedTopology: null,
-            resolutionArtifacts);
+            resolutionArtifacts,
+            selectedInputSlotIds);
     }
 
     /// <summary>Compiles one trusted map-bound AB profile with an explicit topology selection.</summary>
@@ -252,7 +254,8 @@ internal static class TrustedV2CompositionCompiler
         string modeId,
         long? requestedMapCapacity,
         TopologySelection? requestedTopology,
-        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts)
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         if (requestedTopology is not null &&
@@ -311,6 +314,25 @@ internal static class TrustedV2CompositionCompiler
             ];
         }
 
+        if (mapCandidates.Length > 1 &&
+            requestedMapCapacity is null &&
+            selection is not null &&
+            catalog.TryResolveSelection(selection, out TrustedCompositionProfileCatalogEntry? selectedProfile) &&
+            selectedProfile.Profile.InputSelectionGroups.Count != 0)
+        {
+            mapCandidates =
+            [
+                .. mapCandidates
+                    .Where(map => MapSupportsSelectedOptionalSlots(
+                        selectedProfile.Profile,
+                        map,
+                        selectedInputSlotIds ?? []))
+                    .OrderBy(static map => map.CapacityBytes)
+                    .ThenBy(static map => map.MapId, StringComparer.Ordinal)
+                    .Take(1),
+            ];
+        }
+
         if (mapCandidates.Length != 1)
         {
             return Failed(
@@ -332,11 +354,53 @@ internal static class TrustedV2CompositionCompiler
                     requestedTopology,
                     resolutionArtifacts)));
         return preparation.IsAdmitted
-            ? V2CompositionPlanCompiler.Compile(preparation)
+            ? V2CompositionPlanCompiler.Compile(preparation, selectedInputSlotIds)
             : Failed(
                 preparation.Issues,
                 PreparationNotAdmitted,
                 "The selected trusted V2 profile was not admitted to its canonical image map.");
+    }
+
+    private static bool MapSupportsSelectedOptionalSlots(
+        CompositionProfileDefinition profile,
+        FirmwareImageMap map,
+        IReadOnlyCollection<string> selectedInputSlotIds)
+    {
+        var regions = map.Regions.Select(static region => region.RegionId).ToHashSet(StringComparer.Ordinal);
+        var selected = selectedInputSlotIds.ToHashSet(StringComparer.Ordinal);
+        foreach (CompositionProfileInputSelectionGroup group in profile.InputSelectionGroups)
+        {
+            foreach (string slotId in group.MemberSlotIds.Where(selected.Contains))
+            {
+                string[] inputSpaceIds =
+                [
+                    .. profile.Spaces
+                        .OfType<InputArtifactProfileSpace>()
+                        .Where(space => StringComparer.Ordinal.Equals(space.SlotId, slotId))
+                        .Select(static space => space.SpaceId),
+                ];
+                if (profile.Views
+                    .Where(view => inputSpaceIds.Contains(view.SpaceId, StringComparer.Ordinal))
+                    .Select(TryGetRegionId)
+                    .Where(static regionId => regionId is not null)
+                    .Any(regionId => !regions.Contains(regionId!)))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static string? TryGetRegionId(CompositionProfileView view)
+    {
+        return view.Selector switch
+        {
+            MapRegionViewSelector region => region.RegionId,
+            MapRegionSliceViewSelector slice => slice.RegionId,
+            _ => null,
+        };
     }
 
     /// <summary>Returns the trusted profile's eligible canonical map capacities without selecting one.</summary>

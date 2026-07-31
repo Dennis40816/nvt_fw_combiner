@@ -4,6 +4,7 @@
 - Date: 2026-07-22
 - Owners: Product owner, architecture owner, firmware owner
 - Amends: ADR 0015
+- Amended by: ADR 0045
 
 ## Context
 
@@ -92,6 +93,15 @@ report preserves the actual source hash/length plus the ignored trailing byte
 count. The original source is never changed. This is a profile/compiler/
 Application policy, not a Presentation exception, and remains R3-gated until
 boundary and golden tests plus firmware-owner review pass.
+
+Owner amendment, 2026-07-30: ADR 0045 separates section projection from
+complete-container admission. TPA/TPB keep address-bearing source windows;
+TPA is same-coordinate and TPB uses the resolved bank placement delta, so a
+compatible larger same-IC FlashCode may provide either section. DP_AB is the
+complete container seed and must match one exact declared capacity variant.
+The earlier oversized-DP_AB declared-prefix acceptance and its positive tests
+are superseded by ticket #259; short, oversized, or unsupported DP_AB
+containers fail closed after that R3 migration.
 
 A missing or unreadable version reports `Unknown` with a non-modal warning and
 does not select or reject the route. CMI metadata is used for human confirmation

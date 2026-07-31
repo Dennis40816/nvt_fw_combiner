@@ -17,29 +17,29 @@ internal static class BuiltInV2BundleRegistry
         {
             ("nt51917-nt51927-general-merge-logical-candidate", "349563de9aaf5ee6fffc38941cab09563e857ebd349bbd8ded0efe08be67a2ba"),
             ("nt51917-ctrlram-replace-alias-candidate", "8992dbc5483054c5dc16e545444b1f94446c698c68b1abe7946efdb4d4ffb26b"),
-            ("nt51919-nt51929-nt51932-ab-merge", "e7ad9ad8b4df72275ab25a617c76ffae20b84ba431880753b41b8c4fa0ef3f0a"),
+            ("nt51919-nt51929-nt51932-ab-merge", "2c54c025d2afd3c8c15de6587894fb166a2a8cb7879f90fa241cba8dddeb5544"),
             ("nt51919-nt51929-nt51932-general-merge-logical-candidate", "5659a4095a6fce9ab3f46f9415759f7aeba321adfddb891e52871b2d6acff4f8"),
             ("nt51923-nt51926-general-merge-logical-candidate", "9a48caaf2d84b64f6479ad479f55c0d6202499493891a033140c4a9565ed7cc7"),
             ("nt51923-ctrlram-replace-candidate", "8c1318f9e83a658028b1e0a07b2c38a28bcdeb6031d3a393d6b4912c2cdba14f"),
-            ("nt51923-dp-replace", "9496b7d6296e06fac81f4ca73a49ac1d4154ef9edc4dcf078fe433efa046081e"),
-            ("nt51923-standard-merge", "cf1113069ac44ddd4a5fcf074555f3ac5ff0a1b0f43b9302218311fbf530739d"),
+            ("nt51923-dp-replace", "fd5ee9dda6de6b0ba2142adf0ddae9736282407fb96e53895e4cbfd505746df6"),
+            ("nt51923-standard-merge", "a0a7ad684887b4071dceb66b9ca28b11d97cd9108c8d518e6846773892cc02c2"),
             ("nt51926-ctrlram-replace-candidate", "25d5adc9697eacedcf238835da197b0359c41f8cc6d82110c181496038469529"),
             ("nt51927-ctrlram-replace-candidate", "d0c8a8775a35a01b52b8d8f32a93af0ac798067e2577d2420ab0dd65dd815d0f"),
-            ("nt51927-dp-replace", "2bb448b7a8ba8fb259d8f429ff386d6c0aa29fd47d163f334c1e119e455ebcad"),
-            ("nt51927-standard-merge", "37132b1658e69c0b59db3f7261a123b654dfc31c1cfad2c2a856ed31c79a0a19"),
+            ("nt51927-dp-replace", "d47faa5137c34e1f771ec1568f699f1c5301a9fb9235f243ca9ad467315d5db3"),
+            ("nt51927-standard-merge", "48511d6e386f295c75bb7bd05a69ce60a4d20f3954d750959e7e31a018c6c6d8"),
             ("nt51928-ctrlram-replace-candidate", "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634"),
             ("nt51928-general-merge-logical-candidate", "7410f193c85cbc9092bea46d5674649b9e8f91f7b347e06454a0f899765e3867"),
-            ("nt51928-dp-replace", "a1eb53fdf926f5fd728e53952395d927494c1d4b95af679ffb5d4cdb9ae9fe3a"),
-            ("nt51928-standard-merge", "034e3b8e4bbad7d487578ef517093c008b1121ab0cdceaa8bb1879a39cc72bfe"),
-            ("nt51929-ctrlram-replace-candidate", "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365"),
-            ("nt51929-dp-replace", "169b9334a57328504fbe463c96dda1e8d749109896ae8d0143088b747b0ab596"),
-            ("nt51929-standard-merge", "14a3b2808a5377af39b683fe44f60f152e9c7f4a15c18e5c9e264ad6ea2b0827"),
-            ("nt51932-ctrlram-replace-candidate", "7184a75733724cf85c0c63d219b24abbeac372eee1197063c2b2d2179aca7257"),
-            ("nt51950-ab-merge", "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206"),
+            ("nt51928-dp-replace", "d9845bce9c2b3d8a8aa101450d534ef00417f1c63862e69bc833ad57713ab9e5"),
+            ("nt51928-standard-merge", "895ccc579907874af31e5a9f132e0ffb4c10e150f1ca8aad23a0f4f8bac317ca"),
+            ("nt51929-ctrlram-replace-candidate", "ea9cf1fe05a1462ddff67ece4a037757375100b67d91da3eb1eac1dd0417a4a5"),
+            ("nt51929-dp-replace", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd"),
+            ("nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380"),
+            ("nt51932-ctrlram-replace-candidate", "9a2c69c1b4bc4b5c047b9534c12f3e03b6be5492c9aa26eb626c9a657d101daf"),
+            ("nt51950-ab-merge", "069719655976439153a0d2d2f06f1289f3bcc76437463f89aa81ee19827b312f"),
             ("nt51950-ctrlram-replace-candidate", "d3f745c68d948e7e3a3a07d5717de2114742f881444076d93d2232343f98049e"),
             ("nt51951-ctrlram-replace-candidate", "f48429f505f71fbe7c258780dc1ef848c1d9a402d79906c1e24b3a1097192728"),
             ("nt51950-nt51951-general-merge-logical-candidate", "5ed0646fba9c0f01994222f6a7860c8d9c8fc97be415f0771042cf886977f6f0"),
-            ("nt51950-nt51951-standard-merge", "4511e59f2f573f80554df55e0e825d65885a4fb1661f78c44f48bc57859640e2"),
+            ("nt51950-nt51951-standard-merge", "45cf7836211d3447563ecbf196e5cd777878617fd43bbb99657f4eafdf1dca2c"),
         }.ToFrozenDictionary(
             static bundle => bundle.Directory,
             static bundle => new BuiltInV2Bundle(bundle.Directory, bundle.ContentHash),
@@ -65,6 +65,68 @@ internal sealed class BuiltInV2Bundle
     internal string RelativeRoot { get; }
 
     internal string ContentHash { get; }
+
+    /// <summary>Projects the exact trusted identity used by a General Merge Saved Rule v2 parent.</summary>
+    internal SavedRuleV2ParentBinding GetGeneralMergeSavedRuleParentBinding(
+        string profileId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
+        TrustedCompositionProfileCatalogEntry profile =
+            _catalog.Value.Profiles.Single(candidate =>
+                StringComparer.Ordinal.Equals(
+                    candidate.Profile.ProfileId,
+                    profileId));
+        ProfileBundleIdentity bundle = _catalog.Value.BundleIdentity;
+        return new SavedRuleV2ParentBinding(
+            bundle.BundleId,
+            bundle.BundleVersion,
+            bundle.ContentHash,
+            profile.Profile.ProfileId,
+            profile.Profile.ProfileVersion,
+            profile.Identity.ContentHash,
+            profile.Family.Family.FamilyId,
+            profile.Family.Family.FamilyVersion,
+            profile.Family.Family.FamilyContentHash,
+            WorkbenchGeneralMergeIds.LogicalOutputMapId);
+    }
+
+    /// <summary>
+    /// Projects the exact trusted parent facts required to admit a complete
+    /// General Merge Saved Rule v2 document before draft materialization.
+    /// </summary>
+    internal SavedRuleV2GeneralMergeAdmissionContext
+        GetGeneralMergeSavedRuleAdmissionContext(string profileId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
+        TrustedCompositionProfileCatalogEntry profileEntry =
+            _catalog.Value.Profiles.Single(candidate =>
+                StringComparer.Ordinal.Equals(
+                    candidate.Profile.ProfileId,
+                    profileId));
+        V2CompositionProfileDefinition profile =
+            profileEntry.Profile.Promotion.Stage ==
+            CompositionProfilePromotionStage.ExecutableCandidate
+                ? profileEntry.Profile
+                : throw new InvalidDataException(
+                    "General Merge Saved Rule admission requires the exact executable-candidate parent.");
+
+        return new SavedRuleV2GeneralMergeAdmissionContext(
+            GetGeneralMergeSavedRuleParentBinding(profileId),
+            SavedRuleSchemaTokens.PromotionStageExecutableCandidate,
+            [
+                .. profile.InputSlots.Select(static slot =>
+                    new SavedRuleV2ParentInputPolicy(
+                        slot.SlotId,
+                        slot.Role,
+                        slot.Cardinality,
+                        [.. slot.AcceptedExtensions])),
+            ],
+            [.. profile.Validations.Select(static validation => validation.RuleId)],
+            [
+                .. profile.ProcessorStages.Select(
+                    static processor => processor.ProcessorStageId),
+            ]);
+    }
 
     internal bool TryResolveMetadataDefinition(
         FirmwareMetadataStructureDefinitionReference reference,
@@ -102,7 +164,8 @@ internal sealed class BuiltInV2Bundle
         string icId,
         string experienceId,
         long? requestedMapCapacity,
-        string failureMessage)
+        string failureMessage,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         V2CompositionPlanCompileResult compilation = Compile(
             profileId,
@@ -110,13 +173,42 @@ internal sealed class BuiltInV2Bundle
             icId,
             experienceId,
             requestedMapCapacity,
-            []);
+            requestedTopology: null,
+            resolutionArtifacts: [],
+            selectedInputSlotIds);
         return compilation.CompiledComposition is { Eligibility: CompiledCompositionEligibility.V2RuntimeExecutable }
             ? compilation
             : V2CompositionPlanCompileResult.Failed(
             compilation.Issues.Count == 0
                 ? [new CompositionIssue(CompilationFailed, failureMessage)]
                 : compilation.Issues);
+    }
+
+    internal IReadOnlyList<string> GetInputSelectionGroupMemberSlotIds(
+        string profileId,
+        string profileVersion)
+    {
+        try
+        {
+            TrustedProfileBundleCatalog.ProfileSelectionResult result =
+                _catalog.Value.SelectProfile(profileId, profileVersion);
+            return result.Selection is { } selection &&
+                   _catalog.Value.TryResolveSelection(
+                       selection,
+                       out TrustedCompositionProfileCatalogEntry? entry)
+                ? Array.AsReadOnly(
+                [
+                    .. entry.Profile.InputSelectionGroups
+                        .SelectMany(static group => group.MemberSlotIds)
+                        .Distinct(StringComparer.Ordinal)
+                        .Order(StringComparer.Ordinal),
+                ])
+                : [];
+        }
+        catch (Exception exception) when (IsBundleLoadFailure(exception))
+        {
+            return [];
+        }
     }
 
     /// <summary>
@@ -175,7 +267,8 @@ internal sealed class BuiltInV2Bundle
         string experienceId,
         long? requestedMapCapacity,
         TopologySelection? requestedTopology,
-        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts)
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         try
@@ -188,7 +281,8 @@ internal sealed class BuiltInV2Bundle
                 experienceId,
                 requestedMapCapacity,
                 requestedTopology,
-                resolutionArtifacts);
+                resolutionArtifacts,
+                selectedInputSlotIds);
         }
         catch (Exception exception) when (IsBundleLoadFailure(exception))
         {

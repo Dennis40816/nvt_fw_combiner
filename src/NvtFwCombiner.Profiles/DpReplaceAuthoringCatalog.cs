@@ -23,7 +23,7 @@ public static class DpReplaceAuthoringCatalog
             "replace-ldc",
             "LDC replacement BIN",
             "NT51928-only LDC payload under DP Replace.",
-            CompositionAddressSpaceIds.LdReplacement),
+            CompositionAddressSpaceIds.LdcReplacement),
     ];
 
     private static readonly Dictionary<string, DpReplaceAdditionalPayloadRule[]> AdditionalPayloadRulesByIc =

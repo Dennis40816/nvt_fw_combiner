@@ -111,8 +111,8 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(["Cascade", "Common"], viewModel.ReplaceSlotGroups.Select(group => group.Title));
         FirmwareSlotGroupViewModel cascade = viewModel.ReplaceSlotGroups[0];
         FirmwareSlotGroupViewModel common = viewModel.ReplaceSlotGroups[1];
-        Assert.Contains(cascade.Slots, slot => slot.Title == "DIFF CtrlRAM");
-        Assert.DoesNotContain(common.Slots, slot => slot.Title == "DIFF CtrlRAM");
+        Assert.Contains(cascade.Slots, slot => slot.Title == "DiffDLM");
+        Assert.DoesNotContain(common.Slots, slot => slot.Title == "DiffDLM");
         Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
             group.Title == "Cascade" &&
             group.Segments.Any(segment => segment.SourceLabel == "DIFF CtrlRAM"));
@@ -120,7 +120,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SelectedNumber = "single";
 
-        Assert.DoesNotContain(viewModel.ReplaceSlots, slot => slot.Title == "DIFF CtrlRAM");
+        Assert.DoesNotContain(viewModel.ReplaceSlots, slot => slot.Title == "DiffDLM");
         Assert.Equal("Common", Assert.Single(viewModel.ReplaceSlotGroups).Title);
     }
 

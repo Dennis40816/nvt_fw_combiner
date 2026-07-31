@@ -35,6 +35,12 @@ internal static partial class CompositionProfileNormalizer
                 NormalizeFieldReference(document.Right, $"{path}.right"))),
             "reject-metadata-byte-pattern" => NormalizeRejectedPatterns(document, stage, severity, path),
             "view-byte-assertion" => NormalizeViewAssertion(document, stage, severity, path),
+            "non-uniform-region" => Wrap(path, () => new NonUniformRegionProfileValidation(
+                document.RuleId,
+                stage,
+                severity,
+                document.IssueCode,
+                RequireText(document.ViewId, $"{path}.viewId", "Non-uniform source view is missing."))),
             _ => throw Error($"{path}.kind", "Unknown profile validation kind."),
         };
     }

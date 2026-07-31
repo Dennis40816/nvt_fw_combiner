@@ -92,9 +92,18 @@ internal static partial class V2CompositionPlanCompiler
             StringComparer.Ordinal.Equals(
                 sourceAddressSpace.UnexpectedInputLengthIssueCode,
                 declaredPrefix.UnexpectedOuterLengthIssueCode);
-        if (!usesExactGeometry && !usesDeclaredPrefixSnapshot)
+        bool usesSourceViewSnapshot = mutableSpace.Kind == CompositionProfileSpaceKind.WorkBuffer &&
+            sourceSlot.LengthRule is SourceViewCoverageLengthRule sourceView &&
+            sourceAddressSpace.InputPaddingByte is null &&
+            sourceAddressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange &&
+            sourceAddressSpace.AllowedInputLengths.Count == 0 &&
+            sourceAddressSpace.ExpectedInputLengths.SequenceEqual(sourceView.ExpectedOuterLengths) &&
+            StringComparer.Ordinal.Equals(
+                sourceAddressSpace.UnexpectedInputLengthIssueCode,
+                sourceView.UnexpectedOuterLengthIssueCode);
+        if (!usesExactGeometry && !usesDeclaredPrefixSnapshot && !usesSourceViewSnapshot)
         {
-            error = $"mutable space '{mutableSpace.SpaceId}' clone source '{source.SpaceId}' must use exact immutable or equal-length declared-prefix input geometry";
+            error = $"mutable space '{mutableSpace.SpaceId}' clone source '{source.SpaceId}' must use exact immutable or checked equal-length source-snapshot geometry";
             return false;
         }
 

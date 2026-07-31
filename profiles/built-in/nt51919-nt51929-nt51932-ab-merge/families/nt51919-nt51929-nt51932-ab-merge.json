@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.1",
+  "schemaVersion": "1.2",
   "familyId": "nt51919-nt51929-nt51932-ab-merge",
-  "familyVersion": "0.2.0",
+  "familyVersion": "0.3.0",
   "members": [
     {
       "memberId": "NT51919",
@@ -32,102 +32,131 @@
           },
           "writeConstraint": "explicit-range",
           "alignment": 1
+        }
+      ],
+      "regionTemplates": [
+        {
+          "templateId": "ab-bank",
+          "capacityBytes": 262144,
+          "regions": [
+            {
+              "regionId": "bank",
+              "owner": "system",
+              "kind": "image",
+              "range": {
+                "start": 0,
+                "length": 262144
+              },
+              "writeConstraint": "explicit-range",
+              "alignment": 1
+            },
+            {
+              "regionId": "dp-before-cmi",
+              "parentRegionId": "bank",
+              "owner": "dp",
+              "kind": "code",
+              "range": {
+                "start": 0,
+                "length": 16410
+              },
+              "writeConstraint": "forbidden",
+              "alignment": 1
+            },
+            {
+              "regionId": "cmi-dp-version",
+              "parentRegionId": "bank",
+              "owner": "dp",
+              "kind": "command",
+              "range": {
+                "start": 16410,
+                "length": 3
+              },
+              "writeConstraint": "explicit-range",
+              "alignment": 1
+            },
+            {
+              "regionId": "dp-after-cmi",
+              "parentRegionId": "bank",
+              "owner": "dp",
+              "kind": "code",
+              "range": {
+                "start": 16413,
+                "length": 12259
+              },
+              "writeConstraint": "forbidden",
+              "alignment": 1
+            },
+            {
+              "regionId": "tp-code",
+              "parentRegionId": "bank",
+              "owner": "tp",
+              "kind": "code",
+              "range": {
+                "start": 28672,
+                "length": 233472
+              },
+              "writeConstraint": "whole-region",
+              "alignment": 1
+            }
+          ]
+        }
+      ],
+      "regionInstances": [
+        {
+          "instanceId": "a-bank",
+          "templateId": "ab-bank",
+          "baseOffset": 0,
+          "parentRegionId": "ab-image",
+          "resolvedRegionIds": [
+            {
+              "templateRegionId": "bank",
+              "resolvedRegionId": "a-bank"
+            },
+            {
+              "templateRegionId": "dp-before-cmi",
+              "resolvedRegionId": "dp-a-before-cmi"
+            },
+            {
+              "templateRegionId": "cmi-dp-version",
+              "resolvedRegionId": "a-cmi-dp-version"
+            },
+            {
+              "templateRegionId": "dp-after-cmi",
+              "resolvedRegionId": "dp-a-after-cmi"
+            },
+            {
+              "templateRegionId": "tp-code",
+              "resolvedRegionId": "tpa-code"
+            }
+          ]
         },
         {
-          "regionId": "dp-a-before-cmi",
+          "instanceId": "b-bank",
+          "templateId": "ab-bank",
+          "baseOffset": 262144,
           "parentRegionId": "ab-image",
-          "owner": "dp",
-          "kind": "code",
-          "range": {
-            "start": 0,
-            "length": 16410
-          },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "a-cmi-dp-version",
-          "parentRegionId": "ab-image",
-          "owner": "dp",
-          "kind": "command",
-          "range": {
-            "start": 16410,
-            "length": 3
-          },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
-        },
-        {
-          "regionId": "dp-a-after-cmi",
-          "parentRegionId": "ab-image",
-          "owner": "dp",
-          "kind": "code",
-          "range": {
-            "start": 16413,
-            "length": 12259
-          },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "tpa-code",
-          "parentRegionId": "ab-image",
-          "owner": "tp",
-          "kind": "code",
-          "range": {
-            "start": 28672,
-            "length": 233472
-          },
-          "writeConstraint": "whole-region",
-          "alignment": 1
-        },
-        {
-          "regionId": "dp-b-before-cmi",
-          "parentRegionId": "ab-image",
-          "owner": "dp",
-          "kind": "code",
-          "range": {
-            "start": 262144,
-            "length": 16410
-          },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "b-cmi-dp-version",
-          "parentRegionId": "ab-image",
-          "owner": "dp",
-          "kind": "command",
-          "range": {
-            "start": 278554,
-            "length": 3
-          },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
-        },
-        {
-          "regionId": "dp-b-after-cmi",
-          "parentRegionId": "ab-image",
-          "owner": "dp",
-          "kind": "code",
-          "range": {
-            "start": 278557,
-            "length": 12259
-          },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "tpb-code",
-          "parentRegionId": "ab-image",
-          "owner": "tp",
-          "kind": "code",
-          "range": {
-            "start": 290816,
-            "length": 233472
-          },
-          "writeConstraint": "whole-region",
-          "alignment": 1
+          "resolvedRegionIds": [
+            {
+              "templateRegionId": "bank",
+              "resolvedRegionId": "b-bank"
+            },
+            {
+              "templateRegionId": "dp-before-cmi",
+              "resolvedRegionId": "dp-b-before-cmi"
+            },
+            {
+              "templateRegionId": "cmi-dp-version",
+              "resolvedRegionId": "b-cmi-dp-version"
+            },
+            {
+              "templateRegionId": "dp-after-cmi",
+              "resolvedRegionId": "dp-b-after-cmi"
+            },
+            {
+              "templateRegionId": "tp-code",
+              "resolvedRegionId": "tpb-code"
+            }
+          ]
         }
       ],
       "evidenceRefs": [

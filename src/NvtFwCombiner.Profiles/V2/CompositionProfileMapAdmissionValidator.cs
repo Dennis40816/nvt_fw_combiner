@@ -350,12 +350,16 @@ internal sealed class CompositionProfileMapAdmission
         ValidateFamilyAndMap(profile, family, resolvedMap);
         ValidateCapabilityEvidence(profile, family, resolvedMap, _requiredCapabilities);
         Profile = profile;
+        Family = family;
         ResolvedMap = resolvedMap;
         RequiredCapabilities = Array.AsReadOnly(_requiredCapabilities);
     }
 
     /// <summary>Normalized profile whose map requirements were admitted.</summary>
     internal CompositionProfileDefinition Profile { get; }
+
+    /// <summary>Exact normalized family that admitted the selected map.</summary>
+    internal FirmwareFamilyResolutionDefinition Family { get; }
 
     /// <summary>Exact resolver-produced physical map accepted for the profile.</summary>
     internal FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolvedMap { get; }

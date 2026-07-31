@@ -57,7 +57,8 @@ public static partial class UiCompositionRunner
                     slot.Description,
                     kind,
                     slot.IsOptional,
-                    slot.RegionId)),
+                    slot.RegionId,
+                    slot.AddressSpaceId)),
         ];
     }
 
@@ -74,7 +75,8 @@ public static partial class UiCompositionRunner
                 slot.Description,
                 FirmwareSlotKind.CtrlRam,
                 slot.IsOptional,
-                slot.RegionId)),
+                slot.RegionId,
+                slot.AddressSpaceId)),
         ];
     }
 

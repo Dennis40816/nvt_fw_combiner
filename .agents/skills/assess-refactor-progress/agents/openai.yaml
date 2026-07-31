@@ -1,0 +1,4 @@
+interface:
+  display_name: "Assess Refactor Progress"
+  short_description: "Report consistent 0.10.x refactor progress"
+  default_prompt: "Use $assess-refactor-progress to report current 0.10.x progress with evidence and confidence."

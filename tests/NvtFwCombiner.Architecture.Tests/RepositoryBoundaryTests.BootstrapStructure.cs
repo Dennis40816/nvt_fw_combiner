@@ -197,7 +197,7 @@ public sealed partial class RepositoryBoundaryTests
         string nt51929Family = ReadText(
             "profiles/built-in/nt51929-ctrlram-replace-candidate/families/nt51929-ctrlram-replace.json");
         string nt51932Profile = ReadText(
-            "profiles/built-in/nt51932-ctrlram-replace-candidate/profiles/nt51932-ctrlram-replace-fw200-cascade3.json");
+            "profiles/built-in/nt51932-ctrlram-replace-candidate/profiles/nt51932-ctrlram-replace-fw200-cascade.json");
         string nt51932Family = ReadText(
             "profiles/built-in/nt51932-ctrlram-replace-candidate/families/nt51932-ctrlram-replace.json");
         string nt51950Profile = ReadText(
@@ -246,14 +246,20 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("V2RuntimeReferenceReplaceFirmwareVersionEdit", ctrlRamVersionAdapter, StringComparison.Ordinal);
         Assert.Contains(
-            "new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings, firmwareVersionEdit)",
+            "new V2RuntimeReferenceReplaceCompileRequest(",
             ctrlRamV2,
             StringComparison.Ordinal);
+        Assert.Contains("postbuildPolicy", ctrlRamV2, StringComparison.Ordinal);
         Assert.DoesNotContain("PatchScalar", ctrlRamV2, StringComparison.Ordinal);
         Assert.Contains("CtrlRamV2RouteRegistry.TryResolve", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("context.CommandPlan.Selector.Token", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("context.CommandPlan.Selector.ResolveTopologyCount", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("context.CommandPlan.TopologyCount", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.DoesNotContain("context.CommandPlan.Selector.ResolveTopologyCount", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains(
+            "context.Selection",
+            ctrlRamRuntime,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
             "ToIcNumberSelection(context.CommandPlan.Selector.Token)",
             ctrlRamRuntime,
             StringComparison.Ordinal);
@@ -347,7 +353,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51932Profile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"cascade-selector\"", nt51932Profile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51932.ctrlram-postbuild-v1", nt51932Profile, StringComparison.Ordinal);
-        Assert.Contains("nt51932-ctrlram-fw200-cascade3-full-flash", nt51932Profile, StringComparison.Ordinal);
+        Assert.Contains("nt51932-ctrlram-fw200-cascade-full-flash", nt51932Profile, StringComparison.Ordinal);
         Assert.DoesNotContain("metadataPredicates", nt51932Family, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", nt51950Profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51950Profile, StringComparison.Ordinal);
@@ -369,7 +375,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsNt51926GeneralReplaceDpV2Route", generalRuntime, StringComparison.Ordinal);
         Assert.Contains("StringComparer.Ordinal.Equals(icId, \"NT51926\")", generalV2, StringComparison.Ordinal);
         Assert.Contains("context.Selection.Mode != IcNumberInputMode.SingleSelector", generalV2, StringComparison.Ordinal);
-        Assert.Contains("context.SelectedPatches.Length != 0", generalV2, StringComparison.Ordinal);
+        Assert.Contains(
+            "row.Source.Kind != GeneralMappingSourceKind.FileArtifact",
+            generalV2,
+            StringComparison.Ordinal);
         Assert.Contains("region.Range.Contains(mapping.TargetRange)", generalV2, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", generalProfile, StringComparison.Ordinal);
         Assert.DoesNotContain("\"blockerId\": \"full-route-parity\"", generalProfile, StringComparison.Ordinal);
@@ -490,7 +499,7 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("public const string MergeDp = \"merge-dp\"", slotIds, StringComparison.Ordinal);
         Assert.Contains("public const string MergeTp = \"merge-tp\"", slotIds, StringComparison.Ordinal);
-        Assert.Contains("public const string MergeLd = \"merge-ld\"", slotIds, StringComparison.Ordinal);
+        Assert.Contains("public const string MergeLdc = \"merge-ldc\"", slotIds, StringComparison.Ordinal);
         Assert.Contains("public const string ReplaceBase = \"replace-base\"", slotIds, StringComparison.Ordinal);
         Assert.Contains("public const string ReplaceDp = \"replace-dp\"", slotIds, StringComparison.Ordinal);
         Assert.Contains(
@@ -501,7 +510,7 @@ public sealed partial class RepositoryBoundaryTests
         {
             "\"merge-dp\"",
             "\"merge-tp\"",
-            "\"merge-ld\"",
+            "\"merge-ldc\"",
             "\"replace-base\"",
             "\"replace-dp\"",
             "\"replace-ctrlram-",

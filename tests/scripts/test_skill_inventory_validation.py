@@ -276,8 +276,8 @@ class RepositorySkillRoutingContractTests(unittest.TestCase):
     def read_skill(self, name: str) -> str:
         return (self.skills_root / name / "SKILL.md").read_text(encoding="utf-8")
 
-    def test_manifest_routes_exactly_nineteen_active_skills(self) -> None:
-        self.assertEqual(19, len(self.entries))
+    def test_manifest_routes_exactly_twenty_active_skills(self) -> None:
+        self.assertEqual(20, len(self.entries))
         self.assertTrue(
             all(entry["status"] == "active" for entry in self.entries.values())
         )

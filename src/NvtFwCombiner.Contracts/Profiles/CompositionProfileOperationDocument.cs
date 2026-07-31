@@ -33,6 +33,12 @@ public sealed record CompositionProfileOperationDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? ProcessorStageId = null);
 
+/// <summary>DTO for an addend resolved as target-region-instance base minus source base.</summary>
+public sealed record CompositionProfileRegionInstanceDeltaAddendDocument(
+    string Kind,
+    string SourceRegionInstanceId,
+    string TargetRegionInstanceId);
+
 /// <summary>DTO for one metadata field reached through a profile metadata binding.</summary>
 public sealed record CompositionProfileMetadataFieldReferenceDocument(string BindingId, string FieldId);
 

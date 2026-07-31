@@ -20,12 +20,38 @@ internal static class AbCodeOutputNameResolver
             return OutputNameResolution.Static(request.OutputFileName);
         }
 
-        TokenResolution dpA = ReadDpToken(request, inputBytes, inputSummaries, "a-cmi-dp-version", "dp-a");
-        TokenResolution dpB = ReadDpToken(request, inputBytes, inputSummaries, "b-cmi-dp-version", "dp-b");
-        TokenResolution tpA = ReadTpToken(request, inputBytes, inputSummaries, CompositionAddressSpaceIds.TpAInput, "tp-a");
-        TokenResolution tpB = ReadTpToken(request, inputBytes, inputSummaries, CompositionAddressSpaceIds.TpBInput, "tp-b");
+        TokenResolution dpA = ReadDpToken(
+            request,
+            output,
+            inputBytes,
+            inputSummaries,
+            "a-cmi-dp-version",
+            "dp-a");
+        TokenResolution dpB = ReadDpToken(
+            request,
+            output,
+            inputBytes,
+            inputSummaries,
+            "b-cmi-dp-version",
+            "dp-b");
+        TokenResolution tpA = ReadTpToken(
+            request,
+            output,
+            inputBytes,
+            inputSummaries,
+            CompositionAddressSpaceIds.TpAInput,
+            "tp-a");
+        TokenResolution tpB = ReadTpToken(
+            request,
+            output,
+            inputBytes,
+            inputSummaries,
+            CompositionAddressSpaceIds.TpBInput,
+            "tp-b");
         string date = startedAtUtc.UtcDateTime.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-        string canonicalIcNumber = GetCanonicalIcNumber(request.CompiledComposition.IcId);
+        string canonicalIcNumber =
+            CompiledOutputNameResolver.GetCanonicalIcIdentity(
+                request.CompiledComposition.IcId)[2..];
         OutputNamingTokenSummary[] tokens =
         [
             new OutputNamingTokenSummary("ic", canonicalIcNumber, IsKnown: true, null, null, "compiled-profile"),
@@ -58,30 +84,9 @@ internal static class AbCodeOutputNameResolver
         return new OutputNameResolution(actualFileName, summary, issues);
     }
 
-    private static string GetCanonicalIcNumber(string compiledIcId)
-    {
-        const string Prefix = "NT";
-        if (compiledIcId.Length != Prefix.Length + 5 ||
-            !compiledIcId.StartsWith(Prefix, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "AB Code v1 output naming requires a compiled canonical NTxxxxx IC identity.");
-        }
-
-        foreach (char character in compiledIcId.AsSpan(Prefix.Length))
-        {
-            if (!char.IsAsciiDigit(character))
-            {
-                throw new InvalidOperationException(
-                    "AB Code v1 output naming requires a compiled canonical NTxxxxx IC identity.");
-            }
-        }
-
-        return compiledIcId[Prefix.Length..];
-    }
-
     private static TokenResolution ReadDpToken(
         CompositionRunRequest request,
+        CompiledOutputNamingRequirement output,
         IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         string cmiRegionId,
@@ -91,13 +96,13 @@ internal static class AbCodeOutputNameResolver
                 request,
                 inputBytes,
                 inputSummaries,
-                CompositionAddressSpaceIds.DpAbInput,
+            CompositionAddressSpaceIds.DpAbInput,
                 out ReadOnlyMemory<byte> snapshot,
                 out string? hash)
-            ? UnknownDpToken(tokenId, hash)
+            ? UnknownToken(output, tokenId, CompositionAddressSpaceIds.DpAbInput, hash, "cmi-reg16-18")
             : TryGetProfileCmiOffset(request.CompiledComposition, cmiRegionId, snapshot.Length, out int cmiOffset)
                 ? KnownDpToken(tokenId, snapshot.Span.Slice(cmiOffset, 3), hash, "profile-cmi-reg16-18")
-            : UnknownDpToken(tokenId, hash);
+            : UnknownToken(output, tokenId, CompositionAddressSpaceIds.DpAbInput, hash, "cmi-reg16-18");
     }
 
     private static bool TryGetProfileCmiOffset(
@@ -139,19 +144,9 @@ internal static class AbCodeOutputNameResolver
             FormattableString.Invariant($"{parserId};reg16=0x{register16:X2};reg17=0x{major:X2};reg18=0x{register18:X2};jira={jira}")));
     }
 
-    private static TokenResolution UnknownDpToken(string tokenId, string? hash)
-    {
-        return new TokenResolution(new OutputNamingTokenSummary(
-            tokenId,
-            "Dxxxx",
-            IsKnown: false,
-            CompositionAddressSpaceIds.DpAbInput,
-            hash,
-            "cmi-reg16-18"));
-    }
-
     private static TokenResolution ReadTpToken(
         CompositionRunRequest request,
+        CompiledOutputNamingRequirement output,
         IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         string addressSpaceId,
@@ -169,11 +164,41 @@ internal static class AbCodeOutputNameResolver
                 "fwconfig-backup"))
             : new TokenResolution(new OutputNamingTokenSummary(
                 tokenId,
-                "Txxxx",
+                GetCompiledPlaceholder(output, tokenId),
                 IsKnown: false,
                 addressSpaceId,
                 hash,
                 "fwconfig-backup"));
+    }
+
+    private static TokenResolution UnknownToken(
+        CompiledOutputNamingRequirement output,
+        string tokenId,
+        string addressSpaceId,
+        string? hash,
+        string parserId)
+    {
+        return new TokenResolution(new OutputNamingTokenSummary(
+            tokenId,
+            GetCompiledPlaceholder(output, tokenId),
+            IsKnown: false,
+            addressSpaceId,
+            hash,
+            parserId));
+    }
+
+    private static string GetCompiledPlaceholder(
+        CompiledOutputNamingRequirement output,
+        string tokenId)
+    {
+        CompiledOutputTokenRequirement requirement =
+            output.TokenRequirements.Single(candidate =>
+                StringComparer.Ordinal.Equals(candidate.TokenId, tokenId));
+        return requirement.MissingPolicy !=
+                CompiledOutputTokenMissingPolicy.UsePlaceholder
+            ? throw new InvalidOperationException(
+                $"AB Code output token '{tokenId}' has no compiled placeholder.")
+            : requirement.Placeholder!;
     }
 
     private static bool TryGetAcceptedSnapshot(
@@ -231,7 +256,7 @@ internal static class AbCodeOutputNameResolver
     private sealed record TokenResolution(OutputNamingTokenSummary Summary);
 }
 
-/// <summary>Resolved runtime output name with optional naming provenance and non-blocking diagnostics.</summary>
+/// <summary>Resolved runtime output name with optional naming provenance and typed diagnostics.</summary>
 internal sealed record OutputNameResolution(
     string FileName,
     OutputNamingSummary? Summary,

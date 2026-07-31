@@ -1,4 +1,6 @@
 using System.Text.Json.Nodes;
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.SavedRuleIssueCodes;
 
@@ -107,6 +109,97 @@ public sealed partial class SavedRuleCliCommandTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.Contains(expectedIssueCode, result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("--mapping", result.Output, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Projects a processor-free General Replace rule through the canonical
+    /// typed draft without executing or writing firmware.
+    /// </summary>
+    [Fact]
+    public async Task SavedRuleMappingsProjectsGeneralReplaceThroughTypedDraftWithoutExecution()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralReplaceRuleObject();
+        JsonObject rowJson = MappingRows(json)[0]!.AsObject();
+        _ = rowJson.Remove("sourceRange");
+        rowJson["targetRegionId"] = "dp-code";
+        rowJson["alignment"] = 4;
+        rowJson["reason"] = "Reviewed General Replace mapping.";
+        OperationFragments(json)[0]!.AsObject()["operationId"] =
+            "reviewed-replace-operation";
+        string rulePath = await WriteRuleAsync(workspace, json);
+        string unexpectedOutput = workspace.PathFor("must-not-exist.bin");
+
+        SavedCompositionRuleLoadResult load =
+            SavedCompositionRuleLoader.Load(rulePath);
+        Assert.True(load.IsValid, string.Join(
+            Environment.NewLine,
+            load.Issues.Select(static issue => issue.Message)));
+        bool projected = SavedRuleGeneralMappingDraftAdapter.TryCreate(
+            load.Rule!,
+            static row => $"resolved-{row.SourceReference}.bin",
+            out GeneralMappingDraftState? draft,
+            out IReadOnlyList<SavedRuleValidationIssue> issues);
+
+        Assert.True(projected, string.Join(
+            Environment.NewLine,
+            issues.Select(static issue => issue.Message)));
+        GeneralMappingDraftRow row = Assert.Single(draft!.Rows);
+        Assert.Equal("reviewed-replace-operation", row.MappingId);
+        Assert.Equal(ExplicitMappingOperationKind.ReplaceRange, row.OperationKind);
+        Assert.Equal(GeneralMappingSourceKind.FileArtifact, row.Source.Kind);
+        Assert.Equal("resolved-source-bin.bin", row.Source.Reference);
+        Assert.Equal(new ByteRange(0, 0x20), row.SourceRange);
+        Assert.Equal(CompositionAddressSpaceIds.OutputImage, row.TargetAddressSpaceId);
+        Assert.Equal("dp-code", row.TargetRegionId);
+        Assert.Equal(new ByteRange(0x100, 0x20), row.TargetRange);
+        Assert.Equal(OverlapPolicy.Reject, row.OverlapPolicy);
+        Assert.Equal(4, row.Alignment);
+        Assert.Equal("Reviewed General Replace mapping.", row.Reason);
+        Assert.Equal("saved-rule", row.Provenance.Kind);
+        Assert.Equal("copy-display-window", row.Provenance.SourceId);
+        Assert.Equal("1.0.0", row.Provenance.SourceVersion);
+
+        CliRunResult result = await RunCliAsync(
+            ["saved-rule", "mappings", rulePath]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains(
+            "reviewed-replace-operation: source-bin 0x0-0x1F (len 0x20) -> output-image 0x100-0x11F (len 0x20)",
+            result.Output,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "(entire replacement file)",
+            result.Output,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "--mapping 0x100+0x20=<source-bin>",
+            result.Output,
+            StringComparison.Ordinal);
+        Assert.Equal(string.Empty, result.Error);
+        Assert.False(File.Exists(unexpectedOutput));
+    }
+
+    /// <summary>Rejects a Saved Rule projection that cannot preserve overlap semantics.</summary>
+    [Fact]
+    public async Task SavedRuleMappingsRejectsNonProjectableGeneralReplaceOverlap()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralReplaceRuleObject();
+        JsonObject row = MappingRows(json)[0]!.AsObject();
+        _ = row.Remove("sourceRange");
+        row["overlapPolicy"] = "allow-declared";
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result =
+            await RunCliAsync(["saved-rule", "mappings", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(
+            MappingRowOverlapPolicyUnsupported,
+            result.Error,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("--mapping", result.Output, StringComparison.Ordinal);
     }
 }

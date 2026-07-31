@@ -2,12 +2,12 @@
 
 - Status: Accepted
 - Date: 2026-07-11
-- Last amended: 2026-07-26
+- Last amended: 2026-07-30
 - Owners: Product owner + architecture owner + firmware reviewers
 - Supersedes: ADR 0008 catalog-join ownership after compatibility migration
 - Amends: ADR 0003, ADR 0004, ADR 0005, ADR 0006, and ADR 0007
 - Amended by: ADR 0016, ADR 0017, ADR 0018, ADR 0019, ADR 0020, ADR 0023,
-  ADR 0024, ADR 0032, and ADR 0042
+  ADR 0024, ADR 0032, ADR 0042, and ADR 0045
 
 ## Context
 
@@ -158,9 +158,13 @@ order, C# type names, storage paths, and JSON paths cannot affect an identity.
 An IC, family, or workflow may not define a separate hash writer.
 
 `RouteId`, `ResolutionToken`, `AuthoringRevision`, and `FileStamp` retain their
-accepted non-content-hash meanings. A fingerprint-format change explicitly
-bumps the format version; affected authoring, publication, and evidence policy
-becomes stale and is reviewed and repinned rather than silently accepted.
+accepted meanings outside the firmware-semantic fingerprint chain.
+`FileStamp` is the captured identity of one selected external file and contains
+its accepted byte length and SHA-256; path and filesystem timestamp are
+non-authoritative hints. It is not a canonical-definition hash or
+`CapabilityFingerprint`. A fingerprint-format change explicitly bumps the
+format version; affected authoring, publication, and evidence policy becomes
+stale and is reviewed and repinned rather than silently accepted.
 Cross-language vectors lock the canonical encoding and chain.
 
 Every runtime invariant has one validating owner:
@@ -229,6 +233,30 @@ step once and passes its immutable result to every consumer. Inspection,
 resolution, compilation, engine execution, and each declared processor stage
 are not rerun by output naming, Memory Layout, reporting, UI, or CLI. This
 single-evaluation contract is separate from optional cross-operation caches.
+
+The 2026-07-29 Memory Layout amendment makes the layout snapshot a disposable,
+immutable Application projection rather than another firmware model. Its pure
+projector reads one `ResolvedCapability`, the matching `ActiveSessionSnapshot`,
+and optionally the exact `CompiledComposition` instance already owned by that
+capability. It cannot perform I/O, resolution, compilation, execution, or
+cache publication.
+
+Physical geometry remains the exact `FirmwareRegion` references and resolved
+half-open ranges from the canonical map. Initialization plus admitted ordered
+operations produce transient before/after coverage; no copied region
+definition, guessed range, color, pixel width, or renderer state enters the
+Application result. A selected artifact whose placement is not resolved is a
+non-geometric pending or blocked item with typed prerequisite and next action.
+Each blocked item also retains an opaque issue reference owned by the exact
+inspection or validation result and pins it to the same resolution token,
+authoring revision, slot definition, selected path, and file stamp. The
+projection does not copy diagnostic text or firmware facts.
+Content role, workflow disposition, endpoint/bank identity, diagnostics,
+observed change, selection, focus, and declared processor effect remain
+orthogonal typed dimensions. Primary segments may own subordinate kept-range
+details, but those details are not canonical regions and cannot become a
+second map. Presentation alone maps these typed facts to colors, patterns,
+icons, labels, hover details, and responsive geometry.
 
 Authoring is one shared `Available` or `Unavailable` decision for UI and CLI. Publication is the
 separate explicit policy `Supported`, `Candidate`, `Internal`, or `TestOnly`; missing publication
@@ -352,15 +380,23 @@ closed scalar transform for relocation: source and target ranges, width, byte or
 addend, optional expected-before value, reject-on-overflow policy, and provenance. This is not an
 expression DSL and cannot call IC-specific code.
 
-Input acceptance and normalization become typed plan requirements rather than address-space
-geometry. Exact, bounded/view-covering, owner-approved padding, CtrlRAM truncation-with-warning,
-fixed Normal DP extraction-with-warning, and reviewed immutable-source declared-prefix
-normalization retain their profile-specific fail-closed constraints. Declared-prefix
-normalization requires every source view, metadata read, and processor read to remain inside the
-declared execution snapshot. It preserves the actual immutable source hash/length as evidence,
-reports the ignored trailing range, and never grants padding or changes an operation range. ADR
-0032 applies this authority to the first `v0.9.14` AB pilot only after its R3 boundary, golden, and
-firmware-owner gates pass.
+Input acceptance and normalization become typed plan requirements rather than
+address-space geometry. ADR 0045 reduces address-bearing Initial Code, DP, TP,
+LDC, TPA, and TPB section admission to one view-covering requirement with
+optional expected outer lengths. Every selected source view, metadata read,
+validation read, and processor read must remain inside the declared execution
+snapshot. A compatible same-IC FlashCode may provide the same section views.
+The actual immutable source hash/length remains evidence, ignored trailing
+bytes are reported, and coverage never grants padding or changes an operation
+range.
+
+Exact complete-container admission remains separate for Replace Reference and
+complete DP AB seeds. Bounded payloads, owner-approved padding, and CtrlRAM
+truncation-with-warning retain their fail-closed constraints. Compact CtrlRAM
+is the only current built-in payload-relative source; TPB is a TP-native source
+window plus a resolved bank placement delta. The original workflow-named
+Normal-DP/TP length rules and declared-prefix AB compatibility lowerings are
+deleted only after R3 golden and firmware-owner migration gates pass.
 
 ### Capability, promotion, and future workflows
 

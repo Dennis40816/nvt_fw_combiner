@@ -41,6 +41,45 @@ public enum AuthoringSlotLifecycle
     Error,
 }
 
+/// <summary>
+/// Opaque reference to one issue owned by an immutable inspection or validation result.
+/// Carries no duplicated diagnostic text or firmware fact.
+/// </summary>
+public sealed record AuthoringSlotIssueReference
+{
+    /// <summary>Creates one reference to an issue inside a separately owned result.</summary>
+    public AuthoringSlotIssueReference(
+        AuthoringDerivedResultKind resultKind,
+        string resultReference,
+        string issueId)
+    {
+        if (resultKind is not (
+            AuthoringDerivedResultKind.Inspection or
+            AuthoringDerivedResultKind.Validation))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(resultKind),
+                resultKind,
+                "Slot issues must be owned by an inspection or validation result.");
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(resultReference);
+        ArgumentException.ThrowIfNullOrWhiteSpace(issueId);
+        ResultKind = resultKind;
+        ResultReference = resultReference;
+        IssueId = issueId;
+    }
+
+    /// <summary>Kind of immutable result that owns the issue.</summary>
+    public AuthoringDerivedResultKind ResultKind { get; }
+
+    /// <summary>Opaque reference to the separately owned immutable result.</summary>
+    public string ResultReference { get; }
+
+    /// <summary>Stable issue identity inside the referenced result.</summary>
+    public string IssueId { get; }
+}
+
 /// <summary>Monotonic identity for one set of authoring inputs.</summary>
 public readonly record struct AuthoringRevision
 {
@@ -59,45 +98,6 @@ public readonly record struct AuthoringRevision
     {
         return new AuthoringRevision(checked(Value + 1));
     }
-}
-
-/// <summary>
-/// Host-captured file identity. Application compares it but never reads the
-/// filesystem or treats it as firmware evidence.
-/// </summary>
-public readonly record struct FileStamp
-{
-    /// <summary>Creates one caller-captured file stamp.</summary>
-    public FileStamp(bool exists, long length, DateTimeOffset lastWriteTimeUtc)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(length);
-        if (!exists && length != 0)
-        {
-            throw new ArgumentException(
-                "A missing file stamp cannot declare a non-zero length.",
-                nameof(length));
-        }
-
-        if (lastWriteTimeUtc.Offset != TimeSpan.Zero)
-        {
-            throw new ArgumentException(
-                "File-stamp timestamps must be normalized to UTC.",
-                nameof(lastWriteTimeUtc));
-        }
-
-        Exists = exists;
-        Length = length;
-        LastWriteTimeUtc = lastWriteTimeUtc;
-    }
-
-    /// <summary>Whether the host observed the selected path.</summary>
-    public bool Exists { get; }
-
-    /// <summary>Observed file length.</summary>
-    public long Length { get; }
-
-    /// <summary>Observed UTC last-write time.</summary>
-    public DateTimeOffset LastWriteTimeUtc { get; }
 }
 
 /// <summary>Reference to one canonical resolved input-slot definition.</summary>
@@ -310,29 +310,41 @@ public sealed record AuthoringSlotState
         string definitionId,
         string? selectedPath,
         FileStamp? fileStamp,
-        AuthoringSlotLifecycle lifecycle)
+        AuthoringSlotLifecycle lifecycle,
+        AuthoringSlotIssueReference? blockingIssue = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
-        if ((selectedPath is null) != (fileStamp is null))
+        if (selectedPath is null && fileStamp is not null)
         {
             throw new ArgumentException(
-                "Selected path and file stamp must be supplied or cleared together.",
-                nameof(selectedPath));
+                "A file stamp cannot exist without a selected path.",
+                nameof(fileStamp));
         }
 
         if (!Enum.IsDefined(lifecycle) ||
             (selectedPath is null && lifecycle != AuthoringSlotLifecycle.Empty) ||
-            (selectedPath is not null && lifecycle == AuthoringSlotLifecycle.Empty))
+            (selectedPath is not null && lifecycle == AuthoringSlotLifecycle.Empty) ||
+            (lifecycle is AuthoringSlotLifecycle.Verified or
+                AuthoringSlotLifecycle.Warning && fileStamp is null))
         {
             throw new ArgumentException(
                 "Authoring slot lifecycle must match selected-file state.",
                 nameof(lifecycle));
         }
 
+        bool hasBlockingIssue = blockingIssue is not null;
+        if (hasBlockingIssue != (lifecycle == AuthoringSlotLifecycle.Error))
+        {
+            throw new ArgumentException(
+                "Only an error lifecycle requires one blocking inspection or validation issue reference.",
+                nameof(blockingIssue));
+        }
+
         DefinitionId = definitionId;
         SelectedPath = selectedPath;
         FileStamp = fileStamp;
         Lifecycle = lifecycle;
+        BlockingIssue = blockingIssue;
     }
 
     /// <summary>Referenced canonical slot-definition identity.</summary>
@@ -346,6 +358,9 @@ public sealed record AuthoringSlotState
 
     /// <summary>Current selected-file lifecycle.</summary>
     public AuthoringSlotLifecycle Lifecycle { get; }
+
+    /// <summary>Actual blocking issue reference, present only for an error lifecycle.</summary>
+    public AuthoringSlotIssueReference? BlockingIssue { get; }
 }
 
 /// <summary>One successfully published derived-result reference.</summary>
@@ -381,6 +396,9 @@ public enum AuthoringDraftKind
 {
     /// <summary>One typed General Merge/Replace explicit-mapping draft.</summary>
     GeneralMapping,
+
+    /// <summary>One exact General Merge initializer plus shared mapping draft.</summary>
+    GeneralMerge,
 }
 
 /// <summary>
@@ -530,6 +548,9 @@ public static class AuthoringSessionIssueCodes
 
     /// <summary>The asynchronous result belongs to older session state.</summary>
     public const string StalePublication = "authoring.session.publication-stale";
+
+    /// <summary>The selected-file inspection belongs to older session state.</summary>
+    public const string StaleInspection = "authoring.session.inspection-stale";
 
     /// <summary>The result kind does not match its captured lease.</summary>
     public const string InvalidPublication = "authoring.session.publication-invalid";

@@ -6,7 +6,6 @@ internal static partial class V2CompositionPlanCompiler
 {
     private const string LogicalProfileShapeInvalid = "profile.v2.logical.profile-shape-invalid";
     private const string LogicalMemberNotAdmitted = "profile.v2.logical.member-not-admitted";
-    private const string LogicalOutputCapacityInvalid = "profile.v2.logical.output-capacity-invalid";
     private const string LogicalBindingInvalid = "profile.v2.logical.binding-invalid";
     private const string LogicalMappingInvalid = "profile.v2.logical.mapping-invalid";
     private const string LogicalSourceOutOfBounds = "profile.v2.logical.source-out-of-bounds";
@@ -54,7 +53,10 @@ internal static partial class V2CompositionPlanCompiler
                 binding.BindingId,
                 binding.ExactLengthBytes,
                 AddressSpaceMutability.Immutable)),
-            new AddressSpace(output.SpaceId, request.OutputCapacity, AddressSpaceMutability.Mutable),
+            new AddressSpace(
+                output.SpaceId,
+                request.OutputInitializer.Capacity,
+                AddressSpaceMutability.Mutable),
         ];
         CompositionOperation[] operations =
         [
@@ -76,7 +78,7 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         var plan = new CompositionPlan(
-            [ImageInitialization.Blank(output.SpaceId, request.OutputCapacity, ((BlankProfileInitializer)output.Initializer).FillByte)],
+            [request.OutputInitializer.ToImageInitialization(output.SpaceId)],
             output.SpaceId,
             spaces,
             operations);
@@ -153,14 +155,6 @@ internal static partial class V2CompositionPlanCompiler
         V2LogicalOutputCompileRequest request,
         List<CompositionIssue> issues)
     {
-        if (request.OutputCapacity <= 0)
-        {
-            issues.Add(new CompositionIssue(
-                LogicalOutputCapacityInvalid,
-                "Logical-output capacity must be a positive in-memory byte count.",
-                CompositionAddressSpaceIds.OutputImage));
-        }
-
         CompositionProfileInputSlot inputSlot = AssertLogicalInputSlot(profile);
         string outputSpaceId = AssertOutputSpace(profile).SpaceId;
         var bindings = new Dictionary<string, V2LogicalOutputInputBinding>(StringComparer.Ordinal);
@@ -197,7 +191,9 @@ internal static partial class V2CompositionPlanCompiler
                 !sequences.Add(mapping.Sequence) ||
                 mapping.OperationKind != ExplicitMappingOperationKind.CopyRange ||
                 mapping.OverlapPolicy != OverlapPolicy.Reject ||
-                !StringComparer.Ordinal.Equals(mapping.TargetSpaceId, outputSpaceId) ||
+                !StringComparer.Ordinal.Equals(
+                    mapping.TargetSpaceId,
+                    CompositionAddressSpaceIds.OutputImage) ||
                 mapping.TargetRegionId is not null ||
                 mapping.SourceRange.Start % mapping.Alignment != 0 ||
                 mapping.SourceRange.Length % mapping.Alignment != 0 ||
@@ -228,7 +224,8 @@ internal static partial class V2CompositionPlanCompiler
                     mapping.MappingId));
             }
 
-            if (request.OutputCapacity > 0 && mapping.TargetRange.EndExclusive > request.OutputCapacity)
+            if (mapping.TargetRange.EndExclusive >
+                request.OutputInitializer.Capacity)
             {
                 issues.Add(new CompositionIssue(
                     LogicalTargetOutOfBounds,

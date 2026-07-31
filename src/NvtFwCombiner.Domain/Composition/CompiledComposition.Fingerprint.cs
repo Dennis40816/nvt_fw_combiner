@@ -180,6 +180,37 @@ public sealed partial class CompiledComposition
         AppendEnum(builder, "output.invalid-character-policy", output.InvalidCharacterPolicy);
         AppendEnum(builder, "output.renderer", output.RendererKind);
         AppendStringList(builder, "output.required-token", output.RequiredTokenIds);
+        if (output.RuleId is not null)
+        {
+            AppendField(builder, "output.rule-id", output.RuleId);
+            AppendEnum(builder, "output.artifact-type", output.OutputArtifactType);
+            AppendInteger(
+                builder,
+                "output.token-requirement.count",
+                output.TokenRequirements.Count);
+            for (int index = 0; index < output.TokenRequirements.Count; index++)
+            {
+                CompiledOutputTokenRequirement requirement =
+                    output.TokenRequirements[index];
+                string prefix =
+                    FormattableString.Invariant($"output.token-requirement.{index}");
+                AppendField(builder, $"{prefix}.id", requirement.TokenId);
+                AppendEnum(builder, $"{prefix}.source", requirement.SourceKind);
+                AppendField(
+                    builder,
+                    $"{prefix}.metadata-binding",
+                    requirement.MetadataBindingId ?? string.Empty);
+                AppendField(
+                    builder,
+                    $"{prefix}.metadata-space",
+                    requirement.MetadataSpaceId ?? string.Empty);
+                AppendEnum(builder, $"{prefix}.missing", requirement.MissingPolicy);
+                AppendField(
+                    builder,
+                    $"{prefix}.placeholder",
+                    requirement.Placeholder ?? string.Empty);
+            }
+        }
         AppendPlan(builder, composition.Plan);
 
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())))
@@ -281,6 +312,19 @@ public sealed partial class CompiledComposition
         AppendEnum(builder, $"{prefix}.width", transform.Width);
         AppendEnum(builder, $"{prefix}.byte-order", transform.ByteOrder);
         AppendField(builder, $"{prefix}.addend", transform.Addend.ToString(CultureInfo.InvariantCulture));
+        if (transform.AddendSource.Kind == ScalarTransformAddendSourceKind.RegionInstanceDelta)
+        {
+            AppendEnum(builder, $"{prefix}.addend-source-kind", transform.AddendSource.Kind);
+            AppendField(
+                builder,
+                $"{prefix}.addend-source-instance",
+                transform.AddendSource.SourceRegionInstanceId!);
+            AppendField(
+                builder,
+                $"{prefix}.addend-target-instance",
+                transform.AddendSource.TargetRegionInstanceId!);
+        }
+
         AppendField(
             builder,
             $"{prefix}.expected-before",
@@ -362,6 +406,26 @@ public sealed partial class CompiledComposition
                     AppendInteger(builder, $"{prefix}.firmware-version", firmwareConfig.FirmwareVersion);
                     AppendInteger(builder, $"{prefix}.firmware-sub-version", firmwareConfig.FirmwareSubVersion);
                     break;
+                case CompiledFirmwareConfigBackupPlacementAuthorityValidation authority:
+                    AppendField(builder, $"{prefix}.inactive-mutation-issue-code", authority.InactiveMutationIssueCode);
+                    AppendField(builder, $"{prefix}.reference-space-id", authority.ReferenceAddressSpaceId);
+                    AppendRange(builder, $"{prefix}.authority-range", authority.AuthorityRange);
+                    AppendInteger(builder, $"{prefix}.backup-length", authority.BackupLength);
+                    break;
+                case CompiledFirmwareConfigBackupExpectedAddressValidation expected:
+                    AppendInteger(builder, $"{prefix}.expected-start", expected.ExpectedStart);
+                    break;
+                case CompiledUniformInputRangeValidation uniform:
+                    AppendField(builder, $"{prefix}.address-space-id", uniform.AddressSpaceId);
+                    for (int rangeIndex = 0; rangeIndex < uniform.Ranges.Count; rangeIndex++)
+                    {
+                        AppendRange(
+                            builder,
+                            $"{prefix}.range[{rangeIndex}]",
+                            uniform.Ranges[rangeIndex]);
+                    }
+
+                    break;
                 default:
                     throw new InvalidOperationException("Unknown compiled validation requirement kind.");
             }
@@ -393,6 +457,35 @@ public sealed partial class CompiledComposition
             AppendField(builder, $"{prefix}.address-space", binding.AddressSpaceId);
             AppendField(builder, $"{prefix}.slot", binding.SlotId);
             AppendEnum(builder, $"{prefix}.instance-policy", binding.InstancePolicy);
+        }
+
+        if (contract.SelectionGroups.Count == 0)
+        {
+            return;
+        }
+
+        AppendInteger(builder, "input.selection-group.count", contract.SelectionGroups.Count);
+        for (int index = 0; index < contract.SelectionGroups.Count; index++)
+        {
+            CompiledInputSelectionGroup group = contract.SelectionGroups[index];
+            string prefix = FormattableString.Invariant($"input.selection-group.{index}");
+            AppendField(builder, $"{prefix}.id", group.GroupId);
+            AppendStringList(builder, $"{prefix}.member", group.MemberSlotIds);
+            AppendStringList(builder, $"{prefix}.applicable", group.ApplicableMemberSlotIds);
+            AppendStringList(builder, $"{prefix}.selected", group.SelectedSlotIds);
+            AppendInteger(builder, $"{prefix}.minimum-selected", group.MinimumSelected);
+            AppendInteger(builder, $"{prefix}.maximum-selected", group.MaximumSelected);
+            AppendInteger(builder, $"{prefix}.not-applicable-reason.count", group.NotApplicableReasons.Count);
+            int reasonIndex = 0;
+            foreach ((string slotId, string reason) in group.NotApplicableReasons.OrderBy(
+                         static pair => pair.Key,
+                         StringComparer.Ordinal))
+            {
+                string reasonPrefix = FormattableString.Invariant(
+                    $"{prefix}.not-applicable-reason.{reasonIndex++}");
+                AppendField(builder, $"{reasonPrefix}.slot", slotId);
+                AppendField(builder, $"{reasonPrefix}.message", reason);
+            }
         }
     }
 
@@ -426,6 +519,20 @@ public sealed partial class CompiledComposition
                     builder,
                     $"{prefix}.unexpected-outer-length-issue-code",
                     declaredPrefix.UnexpectedOuterLengthIssueCode);
+                break;
+            case CompiledSourceViewCoverageInputLengthRequirement sourceView:
+                AppendIntegerList(
+                    builder,
+                    $"{prefix}.expected-outer-length",
+                    sourceView.ExpectedOuterLengths);
+                if (sourceView.UnexpectedOuterLengthIssueCode is { } unexpectedOuterLengthIssueCode)
+                {
+                    AppendField(
+                        builder,
+                        $"{prefix}.unexpected-outer-length-issue-code",
+                        unexpectedOuterLengthIssueCode);
+                }
+
                 break;
             case CompiledTpMaximum256KInputLengthRequirement:
                 AppendInteger(builder, $"{prefix}.maximum-bytes", CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);

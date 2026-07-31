@@ -17,9 +17,23 @@ public sealed class WorkbenchOutputNamingTests
         foreach (JsonElement goldenCase in manifest.RootElement.GetProperty("cases").EnumerateArray())
         {
             string icId = $"NT{goldenCase.GetProperty("ic").GetString()}";
+            bool carriesStandardMergeNamingInputs =
+                goldenCase.TryGetProperty("artifacts", out JsonElement artifacts) &&
+                artifacts.EnumerateArray().Any(static artifact =>
+                    artifact.TryGetProperty("sourceRole", out JsonElement sourceRole) &&
+                    sourceRole.GetString() == "standard-merge-dp-input") &&
+                artifacts.EnumerateArray().Any(static artifact =>
+                    artifact.TryGetProperty("sourceRole", out JsonElement sourceRole) &&
+                    sourceRole.GetString() == "standard-merge-tp-input");
             if (!WorkbenchCompositionService.GetSupportedIcIds().Contains(icId, StringComparer.Ordinal))
             {
                 // Retired fixtures remain immutable historical evidence, not production naming claims.
+                continue;
+            }
+
+            if (!carriesStandardMergeNamingInputs)
+            {
+                // A narrow hot-fix golden does not claim the DP/TP metadata needed by output naming.
                 continue;
             }
 

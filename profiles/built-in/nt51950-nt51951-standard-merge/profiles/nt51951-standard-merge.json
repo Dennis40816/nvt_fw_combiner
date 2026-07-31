@@ -1,5 +1,6 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.13",
+  "compilationContext": { "kind": "resolved-map" },
   "profileId": "nt51951-standard-merge-dp-perspective",
   "profileVersion": "0.6.0",
   "promotion": {
@@ -27,7 +28,8 @@
     "requiredRegionIds": [
       "dp-container",
       "tp-overlay",
-      "customer-info"
+      "customer-info",
+      "unmapped-prefix"
     ],
     "requiredMetadataStructureIds": [
       "firmware-config-standard-merge",
@@ -56,7 +58,7 @@
       "cardinality": "exactly-one",
       "acceptedExtensions": [".bin"],
       "acceptance": {
-        "lengthRule": { "kind": "tp-maximum-256k", "maximumBytes": 262144 },
+        "lengthRule": { "kind": "source-view-coverage" },
         "normalization": { "kind": "none" }
       }
     }
@@ -91,6 +93,11 @@
       "viewId": "dp-container-output",
       "spaceId": "output-image",
       "selector": { "kind": "map-region", "regionId": "dp-container" }
+    },
+    {
+      "viewId": "dp-identity-source",
+      "spaceId": "dp-input",
+      "selector": { "kind": "map-region", "regionId": "unmapped-prefix" }
     },
     {
       "viewId": "tp-overlay-source",
@@ -146,7 +153,24 @@
       "targetViewId": "tp-overlay-output"
     }
   ],
-  "validations": [],
+  "validations": [
+    {
+      "ruleId": "dp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "DP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "dp-identity-source"
+    },
+    {
+      "ruleId": "tp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "TP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "tp-overlay-source"
+    }
+  ],
   "processorStages": [],
   "output": {
     "fileNameTemplate": "nt51951-standard-merge-dp-perspective.bin",

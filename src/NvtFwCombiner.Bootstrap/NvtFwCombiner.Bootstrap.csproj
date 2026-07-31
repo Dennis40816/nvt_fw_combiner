@@ -80,43 +80,48 @@
       <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51923-dp-replace">
+      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51923-standard-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.11.schema.json</CompositionProfileSchemaFile>
+      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1.2-tp-header-subjects.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51927-dp-replace">
+      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51927-standard-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.11.schema.json</CompositionProfileSchemaFile>
+      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1.2-tp-header-subjects.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51928-dp-replace">
-      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
+      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
+      <FirmwareFamilySchemaFile>firmware-family-v1.2-tp-header-subjects.schema.json</FirmwareFamilySchemaFile>
+      <CanonicalFirmwareFamilySource>nt51928-standard-merge\families\nt51927-nt51928-v1.5.json</CanonicalFirmwareFamilySource>
+      <CanonicalFirmwareFamilyDestination>families\nt51927-nt51928-v1.5.json</CanonicalFirmwareFamilyDestination>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51928-standard-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.11.schema.json</CompositionProfileSchemaFile>
+      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1.2-tp-header-subjects.schema.json</FirmwareFamilySchemaFile>
-      <CanonicalFirmwareFamilySource>nt51927-standard-merge\families\nt51927-nt51928.json</CanonicalFirmwareFamilySource>
-      <CanonicalFirmwareFamilyDestination>families\nt51927-nt51928.json</CanonicalFirmwareFamilyDestination>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51929-dp-replace">
+      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51929-standard-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.11.schema.json</CompositionProfileSchemaFile>
+      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1.1-tp-header.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51919-nt51929-nt51932-ab-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.11.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.1-tp-header.schema.json</FirmwareFamilySchemaFile>
+      <CompositionProfileSchemaFile>composition-profile-v2.14.schema.json</CompositionProfileSchemaFile>
+      <FirmwareFamilySchemaFile>firmware-family-v1.2-bank-instances.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51950-ab-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.10.schema.json</CompositionProfileSchemaFile>
+      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51950-nt51951-standard-merge">
+      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
       <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
   </ItemGroup>

@@ -43,6 +43,12 @@ public enum CompiledValidationKind
     ViewByteAssertion,
     /// <inheritdoc/>
     FirmwareConfigBackupVersion,
+    /// <inheritdoc/>
+    FirmwareConfigBackupPlacementAuthority,
+    /// <inheritdoc/>
+    FirmwareConfigBackupExpectedAddress,
+    /// <inheritdoc/>
+    RejectUniformInputRanges,
 }
 
 /// <summary>One metadata field reached through a profile metadata binding.</summary>

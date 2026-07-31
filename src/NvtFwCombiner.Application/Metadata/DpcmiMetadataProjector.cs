@@ -49,6 +49,24 @@ public static class DpcmiMetadataProjector
         MetadataInspectionSnapshot snapshot,
         out DpcmiMetadataFacts facts)
     {
+        return TryProjectCore(snapshot, bindingId: null, out facts);
+    }
+
+    /// <summary>Projects the successful DPCMI result selected by one exact profile binding.</summary>
+    public static bool TryProject(
+        MetadataInspectionSnapshot snapshot,
+        string bindingId,
+        out DpcmiMetadataFacts facts)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bindingId);
+        return TryProjectCore(snapshot, bindingId, out facts);
+    }
+
+    private static bool TryProjectCore(
+        MetadataInspectionSnapshot snapshot,
+        string? bindingId,
+        out DpcmiMetadataFacts facts)
+    {
         ArgumentNullException.ThrowIfNull(snapshot);
         facts = null!;
         MetadataInspectionResult[] matches =
@@ -56,7 +74,11 @@ public static class DpcmiMetadataProjector
             .. snapshot.Results.Where(result =>
                 StringComparer.Ordinal.Equals(
                     result.PlanEntry.Definition.StructureDefinition.Definition.DefinitionId,
-                    DpcmiMetadataContract.StructureId)),
+                    DpcmiMetadataContract.StructureId) &&
+                (bindingId is null ||
+                 StringComparer.Ordinal.Equals(
+                     result.PlanEntry.Definition.BindingId,
+                     bindingId))),
         ];
         if (matches.Length != 1 ||
             matches[0].State != MetadataInspectionState.Value ||

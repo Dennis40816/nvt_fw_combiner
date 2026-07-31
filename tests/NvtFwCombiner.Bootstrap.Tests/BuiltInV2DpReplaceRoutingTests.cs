@@ -1,5 +1,7 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -10,13 +12,13 @@ public sealed class BuiltInV2DpReplaceRoutingTests
 {
     /// <summary>Every canonical Gen Flash map exposes only its owner-approved DP partition.</summary>
     [Theory]
-    [InlineData("NT51917", 0x40000, "nt51917-dp-replace-gen-flash-alias", "2bb448b7a8ba8fb259d8f429ff386d6c0aa29fd47d163f334c1e119e455ebcad", 0x3C000, 0x4000)]
-    [InlineData("NT51919", 0x40000, "nt51919-dp-replace-gen-flash-alias", "169b9334a57328504fbe463c96dda1e8d749109896ae8d0143088b747b0ab596", 0x00000, 0x6000)]
-    [InlineData("NT51923", 0x40000, "nt51923-dp-replace-gen-flash", "9496b7d6296e06fac81f4ca73a49ac1d4154ef9edc4dcf078fe433efa046081e", 0x3E000, 0x2000)]
-    [InlineData("NT51926", 0x40000, "nt51926-dp-replace-gen-flash", "9496b7d6296e06fac81f4ca73a49ac1d4154ef9edc4dcf078fe433efa046081e", 0x3E000, 0x2000)]
-    [InlineData("NT51927", 0x40000, "nt51927-dp-replace-gen-flash", "2bb448b7a8ba8fb259d8f429ff386d6c0aa29fd47d163f334c1e119e455ebcad", 0x3C000, 0x4000)]
-    [InlineData("NT51929", 0x40000, "nt51929-dp-replace-gen-flash", "169b9334a57328504fbe463c96dda1e8d749109896ae8d0143088b747b0ab596", 0x00000, 0x6000)]
-    [InlineData("NT51932", 0x40000, "nt51932-dp-replace-gen-flash", "169b9334a57328504fbe463c96dda1e8d749109896ae8d0143088b747b0ab596", 0x00000, 0x6000)]
+    [InlineData("NT51917", 0x40000, "nt51917-dp-replace-gen-flash-alias", "d47faa5137c34e1f771ec1568f699f1c5301a9fb9235f243ca9ad467315d5db3", 0x3C000, 0x4000)]
+    [InlineData("NT51919", 0x40000, "nt51919-dp-replace-gen-flash-alias", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd", 0x00000, 0x6000)]
+    [InlineData("NT51923", 0x40000, "nt51923-dp-replace-gen-flash", "fd5ee9dda6de6b0ba2142adf0ddae9736282407fb96e53895e4cbfd505746df6", 0x3E000, 0x2000)]
+    [InlineData("NT51926", 0x40000, "nt51926-dp-replace-gen-flash", "fd5ee9dda6de6b0ba2142adf0ddae9736282407fb96e53895e4cbfd505746df6", 0x3E000, 0x2000)]
+    [InlineData("NT51927", 0x40000, "nt51927-dp-replace-gen-flash", "d47faa5137c34e1f771ec1568f699f1c5301a9fb9235f243ca9ad467315d5db3", 0x3C000, 0x4000)]
+    [InlineData("NT51929", 0x40000, "nt51929-dp-replace-gen-flash", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd", 0x00000, 0x6000)]
+    [InlineData("NT51932", 0x40000, "nt51932-dp-replace-gen-flash", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd", 0x00000, 0x6000)]
     public void GenFlashDpReplaceUsesCanonicalDpPartition(
         string icId,
         long baseCapacity,
@@ -43,15 +45,26 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Equal("replace-dp-code", operation.OperationId);
         Assert.Equal(CompositionAddressSpaceIds.DpReplacement, operation.SourceSpaceId);
         Assert.Equal(new ByteRange(dpStart, dpLength), operation.TargetRange);
+        Assert.Equal(operation.TargetRange, operation.SourceRange);
     }
 
-    /// <summary>NT51928 keeps DP and LDC as separate required inputs and non-overlapping writes.</summary>
-    [Fact]
-    public void Nt51928DpReplaceSeparatesDpAndLdcPartitions()
+    /// <summary>NT51928 lowers one selection group into only the selected non-overlapping replacement writes.</summary>
+    [Theory]
+    [InlineData(0x40000, "initial-code-replacement", "replace-dp-code")]
+    [InlineData(0x80000, "initial-code-replacement", "replace-dp-code")]
+    [InlineData(0x80000, "ldc-replacement", "replace-ldc-code")]
+    [InlineData(0x80000, "initial-code-replacement,ldc-replacement", "replace-dp-code,replace-ldc-code")]
+    public void Nt51928DpReplaceLowersOnlySelectedPartitions(
+        long referenceCapacity,
+        string selectedInputIds,
+        string expectedOperationIds)
     {
+        ArgumentNullException.ThrowIfNull(selectedInputIds);
+        ArgumentNullException.ThrowIfNull(expectedOperationIds);
         bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
             "NT51928",
-            0x80000,
+            referenceCapacity,
+            selectedInputIds.Split(','),
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
 
@@ -60,22 +73,280 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal("nt51928-dp-replace-gen-flash", artifact.ProfileId);
         Assert.Equal(
-            [CompositionAddressSpaceIds.DpReplacement, CompositionAddressSpaceIds.LdReplacement, CompositionAddressSpaceIds.ReferenceBase],
+            selectedInputIds.Split(',').Append(CompositionAddressSpaceIds.ReferenceBase).Order(StringComparer.Ordinal),
             artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
-        Assert.Collection(
-            artifact.Plan.OrderedOperations,
-            operation =>
+        Assert.Equal(
+            expectedOperationIds.Split(','),
+            artifact.Plan.OrderedOperations.Select(static operation => operation.OperationId));
+        Assert.All(artifact.Plan.OrderedOperations, operation =>
+        {
+            ByteRange expectedRange = operation.OperationId == "replace-dp-code"
+                ? new ByteRange(0x3C000, 0x4000)
+                : new ByteRange(0x40000, 0x22000);
+            Assert.Equal(expectedRange, operation.TargetRange);
+            Assert.Equal(operation.TargetRange, operation.SourceRange);
+        });
+        CompiledInputSelectionGroup group = Assert.Single(artifact.V2Details!.InputContract.SelectionGroups);
+        Assert.Equal(selectedInputIds.Split(',').Order(StringComparer.Ordinal), group.SelectedSlotIds);
+        Assert.Equal(
+            referenceCapacity == 0x40000
+                ? [CompositionAddressSpaceIds.InitialCodeReplacement]
+                : [CompositionAddressSpaceIds.InitialCodeReplacement, CompositionAddressSpaceIds.LdcReplacement],
+            group.ApplicableMemberSlotIds);
+        if (referenceCapacity == 0x40000)
+        {
+            Assert.Equal(
+                "Reference length does not include LDC",
+                group.NotApplicableReasons[CompositionAddressSpaceIds.LdcReplacement]);
+        }
+        else
+        {
+            Assert.Empty(group.NotApplicableReasons);
+        }
+    }
+
+    /// <summary>NT51928 rejects LDC on a 256-KiB reference with the profile-owned readiness reason.</summary>
+    [Fact]
+    public void Nt51928DpReplaceRejectsLdcWhenReferenceHasNoLdcRegion()
+    {
+        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+            "NT51928",
+            0x40000,
+            [CompositionAddressSpaceIds.LdcReplacement],
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(registered);
+        Assert.Null(composition);
+        Assert.Contains(issues, issue =>
+            issue.Code == "profile.v2.plan.input-selection-not-applicable" &&
+            issue.Message == "Reference length does not include LDC");
+    }
+
+    /// <summary>NT51928 rejects an empty replacement selection instead of materializing a no-op route.</summary>
+    [Fact]
+    public void Nt51928DpReplaceRequiresAtLeastOneReplacement()
+    {
+        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+            "NT51928",
+            0x80000,
+            [],
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(registered);
+        Assert.Null(composition);
+        CompositionIssue issue = Assert.Single(issues);
+        Assert.Equal("profile.v2.plan.input-selection-invalid", issue.Code);
+    }
+
+    /// <summary>The headless workbench consumes the same typed selection result as the CLI.</summary>
+    [Theory]
+    [InlineData(null, "initial-code-replacement", "ldc-replacement", "PendingInput")]
+    [InlineData(0x40000L, "initial-code-replacement", "ldc-replacement", "NotApplicable")]
+    [InlineData(0x80000L, "ldc-replacement", "initial-code-replacement", "Ready")]
+    public void Nt51928DpReplaceProjectsApplicationOwnedSelectionReadiness(
+        long? referenceCapacity,
+        string selectedSlotId,
+        string inspectedSlotId,
+        string expectedReadiness)
+    {
+        bool resolved = WorkbenchCompositionService.TryResolveBuiltInV2DpReplaceInputSelection(
+            "NT51928",
+            referenceCapacity,
+            [selectedSlotId],
+            out InputSelectionReadinessSnapshot? readiness,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(resolved);
+        Assert.Empty(issues);
+        InputSelectionMemberReadiness member = Assert.Single(readiness!.Groups)
+            .Members.Single(candidate => candidate.SlotId == inspectedSlotId);
+        Assert.Equal(
+            Enum.Parse<ResolvedChildReadiness>(expectedReadiness),
+            member.Readiness);
+        if (referenceCapacity == 0x40000)
+        {
+            Assert.Equal("Reference length does not include LDC", member.Reason);
+        }
+    }
+
+    /// <summary>The workbench rejects a stale LDC binding through the Application readiness result.</summary>
+    [Fact]
+    public async Task Nt51928WorkbenchRejectsSelectedLdcForNoLdcReferenceAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51928-stale-ldc-selection");
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51928",
+            WorkbenchIcNumberTokens.SingleChip,
+            WorkbenchReplaceModes.Dp,
+            new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                Assert.Equal("replace-dp-code", operation.OperationId);
-                Assert.Equal(CompositionAddressSpaceIds.DpReplacement, operation.SourceSpaceId);
-                Assert.Equal(new ByteRange(0x3C000, 0x4000), operation.TargetRange);
+                [WorkbenchSlotIds.ReplaceBase] =
+                    workspace.Write("reference.bin", CreatePattern(0x40000, 0x21)),
+                [WorkbenchSlotIds.ReplaceLdc] =
+                    workspace.Write("ldc.bin", CreatePattern(0x80000, 0xB4)),
             },
-            operation =>
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(
+            InputSelectionReadinessIssueCodes.SelectionNotApplicable,
+            result.ReportJson,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Reference length does not include LDC",
+            result.ReportJson,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>Distinct sentinels prove every NT51928 byte outside selected Initial Code/LDC ranges stays Reference.</summary>
+    [Theory]
+    [InlineData(0x40000, true, false)]
+    [InlineData(0x80000, true, false)]
+    [InlineData(0x80000, false, true)]
+    [InlineData(0x80000, true, true)]
+    public async Task Nt51928DpReplacePreservesEveryUnselectedReferenceByteAsync(
+        int referenceCapacity,
+        bool selectInitialCode,
+        bool selectLdc)
+    {
+        using var workspace = TempWorkspace.Create(
+            $"nfc-nt51928-dp-replace-{referenceCapacity:X}-{selectInitialCode}-{selectLdc}");
+        byte[] reference = CreatePattern(referenceCapacity, 0x21);
+        byte[] initialCode = CreatePattern(referenceCapacity, 0x71);
+        byte[] ldc = CreatePattern(referenceCapacity, 0xB4);
+        string outputPath = workspace.PathFor("output.bin");
+        var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [WorkbenchSlotIds.ReplaceBase] = workspace.Write("reference.bin", reference),
+        };
+        if (selectInitialCode)
+        {
+            slotPaths[WorkbenchSlotIds.ReplaceDp] = workspace.Write("initial-code.bin", initialCode);
+        }
+
+        if (selectLdc)
+        {
+            slotPaths[WorkbenchSlotIds.ReplaceLdc] = workspace.Write("ldc.bin", ldc);
+        }
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51928",
+            WorkbenchIcNumberTokens.SingleChip,
+            WorkbenchReplaceModes.Dp,
+            slotPaths,
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        byte[] expected = [.. reference];
+        if (selectInitialCode)
+        {
+            initialCode.AsSpan(0x3C000, 0x4000).CopyTo(expected.AsSpan(0x3C000, 0x4000));
+        }
+
+        if (selectLdc)
+        {
+            ldc.AsSpan(0x40000, 0x22000).CopyTo(expected.AsSpan(0x40000, 0x22000));
+        }
+
+        Assert.Equal(expected, File.ReadAllBytes(outputPath));
+    }
+
+    /// <summary>Uniform LDC content remains buildable and appears as one typed warning in the report.</summary>
+    [Fact]
+    public async Task Nt51928UniformLdcEmitsWarningWithoutBlockingBuildAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51928-uniform-ldc-warning");
+        string outputPath = workspace.PathFor("output.bin");
+        byte[] uniformLdc = new byte[0x80000];
+        Array.Fill(uniformLdc, (byte)0xFF);
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51928",
+            WorkbenchIcNumberTokens.SingleChip,
+            WorkbenchReplaceModes.Dp,
+            new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                Assert.Equal("replace-ldc-code", operation.OperationId);
-                Assert.Equal(CompositionAddressSpaceIds.LdReplacement, operation.SourceSpaceId);
-                Assert.Equal(new ByteRange(0x40000, 0x22000), operation.TargetRange);
-            });
+                [WorkbenchSlotIds.ReplaceBase] =
+                    workspace.Write("reference.bin", CreatePattern(0x80000, 0x21)),
+                [WorkbenchSlotIds.ReplaceLdc] =
+                    workspace.Write("ldc.bin", uniformLdc),
+            },
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue =>
+                issue.GetProperty("Code").GetString() == "LDC_UNIFORM_CONTENT_WARNING" &&
+                issue.GetProperty("Severity").GetString() == CompositionIssueSeverity.Warning);
+    }
+
+    /// <summary>Uniform Initial Code content remains buildable and uses the same warning-only validation contract.</summary>
+    [Fact]
+    public async Task Nt51928UniformInitialCodeEmitsWarningWithoutBlockingBuildAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51928-uniform-initial-warning");
+        string outputPath = workspace.PathFor("output.bin");
+        byte[] uniformInitialCode = new byte[0x80000];
+        Array.Fill(uniformInitialCode, (byte)0xFF);
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51928",
+            WorkbenchIcNumberTokens.SingleChip,
+            WorkbenchReplaceModes.Dp,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [WorkbenchSlotIds.ReplaceBase] =
+                    workspace.Write("reference.bin", CreatePattern(0x80000, 0x21)),
+                [WorkbenchSlotIds.ReplaceDp] =
+                    workspace.Write("initial-code.bin", uniformInitialCode),
+            },
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue =>
+                issue.GetProperty("Code").GetString() == "DP_UNIFORM_CONTENT_WARNING" &&
+                issue.GetProperty("Severity").GetString() == CompositionIssueSeverity.Warning);
+    }
+
+    /// <summary>Non-uniform selected Initial Code and LDC inputs produce no plausibility warning.</summary>
+    [Fact]
+    public async Task Nt51928NonUniformReplacementInputsDoNotEmitPlausibilityWarningsAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51928-nonuniform-inputs");
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51928",
+            WorkbenchIcNumberTokens.SingleChip,
+            WorkbenchReplaceModes.Dp,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [WorkbenchSlotIds.ReplaceBase] =
+                    workspace.Write("reference.bin", CreatePattern(0x80000, 0x21)),
+                [WorkbenchSlotIds.ReplaceDp] =
+                    workspace.Write("initial-code.bin", CreatePattern(0x80000, 0x42)),
+                [WorkbenchSlotIds.ReplaceLdc] =
+                    workspace.Write("ldc.bin", CreatePattern(0x80000, 0x63)),
+            },
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.DoesNotContain(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() is
+                "DP_UNIFORM_CONTENT_WARNING" or "LDC_UNIFORM_CONTENT_WARNING");
     }
 
     /// <summary>Verifies DP Perspective classification remains a map-shape fact, not generic DP Replace availability.</summary>
@@ -119,7 +390,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("4511e59f2f573f80554df55e0e825d65885a4fb1661f78c44f48bc57859640e2", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("45cf7836211d3447563ecbf196e5cd777878617fd43bbb99657f4eafdf1dca2c", details.Provenance.Bundle.ContentHash);
         Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", artifact.ProfileId);
         Assert.Equal(baseCapacity, artifact.Plan.OutputInitialization.Capacity);
         WorkbenchProfileSummary summary = WorkbenchCompositionService.GetReplaceProfileSummaries()

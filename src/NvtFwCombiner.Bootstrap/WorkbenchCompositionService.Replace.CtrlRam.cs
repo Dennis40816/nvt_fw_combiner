@@ -155,10 +155,7 @@ public static partial class WorkbenchCompositionService
         var referencePayload = new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, referenceBytes);
         if (CtrlRamV2RouteRegistry.TryResolve(context.CommandPlan, out CtrlRamV2Route? route))
         {
-            WorkbenchFirmwareContextSuggestion? firmware = ReadFirmwareContextSuggestion(icId, referenceBytes);
-            int topologyCount = context.CommandPlan.Selector.ResolveTopologyCount(
-                context.Selection,
-                firmware?.ChipNumber);
+            int topologyCount = context.CommandPlan.TopologyCount;
             V2CompositionPlanCompileResult v2Compile = CompileCtrlRamV2(
                 context,
                 route,
@@ -240,13 +237,14 @@ public static partial class WorkbenchCompositionService
                     build,
                     outputPath,
                     externalProcessor,
-                    icNumberSelection: ToIcNumberSelection(context.CommandPlan.Selector.Token),
+                    icNumberSelection: context.Selection,
                     cancellationToken,
                     virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)
                     {
                         [context.BasePath!] = referenceBytes,
                     },
-                    progress: progress).ConfigureAwait(false);
+                    progress: progress,
+                    advisoryIssues: context.AdvisoryIssues).ConfigureAwait(false);
         }
 
         return Blocked(

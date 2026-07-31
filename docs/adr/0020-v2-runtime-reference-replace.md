@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-07-15
 - Amended: 2026-07-18 for the NT51926 processor-free DP runtime slice
+- Amended: 2026-07-29 for plan-only diagnostic Preview when required POSTBUILD is unavailable
 - Owners: Architecture owner + firmware owner
 - Amends: ADR 0015 and ADR 0019
 - Amended by: ADR 0023 and ADR 0024
@@ -143,6 +144,34 @@ This compiler capability does not itself route a production profile. The current
 NT51926 DP-only candidate remains a parity probe until an exact TP/full-Flash
 General Replace profile, Legacy Combiner golden output, report/naming/UI/CLI parity,
 and firmware-owner review close independently.
+
+## POSTBUILD-unavailable diagnostic Preview
+
+When accepted General Replace targets require POSTBUILD but the required
+profile authority or runtime dependency is unavailable, Build fails closed.
+Preview may remain available only as a plan-only diagnostic action when enough
+IC, map, Reference, input, and mapping context exists to produce a coherent
+authoring/compilation projection.
+
+The diagnostic Preview may show:
+
+- accepted mapping rows and their projected target ranges;
+- projected Kept/Changed coverage;
+- the required profile-owned POSTBUILD stage when it was successfully
+  compiled; and
+- the exact missing-stage or missing-runtime-dependency blocker.
+
+It does not run `CompositionEngine`, mutate a Reference clone, invoke an
+external processor, create a downloadable BIN, or claim final Header, CRC,
+hash, or output validity. If the exact Parent omitted required POSTBUILD
+authority, the report distinguishes the uncompiled stage from a declared stage
+whose runtime tool is unavailable.
+
+The disabled Build readiness hint and diagnostic Preview report use the same
+Application-owned issue. The readiness hint itself is not a report; a report
+is created only when the operator explicitly requests Preview. That report is
+marked diagnostic/plan-only and states:
+**POSTBUILD required but unavailable — plan only; no output was produced.**
 
 ## Non-goals
 

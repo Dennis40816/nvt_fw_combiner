@@ -118,12 +118,20 @@ artifactClass: tp-firmware | dp-firmware | reference-image | ctrlram-replacement
 required
 cardinality: exactly-one | zero-or-one | one-or-more
 acceptedExtensions[]
-lengthRule: tp-maximum-256k | exact-resolved-map-capacity |
-            normal-dp-extract-with-warning | exact-bytes | bounded
+lengthRule: source-view-coverage | exact-resolved-map-capacity |
+             exact-bytes | bounded
 normalization: none | pad-shorter | truncate-ctrlram
 ```
 
 A selected file is a run binding; filenames do not define IC or range truth.
+The workflow-named TP/Normal-DP rules above are compatibility vocabulary.
+Canonical section admission is one source-view-coverage requirement: the input
+must cover the greatest selected source/metadata/validation/processor read end,
+while optional expected outer lengths produce diagnostics. Initial Code, DP,
+TP, LDC, TPA, and TPB are address-bearing section sources. A compatible
+same-IC FlashCode may satisfy a section slot without changing the mapping.
+`exact-resolved-map-capacity` remains authoritative for a complete Replace
+Reference or another explicitly complete container.
 
 ## Explicit mappings
 
@@ -143,6 +151,31 @@ reason
 - General Replace uses `replace-range` over reference initialization.
 - One BIN can provide many mappings; many BINs can contribute to one output.
 - Canvas drag and exact table/manual entry edit the same mapping object; the normalized numeric model is authoritative.
+- The wider operation algebra retains reviewed overlap policies for built-in
+  profiles, but current General Merge/General Replace authoring admits only
+  `reject`; any two user-authored target writers that intersect are blocked.
+
+## Source projections and complete containers
+
+One `sourceRange -> targetRange` operation is sufficient for every current
+built-in transfer:
+
+- Initial Code, DP, TP, LDC, and TPA normally resolve the same firmware
+  coordinates in source and target.
+- TPB reads the TP-native source range and writes it at the resolved B-bank
+  placement delta. Stored Header address relocation remains a separate checked
+  `transform-scalar`.
+- Compact CtrlRAM replacement is the only current built-in payload-relative
+  projection: source starts at byte `0` and targets one declared CtrlRAM
+  region. DiffDLM mask/scatter is a CtrlRAM-specific lowering of that source,
+  not another generic mapping kind.
+- Replace Reference and complete DP AB seed authority are initialization/input
+  admission facts. They require an exact declared container variant and are
+  not represented as an ROI exception.
+
+General authoring may explicitly choose Source Slice or From File Start. Those
+are editing presets over the same mapping object, not firmware classification
+or new execution primitives.
 
 ## Operation algebra
 

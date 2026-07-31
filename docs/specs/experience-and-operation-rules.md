@@ -4,12 +4,51 @@ This document expands the product rules summarized in `SPEC.md` section 7.5. The
 
 ## Replace and Merge Authoring
 
-- **DP Replace**: DP may be whole or profile-declared partitions. LD replacement belongs to DP Replace and may use a separate LD slot. TP-specific replace personas are not exposed.
+- **DP Replace**: DP may be whole or profile-declared partitions. LDC
+  replacement belongs to DP Replace and may use a separate `ldc-replacement`
+  slot. TP-specific replace personas are not exposed.
 - **CtrlRAM Replace**: only named physical regions with owner `tp` and kind `ctrlram`, or approved
   groups composed only of those regions, are replaceable.
 - **General Replace**: explicit mappings are available only in profile `explicit-range` access. Protected regions remain blocked. A TP-classified mapping must select an approved legacy Combiner CRC/header refresh after mutation or fail closed.
 - **General Merge**: input cardinality is extensible and every mapping compiles to standard operations over a blank image.
 - **Hex Editor**: follows ADR 0014. It is a raw in-memory BIN utility with no firmware support claim.
+
+An explicitly declared selection group may contain individually optional
+`zero-or-one` slots while requiring a minimum and maximum selected count across
+the applicable members. This does not make unrelated multi-input workflows
+optional. NT51928 DP Replace uses one Initial Code/LDC group with selected count
+`1..2`; after a `0x40000` Reference resolves LDC as `NotApplicable`, Initial
+Code is the only applicable member and is therefore required.
+
+NT51928 Standard Merge and DP Replace each remain one public capability with
+two declared map variants. For Standard Merge, LDC absence selects the shared
+Initial-Code/TP-only `0x40000` candidate; supplied LDC selects the NT51928
+`0x80000` candidate and must then pass structural validation. Failure blocks
+and never falls back to absence. DP Replace resolves the variant from the
+accepted Reference length.
+
+Built-in Initial Code, DP, TP, LDC, TPA, and TPB slots are address-bearing
+section sources. Their outer file length is not an exact gate when every
+selected source/metadata/validation/processor read is covered; a compatible
+same-IC FlashCode may supply the same views. TPA copies at the same coordinates.
+TPB reads the TP-native source window and writes it at the resolved bank
+placement delta. Only current compact CtrlRAM replacement payloads normally
+map source byte `0` to a nonzero built-in firmware target.
+
+Replace Reference and complete DP AB seeds are whole-container inputs, not
+section projections. They must match one declared capacity variant. General
+Merge/Replace may explicitly author From File Start as a user mapping preset;
+that does not create another built-in firmware rule.
+
+FlashCode classification requires a resolved complete-container variant with
+required DP/Initial Code and TP views. Application requires exact variant
+capacity, complete DP and TP source coverage, and satisfied profile-declared
+warning-only non-uniform checks for both parts before returning `FlashCode`.
+A full-length Initial Code whose TP view is uniform therefore remains
+`Unknown`. LDC is variant-optional. NVT marker, ASCII IC hint, CMI, PID,
+version, length, and non-uniform checks are composable signals rather than one
+magic signature; inconclusive classification is `Unknown` and remains
+separate from section admission.
 
 ## Operation Algebra
 
@@ -48,10 +87,12 @@ Inventory data may be `unknown`, but a supported profile may not. A transform ma
 - Overlap rejects by default and must be explicitly declared per operation.
 - Every mutation records operation id, target space/range, before/after digest, changed ranges, and reason.
 - A count-dependent DiffDLM operation expands only active records. Source dummy
-  records outside the active prefix never become write operations; inactive
-  target records remain cloned from the immutable reference. A later postbuild
-  FWConfig Backup mutation is a separate processor-owned operation and report
-  entry, not an exception that widens the DiffDLM mask.
+  records outside the complete active full-stride prefix never become write
+  operations; a source that reaches only the last writable DLM byte but omits
+  its preserved NF tail is truncated and rejected. Inactive target records
+  remain cloned from the immutable reference. A later postbuild FWConfig
+  Backup mutation is a separate processor-owned operation and report entry,
+  not an exception that widens the DiffDLM mask.
 
 ## Preview and Build Readiness
 
@@ -66,7 +107,18 @@ Inventory data may be `unknown`, but a supported profile may not. A transform ma
   the executable Preview/Build attempt without invoking mutation. The next
   explicit refresh can recover in the same process after the environment is
   corrected.
+- Structural input safety remains blocking. A profile-declared
+  `non-uniform-region` plausibility validation is different: one uniform
+  Initial Code/DP/TP/LDC source view emits a typed warning through the shared
+  Application result, UI, CLI, Preview, and Build Report, but does not block
+  Build or change output bytes.
 - Check-time state never creates a Run Report. When the user explicitly
   attempts Preview with a runtime blocker, the headless workflow may return a
   blocked Preview report; Build remains unavailable until every execution gate
   is current.
+- For General Replace whose accepted targets require POSTBUILD, a missing
+  Parent stage or runtime dependency permits only a plan-only Diagnostic
+  Preview. It reports accepted/compiled mappings, projected coverage, the
+  required stage when compiled, and the blocker. It executes no mappings or
+  processor, emits no output BIN, and makes no final Header/CRC/hash claim.
+  Missing Parent authority and a missing runtime tool remain distinct issues.

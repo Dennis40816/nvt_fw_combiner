@@ -3,7 +3,7 @@
   "bundleId": "nt51929-standard-merge-family",
   "bundleVersion": "0.10.1-shared-facts.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "14a3b2808a5377af39b683fe44f60f152e9c7f4a15c18e5c9e264ad6ea2b0827",
+  "contentHash": "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -11,7 +11,7 @@
       "kind": "schema",
       "path": "schemas/composition-profile-v2.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "40c6853801ae0f505d3d24c6d58298d200b1a13ebf37b64bd457f986d97a6f49"
+      "contentHash": "97540ff527b8929726949629aa9fff46819be3a413f757c007a44a1025e31100"
     },
     {
       "entryId": "firmware-family-v1-schema",
@@ -25,7 +25,7 @@
       "kind": "composition-profile",
       "path": "profiles/nt51919-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "a1758cf63c67c86253e2307c0f11803e031ebdca3dca0755aecf307b24fd7e7f"
+      "contentHash": "a371406f27b84468741deac64edd82fba1232143fcb6fbd53dce7fd029d0c66f"
     },
     {
       "entryId": "nt51929-nt51932-family",
@@ -39,14 +39,14 @@
       "kind": "composition-profile",
       "path": "profiles/nt51929-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "6e50d54d024c639fa06a7c78e9ca050426ee32146b93dbb250f6cedb509ed80c"
+      "contentHash": "a824bc3f89cc45b81e35584bd11e4c8ebedf2bb6cc77856408a27956add50488"
     },
     {
       "entryId": "nt51932-standard-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51932-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "f8b345ec45ea462346c37510b47cdb78f260b43ad61f27ce4e433bf2825d6267"
+      "contentHash": "5b7870824f339b1f1f910bda3aec4fb7ba80b9e8582564a5b8f520b61ce54824"
     }
   ]
 }

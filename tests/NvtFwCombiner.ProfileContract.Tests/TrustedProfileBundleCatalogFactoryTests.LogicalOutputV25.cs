@@ -78,13 +78,16 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void LogicalOutputLoweringRejectsInvalidCapacityAndSourceRange()
     {
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new GeneralMergeOutputInitializer(0));
+
         V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileLogicalOutput(
             CreateLogicalOutputCatalog(),
             "logical-general-merge",
             "1.0.0",
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
-                outputCapacity: 0,
+                new GeneralMergeOutputInitializer(6),
                 [new V2LogicalOutputInputBinding("source-a", "source", 4)],
                 [new ExplicitMapping(
                     "copy-source",
@@ -99,7 +102,6 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                     reason: "test logical mapping")]));
 
         Assert.False(result.IsCompiled);
-        Assert.Contains(result.Issues, issue => issue.Code == "profile.v2.logical.output-capacity-invalid");
         Assert.Contains(result.Issues, issue => issue.Code == "profile.v2.logical.source-out-of-bounds");
     }
 
@@ -115,7 +117,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "1.0.0",
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
-                6,
+                new GeneralMergeOutputInitializer(6),
                 [new V2LogicalOutputInputBinding("source-a", "source", 4)],
                 [first, Mapping("copy-first", 11, new ByteRange(2, 2), new ByteRange(2, 2))]));
         V2CompositionPlanCompileResult overlapping = TrustedV2CompositionCompiler.CompileLogicalOutput(
@@ -124,7 +126,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "1.0.0",
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
-                6,
+                new GeneralMergeOutputInitializer(6),
                 [new V2LogicalOutputInputBinding("source-a", "source", 4)],
                 [first, Mapping("copy-second", 11, new ByteRange(2, 2), new ByteRange(1, 2))]));
 
@@ -143,7 +145,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "1.0.0",
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
-                6,
+                new GeneralMergeOutputInitializer(6),
                 [new V2LogicalOutputInputBinding(CompositionAddressSpaceIds.OutputImage, "source", 4)],
                 [new ExplicitMapping(
                     "copy-source",
@@ -194,6 +196,47 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.NotEqual(six.CompilationFingerprint, seven.CompilationFingerprint);
     }
 
+    /// <summary>Verifies the exact typed initializer controls blank bytes and compiled identity.</summary>
+    [Theory]
+    [InlineData(0x00)]
+    [InlineData(0x5A)]
+    [InlineData(0xFF)]
+    public void LogicalOutputInitializerControlsFillAndFingerprint(int fillByte)
+    {
+        TrustedProfileBundleCatalog catalog = CreateLogicalOutputCatalog();
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(
+            TrustedV2CompositionCompiler.CompileLogicalOutput(
+                catalog,
+                "logical-general-merge",
+                "1.0.0",
+                LogicalTestMemberId,
+                LogicalRequest(
+                    outputCapacity: 6,
+                    fillByte: checked((byte)fillByte))).CompiledComposition);
+
+        CompositionExecutionResult execution = CompositionEngine.Execute(
+            composition.Plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]>
+            {
+                ["source-a"] = [0xAA, 0xBB, 0xCC, 0xDD],
+            }));
+
+        Assert.Equal(
+            [checked((byte)fillByte), 0xAA, 0xBB, checked((byte)fillByte), checked((byte)fillByte), checked((byte)fillByte)],
+            execution.OutputBytes.ToArray());
+        if (fillByte != 0)
+        {
+            CompiledComposition zero = Assert.IsType<CompiledComposition>(
+                TrustedV2CompositionCompiler.CompileLogicalOutput(
+                    catalog,
+                    "logical-general-merge",
+                    "1.0.0",
+                    LogicalTestMemberId,
+                    LogicalRequest(outputCapacity: 6)).CompiledComposition);
+            Assert.NotEqual(zero.CompilationFingerprint, composition.CompilationFingerprint);
+        }
+    }
+
     private static TrustedProfileBundleCatalog CreateLogicalOutputCatalog()
     {
         string familyJson = TrustedV2BundleTestDocuments.FamilyJson();
@@ -205,10 +248,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             [Profile("logical-profile-entry", Hash(profileJson), profileDocument.RootElement.Clone())]));
     }
 
-    private static V2LogicalOutputCompileRequest LogicalRequest(int outputCapacity)
+    private static V2LogicalOutputCompileRequest LogicalRequest(
+        int outputCapacity,
+        byte fillByte = GeneralMergeOutputInitializer.DefaultFillByte)
     {
         return new V2LogicalOutputCompileRequest(
-            outputCapacity,
+            new GeneralMergeOutputInitializer(outputCapacity, fillByte),
             [new V2LogicalOutputInputBinding("source-a", "source", 4)],
             [new ExplicitMapping(
                 "copy-source",

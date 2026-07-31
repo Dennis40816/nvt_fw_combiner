@@ -57,12 +57,30 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         Assert.DoesNotContain(slots, slot => slot.SlotId.StartsWith("replace-ctrlram-vn-", StringComparison.Ordinal));
     }
 
-    /// <summary>932/950 cascade NF clearly identifies the external DiffNFMerge prerequisite.</summary>
+    /// <summary>Masked NT51929-family Cascade authoring exposes DiffDLM but never an independent NF selector.</summary>
     [Theory]
-    [InlineData("NT51919", WorkbenchIcNumberTokens.CascadeTwoToEight)]
-    [InlineData("NT51929", WorkbenchIcNumberTokens.CascadeTwoToEight)]
-    [InlineData("NT51932", WorkbenchIcNumberTokens.CascadeTwoToEight)]
-    [InlineData("NT51932", "2")]
+    [InlineData("NT51919")]
+    [InlineData("NT51929")]
+    [InlineData("NT51932")]
+    public void DynamicDiffDlmCascadeHidesIndependentNfSelector(string icId)
+    {
+        IReadOnlyList<WorkbenchReplaceInputSlot> slots =
+            WorkbenchCompositionService.GetReplaceInputSlots(
+                icId,
+                WorkbenchIcNumberTokens.CascadeTwoToEight,
+                WorkbenchReplaceModes.CtrlRam);
+
+        Assert.Contains(
+            slots,
+            slot => slot.SlotId == "replace-ctrlram-diff" &&
+                    slot.Title == "DiffDLM");
+        Assert.DoesNotContain(
+            slots,
+            slot => slot.SlotId == "replace-ctrlram-nf");
+    }
+
+    /// <summary>950-family cascade NF remains explicit until its separate masked route is migrated.</summary>
+    [Theory]
     [InlineData("NT51950", "cascade")]
     [InlineData("NT51950", "2")]
     [InlineData("NT51951", "cascade")]
@@ -82,6 +100,8 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
 
     /// <summary>Single-chip NF is already the physical Postbuild input and does not show a cascade prerequisite.</summary>
     [Theory]
+    [InlineData("NT51919")]
+    [InlineData("NT51929")]
     [InlineData("NT51932")]
     [InlineData("NT51950")]
     public void DiffNfFamiliesDoNotWarnForSingleChip(string icId)
@@ -144,9 +164,9 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         Assert.True(result.Succeeded, result.ReportJson);
     }
 
-    /// <summary>An unreadable zero chip count stays informational and does not block the requested exact plan.</summary>
+    /// <summary>A zero chip count is warning-only when the selected route does not consume IC Count.</summary>
     [Fact]
-    public async Task ZeroFirmwareChipCountDoesNotBlockRequestedPlan()
+    public async Task ZeroFirmwareChipCountWarnsWithoutBlockingCountInvariantPlan()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-zero-chip-count");
         byte[] baseBytes = File.ReadAllBytes(Nt51927ThreeChipBasePath());
@@ -176,6 +196,16 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         Assert.True(result.Succeeded, result.ReportJson);
         Assert.Equal(1, processor.CallCount);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        JsonElement issue = Assert.Single(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            candidate => candidate.GetProperty("Code").GetString() ==
+                FirmwareConfigChipCountDiagnostics.ZeroWarningIssueCode);
+        Assert.Equal("warning", issue.GetProperty("Severity").GetString());
+        Assert.Contains(
+            "This workflow does not depend on IC Count, so Build may continue.",
+            issue.GetProperty("Message").GetString(),
+            StringComparison.Ordinal);
     }
 
     /// <summary>A readable FWConfig chip count that contradicts the selected exact plan fails before processor invocation.</summary>

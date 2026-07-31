@@ -14,6 +14,13 @@ of truth there. Compatibility projections are removed after byte/name/trace pari
 - Merge starts from a blank output image; Replace clones an immutable reference/base image.
 - UI, CLI, and workbench paths must call the same composition profile/compiler/runner contracts.
 - All ranges are half-open `[start, end)` and name their address space.
+- Built-in Initial Code, DP, TP, LDC, TPA, and TPB inputs use address-bearing
+  source views. TPA is same-coordinate; TPB uses a resolved bank placement
+  delta. Compact CtrlRAM payloads alone currently use source byte `0` as the
+  normal origin for a nonzero firmware target.
+- Section inputs require source-view coverage and may be supplied by a
+  compatible same-IC FlashCode. Replace Reference and complete DP AB seeds
+  instead require one exact declared container variant.
 - Physical IC facts live in firmware-family documents; workflow semantics live in composition
   profiles. Do not put them in XAML, ViewModels, CLI routing, Bootstrap joins, or one-off scripts.
 - Experience selects authoring policy only. It must not create a second byte-execution branch.
@@ -28,7 +35,7 @@ Collect these items before adding a production IC profile:
 | Evidence | Required for | Notes |
 | --- | --- | --- |
 | Owner-approved memory map or flash-map source | all workflows | Record source file, sheet/section, revision, owner, and hash when available. |
-| Merge source ranges and output size | Standard Merge | Normalize inclusive legacy ranges into half-open `[start, end)`. |
+| Merge source ranges and output size | Standard Merge | Normalize inclusive legacy ranges into half-open `[start, end)`; record every source/metadata/validation read and expected outer length separately. |
 | Replace base/reference length and mutable regions | DP/CtrlRAM/General Replace | Replace never writes back to the input/base artifact. |
 | Protected ranges | DP/CtrlRAM/General Replace | Header, customer info, TP CRC/header areas, and any no-touch regions must be explicit. |
 | Combiner postbuild command source | CtrlRAM Replace and TP-affecting General Replace | Prefer owner-approved postbuild and mmap references committed as documentation/reference evidence when they contain no firmware payload or secrets. |
@@ -136,7 +143,8 @@ Minimum tests:
 
 ## DP Replace steps
 
-1. Confirm DP/LD partition boundaries and whether replacement is whole-only or declared-parts.
+1. Confirm Initial Code/LDC partition boundaries and whether replacement is
+   whole-only or declared-parts.
 2. Confirm base/reference image length and whether shorter replacement inputs may be padded. Padding must be profile-declared.
 3. Add a Replace profile with `ImageInitialization.Reference`.
 4. Add deny-by-default access rules. DP Replace must expose only DP whole/declared partitions, not TP-persona categories.

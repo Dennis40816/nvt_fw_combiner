@@ -33,7 +33,16 @@
 `0.9.16` is the published focused hot-fix derived from official `v0.9.15` peeled commit `008333a9c96ea65454a334824d349f3574373edd`. It authorizes only profile-classified Header/Header Copy and topology-applicable CtrlRAM/DLM CRC writes, corrects AB/Replace presentation state, and skips DP-only metadata inspection for TP firmware. Single-IC routes explicitly exclude cascade-only DiffDLM/DLM CRC words. Owner-supplied NT51929 single Normal CtrlRAM evidence locks the production route to four Header/Header Copy CRC words without promoting runtime support or release redistribution of the private evidence. The separately approved `0.9.17` compatibility hot-fix starts from official `v0.9.16` and is limited to the DiffDLM active-NF preservation and selector behavior defined below; it does not import the `0.10.x` architecture. The `0.9.15` AB function state and its certification debt otherwise remain unchanged. `0.10.0` owns architecture, terminology, evidence inventory, process, validation standards, and ticket dependency planning only. The later `0.10.x` sequence owns the dependency-allocated Support Matrix, error/report experience, clean-Windows UI-smoke closure, release-workflow annotated-tag newline hardening, and production-maintainability slices. The canonical future sequence is [NFC Roadmap](docs/architecture/nfc_roadmap.md). Publication is permitted only after independent review, firmware-owner approval, protected CI, package verification, and release-owner approval; an omitted external gate must remain explicit rather than being described as passing.
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
-- NT51928 non-NB reuses NT51927 TP/CtrlRAM single/2-chip/3-chip authority inside a distinct 512 KiB image, while DP Replace independently requires DP `[0x3C000,0x40000)` and LDC `[0x40000,0x62000)`. NT51928 NB remains excluded.
+- NT51928 non-NB references NT51927 canonical Initial Code and TP facts
+  through typed `SharedFactRelationship` roles `initial-code-shared` and
+  `tp-shared`; the two ICs are not a perfect family. NT51928 admits one
+  `0x40000` form without LDC that directly follows the shared NT51927
+  composition and one `0x80000` form with its distinct LDC
+  `[0x40000,0x62000)`. Standard Merge and DP Replace each remain one public
+  capability. Standard Merge LDC absence selects the `0x40000` candidate;
+  supplied LDC selects `0x80000` and must pass structural validation without
+  fallback. DP Replace resolves from accepted Reference length. NT51928 NB
+  remains excluded.
 - The approved `0.10.x` NT51950/NT51951 target exposes single and the
   owner-confirmed exact
   2-IC Cascade CtrlRAM plan with identical TP offsets. The Cascade record starts
@@ -58,7 +67,7 @@
 
 - AB Code architecture was re-admitted under ADR 0032 in `v0.9.14`. The `0.9.15` release scope exposes only the declared NT51919/NT51929/NT51932, NT51950 `1 IC`/`Cascade`, and selector-free NT51951 function-open profiles through the shared Application boundary. Typed profile authority, exact ranges, relocation/integrity contracts, direct golden evidence, and firmware-owner approval still gate support certification and release; metadata cannot admit, select, or promote a route.
 - NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919/NT51929/NT51932 consume one owner-declared `PerfectFamilyRelationship` firmware definition; requested-member evidence and publication remain explicit. This direction does not infer NT51950/NT51951 ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
-- The first `v0.9.14` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect family whose AB layout is version-independent and whose route does not depend on IC Number. Its required/expected 512 KiB DP_AB execution span exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB have independent required/expected 256 KiB execution spans, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning. A shorter input remains Build-blocking because it does not cover the compiled required end. An oversized input is accepted only through the profile-declared declared-prefix policy, emits a warning, preserves its actual identity in the report, and ignores trailing bytes without mutating the source.
+- The first `v0.9.14` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect family whose AB layout is version-independent and whose route does not depend on IC Number. Its exact 512 KiB DP_AB container exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB each require the complete compiled 256 KiB TP-native source view, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning. A shorter input remains Build-blocking because it does not cover the compiled required end. A compatible FlashCode may supply either TP view; non-authoritative trailing bytes are ignored without mutating the source, while the report preserves the actual source identity and accepted execution snapshot.
 - Firmware ranges, aliases, metadata locators, capability evidence, workflow profiles, and execution promotion must converge through the versioned family/profile bundle and one compiled composition boundary defined by ADR 0015. Migration preserves current promotion stages and blockers; map coverage never grants Build authority.
 - Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
@@ -67,20 +76,45 @@
 - Output naming is profile-owned and resolves the selected canonical IC plus accepted execution snapshots. AB follows ADR 0036's `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` form; its DP tokens use CMI Reg16h-18h facts and its TP tokens use validated FW version/sub-version bytes. Every mode uses the one UTC run-start date and the effective user override as its public output/report identity. An existing output may be atomically replaced only when it is not any selected input path. UI never infers version bytes from file names.
 - NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
 - Other Standard Merge profiles extract only their declared DP source views. A DP artifact that
-  reaches every required end offset may have an arbitrary total length; a non-map length is a report
-  warning, not a build blocker. Every Standard Merge TP source must cover its declared views and be
-  `<= 0x40000`; oversize is a build error. NT51950/NT51951 remain the exception because they paste a
-  full DP container and require exact selected-map capacity.
-- NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
+  reaches every required end offset may have an arbitrary total length; non-authoritative trailing
+  bytes are ignored. An outer-length warning exists only when the profile explicitly declares
+  optional complete-container diagnostics. Initial Code, DP, TP, LDC, TPA, and TPB are
+  address-bearing section sources: each must cover every profile-declared
+  source/metadata/validation read, and a compatible same-IC FlashCode may
+  provide the same window. An outer-size ceiling is Application resource
+  policy, not TP firmware geometry. NT51950/NT51951 remain the exception where
+  the operation consumes a full DP container and requires exact
+  selected-map/topology capacity.
+- NT51917 follows the complete NT51927 perfect-family definition, and NT51919
+  follows the complete NT51929 perfect-family definition. NT51928 non-NB
+  references only explicitly declared NT51927 Initial Code and TP facts through
+  `initial-code-shared` and `tp-shared`; every NT51928 CtrlRAM route, IC Count,
+  processor, evidence, and support decision remains separately profile-declared.
+  NT51928 NB is a separate IC and must not inherit either scope unless
+  explicitly approved.
 - The pre-retirement compatibility runtime has a trusted V2 DP Replace route
   for all 13 formerly selectable ICs. The `0.10.x` target retains only the
   non-retired profile set; #221 removes NT51920/NT51925/NT51930/NT51931 rather
-  than migrating those routes. Retained Gen Flash routes clone an exact same-IC
-  Standard/Normal Reference FlashCode and replace only the canonical DP
-  partition; NT51928 non-NB additionally requires a separate full
-  FlashCode-shaped LDC input for `[0x40000, 0x62000)`, distinct from DP
-  `[0x3C000, 0x40000)`. Authoring availability does not by itself grant a public
-  support claim.
+  than migrating those routes. Retained Gen Flash routes clone an accepted
+  same-IC Standard/Normal Reference FlashCode before applying only selected
+  canonical replacements. NT51928 non-NB accepts declared `0x40000` and
+  `0x80000` Reference variants. The former has no applicable LDC; the latter
+  permits independently optional Initial Code `[0x3C000,0x40000)` and LDC
+  `[0x40000,0x62000)` replacements but requires at least one selection.
+  Authoring availability does not by itself grant a public support claim.
+- FlashCode is a complete resolved container with required DP/Initial Code and
+  TP parts; LDC exists only in variants that declare it. There is no single
+  FlashCode magic signature. Application classifies only after IC/capability
+  resolution and requires exact declared container capacity, complete compiled
+  DP and TP source coverage, and satisfied profile-declared warning-only
+  non-uniform checks for both DP/Initial Code and TP. A full-length Initial
+  Code whose TP view is a repeated-byte placeholder is therefore `Unknown`,
+  not FlashCode. The NVT marker, ASCII `519xx`, CMI, PID,
+  version/complement, length, and non-uniform checks are independent
+  profile-declared evidence or validation signals and none alone chooses IC,
+  family, route, map, support, or publication. Inconclusive classification is
+  `Unknown`; a section source may still be admitted when its own declared
+  window and validations pass.
 - NT51920, NT51925, NT51930, and NT51931 are retired from the `0.10.x`
   production capability set by the owner-approved retirement contract. Their
   former DiffDLM ranges remain historical evidence only and cannot be migrated,
@@ -109,6 +143,14 @@
   gain mutation authority, and cannot enlarge the compiled DiffDLM source/read
   or scatter/write set. Every inactive target record remains byte-identical to
   the immutable reference except for a separately declared postbuild write.
+  The AE input must contain the complete active source prefix
+  `(N - 1) * 0x1400`; reaching only the final active `0x0B90` DLM end is
+  insufficient because the preserved NF tail is still part of that source
+  record's admission boundary. Bytes after the complete active prefix are
+  ignored and receive no read or write authority. Repeated-byte active DLM
+  rejection is a compiled `InputLoad` validation over the same immutable
+  accepted artifact snapshot used by execution; a separate path preflight is
+  not authoritative.
   Only the NT51919/NT51929/NT51932 and NT51950/NT51951 families currently have
   owner-confirmed Cascade DiffDLM records containing a preserved Diff NF
   subrange. Those Cascade authoring routes must hide the independent NF CtrlRAM
@@ -129,6 +171,20 @@
   warning; a missing/ambiguous Backup, out-of-bounds placement, or processor
   mutation outside declared authority still fails closed. Alignment never
   infers the Backup length, source range, or processor write envelope.
+  The maximum seven-record DiffDLM layout envelope is
+  `[0x2D100,0x35D00)`, but bytes after the count-resolved active-record end
+  are inactive record capacity, not a permanently reserved DLM-only region.
+  Postbuild may place the count-derived FWConfig Backup inside that inactive
+  capacity; for example, 4 IC predicts Backup `[0x31000,0x32000)`.
+  `[0x35D00,0x37000)` is only the static upper authority extension needed to
+  contain the 8-IC Backup `[0x36000,0x37000)`. It is not a fixed FWConfig
+  Backup region. The broad placement-candidate range is not blanket mutation
+  authority: after postbuild locates the unique actual Backup, only the
+  immutable Reference Backup envelope and that actual Backup envelope may
+  differ inside the candidate range. The original envelope may be cleared
+  during relocation; the actual envelope may be written. Every other inactive
+  DLM, Diff NF, inter-record, and upper-extension byte must remain identical to
+  the immutable Reference or the run fails closed.
   NT51950/NT51951 use the same active-record/NF-preservation mechanism, but are
   **fixed-layout DiffDLM**, not Dynamic DiffDLM. Their independent geometry is
   target record zero `0x33200`, stride `0x1400`, writable Diff CtrlRAM
@@ -170,7 +226,7 @@ Merge：
 
 Replace：
 
-- `dp-replace`：DP whole 或 profile-declared partitions；LD replacement also belongs to DP Replace and may be modeled as a separate LD replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
+- `dp-replace`：DP whole 或 profile-declared partitions；LDC replacement also belongs to DP Replace and may be modeled as a separate LDC replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
 - `ctrlram-replace`：只操作 physical `owner = tp`、`kind = ctrlram` 的 named regions，或完全由
   這類 regions 組成的 approved groups。
 - `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview/Build validation 約束。Any mapping that touches a TP-classified range must compile with an approved legacy Combiner CRC/header refresh after the replacement mutation.
@@ -380,7 +436,13 @@ performed by the declared postbuild processor, never by the Replace scatter
 plan. A mismatch inside the processor's bounded Backup-placement write
 authority is a typed Build Report warning rather than an authoring/readiness
 blocker; placement or mutation outside that authority remains a hard processor
-  failure. NT51950/NT51951 have no count-derived placement formula: their
+failure. That bounded authority may overlap the inactive suffix of the maximum
+DiffDLM record envelope: `[0x35D00,0x37000)` is only its upper extension, not
+the Backup itself. Placement-candidate authority and permitted final mutation
+are distinct: the final audit permits only the original Reference Backup
+envelope plus the marker-derived actual Backup envelope, and compares every
+other candidate byte to the immutable Reference. NT51950/NT51951 have no
+count-derived placement formula: their
   declared End Flag `0x36FFC` fixes the marker-derived Backup start at
   `0x36000`. A different location is a fixed-map/postbuild contract violation,
   not the Dynamic DiffDLM warning case.
@@ -456,7 +518,7 @@ The current Python worker is a constrained pure CRC calculation prototype. It is
 - Schema：JSON Schema Draft 2020-12。
 - Human authoring：第一階段直接編輯 JSON；後續可加入 Excel importer/compiler。
 - Automated IC intake（規劃於 0.9.4）：輸入必須是宣告完整的 IC intake manifest 與其檔案；輸出只能是 candidate bundle、materialization/validation report 與待補 evidence 清單。它不得成為 runtime source of truth，不得掃描未宣告的目錄、網路或使用者 BIN，也不得直接變更已核准 profile、support catalog 或 promotion。
-- General Merge / General Replace：UI 或 CLI 產生 typed mapping overlay，可保存成 versioned saved rule/profile fragment；不得產生 script、shell command 或 executable path。Saved-rule validation and General Merge CLI consumption must still compile back to normal explicit mappings.
+- General Merge / General Replace：UI 或 CLI 產生 typed mapping overlay，可保存成 versioned saved rule/profile fragment；不得產生 script、shell command 或 executable path。Saved-rule validation and consumption compile back to the same normal explicit mappings. A rule references one exact separately installed Trusted Parent rather than embedding trust. Local authoring files may be edited and saved in place, but semantic change creates a new hash and Draft; installed Catalog versions stay read-only/immutable and republication requires a new rule version.
 - Processor/tool recipe：JSON/typed declaration，與 memory mapping 分離但由 profile 明確引用。
 - Reports：JSON；UI 顯示由 typed report 轉換。
 - Spec/ADR/guide：Markdown。
@@ -695,7 +757,12 @@ Load profile and IC definition
 → atomically commit output
 ```
 
-Preview executes through plan/validation and processor dry-run capability where available, but does not commit output.
+Preview either executes through plan/validation and available processor dry-run
+capability without committing output, or produces an explicitly plan-only
+diagnostic report. When General Replace requires POSTBUILD but the Parent stage
+or runtime dependency is unavailable, Build is blocked and diagnostic Preview
+does not execute mappings/processors, produce a BIN, or claim final
+Header/CRC/hash validity.
 
 ### 10.2 Merge vs Replace
 
@@ -710,7 +777,9 @@ Preview executes through plan/validation and processor dry-run capability where 
 ### 10.2.1 Input size mismatch, padding, and truncation
 
 Profile address spaces distinguish the minimum required readable end from an
-expected outer length. A supplied BIN shorter than the required end is accepted
+expected outer length. For an address-bearing section source, the required end
+is the maximum end-exclusive byte used by selected source views, metadata,
+validations, and processor reads. A supplied BIN shorter than the required end is accepted
 only when the profile explicitly declares an input padding byte for that
 immutable source/replacement address space and the profile has no CRC/header/
 processor dependency. Runtime/request address spaces cannot declare padding or
@@ -718,14 +787,33 @@ normalization policy. The engine pads or normalizes only a transient execution
 snapshot; source BIN files are never modified. Unapproved oversized input still
 fails closed.
 
-An immutable Merge source may declare a reviewed declared-prefix oversize policy
+Legacy compatibility profiles may declare a reviewed declared-prefix oversize policy
 only when all source views, metadata extraction, and processor reads are bounded
 inside that prefix. The actual source hash and length remain report evidence;
 the execution snapshot exposes only the declared span and reports ignored
 trailing bytes. This policy never grants padding, never changes operation ranges,
 and never applies because a UI label or filename resembles an approved profile.
-The first `v0.9.14` AB pilot uses this policy for DP_AB beyond `0x80000` and
-TPA/TPB beyond `0x40000`, subject to its R3 boundary/golden gates.
+The first `v0.9.14` AB compatibility pilot used this policy for DP_AB beyond
+`0x80000` and TPA/TPB beyond `0x40000`. ADR 0045 retains bounded section
+projection for TPA/TPB but requires a complete DP AB seed to match a declared
+container variant; current built-ins use the generic source-view contract below
+rather than this workflow-named compatibility rule.
+
+ADR 0045 supersedes workflow-named section admission with one generic
+source-view-coverage contract. Initial Code, DP, TP, LDC, TPA, and TPB normally
+use address-aligned firmware coordinates. TPA copies the same coordinates;
+TPB reads the same TP-native source window and writes it at the resolved bank
+placement delta, with stored-address relocation remaining a separate scalar
+transform. Only current compact CtrlRAM replacement payloads normally map
+source byte `0` to a nonzero built-in firmware target. Dynamic DiffDLM remains
+a CtrlRAM-specific masked scatter, not another general mapping kind.
+
+Whole-container authority is separate from a range projection. Replace
+Reference and DP AB/AB seed inputs must match one declared complete-container
+variant because bytes outside later section writes remain output authority.
+Source-view coverage cannot weaken those exact-capacity gates. General
+Merge/Replace may still explicitly author From File Start mappings; that is a
+user mapping preset, not an inferred built-in firmware rule.
 
 DP-only Replace flows that do not require CRC/header recalculation may use profile-declared padding.
 CtrlRAM Replace flows cannot declare input padding for shorter input. Because owner evidence shows
@@ -757,9 +845,14 @@ checked `copy-range` operations; fixed profile stages may add the other closed p
 range in UI is equivalent to editing typed mapping data. Reviewed saved-rule fragments still compile
 through the same profile/compiler/engine and report `saved-rule` provenance.
 
+One immutable General Merge initializer owns the exact positive output capacity and blank fill byte
+for an authoring revision. Fill accepts the complete `0x00..0xFF` byte domain and defaults to
+`0x00` only when omitted. UI, CLI, profile compilation, Preview/Build identity, reports, and Saved
+Rule v2 consume that same value; General Replace cannot declare it.
+
 ### 10.6 Replace experiences
 
-- DP Replace：DP-focused; DP whole/declared-part access only. LD replacement is included in this experience and may be supplied as its own LD BIN。
+- DP Replace：DP-focused; DP whole/declared-part access only. LDC replacement is included in this experience and may be supplied as its own LDC BIN。
 - CtrlRAM Replace：只允許 physical `owner = tp`、`kind = ctrlram` regions 或完全由它們組成的
   approved groups。
 - General：explicit mapping inside profile-approved envelope。
@@ -769,10 +862,12 @@ interval/plan pairs. The `0.10.x` target does not preserve that inventory:
 #221 removes NT51920/NT51925/NT51930/NT51931 and #194 must not migrate or
 re-expose them. Retained priorities are DP Replace and CtrlRAM Replace for
 NT51917, NT51919, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929,
-NT51932, NT51950, and NT51951. NT51919/NT51929 follow the NT51932 fact scope;
-NT51928 non-NB follows NT51927 TP/CtrlRAM single/2IC/3IC authority while
-retaining a distinct DP/LDC image; NT51951 follows NT51950 TP authority with a
-distinct container capacity. Remaining release gates are per-plan direct
+NT51932, NT51950, and NT51951. NT51919/NT51929 follow the NT51932 fact scope.
+NT51928 non-NB shares only the explicitly referenced NT51927 Initial Code and
+TP facts while retaining distinct LDC/container facts; its separately declared
+CtrlRAM single/2IC/3IC profiles, IC Count applicability, processors, evidence,
+and support gates are not inherited through that relationship. NT51951 follows
+NT51950 TP authority with a distinct container capacity. Remaining release gates are per-plan direct
 expected-output evidence where recorded, independent R3 review, firmware-owner
 support promotion, canonical verification, and CI; they do not reintroduce
 golden identity as production admission.
@@ -821,7 +916,7 @@ Replace page groups experiences by user mental model：
 - CtrlRAM Replace。
 - General Replace。
 
-The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. DP Replace slot cards must allow profile-declared DP and LD payloads to be separate files when the profile requires it. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is DP Replace and CtrlRAM Replace workflows. IC num mode is profile-declared: two-option profiles use text choices such as `single` and `cascade`; three-or-more concrete IC-count profiles use numeric count selection with future room for Other/custom exceptions.
+The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. DP Replace slot cards must allow profile-declared DP and LDC payloads to be separate files when the profile requires it. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is DP Replace and CtrlRAM Replace workflows. IC num mode is profile-declared: two-option profiles use text choices such as `single` and `cascade`; three-or-more concrete IC-count profiles use numeric count selection with future room for Other/custom exceptions.
 
 ### 11.4 Preview/Build separation
 
@@ -977,7 +1072,12 @@ version.
 19. As a report reader, I want Hex Diff to reuse the same high-performance read-only viewport foundation, so that reports and the editor share rendering quality without sharing mutation authority.
 20. As a BIN inspector user, I want metadata structures formatted through the same read-only viewer and formatter pipeline, so that identical bytes are not interpreted differently by each screen.
 21. As a CLI user, I want the same IC resolution, mapping draft, inspection, validation, naming, and composition contracts as the UI, so that automation and desktop behavior cannot diverge.
-22. As a General Merge or General Replace user, I want one Start + Length range editor with a derived read-only inclusive end, so that every surface uses the same half-open range semantics.
+22. As a General Merge or General Replace user, I want one Start + Length
+    range editor with a derived read-only inclusive end and selected files
+    bound to accepted length and SHA-256 snapshots through explicit
+    Reload/Rebind, so that every surface uses the same half-open ranges and
+    same-size mutation cannot silently change validation, Preview, or Build
+    bytes.
 23. As a Saved Rule user, I want mappings to round-trip through the same typed draft used by UI and CLI, so that saving a rule cannot silently lose unsupported semantics.
 24. As a firmware profile author, I want an IC to be the root of artifact, map, IC-count, metadata, workflow, and integrity resolution, so that related facts are discoverable through one coherent model.
 25. As a firmware profile author, I want DP represented as required Initial Code plus optional LDC and TP represented separately, so that artifact structure matches firmware meaning.
@@ -1021,6 +1121,15 @@ version.
     least 50% by the end of the 0.10.x maintainability program, so that
     duplicated owners and compatibility paths are actually deleted rather than
     reorganized into equally large replacement modules.
+56. As an NT51928 operator, I want one Standard Merge and one DP Replace
+    capability to resolve either the shared `0x40000` no-LDC form or the
+    `0x80000` LDC form, so container differences do not create duplicate
+    profiles, routes, or Support Matrix rows.
+57. As a firmware operator, I want an applicable replacement group to require
+    at least one selected part while leaving each member optional, and I want a
+    uniform Initial Code/DP/TP/LDC region reported as a warning rather than a Build
+    blocker, so optional composition and firmware plausibility remain distinct
+    from execution safety.
 
 ### 15.4 Implementation Decisions
 
@@ -1244,7 +1353,14 @@ version.
 
 10. DP is a logical artifact containing required Initial Code and an optional
     declared LDC part. TP is a separate logical artifact. Physical placement is
-    resolved by IC, map, IC Count, and artifact instance.
+    resolved by IC, map, IC Count, and artifact instance. NT51927/NT51928 share
+    only explicitly referenced Initial Code and TP facts through
+    `SharedFactRelationship`; NT51928 retains its distinct LDC and complete
+    container facts. NT51928 Standard Merge resolves one `0x40000` shared
+    Initial-Code/TP variant when LDC is absent and one `0x80000` variant when
+    LDC is selected. NT51928 DP Replace resolves those variants from the
+    accepted Reference length. Neither workflow duplicates public routes or
+    Support Matrix rows.
 11. An artifact or part declares metadata structures once. The common
     inspection plan contains structure references and resolved state only; a
     common inspector and formatter read the accepted immutable snapshot.
@@ -1259,7 +1375,18 @@ version.
     X/Y sensor totals, Display and TP resolution, maximum operable fingers,
     report IRQ type, and whether the outermost IC is used as Master are typed
     fields from that structure. Runtime requires exactly one NVT marker and
-    reports the observed marker count when that invariant fails. Later FWConfig
+    reports the observed marker count when that invariant fails. It also
+    applies one shared zero-value policy. When a resolved workflow does not use
+    IC Count for topology, ranges, or placement, `Chip_Num = 0` emits warning
+    `firmware-config.chip-count-zero` with the operator action
+    `Confirm that FWConfig Chip_Num at offset 0x17 is configured correctly`;
+    Build remains enabled. When exact IC Count controls the plan—at minimum
+    NT51950 AB Code and NT51919/NT51929/NT51932 Dynamic DiffDLM—the same fact
+    emits blocking `firmware-config.chip-count-required` and no minimum count
+    may be fabricated. UI slot/check-time readiness and CLI use the same typed
+    issue; Build hover exposes blockers, while the run Report records warnings
+    and runtime failures. System Info remains environment diagnostics and is
+    not the owner of firmware-input issues. Later FWConfig
     sections remain out of the initial target model. A map or artifact may
     supply a different locator binding, but it cannot redefine the field table.
     `u8IRQ_Type` retains its raw byte and exposes the known meanings
@@ -1337,10 +1464,58 @@ version.
 27. Repeated file inputs use one typed `AuthoringSlotState`, inspection
     lifecycle, normalization capability, validation projection, formatter, and
     visual control. The selected-file lifecycle is not stored in the immutable
-    artifact definition.
+    artifact definition. An explicit selection group may reference individually
+    optional `zero-or-one` slots and own a minimum/maximum selected count across
+    only the members applicable to the resolved map. NT51928 DP Replace groups
+    Initial Code and LDC with selected count `1..2`; a `0x40000` Reference makes
+    LDC `NotApplicable`, leaves Initial Code as the sole required selection,
+    and keeps the visible LDC slot annotated `Reference length does not include
+    LDC`. Before Reference inspection that slot is `PendingInput`. Switching
+    Reference variants revises the session and rejects stale/manual LDC
+    bindings.
+    Canonical public, profile, CLI, report, and UI terminology is `LDC`;
+    new contracts do not introduce `LD` aliases.
 28. General Merge and General Replace use one `AuthoringMappingState`, one
     invariant range codec, one Start + Length editor, and one typed draft shared
     by UI, CLI, Saved Rules, validation, memory projection, and compilation.
+    File-backed rows expose only two authoring presets over the same operation:
+    Source Slice (`sourceStart + targetStart + length`) and From File Start
+    (`sourceStart = 0 + targetStart + length`). **Use full file length** only
+    materializes the inspected length into the draft; compilation never
+    re-derives it.
+    Each accepted file uses one content-authoritative `FileStamp` of byte
+    length plus SHA-256. A content change preserves editable rows but
+    invalidates inspection, layout, Preview, and readiness until explicit
+    Reload/Rebind; Build verifies the same identity immediately before
+    consuming the immutable run snapshot. A materialized full-file length never
+    silently follows a changed file.
+    One output occupancy ledger rejects every intersection between
+    user-authored File, Hex Overwrite, and Hex Fill target ranges and reports
+    both mapping ids plus the exact half-open intersection. A profile-owned
+    POSTBUILD stage is outside this authored-overlap ledger and retains its own
+    compiled sequence and write-authority audit.
+    Application technical ceilings, exact Trusted Parent semantic/slot limits,
+    and Saved Rule narrowing limits are intersected. UI/CLI do not own separate
+    limits; unreferenced file tails are allowed unless the whole file violates
+    the technical ceiling or resolved slot contract.
+    General Merge owns one positive logical-output capacity and one blank fill
+    byte (`0x00..0xFF`, omitted/default `0x00`) as compilation/Preview identity.
+    A reproducible General Merge Saved Rule closes over both. General Replace
+    declares neither and clones its immutable Reference.
+    Saved Rule execution resolves an exact parent bundle/profile/family/map
+    identity and may only narrow it. General Replace rules cannot add/remove
+    protected-range decisions, POSTBUILD stages, tool bindings, parameters, or
+    allowed writes. Local user-owned rule JSON supports Save-in-place; a
+    semantic edit changes the canonical rule hash, returns to Draft, invalidates
+    prior approvals/evidence/promotion, and requires a new version to publish.
+    Catalog-managed rules are read-only and Edit creates a separate working
+    copy. Historical reports retain exact rule id/version/hash/parent identity.
+    Legacy inclusive-end JSON translates once at an outer importer. Current UI,
+    CLI, Application, and Domain see only half-open Start + Length. V1 Saved
+    Rule runtime and workflow-specific DTO/parser adapters are removed only
+    after v2 initializer/parent-authority, round-trip, negative, parity, and
+    required golden gates pass; every temporary adapter declares callers and
+    executable deletion gates.
 29. Shared `AuthoringAvailability`, compiler-proved `ExecutionAdmission`,
     `EvidenceStatus`, `PublicationStatus`, `InputReadiness`, and refreshable
     `RuntimeDependencyReadiness` are independent results. Build requires
@@ -1353,6 +1528,28 @@ version.
     Run Report. A genuinely absent required input (`PendingInput`) blocks
     Preview; a supplied but invalid input (`Blocked`) remains diagnostically
     previewable while Build stays unavailable.
+    For General Replace that requires POSTBUILD, this is a labelled
+    plan-only Diagnostic Preview: it may show accepted/compiled mappings,
+    projected Kept/Changed coverage, required stage, and blocker, but executes
+    no mappings or processors, produces no downloadable BIN, and claims no
+    final Header/CRC/hash/output validity. Missing Parent stage authority and
+    missing runtime tool are distinct issues.
+31. Structural artifact admission remains blocking when a selected file is
+    unreadable, cannot cover a required read, would create an out-of-bounds
+    operation, or is a complete-container input whose length matches no
+    declared variant. Initial Code, DP, TP, LDC, TPA, and TPB section slots use
+    address-bearing source-view coverage rather than an exact outer-size gate;
+    compatible same-IC FlashCode may provide those views. Replace Reference
+    and complete DP AB seeds remain exact. Built-in source-byte-zero to nonzero
+    target projection is reserved for compact CtrlRAM payloads; TPB instead
+    uses its TP-native source window plus a resolved bank placement delta.
+    A profile may separately
+    attach a warning-only `non-uniform-region` plausibility rule to one
+    canonical Initial Code, DP, TP, or LDC source view. A view with only one
+    distinct byte emits the same typed warning through Application, UI, CLI,
+    Preview, and Build Report but does not alter map resolution, selection,
+    execution admission, or output bytes. The rule is explicit per profile and
+    is never inferred globally from artifact class, filename, or hash.
 
 Runtime readiness is valid only for the exact tuple `(RouteId,
 CapabilityFingerprint, ResolutionToken, AuthoringRevision,
@@ -1430,6 +1627,16 @@ remaining headless routes resolve through the canonical capability owner.
     identity, diagnostics, observed change, selection, and focus use orthogonal
     effects. Profiles and Application results never carry HEX colors or pixel
     widths.
+    General Merge renders blank output as a low-emphasis neutral fine-dot
+    surface with the exact blank byte in its summary; it never calls blank
+    bytes `Kept`. Selected mappings are `WillWrite`. General Replace renders
+    untouched Reference ranges as striped/icon-labelled `Kept` and mappings as
+    `WillReplace`. File/overwrite/fill sources share that disposition color and
+    use compact source-kind icons. Mapping conflicts mark only the exact
+    intersection with Error state and name both mapping ids. A compact legend
+    appears only when multiple non-obvious states lack an adjacent self-labeling
+    list; segment/supporting hover and focus cards remain the primary
+    explanation.
 39. CRC, Header, and Header Copy do not receive primary Memory Layout roles.
     They remain trace/safety facts and appear visually only through a report
     issue when necessary.
@@ -1664,7 +1871,11 @@ after the grill closes so issues do not become a competing draft specification.
     runtime/dictionary order, C# type names, storage paths, and JSON paths
     cannot influence semantic identities, and IC/family/workflow-specific hash
     builders are forbidden. `RouteId`, `ResolutionToken`, `AuthoringRevision`,
-    and `FileStamp` retain their separate accepted meanings. A semantic
+    and `FileStamp` retain their separate accepted meanings outside the
+    firmware-semantic fingerprint chain. `FileStamp` captures one selected
+    external file's accepted byte length and SHA-256; path and filesystem
+    timestamp are non-authoritative hints. It is not a canonical-definition
+    hash or `CapabilityFingerprint`. A semantic
     fingerprint-format change bumps its version, makes pinned policy stale, and
     requires reviewed repinning plus cross-language vectors.
 25. Every runtime invariant has one validating owner. Schema/Contracts intake
@@ -1706,7 +1917,9 @@ after the grill closes so issues do not become a competing draft specification.
     artifact-inspection cache, bounded Hex viewport/page cache, and
     runtime-dependency snapshot. Keys use complete applicable definition/hash,
     `CapabilityFingerprint`, `FileStamp`, selection/topology identity, and
-    environment generation; IC/mode/filename alone is invalid. Authoring state
+    environment generation; IC/mode/filename alone is invalid. `FileStamp` is
+    the accepted complete-file byte length plus SHA-256; path, display name,
+    existence, and last-write time cannot define it. Authoring state
     stores selected-file identity/revision rather than full BIN/cache ownership,
     and UI/workflows cannot create parallel caches. Every cache has explicit
     capacity/lifetime, invalidation owner, and stale-publication tests; clearing

@@ -1,4 +1,4 @@
-# Firmware Family Contract 1.1
+# Firmware Family Contract 1.1 through 1.2
 
 The executable schema is [`firmware-family-v1.schema.json`](firmware-family-v1.schema.json).
 It is the canonical source for physical firmware facts shared by Normal, AB, Merge, Replace,
@@ -21,6 +21,11 @@ Bundles that need the admitted `data`, `firmware-config`, `ctrlram`, and
 It retains schema version `1.1`, the same schema id and every 1.1 invariant;
 the new file extends only the typed Header subject vocabulary and is pinned by
 its own trusted content hash.
+Bundles that additionally require repeated instance-relative bank geometry use
+the build-selected strict successor
+[`firmware-family-v1.2-bank-instances.schema.json`](firmware-family-v1.2-bank-instances.schema.json).
+It retains the common firmware-family schema id and TP Header constraints,
+uses schema version `1.2`, and is selected by its exact trusted content hash.
 
 Migration status: the strict relations schema and TP Header successors implement
 ADR 0041 with exactly two serialized relationship forms:
@@ -45,6 +50,31 @@ A family document never grants execution support, declares operation order, invo
 or exposes a UI action. Newly inventoried regions use `writeConstraint = "forbidden"` until owner
 evidence approves a narrower constraint. A composition profile may further restrict a map but may
 not relax it.
+
+## Region templates and instances
+
+Schema 1.2 permits one region set to own paired `regionTemplates` and
+`regionInstances`. Both properties are present together or absent together.
+A template owns one positive capacity and one or more template-local physical
+regions whose half-open ranges, parent chains, ownership, kind, write
+constraint, and alignment follow the same rules as direct regions.
+
+An instance owns an ordinally unique `instanceId`, one exact template id, a
+nonnegative base offset, an optional direct-region parent for template roots,
+and exactly one `resolvedRegionId` binding for every template-local region id.
+Bindings cannot be omitted, duplicated, or added for an unknown template
+region. Expansion adds the instance base to each relative range, rewrites
+template-local parent ids through the same binding table, and preserves the
+external parent only for template roots.
+
+The normalized region set exposes direct and expanded regions through the same
+physical-region collection. Their resolved ids remain globally unique in that
+set, ranges remain checked and half-open, and all existing hierarchy,
+containment, overlap, map-capacity, and write-constraint rules continue to
+apply. A template or instance is declared family geometry only; it neither
+infers A/B symmetry nor authorizes composition. Profiles may name exact
+instance and template-region ids only through a schema version that explicitly
+admits those selectors or addend sources.
 
 ## Family relationships
 

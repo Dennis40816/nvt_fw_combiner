@@ -14,7 +14,7 @@ public sealed partial class MainWindowViewModel
     private const string GeneralMergeMode = WorkbenchMergeModes.General;
     private const string MergeDpSlotId = WorkbenchSlotIds.MergeDp;
     private const string MergeTpSlotId = WorkbenchSlotIds.MergeTp;
-    private const string MergeLdSlotId = WorkbenchSlotIds.MergeLd;
+    private const string MergeLdcSlotId = WorkbenchSlotIds.MergeLdc;
     private const string ReplaceBaseSlotId = WorkbenchSlotIds.ReplaceBase;
     private static readonly IReadOnlyList<string> s_standardMergeModeChoices =
         Array.AsReadOnly([NormalMergeMode, GeneralMergeMode]);
@@ -33,10 +33,10 @@ public sealed partial class MainWindowViewModel
         "TP BIN",
         "Touch payload for Standard Merge",
         FirmwareSlotKind.Tp);
-    private readonly FirmwareSlotViewModel _mergeLdSlot = new(
-        MergeLdSlotId,
-        "LD BIN",
-        "Required only when the selected profile uses LD",
+    private readonly FirmwareSlotViewModel _mergeLdcSlot = new(
+        MergeLdcSlotId,
+        "LDC BIN",
+        "Optional LDC payload when the selected profile exposes an LDC region",
         FirmwareSlotKind.Dp,
         isOptional: true);
     private int _generalReplaceMappingCounter;

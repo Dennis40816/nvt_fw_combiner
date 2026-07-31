@@ -1,5 +1,33 @@
 {
-  "schemaVersion": "2.2",
+  "schemaVersion": "2.3",
+  "diffDlmPolicies": [
+    {
+      "policyId": "nt51919-nt51929-nt51932-preserve-active-diffnf",
+      "sourceFileName": "DiffDLM.bin",
+      "stagedArtifactId": "postbuild-diffdlm",
+      "sourceRecordStride": 5120,
+      "targetBase": 184576,
+      "targetRecordStride": 5120,
+      "writableRange": { "start": 0, "length": 2960 },
+      "preservationMasks": [
+        {
+          "kind": "keep-reference",
+          "range": { "start": 2960, "length": 2160 }
+        }
+      ],
+      "minimumIcCount": 2,
+      "maximumIcCount": 8,
+      "activeRecordCountOffset": -1,
+      "independentNfSourceFileName": "NF_Ctrlram.bin",
+      "firmwareConfigBackupAlignment": 4096,
+      "firmwareConfigBackupLength": 4096,
+      "firmwareConfigBackupAuthority": { "start": 192512, "length": 32768 },
+      "evidenceRefs": [
+        "owner-confirmed NT51919/NT51929/NT51932 DiffDLM full-stride contract 2026-07-27",
+        "nt51932-diffdlm-nf-mask-cascade4-20260727"
+      ]
+    }
+  ],
   "profiles": [
     {
       "processorId": "nfc.nt51917.ctrlram-postbuild-v1",
@@ -1344,6 +1372,7 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
+      "diffDlmPolicyId": "nt51919-nt51929-nt51932-preserve-active-diffnf",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51919 follows NT51929 and cascade is 2-8 IC"
     },
     {
@@ -4433,6 +4462,7 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
+      "diffDlmPolicyId": "nt51919-nt51929-nt51932-preserve-active-diffnf",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51929 follows NT51932 and cascade is 2-8 IC"
     },
     {
@@ -4586,6 +4616,7 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
+      "diffDlmPolicyId": "nt51919-nt51929-nt51932-preserve-active-diffnf",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: cascade is 2-8 IC"
     },
     {

@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.11",
+  "schemaVersion": "2.14",
   "profileId": "nt51932-ab-merge",
-  "profileVersion": "0.3.0",
+  "profileVersion": "0.4.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -18,8 +18,8 @@
   },
   "mapBinding": {
     "familyId": "nt51919-nt51929-nt51932-ab-merge",
-    "familyVersion": "0.2.0",
-    "familyContentHash": "b47c9b9426874f63c8fb10f856b7b1074a098fdf856d2b38a0248d46157a4235",
+    "familyVersion": "0.3.0",
+    "familyContentHash": "e8cc3a6425bcac065e53f9cd0026c390c47ec9af4788c9e45460d9ab86ed9d35",
     "mapIds": ["nt51932-ab-merge-512k"],
     "requiredRegionIds": ["ab-image", "a-cmi-dp-version", "b-cmi-dp-version", "tpa-code", "tpb-code"],
     "requiredMetadataStructureIds": [
@@ -38,11 +38,7 @@
       "acceptedExtensions": [".bin"],
       "acceptance": {
         "lengthRule": {
-          "kind": "declared-prefix-with-warning",
-          "requiredEndExclusive": 524288,
-          "expectedOuterLengths": [524288],
-          "shortInputIssueCode": "AB_DP_INPUT_TOO_SHORT",
-          "unexpectedOuterLengthIssueCode": "AB_DP_INPUT_OUTER_LENGTH_UNEXPECTED"
+          "kind": "exact-resolved-map-capacity"
         },
         "normalization": { "kind": "none" }
       }
@@ -56,11 +52,7 @@
       "acceptedExtensions": [".bin"],
       "acceptance": {
         "lengthRule": {
-          "kind": "declared-prefix-with-warning",
-          "requiredEndExclusive": 262144,
-          "expectedOuterLengths": [262144],
-          "shortInputIssueCode": "AB_TPA_INPUT_TOO_SHORT",
-          "unexpectedOuterLengthIssueCode": "AB_TPA_INPUT_OUTER_LENGTH_UNEXPECTED"
+          "kind": "source-view-coverage"
         },
         "normalization": { "kind": "none" }
       }
@@ -74,11 +66,7 @@
       "acceptedExtensions": [".bin"],
       "acceptance": {
         "lengthRule": {
-          "kind": "declared-prefix-with-warning",
-          "requiredEndExclusive": 262144,
-          "expectedOuterLengths": [262144],
-          "shortInputIssueCode": "AB_TPB_INPUT_TOO_SHORT",
-          "unexpectedOuterLengthIssueCode": "AB_TPB_INPUT_OUTER_LENGTH_UNEXPECTED"
+          "kind": "source-view-coverage"
         },
         "normalization": { "kind": "none" }
       }
@@ -94,12 +82,12 @@
   "views": [
     { "viewId": "dp-ab-source", "spaceId": "dp-ab-input", "selector": { "kind": "map-region", "regionId": "ab-image" } },
     { "viewId": "dp-ab-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "ab-image" } },
-    { "viewId": "tp-a-source", "spaceId": "tp-a-input", "selector": { "kind": "map-region", "regionId": "tpa-code" } },
+    { "viewId": "tp-a-source", "spaceId": "tp-a-input", "selector": { "kind": "region-template-range", "regionInstanceId": "a-bank", "templateRegionId": "tp-code" } },
     { "viewId": "tp-a-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "tpa-code" } },
     { "viewId": "tp-b-ilm", "spaceId": "tp-b-work", "selector": { "kind": "space-range", "range": { "start": 29028, "length": 4 } } },
     { "viewId": "tp-b-dlm", "spaceId": "tp-b-work", "selector": { "kind": "space-range", "range": { "start": 29032, "length": 4 } } },
     { "viewId": "tp-b-diff", "spaceId": "tp-b-work", "selector": { "kind": "space-range", "range": { "start": 29036, "length": 4 } } },
-    { "viewId": "tp-b-source", "spaceId": "tp-b-work", "selector": { "kind": "space-range", "range": { "start": 28672, "length": 233472 } } },
+    { "viewId": "tp-b-source", "spaceId": "tp-b-work", "selector": { "kind": "region-template-range", "regionInstanceId": "b-bank", "templateRegionId": "tp-code" } },
     { "viewId": "tp-b-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "tpb-code" } }
   ],
   "metadataBindings": [
@@ -232,9 +220,9 @@
   "operations": [
     { "operationId": "copy-dp-ab-image", "sequence": 100, "overlapPolicy": "reject", "reason": "Copy the exact 512 KiB DP AB image into the output image.", "kind": "copy-range", "sourceViewId": "dp-ab-source", "targetViewId": "dp-ab-output" },
     { "operationId": "copy-tpa", "sequence": 200, "overlapPolicy": "replace-existing", "reason": "Overlay TPA after the DP AB image.", "kind": "copy-range", "sourceViewId": "tp-a-source", "targetViewId": "tp-a-output" },
-    { "operationId": "relocate-tpb-ilm", "sequence": 300, "overlapPolicy": "reject", "reason": "Relocate the TPB ILM address by the fixed B-bank offset.", "kind": "transform-scalar", "sourceViewId": "tp-b-ilm", "targetViewId": "tp-b-ilm", "widthBytes": 4, "byteOrder": "little", "valueInterpretation": "unsigned", "addend": 262144, "overflowPolicy": "reject" },
-    { "operationId": "relocate-tpb-dlm", "sequence": 400, "overlapPolicy": "reject", "reason": "Relocate the TPB DLM address by the fixed B-bank offset.", "kind": "transform-scalar", "sourceViewId": "tp-b-dlm", "targetViewId": "tp-b-dlm", "widthBytes": 4, "byteOrder": "little", "valueInterpretation": "unsigned", "addend": 262144, "overflowPolicy": "reject" },
-    { "operationId": "relocate-tpb-diff", "sequence": 500, "overlapPolicy": "reject", "reason": "Relocate the TPB difference address by the fixed B-bank offset.", "kind": "transform-scalar", "sourceViewId": "tp-b-diff", "targetViewId": "tp-b-diff", "widthBytes": 4, "byteOrder": "little", "valueInterpretation": "unsigned", "addend": 262144, "overflowPolicy": "reject" },
+    { "operationId": "relocate-tpb-ilm", "sequence": 300, "overlapPolicy": "reject", "reason": "Relocate the TPB ILM address by the resolved A-to-B bank instance delta.", "kind": "transform-scalar", "sourceViewId": "tp-b-ilm", "targetViewId": "tp-b-ilm", "widthBytes": 4, "byteOrder": "little", "valueInterpretation": "unsigned", "addend": { "kind": "region-instance-delta", "sourceRegionInstanceId": "a-bank", "targetRegionInstanceId": "b-bank" }, "overflowPolicy": "reject" },
+    { "operationId": "relocate-tpb-dlm", "sequence": 400, "overlapPolicy": "reject", "reason": "Relocate the TPB DLM address by the resolved A-to-B bank instance delta.", "kind": "transform-scalar", "sourceViewId": "tp-b-dlm", "targetViewId": "tp-b-dlm", "widthBytes": 4, "byteOrder": "little", "valueInterpretation": "unsigned", "addend": { "kind": "region-instance-delta", "sourceRegionInstanceId": "a-bank", "targetRegionInstanceId": "b-bank" }, "overflowPolicy": "reject" },
+    { "operationId": "relocate-tpb-diff", "sequence": 500, "overlapPolicy": "reject", "reason": "Relocate the TPB difference address by the resolved A-to-B bank instance delta.", "kind": "transform-scalar", "sourceViewId": "tp-b-diff", "targetViewId": "tp-b-diff", "widthBytes": 4, "byteOrder": "little", "valueInterpretation": "unsigned", "addend": { "kind": "region-instance-delta", "sourceRegionInstanceId": "a-bank", "targetRegionInstanceId": "b-bank" }, "overflowPolicy": "reject" },
     { "operationId": "copy-tpb", "sequence": 600, "overlapPolicy": "replace-existing", "reason": "Overlay relocated TPB after the DP AB image.", "kind": "copy-range", "sourceViewId": "tp-b-source", "targetViewId": "tp-b-output" }
   ],
   "validations": [],

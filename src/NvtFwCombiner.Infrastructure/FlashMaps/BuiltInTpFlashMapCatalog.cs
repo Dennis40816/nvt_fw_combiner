@@ -47,6 +47,29 @@ internal static partial class BuiltInTpFlashMapCatalog
         ];
     }
 
+    /// <summary>Gets TP Overview regions adjusted by one exact topology-resolved postbuild plan.</summary>
+    internal static IReadOnlyList<TpFlashMapRegion> GetRegionsForPlan(
+        string icId,
+        LegacyCombinerPostbuildCommandPlan postbuildPlan,
+        TpFlashMapRegionKind? kind = null)
+    {
+        ArgumentNullException.ThrowIfNull(postbuildPlan);
+        if (!ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? profile))
+        {
+            return [];
+        }
+
+        int count = postbuildPlan.TopologyCount;
+        bool isSingle = count == 1;
+        return [
+            .. ApplyPostbuildRangeOverrides(
+                profile.Regions
+                    .Where(region => kind is null || region.Kind == kind)
+                    .Where(region => IsVisible(region.Visibility, isSingle, count)),
+                postbuildPlan)
+        ];
+    }
+
     private static bool IsVisible(TpFlashMapRegionVisibility visibility, bool isSingle, int? count)
     {
         return visibility switch

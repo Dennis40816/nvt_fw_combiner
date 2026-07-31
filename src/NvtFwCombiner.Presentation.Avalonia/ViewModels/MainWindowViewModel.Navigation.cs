@@ -193,7 +193,7 @@ public sealed partial class MainWindowViewModel
             ShellPage.Merge =>
                 _mergeDpSlot.HasFile ||
                 _mergeTpSlot.HasFile ||
-                _mergeLdSlot.HasFile ||
+                _mergeLdcSlot.HasFile ||
                 _abMergeSlotsByAddressSpace.Values.Any(static slot => slot.HasFile) ||
                 MergeSlots.Any(static slot => slot.HasFile) ||
                 GeneralMergeMappings.Any(static mapping => mapping.HasFile),
@@ -217,7 +217,7 @@ public sealed partial class MainWindowViewModel
         {
             foreach (FirmwareSlotViewModel slot in MergeSlots
                          .Concat(_abMergeSlotsByAddressSpace.Values)
-                         .Concat([_mergeDpSlot, _mergeTpSlot, _mergeLdSlot])
+                         .Concat([_mergeDpSlot, _mergeTpSlot, _mergeLdcSlot])
                          .Distinct())
             {
                 ClearFirmwareSlot(slot);

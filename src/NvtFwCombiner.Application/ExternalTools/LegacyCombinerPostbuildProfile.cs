@@ -24,7 +24,8 @@ public sealed class LegacyCombinerPostbuildProfile
         LegacyCombinerPostbuildAssemblyKind assemblyKind = LegacyCombinerPostbuildAssemblyKind.InPlaceFirmwareImage,
         LegacyCombinerCommonFwVersion? effectiveCommonFwVersion = null,
         LegacyCombinerFirmwareConfigWriteRoute firmwareConfigWriteRoute =
-            LegacyCombinerFirmwareConfigWriteRoute.Unavailable)
+            LegacyCombinerFirmwareConfigWriteRoute.Unavailable,
+        LegacyCombinerDiffDlmPolicy? diffDlmPolicy = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -67,6 +68,7 @@ public sealed class LegacyCombinerPostbuildProfile
         AssemblyKind = assemblyKind;
         EffectiveCommonFwVersion = effectiveCommonFwVersion ?? LegacyCombinerCommonFwVersion.MinimumSupported;
         FirmwareConfigWriteRoute = firmwareConfigWriteRoute;
+        DiffDlmPolicy = diffDlmPolicy;
     }
 
     /// <summary>Processor id referenced by composition profiles.</summary>
@@ -110,6 +112,9 @@ public sealed class LegacyCombinerPostbuildProfile
 
     /// <summary>Reviewed pre-postbuild FWConfig source route whose result must reach canonical Backup.</summary>
     public LegacyCombinerFirmwareConfigWriteRoute FirmwareConfigWriteRoute { get; }
+
+    /// <summary>Optional canonical count-dependent DiffDLM preservation policy.</summary>
+    public LegacyCombinerDiffDlmPolicy? DiffDlmPolicy { get; }
 
     private static LegacyCombinerPostbuildPlanSelector[] BuildPlanSelectors(
         IEnumerable<LegacyCombinerPostbuildPlanSelector>? planSelectors)

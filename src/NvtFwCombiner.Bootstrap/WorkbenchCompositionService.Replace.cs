@@ -45,7 +45,10 @@ public static partial class WorkbenchCompositionService
             IcSupportCatalog.NormalizeIcId(icId) is
                 "NT51919" or "NT51929" or "NT51932" or "NT51950" or "NT51951" &&
             branch == LegacyCombinerPostbuildBranch.Cascade;
-        string title = source.Regions.Count == 1
+        bool isDiffDlm = StringComparer.Ordinal.Equals(source.SourceFileName, "DiffDLM.bin");
+        string title = isDiffDlm
+            ? "DiffDLM"
+            : source.Regions.Count == 1
             ? source.Regions[0].DisplayName
             : $"{DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(source.SourceId)} (Shared)";
         string sections = string.Join("; ", source.Blocks

@@ -63,17 +63,12 @@ public sealed class LegacyTpFlashHeaderCanonicalMetadataTests
             nt51927.StructureDefinition.Definition;
 
         Assert.Same(definition, nt51917.StructureDefinition.Definition);
-        Assert.Equal(
-            (
-                nt51927.FamilyDefinition.FamilyId,
-                nt51927.FamilyDefinition.FamilyVersion,
-                nt51927.FamilyDefinition.FamilyContentHash,
-                definition.DefinitionId),
-            (
-                nt51928.FamilyDefinition.FamilyId,
-                nt51928.FamilyDefinition.FamilyVersion,
-                nt51928.FamilyDefinition.FamilyContentHash,
-                nt51928.StructureDefinition.Definition.DefinitionId));
+        Assert.Same(definition, nt51928.StructureDefinition.Definition);
+        Assert.Equal("1.4.0", nt51927.FamilyDefinition.FamilyVersion);
+        Assert.Equal("1.5.0", nt51928.FamilyDefinition.FamilyVersion);
+        Assert.NotEqual(
+            nt51927.FamilyDefinition.FamilyContentHash,
+            nt51928.FamilyDefinition.FamilyContentHash);
         Assert.Equal("nt51927-927-tp-flash-header", definition.DefinitionId);
         Assert.Equal(FirmwareMetadataStructureKind.TpFlashHeader, definition.StructureKind);
         Assert.Equal(0x460, definition.LengthBytes);
@@ -160,6 +155,73 @@ public sealed class LegacyTpFlashHeaderCanonicalMetadataTests
                     sharedDefinition.MetadataDefinition);
                 Assert.Equal(["NT51917", "NT51927", "NT51928"], relationship.MemberIds);
             });
+    }
+
+    /// <summary>
+    /// Both admitted NT51928 capacities retain the same read-only Header
+    /// definition and copy references without gaining mutation authority.
+    /// </summary>
+    [Fact]
+    public void Nt51928BothCapacitiesRetainOneReadOnly927HeaderContract()
+    {
+        BuiltInV2Registration registration =
+            BuiltInV2RegistrationRegistry.StandardMergeByIc["NT51928"];
+        IReadOnlyList<long> capacities =
+            registration.GetMapCapacities(
+                out IReadOnlyList<CompositionIssue> capacityIssues);
+        Assert.Empty(capacityIssues);
+        Assert.Equal([0x40000L, 0x80000L], capacities);
+
+        FirmwareMetadataStructureDefinition? canonicalDefinition = null;
+        foreach (long capacity in capacities)
+        {
+            IReadOnlyCollection<string> selectedInputSlotIds = capacity == 0x40000
+                ? []
+                : [CompositionAddressSpaceIds.LdcInput];
+            MetadataPlanDefinition plan = CreatePlan(
+                registration,
+                capacity,
+                selectedInputSlotIds);
+            MetadataPlanEntry readModel = Assert.Single(
+                plan.Entries,
+                static entry => entry.BindingId ==
+                    "nt51927-927-tp-flash-header-read-model");
+            MetadataPlanEntry copyReference = Assert.Single(
+                plan.Entries,
+                static entry => entry.BindingId ==
+                    "nt51927-927-tp-flash-header-copy-reference");
+            string expectedMapId = capacity == 0x40000
+                ? "nt51928-standard-merge-256k"
+                : "nt51928-standard-merge-512k";
+
+            canonicalDefinition ??= readModel.StructureDefinition.Definition;
+            Assert.Same(canonicalDefinition, readModel.StructureDefinition.Definition);
+            Assert.Same(
+                canonicalDefinition,
+                copyReference.StructureDefinition.Definition);
+            Assert.Equal(expectedMapId, readModel.ResolvedMap.ImageMap.MapId);
+            Assert.Equal(expectedMapId, copyReference.ResolvedMap.ImageMap.MapId);
+            Assert.Equal(
+                [
+                    MetadataReferencePurpose.Inspection,
+                    MetadataReferencePurpose.Formatting,
+                    MetadataReferencePurpose.MemoryProjection,
+                    MetadataReferencePurpose.ReportClassification,
+                ],
+                readModel.Purposes);
+            Assert.Equal([MetadataReferencePurpose.Copy], copyReference.Purposes);
+            Assert.Equal(
+                ["final-header-backup-source", "header-refresh-source"],
+                copyReference.TargetReferences.Select(static target => target.TargetId));
+            Assert.DoesNotContain(MetadataReferencePurpose.Integrity, readModel.Purposes);
+            Assert.DoesNotContain(MetadataReferencePurpose.Processor, readModel.Purposes);
+            Assert.DoesNotContain(
+                MetadataReferencePurpose.Integrity,
+                copyReference.Purposes);
+            Assert.DoesNotContain(
+                MetadataReferencePurpose.Processor,
+                copyReference.Purposes);
+        }
     }
 
     /// <summary>
@@ -317,10 +379,28 @@ public sealed class LegacyTpFlashHeaderCanonicalMetadataTests
             registration.GetMapCapacities(
                 out IReadOnlyList<CompositionIssue> capacityIssues);
         Assert.Empty(capacityIssues);
-        registration.TryCompile(
-            capacities[0],
-            out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues);
+        return CreatePlan(registration, capacities[0]);
+    }
+
+    private static MetadataPlanDefinition CreatePlan(
+        BuiltInV2Registration registration,
+        long capacity,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
+    {
+        CompiledComposition? composition;
+        IReadOnlyList<CompositionIssue> issues;
+        if (selectedInputSlotIds is null)
+        {
+            registration.TryCompile(capacity, out composition, out issues);
+        }
+        else
+        {
+            registration.TryCompile(
+                capacity,
+                selectedInputSlotIds,
+                out composition,
+                out issues);
+        }
         Assert.Empty(issues);
         return registration.CreateMetadataPlan(
             Assert.IsType<CompiledComposition>(composition));

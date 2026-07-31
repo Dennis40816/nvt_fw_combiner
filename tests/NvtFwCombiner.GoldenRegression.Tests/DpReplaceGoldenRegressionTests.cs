@@ -104,7 +104,7 @@ public sealed class DpReplaceGoldenRegressionTests
         {
             slotPaths["replace-ldc"] = workspace.Write(
                 "replacement-ldc.bin",
-                ReadManifestFile(goldenRoot, inputs.GetProperty("ld-input")));
+                ReadManifestFile(goldenRoot, inputs.GetProperty("ldc-input")));
         }
 
         string outputPath = workspace.PathFor($"nt{ic}-dp-replace.bin");

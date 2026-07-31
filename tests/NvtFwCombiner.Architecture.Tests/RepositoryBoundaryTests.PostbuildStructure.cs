@@ -10,7 +10,8 @@ public sealed partial class RepositoryBoundaryTests
         string loader = ReadText("src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs");
         string pinnedJsonLoader = ReadText("src/NvtFwCombiner.Infrastructure/PinnedJsonCatalogLoader.cs");
 
-        Assert.Contains("\"schemaVersion\": \"2.2\"", catalog, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\": \"2.3\"", catalog, StringComparison.Ordinal);
+        Assert.Contains("\"diffDlmPolicies\":", catalog, StringComparison.Ordinal);
         Assert.Equal(11, catalog.Split("\"effectiveCommonFwVersion\":", StringSplitOptions.None).Length - 1);
         Assert.Equal(11, catalog.Split("\"planSelectors\":", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("\"branchRules\":", catalog, StringComparison.Ordinal);

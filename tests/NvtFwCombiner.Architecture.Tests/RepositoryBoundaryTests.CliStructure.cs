@@ -49,13 +49,19 @@ public sealed partial class RepositoryBoundaryTests
         foreach (string workflow in new[] { dp, ctrlRam, general })
         {
             Assert.Equal(1, CountOccurrences(workflow, "RunWorkbenchReplaceAsync("));
-            Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("EnsureOutputDoesNotAliasInputs", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("EnsureReportDoesNotAliasProtectedPaths", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("output file already exists", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("WriteWorkbenchReportFileIfRequestedAsync", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("PrintWorkbenchRunResultAsync", workflow, StringComparison.Ordinal);
         }
+
+        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", dp, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains(
+            "WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync",
+            general,
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies General Merge CLI dispatch stays split from parsing, mapping adaptation, usage text, and result printing.</summary>
@@ -76,10 +82,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static async Task PrintResultAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private static Task WriteUsageAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private sealed record ParsedOptions", dispatch, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryCreateMappings", manualMappings, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryCreateGeneralMergeDraft", manualMappings, StringComparison.Ordinal);
         Assert.Contains("private static bool TryParseMappingValue", manualMappings, StringComparison.Ordinal);
         Assert.Contains("private static bool TryResolveIc", manualMappings, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryCreateMappingsFromSavedRule", savedRules, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryCreateDraftFromSavedRule", savedRules, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleV2GeneralMergeDraftLoader.Load", savedRules, StringComparison.Ordinal);
         Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
         Assert.Contains("private static bool RequireOption", options, StringComparison.Ordinal);
         Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
@@ -102,6 +109,10 @@ public sealed partial class RepositoryBoundaryTests
         string mappingRows = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.MappingRows.cs");
         string operationFragments = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.OperationFragments.cs");
         string savedRuleCli = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
+        string savedRuleV2GeneralMerge = ReadText(
+            "src/NvtFwCombiner.Bootstrap/SavedRuleV2GeneralMergeDraftLoader.cs");
+        string mappingDraftAdapter = ReadText(
+            "src/NvtFwCombiner.Bootstrap/SavedRuleGeneralMappingDraftAdapter.cs");
         string json = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Json.cs");
         string ranges = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Ranges.cs");
         string grammar = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Grammar.cs");
@@ -129,14 +140,27 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", mappingRows, StringComparison.Ordinal);
         Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", operationFragments, StringComparison.Ordinal);
         Assert.Contains("SavedRuleSchemaTokens.OperationKindCopyRange", operationFragments, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", savedRuleCli, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", savedRuleCli, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleV2GeneralMergeDraftLoader.Load", savedRuleCli, StringComparison.Ordinal);
+        Assert.Contains(
+            "SavedRuleSchemaTokens.OperationKindCopyRange",
+            savedRuleV2GeneralMerge,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "SavedRuleSchemaTokens.MappingOverlapReject",
+            savedRuleV2GeneralMerge,
+            StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", mappingDraftAdapter, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.OperationKindCopyRange", mappingDraftAdapter, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.OperationKindReplaceRange", mappingDraftAdapter, StringComparison.Ordinal);
+        Assert.Contains("GeneralMappingDraftState", mappingDraftAdapter, StringComparison.Ordinal);
+        Assert.Contains("OperationProvenance.SavedRule", mappingDraftAdapter, StringComparison.Ordinal);
         foreach (string literal in new[] { "\"merge\"", "\"reject\"", "\"copy-range\"" })
         {
             Assert.DoesNotContain(literal, compatibility, StringComparison.Ordinal);
             Assert.DoesNotContain(literal, mappingRows, StringComparison.Ordinal);
             Assert.DoesNotContain(literal, operationFragments, StringComparison.Ordinal);
             Assert.DoesNotContain(literal, savedRuleCli, StringComparison.Ordinal);
+            Assert.DoesNotContain(literal, mappingDraftAdapter, StringComparison.Ordinal);
         }
 
         Assert.Contains("private static SavedRuleCompatibility ReadCompatibility", compatibility, StringComparison.Ordinal);
@@ -153,6 +177,55 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static partial Regex SemverRegex", grammar, StringComparison.Ordinal);
         Assert.Contains("private static SavedRuleValidationIssue Issue", issues, StringComparison.Ordinal);
         Assert.Contains("private static void AddDuplicateIssues", issues, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies normal v2 rule execution admits the complete canonical contract before draft projection.</summary>
+    [Fact]
+    public void SavedRuleV2ExecutionUsesCanonicalSchemaBeforeMaterialization()
+    {
+        string handler = ReadText(
+            "src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
+        string draftLoader = ReadText(
+            "src/NvtFwCombiner.Bootstrap/SavedRuleV2GeneralMergeDraftLoader.cs");
+        string admission = ReadText(
+            "src/NvtFwCombiner.Bootstrap/SavedCompositionRuleV2Admission.cs");
+        string schema = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Contracts/SavedCompositionRuleV2Schema.cs");
+        string infrastructureProject = ReadText(
+            "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj");
+
+        Assert.Contains(
+            "GetGeneralMergeSavedRuleAdmissionContext",
+            handler,
+            StringComparison.Ordinal);
+        int admissionIndex = draftLoader.IndexOf(
+            "SavedCompositionRuleV2Admission.ValidateGeneralMerge",
+            StringComparison.Ordinal);
+        int materializationIndex = draftLoader.IndexOf(
+            "new GeneralMergeDraftState",
+            StringComparison.Ordinal);
+        Assert.True(admissionIndex >= 0);
+        Assert.True(materializationIndex > admissionIndex);
+        Assert.DoesNotContain(
+            "SavedRuleV2GeneralMergeInitializerLoader.Parse",
+            draftLoader,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "SavedCompositionRuleV2Schema.IsValid",
+            admission,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "TopLevelProperties",
+            admission,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "ProfileBundleSchemaValidator.IsInstanceValid",
+            schema,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            @"..\..\docs\contracts\saved-composition-rule-v2.schema.json",
+            infrastructureProject,
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies the root CLI entry point stays split from command-specific handlers and formatting helpers.</summary>
@@ -251,7 +324,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(1, CountOccurrences(display, "TryCompileStandardMerge("));
         Assert.Equal(1, CountOccurrences(generalMergeProfile, "TryCompileStandardMerge("));
         Assert.Contains("out CompiledComposition? composition", resolver, StringComparison.Ordinal);
-        Assert.Contains("SequenceEqual", cli, StringComparison.Ordinal);
+        Assert.Contains("GetStandardMergeInputAddressSpaces", cli, StringComparison.Ordinal);
+        Assert.Contains("InputOptionsByAddressSpace", cli, StringComparison.Ordinal);
         Assert.Contains("TryGetBuiltInV2StandardMergeCompilation", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateDpPerspectiveProfileForInputLength", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler.Compile", resolver, StringComparison.Ordinal);

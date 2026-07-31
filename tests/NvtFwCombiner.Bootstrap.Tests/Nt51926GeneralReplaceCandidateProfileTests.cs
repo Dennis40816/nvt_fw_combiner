@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
@@ -93,19 +94,27 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         Assert.Equal(originalBase, baseBytes);
 
         string routedOutputPath = workspace.PathFor("routed.bin");
-        WorkbenchRunResult routed = await WorkbenchCompositionService.RunReplaceAsync(
+        var mappingDraft = new GeneralMappingDraftState(
+        [
+            new GeneralMappingDraftRow(
+                "dp-map",
+                ExplicitMappingOperationKind.ReplaceRange,
+                GeneralMappingSource.File(sourcePath),
+                new ByteRange(0, replacement.Length),
+                CompositionAddressSpaceIds.OutputImage,
+                new ByteRange(targetStart, replacement.Length),
+                OverlapPolicy.Reject,
+                alignment: 1,
+                "General Replace V2 DP parity mapping."),
+        ]);
+        WorkbenchRunResult routed = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51926",
             "single",
-            "General",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 [WorkbenchSlotIds.ReplaceBase] = basePath,
             },
-            [new WorkbenchGeneralReplaceMappingInput(
-                "dp-map",
-                sourcePath,
-                $"0x{targetStart:X}",
-                $"0x{targetStart + replacement.Length - 1:X}")],
+            mappingDraft,
             build: true,
             TestContext.Current.CancellationToken,
             routedOutputPath);

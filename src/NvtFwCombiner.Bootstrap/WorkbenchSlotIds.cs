@@ -11,8 +11,8 @@ public static class WorkbenchSlotIds
     /// <summary>Workbench TP input slot used by Standard Merge.</summary>
     public const string MergeTp = "merge-tp";
 
-    /// <summary>Workbench LD input slot used by Standard Merge.</summary>
-    public const string MergeLd = "merge-ld";
+    /// <summary>Workbench LDC input slot used by Standard Merge.</summary>
+    public const string MergeLdc = "merge-ldc";
 
     /// <summary>Workbench base/reference image slot used by Replace workflows.</summary>
     public const string ReplaceBase = "replace-base";

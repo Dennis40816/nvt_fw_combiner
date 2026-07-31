@@ -45,4 +45,24 @@ public sealed record CompositionProfileOutputDocument(
     string FileNameTemplate,
     bool AllowOverride,
     string InvalidCharacterPolicy,
-    IReadOnlyList<string> RequiredTokenIds);
+    IReadOnlyList<string> RequiredTokenIds,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? RuleId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? OutputArtifactType = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<CompositionProfileOutputTokenRequirementDocument>? TokenRequirements = null);
+
+/// <summary>DTO for one closed execution fact used by an output-name token.</summary>
+public sealed record CompositionProfileOutputTokenSourceDocument(
+    string Kind,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? MetadataBindingId = null);
+
+/// <summary>DTO for one output-name token source and explicit missing-value policy.</summary>
+public sealed record CompositionProfileOutputTokenRequirementDocument(
+    string TokenId,
+    CompositionProfileOutputTokenSourceDocument Source,
+    string MissingPolicy,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? Placeholder = null);

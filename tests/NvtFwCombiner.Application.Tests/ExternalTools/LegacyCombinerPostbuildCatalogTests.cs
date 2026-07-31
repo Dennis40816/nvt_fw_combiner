@@ -134,6 +134,83 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         }
     }
 
+    /// <summary>Every admitted Dynamic DiffDLM count expands only its N-1 writable DLM prefixes.</summary>
+    [Fact]
+    public void Nt51929FamilyDynamicDiffDlmPlansResolveEveryCountWithoutSelectingDiffNf()
+    {
+        LegacyCombinerPostbuildProfile[] profiles =
+        [
+            LegacyCombinerPostbuildCatalog.Nt51919,
+            LegacyCombinerPostbuildCatalog.Nt51929,
+            LegacyCombinerPostbuildCatalog.Nt51932,
+        ];
+        var selection = new IcNumberSelection(
+            IcNumberInputMode.CascadeSelector,
+            ["cascade_2to8"]);
+
+        foreach (LegacyCombinerPostbuildProfile profile in profiles)
+        {
+            LegacyCombinerDiffDlmPolicy policy = Assert.IsType<LegacyCombinerDiffDlmPolicy>(
+                profile.DiffDlmPolicy);
+            for (int icCount = 2; icCount <= 8; icCount++)
+            {
+                LegacyCombinerPostbuildCommandPlan plan =
+                    LegacyCombinerPostbuildPlanner.CreatePlan(
+                        profile,
+                        selection,
+                        reportedChipCount: icCount);
+                LegacyCombinerBlockArgument[] diffDlmBlocks =
+                [
+                    .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                        .Where(block => block.SourceFileName == "DiffDLM.bin"),
+                ];
+
+                Assert.Equal(icCount, plan.TopologyCount);
+                Assert.Equal(icCount - 1, diffDlmBlocks.Length);
+                for (int record = 0; record < diffDlmBlocks.Length; record++)
+                {
+                    Assert.Equal(record * 0x1400, diffDlmBlocks[record].SourceOffset);
+                    Assert.Equal(
+                        new ByteRange(0x2D100 + (record * 0x1400), 0x0B90),
+                        diffDlmBlocks[record].FirmwareRange);
+                }
+
+                Assert.Contains(
+                    LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan),
+                    block => block.SourceFileName == policy.IndependentNfSourceFileName);
+                Assert.Equal(
+                    AlignUp(0x2D100 + ((icCount - 1) * 0x1400), 0x1000),
+                    policy.GetExpectedFirmwareConfigBackupStart(icCount));
+                Assert.True(
+                    policy.GetResolvedFirmwareConfigBackupAuthority(icCount).Contains(
+                        new ByteRange(
+                            policy.GetExpectedFirmwareConfigBackupStart(icCount),
+                            policy.FirmwareConfigBackupLength)));
+            }
+        }
+    }
+
+    /// <summary>An explicit numeric selection remains the run topology even when a range-compatible FWConfig count differs.</summary>
+    [Fact]
+    public void DynamicDiffDlmExplicitCountIsNotOverriddenByReportedRangeCount()
+    {
+        var selection = new IcNumberSelection(
+            IcNumberInputMode.CascadeSelector,
+            ["4"]);
+
+        LegacyCombinerPostbuildCommandPlan plan =
+            LegacyCombinerPostbuildPlanner.CreatePlan(
+                LegacyCombinerPostbuildCatalog.Nt51932,
+                selection,
+                reportedChipCount: 5);
+
+        Assert.Equal(4, plan.TopologyCount);
+        Assert.Equal(
+            3,
+            LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                .Count(block => block.SourceFileName == "DiffDLM.bin"));
+    }
+
     /// <summary>Locks NT51927-family CRC-only header integrity writes observed in owner golden self-tests.</summary>
     [Fact]
     public void Nt51927CrcOnlyPlansDeclareKnownHeaderIntegrityWrites()
@@ -193,7 +270,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             section.SourceRange == new ByteRange(0x0000, 0x460));
     }
 
-    /// <summary>Locks required capacity calculation to selected ranges and command source/target coverage.</summary>
+    /// <summary>Required capacity follows the count-resolved active DLM prefix, never the maximum template envelope.</summary>
     [Fact]
     public void PostbuildPlannerCalculatesRequiredCapacityFromSelectedRangesAndCommands()
     {
@@ -205,7 +282,8 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             plan,
             [new ByteRange(0x27650, 6494)]);
 
-        Assert.Equal(0x35D00, requiredCapacity);
+        Assert.Equal(2, plan.TopologyCount);
+        Assert.Equal(0x2DC90, requiredCapacity);
     }
 
     /// <summary>Locks CtrlRAM allowed writes to staged slots plus declared postbuild/header writes.</summary>
@@ -384,6 +462,11 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
                     new IcNumberSelection(mode, [selector.Token]));
             }
         }
+    }
+
+    private static long AlignUp(long value, int alignment)
+    {
+        return checked((value + alignment - 1) / alignment * alignment);
     }
 
     private static IReadOnlyList<ByteRange> IntegrityRanges(

@@ -102,6 +102,22 @@
               IsVisible="{Binding HasInputInspectionStatus}"
               Text="{Binding InputInspectionStatus}"
               TextWrapping="Wrap" />
+          <Grid
+              AutomationProperties.LiveSetting="Polite"
+              AutomationProperties.Name="{Binding SelectionReadinessAutomationText}"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="{DynamicResource NfcSpace8}"
+              IsVisible="{Binding HasSelectionReadinessStatus}"
+              VerticalAlignment="Center">
+            <Label
+                Classes="compactBadge neutralBadge"
+                Content="{Binding SelectionReadinessLabel}" />
+            <TextBlock
+                Grid.Column="1"
+                Classes="captionText"
+                Text="{Binding SelectionReadinessDetail}"
+                TextWrapping="Wrap" />
+          </Grid>
         </StackPanel>
         <Button
             Grid.Column="1"

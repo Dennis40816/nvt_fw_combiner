@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
@@ -8,8 +9,7 @@ public static partial class WorkbenchCompositionService
     private const int GeneralReplaceMappingSequenceStart = 100;
 
     private static bool TryCreateGeneralReplaceMappings(
-        WorkbenchGeneralReplaceMappingInput[] mappingInputs,
-        WorkbenchGeneralReplacePatchInput[] patchInputs,
+        GeneralAuthoringAdmissionResult admission,
         long referenceCapacity,
         out IReadOnlyList<ExplicitMapping> explicitMappings,
         out IReadOnlyList<AddressSpace> requestAddressSpaces,
@@ -17,6 +17,11 @@ public static partial class WorkbenchCompositionService
         out IReadOnlyList<GeneralReplacePatchArtifact> patchArtifacts,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        GeneralMappingDraftState mappingDraft = admission.RequireAdmittedDraft();
+        var resources =
+            admission.InputResources.ToDictionary(
+                static resource => resource.SlotId,
+                StringComparer.Ordinal);
         List<ExplicitMapping> mappings = [];
         List<AddressSpace> spaces = [];
         List<InputArtifactBinding> bindings = [];
@@ -25,7 +30,7 @@ public static partial class WorkbenchCompositionService
         HashSet<string> ids = new(StringComparer.Ordinal);
         int operationIndex = 0;
 
-        foreach (WorkbenchGeneralReplaceMappingInput input in mappingInputs)
+        foreach (GeneralMappingDraftRow input in mappingDraft.Rows)
         {
             if (!TryRegisterGeneralReplaceId(input.MappingId, ids, issueList))
             {
@@ -33,38 +38,34 @@ public static partial class WorkbenchCompositionService
                 continue;
             }
 
-            if (!TryCreateFileGeneralReplaceMapping(
+            bool isFile = input.Source.Kind == GeneralMappingSourceKind.FileArtifact;
+            if (isFile)
+            {
+                if (!TryCreateFileGeneralReplaceMapping(
                     input,
                     operationIndex,
+                    resources,
                     out ExplicitMapping? mapping,
                     out AddressSpace? space,
                     out InputArtifactBinding? binding,
                     out CompositionIssue? issue))
-            {
-                if (issue is not null)
                 {
-                    issueList.Add(issue);
+                    if (issue is not null)
+                    {
+                        issueList.Add(issue);
+                    }
+
+                    operationIndex++;
+                    continue;
                 }
 
-                operationIndex++;
-                continue;
+                mappings.Add(mapping!);
+                spaces.Add(space!);
+                bindings.Add(binding!);
             }
-
-            mappings.Add(mapping!);
-            spaces.Add(space!);
-            bindings.Add(binding!);
-            operationIndex++;
-        }
-
-        foreach (WorkbenchGeneralReplacePatchInput input in patchInputs)
-        {
-            if (!TryRegisterGeneralReplaceId(input.PatchId, ids, issueList))
+            else
             {
-                operationIndex++;
-                continue;
-            }
-
-            if (!TryCreatePatchGeneralReplaceMapping(
+                if (!TryCreatePatchGeneralReplaceMapping(
                     input,
                     operationIndex,
                     referenceCapacity,
@@ -73,20 +74,22 @@ public static partial class WorkbenchCompositionService
                     out InputArtifactBinding? binding,
                     out GeneralReplacePatchArtifact? artifact,
                     out CompositionIssue? issue))
-            {
-                if (issue is not null)
                 {
-                    issueList.Add(issue);
+                    if (issue is not null)
+                    {
+                        issueList.Add(issue);
+                    }
+
+                    operationIndex++;
+                    continue;
                 }
 
-                operationIndex++;
-                continue;
+                mappings.Add(mapping!);
+                spaces.Add(space!);
+                bindings.Add(binding!);
+                artifacts.Add(artifact!);
             }
 
-            mappings.Add(mapping!);
-            spaces.Add(space!);
-            bindings.Add(binding!);
-            artifacts.Add(artifact!);
             operationIndex++;
         }
 
@@ -99,8 +102,9 @@ public static partial class WorkbenchCompositionService
     }
 
     private static bool TryCreateFileGeneralReplaceMapping(
-        WorkbenchGeneralReplaceMappingInput input,
+        GeneralMappingDraftRow input,
         int operationIndex,
+        Dictionary<string, GeneralInputResource> resources,
         out ExplicitMapping? mapping,
         out AddressSpace? addressSpace,
         out InputArtifactBinding? binding,
@@ -109,35 +113,60 @@ public static partial class WorkbenchCompositionService
         mapping = null;
         addressSpace = null;
         binding = null;
-        if (!TryParseGeneralReplaceRange(
+        string addressSpaceId = $"{input.MappingId}-input";
+        string fullPath = Path.GetFullPath(input.Source.Reference);
+        if (!resources.TryGetValue(
                 input.MappingId,
-                input.TargetStart,
-                input.TargetEndInclusive,
-                out ByteRange targetRange,
-                out issue))
+                out GeneralInputResource? resource))
         {
+            throw new InvalidOperationException(
+                $"Admitted General Replace mapping '{input.MappingId}' has no observed input resource.");
+        }
+
+        if (input.Source.AcceptedFileStamp is not { } acceptedStamp)
+        {
+            issue = new CompositionIssue(
+                GeneralSelectedFileInspectionIssueCodes.SnapshotRequired,
+                $"General Replace mapping '{input.MappingId}' has no accepted selected-file content snapshot.",
+                input.MappingId);
             return false;
         }
 
-        string addressSpaceId = $"{input.MappingId}-input";
-        string fullPath = Path.GetFullPath(input.FilePath);
-        long declaredLength = File.Exists(fullPath)
-            ? new FileInfo(fullPath).Length
-            : targetRange.Length;
+        long declaredLength = acceptedStamp.AcceptedLength;
+        if (resource.LengthBytes != declaredLength)
+        {
+            issue = new CompositionIssue(
+                CompositionRunIssueCodes.InputArtifactContentSnapshotMismatch,
+                $"General Replace mapping '{input.MappingId}' no longer matches its accepted selected-file length.",
+                input.MappingId);
+            return false;
+        }
+
+        if (declaredLength < input.SourceRange.EndExclusive)
+        {
+            issue = new CompositionIssue(
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                $"General Replace mapping '{input.MappingId}' source range exceeds the selected replacement file length.",
+                input.MappingId);
+            return false;
+        }
+
         addressSpace = new AddressSpace(addressSpaceId, declaredLength, AddressSpaceMutability.Immutable);
-        binding = new InputArtifactBinding(addressSpaceId, input.MappingId, fullPath);
-        mapping = CreateGeneralReplaceMapping(
-            input.MappingId,
-            operationIndex,
+        binding = new InputArtifactBinding(
             addressSpaceId,
-            targetRange,
-            "Replace explicit General range.");
+            input.MappingId,
+            fullPath,
+            acceptedContentStamp: acceptedStamp);
+        mapping = CreateGeneralReplaceMapping(
+            input,
+            operationIndex,
+            addressSpaceId);
         issue = null;
         return true;
     }
 
     private static bool TryCreatePatchGeneralReplaceMapping(
-        WorkbenchGeneralReplacePatchInput input,
+        GeneralMappingDraftRow input,
         int operationIndex,
         long referenceCapacity,
         out ExplicitMapping? mapping,
@@ -150,28 +179,17 @@ public static partial class WorkbenchCompositionService
         addressSpace = null;
         binding = null;
         artifact = null;
-        if (!TryParseGeneralReplaceRange(
-                input.PatchId,
-                input.TargetStart,
-                input.TargetEndInclusive,
-                out ByteRange targetRange,
-                out issue))
-        {
-            return false;
-        }
-
-        if (targetRange.EndExclusive > referenceCapacity)
+        if (input.TargetRange.EndExclusive > referenceCapacity)
         {
             issue = new CompositionIssue(
                 CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                $"General Replace patch '{input.PatchId}' target range exceeds the {referenceCapacity}-byte base flash BIN.",
-                input.PatchId);
+                $"General Replace patch '{input.MappingId}' target range exceeds the {referenceCapacity}-byte base flash BIN.",
+                input.MappingId);
             return false;
         }
 
         if (!TryCreatePatchSource(
                 input,
-                targetRange,
                 out byte[]? overwriteBytes,
                 out byte? fillByte,
                 out string? reason,
@@ -180,50 +198,48 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        string addressSpaceId = $"{input.PatchId}-input";
-        string virtualArtifactId = VirtualArtifactLocator.CreateGeneralReplacePatch(input.PatchId);
+        string addressSpaceId = $"{input.MappingId}-input";
+        string virtualArtifactId = VirtualArtifactLocator.CreateGeneralReplacePatch(input.MappingId);
         artifact = new GeneralReplacePatchArtifact(
-            input.PatchId,
+            input.MappingId,
             virtualArtifactId,
-            targetRange.Length,
+            input.TargetRange.Length,
             overwriteBytes,
             fillByte);
-        addressSpace = new AddressSpace(addressSpaceId, targetRange.Length, AddressSpaceMutability.Immutable);
-        binding = new InputArtifactBinding(addressSpaceId, input.PatchId, virtualArtifactId);
+        addressSpace = new AddressSpace(addressSpaceId, input.SourceRange.EndExclusive, AddressSpaceMutability.Immutable);
+        binding = new InputArtifactBinding(addressSpaceId, input.MappingId, virtualArtifactId);
         mapping = CreateGeneralReplaceMapping(
-            input.PatchId,
+            input,
             operationIndex,
             addressSpaceId,
-            targetRange,
-            reason!);
+            reason);
         issue = null;
         return true;
     }
 
     private static ExplicitMapping CreateGeneralReplaceMapping(
-        string mappingId,
+        GeneralMappingDraftRow input,
         int operationIndex,
         string addressSpaceId,
-        ByteRange targetRange,
-        string reason)
+        string? reason = null)
     {
         return new ExplicitMapping(
-            mappingId,
+            input.MappingId,
             checked(GeneralReplaceMappingSequenceStart + operationIndex),
-            ExplicitMappingOperationKind.ReplaceRange,
+            input.OperationKind,
             addressSpaceId,
-            new ByteRange(0, targetRange.Length),
-            CompositionAddressSpaceIds.OutputImage,
-            targetRange,
-            OverlapPolicy.Reject,
-            alignment: 1,
-            reason,
-            targetRegionId: null);
+            input.SourceRange,
+            input.TargetAddressSpaceId,
+            input.TargetRange,
+            input.OverlapPolicy,
+            input.Alignment,
+            reason ?? input.Reason,
+            input.TargetRegionId,
+            input.Provenance);
     }
 
     private static bool TryCreatePatchSource(
-        WorkbenchGeneralReplacePatchInput input,
-        ByteRange targetRange,
+        GeneralMappingDraftRow input,
         out byte[]? overwriteBytes,
         out byte? fillByte,
         out string? reason,
@@ -232,24 +248,24 @@ public static partial class WorkbenchCompositionService
         overwriteBytes = null;
         fillByte = null;
         reason = null;
-        if (!TryParseHexBytes(input.Value, out byte[]? suppliedBytes))
+        if (!TryParseHexBytes(input.Source.InlineValue, out byte[]? suppliedBytes))
         {
             issue = new CompositionIssue(
                 WorkbenchIssueCodes.GeneralReplacePatchHexInvalid,
-                $"General Replace patch '{input.PatchId}' must contain complete hexadecimal byte pairs.",
-                input.PatchId);
+                $"General Replace patch '{input.MappingId}' must contain complete hexadecimal byte pairs.",
+                input.MappingId);
             return false;
         }
 
-        switch (input.Kind)
+        switch (input.Source.Kind)
         {
-            case WorkbenchGeneralReplacePatchKind.Overwrite:
-                if (suppliedBytes!.LongLength != targetRange.Length)
+            case GeneralMappingSourceKind.HexOverwrite:
+                if (suppliedBytes!.LongLength != input.TargetRange.Length)
                 {
                     issue = new CompositionIssue(
                         WorkbenchIssueCodes.GeneralReplacePatchLengthMismatch,
-                        $"General Replace patch '{input.PatchId}' supplies {suppliedBytes.LongLength} byte(s) for a {targetRange.Length}-byte target range.",
-                        input.PatchId);
+                        $"General Replace patch '{input.MappingId}' supplies {suppliedBytes.LongLength} byte(s) for a {input.TargetRange.Length}-byte target range.",
+                        input.MappingId);
                     return false;
                 }
 
@@ -257,13 +273,13 @@ public static partial class WorkbenchCompositionService
                 reason = "Overwrite hexadecimal General range.";
                 issue = null;
                 return true;
-            case WorkbenchGeneralReplacePatchKind.Fill:
+            case GeneralMappingSourceKind.HexFill:
                 if (suppliedBytes!.Length != 1)
                 {
                     issue = new CompositionIssue(
                         WorkbenchIssueCodes.GeneralReplacePatchFillByteInvalid,
-                        $"General Replace fill '{input.PatchId}' must contain exactly one hexadecimal byte.",
-                        input.PatchId);
+                        $"General Replace fill '{input.MappingId}' must contain exactly one hexadecimal byte.",
+                        input.MappingId);
                     return false;
                 }
 
@@ -271,12 +287,15 @@ public static partial class WorkbenchCompositionService
                 reason = $"Fill hexadecimal General range with 0x{suppliedBytes[0]:X2}.";
                 issue = null;
                 return true;
-            default:
+            case GeneralMappingSourceKind.FileArtifact:
                 issue = new CompositionIssue(
                     WorkbenchIssueCodes.GeneralReplacePatchHexInvalid,
-                    $"General Replace patch '{input.PatchId}' has an unsupported patch operation.",
-                    input.PatchId);
+                    $"General Replace patch '{input.MappingId}' requires an inline patch source.",
+                    input.MappingId);
                 return false;
+            default:
+                throw new InvalidOperationException(
+                    $"Unknown General mapping source kind '{input.Source.Kind}'.");
         }
     }
 
@@ -393,49 +412,6 @@ public static partial class WorkbenchCompositionService
         }
 
         return true;
-    }
-
-    private static bool TryParseGeneralReplaceRange(
-        string id,
-        string targetStart,
-        string targetEndInclusive,
-        out ByteRange targetRange,
-        out CompositionIssue? issue)
-    {
-        targetRange = default;
-        if (!BootstrapRangeText.TryParseNonNegativeLong(targetStart, out long start) ||
-            !BootstrapRangeText.TryParseNonNegativeLong(targetEndInclusive, out long endInclusive) ||
-            endInclusive < start)
-        {
-            issue = new CompositionIssue(
-                WorkbenchIssueCodes.GeneralReplaceRangeInvalid,
-                $"General Replace mapping or patch '{id}' must use a valid inclusive start/end range.",
-                id);
-            return false;
-        }
-
-        try
-        {
-            targetRange = ByteRange.FromStartEndExclusive(start, checked(endInclusive + 1));
-            issue = null;
-            return true;
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            issue = new CompositionIssue(
-                WorkbenchIssueCodes.GeneralReplaceRangeInvalid,
-                $"General Replace mapping or patch '{id}' must use a valid inclusive start/end range.",
-                id);
-            return false;
-        }
-        catch (OverflowException)
-        {
-            issue = new CompositionIssue(
-                WorkbenchIssueCodes.GeneralReplaceRangeInvalid,
-                $"General Replace mapping or patch '{id}' range exceeds the supported address size.",
-                id);
-            return false;
-        }
     }
 
 }

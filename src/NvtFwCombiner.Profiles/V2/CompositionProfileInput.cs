@@ -30,6 +30,7 @@ internal enum CompositionProfileLengthRuleKind
     NormalDpExtractWithWarning,
     TpMaximum256K,
     DeclaredPrefixWithWarning,
+    SourceViewCoverage,
 }
 
 /// <summary>Base value for one normalized input length rule.</summary>
@@ -173,7 +174,7 @@ internal sealed record NormalDpExtractWithWarningLengthRule : CompositionProfile
     /// <summary>Optional outer-container lengths that suppress the profile-owned extraction warning.</summary>
     internal IReadOnlyList<long> ExpectedInputLengths { get; }
 
-    private static long[] NormalizeExpectedInputLengths(IReadOnlyList<long>? expectedInputLengths)
+    internal static long[] NormalizeExpectedInputLengths(IReadOnlyList<long>? expectedInputLengths)
     {
         if (expectedInputLengths is null)
         {
@@ -213,6 +214,40 @@ internal sealed record TpMaximum256KLengthRule()
     : CompositionProfileLengthRule(CompositionProfileLengthRuleKind.TpMaximum256K)
 {
     internal const long MaximumBytes = 262144;
+}
+
+/// <summary>
+/// Accepts an immutable section source that covers every compiled read for its
+/// input space, with optional complete-container diagnostics.
+/// </summary>
+internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRule
+{
+    private readonly long[] _expectedOuterLengths;
+
+    internal SourceViewCoverageLengthRule(
+        IReadOnlyList<long>? expectedOuterLengths = null,
+        string? unexpectedOuterLengthIssueCode = null)
+        : base(CompositionProfileLengthRuleKind.SourceViewCoverage)
+    {
+        if ((expectedOuterLengths is null) != (unexpectedOuterLengthIssueCode is null))
+        {
+            throw new ArgumentException(
+                "Expected outer lengths and their warning issue code must be declared together.");
+        }
+
+        _expectedOuterLengths = NormalDpExtractWithWarningLengthRule.NormalizeExpectedInputLengths(
+            expectedOuterLengths);
+        UnexpectedOuterLengthIssueCode = unexpectedOuterLengthIssueCode is null
+            ? null
+            : CompositionProfileValueRules.RequireIssueCode(
+                unexpectedOuterLengthIssueCode,
+                nameof(unexpectedOuterLengthIssueCode));
+        ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
+    }
+
+    internal IReadOnlyList<long> ExpectedOuterLengths { get; }
+
+    internal string? UnexpectedOuterLengthIssueCode { get; }
 }
 
 /// <summary>Closed transient input normalization kind.</summary>
@@ -288,7 +323,8 @@ internal sealed partial class CompositionProfileInputSlot
         CompositionProfileSlotCardinality cardinality,
         IEnumerable<string> acceptedExtensions,
         CompositionProfileLengthRule lengthRule,
-        CompositionProfileInputNormalization normalization)
+        CompositionProfileInputNormalization normalization,
+        string? notApplicableReason = null)
     {
         SlotId = CompositionProfileValueRules.RequireId(slotId, nameof(slotId));
         Role = CompositionProfileValueRules.RequireId(role, nameof(role));
@@ -313,6 +349,12 @@ internal sealed partial class CompositionProfileInputSlot
         AcceptedExtensions = Array.AsReadOnly(_acceptedExtensions);
         LengthRule = lengthRule;
         Normalization = normalization;
+        if (notApplicableReason is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(notApplicableReason);
+        }
+
+        NotApplicableReason = notApplicableReason;
     }
 
     internal string SlotId { get; }
@@ -331,6 +373,8 @@ internal sealed partial class CompositionProfileInputSlot
 
     internal CompositionProfileInputNormalization Normalization { get; }
 
+    internal string? NotApplicableReason { get; }
+
     private static void ValidateFirmwarePolicy(
         CompositionProfileArtifactClass artifactClass,
         CompositionProfileLengthRule lengthRule,
@@ -341,7 +385,7 @@ internal sealed partial class CompositionProfileInputSlot
              normalization.Kind != CompositionProfileInputNormalizationKind.None))
         {
             throw new ArgumentException(
-                "TP firmware requires an unnormalized maximum-256-KiB or exact-within-256-KiB length rule.");
+                "TP firmware requires one approved unnormalized section or exact length rule.");
         }
 
         if (lengthRule.Kind == CompositionProfileLengthRuleKind.TpMaximum256K &&
@@ -353,7 +397,8 @@ internal sealed partial class CompositionProfileInputSlot
         if (artifactClass == CompositionProfileArtifactClass.DpFirmware &&
             lengthRule.Kind is not CompositionProfileLengthRuleKind.ExactResolvedMapCapacity and
                 not CompositionProfileLengthRuleKind.NormalDpExtractWithWarning and
-                not CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning)
+                not CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning and
+                not CompositionProfileLengthRuleKind.SourceViewCoverage)
         {
             throw new ArgumentException("DP firmware requires an approved DP length rule.");
         }
@@ -392,11 +437,20 @@ internal sealed partial class CompositionProfileInputSlot
             throw new ArgumentException(
                 "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
         }
+
+        if (lengthRule.Kind == CompositionProfileLengthRuleKind.SourceViewCoverage &&
+            (artifactClass is CompositionProfileArtifactClass.ReferenceImage or
+                CompositionProfileArtifactClass.CtrlRamReplacement ||
+             normalization.Kind != CompositionProfileInputNormalizationKind.None))
+        {
+            throw new ArgumentException(
+                "Source-view coverage is restricted to unnormalized immutable section sources.");
+        }
     }
 
     private static bool IsApprovedTpLengthRule(CompositionProfileLengthRule lengthRule)
     {
-        return lengthRule is TpMaximum256KLengthRule or
+        return lengthRule is TpMaximum256KLengthRule or SourceViewCoverageLengthRule or
             DeclaredPrefixWithWarningLengthRule
         {
             RequiredEndExclusive: <= TpMaximum256KLengthRule.MaximumBytes,

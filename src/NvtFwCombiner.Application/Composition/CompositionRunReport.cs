@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Application.Authoring;
 
 using System.Text.Json.Serialization;
 
@@ -27,7 +28,9 @@ public sealed class CompositionRunReport
         string? compilationFingerprint = null,
         IReadOnlyList<ValidationRunSummary>? validations = null,
         OutputNamingSummary? outputNaming = null,
-        IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null)
+        IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null,
+        GeneralAuthoringAdmissionSummary? generalAdmission = null,
+        ImageInitializationSummary? imageInitialization = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
@@ -68,6 +71,8 @@ public sealed class CompositionRunReport
         DeliveryArtifacts = deliveryArtifacts is { Count: > 0 }
             ? Array.AsReadOnly([.. deliveryArtifacts])
             : null;
+        GeneralAdmission = generalAdmission;
+        ImageInitialization = imageInitialization;
     }
 
     /// <summary>Stable run id.</summary>
@@ -128,6 +133,14 @@ public sealed class CompositionRunReport
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<DeliveryArtifactSummary>? DeliveryArtifacts { get; }
 
+    /// <summary>General authoring admission provenance when this run uses a General route.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public GeneralAuthoringAdmissionSummary? GeneralAdmission { get; }
+
+    /// <summary>Exact compiled output capacity/fill or reference-clone provenance.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImageInitializationSummary? ImageInitialization { get; }
+
     /// <summary>Creates an immutable report revision after an adapter-owned delivery phase.</summary>
     public CompositionRunReport WithDeliveryArtifacts(
         IReadOnlyList<DeliveryArtifactSummary> deliveryArtifacts,
@@ -153,6 +166,8 @@ public sealed class CompositionRunReport
             CompilationFingerprint,
             Validations,
             OutputNaming,
-            deliveryArtifacts);
+            deliveryArtifacts,
+            generalAdmission: GeneralAdmission,
+            imageInitialization: ImageInitialization);
     }
 }

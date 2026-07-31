@@ -104,11 +104,47 @@ public sealed record FirmwareCapabilityFactDocument(
 /// <param name="AddressSpaceId">Physical address-space identifier.</param>
 /// <param name="Regions">Physical region declarations.</param>
 /// <param name="EvidenceRefs">Evidence manifest references.</param>
+/// <param name="RegionTemplates">Optional canonical instance-relative region definitions.</param>
+/// <param name="RegionInstances">Optional explicit placements of canonical region definitions.</param>
 public sealed record FirmwareRegionSetDocument(
     string RegionSetId,
     string AddressSpaceId,
     IReadOnlyList<FirmwareRegionDocument> Regions,
-    IReadOnlyList<string> EvidenceRefs);
+    IReadOnlyList<string> EvidenceRefs,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<FirmwareRegionTemplateDocument>? RegionTemplates = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<FirmwareRegionInstanceDocument>? RegionInstances = null);
+
+/// <summary>DTO for one canonical instance-relative physical region definition.</summary>
+/// <param name="TemplateId">Stable template identifier.</param>
+/// <param name="CapacityBytes">Exact positive template capacity.</param>
+/// <param name="Regions">Physical regions measured from the instance base.</param>
+public sealed record FirmwareRegionTemplateDocument(
+    string TemplateId,
+    JsonElement CapacityBytes,
+    IReadOnlyList<FirmwareRegionDocument> Regions);
+
+/// <summary>DTO for one template-local to resolved region-id binding.</summary>
+/// <param name="TemplateRegionId">Template-local region identifier.</param>
+/// <param name="ResolvedRegionId">Stable map-resolved region identifier.</param>
+public sealed record FirmwareRegionIdBindingDocument(
+    string TemplateRegionId,
+    string ResolvedRegionId);
+
+/// <summary>DTO for one explicit placement of a relative region definition.</summary>
+/// <param name="InstanceId">Stable instance identifier.</param>
+/// <param name="TemplateId">Referenced canonical template identifier.</param>
+/// <param name="BaseOffset">Absolute base in the region-set address space.</param>
+/// <param name="ResolvedRegionIds">Complete template-local to resolved id bindings.</param>
+/// <param name="ParentRegionId">Optional external parent for template roots.</param>
+public sealed record FirmwareRegionInstanceDocument(
+    string InstanceId,
+    string TemplateId,
+    JsonElement BaseOffset,
+    IReadOnlyList<FirmwareRegionIdBindingDocument> ResolvedRegionIds,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? ParentRegionId = null);
 
 /// <summary>DTO for one canonical physical firmware region.</summary>
 /// <param name="RegionId">Stable map-local region identifier.</param>

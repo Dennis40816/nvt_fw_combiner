@@ -37,6 +37,7 @@ internal sealed record SavedRuleMappingRow(
 
 internal sealed record SavedRuleOperationFragment(
     string OperationId,
+    string Kind,
     IReadOnlyList<string> MappingRowIds);
 
 internal sealed record SavedRuleValidationIssue(string Code, string Message, string Path);

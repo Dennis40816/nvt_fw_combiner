@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.11",
+  "schemaVersion": "2.13",
   "profileId": "nt51928-standard-merge-gen-flash",
-  "profileVersion": "0.7.0",
+  "profileVersion": "0.8.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -20,14 +20,17 @@
   },
   "mapBinding": {
     "familyId": "nt51917-nt51927-nt51928-canonical-container",
-    "familyVersion": "1.4.0",
-    "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+    "familyVersion": "1.5.0",
+    "familyContentHash": "538392be2e910627afe0283f947cb63f5e285e97a1d44dd50ea1f6985c177b20",
     "mapIds": [
+      "nt51928-standard-merge-256k",
       "nt51928-standard-merge-512k"
     ],
     "requiredRegionIds": [
       "tp-code",
-      "dp-code",
+      "dp-code"
+    ],
+    "optionalRegionIds": [
       "ldc-code"
     ],
     "requiredMetadataStructureIds": [
@@ -49,8 +52,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "tp-maximum-256k",
-          "maximumBytes": 262144
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -68,8 +70,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "normal-dp-extract-with-warning",
-          "issueCode": "DP_SIZE_WARNING"
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -77,22 +78,33 @@
       }
     },
     {
-      "slotId": "ld-input",
+      "slotId": "ldc-input",
       "role": "ldc",
       "artifactClass": "auxiliary",
-      "required": true,
-      "cardinality": "exactly-one",
+      "required": false,
+      "cardinality": "zero-or-one",
+      "notApplicableReason": "Reference length does not include LDC",
       "acceptedExtensions": [
         ".bin"
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "exact-resolved-map-capacity"
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
         }
       }
+    }
+  ],
+  "inputSelectionGroups": [
+    {
+      "groupId": "ldc-selection",
+      "memberSlotIds": [
+        "ldc-input"
+      ],
+      "minimumSelected": 0,
+      "maximumSelected": 1
     }
   ],
   "spaces": [
@@ -109,9 +121,9 @@
       "instancePolicy": "singleton"
     },
     {
-      "spaceId": "ld-input",
+      "spaceId": "ldc-input",
       "kind": "input-artifact",
-      "slotId": "ld-input",
+      "slotId": "ldc-input",
       "instancePolicy": "singleton"
     },
     {
@@ -144,8 +156,8 @@
       }
     },
     {
-      "viewId": "ld-source",
-      "spaceId": "ld-input",
+      "viewId": "ldc-source",
+      "spaceId": "ldc-input",
       "selector": {
         "kind": "map-region",
         "regionId": "ldc-code"
@@ -168,7 +180,7 @@
       }
     },
     {
-      "viewId": "ld-output",
+      "viewId": "ldc-output",
       "spaceId": "output-image",
       "selector": {
         "kind": "map-region",
@@ -304,16 +316,41 @@
       "targetViewId": "dp-output"
     },
     {
-      "operationId": "copy-ld",
+      "operationId": "copy-ldc",
       "sequence": 300,
       "overlapPolicy": "reject",
       "reason": "Copy the reviewed NT51928 LDC range.",
       "kind": "copy-range",
-      "sourceViewId": "ld-source",
-      "targetViewId": "ld-output"
+      "sourceViewId": "ldc-source",
+      "targetViewId": "ldc-output"
     }
   ],
-  "validations": [],
+  "validations": [
+    {
+      "ruleId": "dp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "DP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "dp-source"
+    },
+    {
+      "ruleId": "tp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "TP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "tp-source"
+    },
+    {
+      "ruleId": "ldc-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "LDC_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "ldc-source"
+    }
+  ],
   "processorStages": [],
   "output": {
     "fileNameTemplate": "nt51928-standard-merge-gen-flash.bin",
@@ -322,6 +359,7 @@
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "gen-flash-bin-v2-51928-golden"
+    "gen-flash-bin-v2-51928-golden",
+    "adr-0043-owner-accepted-2026-07-28"
   ]
 }

@@ -21,24 +21,20 @@ public sealed record CanonicalCapabilityDefinition
         ArgumentNullException.ThrowIfNull(authoring);
         ArgumentNullException.ThrowIfNull(publication);
         ArgumentNullException.ThrowIfNull(evidence);
-
-        if (!StringComparer.Ordinal.Equals(identity.IcId, compiledComposition.IcId) ||
-            !StringComparer.Ordinal.Equals(
-                identity.WorkflowId,
-                compiledComposition.ExperienceId))
-        {
-            throw new ArgumentException(
-                "Capability route identity must match the compiled IC and workflow.",
-                nameof(identity));
-        }
+        MetadataPlanDefinition effectiveMetadataPlan =
+            metadataPlan ?? MetadataPlanDefinition.Empty;
+        CapabilityPublicationCoherence.ValidateDefinition(
+            identity,
+            compiledComposition,
+            authoring,
+            publication,
+            evidence,
+            effectiveMetadataPlan);
 
         Identity = identity;
         CompiledComposition = compiledComposition;
         CapabilityFingerprint = compiledComposition.CompilationFingerprint;
-        MetadataPlan = metadataPlan ?? MetadataPlanDefinition.Empty;
-        ValidateDecision(authoring, "authoring decision");
-        ValidateDecision(publication, "publication decision");
-        ValidateDecision(evidence, "evidence decision");
+        MetadataPlan = effectiveMetadataPlan;
         Authoring = authoring;
         Publication = publication;
         Evidence = evidence;
@@ -71,21 +67,6 @@ public sealed record CanonicalCapabilityDefinition
             CompiledCompositionEligibility.LegacyRuntimeExecutable or
             CompiledCompositionEligibility.V2RuntimeExecutable;
 
-    private void ValidateDecision<TValue>(
-        PinnedCapabilityDecision<TValue> decision,
-        string label)
-        where TValue : struct, Enum
-    {
-        if (!StringComparer.Ordinal.Equals(decision.RouteId, Identity.RouteId) ||
-            !StringComparer.Ordinal.Equals(
-                decision.CapabilityFingerprint,
-                CapabilityFingerprint))
-        {
-            throw new ArgumentException(
-                $"Capability {label} must pin the current route id and capability fingerprint.",
-                nameof(decision));
-        }
-    }
 }
 
 /// <summary>Complete candidate loaded and compiled before atomic publication.</summary>
@@ -141,24 +122,81 @@ public readonly record struct ResolutionToken
     /// <summary>Stable token text for equality and report provenance.</summary>
     public string Value { get; }
 
+    internal void EnsureValid(string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(Value))
+        {
+            throw new ArgumentException(
+                "Resolution tokens must retain a non-empty publication identity.",
+                parameterName);
+        }
+    }
+
     /// <inheritdoc />
     public override string ToString()
     {
+        EnsureValid(nameof(ResolutionToken));
         return Value;
     }
 }
 
 /// <summary>Application-owned resolved capability bound to one catalog publication.</summary>
-public sealed record ResolvedCapability(
-    CapabilityRouteIdentity Identity,
-    string CapabilityFingerprint,
-    CompiledComposition CompiledComposition,
-    PinnedCapabilityDecision<CapabilityAuthoringAvailability> Authoring,
-    PinnedCapabilityDecision<CapabilityPublicationStatus> Publication,
-    PinnedCapabilityDecision<CapabilityEvidenceStatus> Evidence,
-    ResolvedMetadataPlan MetadataPlan,
-    ResolutionToken ResolutionToken)
+public sealed record ResolvedCapability
 {
+    /// <summary>Creates one checked capability bound to one exact publication.</summary>
+    public ResolvedCapability(
+        CapabilityRouteIdentity identity,
+        string capabilityFingerprint,
+        CompiledComposition compiledComposition,
+        PinnedCapabilityDecision<CapabilityAuthoringAvailability> authoring,
+        PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
+        PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
+        ResolvedMetadataPlan metadataPlan,
+        ResolutionToken resolutionToken)
+    {
+        CapabilityPublicationCoherence.ValidateResolved(
+            identity,
+            capabilityFingerprint,
+            compiledComposition,
+            authoring,
+            publication,
+            evidence,
+            metadataPlan,
+            resolutionToken);
+        Identity = identity;
+        CapabilityFingerprint = capabilityFingerprint;
+        CompiledComposition = compiledComposition;
+        Authoring = authoring;
+        Publication = publication;
+        Evidence = evidence;
+        MetadataPlan = metadataPlan;
+        ResolutionToken = resolutionToken;
+    }
+
+    /// <summary>Stable exact route identity.</summary>
+    public CapabilityRouteIdentity Identity { get; }
+
+    /// <summary>Executable semantic fingerprint.</summary>
+    public string CapabilityFingerprint { get; }
+
+    /// <summary>Exact compiled composition published by this capability.</summary>
+    public CompiledComposition CompiledComposition { get; }
+
+    /// <summary>Shared UI/CLI authoring decision.</summary>
+    public PinnedCapabilityDecision<CapabilityAuthoringAvailability> Authoring { get; }
+
+    /// <summary>Independent publication decision.</summary>
+    public PinnedCapabilityDecision<CapabilityPublicationStatus> Publication { get; }
+
+    /// <summary>Independent evidence declaration.</summary>
+    public PinnedCapabilityDecision<CapabilityEvidenceStatus> Evidence { get; }
+
+    /// <summary>Canonical metadata plan bound to this publication.</summary>
+    public ResolvedMetadataPlan MetadataPlan { get; }
+
+    /// <summary>Unique token for this exact catalog publication.</summary>
+    public ResolutionToken ResolutionToken { get; }
+
     /// <summary>Compiler-proved execution admission.</summary>
     public bool ExecutionAdmitted =>
         CompiledComposition.Eligibility is

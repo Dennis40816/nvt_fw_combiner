@@ -207,7 +207,7 @@ public sealed class SupportMatrixProjectionTests
         "2-8-ic",
         "nt51929-ctrlram-fw1x-cascade-full-flash",
         "nfc.nt51929.ctrlram-postbuild-v1:legacy-combiner-1.13.0:Cascade|" +
-        "fingerprint:7c191d49bec204a5a2b3dd28e69ffc3f53365e96772d0e0d87d34bd93e4a137e")]
+        "fingerprint:5e4ebeb59a8044793163e0a0dc452c91a620dcbfaaacb32b5c0d26c90662793a")]
     public void CtrlRamRowsRetainExactPostbuildIcCount(
         string icId,
         string icCountVariant,
@@ -224,9 +224,10 @@ public sealed class SupportMatrixProjectionTests
             candidate.Route.Identity.MapVariant == mapVariant);
 
         Assert.True(row.Route.ExecutionAdmitted);
-        Assert.Equal(
-            expectedIntegrityRouteId,
-            row.Route.Identity.IntegrityRouteId);
+        Assert.True(
+            StringComparer.Ordinal.Equals(expectedIntegrityRouteId, row.Route.Identity.IntegrityRouteId),
+            $"Expected integrity route: {expectedIntegrityRouteId}{Environment.NewLine}" +
+            $"Actual integrity route: {row.Route.Identity.IntegrityRouteId}");
     }
 
     /// <summary>The snapshot is immutable-by-copy, exact, and rebuilt without static UI state.</summary>
@@ -249,6 +250,14 @@ public sealed class SupportMatrixProjectionTests
         Assert.Equal(
             firstRouteIds.Length,
             firstRouteIds.Distinct(StringComparer.Ordinal).Count());
+        SupportMatrixRow nt51928StandardMerge = Assert.Single(
+            first.Rows,
+            static row =>
+                row.Route.Identity.IcId == "NT51928" &&
+                row.Route.Identity.WorkflowId == IcWorkflowIds.StandardMerge);
+        Assert.Equal(
+            "nt51928-standard-merge-512k",
+            nt51928StandardMerge.Route.Identity.MapVariant);
         Assert.Equal(
             first.Rows.Count,
             first.Rows.Select(static row => row.Route.Identity)

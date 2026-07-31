@@ -6,6 +6,7 @@ Included:
 
 - `IC_FlashMap_20260701.xlsx` workbook evidence used for human flash-map review.
 - `IC_FlashMap_20260725.xlsx` workbook update with NT51926/NT51927 TP Overview backup-region corrections and NT51926 versioned TP Overview sections. The current 2026-07-25 01:38:23 copy is tracked by SHA-256 in `SOURCE_MANIFEST.json`.
+- `IC_FlashMap_20260730.xlsx` owner-approved workbook update with the compact `TP Address Tables` sheet, unified hexadecimal ranges, separate Initial Code/LDC rows, and the reviewed IC/row exclusions. Its exact bytes are tracked by SHA-256 in `SOURCE_MANIFEST.json`.
 - `postbuild/` legacy postbuild BAT files used to verify Combiner command order and arguments.
 - `mmap/` legacy memory-map headers used to verify address ranges and header locations.
 - `common-fw/ap_fwconfig.c` FWConfig structure reference used to verify Common FW, FW/bar, and PID offsets.

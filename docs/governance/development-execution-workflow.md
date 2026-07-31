@@ -41,6 +41,37 @@ owned files. Never stage, reset, amend, or revert another agent's changes.
 Before handoff: format changed files, run the narrow test, inspect the exact
 diff, apply scoped Polytail, run the final gate, and record residual evidence.
 
+## Recurring specification conformance audit
+
+During the `0.10.x` restructuring program, perform a repository-wide
+conformance audit after every three tickets merged into the integration branch
+or at the end of a dependency block, whichever happens first. A firmware-
+semantic R3 ticket also audits its affected authority before owner review even
+when the global cadence has not yet been reached.
+
+The audit is bidirectional:
+
+1. For every current canonical requirement in `SPEC.md`, accepted ADRs,
+   contracts, schemas, profiles, and owner-approved evidence, identify the
+   implementing production owner and executable test or record a named,
+   ticketed gap.
+2. For every new or changed production behavior, profile fact, validation,
+   issue code, processor range, and golden claim, identify exactly one current
+   canonical authority. Historical evidence may explain a fixture but cannot
+   silently become runtime policy.
+3. Run repository structure/contract validation and the affected architecture,
+   profile, golden, and behavior tests. Classify rather than conceal any
+   deferred mismatch: `fixed-now`, `allocated-to-ticket`, `blocked-evidence`,
+   or `obsolete-authority`.
+4. Record the audited integration commit, authority inventory, commands,
+   findings, dispositions, and next audit trigger in the corresponding
+   program/ticket document or PR evidence. A green verifier is supporting
+   evidence, not a substitute for the bidirectional review.
+
+Do not broaden the current ticket merely to close an unrelated allocated gap.
+Confirmed contradictions in authority or executable behavior must be fixed or
+explicitly block integration.
+
 ## Retry policy
 
 - Never rerun the same command with the same environment and inputs unchanged.
