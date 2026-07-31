@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
@@ -405,6 +406,10 @@ public sealed record WorkbenchRunResult(
     /// </summary>
     [JsonIgnore]
     public GeneralMappingDraftState? AcceptedGeneralMappingDraft { get; internal init; }
+
+    /// <summary>Shared action state retained for CLI and later Presentation consumers.</summary>
+    [JsonIgnore]
+    public CapabilityActionReadinessSnapshot? ActionReadiness { get; internal init; }
 
     /// <summary>Non-serialized immutable output bytes retained only for a declared follow-up delivery artifact.</summary>
     [JsonIgnore]

@@ -17,7 +17,8 @@ public sealed record CapabilityAdmissionSnapshot
         CapabilityAuthoringAvailability authoringAvailability,
         bool executionAdmitted,
         CapabilityEvidenceStatus evidenceStatus,
-        CapabilityPublicationStatus publicationStatus)
+        CapabilityPublicationStatus publicationStatus,
+        CapabilityActionBlocker? executionBlocker = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
         ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
@@ -44,12 +45,23 @@ public sealed record CapabilityAdmissionSnapshot
                 "Capability admission dimensions must use defined values.");
         }
 
+        if ((executionAdmitted && executionBlocker is not null) ||
+            (executionBlocker is not null &&
+             executionBlocker.Dimension !=
+             CapabilityReadinessDimension.Execution))
+        {
+            throw new ArgumentException(
+                "Only a blocked execution admission may carry one execution blocker.",
+                nameof(executionBlocker));
+        }
+
         RouteId = routeId;
         CapabilityFingerprint = capabilityFingerprint;
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
         AuthoringAvailability = authoringAvailability;
         ExecutionAdmitted = executionAdmitted;
+        ExecutionBlocker = executionBlocker;
         EvidenceStatus = evidenceStatus;
         PublicationStatus = publicationStatus;
     }
@@ -71,6 +83,9 @@ public sealed record CapabilityAdmissionSnapshot
 
     /// <summary>Compiler-proved engine execution admission.</summary>
     public bool ExecutionAdmitted { get; }
+
+    /// <summary>Optional exact execution blocker used by every action consumer.</summary>
+    public CapabilityActionBlocker? ExecutionBlocker { get; }
 
     /// <summary>Independent certification evidence classification.</summary>
     public CapabilityEvidenceStatus EvidenceStatus { get; }
@@ -220,6 +235,10 @@ public static class CapabilityActionReadinessIssueCodes
     /// <summary>The compiler did not admit the resolved composition for execution.</summary>
     public const string ExecutionNotAdmitted = "capability.readiness.execution-not-admitted";
 
+    /// <summary>Selected General Replace targets require a Parent stage that is absent.</summary>
+    public const string PostbuildStageAuthorityMissing =
+        "capability.readiness.postbuild-stage-authority-missing";
+
     /// <summary>A required user input or selection is absent.</summary>
     public const string InputPending = "capability.readiness.input-pending";
 
@@ -353,6 +372,7 @@ public static class CapabilityActionReadinessResolver
 
         blockers.Add(new RankedBlocker(
             1,
+            admission.ExecutionBlocker ??
             new CapabilityActionBlocker(
                 CapabilityActionReadinessIssueCodes.ExecutionNotAdmitted,
                 CapabilityReadinessDimension.Execution,

@@ -59,7 +59,8 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<OperationRunSummary> operations,
         IReadOnlyList<CompositionIssue> issues,
         string outputFileName,
-        GeneralAuthoringAdmissionResult? generalAdmission = null)
+        GeneralAuthoringAdmissionResult? generalAdmission = null,
+        GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null)
     {
         string profileId = $"{icId.ToLowerInvariant()}-{replaceMode.ToLowerInvariant()}-replace-workbench";
         return CreateBlockedReportRunResult(
@@ -75,7 +76,11 @@ public static partial class WorkbenchCompositionService
             operations,
             issues,
             outputFileName,
-            generalAdmission: generalAdmission);
+            generalAdmission: generalAdmission,
+            diagnosticPreview: diagnosticPreview,
+            status: diagnosticPreview is null
+                ? "Blocked"
+                : "DiagnosticPlanOnly");
     }
 
     private static IReadOnlyList<OperationRunSummary> CreateExplicitMappingPlanningOperations(
@@ -117,7 +122,9 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<CompositionIssue> issues,
         string outputFileName,
         GeneralAuthoringAdmissionResult? generalAdmission = null,
-        ImageInitializationSummary? imageInitialization = null)
+        ImageInitializationSummary? imageInitialization = null,
+        GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null,
+        string status = "Blocked")
     {
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         var report = new CompositionRunReport(
@@ -136,11 +143,12 @@ public static partial class WorkbenchCompositionService
             issues,
             new OutputArtifactSummary(outputFileName, 0, EmptySha256, committed: false),
             generalAdmission: generalAdmission?.ToSummary(),
-            imageInitialization: imageInitialization);
+            imageInitialization: imageInitialization,
+            diagnosticPreview: diagnosticPreview);
         string reportJson = JsonSerializer.Serialize(report, ReportJsonOptions);
         return new WorkbenchRunResult(
             false,
-            "Blocked",
+            status,
             profileId,
             0,
             EmptySha256,

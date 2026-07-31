@@ -256,6 +256,115 @@ public sealed partial class ReplaceCliCommandTests
         await AssertGeneralReplaceWorkflowNotSupportedAsync(result, report, outputPath: null);
     }
 
+    /// <summary>NT51926 TP mappings produce only the explicit missing-Parent-stage diagnostic plan.</summary>
+    [Fact]
+    public async Task Nt51926GeneralReplaceTpPreviewIsDiagnosticPlanOnly()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write(
+            "reference.bin",
+            CreatePattern(0x40000, 0x29));
+        string input = workspace.Write("input.bin", [0xA5, 0x5A]);
+        string report = workspace.PathFor("diagnostic-plan.json");
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "preview",
+            "--profile",
+            "NT51926",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--mapping",
+            $"0x22800+0x2={input}",
+            "--report",
+            report,
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("Status: DiagnosticPlanOnly", result.Output);
+        Assert.Contains("Output: not produced", result.Output);
+        Assert.DoesNotContain("SHA256:", result.Output);
+        using JsonDocument document = JsonDocument.Parse(
+            await File.ReadAllTextAsync(
+                report,
+                TestContext.Current.CancellationToken));
+        JsonElement root = document.RootElement;
+        JsonElement diagnostic = root.GetProperty("DiagnosticPreview");
+        Assert.Equal(
+            "diagnostic-plan-only",
+            diagnostic.GetProperty("Mode").GetString());
+        Assert.False(diagnostic.GetProperty("OutputProduced").GetBoolean());
+        Assert.False(
+            diagnostic.GetProperty("ClaimsFinalIntegrity").GetBoolean());
+        Assert.True(diagnostic.GetProperty("PostbuildRequired").GetBoolean());
+        Assert.Contains(
+            "no output was produced",
+            diagnostic.GetProperty("Message").GetString(),
+            StringComparison.Ordinal);
+        Assert.Equal(
+            JsonValueKind.Null,
+            diagnostic.GetProperty("RequiredStageId").ValueKind);
+        Assert.Equal(
+            "capability.readiness.postbuild-stage-authority-missing",
+            diagnostic.GetProperty("Blocker").GetProperty("Code").GetString());
+        Assert.Contains(
+            diagnostic.GetProperty("Coverage").EnumerateArray(),
+            segment =>
+                segment.GetProperty("Disposition").GetString() == "Changed" &&
+                segment.GetProperty("Range").GetProperty("Start").GetInt64() ==
+                0x22800);
+        _ = Assert.Single(root.GetProperty("Operations").EnumerateArray());
+        Assert.Empty(root.GetProperty("Mutations").EnumerateArray());
+        Assert.False(root.GetProperty("Output").GetProperty("Committed").GetBoolean());
+    }
+
+    /// <summary>Build stays blocked by the same missing-stage issue and never creates a BIN.</summary>
+    [Fact]
+    public async Task Nt51926GeneralReplaceTpBuildRemainsBlocked()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write(
+            "reference.bin",
+            CreatePattern(0x40000, 0x2A));
+        string input = workspace.Write("input.bin", [0xA5, 0x5A]);
+        string output = workspace.PathFor("must-not-exist.bin");
+        string report = workspace.PathFor("blocked-build.json");
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "build",
+            "--profile",
+            "NT51926",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--mapping",
+            $"0x22800+0x2={input}",
+            "--output",
+            output,
+            "--report",
+            report,
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(
+            "capability.readiness.postbuild-stage-authority-missing",
+            result.Error,
+            StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+        using JsonDocument document = JsonDocument.Parse(
+            await File.ReadAllTextAsync(
+                report,
+                TestContext.Current.CancellationToken));
+        JsonElement root = document.RootElement;
+        Assert.False(root.TryGetProperty("DiagnosticPreview", out _));
+        Assert.Empty(root.GetProperty("Mutations").EnumerateArray());
+        Assert.False(root.GetProperty("Output").GetProperty("Committed").GetBoolean());
+    }
+
     /// <summary>Verifies malformed real IC General Replace mapping paths are rejected before planning.</summary>
     [Fact]
     public async Task GeneralReplacePreviewRejectsEmptyWorkbenchMappingPath()
