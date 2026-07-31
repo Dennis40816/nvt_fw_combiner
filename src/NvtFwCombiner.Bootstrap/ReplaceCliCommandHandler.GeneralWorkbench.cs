@@ -22,11 +22,40 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        if (!TryCreateWorkbenchGeneralAuthoringInputs(
-                options,
-                error,
-                out GeneralMappingDraftState? mappingDraft))
+        bool usesSavedRule = options.Values.TryGetValue(
+            "--rule",
+            out string? rulePath);
+        GeneralSavedRuleResourcePolicy? savedRulePolicy = null;
+        if (usesSavedRule &&
+            (options.GetValues("--mapping").Count != 0 ||
+             options.GetValues("--patch").Count != 0 ||
+             options.GetValues("--fill").Count != 0))
         {
+            error.WriteLine(
+                "error: --rule cannot be combined with --mapping, --patch, or --fill");
+            return UsageError;
+        }
+
+        if (usesSavedRule
+                ? !TryCreateGeneralReplaceDraftFromSavedRule(
+                    rulePath!,
+                    options.GetValues("--slot"),
+                    basePath,
+                    icId,
+                    error,
+                    out GeneralMappingDraftState? mappingDraft,
+                    out savedRulePolicy)
+                : !TryCreateWorkbenchGeneralAuthoringInputs(
+                    options,
+                    error,
+                    out mappingDraft))
+        {
+            return UsageError;
+        }
+
+        if (!usesSavedRule && options.GetValues("--slot").Count != 0)
+        {
+            error.WriteLine("error: --slot requires --rule");
             return UsageError;
         }
 
@@ -41,6 +70,11 @@ internal static partial class ReplaceCliCommandHandler
             protectedInputPaths[mapping.MappingId] = Path.GetFullPath(mapping.Source.Reference);
         }
 
+        if (usesSavedRule)
+        {
+            protectedInputPaths["saved-rule"] = Path.GetFullPath(rulePath!);
+        }
+
         return await RunWorkbenchReplaceAsync(
                 action,
                 icId,
@@ -48,18 +82,84 @@ internal static partial class ReplaceCliCommandHandler
                 IcWorkflowIds.GeneralReplace,
                 options,
                 protectedInputPaths,
-                (build, outputPath, token) => WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
-                    icId,
-                    icNumber,
-                    slotPaths,
-                    mappingDraft,
-                    build,
-                    token,
-                    outputPath),
+                (build, outputPath, token) => savedRulePolicy is null
+                    ? WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+                        icId,
+                        icNumber,
+                        slotPaths,
+                        mappingDraft,
+                        build,
+                        token,
+                        outputPath)
+                    : WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+                        icId,
+                        icNumber,
+                        slotPaths,
+                        mappingDraft,
+                        build,
+                        token,
+                        outputPath,
+                        savedRulePolicy),
                 output,
                 error,
                 cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    private static bool TryCreateGeneralReplaceDraftFromSavedRule(
+        string rulePath,
+        IReadOnlyList<string> slotValues,
+        string basePath,
+        string icId,
+        TextWriter error,
+        [NotNullWhen(true)] out GeneralMappingDraftState? mappingDraft,
+        [NotNullWhen(true)] out GeneralSavedRuleResourcePolicy? savedRulePolicy)
+    {
+        mappingDraft = null;
+        savedRulePolicy = null;
+        if (!StringComparer.Ordinal.Equals(
+                icId,
+                WorkbenchCompositionService.Nt51926GeneralReplaceIcId))
+        {
+            error.WriteLine(
+                $"error: no exact trusted {icId} / General Replace Saved Rule parent is registered");
+            return false;
+        }
+
+        if (!SavedRuleCliSupport.TryCreateSlotBindings(
+                slotValues,
+                error,
+                out Dictionary<string, string>? slotsById))
+        {
+            return false;
+        }
+
+        const string parentReferenceSlotId =
+            WorkbenchCompositionService.Nt51926GeneralReplaceReferenceSlotId;
+        if (slotsById.ContainsKey(parentReferenceSlotId))
+        {
+            error.WriteLine(
+                $"error: --slot {parentReferenceSlotId} is reserved for --base");
+            return false;
+        }
+
+        slotsById.Add(parentReferenceSlotId, Path.GetFullPath(basePath));
+
+        SavedRuleV2DraftLoadResult<GeneralMappingDraftState> load =
+            SavedRuleV2GeneralMergeDraftLoader.LoadGeneralReplace(
+                rulePath,
+                slotsById,
+                WorkbenchCompositionService
+                    .GetNt51926GeneralReplaceSavedRuleAdmissionContext());
+        if (!load.IsValid)
+        {
+            SavedRuleCliSupport.PrintIssues(load.Issues, error);
+            return false;
+        }
+
+        mappingDraft = load.Draft!;
+        savedRulePolicy = load.ResourcePolicy!;
+        return true;
     }
 
     private static bool TryCreateWorkbenchGeneralAuthoringInputs(

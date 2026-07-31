@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.SavedRuleIssueCodes;
 
@@ -7,6 +8,45 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class SavedRuleCliCommandTests
 {
+    /// <summary>Headless v2 validation reports canonical identity without granting import trust.</summary>
+    [Fact]
+    public async Task SavedRuleValidateV2ReportsCanonicalUntrustedDraftIdentity()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeV2RuleObject();
+        string expectedHash = SavedCompositionRuleV2ContentHasher.Calculate(
+            JsonSerializer.SerializeToElement(json));
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Rule: copy-display-window 1.0.0", result.Output, StringComparison.Ordinal);
+        Assert.Contains($"Content SHA256: {expectedHash}", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Lifecycle: Draft", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Trusted: False", result.Output, StringComparison.Ordinal);
+        Assert.Contains(
+            "Parent: nt51950-nt51951-general-merge-logical-candidate / nt51950-general-merge-logical-candidate",
+            result.Output,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>Headless v2 mapping projection reuses the canonical General mapping draft.</summary>
+    [Fact]
+    public async Task SavedRuleMappingsV2PrintsCanonicalGeneralMergeFragment()
+    {
+        using var workspace = TempWorkspace.Create();
+        string rule = await WriteRuleAsync(workspace, ValidGeneralMergeV2RuleObject());
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "mappings", rule]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains(
+            "--mapping 0x0+0x1+0x1=<source-bin>",
+            result.Output,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Normal Preview and Build reject v2 documents outside the complete reviewed contract.</summary>
     [Theory]
     [InlineData("preview", "missing-governance", "saved-rule.v2.contract-invalid")]
@@ -43,6 +83,12 @@ public sealed partial class SavedRuleCliCommandTests
     [InlineData("build", "broadened-slot-extension", "saved-rule.v2.parent-narrowing-invalid")]
     [InlineData("preview", "unknown-validation-reference", "saved-rule.v2.parent-narrowing-invalid")]
     [InlineData("build", "unknown-validation-reference", "saved-rule.v2.parent-narrowing-invalid")]
+    [InlineData("preview", "missing-initializer", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "missing-initializer", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "invalid-fill", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "invalid-fill", "saved-rule.v2.contract-invalid")]
+    [InlineData("preview", "unknown-initializer-property", "saved-rule.v2.contract-invalid")]
+    [InlineData("build", "unknown-initializer-property", "saved-rule.v2.contract-invalid")]
     public async Task GeneralMergeRuleExecutionRequiresCompleteV2Admission(
         string action,
         string mutation,
@@ -109,6 +155,15 @@ public sealed partial class SavedRuleCliCommandTests
                 break;
             case "unknown-validation-reference":
                 json["validationRuleIds"] = new JsonArray("not-in-parent");
+                break;
+            case "missing-initializer":
+                _ = json.Remove("imageInitialization");
+                break;
+            case "invalid-fill":
+                json["imageInitialization"]!["fillByte"] = 256;
+                break;
+            case "unknown-initializer-property":
+                json["imageInitialization"]!["unexpected"] = true;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(
@@ -376,6 +431,8 @@ public sealed partial class SavedRuleCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         JsonObject json = ValidGeneralMergeV2RuleObject(capacity: 4, fillByte: 0xA5);
+        string expectedRuleHash = SavedCompositionRuleV2ContentHasher.Calculate(
+            JsonSerializer.SerializeToElement(json));
         string rule = await WriteRuleAsync(workspace, json);
         string source = workspace.Write("source.bin", [0x10]);
         string output = workspace.PathFor("out.bin");
@@ -444,6 +501,21 @@ public sealed partial class SavedRuleCliCommandTests
         Assert.Equal(
             "copy-display-window",
             admission.GetProperty("SavedRuleId").GetString());
+        JsonElement savedRule = admission.GetProperty("SavedRule");
+        Assert.Equal("copy-display-window", savedRule.GetProperty("RuleId").GetString());
+        Assert.Equal("1.0.0", savedRule.GetProperty("RuleVersion").GetString());
+        Assert.Equal(expectedRuleHash, savedRule.GetProperty("ContentHash").GetString());
+        JsonElement parent = savedRule.GetProperty("Parent");
+        Assert.Equal(
+            "nt51950-nt51951-general-merge-logical-candidate",
+            parent.GetProperty("BundleId").GetString());
+        Assert.Equal(
+            "nt51950-general-merge-logical-candidate",
+            parent.GetProperty("ProfileId").GetString());
+        Assert.Equal(
+            "nt51950-nt51951-dp-perspective",
+            parent.GetProperty("FamilyId").GetString());
+        Assert.Equal("logical-output", parent.GetProperty("MapId").GetString());
         JsonElement effective =
             admission.GetProperty("EffectiveLimits");
         Assert.Equal(
@@ -460,6 +532,38 @@ public sealed partial class SavedRuleCliCommandTests
         Assert.Equal(
             1,
             resource.GetProperty("LengthBytes").GetInt64());
+    }
+
+    /// <summary>Omitted v2 fill reaches compilation as the canonical zero default.</summary>
+    [Fact]
+    public async Task GeneralMergeSavedRuleDefaultsOmittedFillToZero()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeV2RuleObject(capacity: 3);
+        _ = json["imageInitialization"]!.AsObject().Remove("fillByte");
+        string rule = await WriteRuleAsync(workspace, json);
+        string source = workspace.Write("source.bin", [0x10]);
+        string output = workspace.PathFor("out.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "build",
+            "--profile",
+            "NT51950",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+            "--output",
+            output,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(
+            [0x00, 0x10, 0x00],
+            await File.ReadAllBytesAsync(
+                output,
+                TestContext.Current.CancellationToken));
     }
 
     /// <summary>Rejects saved-rule report paths that would overwrite the reviewed rule JSON.</summary>
@@ -488,5 +592,54 @@ public sealed partial class SavedRuleCliCommandTests
         Assert.Contains("\"ruleId\":\"copy-display-window\"", await File.ReadAllTextAsync(
             rule,
             TestContext.Current.CancellationToken), StringComparison.Ordinal);
+    }
+
+    /// <summary>Preview identity binds canonical Saved Rule content beyond id/version and path.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewTokenChangesWhenRuleSemanticHashChanges()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject firstJson = ValidGeneralMergeV2RuleObject();
+        JsonObject secondJson = ValidGeneralMergeV2RuleObject();
+        firstJson["description"] = "First reviewed meaning.";
+        secondJson["description"] = "Changed reviewed meaning.";
+        string firstRule = await WriteRuleAsync(workspace, firstJson, "first-rule.json");
+        string secondRule = await WriteRuleAsync(workspace, secondJson, "second-rule.json");
+        string source = workspace.Write("source.bin", [0x10]);
+
+        CliRunResult first = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--rule",
+            firstRule,
+            "--slot",
+            $"source-bin={source}",
+        ]);
+        CliRunResult second = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--rule",
+            secondRule,
+            "--slot",
+            $"source-bin={source}",
+        ]);
+
+        Assert.Equal(0, first.ExitCode);
+        Assert.Equal(0, second.ExitCode);
+        Assert.NotEqual(ReadPreviewToken(first.Output), ReadPreviewToken(second.Output));
+    }
+
+    private static string ReadPreviewToken(string output)
+    {
+        const string prefix = "PreviewToken: ";
+        string line = Assert.Single(
+            output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries),
+            static candidate =>
+                candidate.StartsWith(prefix, StringComparison.Ordinal));
+        return line[prefix.Length..];
     }
 }

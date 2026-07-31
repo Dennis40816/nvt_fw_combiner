@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Bootstrap;
 
-internal static class SavedRuleCliCommandHandler
+internal static partial class SavedRuleCliCommandHandler
 {
     private const int Success = 0;
     private const int CompositionFailed = 1;
@@ -33,6 +33,15 @@ internal static class SavedRuleCliCommandHandler
         {
             await error.WriteLineAsync($"error: saved-rule {action} expects exactly one JSON file path").ConfigureAwait(false);
             return UsageError;
+        }
+
+        if (HasV2SchemaVersion(args[1]))
+        {
+            return await RunV2Async(
+                action,
+                args[1],
+                output,
+                error).ConfigureAwait(false);
         }
 
         SavedCompositionRuleLoadResult result = SavedCompositionRuleLoader.Load(args[1]);

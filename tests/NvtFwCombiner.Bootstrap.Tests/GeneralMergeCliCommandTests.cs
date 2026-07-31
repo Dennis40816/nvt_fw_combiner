@@ -7,7 +7,7 @@ using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>CLI and workbench facade tests for General Merge command groups.</summary>
-public sealed class GeneralMergeCliCommandTests
+public sealed partial class GeneralMergeCliCommandTests
 {
     /// <summary>Verifies an explicit arbitrary blank byte initializes every unmapped output byte.</summary>
     [Theory]

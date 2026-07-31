@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -15,16 +16,50 @@ internal static partial class ReplaceCliCommandHandler
         await output.WriteLineAsync($"Status: {result.Status}").ConfigureAwait(false);
         await output.WriteLineAsync($"Profile: {result.ProfileId} ({icId})").ConfigureAwait(false);
         await output.WriteLineAsync($"Experience: {experienceId}").ConfigureAwait(false);
-        await output.WriteLineAsync($"Output: {result.OutputFileName}").ConfigureAwait(false);
-        await output.WriteLineAsync($"Size: {result.OutputSize.ToString(CultureInfo.InvariantCulture)} bytes").ConfigureAwait(false);
-        await output.WriteLineAsync($"SHA256: {result.OutputSha256}").ConfigureAwait(false);
+        bool isDiagnosticPlanOnly = StringComparer.Ordinal.Equals(
+            result.Status,
+            "DiagnosticPlanOnly");
+        if (isDiagnosticPlanOnly || !result.HasRunReport)
+        {
+            await output.WriteLineAsync("Output: not produced").ConfigureAwait(false);
+        }
+        else
+        {
+            await output.WriteLineAsync($"Output: {result.OutputFileName}").ConfigureAwait(false);
+            await output.WriteLineAsync($"Size: {result.OutputSize.ToString(CultureInfo.InvariantCulture)} bytes").ConfigureAwait(false);
+            await output.WriteLineAsync($"SHA256: {result.OutputSha256}").ConfigureAwait(false);
+        }
+
         if (result.CommittedOutputId is not null)
         {
             await output.WriteLineAsync($"Committed: {result.CommittedOutputId}").ConfigureAwait(false);
         }
 
+        if (!result.HasRunReport)
+        {
+            CapabilityActionBlocker? blocker =
+                result.ActionReadiness?.Build.PrimaryBlocker;
+            if (blocker is not null)
+            {
+                await error.WriteLineAsync(
+                        $"  {blocker.Code}: {blocker.Message} ({blocker.SubjectId})")
+                    .ConfigureAwait(false);
+            }
+
+            return;
+        }
+
         using var document = JsonDocument.Parse(result.ReportJson);
         JsonElement root = document.RootElement;
+        if (root.TryGetProperty(
+                "DiagnosticPreview",
+                out JsonElement diagnostic))
+        {
+            await output.WriteLineAsync(
+                    diagnostic.GetProperty("Message").GetString())
+                .ConfigureAwait(false);
+        }
+
         if (root.TryGetProperty("Mutations", out JsonElement mutations) && mutations.GetArrayLength() > 0)
         {
             await output.WriteLineAsync("Mutations:").ConfigureAwait(false);

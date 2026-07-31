@@ -233,27 +233,49 @@ Implemented:
   mapping-count and total-write limits before compilation.
 - `saved-rule mappings <rule.json>` prints normalized mapping rows and CLI mapping fragments without reading or writing firmware bytes.
 - `general-merge preview|build --rule <v2-rule.json> --slot <slot-id=path>` consumes the rule's closed output initializer and General Merge mapping fragments only after explicit slot binding. `--size` and `--fill` cannot override that initializer; the resulting draft compiles through the same General Merge planner/executor as manual mappings.
-- General Replace saved-rule mapping projection rejects root or fragment processor dependencies until postbuild-aware rule projection is designed and covered by golden evidence.
-- Reports mark rule-driven operations with `Provenance.Kind = "saved-rule"` plus rule id/version.
+- General Merge v2 rules own exact capacity and arbitrary blank fill. Canonical
+  semantic hashing excludes path and display name, while reports retain exact
+  rule id/version/hash plus bundle/profile/family/map Parent identity.
+- The Application lifecycle use case and constrained atomic filesystem adapter
+  perform local Save-in-place and Catalog-to-working-copy writes. Semantic
+  edits return to Draft, clear approval/evidence/trust, and require a new rule
+  version before publication; configured Catalog roots remain read-only. The
+  use case owns one defensive byte snapshot, requires the complete v2 schema,
+  and derives rule id/version/hash plus all Parent facts from those same bytes
+  before any lifecycle decision or write.
+- Shared General admission intersects Application, exact Parent, and Saved
+  Rule mapping/total-write/resource limits. It independently compares exact
+  Parent identity before compilation, so a runner caller cannot forge report
+  provenance.
+- Selected Saved Rule files retain content-authoritative length/SHA-256
+  snapshots and use the shared Reload/Rebind and build-time revalidation path.
+- Exact NT51926 single-selector, full-Flash, file-backed General Replace Saved
+  Rules may execute DP-only mappings through the existing V2
+  runtime-reference compiler and shared `ReplaceRange` engine. Reference is
+  immutable, the rule cannot declare processor authority, and every target
+  must remain inside the Parent DP region.
+- NT51926 TP-touching General Replace remains non-executable. Explicit Preview
+  may emit the #253 diagnostic plan-only report for missing Parent stage or
+  declared runtime tool; disabled Build exposes readiness without creating a
+  Run Report or BIN.
+- Reports mark rule-driven operations with `Provenance.Kind = "saved-rule"`
+  plus exact rule and Parent identity.
 
 Not implemented yet:
 
-- Versioned schema/runtime support for General Merge Saved Rule output
-  initialization. Current consumption still receives output size outside the
-  rule and uses the fixed-`0x00` compatibility initializer; it is therefore
-  not the final promotion-complete contract.
-- Canonical rule-content hashing, installed Trusted Catalog rule snapshots,
-  Draft/approval invalidation, read-only Catalog editing through a working
-  copy, and Save-in-place authoring lifecycle.
-- Enforcement of v2 `accessEnvelope` mapping/total-write caps against the
-  Parent, plus versioned per-slot input-length narrowing and shared
-  Application technical ceilings.
-- Content-authoritative selected-file `FileStamp`, Reload/Rebind behavior, and
-  build-time input re-verification for Saved Rule slot bindings.
+- Trusted Catalog publication/index management and promotion of a local Draft
+  into an installed rule snapshot. The implemented storage lifecycle enforces
+  configured Catalog immutability but does not grant publication or trust.
+- Versioned per-slot input-length narrowing in the serialized v2 schema; the
+  current shared admission enforces Parent slot limits and the rule fields
+  already defined by the pinned schema.
 - UI Saved Rules navigation, rule authoring, and Trusted/Draft state
   presentation.
 - Promotion into Standard Merge, DP Replace, CtrlRAM Replace, or any normal workflow catalog.
-- General Replace saved-rule execution. TP-touching Replace still needs explicit postbuild policy and golden evidence before rule consumption is enabled.
+- General Replace Saved Rule execution outside the exact NT51926 DP-only slice.
+  TP/POSTBUILD execution still needs an exact Parent stage, processor
+  write-range audit, independent whole-output golden evidence, and
+  firmware-owner approval.
 
 ## Versioning
 

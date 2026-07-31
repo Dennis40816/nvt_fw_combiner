@@ -42,6 +42,12 @@ rule id, version, content hash, and parent binding that were resolved at
 compile time. Reloading or overwriting the original authoring path cannot
 retroactively change an earlier report or trusted version.
 
+The canonical content hash is SHA-256 over the schema-valid semantic JSON
+projection. Object properties are written in ordinal name order, array order
+is preserved, and JSON scalar values are emitted in normalized form. The
+root `displayName` is excluded; host path, whitespace, indentation, and source
+property order are not inputs. Every other declared field is included.
+
 Catalog-managed rule paths are read-only. An editor that opens an installed
 Trusted Catalog entry must create a separate editable working copy before
 accepting changes. That copy may retain the logical `ruleId` and display name,
@@ -60,6 +66,10 @@ fill override. Changing capacity or fill changes the rule and compiled output id
 targets are offsets within canonical map regions, never absolute unowned writes. Equal length,
 bounds, alignment, overlap, atomicity, protected range, and processor dependencies are checked by
 the same profile compiler.
+
+Parent input slot ids and rule `slotTemplateId` values are one disjoint namespace. A rule whose
+slot template collides with any exact Parent slot is compatibility-invalid and must fail closed;
+it cannot shadow or rebind the Parent's required input.
 
 The General Merge/General Replace authoring contract currently admits only
 `overlapPolicy = reject`. Any intersection between two user-authored target
@@ -119,11 +129,19 @@ the reviewed final stage and its golden/evidence and firmware-owner gates are
 satisfied. There is no projection-only fallback that executes bytes under a
 weaker profile.
 
-The current runtime remains validation/mapping-projection only for General
-Replace saved rules. Enabling execution requires strict loader/compiler
-round-trip tests, parent-authority negative tests, processor diff auditing,
-full-output golden evidence for applicable TP routes, and explicit migration
-of the current compatibility boundary.
+The current executable boundary is the exact
+`nt51926-general-replace-dp-single-candidate` Parent and its
+`general-replace-full-flash-dp-code` explicit-range region. It clones the
+required immutable Reference, resolves rule targets relative to that canonical
+region, and lowers them into the Parent's normal DP-only runtime-reference
+Replace compiler and shared executor. The rule identity and exact Parent are
+retained in admission and report provenance. Rule-defined processor authority
+does not exist.
+
+All TP-touching and POSTBUILD-dependent General Replace saved rules remain
+closed. Enabling one requires an exact Parent stage declaration, strict
+loader/compiler round-trip tests, parent-authority negative tests, processor
+diff auditing, full-output golden evidence, and the firmware-owner R3 gate.
 
 Promotion uses the same monotonic stages as composition profiles. Migration or successful parsing
 does not promote a rule. `supported` requires an empty blocker list, exact parent compatibility,
@@ -144,9 +162,8 @@ General Replace never declares this logical-output initializer. Its output
 capacity and initial bytes come from the required immutable Reference and the
 exact resolved parent map.
 
-The currently pinned v2 JSON schema does not yet carry the General Merge
-initializer fields. Existing `--size` consumption with fixed `0x00` remains a
-compatibility implementation, not the promotion-complete target. Adding these
-fields requires a versioned schema revision, strict loader/round-trip support,
-and migration tests; this document does not silently reinterpret existing v2
-JSON bytes.
+The pinned v2 JSON schema carries this initializer as
+`imageInitialization`. Strict loader/round-trip support defaults an omitted
+`fillByte` to `0x00`; normal rule consumption rejects out-of-band `--size` and
+`--fill` overrides. The initializer, canonical rule hash, exact Parent, and
+accepted input snapshots participate in Preview/Build identity.

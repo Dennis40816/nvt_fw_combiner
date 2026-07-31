@@ -30,7 +30,8 @@ public sealed class CompositionRunReport
         OutputNamingSummary? outputNaming = null,
         IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null,
         GeneralAuthoringAdmissionSummary? generalAdmission = null,
-        ImageInitializationSummary? imageInitialization = null)
+        ImageInitializationSummary? imageInitialization = null,
+        GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
@@ -73,6 +74,7 @@ public sealed class CompositionRunReport
             : null;
         GeneralAdmission = generalAdmission;
         ImageInitialization = imageInitialization;
+        DiagnosticPreview = diagnosticPreview;
     }
 
     /// <summary>Stable run id.</summary>
@@ -141,6 +143,10 @@ public sealed class CompositionRunReport
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ImageInitializationSummary? ImageInitialization { get; }
 
+    /// <summary>Plan-only General Replace marker when POSTBUILD cannot execute.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public GeneralReplaceDiagnosticPreviewSummary? DiagnosticPreview { get; }
+
     /// <summary>Creates an immutable report revision after an adapter-owned delivery phase.</summary>
     public CompositionRunReport WithDeliveryArtifacts(
         IReadOnlyList<DeliveryArtifactSummary> deliveryArtifacts,
@@ -168,6 +174,7 @@ public sealed class CompositionRunReport
             OutputNaming,
             deliveryArtifacts,
             generalAdmission: GeneralAdmission,
-            imageInitialization: ImageInitialization);
+            imageInitialization: ImageInitialization,
+            diagnosticPreview: DiagnosticPreview);
     }
 }

@@ -70,23 +70,8 @@ internal sealed class BuiltInV2Bundle
     internal SavedRuleV2ParentBinding GetGeneralMergeSavedRuleParentBinding(
         string profileId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
-        TrustedCompositionProfileCatalogEntry profile =
-            _catalog.Value.Profiles.Single(candidate =>
-                StringComparer.Ordinal.Equals(
-                    candidate.Profile.ProfileId,
-                    profileId));
-        ProfileBundleIdentity bundle = _catalog.Value.BundleIdentity;
-        return new SavedRuleV2ParentBinding(
-            bundle.BundleId,
-            bundle.BundleVersion,
-            bundle.ContentHash,
-            profile.Profile.ProfileId,
-            profile.Profile.ProfileVersion,
-            profile.Identity.ContentHash,
-            profile.Family.Family.FamilyId,
-            profile.Family.Family.FamilyVersion,
-            profile.Family.Family.FamilyContentHash,
+        return GetSavedRuleParentBinding(
+            GetProfile(profileId),
             WorkbenchGeneralMergeIds.LogicalOutputMapId);
     }
 
@@ -126,6 +111,49 @@ internal sealed class BuiltInV2Bundle
                 .. profile.ProcessorStages.Select(
                     static processor => processor.ProcessorStageId),
             ]);
+    }
+
+    /// <summary>Projects the exact executable Parent and writable map ranges for General Replace.</summary>
+    internal SavedRuleV2GeneralReplaceAdmissionContext
+        GetGeneralReplaceSavedRuleAdmissionContext(string profileId)
+    {
+        return GetGeneralReplaceExactParent(profileId).Admission;
+    }
+
+    /// <summary>Projects Saved Rule and runtime facts from one exact profile entry.</summary>
+    internal SavedRuleV2GeneralReplaceExactParent
+        GetGeneralReplaceExactParent(string profileId)
+    {
+        return SavedRuleV2GeneralReplaceExactParentResolver.Resolve(
+            _catalog.Value,
+            profileId);
+    }
+
+    private TrustedCompositionProfileCatalogEntry GetProfile(string profileId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
+        return _catalog.Value.Profiles.Single(candidate =>
+            StringComparer.Ordinal.Equals(
+                candidate.Profile.ProfileId,
+                profileId));
+    }
+
+    private SavedRuleV2ParentBinding GetSavedRuleParentBinding(
+        TrustedCompositionProfileCatalogEntry profile,
+        string mapId)
+    {
+        ProfileBundleIdentity bundle = _catalog.Value.BundleIdentity;
+        return new SavedRuleV2ParentBinding(
+            bundle.BundleId,
+            bundle.BundleVersion,
+            bundle.ContentHash,
+            profile.Profile.ProfileId,
+            profile.Profile.ProfileVersion,
+            profile.Identity.ContentHash,
+            profile.Family.Family.FamilyId,
+            profile.Family.Family.FamilyVersion,
+            profile.Family.Family.FamilyContentHash,
+            mapId);
     }
 
     internal bool TryResolveMetadataDefinition(

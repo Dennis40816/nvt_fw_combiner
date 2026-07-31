@@ -6,6 +6,66 @@ namespace NvtFwCombiner.Application.Tests.Authoring;
 /// <summary>Safety-contract tests for canonical General occupancy and resource admission.</summary>
 public sealed class GeneralAuthoringAdmissionTests
 {
+    /// <summary>Admission snapshots reject null entries in every independently owned collection.</summary>
+    [Fact]
+    public void AdmissionSnapshotsRejectNullCollectionMembers()
+    {
+        var draft = new GeneralMappingDraftState([]);
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            new GeneralAuthoringAdmissionResult(
+                draft,
+                "parent",
+                savedRuleId: null,
+                effectiveLimits: null,
+                inputResources: [null!],
+                occupancySegments: [],
+                issues: []));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new GeneralAuthoringAdmissionResult(
+                draft,
+                "parent",
+                savedRuleId: null,
+                effectiveLimits: null,
+                inputResources: [],
+                occupancySegments: [null!],
+                issues: []));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new GeneralAuthoringAdmissionResult(
+                draft,
+                "parent",
+                savedRuleId: null,
+                effectiveLimits: null,
+                inputResources: [],
+                occupancySegments: [],
+                issues: [null!]));
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            new GeneralAuthoringAdmissionSummary(
+                "parent",
+                savedRuleId: null,
+                effectiveLimits: null,
+                inputResources: [null!],
+                occupancySegments: [],
+                issues: []));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new GeneralAuthoringAdmissionSummary(
+                "parent",
+                savedRuleId: null,
+                effectiveLimits: null,
+                inputResources: [],
+                occupancySegments: [null!],
+                issues: []));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new GeneralAuthoringAdmissionSummary(
+                "parent",
+                savedRuleId: null,
+                effectiveLimits: null,
+                inputResources: [],
+                occupancySegments: [],
+                issues: [null!]));
+    }
+
     /// <summary>Every authored source kind enters one order-independent occupancy ledger.</summary>
     [Fact]
     public void RejectsEveryTargetIntersectionWithStableIdsAndExactHalfOpenRange()
@@ -147,6 +207,44 @@ public sealed class GeneralAuthoringAdmissionTests
         Assert.Contains(
             emptyResult.Issues,
             issue => issue.Code == GeneralAuthoringIssueCodes.EffectiveLimitsEmpty);
+    }
+
+    /// <summary>A caller cannot attach Saved Rule provenance for a different exact Parent.</summary>
+    [Fact]
+    public void RejectsSavedRuleWhoseExactParentDoesNotMatchResolvedAuthority()
+    {
+        GeneralResourceLimits limits = CreateLimits();
+        SavedRuleParentIdentity trustedParent = ExactParent("map-a");
+        var savedRuleIdentity = new SavedRuleExecutionIdentity(
+            "rule",
+            "1.0.0",
+            new string('a', 64),
+            ExactParent("map-b"));
+        GeneralAuthoringAdmissionResult result = GeneralAuthoringAdmission.Evaluate(
+            new GeneralMappingDraftState(
+            [
+                CreateRow(
+                    "fill",
+                    GeneralMappingSource.HexFill("A5"),
+                    targetStart: 0,
+                    length: 1),
+            ]),
+            new Dictionary<string, long>(StringComparer.Ordinal)
+            {
+                [CompositionAddressSpaceIds.OutputImage] = 1,
+            },
+            [],
+            limits,
+            new GeneralTrustedParentResourcePolicy(trustedParent, limits),
+            new GeneralSavedRuleResourcePolicy(savedRuleIdentity, limits));
+
+        Assert.False(result.IsAdmitted);
+        Assert.Null(result.SavedRuleId);
+        Assert.Null(result.SavedRule);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code ==
+                GeneralAuthoringIssueCodes.SavedRuleParentMismatch);
     }
 
     /// <summary>Count, total-write, whole-file, slot, and inline allocation ceilings block before execution.</summary>
@@ -433,6 +531,21 @@ public sealed class GeneralAuthoringAdmissionTests
         GeneralResourceLimits limits)
     {
         return new GeneralSavedRuleResourcePolicy("test-rule", limits);
+    }
+
+    private static SavedRuleParentIdentity ExactParent(string mapId)
+    {
+        return new SavedRuleParentIdentity(
+            "bundle",
+            "1.0.0",
+            new string('b', 64),
+            "profile",
+            "1.0.0",
+            new string('c', 64),
+            "family",
+            "1.0.0",
+            new string('d', 64),
+            mapId);
     }
 
     private static GeneralMappingDraftRow CreateRow(

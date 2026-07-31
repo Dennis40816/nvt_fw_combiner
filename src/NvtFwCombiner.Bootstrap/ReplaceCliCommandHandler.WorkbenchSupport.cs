@@ -70,7 +70,8 @@ internal static partial class ReplaceCliCommandHandler
 
         string? outputPath = build ? outputTarget.FullPath : null;
         WorkbenchRunResult result = await run(build, outputPath, cancellationToken).ConfigureAwait(false);
-        if (options.Values.TryGetValue("--report", out string? reportPath))
+        if (result.HasRunReport &&
+            options.Values.TryGetValue("--report", out string? reportPath))
         {
             string fullPath = Path.GetFullPath(reportPath);
             ProtectedPathGuard.EnsureDoesNotAlias(

@@ -35,17 +35,44 @@ internal static class FileSystemPathGuard
         string path,
         IReadOnlyList<string> allowedRoots)
     {
+        return ResolveFileUnderRoots(path, allowedRoots, mustExist: true);
+    }
+
+    internal static string ResolveFileUnderRoots(
+        string path,
+        IReadOnlyList<string> allowedRoots,
+        bool mustExist)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(allowedRoots);
 
         string fullPath = Path.GetFullPath(path);
-        if (!File.Exists(fullPath))
+        EnsureUnderAnyRoot(fullPath, allowedRoots);
+        if (File.Exists(fullPath))
+        {
+            RejectReparsePoint(fullPath);
+            RegularFileGuard.RequirePath(fullPath);
+            return fullPath;
+        }
+
+        if (mustExist)
         {
             throw new FileNotFoundException("Artifact file was not found.", fullPath);
         }
 
-        EnsureUnderAnyRoot(fullPath, allowedRoots);
-        RejectReparsePoint(fullPath);
+        if (Directory.Exists(fullPath))
+        {
+            throw new IOException("A document target cannot be an existing directory.");
+        }
+
+        string? parent = Path.GetDirectoryName(fullPath);
+        if (string.IsNullOrWhiteSpace(parent) || !Directory.Exists(parent))
+        {
+            throw new DirectoryNotFoundException(
+                $"Document target directory was not found: {parent}");
+        }
+
+        RejectExistingParentReparsePoints(fullPath);
         return fullPath;
     }
 
@@ -127,6 +154,13 @@ internal static class FileSystemPathGuard
         {
             throw new UnauthorizedAccessException("Path is outside the configured root.");
         }
+    }
+
+    internal static bool IsUnderRoot(string fullPath, string root)
+    {
+        string normalizedPath = Path.GetFullPath(fullPath);
+        string normalizedRoot = EnsureTrailingSeparator(Path.GetFullPath(root));
+        return normalizedPath.StartsWith(normalizedRoot, PathComparison);
     }
 
     private static void RejectReparsePoint(string path)
