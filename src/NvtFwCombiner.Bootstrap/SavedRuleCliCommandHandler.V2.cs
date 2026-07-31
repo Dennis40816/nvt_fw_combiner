@@ -9,7 +9,7 @@ internal static partial class SavedRuleCliCommandHandler
     {
         try
         {
-            using JsonDocument document = JsonDocument.Parse(
+            using var document = JsonDocument.Parse(
                 File.ReadAllText(Path.GetFullPath(path)));
             return document.RootElement.ValueKind == JsonValueKind.Object &&
                 document.RootElement.TryGetProperty(
@@ -39,7 +39,7 @@ internal static partial class SavedRuleCliCommandHandler
         SavedRuleV2DraftLoadResult<GeneralMergeDraftState> load;
         try
         {
-            using JsonDocument document = JsonDocument.Parse(
+            using var document = JsonDocument.Parse(
                 File.ReadAllText(Path.GetFullPath(path)));
             if (!TryResolveV2GeneralMergeParent(
                     document.RootElement,
@@ -152,7 +152,7 @@ internal static partial class SavedRuleCliCommandHandler
         JsonElement root,
         SavedRuleV2GeneralMergeAdmissionContext context)
     {
-        Dictionary<string, string> bindings = context.InputPolicies.ToDictionary(
+        var bindings = context.InputPolicies.ToDictionary(
             static policy => policy.SlotId,
             static policy => policy.SlotId,
             StringComparer.Ordinal);

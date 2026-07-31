@@ -50,7 +50,7 @@ public sealed partial class ReplaceCliCommandTests
             output,
             TestContext.Current.CancellationToken);
         Assert.Equal([0xA5, 0x5A], outputBytes[0x3E020..0x3E022]);
-        using JsonDocument document = JsonDocument.Parse(
+        using var document = JsonDocument.Parse(
             await File.ReadAllTextAsync(
                 report,
                 TestContext.Current.CancellationToken));
@@ -286,7 +286,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("Status: DiagnosticPlanOnly", result.Output);
         Assert.Contains("Output: not produced", result.Output);
         Assert.DoesNotContain("SHA256:", result.Output);
-        using JsonDocument document = JsonDocument.Parse(
+        using var document = JsonDocument.Parse(
             await File.ReadAllTextAsync(
                 report,
                 TestContext.Current.CancellationToken));
@@ -355,7 +355,7 @@ public sealed partial class ReplaceCliCommandTests
             result.Error,
             StringComparison.Ordinal);
         Assert.False(File.Exists(output));
-        using JsonDocument document = JsonDocument.Parse(
+        using var document = JsonDocument.Parse(
             await File.ReadAllTextAsync(
                 report,
                 TestContext.Current.CancellationToken));

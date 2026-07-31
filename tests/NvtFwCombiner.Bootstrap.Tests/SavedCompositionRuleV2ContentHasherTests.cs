@@ -9,9 +9,9 @@ public sealed class SavedCompositionRuleV2ContentHasherTests
     [Fact]
     public void CanonicalHashIgnoresPathFormattingPropertyOrderAndDisplayName()
     {
-        using JsonDocument first = JsonDocument.Parse(
+        using var first = JsonDocument.Parse(
             """{"schemaVersion":"2.0","displayName":"First","ruleId":"rule","mappingFragments":[{"fragmentId":"map","targetOffset":1}]}""");
-        using JsonDocument second = JsonDocument.Parse(
+        using var second = JsonDocument.Parse(
             """
             {
               "mappingFragments": [ { "targetOffset": 1, "fragmentId": "map" } ],
@@ -32,9 +32,9 @@ public sealed class SavedCompositionRuleV2ContentHasherTests
     [Fact]
     public void CanonicalHashChangesForSemanticContent()
     {
-        using JsonDocument first = JsonDocument.Parse(
+        using var first = JsonDocument.Parse(
             """{"schemaVersion":"2.0","displayName":"Same","ruleId":"rule","mappingFragments":[{"targetOffset":1}]}""");
-        using JsonDocument second = JsonDocument.Parse(
+        using var second = JsonDocument.Parse(
             """{"schemaVersion":"2.0","displayName":"Same","ruleId":"rule","mappingFragments":[{"targetOffset":2}]}""");
 
         Assert.NotEqual(

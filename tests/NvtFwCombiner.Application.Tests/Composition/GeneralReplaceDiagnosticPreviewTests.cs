@@ -69,7 +69,7 @@ public sealed class GeneralReplaceDiagnosticPreviewTests
     public void MissingRuntimeToolRetainsCompiledStageAndSharedBlocker()
     {
         GeneralAuthoringAdmissionResult admission = CreateAdmission();
-        RuntimeDependencyEntry dependency = RuntimeDependencyEntry.Blocked(
+        var dependency = RuntimeDependencyEntry.Blocked(
             "general-postbuild",
             "legacy-combiner-1.13.0",
             "external-tool.executable.missing",
