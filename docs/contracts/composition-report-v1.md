@@ -31,7 +31,12 @@ POSTBUILD, that workbench projection may instead carry `DiagnosticPreview`.
 `ClaimsFinalIntegrity = false` distinguish it from executable Preview. It
 retains the shared Build-readiness blocker, accepted mapping operations,
 projected complete `Kept`/`Changed` coverage, and the compiled required stage
-id when one exists. The canonical report-v1 schema is unchanged.
+id when one exists. Its workbench `Output` projection is `null`, so no filename
+or empty-content SHA-256 can be mistaken for a produced artifact. The canonical
+report-v1 schema is unchanged.
+A disabled General Replace Build action returns only the shared typed readiness
+snapshot; it creates neither `CompositionRunReport` nor report JSON/file. Only
+an explicit coherent Preview may create the diagnostic plan-only report.
 
 `Validations[]` is another optional projection field. Each immutable row contains `RuleId`, `Stage`, `Status`, `Severity`, and the requirement's declared or emitted `IssueCode`. `Passed` and `Failed` mean the rule evaluated against the completed image; an `Error`-severity failure blocks publication. `Skipped` means an earlier stage produced no image suitable for that rule, so it neither passes nor fails. Older report JSON that lacks `Semantic` or `Validations` is interpreted as an empty collection for the absent field.
 

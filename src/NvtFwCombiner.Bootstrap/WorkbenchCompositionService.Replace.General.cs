@@ -55,7 +55,8 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken,
-        GeneralSavedRuleResourcePolicy? savedRulePolicy = null)
+        GeneralSavedRuleResourcePolicy? savedRulePolicy = null,
+        GeneralReplacePostbuildReadinessOverride? postbuildReadinessOverride = null)
     {
         if (!TryCreateGeneralReplaceRunContext(
                 icId,
@@ -110,7 +111,9 @@ public static partial class WorkbenchCompositionService
             context.Capacity,
             CreateCurrentGeneralTrustedParentPolicy(
                 Nt51926GeneralReplaceDpProfileId,
-                context.MappingDraft),
+                context.MappingDraft,
+                GetNt51926GeneralReplaceSavedRuleAdmissionContext()
+                    .ParentBinding),
             savedRulePolicy);
         if (!admission.IsAdmitted)
         {
@@ -146,30 +149,43 @@ public static partial class WorkbenchCompositionService
         if (touchesTpRegion &&
             StringComparer.Ordinal.Equals(
                 icId,
-                Nt51926GeneralReplaceIcId) &&
-            GetNt51926GeneralReplaceSavedRuleAdmissionContext()
-                .ProcessorStageIds.Count == 0)
+                Nt51926GeneralReplaceIcId))
         {
-            CapabilityActionReadinessSnapshot readiness =
-                CreateGeneralReplaceMissingPostbuildStageReadiness(admission);
-            CapabilityActionBlocker blocker =
-                readiness.Build.PrimaryBlocker!;
-            CompositionIssue issue = new(
-                blocker.Code,
-                blocker.Message,
-                blocker.SubjectId);
-            GeneralReplaceDiagnosticPreviewSummary? diagnostic = build
-                ? null
-                : GeneralReplaceDiagnosticPreviewProjector.Project(
-                    context.Capacity,
+            GeneralReplacePostbuildReadinessResult postbuild =
+                await ResolveGeneralReplacePostbuildReadinessAsync(
                     admission,
-                    readiness,
-                    requiredStageId: null);
-            return Blocked(
-                [issue],
-                planningOperations,
-                diagnosticPreview: diagnostic,
-                readiness: readiness);
+                    postbuildReadinessOverride,
+                    cancellationToken).ConfigureAwait(false);
+            CapabilityActionReadinessSnapshot readiness = postbuild.Readiness;
+            if (!readiness.Build.IsAvailable)
+            {
+                CapabilityActionBlocker blocker =
+                    readiness.Build.PrimaryBlocker!;
+                CompositionIssue issue = new(
+                    blocker.Code,
+                    blocker.Message,
+                    blocker.SubjectId);
+                GeneralReplaceDiagnosticPreviewSummary? diagnostic = build
+                    ? null
+                    : GeneralReplaceDiagnosticPreviewProjector.Project(
+                        context.Capacity,
+                        admission,
+                        readiness,
+                        postbuild.RequiredStageId);
+                return build
+                    ? CreateReplaceReadinessOnlyResult(
+                        icId,
+                        WorkbenchReplaceModes.General,
+                        readiness) with
+                    {
+                        AcceptedGeneralMappingDraft = context.MappingDraft,
+                    }
+                    : Blocked(
+                        [issue],
+                        planningOperations,
+                        diagnosticPreview: diagnostic,
+                        readiness: readiness);
+            }
         }
 
         LegacyCombinerPostbuildCommandPlan? commandPlan = null;

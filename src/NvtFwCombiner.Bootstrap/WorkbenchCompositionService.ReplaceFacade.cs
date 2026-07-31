@@ -215,6 +215,36 @@ public static partial class WorkbenchCompositionService
     }
 
     /// <summary>
+    /// Test seam for one exact Parent-equivalent runtime dependency snapshot;
+    /// production callers always acquire the current host generation.
+    /// </summary>
+    internal static ValueTask<WorkbenchRunResult>
+        RunGeneralReplaceEphemeralDraftWithPostbuildReadinessAsync(
+            string icId,
+            string number,
+            IReadOnlyDictionary<string, string> slotPaths,
+            GeneralMappingDraftState mappingDraft,
+            bool build,
+            GeneralReplacePostbuildReadinessOverride postbuildReadinessOverride,
+            string? outputPath,
+            CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(postbuildReadinessOverride);
+        return RunGeneralReplaceWithInitialInspectionAsync(
+            icId,
+            number,
+            slotPaths,
+            mappingDraft,
+            new AuthoringRevision(1),
+            build,
+            outputPath,
+            progress: null,
+            cancellationToken,
+            savedRulePolicy: null,
+            postbuildReadinessOverride);
+    }
+
+    /// <summary>
     /// Runs General Replace from the exact content-bound draft returned by an
     /// earlier desktop Preview or explicit Reload/Rebind.
     /// </summary>
@@ -267,7 +297,8 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken,
-        GeneralSavedRuleResourcePolicy? savedRulePolicy = null)
+        GeneralSavedRuleResourcePolicy? savedRulePolicy = null,
+        GeneralReplacePostbuildReadinessOverride? postbuildReadinessOverride = null)
     {
         if (!TryCreateGeneralReplaceRunContext(
                 icId,
@@ -307,7 +338,8 @@ public static partial class WorkbenchCompositionService
                 outputPath,
                 progress,
                 cancellationToken,
-                savedRulePolicy).ConfigureAwait(false);
+                savedRulePolicy,
+                postbuildReadinessOverride).ConfigureAwait(false);
     }
 
     /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>

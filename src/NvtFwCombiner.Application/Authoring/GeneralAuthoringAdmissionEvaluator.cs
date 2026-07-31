@@ -140,6 +140,19 @@ public static class GeneralAuthoringAdmission
             trustedParent,
             savedRule);
         List<GeneralAuthoringAdmissionIssue> issues = [.. resolution.Issues];
+        SavedRuleExecutionIdentity? exactSavedRule = savedRule?.ExecutionIdentity;
+        string? admittedSavedRuleId = savedRule?.RuleId;
+        if (exactSavedRule is not null &&
+            exactSavedRule.Parent != trustedParent.ParentIdentity)
+        {
+            issues.Add(CreateIssue(
+                GeneralAuthoringIssueCodes.SavedRuleParentMismatch,
+                exactSavedRule.RuleId,
+                "Saved Rule exact Parent identity does not match the independently resolved Trusted Parent."));
+            exactSavedRule = null;
+            admittedSavedRuleId = null;
+        }
+
         GeneralOccupancySegment[] occupancy =
         [
             .. draft.Rows
@@ -159,8 +172,8 @@ public static class GeneralAuthoringAdmission
             return CreateResult(
                 draft,
                 trustedParent.ParentId,
-                savedRule?.RuleId,
-                savedRule?.ExecutionIdentity,
+                admittedSavedRuleId,
+                exactSavedRule,
                 null,
                 observedResources,
                 occupancy,
@@ -175,8 +188,8 @@ public static class GeneralAuthoringAdmission
         return CreateResult(
             draft,
             trustedParent.ParentId,
-            savedRule?.RuleId,
-            savedRule?.ExecutionIdentity,
+            admittedSavedRuleId,
+            exactSavedRule,
             effective,
             observedResources,
             occupancy,

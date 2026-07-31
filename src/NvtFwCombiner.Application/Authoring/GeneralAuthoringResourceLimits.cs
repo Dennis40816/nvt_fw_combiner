@@ -32,6 +32,9 @@ public static class GeneralAuthoringIssueCodes
     public const string InlineMaterializationExceeded = "general.admission.inline-materialization-exceeded";
     /// <summary>A Saved Rule attempts to broaden its exact Trusted Parent.</summary>
     public const string SavedRuleBroadensParent = "general.admission.saved-rule-broadens-parent";
+    /// <summary>A content-identified Saved Rule does not reference the exact resolved Parent.</summary>
+    public const string SavedRuleParentMismatch =
+        "general.admission.saved-rule-parent-mismatch";
     /// <summary>Active resource layers accept no common value.</summary>
     public const string EffectiveLimitsEmpty = "general.admission.effective-limits-empty";
 }
@@ -205,15 +208,39 @@ public sealed record GeneralTrustedParentResourcePolicy
     public GeneralTrustedParentResourcePolicy(
         string parentId,
         GeneralResourceLimits limits)
+        : this(parentId, parentIdentity: null, limits)
+    {
+    }
+
+    /// <summary>Creates one exact content-identified Parent policy.</summary>
+    public GeneralTrustedParentResourcePolicy(
+        SavedRuleParentIdentity parentIdentity,
+        GeneralResourceLimits limits)
+        : this(
+            parentIdentity?.ProfileId ??
+            throw new ArgumentNullException(nameof(parentIdentity)),
+            parentIdentity,
+            limits)
+    {
+    }
+
+    private GeneralTrustedParentResourcePolicy(
+        string parentId,
+        SavedRuleParentIdentity? parentIdentity,
+        GeneralResourceLimits limits)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(parentId);
         ArgumentNullException.ThrowIfNull(limits);
         ParentId = parentId;
+        ParentIdentity = parentIdentity;
         Limits = limits;
     }
 
     /// <summary>Exact trusted profile/bundle identity used for this admission.</summary>
     public string ParentId { get; }
+
+    /// <summary>Exact content identity when this Parent admits a Saved Rule v2 revision.</summary>
+    public SavedRuleParentIdentity? ParentIdentity { get; }
 
     /// <summary>Parent semantic ceilings and explicitly declared file slots.</summary>
     public GeneralResourceLimits Limits { get; }

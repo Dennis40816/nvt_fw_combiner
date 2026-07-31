@@ -21,19 +21,6 @@ internal sealed record SavedRuleV2DraftLoadResult<TDraft>(
         Issues.Count == 0;
 }
 
-/// <summary>Exact trusted bundle/profile/family identity closed over by one v2 rule.</summary>
-internal sealed record SavedRuleV2ParentBinding(
-    string BundleId,
-    string BundleVersion,
-    string BundleContentHash,
-    string ProfileId,
-    string ProfileVersion,
-    string ProfileContentHash,
-    string FamilyId,
-    string FamilyVersion,
-    string FamilyContentHash,
-    string MapId);
-
 /// <summary>
 /// Projects the already versioned Saved Rule v2 initializer and mapping fragments into the one
 /// canonical General Merge draft used by manual CLI, Preview, and Build.
@@ -168,17 +155,7 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
             ruleId,
             ruleVersion,
             SavedCompositionRuleV2ContentHasher.Calculate(root),
-            new SavedRuleParentIdentity(
-                parent.BundleId,
-                parent.BundleVersion,
-                parent.BundleContentHash,
-                parent.ProfileId,
-                parent.ProfileVersion,
-                parent.ProfileContentHash,
-                parent.FamilyId,
-                parent.FamilyVersion,
-                parent.FamilyContentHash,
-                parent.MapId));
+            parent);
     }
 
     private static GeneralSavedRuleResourcePolicy CreateSavedRuleResourcePolicy(

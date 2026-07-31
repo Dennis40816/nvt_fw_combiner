@@ -72,12 +72,29 @@ public sealed partial class ReplaceCliCommandTests
     }
 
     /// <summary>Missing or stale exact Parent identity fails closed before output creation.</summary>
-    [Fact]
-    public async Task Nt51926GeneralReplaceSavedRuleRejectsStaleParent()
+    [Theory]
+    [InlineData("bundleId")]
+    [InlineData("bundleVersion")]
+    [InlineData("bundleContentHash")]
+    [InlineData("profileId")]
+    [InlineData("profileVersion")]
+    [InlineData("profileContentHash")]
+    [InlineData("familyId")]
+    [InlineData("familyVersion")]
+    [InlineData("familyContentHash")]
+    [InlineData("mapId")]
+    public async Task Nt51926GeneralReplaceSavedRuleRejectsStaleParent(
+        string propertyName)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
         using var workspace = TempWorkspace.Create();
         JsonObject json = ValidGeneralReplaceV2RuleObject();
-        json["parentBinding"]!["profileContentHash"] = new string('0', 64);
+        json["parentBinding"]![propertyName] =
+            propertyName.EndsWith("ContentHash", StringComparison.Ordinal)
+                ? new string('0', 64)
+                : propertyName.EndsWith("Version", StringComparison.Ordinal)
+                    ? "9.9.9"
+                    : "missing-parent-fact";
         string rule = await WriteGeneralReplaceRuleAsync(workspace, json);
         string reference = workspace.Write(
             "reference.bin",
@@ -108,6 +125,42 @@ public sealed partial class ReplaceCliCommandTests
             result.Error,
             StringComparison.Ordinal);
         Assert.False(File.Exists(output));
+    }
+
+    /// <summary>Rule JSON cannot omit or reorder Parent-owned processor stages.</summary>
+    [Fact]
+    public void GeneralReplaceSavedRuleRequiresExactOrderedParentStages()
+    {
+        SavedRuleV2GeneralReplaceAdmissionContext exact =
+            WorkbenchCompositionService
+                .GetNt51926GeneralReplaceSavedRuleAdmissionContext() with
+            {
+                ProcessorStageIds = ["stage-a", "stage-b"],
+            };
+        JsonObject omittedJson = ValidGeneralReplaceV2RuleObject();
+        JsonObject reorderedJson = ValidGeneralReplaceV2RuleObject();
+        reorderedJson["processorStageIds"] =
+            new JsonArray("stage-b", "stage-a");
+
+        SavedCompositionRuleV2AdmissionResult omitted =
+            SavedCompositionRuleV2Admission.ValidateGeneralReplace(
+                JsonSerializer.SerializeToElement(omittedJson),
+                exact);
+        SavedCompositionRuleV2AdmissionResult reordered =
+            SavedCompositionRuleV2Admission.ValidateGeneralReplace(
+                JsonSerializer.SerializeToElement(reorderedJson),
+                exact);
+
+        Assert.Contains(
+            omitted.Issues,
+            issue =>
+                issue.Code == SavedRuleIssueCodes.V2ParentNarrowingInvalid &&
+                issue.Path == "$.processorStageIds");
+        Assert.Contains(
+            reordered.Issues,
+            issue =>
+                issue.Code == SavedRuleIssueCodes.V2ParentNarrowingInvalid &&
+                issue.Path == "$.processorStageIds");
     }
 
     /// <summary>Canonical target offsets cannot escape the Parent's DP region.</summary>
@@ -317,10 +370,10 @@ public sealed partial class ReplaceCliCommandTests
                 0x22800);
         _ = Assert.Single(root.GetProperty("Operations").EnumerateArray());
         Assert.Empty(root.GetProperty("Mutations").EnumerateArray());
-        Assert.False(root.GetProperty("Output").GetProperty("Committed").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, root.GetProperty("Output").ValueKind);
     }
 
-    /// <summary>Build stays blocked by the same missing-stage issue and never creates a BIN.</summary>
+    /// <summary>Build exposes readiness without creating a Run Report or BIN.</summary>
     [Fact]
     public async Task Nt51926GeneralReplaceTpBuildRemainsBlocked()
     {
@@ -350,19 +403,15 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
+        Assert.Contains("Status: BuildUnavailable", result.Output);
+        Assert.Contains("Output: not produced", result.Output);
+        Assert.DoesNotContain("SHA256:", result.Output);
         Assert.Contains(
             "capability.readiness.postbuild-stage-authority-missing",
             result.Error,
             StringComparison.Ordinal);
         Assert.False(File.Exists(output));
-        using var document = JsonDocument.Parse(
-            await File.ReadAllTextAsync(
-                report,
-                TestContext.Current.CancellationToken));
-        JsonElement root = document.RootElement;
-        Assert.False(root.TryGetProperty("DiagnosticPreview", out _));
-        Assert.Empty(root.GetProperty("Mutations").EnumerateArray());
-        Assert.False(root.GetProperty("Output").GetProperty("Committed").GetBoolean());
+        Assert.False(File.Exists(report));
     }
 
     /// <summary>Verifies malformed real IC General Replace mapping paths are rejected before planning.</summary>

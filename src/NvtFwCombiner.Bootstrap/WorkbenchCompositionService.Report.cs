@@ -1,6 +1,8 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
@@ -28,7 +30,7 @@ public static partial class WorkbenchCompositionService
         CompositionRunReport report = deliveryArtifacts is null && additionalIssues is null
             ? result.Report
             : result.Report.WithDeliveryArtifacts(deliveryArtifacts ?? [], additionalIssues);
-        string reportJson = JsonSerializer.Serialize(report, ReportJsonOptions);
+        string reportJson = SerializeReport(report, suppressOutput: false);
         return new WorkbenchRunResult(
             result.Status == CompositionExecutionStatus.Succeeded,
             result.Status.ToString(),
@@ -81,6 +83,27 @@ public static partial class WorkbenchCompositionService
             status: diagnosticPreview is null
                 ? "Blocked"
                 : "DiagnosticPlanOnly");
+    }
+
+    private static WorkbenchRunResult CreateReplaceReadinessOnlyResult(
+        string icId,
+        string replaceMode,
+        CapabilityActionReadinessSnapshot readiness)
+    {
+        ArgumentNullException.ThrowIfNull(readiness);
+        return new WorkbenchRunResult(
+            Succeeded: false,
+            Status: "BuildUnavailable",
+            ProfileId:
+                $"{icId.ToLowerInvariant()}-{replaceMode.ToLowerInvariant()}-replace-workbench",
+            OutputSize: 0,
+            OutputSha256: string.Empty,
+            OutputFileName: string.Empty,
+            CommittedOutputId: null,
+            ReportJson: string.Empty)
+        {
+            ActionReadiness = readiness,
+        };
     }
 
     private static IReadOnlyList<OperationRunSummary> CreateExplicitMappingPlanningOperations(
@@ -145,15 +168,32 @@ public static partial class WorkbenchCompositionService
             generalAdmission: generalAdmission?.ToSummary(),
             imageInitialization: imageInitialization,
             diagnosticPreview: diagnosticPreview);
-        string reportJson = JsonSerializer.Serialize(report, ReportJsonOptions);
+        bool suppressOutput = diagnosticPreview is not null;
+        string reportJson = SerializeReport(report, suppressOutput);
         return new WorkbenchRunResult(
             false,
             status,
             profileId,
             0,
-            EmptySha256,
-            outputFileName,
+            suppressOutput ? string.Empty : EmptySha256,
+            suppressOutput ? string.Empty : outputFileName,
             null,
             reportJson);
+    }
+
+    private static string SerializeReport(
+        CompositionRunReport report,
+        bool suppressOutput)
+    {
+        if (!suppressOutput)
+        {
+            return JsonSerializer.Serialize(report, ReportJsonOptions);
+        }
+
+        JsonObject projection =
+            JsonSerializer.SerializeToNode(report, ReportJsonOptions)!
+                .AsObject();
+        projection[nameof(CompositionRunReport.Output)] = null;
+        return projection.ToJsonString(ReportJsonOptions);
     }
 }

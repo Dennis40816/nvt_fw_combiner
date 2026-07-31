@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Capabilities;
@@ -294,6 +295,44 @@ public sealed record CapabilityActionReadinessSnapshot(
 /// <summary>Derives actions from independent canonical readiness dimensions.</summary>
 public static class CapabilityActionReadinessResolver
 {
+    /// <summary>
+    /// Refreshes the exact compiled runtime dependencies and resolves action
+    /// state before any run/report object exists.
+    /// </summary>
+    public static async ValueTask<CapabilityActionReadinessSnapshot>
+        RefreshAndResolveAsync(
+            CapabilityAdmissionSnapshot admission,
+            IEnumerable<CapabilityChildReadiness> inputChildren,
+            RuntimeDependencyReadinessRequest runtimeDependencyRequest,
+            IRuntimeDependencyReadinessProvider runtimeDependencyReadinessProvider,
+            long runtimeDependencyGeneration,
+            Func<long, bool> runtimeGenerationIsCurrent,
+            CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(admission);
+        ArgumentNullException.ThrowIfNull(inputChildren);
+        ArgumentNullException.ThrowIfNull(runtimeDependencyRequest);
+        ArgumentNullException.ThrowIfNull(runtimeDependencyReadinessProvider);
+        ArgumentOutOfRangeException.ThrowIfLessThan(
+            runtimeDependencyGeneration,
+            1);
+        ArgumentNullException.ThrowIfNull(runtimeGenerationIsCurrent);
+        RuntimeDependencyReadinessSnapshot runtimeDependencies =
+            await runtimeDependencyReadinessProvider.RefreshAsync(
+                runtimeDependencyRequest,
+                runtimeDependencyGeneration,
+                cancellationToken).ConfigureAwait(false);
+        long currentGeneration = runtimeGenerationIsCurrent(
+            runtimeDependencyGeneration)
+                ? runtimeDependencyGeneration
+                : checked(runtimeDependencyGeneration + 1);
+        return Resolve(
+            admission,
+            inputChildren,
+            runtimeDependencies,
+            currentGeneration);
+    }
+
     /// <summary>
     /// Produces check-time action state. Evidence/publication are intentionally
     /// not Build inputs, and this method never creates a run report.

@@ -197,21 +197,15 @@ public static partial class WorkbenchCompositionService
                 RuntimeDependencyReadinessRequest.FromCompiledMigration(
                     admission,
                     compiledComposition);
-            RuntimeDependencyReadinessSnapshot runtimeDependencies =
-                await runtimeDependencyReadinessProvider.RefreshAsync(
-                    dependencyRequest,
-                    runtimeDependencyGeneration,
-                    cancellationToken).ConfigureAwait(false);
-            long currentGeneration = runtimeGenerationIsCurrent(
-                runtimeDependencyGeneration)
-                ? runtimeDependencyGeneration
-                : checked(runtimeDependencyGeneration + 1);
             CapabilityActionReadinessSnapshot readiness =
-                CapabilityActionReadinessResolver.Resolve(
+                await CapabilityActionReadinessResolver.RefreshAndResolveAsync(
                     admission,
                     CreateInputReadiness(compiledComposition, bindings),
-                    runtimeDependencies,
-                    currentGeneration);
+                    dependencyRequest,
+                    runtimeDependencyReadinessProvider,
+                    runtimeDependencyGeneration,
+                    runtimeGenerationIsCurrent,
+                    cancellationToken).ConfigureAwait(false);
             IReadOnlyList<CapabilityActionBlocker> attemptBlockers = build
                 ? readiness.Build.Blockers
                 :

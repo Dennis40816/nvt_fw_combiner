@@ -33,15 +33,14 @@ public static partial class WorkbenchCompositionService
     private static GeneralTrustedParentResourcePolicy
         CreateCurrentGeneralTrustedParentPolicy(
             string parentId,
-            GeneralMappingDraftState mappingDraft)
+            GeneralMappingDraftState mappingDraft,
+            SavedRuleParentIdentity? parentIdentity = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(parentId);
         ArgumentNullException.ThrowIfNull(mappingDraft);
         GeneralResourceLimits technical =
             GeneralAuthoringTechnicalLimits.Default;
-        return new GeneralTrustedParentResourcePolicy(
-            parentId,
-            new GeneralResourceLimits(
+        var limits = new GeneralResourceLimits(
                 technical.MaximumMappingCount,
                 technical.MaximumTotalWriteBytes,
                 technical.MaximumFileBytes,
@@ -54,7 +53,10 @@ public static partial class WorkbenchCompositionService
                         new GeneralSlotLengthLimits(
                             row.MappingId,
                             minimumBytes: 1,
-                            maximumBytes: int.MaxValue))));
+                            maximumBytes: int.MaxValue)));
+        return parentIdentity is null
+            ? new GeneralTrustedParentResourcePolicy(parentId, limits)
+            : new GeneralTrustedParentResourcePolicy(parentIdentity, limits);
     }
 
     private sealed class GeneralFileResourceObservationAdapter :

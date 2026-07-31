@@ -109,7 +109,11 @@ public static partial class WorkbenchCompositionService
             draft.OutputInitializer.Capacity,
             CreateCurrentGeneralTrustedParentPolicy(
                 registration.ProfileId,
-                mappingDraft),
+                mappingDraft,
+                registration.Bundle
+                    .GetGeneralMergeSavedRuleAdmissionContext(
+                        registration.ProfileId)
+                    .ParentBinding),
             savedRulePolicy);
         if (!admission.IsAdmitted)
         {

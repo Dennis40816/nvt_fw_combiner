@@ -4,12 +4,13 @@ using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
-namespace NvtFwCombiner.Bootstrap;
+namespace NvtFwCombiner.Application.Authoring;
 
 /// <summary>Calculates the path- and display-name-independent Saved Rule v2 semantic hash.</summary>
-internal static class SavedCompositionRuleV2ContentHasher
+public static class SavedCompositionRuleV2ContentHasher
 {
-    internal static string Calculate(JsonElement root)
+    /// <summary>Calculates the canonical SHA-256 identity of one parsed rule object.</summary>
+    public static string Calculate(JsonElement root)
     {
         if (root.ValueKind != JsonValueKind.Object)
         {

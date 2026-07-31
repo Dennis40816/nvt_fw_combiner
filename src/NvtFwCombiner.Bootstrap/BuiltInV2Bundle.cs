@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -157,6 +158,30 @@ internal sealed class BuiltInV2Bundle
                     static region => region.RegionId,
                     static region => region.Range,
                     StringComparer.Ordinal));
+    }
+
+    /// <summary>Projects exact Parent processor-stage and external-tool dependencies.</summary>
+    internal SavedRuleV2GeneralReplaceRuntimeAuthority
+        GetGeneralReplaceRuntimeAuthority(string profileId)
+    {
+        TrustedCompositionProfileCatalogEntry profileEntry =
+            GetProfile(profileId);
+        V2CompositionProfileDefinition profile = profileEntry.Profile;
+        string mapId = profile.MapBinding.MapIds.Single();
+        return new SavedRuleV2GeneralReplaceRuntimeAuthority(
+            GetSavedRuleParentBinding(profileEntry, mapId),
+            [
+                .. profile.ProcessorStages.Select(
+                    static stage => stage.ProcessorStageId),
+            ],
+            [
+                .. profile.ProcessorStages
+                    .OfType<LegacyCombinerProfileProcessorStage>()
+                    .Select(static stage =>
+                        new ExternalProcessorDependencyReference(
+                            stage.InvocationProfileId,
+                            stage.ToolBindingId)),
+            ]);
     }
 
     private TrustedCompositionProfileCatalogEntry GetProfile(string profileId)

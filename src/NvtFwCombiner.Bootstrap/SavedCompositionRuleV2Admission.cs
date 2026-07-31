@@ -266,7 +266,7 @@ internal static partial class SavedCompositionRuleV2Admission
             issues);
 
         JsonElement processorStages = root.GetProperty("processorStageIds");
-        ValidateReferenceArray(
+        ValidateExactReferenceArray(
             processorStages,
             context.ProcessorStageIds,
             "$.processorStageIds",
@@ -278,6 +278,27 @@ internal static partial class SavedCompositionRuleV2Admission
                 SavedRuleIssueCodes.ProcessorDependencyUnsupported,
                 "Current Saved Rule v2 execution does not support processor stages.",
                 "$.processorStageIds"));
+        }
+    }
+
+    private static void ValidateExactReferenceArray(
+        JsonElement values,
+        IReadOnlyList<string> expected,
+        string path,
+        string referenceKind,
+        List<SavedRuleValidationIssue> issues)
+    {
+        string[] actual =
+        [
+            .. values.EnumerateArray().Select(
+                static item => item.GetString()!),
+        ];
+        if (!actual.SequenceEqual(expected, StringComparer.Ordinal))
+        {
+            issues.Add(Issue(
+                SavedRuleIssueCodes.V2ParentNarrowingInvalid,
+                $"Saved Rule v2 must preserve the exact ordered Parent {referenceKind} list.",
+                path));
         }
     }
 

@@ -411,6 +411,10 @@ public sealed record WorkbenchRunResult(
     [JsonIgnore]
     public CapabilityActionReadinessSnapshot? ActionReadiness { get; internal init; }
 
+    /// <summary>Whether this result owns a serialized run report.</summary>
+    [JsonIgnore]
+    public bool HasRunReport => !string.IsNullOrWhiteSpace(ReportJson);
+
     /// <summary>Non-serialized immutable output bytes retained only for a declared follow-up delivery artifact.</summary>
     [JsonIgnore]
     internal ReadOnlyMemory<byte> OutputBytes { get; init; }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Contracts;
 
@@ -12,6 +13,12 @@ internal sealed record SavedRuleV2GeneralReplaceAdmissionContext(
     IReadOnlyList<string> ValidationRuleIds,
     IReadOnlyList<string> ProcessorStageIds,
     IReadOnlyDictionary<string, ByteRange> TargetRegions);
+
+/// <summary>Exact Parent stage authority used only for pre-run runtime readiness.</summary>
+internal sealed record SavedRuleV2GeneralReplaceRuntimeAuthority(
+    SavedRuleV2ParentBinding ParentBinding,
+    IReadOnlyList<string> ProcessorStageIds,
+    IReadOnlyList<ExternalProcessorDependencyReference> RuntimeDependencies);
 
 internal static partial class SavedCompositionRuleV2Admission
 {

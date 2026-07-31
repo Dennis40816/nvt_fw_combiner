@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.SavedRuleIssueCodes;
 

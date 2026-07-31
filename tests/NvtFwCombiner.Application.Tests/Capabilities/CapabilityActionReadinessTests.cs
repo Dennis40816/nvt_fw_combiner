@@ -195,6 +195,68 @@ public sealed class CapabilityActionReadinessTests
         Assert.Equal(8, result.RuntimeDependencyGeneration);
     }
 
+    /// <summary>Exact execution blockers survive projection while non-applicable work stays ignored.</summary>
+    [Fact]
+    public void ExactExecutionBlockerAndClosedNonApplicableStatesRemainDeterministic()
+    {
+        var exactBlocker = new CapabilityActionBlocker(
+            "profile.execution.blocked",
+            CapabilityReadinessDimension.Execution,
+            "route-ctrlram",
+            "The exact profile is not executable.",
+            CapabilityReadinessNextAction.ReviewCompilation);
+        var admission = new CapabilityAdmissionSnapshot(
+            "route-ctrlram",
+            new string('a', 64),
+            Token,
+            new AuthoringRevision(0),
+            CapabilityAuthoringAvailability.Available,
+            executionAdmitted: false,
+            CapabilityEvidenceStatus.DirectGolden,
+            CapabilityPublicationStatus.Candidate,
+            exactBlocker);
+        RuntimeDependencyReadinessSnapshot runtime = Runtime(
+            new RuntimeDependencyEntry(
+                "pending-processor",
+                "pending-tool",
+                ResolvedChildReadiness.PendingInput),
+            new RuntimeDependencyEntry(
+                "ignored-processor",
+                "ignored-tool",
+                ResolvedChildReadiness.NotApplicable));
+
+        CapabilityActionReadinessSnapshot result =
+            CapabilityActionReadinessResolver.Resolve(
+                admission,
+                [Child("optional", ResolvedChildReadiness.NotApplicable)],
+                runtime,
+                currentRuntimeDependencyGeneration: 1);
+
+        Assert.Same(exactBlocker, result.Build.PrimaryBlocker);
+        CapabilityActionBlocker runtimeBlocker = Assert.Single(
+            result.Build.Blockers,
+            blocker => blocker.Dimension ==
+                CapabilityReadinessDimension.RuntimeDependency);
+        Assert.Equal(
+            "Refresh the required runtime dependency.",
+            runtimeBlocker.Message);
+    }
+
+    /// <summary>An exact route with no child or runtime work remains immediately actionable.</summary>
+    [Fact]
+    public void EmptyInputAndRuntimeSetsRemainAvailable()
+    {
+        CapabilityActionReadinessSnapshot result =
+            CapabilityActionReadinessResolver.Resolve(
+                Admission(),
+                [],
+                Runtime(),
+                currentRuntimeDependencyGeneration: 1);
+
+        Assert.True(result.Preview.IsAvailable);
+        Assert.True(result.Build.IsAvailable);
+    }
+
     /// <summary>Only the four accepted child readiness values are part of the public contract.</summary>
     [Fact]
     public void ChildReadinessVocabularyRemainsClosed()
@@ -259,6 +321,18 @@ public sealed class CapabilityActionReadinessTests
                 [duplicate, duplicate],
                 runtime,
                 currentRuntimeDependencyGeneration: 1));
+        _ = Assert.Throws<ArgumentException>(() =>
+            CapabilityActionReadinessResolver.Resolve(
+                admission,
+                [null!],
+                runtime,
+                currentRuntimeDependencyGeneration: 1));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            CapabilityActionReadinessResolver.Resolve(
+                admission,
+                [],
+                runtime,
+                currentRuntimeDependencyGeneration: 0));
     }
 
     /// <summary>Runtime dependency requests and snapshots reject stale or malformed identities and entries.</summary>

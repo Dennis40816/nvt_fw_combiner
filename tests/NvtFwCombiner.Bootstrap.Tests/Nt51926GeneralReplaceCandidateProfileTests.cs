@@ -129,6 +129,81 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
             routedReport.RootElement.GetProperty("ProfileId").GetString());
     }
 
+    /// <summary>The public runner independently rejects forged Saved Rule Parent provenance.</summary>
+    [Fact]
+    public async Task RoutedCandidateRejectsMismatchedSavedRuleParentBeforeOutputAsync()
+    {
+        using var workspace = TempWorkspace.Create(
+            "nvt-fw-combiner-general-replace-parent-mismatch");
+        string basePath = workspace.Write(
+            "base.bin",
+            CreatePattern(FullFlashCapacity, 0x27));
+        string sourcePath = workspace.Write("source.bin", [0xA5]);
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+        var draft = new GeneralMappingDraftState(
+        [
+            new GeneralMappingDraftRow(
+                "dp-map",
+                ExplicitMappingOperationKind.ReplaceRange,
+                GeneralMappingSource.File(sourcePath),
+                new ByteRange(0, 1),
+                CompositionAddressSpaceIds.OutputImage,
+                new ByteRange(DpStart, 1),
+                OverlapPolicy.Reject,
+                alignment: 1,
+                "Mismatched Parent regression."),
+        ]);
+        GeneralResourceLimits limits = new(
+            1,
+            1,
+            1,
+            1,
+            [new GeneralSlotLengthLimits("dp-map", 1, 1)]);
+        var forgedIdentity = new SavedRuleExecutionIdentity(
+            "forged",
+            "1.0.0",
+            new string('a', 64),
+            new SavedRuleParentIdentity(
+                "forged-bundle",
+                "1.0.0",
+                new string('b', 64),
+                "forged-profile",
+                "1.0.0",
+                new string('c', 64),
+                "forged-family",
+                "1.0.0",
+                new string('d', 64),
+                "forged-map"));
+
+        WorkbenchRunResult result =
+            await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+                "NT51926",
+                "single",
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [WorkbenchSlotIds.ReplaceBase] = basePath,
+                },
+                draft,
+                build: true,
+                TestContext.Current.CancellationToken,
+                outputPath,
+                new GeneralSavedRuleResourcePolicy(forgedIdentity, limits));
+
+        Assert.False(result.Succeeded);
+        Assert.False(File.Exists(outputPath));
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() ==
+                GeneralAuthoringIssueCodes.SavedRuleParentMismatch);
+        Assert.Equal(
+            JsonValueKind.Null,
+            report.RootElement
+                .GetProperty("GeneralAdmission")
+                .GetProperty("SavedRule")
+                .ValueKind);
+    }
+
     /// <summary>Single-selector virtual patches fail closed until their V2 contract is migrated.</summary>
     [Fact]
     public async Task DpVirtualPatchFailsClosedWithoutOutputAsync()

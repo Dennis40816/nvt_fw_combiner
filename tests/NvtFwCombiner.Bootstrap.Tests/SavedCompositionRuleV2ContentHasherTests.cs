@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -40,5 +41,46 @@ public sealed class SavedCompositionRuleV2ContentHasherTests
         Assert.NotEqual(
             SavedCompositionRuleV2ContentHasher.Calculate(first.RootElement),
             SavedCompositionRuleV2ContentHasher.Calculate(second.RootElement));
+    }
+
+    /// <summary>Every supported JSON scalar and numeric representation has one deterministic path.</summary>
+    [Fact]
+    public void CanonicalHashSupportsNestedDisplayNameAndAllJsonScalars()
+    {
+        using var document = JsonDocument.Parse(
+            """
+            {
+              "nested": {
+                "displayName": "Nested names remain semantic",
+                "enabled": true,
+                "disabled": false,
+                "optional": null
+              },
+              "signed": -1,
+              "unsigned": 18446744073709551615,
+              "decimal": 1.25,
+              "double": 1e100
+            }
+            """);
+
+        string hash =
+            SavedCompositionRuleV2ContentHasher.Calculate(
+                document.RootElement);
+
+        Assert.Matches("^[0-9a-f]{64}$", hash);
+    }
+
+    /// <summary>Only one complete JSON object can become a Saved Rule semantic identity.</summary>
+    [Fact]
+    public void CanonicalHashRejectsNonObjectRootAndUndefinedValue()
+    {
+        using var array = JsonDocument.Parse("[]");
+
+        _ = Assert.Throws<ArgumentException>(
+            () => SavedCompositionRuleV2ContentHasher.Calculate(
+                array.RootElement));
+        _ = Assert.Throws<ArgumentException>(
+            () => SavedCompositionRuleV2ContentHasher.Calculate(
+                default));
     }
 }
