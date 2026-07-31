@@ -4,13 +4,14 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
-/// <summary>One executable General Merge draft closed over by a Saved Rule v2 document.</summary>
-internal sealed record SavedRuleV2GeneralMergeDraftLoadResult(
-    GeneralMergeDraftState? Draft,
+/// <summary>One executable typed draft closed over by a Saved Rule v2 document.</summary>
+internal sealed record SavedRuleV2DraftLoadResult<TDraft>(
+    TDraft? Draft,
     SavedRuleV2ParentBinding? ParentBinding,
     SavedRuleExecutionIdentity? ExecutionIdentity,
     GeneralSavedRuleResourcePolicy? ResourcePolicy,
     IReadOnlyList<SavedRuleValidationIssue> Issues)
+    where TDraft : class
 {
     internal bool IsValid =>
         Draft is not null &&
@@ -39,7 +40,7 @@ internal sealed record SavedRuleV2ParentBinding(
 /// </summary>
 internal static partial class SavedRuleV2GeneralMergeDraftLoader
 {
-    internal static SavedRuleV2GeneralMergeDraftLoadResult Load(
+    internal static SavedRuleV2DraftLoadResult<GeneralMergeDraftState> Load(
         string path,
         IReadOnlyDictionary<string, string> slotsById,
         SavedRuleV2GeneralMergeAdmissionContext admissionContext)
@@ -47,49 +48,13 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(slotsById);
         ArgumentNullException.ThrowIfNull(admissionContext);
-
-        string fullPath = Path.GetFullPath(path);
-        if (!File.Exists(fullPath))
-        {
-            return Failed(
-                Issue(
-                    SavedRuleIssueCodes.FileNotFound,
-                    $"Saved Rule v2 JSON was not found: {fullPath}",
-                    "$"));
-        }
-
-        try
-        {
-            using var document = JsonDocument.Parse(File.ReadAllText(fullPath));
-            return Parse(
-                document.RootElement,
-                slotsById,
-                admissionContext);
-        }
-        catch (JsonException exception)
-        {
-            return Failed(Issue(
-                SavedRuleIssueCodes.JsonInvalid,
-                $"Saved Rule v2 JSON is invalid: {exception.Message}",
-                "$"));
-        }
-        catch (IOException exception)
-        {
-            return Failed(Issue(
-                SavedRuleIssueCodes.FileReadFailed,
-                $"Saved Rule v2 JSON could not be read: {exception.Message}",
-                "$"));
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            return Failed(Issue(
-                SavedRuleIssueCodes.FileReadFailed,
-                $"Saved Rule v2 JSON could not be read: {exception.Message}",
-                "$"));
-        }
+        return LoadFile(
+            path,
+            root => Parse(root, slotsById, admissionContext),
+            Failed);
     }
 
-    private static SavedRuleV2GeneralMergeDraftLoadResult Parse(
+    private static SavedRuleV2DraftLoadResult<GeneralMergeDraftState> Parse(
         JsonElement root,
         IReadOnlyDictionary<string, string> slotsById,
         SavedRuleV2GeneralMergeAdmissionContext admissionContext)
@@ -100,7 +65,7 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
                 admissionContext);
         if (!admission.IsValid)
         {
-            return new SavedRuleV2GeneralMergeDraftLoadResult(
+            return new SavedRuleV2DraftLoadResult<GeneralMergeDraftState>(
                 null,
                 admission.ParentBinding,
                 null,
@@ -108,30 +73,59 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
                 admission.Issues);
         }
 
-        List<SavedRuleValidationIssue> issues = [];
-        string ruleId = ReadRequiredString(root, "ruleId", "$.ruleId", issues);
-        string ruleVersion = ReadRequiredString(
-            root,
-            "ruleVersion",
-            "$.ruleVersion",
-            issues);
-        HashSet<string> slotTemplateIds = ReadSlotTemplateIds(root, issues);
-        GeneralMappingDraftRow[] rows = ReadMappings(
+        SavedRuleV2MappingProjection? projection = ProjectMappings(
             root,
             slotsById,
-            slotTemplateIds,
-            ruleId,
-            ruleVersion,
-            issues);
-
-        if (issues.Count != 0)
-        {
-            return new SavedRuleV2GeneralMergeDraftLoadResult(
+            targetRegions: null,
+            admission.ParentBinding!,
+            out IReadOnlyList<SavedRuleValidationIssue> issues);
+        return projection is null
+            ? new SavedRuleV2DraftLoadResult<GeneralMergeDraftState>(
                 null,
                 admission.ParentBinding,
                 null,
                 null,
-                issues);
+                issues)
+            : new SavedRuleV2DraftLoadResult<GeneralMergeDraftState>(
+                new GeneralMergeDraftState(
+                    admission.Initializer!,
+                    projection.Draft),
+                admission.ParentBinding,
+                projection.ExecutionIdentity,
+                projection.ResourcePolicy,
+                []);
+    }
+
+    private static SavedRuleV2MappingProjection? ProjectMappings(
+        JsonElement root,
+        IReadOnlyDictionary<string, string> slotsById,
+        IReadOnlyDictionary<string, ByteRange>? targetRegions,
+        SavedRuleV2ParentBinding parentBinding,
+        out IReadOnlyList<SavedRuleValidationIssue> issues)
+    {
+        List<SavedRuleValidationIssue> issueList = [];
+        string ruleId = ReadRequiredString(
+            root,
+            "ruleId",
+            "$.ruleId",
+            issueList);
+        string ruleVersion = ReadRequiredString(
+            root,
+            "ruleVersion",
+            "$.ruleVersion",
+            issueList);
+        GeneralMappingDraftRow[] rows = ReadMappings(
+            root,
+            slotsById,
+            ReadSlotTemplateIds(root, issueList),
+            targetRegions,
+            ruleId,
+            ruleVersion,
+            issueList);
+        if (issueList.Count != 0)
+        {
+            issues = issueList;
+            return null;
         }
 
         try
@@ -141,30 +135,28 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
                     root,
                     ruleId,
                     ruleVersion,
-                    admission.ParentBinding!);
-            return new SavedRuleV2GeneralMergeDraftLoadResult(
-                new GeneralMergeDraftState(
-                    admission.Initializer!,
-                    new GeneralMappingDraftState(rows)),
-                admission.ParentBinding,
+                    parentBinding);
+            issues = [];
+            return new SavedRuleV2MappingProjection(
+                new GeneralMappingDraftState(rows),
                 executionIdentity,
-                CreateSavedRuleResourcePolicy(root, executionIdentity, rows),
-                []);
+                CreateSavedRuleResourcePolicy(root, executionIdentity, rows));
         }
         catch (ArgumentException exception)
         {
-            issues.Add(Issue(
+            issueList.Add(Issue(
                 SavedRuleIssueCodes.MappingRowInvalid,
-                $"Saved Rule v2 cannot form one typed General Merge draft: {exception.Message}",
+                $"Saved Rule v2 cannot form one typed General {(targetRegions is null ? "Merge" : "Replace")} draft: {exception.Message}",
                 "$.mappingFragments"));
-            return new SavedRuleV2GeneralMergeDraftLoadResult(
-                null,
-                admission.ParentBinding,
-                null,
-                null,
-                issues);
+            issues = issueList;
+            return null;
         }
     }
+
+    private sealed record SavedRuleV2MappingProjection(
+        GeneralMappingDraftState Draft,
+        SavedRuleExecutionIdentity ExecutionIdentity,
+        GeneralSavedRuleResourcePolicy ResourcePolicy);
 
     private static SavedRuleExecutionIdentity CreateExecutionIdentity(
         JsonElement root,
@@ -264,6 +256,7 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
         JsonElement root,
         IReadOnlyDictionary<string, string> slotsById,
         IReadOnlySet<string> slotTemplateIds,
+        IReadOnlyDictionary<string, ByteRange>? targetRegions,
         string ruleId,
         string ruleVersion,
         List<SavedRuleValidationIssue> issues)
@@ -299,6 +292,7 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
                 path,
                 slotsById,
                 slotTemplateIds,
+                targetRegions,
                 ruleId,
                 ruleVersion,
                 rows,
@@ -321,6 +315,7 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
         string path,
         IReadOnlyDictionary<string, string> slotsById,
         IReadOnlySet<string> slotTemplateIds,
+        IReadOnlyDictionary<string, ByteRange>? targetRegions,
         string ruleId,
         string ruleVersion,
         List<GeneralMappingDraftRow> rows,
@@ -336,13 +331,17 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
             "operationKind",
             $"{path}.operationKind",
             issues);
+        bool isReplace = targetRegions is not null;
+        string expectedOperationKind = isReplace
+            ? SavedRuleSchemaTokens.OperationKindReplaceRange
+            : SavedRuleSchemaTokens.OperationKindCopyRange;
         if (!StringComparer.Ordinal.Equals(
                 operationKind,
-                SavedRuleSchemaTokens.OperationKindCopyRange))
+                expectedOperationKind))
         {
             issues.Add(Issue(
                 SavedRuleIssueCodes.OperationFragmentKindUnsupported,
-                "General Merge Saved Rule v2 mappings must use copy-range.",
+                $"General {(isReplace ? "Replace" : "Merge")} Saved Rule v2 mappings must use {expectedOperationKind}.",
                 $"{path}.operationKind"));
         }
 
@@ -366,13 +365,18 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
             "targetRegionId",
             $"{path}.targetRegionId",
             issues);
-        if (!StringComparer.Ordinal.Equals(
-                targetRegionId,
-                WorkbenchGeneralMergeIds.OutputRegionId))
+        ByteRange targetRegion = default;
+        if (isReplace
+                ? !targetRegions!.TryGetValue(targetRegionId, out targetRegion)
+                : !StringComparer.Ordinal.Equals(
+                    targetRegionId,
+                    WorkbenchGeneralMergeIds.OutputRegionId))
         {
             issues.Add(Issue(
                 SavedRuleIssueCodes.MappingRowTargetRegionUnsupported,
-                $"Current General Merge supports only target region '{WorkbenchGeneralMergeIds.OutputRegionId}'.",
+                isReplace
+                    ? $"General Replace Saved Rule v2 target region '{targetRegionId}' is not writable by its exact Parent."
+                    : $"Current General Merge supports only target region '{WorkbenchGeneralMergeIds.OutputRegionId}'.",
                 $"{path}.targetRegionId"));
         }
 
@@ -410,9 +414,14 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
         ByteRange targetRange;
         try
         {
-            targetRange = new ByteRange(targetOffset, sourceRange.Length);
+            targetRange = new ByteRange(
+                checked(
+                    (isReplace ? targetRegion.Start : 0) +
+                    targetOffset),
+                sourceRange.Length);
         }
-        catch (ArgumentOutOfRangeException)
+        catch (Exception exception) when (
+            exception is ArgumentOutOfRangeException or OverflowException)
         {
             issues.Add(Issue(
                 SavedRuleIssueCodes.RangeOverflow,
@@ -428,9 +437,12 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
             issues);
         if (fragmentId.Length == 0 ||
             sourcePath is null ||
-            operationKind != SavedRuleSchemaTokens.OperationKindCopyRange ||
+            operationKind != expectedOperationKind ||
             overlapPolicy != SavedRuleSchemaTokens.MappingOverlapReject ||
-            targetRegionId != WorkbenchGeneralMergeIds.OutputRegionId ||
+            (isReplace
+                ? !targetRegion.Contains(targetRange)
+                : targetRegionId !=
+                  WorkbenchGeneralMergeIds.OutputRegionId) ||
             reason.Length == 0)
         {
             return;
@@ -440,7 +452,9 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
         {
             rows.Add(new GeneralMappingDraftRow(
                 fragmentId,
-                ExplicitMappingOperationKind.CopyRange,
+                isReplace
+                    ? ExplicitMappingOperationKind.ReplaceRange
+                    : ExplicitMappingOperationKind.CopyRange,
                 GeneralMappingSource.File(sourcePath),
                 sourceRange,
                 CompositionAddressSpaceIds.OutputImage,
@@ -448,8 +462,11 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
                 OverlapPolicy.Reject,
                 alignment: 1,
                 reason,
-                WorkbenchGeneralMergeIds.OutputRegionId,
-                OperationProvenance.SavedRule(ruleId, ruleVersion)));
+                isReplace
+                    ? null
+                    : WorkbenchGeneralMergeIds.OutputRegionId,
+                OperationProvenance.SavedRule(ruleId, ruleVersion),
+                GeneralMappingFileRangePreset.SourceSlice));
         }
         catch (ArgumentException exception)
         {

@@ -182,7 +182,8 @@ public static partial class WorkbenchCompositionService
         GeneralMappingDraftState mappingDraft,
         bool build,
         CancellationToken cancellationToken,
-        string? outputPath = null)
+        string? outputPath = null,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
@@ -209,7 +210,8 @@ public static partial class WorkbenchCompositionService
                 build,
                 outputPath,
                 progress: null,
-                cancellationToken);
+                cancellationToken,
+                savedRulePolicy);
     }
 
     /// <summary>
@@ -262,9 +264,10 @@ public static partial class WorkbenchCompositionService
             GeneralMappingDraftState mappingDraft,
             AuthoringRevision inspectionRevision,
             bool build,
-            string? outputPath,
-            CompositionRunProgressFeed? progress,
-            CancellationToken cancellationToken)
+        string? outputPath,
+        CompositionRunProgressFeed? progress,
+        CancellationToken cancellationToken,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy = null)
     {
         if (!TryCreateGeneralReplaceRunContext(
                 icId,
@@ -303,7 +306,8 @@ public static partial class WorkbenchCompositionService
                 build,
                 outputPath,
                 progress,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                savedRulePolicy).ConfigureAwait(false);
     }
 
     /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>

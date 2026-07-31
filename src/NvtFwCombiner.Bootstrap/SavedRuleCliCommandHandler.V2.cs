@@ -36,7 +36,7 @@ internal static partial class SavedRuleCliCommandHandler
         TextWriter output,
         TextWriter error)
     {
-        SavedRuleV2GeneralMergeDraftLoadResult load;
+        SavedRuleV2DraftLoadResult<GeneralMergeDraftState> load;
         try
         {
             using JsonDocument document = JsonDocument.Parse(

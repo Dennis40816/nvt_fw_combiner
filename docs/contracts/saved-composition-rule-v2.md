@@ -125,11 +125,19 @@ the reviewed final stage and its golden/evidence and firmware-owner gates are
 satisfied. There is no projection-only fallback that executes bytes under a
 weaker profile.
 
-The current runtime remains validation/mapping-projection only for General
-Replace saved rules. Enabling execution requires strict loader/compiler
-round-trip tests, parent-authority negative tests, processor diff auditing,
-full-output golden evidence for applicable TP routes, and explicit migration
-of the current compatibility boundary.
+The current executable boundary is the exact
+`nt51926-general-replace-dp-single-candidate` Parent and its
+`general-replace-full-flash-dp-code` explicit-range region. It clones the
+required immutable Reference, resolves rule targets relative to that canonical
+region, and lowers them into the Parent's normal DP-only runtime-reference
+Replace compiler and shared executor. The rule identity and exact Parent are
+retained in admission and report provenance. Rule-defined processor authority
+does not exist.
+
+All TP-touching and POSTBUILD-dependent General Replace saved rules remain
+closed. Enabling one requires an exact Parent stage declaration, strict
+loader/compiler round-trip tests, parent-authority negative tests, processor
+diff auditing, full-output golden evidence, and the firmware-owner R3 gate.
 
 Promotion uses the same monotonic stages as composition profiles. Migration or successful parsing
 does not promote a rule. `supported` requires an empty blocker list, exact parent compatibility,

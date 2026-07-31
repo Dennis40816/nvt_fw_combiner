@@ -48,8 +48,10 @@ internal static partial class ReplaceCliCommandHandler
                 repeatableValueOptions.Add("--ctrlram");
                 break;
             case IcWorkflowIds.GeneralReplace:
-                valueOptions.AddRange(["--mapping", "--patch", "--fill"]);
-                repeatableValueOptions.AddRange(["--mapping", "--patch", "--fill"]);
+                valueOptions.AddRange(
+                    ["--mapping", "--patch", "--fill", "--rule", "--slot"]);
+                repeatableValueOptions.AddRange(
+                    ["--mapping", "--patch", "--fill", "--slot"]);
                 break;
             default:
                 break;

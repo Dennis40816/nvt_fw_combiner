@@ -53,7 +53,8 @@ public static partial class WorkbenchCompositionService
         bool build,
         string? outputPath,
         CompositionRunProgressFeed? progress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy = null)
     {
         if (!TryCreateGeneralReplaceRunContext(
                 icId,
@@ -103,7 +104,8 @@ public static partial class WorkbenchCompositionService
             context.Capacity,
             CreateCurrentGeneralTrustedParentPolicy(
                 Nt51926GeneralReplaceDpProfileId,
-                context.MappingDraft));
+                context.MappingDraft),
+            savedRulePolicy);
         if (!admission.IsAdmitted)
         {
             return Blocked(admission.ToCompositionIssues());

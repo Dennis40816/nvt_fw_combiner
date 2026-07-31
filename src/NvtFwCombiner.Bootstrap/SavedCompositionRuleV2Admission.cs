@@ -31,7 +31,6 @@ internal sealed record SavedCompositionRuleV2AdmissionResult(
 {
     internal bool IsValid =>
         ParentBinding is not null &&
-        Initializer is not null &&
         Issues.Count == 0;
 }
 
@@ -39,7 +38,7 @@ internal sealed record SavedCompositionRuleV2AdmissionResult(
 /// Applies the canonical v2 schema and the parent-relative rules that JSON
 /// Schema cannot express. Draft projection may run only after this succeeds.
 /// </summary>
-internal static class SavedCompositionRuleV2Admission
+internal static partial class SavedCompositionRuleV2Admission
 {
     internal static SavedCompositionRuleV2AdmissionResult ValidateGeneralMerge(
         JsonElement root,
@@ -81,7 +80,7 @@ internal static class SavedCompositionRuleV2Admission
         ValidateSlotNarrowing(root, context, issues);
         ValidateParentReferences(root, context, issues);
         ValidateSourceSlotReferences(root, context, issues);
-        ValidateAccessNarrowing(root, issues);
+        ValidateAccessNarrowing(root, targetRegions: null, issues);
 
         return new SavedCompositionRuleV2AdmissionResult(
             parentBinding,
@@ -232,7 +231,7 @@ internal static class SavedCompositionRuleV2Admission
             {
                 issues.Add(Issue(
                     SavedRuleIssueCodes.V2ParentNarrowingInvalid,
-                    "General Merge Saved Rule execution requires one concrete binding that narrows the trusted one-or-more parent slot.",
+                    "Saved Rule v2 execution requires one concrete binding that narrows the trusted one-or-more parent slot.",
                     $"{path}.cardinality"));
             }
 
@@ -277,7 +276,7 @@ internal static class SavedCompositionRuleV2Admission
         {
             issues.Add(Issue(
                 SavedRuleIssueCodes.ProcessorDependencyUnsupported,
-                "Current General Merge Saved Rule v2 consumption does not support processor stages.",
+                "Current Saved Rule v2 execution does not support processor stages.",
                 "$.processorStageIds"));
         }
     }
@@ -344,6 +343,7 @@ internal static class SavedCompositionRuleV2Admission
 
     private static void ValidateAccessNarrowing(
         JsonElement root,
+        IReadOnlyDictionary<string, ByteRange>? targetRegions,
         List<SavedRuleValidationIssue> issues)
     {
         JsonElement envelope = root.GetProperty("accessEnvelope");
@@ -352,12 +352,24 @@ internal static class SavedCompositionRuleV2Admission
             .EnumerateArray()
             .Select(static item => item.GetString()!)
             .ToHashSet(StringComparer.Ordinal);
-        if (!allowedRegions.SetEquals([WorkbenchGeneralMergeIds.OutputRegionId]))
+        if (targetRegions is null &&
+            !allowedRegions.SetEquals([WorkbenchGeneralMergeIds.OutputRegionId]))
         {
             issues.Add(Issue(
                 SavedRuleIssueCodes.MappingRowTargetRegionUnsupported,
                 $"General Merge Saved Rule v2 accessEnvelope must close over only '{WorkbenchGeneralMergeIds.OutputRegionId}'.",
                 "$.accessEnvelope.allowedRegionIds"));
+        }
+        else if (targetRegions is not null)
+        {
+            foreach (string regionId in allowedRegions.Where(
+                         regionId => !targetRegions.ContainsKey(regionId)))
+            {
+                issues.Add(Issue(
+                    SavedRuleIssueCodes.V2ParentNarrowingInvalid,
+                    $"General Replace Saved Rule region '{regionId}' is not writable by its exact Parent.",
+                    "$.accessEnvelope.allowedRegionIds"));
+            }
         }
 
         JsonElement fragments = root.GetProperty("mappingFragments");
@@ -365,14 +377,18 @@ internal static class SavedCompositionRuleV2Admission
         int index = 0;
         foreach (JsonElement fragment in fragments.EnumerateArray())
         {
+            string path = $"$.mappingFragments[{index}]";
             string targetRegionId =
                 fragment.GetProperty("targetRegionId").GetString()!;
-            if (!allowedRegions.Contains(targetRegionId))
+            bool parentAllowsTarget = targetRegions is null ||
+                targetRegions.ContainsKey(targetRegionId);
+            if (!allowedRegions.Contains(targetRegionId) ||
+                !parentAllowsTarget)
             {
                 issues.Add(Issue(
                     SavedRuleIssueCodes.MappingRowTargetRegionUnsupported,
-                    $"Saved Rule v2 mapping target '{targetRegionId}' is outside its accessEnvelope.",
-                    $"$.mappingFragments[{index}].targetRegionId"));
+                    $"Saved Rule v2 mapping target '{targetRegionId}' is outside its exact Parent or accessEnvelope.",
+                    $"{path}.targetRegionId"));
             }
 
             JsonElement lengthElement = fragment
@@ -383,20 +399,42 @@ internal static class SavedCompositionRuleV2Admission
                 issues.Add(Issue(
                     SavedRuleIssueCodes.RangeOverflow,
                     "Saved Rule v2 source range length exceeds the supported address size.",
-                    $"$.mappingFragments[{index}].sourceRange.length"));
+                    $"{path}.sourceRange.length"));
             }
             else
             {
                 try
                 {
+                    if (targetRegions is not null &&
+                        targetRegions.TryGetValue(
+                            targetRegionId,
+                            out ByteRange targetRegion))
+                    {
+                        long offset = fragment
+                            .GetProperty("targetOffset")
+                            .GetInt64();
+                        ByteRange target = new(
+                            checked(targetRegion.Start + offset),
+                            length);
+                        if (!targetRegion.Contains(target))
+                        {
+                            issues.Add(Issue(
+                                SavedRuleIssueCodes.MappingRowTargetRegionUnsupported,
+                                $"General Replace Saved Rule target range is outside canonical region '{targetRegionId}'.",
+                                $"{path}.targetOffset"));
+                        }
+                    }
+
                     totalWriteBytes = checked(totalWriteBytes + length);
                 }
-                catch (OverflowException)
+                catch (Exception exception) when (
+                    exception is ArgumentOutOfRangeException or
+                    OverflowException)
                 {
                     issues.Add(Issue(
                         SavedRuleIssueCodes.RangeOverflow,
-                        "Saved Rule v2 total mapping length overflows.",
-                        "$.mappingFragments"));
+                        "Saved Rule v2 mapping range or total write length overflows.",
+                        path));
                 }
             }
 

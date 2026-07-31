@@ -1,10 +1,47 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class SavedRuleV2GeneralMergeDraftLoader
 {
+    private static TResult LoadFile<TResult>(
+        string path,
+        Func<JsonElement, TResult> parser,
+        Func<SavedRuleValidationIssue, TResult> failed)
+    {
+        string fullPath = Path.GetFullPath(path);
+        if (!File.Exists(fullPath))
+        {
+            return failed(Issue(
+                SavedRuleIssueCodes.FileNotFound,
+                $"Saved Rule v2 JSON was not found: {fullPath}",
+                "$"));
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(fullPath));
+            return parser(document.RootElement);
+        }
+        catch (JsonException exception)
+        {
+            return failed(Issue(
+                SavedRuleIssueCodes.JsonInvalid,
+                $"Saved Rule v2 JSON is invalid: {exception.Message}",
+                "$"));
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException)
+        {
+            return failed(Issue(
+                SavedRuleIssueCodes.FileReadFailed,
+                $"Saved Rule v2 JSON could not be read: {exception.Message}",
+                "$"));
+        }
+    }
+
     private static bool TryReadRange(
         JsonElement parent,
         string propertyName,
@@ -100,10 +137,10 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
         return element.GetString()!;
     }
 
-    private static SavedRuleV2GeneralMergeDraftLoadResult Failed(
+    private static SavedRuleV2DraftLoadResult<GeneralMergeDraftState> Failed(
         SavedRuleValidationIssue issue)
     {
-        return new SavedRuleV2GeneralMergeDraftLoadResult(
+        return new SavedRuleV2DraftLoadResult<GeneralMergeDraftState>(
             null,
             null,
             null,

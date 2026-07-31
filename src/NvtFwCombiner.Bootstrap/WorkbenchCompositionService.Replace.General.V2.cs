@@ -69,4 +69,12 @@ public static partial class WorkbenchCompositionService
                 out icNumberInputMode,
                 out issues);
     }
+
+    internal static SavedRuleV2GeneralReplaceAdmissionContext
+        GetNt51926GeneralReplaceSavedRuleAdmissionContext()
+    {
+        return BuiltInV2BundleRegistry.All[Nt51926GeneralReplaceBundleId]
+            .GetGeneralReplaceSavedRuleAdmissionContext(
+                Nt51926GeneralReplaceDpProfileId);
+    }
 }
