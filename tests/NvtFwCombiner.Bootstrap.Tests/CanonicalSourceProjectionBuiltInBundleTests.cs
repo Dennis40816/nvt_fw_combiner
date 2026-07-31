@@ -16,7 +16,7 @@ public sealed class CanonicalSourceProjectionBuiltInBundleTests
     [InlineData("nt51929-dp-replace", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd")]
     [InlineData("nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380")]
     [InlineData("nt51919-nt51929-nt51932-ab-merge", "2c54c025d2afd3c8c15de6587894fb166a2a8cb7879f90fa241cba8dddeb5544")]
-    [InlineData("nt51950-ab-merge", "069719655976439153a0d2d2f06f1289f3bcc76437463f89aa81ee19827b312f")]
+    [InlineData("nt51950-ab-merge", "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67")]
     [InlineData("nt51950-nt51951-standard-merge", "45cf7836211d3447563ecbf196e5cd777878617fd43bbb99657f4eafdf1dca2c")]
     public void MigratedBundleLoadsFromItsManifestPinnedSources(
         string bundleDirectory,

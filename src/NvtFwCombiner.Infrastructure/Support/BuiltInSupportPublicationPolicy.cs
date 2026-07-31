@@ -7,13 +7,18 @@ namespace NvtFwCombiner.Infrastructure.Support;
 /// <summary>Loads the owner publication policy after its bytes match the reviewed hash.</summary>
 internal static class BuiltInSupportPublicationPolicy
 {
-    private const string ExpectedSha256 =
+    private const string InitialSha256 =
         "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2";
+    private const string ExpectedSha256 =
+        "b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff";
     internal static IReadOnlyList<PinnedSupportPublicationPolicyFile>
         HistoryFiles
     { get; } =
         Array.AsReadOnly<PinnedSupportPublicationPolicyFile>(
         [
+            new(
+                "docs/contracts/support-publication-policy-v1.0.0.json",
+                InitialSha256),
             new(
                 "docs/contracts/support-publication-policy-v1.json",
                 ExpectedSha256),

@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Numerics;
+using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -12,7 +13,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "069719655976439153a0d2d2f06f1289f3bcc76437463f89aa81ee19827b312f";
+    private const string BundleContentHash = "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67";
     private const int Capacity = 0x80000;
     private const int BankLength = 0x40000;
     private const int TpInputLength = 0x37000;
@@ -28,6 +29,9 @@ public sealed class Nt51950AbMergeCandidateProfileTests
 
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
+        Assert.Equal(
+            "b00181e924452c038a629b7d8ff52d12c240bf0bb5d14efed6f77529ec6ae042",
+            composition.IntegrityFingerprint);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.Equal("nt51950-ab-merge-512k", details.Provenance.ResolvedMap.ImageMap.MapId);
         AssertRegionRange(details, "a-cmi-dp-version", 0x3B016, 3);
@@ -40,16 +44,15 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(
             [
                 "copy-dp-ab-image",
-                "seed-a-bank-from-dp",
-                "overlay-tpa-into-a-bank",
-                "seed-b-bank-from-dp",
+                "overlay-tpa-into-output",
                 "relocate-tpb-diff-for-b-bank",
-                "overlay-tpb-into-b-bank",
+                "overlay-tpb-into-output",
                 "copy-a-bank-to-combiner-work",
                 "copy-b-bank-to-combiner-work",
                 "run-nt51950-ab-combiner",
-                "copy-a-bank-to-output",
-                "copy-postbuild-b-bank-to-output",
+                "import-postbuild-b-ilm",
+                "import-postbuild-b-dlm",
+                "import-postbuild-b-crc",
             ],
             composition.Plan.OrderedOperations.Select(static operation => operation.OperationId));
         CompositionOperation diffRelocation = Assert.Single(
@@ -59,6 +62,12 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(new ByteRange(0xA120, sizeof(uint)), diffRelocation.SourceRange);
         Assert.Equal(new ByteRange(0xA120, sizeof(uint)), diffRelocation.TargetRange);
         Assert.Equal(new BigInteger(0x40000), Assert.IsType<ScalarTransform>(diffRelocation.ScalarTransform).Addend);
+        Assert.Equal(
+            [new ByteRange(TpCodeStart, TpCodeLength), new ByteRange(TpCodeStart, TpCodeLength)],
+            composition.Plan.OrderedOperations
+                .Where(static operation => operation.OperationId is
+                    "overlay-tpa-into-output" or "overlay-tpb-into-output")
+                .Select(static operation => operation.SourceRange));
 
         CompositionOperation postbuild = Assert.Single(
             composition.Plan.OrderedOperations,
@@ -74,11 +83,86 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             ["a-bank", "b-bank"],
             invocation.StagedArtifactBindings.Select(static binding => binding.ArtifactId));
         Assert.Equal(
-            ["a-bank-work", "b-bank-work"],
+            ["output-image", "output-image"],
             invocation.StagedArtifactBindings.Select(static binding => binding.SourceSpaceId));
-        Assert.All(
-            invocation.StagedArtifactBindings,
-            static binding => Assert.Equal(new ByteRange(0, BankLength), binding.SourceRange));
+        Assert.Equal(
+            [new ByteRange(0, BankLength), new ByteRange(BankLength, BankLength)],
+            invocation.StagedArtifactBindings.Select(static binding => binding.SourceRange));
+    }
+
+    /// <summary>Verifies the profile derives TP source geometry and relocation from one placed region template.</summary>
+    [Fact]
+    public void CandidateProfileDerivesTpGeometryFromRegionInstances()
+    {
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
+        using var family = JsonDocument.Parse(File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "profiles",
+            "built-in",
+            BundleDirectory,
+            "families",
+            "nt51950-ab-merge.json")));
+        Assert.Equal("1.2", family.RootElement.GetProperty("schemaVersion").GetString());
+        JsonElement[] regionSets = [.. family.RootElement.GetProperty("regionSets").EnumerateArray()];
+        Assert.DoesNotContain(
+            regionSets.SelectMany(static set => set.GetProperty("regions").EnumerateArray()),
+            static region =>
+            {
+                string regionId = region.GetProperty("regionId").GetString()!;
+                return regionId.Contains("control", StringComparison.Ordinal) ||
+                    regionId.Contains("preserved-tail", StringComparison.Ordinal);
+            });
+        Assert.Contains(
+            regionSets,
+            static set => set.TryGetProperty("regionTemplates", out JsonElement templates) &&
+                templates.EnumerateArray().Any(template =>
+                    template.GetProperty("regions").EnumerateArray().Any(region =>
+                        region.GetProperty("regionId").GetString() == "tp-code")));
+
+        using var profile = JsonDocument.Parse(File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "profiles",
+            "built-in",
+            BundleDirectory,
+            "profiles",
+            "nt51950-ab-merge.json")));
+        Assert.Equal("2.14", profile.RootElement.GetProperty("schemaVersion").GetString());
+        JsonElement[] views = [.. profile.RootElement.GetProperty("views").EnumerateArray()];
+        foreach (string viewId in new[] { "tp-a-code-source", "tp-b-code-source" })
+        {
+            JsonElement view = Assert.Single(
+                views,
+                candidate => candidate.GetProperty("viewId").GetString() == viewId);
+            Assert.Equal("region-template-range", view.GetProperty("selector").GetProperty("kind").GetString());
+        }
+
+        JsonElement relocation = Assert.Single(
+            profile.RootElement.GetProperty("operations").EnumerateArray(),
+            static operation => operation.GetProperty("operationId").GetString() == "relocate-tpb-diff-for-b-bank");
+        Assert.Equal(
+            "region-instance-delta",
+            relocation.GetProperty("addend").GetProperty("kind").GetString());
+    }
+
+    /// <summary>Verifies only the seed, named TP placements, and exact postbuild header fields can write the output.</summary>
+    [Fact]
+    public void CandidatePlanWritesOnlySeedTpPlacementsAndPostbuildFieldsToOutput()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51950-ab-output-authority");
+        CompiledComposition composition = CompileCandidate(workspace);
+
+        Assert.Equal(
+            [
+                ("copy-dp-ab-image", new ByteRange(0, Capacity)),
+                ("overlay-tpa-into-output", new ByteRange(0xA000, TpCodeLength)),
+                ("overlay-tpb-into-output", new ByteRange(0x4A000, TpCodeLength)),
+                ("import-postbuild-b-ilm", new ByteRange(0x4A100, sizeof(uint))),
+                ("import-postbuild-b-dlm", new ByteRange(0x4A110, sizeof(uint))),
+                ("import-postbuild-b-crc", new ByteRange(0x4A130, sizeof(uint))),
+            ],
+            composition.Plan.OrderedOperations
+                .Where(operation => operation.TargetSpaceId == composition.Plan.OutputSpaceId)
+                .Select(static operation => (operation.OperationId, operation.TargetRange)));
     }
 
     /// <summary>Verifies the narrowly admitted function-open candidate can create an application run request.</summary>
@@ -157,6 +241,9 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             result.OutputBytes.Span,
             BankLength + TpCodeStart + 0x124,
             TpCodeLength - 0x124);
+        AssertRangeEquals(dp, 0, result.OutputBytes.Span, 0, TpCodeStart);
+        AssertRangeEquals(dp, 0x37000, result.OutputBytes.Span, 0x37000, 0x13000);
+        AssertRangeEquals(dp, 0x77000, result.OutputBytes.Span, 0x77000, 0x9000);
     }
 
     /// <summary>Verifies no alternate capacity can select the fixed full-bank candidate map.</summary>
@@ -167,7 +254,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
             "nt51950-ab-merge",
-            "0.2.0",
+            "0.3.0",
             "NT51950",
             ExperienceIds.AbMerge,
             requestedMapCapacity: BankLength);
@@ -186,7 +273,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
             "nt51950-ab-merge",
-            "0.2.0",
+            "0.3.0",
             "NT51950",
             ExperienceIds.AbMerge,
             requestedMapCapacity: 0x100000,
@@ -200,6 +287,28 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(0x100000, composition.Plan.OutputInitialization.Capacity);
         AssertRegionRange(details, "a-cmi-dp-version", 0x5016, 3);
         AssertRegionRange(details, "b-cmi-dp-version", 0x45016, 3);
+        Assert.Equal(
+            [
+                ("copy-dp-ab-image", new ByteRange(0, 0x100000)),
+                ("overlay-tpa-into-output", new ByteRange(0xA000, TpCodeLength)),
+                ("overlay-tpb-into-output", new ByteRange(0x4A000, TpCodeLength)),
+                ("import-postbuild-b-ilm", new ByteRange(0x4A100, sizeof(uint))),
+                ("import-postbuild-b-dlm", new ByteRange(0x4A110, sizeof(uint))),
+                ("import-postbuild-b-crc", new ByteRange(0x4A130, sizeof(uint))),
+            ],
+            composition.Plan.OrderedOperations
+                .Where(operation => operation.TargetSpaceId == composition.Plan.OutputSpaceId)
+                .Select(static operation => (operation.OperationId, operation.TargetRange)));
+        Assert.Equal(
+            [new ByteRange(TpCodeStart, TpCodeLength), new ByteRange(TpCodeStart, TpCodeLength)],
+            composition.Plan.OrderedOperations
+                .Where(static operation => operation.OperationId is
+                    "overlay-tpa-into-output" or "overlay-tpb-into-output")
+                .Select(static operation => operation.SourceRange));
+        CompositionOperation relocation = Assert.Single(
+            composition.Plan.OrderedOperations,
+            static operation => operation.OperationId == "relocate-tpb-diff-for-b-bank");
+        Assert.Equal(new BigInteger(0x40000), Assert.IsType<ScalarTransform>(relocation.ScalarTransform).Addend);
     }
 
     /// <summary>Verifies the candidate rejects incomplete DP or TP prefixes before staging.</summary>
@@ -260,7 +369,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
             "nt51950-ab-merge",
-            "0.2.0",
+            "0.3.0",
             "NT51950",
             ExperienceIds.AbMerge,
             Capacity,

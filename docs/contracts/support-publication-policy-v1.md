@@ -2,7 +2,9 @@
 
 The executable schema is
 [`support-publication-policy-v1.schema.json`](support-publication-policy-v1.schema.json).
-The initial owner-approved source is
+The preserved initial owner-approved snapshot is
+[`support-publication-policy-v1.0.0.json`](support-publication-policy-v1.0.0.json),
+and the current successor is
 [`support-publication-policy-v1.json`](support-publication-policy-v1.json).
 
 ## Purpose and ownership

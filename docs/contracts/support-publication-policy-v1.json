@@ -1,8 +1,10 @@
 {
   "schemaVersion": "1.0",
   "policyId": "support-publication-policy",
-  "policyVersion": "1.0.0",
-  "issuedOn": "2026-07-25",
+  "policyVersion": "1.1.0",
+  "issuedOn": "2026-08-01",
+  "supersedesPolicyVersion": "1.0.0",
+  "supersedesPolicySha256": "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2",
   "decisions": [
     {
       "decisionId": "nt51919-general-merge-test-only",
@@ -27,37 +29,46 @@
       }
     },
     {
-      "decisionId": "nt51950-ab-merge-1-ic-candidate",
-      "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-512k-integrity-de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab",
+      "decisionId": "nt51950-ab-merge-1-ic-candidate-v2",
+      "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-512k-integrity-3f41ce1d441da78f311ca9f7b0b250716de0cdf6c8d49ed764521de07fa39c87",
       "status": "candidate",
       "provenance": {
         "authorityKind": "owner-decision",
-        "recordedOn": "2026-07-25",
-        "recordRef": "owner-chat:019f923a-7ff5-7da1-8a62-8929badb34c5",
-        "rationale": "NT51950 AB Merge 1 IC 512 KiB map starts as candidate."
-      }
+        "recordedOn": "2026-08-01",
+        "recordRef": "github-issue:190",
+        "rationale": "The owner-approved issue 190 canonical migration rebinds the NT51950 1 IC route while retaining candidate status and its firmware-owner evidence gates."
+      },
+      "supersedesDecisionIds": [
+        "nt51950-ab-merge-1-ic-candidate"
+      ]
     },
     {
-      "decisionId": "nt51950-ab-merge-2-plus-ic-candidate",
-      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-nt51950-ab-merge-1024k-integrity-de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab",
+      "decisionId": "nt51950-ab-merge-2-plus-ic-candidate-v2",
+      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-nt51950-ab-merge-1024k-integrity-3f41ce1d441da78f311ca9f7b0b250716de0cdf6c8d49ed764521de07fa39c87",
       "status": "candidate",
       "provenance": {
         "authorityKind": "owner-decision",
-        "recordedOn": "2026-07-25",
-        "recordRef": "owner-chat:019f923a-7ff5-7da1-8a62-8929badb34c5",
-        "rationale": "NT51950 AB Merge declared 2+ IC 1024 KiB map starts as candidate."
-      }
+        "recordedOn": "2026-08-01",
+        "recordRef": "github-issue:190",
+        "rationale": "The owner-approved issue 190 canonical migration rebinds the NT51950 2+ IC route while retaining candidate status and its direct-cascade evidence gate."
+      },
+      "supersedesDecisionIds": [
+        "nt51950-ab-merge-2-plus-ic-candidate"
+      ]
     },
     {
-      "decisionId": "nt51951-ab-merge-candidate",
-      "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k-integrity-6435dea0731a432f950b22ae880dab32329ef1f04bb449f8a2556552791f5622",
+      "decisionId": "nt51951-ab-merge-candidate-v2",
+      "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k-integrity-1a34ef8bf35f8205d3326f556d8d6108cbe0bbb5ae0e59982ae801048904ae7a",
       "status": "candidate",
       "provenance": {
         "authorityKind": "owner-decision",
-        "recordedOn": "2026-07-25",
-        "recordRef": "owner-chat:019f923a-7ff5-7da1-8a62-8929badb34c5",
-        "rationale": "NT51951 AB Merge selector-free 1024 KiB map starts as candidate."
-      }
+        "recordedOn": "2026-08-01",
+        "recordRef": "github-issue:190",
+        "rationale": "The owner-approved issue 190 canonical migration rebinds the NT51951 route while retaining candidate status and its direct-product evidence gate."
+      },
+      "supersedesDecisionIds": [
+        "nt51951-ab-merge-candidate"
+      ]
     }
   ]
 }

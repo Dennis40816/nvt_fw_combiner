@@ -31,9 +31,14 @@ $ApprovedRuntimeCatalogPackagePaths = @(
 ) | Sort-Object
 $ApprovedSupportPublicationPolicyPackageContracts = @(
     [pscustomobject]@{
-        path = 'docs/contracts/support-publication-policy-v1.json'
+        path = 'docs/contracts/support-publication-policy-v1.0.0.json'
         role = 'publicationPolicy'
         sha256 = '365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2'
+    }
+    [pscustomobject]@{
+        path = 'docs/contracts/support-publication-policy-v1.json'
+        role = 'publicationPolicy'
+        sha256 = 'b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff'
     }
 )
 if (@($ApprovedSupportPublicationPolicyPackageContracts).Count -eq 0) {

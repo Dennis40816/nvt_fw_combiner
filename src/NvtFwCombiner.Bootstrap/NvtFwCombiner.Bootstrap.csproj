@@ -118,7 +118,8 @@
       <FirmwareFamilySchemaFile>firmware-family-v1.2-bank-instances.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51950-ab-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
+      <CompositionProfileSchemaFile>composition-profile-v2.14.schema.json</CompositionProfileSchemaFile>
+      <FirmwareFamilySchemaFile>firmware-family-v1.2-bank-instances.schema.json</FirmwareFamilySchemaFile>
     </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51950-nt51951-standard-merge">
       <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
