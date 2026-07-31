@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Infrastructure.ExternalTools;
 internal static class BuiltInPostbuildProfileCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/catalog.json";
-    private const string ExpectedSha256 = "fed24112552b82cb9003d0c50497f83ed49ab0d69f1cdae52ca670cb7f9e3b02";
+    private const string ExpectedSha256 = "27b79e0080d3e005e7cd04f391d0f7dedc232cadb401cdfba1dfb4df59b177a6";
     private static readonly Lazy<IReadOnlyList<LegacyCombinerPostbuildProfile>> Profiles = new(Load);
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> All => Profiles.Value;
@@ -232,7 +232,8 @@ internal static class BuiltInPostbuildProfileCatalog
                 CreateRange(
                     source.FirmwareConfigBackupAuthority,
                     "diffDlmPolicies.firmwareConfigBackupAuthority"),
-                Required(source.EvidenceRefs, "diffDlmPolicies.evidenceRefs"));
+                Required(source.EvidenceRefs, "diffDlmPolicies.evidenceRefs"),
+                source.FixedFirmwareConfigBackupStart);
         }
         catch (ArgumentException exception)
         {
@@ -433,7 +434,8 @@ internal static class BuiltInPostbuildProfileCatalog
         int FirmwareConfigBackupAlignment,
         long FirmwareConfigBackupLength,
         RangeDocument FirmwareConfigBackupAuthority,
-        IReadOnlyList<string>? EvidenceRefs);
+        IReadOnlyList<string>? EvidenceRefs,
+        long? FixedFirmwareConfigBackupStart);
 
     private sealed record DiffDlmMaskDocument(string Kind, RangeDocument Range);
 

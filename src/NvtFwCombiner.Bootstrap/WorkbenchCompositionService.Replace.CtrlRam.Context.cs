@@ -121,7 +121,7 @@ public static partial class WorkbenchCompositionService
                 requirement: commandPlan.ChipCountRequirement,
                 operationId: WorkbenchSlotIds.ReplaceBase,
                 dependencyReason:
-                    "Dynamic DiffDLM uses IC Count to resolve active records and FWConfig Backup placement.")
+                    "Masked DiffDLM uses IC Count to resolve active records and the profile-owned FWConfig Backup policy.")
                 is { } chipCountIssue)
         {
             if (StringComparer.Ordinal.Equals(chipCountIssue.Severity, CompositionIssueSeverity.Error))

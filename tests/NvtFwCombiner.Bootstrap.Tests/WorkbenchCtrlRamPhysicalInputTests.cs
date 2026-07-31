@@ -79,23 +79,27 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             slot => slot.SlotId == "replace-ctrlram-nf");
     }
 
-    /// <summary>950-family cascade NF remains explicit until its separate masked route is migrated.</summary>
+    /// <summary>950-family cascade exposes DiffDLM while its preserved DiffNF never becomes an independent input.</summary>
     [Theory]
     [InlineData("NT51950", "cascade")]
     [InlineData("NT51950", "2")]
     [InlineData("NT51951", "cascade")]
     [InlineData("NT51951", "2")]
-    public void DiffNfCascadeFamiliesWarnThatNfMustBePrebuilt(string icId, string number)
+    public void Nt51950FamilyCascadeHidesIndependentNfSelector(string icId, string number)
     {
-        WorkbenchReplaceInputSlot nf = WorkbenchCompositionService.GetReplaceInputSlots(
-            icId,
-            number,
-            WorkbenchReplaceModes.CtrlRam).Single(slot => slot.SlotId == "replace-ctrlram-nf");
+        IReadOnlyList<WorkbenchReplaceInputSlot> slots =
+            WorkbenchCompositionService.GetReplaceInputSlots(
+                icId,
+                number,
+                WorkbenchReplaceModes.CtrlRam);
 
-        Assert.Contains("DiffNFMerge output", nf.Title, StringComparison.Ordinal);
-        Assert.Contains("DiffNFMerge-prebuilt NF_Ctrlram.bin", nf.Description, StringComparison.Ordinal);
-        Assert.Contains("generation is not integrated", nf.Description, StringComparison.Ordinal);
-        Assert.DoesNotContain("NF_Diff_", nf.Description, StringComparison.Ordinal);
+        Assert.Contains(
+            slots,
+            slot => slot.SlotId == "replace-ctrlram-diff" &&
+                    slot.Title == "DiffDLM");
+        Assert.DoesNotContain(
+            slots,
+            slot => slot.SlotId == "replace-ctrlram-nf");
     }
 
     /// <summary>Single-chip NF is already the physical Postbuild input and does not show a cascade prerequisite.</summary>

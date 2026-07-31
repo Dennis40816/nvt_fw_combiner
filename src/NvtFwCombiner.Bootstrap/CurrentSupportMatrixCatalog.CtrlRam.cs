@@ -34,7 +34,9 @@ internal static partial class CurrentSupportMatrixCatalog
                 continue;
             }
 
-            string countVariant = FormatIcCountVariant(selector);
+            string countVariant = FormatIcCountVariant(
+                selector,
+                postbuildProfile.DiffDlmPolicy);
             IReadOnlyList<FirmwareImageMap> maps =
                 BuiltInV2BundleRegistry.All[route.BundleId].GetMapVariants(
                     route.ProfileId,
@@ -113,5 +115,28 @@ internal static partial class CurrentSupportMatrixCatalog
             _ => throw new InvalidOperationException(
                 "Unknown postbuild IC Count selector kind."),
         };
+    }
+
+    private static string FormatIcCountVariant(
+        LegacyCombinerPostbuildPlanSelector selector,
+        LegacyCombinerDiffDlmPolicy? diffDlmPolicy)
+    {
+        if (selector.Branch != LegacyCombinerPostbuildBranch.Cascade ||
+            diffDlmPolicy is null)
+        {
+            return FormatIcCountVariant(selector);
+        }
+
+        int minimumCount = Math.Max(
+            selector.MinimumCount,
+            diffDlmPolicy.MinimumIcCount);
+        int maximumCount = Math.Min(
+            selector.MaximumCount,
+            diffDlmPolicy.MaximumIcCount);
+        return minimumCount == maximumCount
+            ? FormattableString.Invariant($"{minimumCount}-ic")
+            : maximumCount == int.MaxValue
+                ? FormattableString.Invariant($"{minimumCount}-plus-ic")
+                : FormattableString.Invariant($"{minimumCount}-{maximumCount}-ic");
     }
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51951-ctrlram-replace",
-  "familyVersion": "0.5.0",
+  "familyVersion": "0.6.0",
   "members": [
     {
       "memberId": "NT51951",
@@ -81,7 +81,7 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "firmware-config",
-          "range": { "start": 139776, "length": 124 },
+          "range": { "start": 139776, "length": 1920 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -90,7 +90,7 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 139900, "length": 2436 },
+          "range": { "start": 141696, "length": 640 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -149,17 +149,36 @@
           "alignment": 1
         },
         {
-          "regionId": "gap-tail-34600",
+          "regionId": "gap-inactive-diff-record-to-fwconfig-backup",
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 214528, "length": 10752 },
+          "range": { "start": 214528, "length": 6656 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-backup",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "firmware-config",
+          "range": { "start": 221184, "length": 1920 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-fwconfig-backup-to-end-flag",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 223104, "length": 2176 },
           "writeConstraint": "forbidden",
           "alignment": 1
         }
       ],
       "evidenceRefs": [
-        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"
+        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718",
+        "nt51951-fw200-cascade2-auto-prj-599-20260731"
       ]
     },
     {
@@ -239,7 +258,8 @@
         }
       ],
       "evidenceRefs": [
-        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"
+        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718",
+        "nt51951-fw200-cascade2-auto-prj-599-20260731"
       ]
     }
   ],
@@ -285,14 +305,15 @@
       "applicability": {
         "memberIds": [ "NT51951" ],
         "modeIds": [ "ctrlram-replace" ],
-        "topologyRequirement": { "kind": "cascade", "minimumChipCount": 2 },
+        "topologyRequirement": { "kind": "exact-count", "chipCount": 2 },
         "capacityBytes": 225280
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51951-ctrlram-fw200-tp-work" ],
       "metadataSetIds": [ "nt51951-fwconfig-backup-locator" ],
       "evidenceRefs": [
-        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"
+        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718",
+        "nt51951-fw200-cascade2-auto-prj-599-20260731"
       ]
     },
     {
@@ -301,7 +322,7 @@
       "applicability": {
         "memberIds": [ "NT51951" ],
         "modeIds": [ "ctrlram-replace" ],
-        "topologyRequirement": { "kind": "cascade", "minimumChipCount": 2 },
+        "topologyRequirement": { "kind": "exact-count", "chipCount": 2 },
         "capacityBytes": 524288
       },
       "coveragePolicy": "complete-with-explicit-gaps",
@@ -311,12 +332,14 @@
       ],
       "metadataSetIds": [ "nt51951-fwconfig-backup-locator" ],
       "evidenceRefs": [
-        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"
+        "nt51951-fw200-single-auto-prj-695-owner-golden-20260718",
+        "nt51951-fw200-cascade2-auto-prj-599-20260731"
       ]
     }
   ],
   "factAliases": [],
   "evidenceRefs": [
-    "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"
+    "nt51951-fw200-single-auto-prj-695-owner-golden-20260718",
+    "nt51951-fw200-cascade2-auto-prj-599-20260731"
   ]
 }

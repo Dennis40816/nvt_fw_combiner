@@ -90,9 +90,9 @@ Dynamic DiffDLM in-authority warning case.
 | NT51931 | `51931/flash.bin` | `0x3BFFF` | `0x3B000` |
 | NT51932 | `51932/flash.bin` | `0x33FFF` | `0x33000` |
 | NT51950 | `51950/dp-256k/flash.bin` | `0x36FFF` | `0x36000` |
-| NT51951 | `51951/dp-512k/flash.bin` | `0x36FFF` | `0x36000` |
+| NT51951 | `51951/dp-512k/flash.bin`; direct #188 AUTO_PRJ-599 Cascade expected | `0x36FFF` | `0x36000` |
 
-All listed outputs contain exactly one valid NVT marker. In particular, the NT51926 1.4.1 golden Backup is at `0x3B000`; its terminal flag is `0x3BFFF`.
+All listed outputs contain exactly one valid NVT marker. In particular, the NT51926 1.4.1 golden Backup is at `0x3B000`; its terminal flag is `0x3BFFF`. The direct NT51951 #188 Cascade output independently proves that the primary and fixed Backup match for the declared `0x0780`-byte copy envelope.
 
 ## Residual Evidence Gates
 

@@ -409,22 +409,37 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         }
     }
 
-    /// <summary>Verifies cascade selection exposes NT51950 DiffDLM postbuild blocks.</summary>
-    [Fact]
-    public void Nt51950CascadePlanIncludesDiffDlm()
+    /// <summary>950-family cascade plans expose only the owner-approved active DLM prefix for exact 2 IC.</summary>
+    [Theory]
+    [InlineData("NT51950")]
+    [InlineData("NT51951")]
+    public void Nt51950FamilyCascadePlanPreservesDiffNfAndUsesFixedBackup(string icId)
     {
         var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
+        LegacyCombinerPostbuildProfile profile = icId == "NT51950"
+            ? LegacyCombinerPostbuildCatalog.Nt51950
+            : LegacyCombinerPostbuildCatalog.Nt51951;
 
         LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51950,
-            selection);
+            profile,
+            selection,
+            reportedChipCount: 2);
+        LegacyCombinerDiffDlmPolicy policy = Assert.IsType<LegacyCombinerDiffDlmPolicy>(
+            profile.DiffDlmPolicy);
+        LegacyCombinerBlockArgument diff = Assert.Single(
+            plan.Commands.SelectMany(command => command.Blocks),
+            block => block.SourceFileName == "DiffDLM.bin");
 
         Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, plan.Branch);
         Assert.Equal(2, plan.Commands.Count);
-        Assert.Contains(
-            plan.Commands.SelectMany(command => command.Blocks),
-            block => block.SourceFileName == "DiffDLM.bin" &&
-                     block.FirmwareRange == new ByteRange(0x33200, 5120));
+        Assert.Equal(2, plan.TopologyCount);
+        Assert.Equal(0, diff.SourceOffset);
+        Assert.Equal(new ByteRange(0x33200, 0x0910), diff.FirmwareRange);
+        Assert.Equal(0x1400, policy.GetRequiredSourceLength(2));
+        Assert.Equal(0x36000, policy.GetExpectedFirmwareConfigBackupStart(2));
+        Assert.Equal(new ByteRange(0x36000, 0x0780), policy.GetResolvedFirmwareConfigBackupAuthority(2));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection, reportedChipCount: 3));
     }
 
     /// <summary>Verifies single selection does not schedule cascade-only DiffDLM blocks.</summary>

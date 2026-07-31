@@ -13,8 +13,8 @@ public sealed class CtrlRamV2PlanClosureProfileTests
     private const string Nt51929BundleHash = "ea9cf1fe05a1462ddff67ece4a037757375100b67d91da3eb1eac1dd0417a4a5";
     private const string Nt51928BundleHash = "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634";
     private const string Nt51932BundleHash = "9a2c69c1b4bc4b5c047b9534c12f3e03b6be5492c9aa26eb626c9a657d101daf";
-    private const string Nt51950BundleHash = "d3f745c68d948e7e3a3a07d5717de2114742f881444076d93d2232343f98049e";
-    private const string Nt51951BundleHash = "f48429f505f71fbe7c258780dc1ef848c1d9a402d79906c1e24b3a1097192728";
+    private const string Nt51950BundleHash = "793e521f1015569ed57cb01033bf6e501abcc55c16b5fd890c7525af3e169926";
+    private const string Nt51951BundleHash = "0fae69274908a044493ac838ac8204cb7513433732804691f8a56d39e0a8eaba";
 
     /// <summary>Normal-header profiles grant every owner-classified CRC word and no surrounding gap bytes.</summary>
     [Theory]
@@ -124,7 +124,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0xA134,
         0x4C,
         0x40000,
-        "0.5.0")]
+        "0.6.0")]
     [InlineData(
         "nt51951-ctrlram-replace-candidate",
         Nt51951BundleHash,
@@ -135,7 +135,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0xA134,
         0x4C,
         0x80000,
-        "0.5.0")]
+        "0.6.0")]
     public void CascadeProfilesCompileDlmCrcAuthority(
         string bundleDirectory,
         string bundleHash,
@@ -203,7 +203,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0xA134,
         0x4C,
         0x40000,
-        "0.3.0")]
+        "0.4.0")]
     [InlineData(
         "nt51951-ctrlram-replace-candidate",
         Nt51951BundleHash,
@@ -213,7 +213,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0xA134,
         0x4C,
         0x80000,
-        "0.3.0")]
+        "0.4.0")]
     public void SingleProfilesExcludeCascadeDlmCrcAuthority(
         string bundleDirectory,
         string bundleHash,
@@ -363,7 +363,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             targetStart: 0x33200,
             targetLength: 0x1400,
             referenceCapacity: 0x40000,
-            profileVersion: "0.5.0");
+            profileVersion: "0.6.0");
         CompiledComposition nt51951 = Compile(
             "nt51951-ctrlram-replace-candidate",
             Nt51951BundleHash,
@@ -373,7 +373,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             targetStart: 0x33200,
             targetLength: 0x1400,
             referenceCapacity: 0x80000,
-            profileVersion: "0.5.0");
+            profileVersion: "0.6.0");
 
         Assert.Equal(0x40000, nt51950.V2Details!.Provenance.ResolvedMap.CapacityBytes);
         Assert.Equal(0x80000, nt51951.V2Details!.Provenance.ResolvedMap.CapacityBytes);
@@ -391,7 +391,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         "nt51950-ctrlram-replace-fw200-single",
         "NT51950",
         1,
-        "0.3.0",
+        "0.4.0",
         0x22C00,
         "nt51950-ctrlram-fw200-single-tp-work")]
     [InlineData(
@@ -400,7 +400,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         "nt51950-ctrlram-replace-fw1x-cascade",
         "NT51950",
         2,
-        "0.5.0",
+        "0.6.0",
         0x33200,
         "nt51950-ctrlram-fw1x-cascade-tp-work")]
     [InlineData(
@@ -409,7 +409,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         "nt51951-ctrlram-replace-fw200-single",
         "NT51951",
         1,
-        "0.3.0",
+        "0.4.0",
         0x22C00,
         "nt51951-ctrlram-fw200-single-tp-work")]
     [InlineData(
@@ -418,7 +418,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         "nt51951-ctrlram-replace-fw1x-cascade",
         "NT51951",
         2,
-        "0.5.0",
+        "0.6.0",
         0x33200,
         "nt51951-ctrlram-fw1x-cascade-tp-work")]
     public void Nt51950FamilyTpFirmwareBasesCompileWithPrefixOnlyProcessorAuthority(
