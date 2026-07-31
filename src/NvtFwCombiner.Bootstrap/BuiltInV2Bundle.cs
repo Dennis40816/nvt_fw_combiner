@@ -1,5 +1,4 @@
 using System.Collections.Frozen;
-using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -118,70 +117,16 @@ internal sealed class BuiltInV2Bundle
     internal SavedRuleV2GeneralReplaceAdmissionContext
         GetGeneralReplaceSavedRuleAdmissionContext(string profileId)
     {
-        TrustedCompositionProfileCatalogEntry profileEntry = GetProfile(profileId);
-        V2CompositionProfileDefinition profile =
-            profileEntry.Profile.Promotion.Stage ==
-            CompositionProfilePromotionStage.ExecutableCandidate
-                ? profileEntry.Profile
-                : throw new InvalidDataException(
-                    "General Replace Saved Rule admission requires the exact executable-candidate parent.");
-        string mapId = profile.MapBinding.MapIds.Single();
-        FirmwareImageMap map = profileEntry.Family.Family.ImageMaps.Single(
-            candidate => StringComparer.Ordinal.Equals(candidate.MapId, mapId));
-        HashSet<string> writableRegionIds =
-        [
-            .. profile.RegionAccessRules
-                .Where(static rule =>
-                    rule.Access == RegionAccessKind.ExplicitRange)
-                .Select(static rule => rule.RegionId),
-        ];
-
-        return new SavedRuleV2GeneralReplaceAdmissionContext(
-            GetSavedRuleParentBinding(profileEntry, mapId),
-            SavedRuleSchemaTokens.PromotionStageExecutableCandidate,
-            [
-                .. profile.InputSlots.Select(static slot =>
-                    new SavedRuleV2ParentInputPolicy(
-                        slot.SlotId,
-                        slot.Role,
-                        slot.Cardinality,
-                        [.. slot.AcceptedExtensions])),
-            ],
-            [.. profile.Validations.Select(static validation => validation.RuleId)],
-            [
-                .. profile.ProcessorStages.Select(
-                    static processor => processor.ProcessorStageId),
-            ],
-            map.Regions
-                .Where(region => writableRegionIds.Contains(region.RegionId))
-                .ToDictionary(
-                    static region => region.RegionId,
-                    static region => region.Range,
-                    StringComparer.Ordinal));
+        return GetGeneralReplaceExactParent(profileId).Admission;
     }
 
-    /// <summary>Projects exact Parent processor-stage and external-tool dependencies.</summary>
-    internal SavedRuleV2GeneralReplaceRuntimeAuthority
-        GetGeneralReplaceRuntimeAuthority(string profileId)
+    /// <summary>Projects Saved Rule and runtime facts from one exact profile entry.</summary>
+    internal SavedRuleV2GeneralReplaceExactParent
+        GetGeneralReplaceExactParent(string profileId)
     {
-        TrustedCompositionProfileCatalogEntry profileEntry =
-            GetProfile(profileId);
-        V2CompositionProfileDefinition profile = profileEntry.Profile;
-        string mapId = profile.MapBinding.MapIds.Single();
-        return new SavedRuleV2GeneralReplaceRuntimeAuthority(
-            GetSavedRuleParentBinding(profileEntry, mapId),
-            [
-                .. profile.ProcessorStages.Select(
-                    static stage => stage.ProcessorStageId),
-            ],
-            [
-                .. profile.ProcessorStages
-                    .OfType<LegacyCombinerProfileProcessorStage>()
-                    .Select(static stage =>
-                        new ExternalProcessorDependencyReference(
-                            stage.InvocationProfileId,
-                            stage.ToolBindingId)),
-            ]);
+        return SavedRuleV2GeneralReplaceExactParentResolver.Resolve(
+            _catalog.Value,
+            profileId);
     }
 
     private TrustedCompositionProfileCatalogEntry GetProfile(string profileId)

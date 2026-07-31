@@ -56,7 +56,8 @@ public static partial class WorkbenchCompositionService
         CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken,
         GeneralSavedRuleResourcePolicy? savedRulePolicy = null,
-        GeneralReplacePostbuildReadinessOverride? postbuildReadinessOverride = null)
+        GeneralReplacePostbuildReadinessOverride? postbuildReadinessOverride = null,
+        SavedRuleV2GeneralReplaceExactParent? exactParentOverride = null)
     {
         if (!TryCreateGeneralReplaceRunContext(
                 icId,
@@ -106,14 +107,15 @@ public static partial class WorkbenchCompositionService
         }
 
         context = context with { MappingDraft = acceptedFiles.Draft! };
+        SavedRuleV2GeneralReplaceExactParent exactParent =
+            exactParentOverride ?? GetNt51926GeneralReplaceExactParent();
         admission = AdmitGeneralMappingDraft(
             context.MappingDraft,
             context.Capacity,
             CreateCurrentGeneralTrustedParentPolicy(
-                Nt51926GeneralReplaceDpProfileId,
+                exactParent.Admission.ParentBinding.ProfileId,
                 context.MappingDraft,
-                GetNt51926GeneralReplaceSavedRuleAdmissionContext()
-                    .ParentBinding),
+                exactParent.Admission.ParentBinding),
             savedRulePolicy);
         if (!admission.IsAdmitted)
         {
@@ -154,6 +156,7 @@ public static partial class WorkbenchCompositionService
             GeneralReplacePostbuildReadinessResult postbuild =
                 await ResolveGeneralReplacePostbuildReadinessAsync(
                     admission,
+                    exactParent.Runtime,
                     postbuildReadinessOverride,
                     cancellationToken).ConfigureAwait(false);
             CapabilityActionReadinessSnapshot readiness = postbuild.Readiness;

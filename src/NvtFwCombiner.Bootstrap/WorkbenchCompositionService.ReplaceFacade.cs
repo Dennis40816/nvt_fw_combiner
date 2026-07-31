@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -215,8 +216,8 @@ public static partial class WorkbenchCompositionService
     }
 
     /// <summary>
-    /// Test seam for one exact Parent-equivalent runtime dependency snapshot;
-    /// production callers always acquire the current host generation.
+    /// Test seam that resolves a hash-bound General Replace Parent from one
+    /// trusted fixture catalog; callers may override readiness, never authority.
     /// </summary>
     internal static ValueTask<WorkbenchRunResult>
         RunGeneralReplaceEphemeralDraftWithPostbuildReadinessAsync(
@@ -225,11 +226,21 @@ public static partial class WorkbenchCompositionService
             IReadOnlyDictionary<string, string> slotPaths,
             GeneralMappingDraftState mappingDraft,
             bool build,
+            TrustedProfileBundleCatalog exactParentCatalog,
+            string exactParentProfileId,
             GeneralReplacePostbuildReadinessOverride postbuildReadinessOverride,
+            CompositionRunProgressFeed progress,
             string? outputPath,
             CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(exactParentCatalog);
+        ArgumentException.ThrowIfNullOrWhiteSpace(exactParentProfileId);
         ArgumentNullException.ThrowIfNull(postbuildReadinessOverride);
+        ArgumentNullException.ThrowIfNull(progress);
+        SavedRuleV2GeneralReplaceExactParent exactParent =
+            SavedRuleV2GeneralReplaceExactParentResolver.Resolve(
+                exactParentCatalog,
+                exactParentProfileId);
         return RunGeneralReplaceWithInitialInspectionAsync(
             icId,
             number,
@@ -238,10 +249,11 @@ public static partial class WorkbenchCompositionService
             new AuthoringRevision(1),
             build,
             outputPath,
-            progress: null,
+            progress,
             cancellationToken,
             savedRulePolicy: null,
-            postbuildReadinessOverride);
+            postbuildReadinessOverride,
+            exactParent);
     }
 
     /// <summary>
@@ -298,7 +310,8 @@ public static partial class WorkbenchCompositionService
         CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken,
         GeneralSavedRuleResourcePolicy? savedRulePolicy = null,
-        GeneralReplacePostbuildReadinessOverride? postbuildReadinessOverride = null)
+        GeneralReplacePostbuildReadinessOverride? postbuildReadinessOverride = null,
+        SavedRuleV2GeneralReplaceExactParent? exactParentOverride = null)
     {
         if (!TryCreateGeneralReplaceRunContext(
                 icId,
@@ -339,7 +352,8 @@ public static partial class WorkbenchCompositionService
                 progress,
                 cancellationToken,
                 savedRulePolicy,
-                postbuildReadinessOverride).ConfigureAwait(false);
+                postbuildReadinessOverride,
+                exactParentOverride).ConfigureAwait(false);
     }
 
     /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>

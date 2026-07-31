@@ -239,7 +239,10 @@ Implemented:
 - The Application lifecycle use case and constrained atomic filesystem adapter
   perform local Save-in-place and Catalog-to-working-copy writes. Semantic
   edits return to Draft, clear approval/evidence/trust, and require a new rule
-  version before publication; configured Catalog roots remain read-only.
+  version before publication; configured Catalog roots remain read-only. The
+  use case owns one defensive byte snapshot, requires the complete v2 schema,
+  and derives rule id/version/hash plus all Parent facts from those same bytes
+  before any lifecycle decision or write.
 - Shared General admission intersects Application, exact Parent, and Saved
   Rule mapping/total-write/resource limits. It independently compares exact
   Parent identity before compilation, so a runner caller cannot forge report

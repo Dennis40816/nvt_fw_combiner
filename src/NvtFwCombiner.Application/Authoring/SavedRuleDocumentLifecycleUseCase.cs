@@ -1,4 +1,3 @@
-using System.Text.Json;
 using NvtFwCombiner.Application.Ports;
 
 namespace NvtFwCombiner.Application.Authoring;
@@ -6,16 +5,16 @@ namespace NvtFwCombiner.Application.Authoring;
 /// <summary>One host-resolved local save or Catalog-to-working-copy request.</summary>
 public sealed record SavedRuleDocumentSaveRequest
 {
+    private readonly byte[] _documentBytes;
+
     /// <summary>Creates one request without accepting caller-supplied storage authority.</summary>
     public SavedRuleDocumentSaveRequest(
         SavedRuleLifecycleSnapshot original,
-        SavedRuleExecutionIdentity editedIdentity,
         string sourceDocumentReference,
         string targetDocumentReference,
         ReadOnlyMemory<byte> documentBytes)
     {
         ArgumentNullException.ThrowIfNull(original);
-        ArgumentNullException.ThrowIfNull(editedIdentity);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceDocumentReference);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetDocumentReference);
         if (documentBytes.IsEmpty)
@@ -26,17 +25,13 @@ public sealed record SavedRuleDocumentSaveRequest
         }
 
         Original = original;
-        EditedIdentity = editedIdentity;
         SourceDocumentReference = sourceDocumentReference;
         TargetDocumentReference = targetDocumentReference;
-        DocumentBytes = documentBytes;
+        _documentBytes = documentBytes.ToArray();
     }
 
     /// <summary>Lifecycle state established when the source was opened.</summary>
     public SavedRuleLifecycleSnapshot Original { get; }
-
-    /// <summary>Canonical identity recomputed from the edited semantic content.</summary>
-    public SavedRuleExecutionIdentity EditedIdentity { get; }
 
     /// <summary>Source reference resolved by the configured storage adapter.</summary>
     public string SourceDocumentReference { get; }
@@ -44,8 +39,8 @@ public sealed record SavedRuleDocumentSaveRequest
     /// <summary>Target reference resolved independently by the configured storage adapter.</summary>
     public string TargetDocumentReference { get; }
 
-    /// <summary>Exact serialized bytes written only after lifecycle admission.</summary>
-    public ReadOnlyMemory<byte> DocumentBytes { get; }
+    /// <summary>Use-case-owned immutable snapshot written only after lifecycle admission.</summary>
+    internal ReadOnlyMemory<byte> DocumentBytes => _documentBytes;
 }
 
 /// <summary>Result of one controlled Saved Rule document lifecycle operation.</summary>
@@ -64,12 +59,17 @@ public sealed record SavedRuleDocumentSaveResult(
 public sealed class SavedRuleDocumentLifecycleUseCase
 {
     private readonly ISavedRuleDocumentStorage _storage;
+    private readonly ISavedRuleDocumentIdentityReader _identityReader;
 
     /// <summary>Creates one lifecycle use case over a controlled storage port.</summary>
-    public SavedRuleDocumentLifecycleUseCase(ISavedRuleDocumentStorage storage)
+    public SavedRuleDocumentLifecycleUseCase(
+        ISavedRuleDocumentStorage storage,
+        ISavedRuleDocumentIdentityReader identityReader)
     {
         ArgumentNullException.ThrowIfNull(storage);
+        ArgumentNullException.ThrowIfNull(identityReader);
         _storage = storage;
+        _identityReader = identityReader;
     }
 
     /// <summary>Performs Save-in-place or creates an editable Catalog working copy.</summary>
@@ -78,6 +78,17 @@ public sealed class SavedRuleDocumentLifecycleUseCase
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        SavedRuleExecutionIdentity? editedIdentity =
+            _identityReader.TryReadIdentity(request.DocumentBytes);
+        if (editedIdentity is null)
+        {
+            return new SavedRuleDocumentSaveResult(
+                Blocked(
+                    "saved-rule.lifecycle.document-invalid",
+                    "Saved Rule document must satisfy the complete v2 schema before it can be saved."),
+                WasWritten: false);
+        }
+
         SavedRuleDocumentStorageLocation source =
             _storage.ResolveSource(request.SourceDocumentReference);
         SavedRuleDocumentStorageLocation target =
@@ -102,27 +113,12 @@ public sealed class SavedRuleDocumentLifecycleUseCase
                 : request.Original.StorageKind;
         SavedRuleSaveDecision decision = SavedRuleLifecycle.PrepareSave(
             request.Original,
-            request.EditedIdentity,
+            editedIdentity,
             targetStorageKind,
             savesToOriginalLocation);
         if (!decision.IsAllowed)
         {
             return new SavedRuleDocumentSaveResult(decision, WasWritten: false);
-        }
-
-        using var document = JsonDocument.Parse(request.DocumentBytes);
-        string contentHash =
-            SavedCompositionRuleV2ContentHasher.Calculate(
-                document.RootElement);
-        if (!StringComparer.Ordinal.Equals(
-                contentHash,
-                request.EditedIdentity.ContentHash))
-        {
-            return new SavedRuleDocumentSaveResult(
-                Blocked(
-                    "saved-rule.lifecycle.content-hash-mismatch",
-                    "Edited Saved Rule identity does not match the serialized semantic content."),
-                WasWritten: false);
         }
 
         await _storage.WriteAsync(

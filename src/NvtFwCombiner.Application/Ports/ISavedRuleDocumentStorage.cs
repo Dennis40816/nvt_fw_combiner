@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Authoring;
+
 namespace NvtFwCombiner.Application.Ports;
 
 /// <summary>Host-resolved storage authority for one Saved Rule document.</summary>
@@ -42,4 +44,15 @@ public interface ISavedRuleDocumentStorage
         SavedRuleDocumentStorageLocation target,
         ReadOnlyMemory<byte> documentBytes,
         CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Strictly validates one complete Saved Rule v2 document and derives its
+/// canonical execution identity from the same immutable byte snapshot.
+/// </summary>
+public interface ISavedRuleDocumentIdentityReader
+{
+    /// <summary>Returns null when the bytes are not one schema-valid Saved Rule v2 document.</summary>
+    SavedRuleExecutionIdentity? TryReadIdentity(
+        ReadOnlyMemory<byte> documentBytes);
 }

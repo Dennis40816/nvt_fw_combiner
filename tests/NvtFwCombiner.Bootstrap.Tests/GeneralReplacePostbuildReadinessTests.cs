@@ -1,9 +1,16 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Contracts.Bundles;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.Bundles;
+using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
@@ -24,6 +31,9 @@ public sealed class GeneralReplacePostbuildReadinessTests
         string sourcePath = workspace.Write("source.bin", sourceBytes);
         GeneralMappingDraftState draft = Draft(sourcePath);
         var provider = new TestReadinessProvider(isReady: false);
+        TrustedProfileBundleCatalog exactParent =
+            CreateStageBearingExactParent(workspace);
+        var progress = new CompositionRunProgressFeed();
         WorkbenchCompositionService.GeneralReplacePostbuildReadinessOverride
             runtime = RuntimeOverride(provider);
 
@@ -37,7 +47,10 @@ public sealed class GeneralReplacePostbuildReadinessTests
                 },
                 draft,
                 build: false,
+                exactParent,
+                WorkbenchCompositionService.Nt51926GeneralReplaceDpProfileId,
                 runtime,
+                progress,
                 outputPath: null,
                 TestContext.Current.CancellationToken);
 
@@ -55,7 +68,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
         JsonElement root = report.RootElement;
         JsonElement diagnostic = root.GetProperty("DiagnosticPreview");
         Assert.Equal(
-            "required-general-postbuild",
+            "test-general-postbuild",
             diagnostic.GetProperty("RequiredStageId").GetString());
         Assert.Equal(
             CapabilityActionReadinessIssueCodes.RuntimeDependencyBlocked,
@@ -66,6 +79,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
         Assert.Equal(JsonValueKind.Null, root.GetProperty("Output").ValueKind);
         Assert.Empty(result.OutputFileName);
         Assert.Empty(result.OutputSha256);
+        Assert.False(progress.IsAttached);
     }
 
     /// <summary>The same blocker disables Build before a report or BIN exists.</summary>
@@ -80,6 +94,9 @@ public sealed class GeneralReplacePostbuildReadinessTests
         string sourcePath = workspace.Write("source.bin", [0xA5, 0x5A]);
         string outputPath = workspace.PathFor("must-not-exist.bin");
         var provider = new TestReadinessProvider(isReady: false);
+        TrustedProfileBundleCatalog exactParent =
+            CreateStageBearingExactParent(workspace);
+        var progress = new CompositionRunProgressFeed();
 
         WorkbenchRunResult result = await WorkbenchCompositionService
             .RunGeneralReplaceEphemeralDraftWithPostbuildReadinessAsync(
@@ -91,7 +108,10 @@ public sealed class GeneralReplacePostbuildReadinessTests
                 },
                 Draft(sourcePath),
                 build: true,
+                exactParent,
+                WorkbenchCompositionService.Nt51926GeneralReplaceDpProfileId,
                 RuntimeOverride(provider),
+                progress,
                 outputPath,
                 TestContext.Current.CancellationToken);
 
@@ -104,6 +124,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
         Assert.Equal(
             CapabilityActionReadinessIssueCodes.RuntimeDependencyBlocked,
             result.ActionReadiness!.Build.PrimaryBlocker!.Code);
+        Assert.False(progress.IsAttached);
     }
 
     /// <summary>A refreshed tool result from a superseded generation remains diagnostic-only.</summary>
@@ -117,6 +138,9 @@ public sealed class GeneralReplacePostbuildReadinessTests
             CreatePattern(0x40000, 0x33));
         string sourcePath = workspace.Write("source.bin", [0xA5, 0x5A]);
         var provider = new TestReadinessProvider(isReady: true);
+        TrustedProfileBundleCatalog exactParent =
+            CreateStageBearingExactParent(workspace);
+        var progress = new CompositionRunProgressFeed();
 
         WorkbenchRunResult result = await WorkbenchCompositionService
             .RunGeneralReplaceEphemeralDraftWithPostbuildReadinessAsync(
@@ -128,7 +152,10 @@ public sealed class GeneralReplacePostbuildReadinessTests
                 },
                 Draft(sourcePath),
                 build: false,
+                exactParent,
+                WorkbenchCompositionService.Nt51926GeneralReplaceDpProfileId,
                 RuntimeOverride(provider, generationIsCurrent: false),
+                progress,
                 outputPath: null,
                 TestContext.Current.CancellationToken);
 
@@ -147,6 +174,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
         Assert.Equal(
             JsonValueKind.Null,
             report.RootElement.GetProperty("Output").ValueKind);
+        Assert.False(progress.IsAttached);
     }
 
     private static WorkbenchCompositionService
@@ -154,24 +182,146 @@ public sealed class GeneralReplacePostbuildReadinessTests
             IRuntimeDependencyReadinessProvider provider,
             bool generationIsCurrent = true)
     {
-        SavedRuleParentIdentity parent =
-            WorkbenchCompositionService
-                .GetNt51926GeneralReplaceSavedRuleAdmissionContext()
-                .ParentBinding;
-        var authority = new SavedRuleV2GeneralReplaceRuntimeAuthority(
-            parent,
-            ["required-general-postbuild"],
-            [
-                new ExternalProcessorDependencyReference(
-                    "general-postbuild",
-                    "legacy-combiner-1.13.0"),
-            ]);
         return new WorkbenchCompositionService
             .GeneralReplacePostbuildReadinessOverride(
-                authority,
                 provider,
                 Generation: 1,
                 generation => generationIsCurrent && generation == 1);
+    }
+
+    private static TrustedProfileBundleCatalog CreateStageBearingExactParent(
+        TempWorkspace workspace)
+    {
+        const string fixtureRootName = "exact-parent-bundle";
+        const string profileRelativePath =
+            "profiles/nt51926-general-replace-dp-single-candidate.json";
+        string sourceRoot = Path.Combine(
+            AppContext.BaseDirectory,
+            "profiles",
+            "built-in",
+            "nt51926-ctrlram-replace-candidate");
+        foreach (string sourcePath in Directory.EnumerateFiles(
+                     sourceRoot,
+                     "*",
+                     SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(
+                sourceRoot,
+                sourcePath);
+            _ = workspace.Write(
+                Path.Combine(fixtureRootName, relativePath),
+                File.ReadAllBytes(sourcePath));
+        }
+
+        string profilePath = workspace.PathFor(
+            Path.Combine(fixtureRootName, profileRelativePath));
+        JsonObject profile = Assert.IsType<JsonObject>(
+            JsonNode.Parse(File.ReadAllText(profilePath)));
+        profile["views"] = new JsonArray(
+            JsonNode.Parse(
+                """
+                {
+                  "viewId": "processor-image",
+                  "spaceId": "output-image",
+                  "selector": {
+                    "kind": "space-range",
+                    "range": { "start": 0, "length": 262144 }
+                  }
+                }
+                """));
+        profile["operations"] = new JsonArray(
+            JsonNode.Parse(
+                """
+                {
+                  "operationId": "test-postbuild",
+                  "sequence": 2147483647,
+                  "overlapPolicy": "replace-existing",
+                  "reason": "Test-only exact Parent runtime readiness stage.",
+                  "kind": "run-processor",
+                  "processorStageId": "test-general-postbuild"
+                }
+                """));
+        profile["processorStages"] = new JsonArray(
+            JsonNode.Parse(
+                """
+                {
+                  "processorStageId": "test-general-postbuild",
+                  "kind": "legacy-combiner-v1",
+                  "toolBindingId": "legacy-combiner-1.13.0",
+                  "invocationProfileId": "nfc.test.general-postbuild",
+                  "targetSpaceId": "output-image",
+                  "targetViewId": "processor-image",
+                  "authority": "transform",
+                  "purpose": "header-and-integrity",
+                  "integrityDisposition": "recalculate-and-write",
+                  "allowedReadViewIds": [ "processor-image" ],
+                  "allowedWriteViewIds": [ "processor-image" ],
+                  "stagedSourceBindings": [],
+                  "stagedArtifactBindings": [],
+                  "evidenceRef": "test-general-postbuild-evidence",
+                  "failurePolicy": "fail-closed"
+                }
+                """));
+        byte[] profileBytes = Encoding.UTF8.GetBytes(
+            profile.ToJsonString());
+        File.WriteAllBytes(profilePath, profileBytes);
+
+        string manifestPath = workspace.PathFor(
+            Path.Combine(fixtureRootName, "profile-bundle.json"));
+        JsonObject manifest = Assert.IsType<JsonObject>(
+            JsonNode.Parse(File.ReadAllText(manifestPath)));
+        JsonArray entries = Assert.IsType<JsonArray>(
+            manifest["entries"]);
+        JsonObject profileEntry = Assert.IsType<JsonObject>(
+            entries.Single(node =>
+                StringComparer.Ordinal.Equals(
+                    node!["path"]!.GetValue<string>(),
+                    profileRelativePath)));
+        profileEntry["contentHash"] = Hash(profileBytes);
+        ProfileBundleEntryDocument[] documents =
+        [
+            .. entries.Select(node =>
+            {
+                JsonObject entry = Assert.IsType<JsonObject>(node);
+                return new ProfileBundleEntryDocument(
+                    entry["entryId"]!.GetValue<string>(),
+                    entry["kind"]!.GetValue<string>(),
+                    entry["path"]!.GetValue<string>(),
+                    entry["schemaId"]!.GetValue<string>(),
+                    entry["contentHash"]!.GetValue<string>());
+            }),
+        ];
+        string bundleContentHash =
+            ProfileBundleEntryArrayHasher.CalculateContentHash(
+                documents);
+        manifest["contentHash"] = bundleContentHash;
+        File.WriteAllBytes(
+            manifestPath,
+            Encoding.UTF8.GetBytes(manifest.ToJsonString()));
+
+        TrustedProfileBundle bundle = ProfileBundleLoader.Load(
+            Path.GetDirectoryName(manifestPath)!,
+            "profile-bundle.json",
+            new ProfileBundleTrustAnchor(
+                bundleContentHash,
+                "built-in-profile-bundle-v2"),
+            new ProfileBundleLoadLimits(
+                maximumManifestBytes: 16384,
+                maximumJsonDepth: 32,
+                new ProfileBundleEntrySnapshotLimits(
+                    16,
+                    131072,
+                    262144,
+                    8)));
+        return TrustedProfileBundleCatalogProjection.Create(
+            bundle.CreateDocumentProjection(),
+            BuiltInCanonicalMetadataDefinitionResolver.Instance);
+    }
+
+    private static string Hash(byte[] bytes)
+    {
+        return Convert.ToHexString(SHA256.HashData(bytes))
+            .ToLowerInvariant();
     }
 
     private static GeneralMappingDraftState Draft(string sourcePath)

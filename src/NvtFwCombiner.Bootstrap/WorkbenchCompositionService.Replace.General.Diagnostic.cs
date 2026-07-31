@@ -9,7 +9,6 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     internal sealed record GeneralReplacePostbuildReadinessOverride(
-        SavedRuleV2GeneralReplaceRuntimeAuthority Authority,
         IRuntimeDependencyReadinessProvider ReadinessProvider,
         long Generation,
         Func<long, bool> GenerationIsCurrent);
@@ -21,20 +20,12 @@ public static partial class WorkbenchCompositionService
     private static async ValueTask<GeneralReplacePostbuildReadinessResult>
         ResolveGeneralReplacePostbuildReadinessAsync(
             GeneralAuthoringAdmissionResult admission,
+            SavedRuleV2GeneralReplaceRuntimeAuthority authority,
             GeneralReplacePostbuildReadinessOverride? runtimeOverride,
             CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(admission);
-        SavedRuleV2GeneralReplaceRuntimeAuthority exactAuthority =
-            GetNt51926GeneralReplaceRuntimeAuthority();
-        SavedRuleV2GeneralReplaceRuntimeAuthority authority =
-            runtimeOverride?.Authority ?? exactAuthority;
-        if (authority.ParentBinding != exactAuthority.ParentBinding)
-        {
-            throw new ArgumentException(
-                "General Replace runtime readiness must use the exact resolved Parent.",
-                nameof(runtimeOverride));
-        }
+        ArgumentNullException.ThrowIfNull(authority);
 
         SavedRuleV2ParentBinding parent = authority.ParentBinding;
         bool hasStageAuthority = authority.ProcessorStageIds.Count != 0;

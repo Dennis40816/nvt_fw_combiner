@@ -78,11 +78,11 @@ public static partial class WorkbenchCompositionService
                 Nt51926GeneralReplaceDpProfileId);
     }
 
-    private static SavedRuleV2GeneralReplaceRuntimeAuthority
-        GetNt51926GeneralReplaceRuntimeAuthority()
+    private static SavedRuleV2GeneralReplaceExactParent
+        GetNt51926GeneralReplaceExactParent()
     {
         return BuiltInV2BundleRegistry.All[Nt51926GeneralReplaceBundleId]
-            .GetGeneralReplaceRuntimeAuthority(
+            .GetGeneralReplaceExactParent(
                 Nt51926GeneralReplaceDpProfileId);
     }
 }
