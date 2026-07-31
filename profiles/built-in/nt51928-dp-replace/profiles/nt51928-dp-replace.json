@@ -16,8 +16,8 @@
   "compilationContext": { "kind": "resolved-map" },
   "mapBinding": {
     "familyId": "nt51917-nt51927-nt51928-canonical-container",
-    "familyVersion": "1.4.0",
-    "familyContentHash": "4c45c4e1346632bfee569d7387abe9ee5226b5624e083f02b554ad985a52b694",
+    "familyVersion": "1.5.0",
+    "familyContentHash": "538392be2e910627afe0283f947cb63f5e285e97a1d44dd50ea1f6985c177b20",
     "mapIds": ["nt51928-standard-merge-256k", "nt51928-standard-merge-512k"],
     "requiredRegionIds": ["dp-code"],
     "optionalRegionIds": ["ldc-code"],

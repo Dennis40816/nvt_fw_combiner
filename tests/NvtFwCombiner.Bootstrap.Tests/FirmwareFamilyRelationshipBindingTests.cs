@@ -139,26 +139,34 @@ public sealed class FirmwareFamilyRelationshipBindingTests
             [
                 DpcmiMetadataContract.StructureId,
                 "firmware-config-general-parameters",
+                "nt51927-927-tp-flash-header",
             ],
             nt51917.Entries
                 .Select(static entry => entry.StructureDefinition.Definition.DefinitionId)
+                .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal));
         Assert.Equal(
             nt51927.Entries
                 .Select(static entry => entry.StructureDefinition.Definition.DefinitionId)
+                .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal),
             nt51917.Entries
                 .Select(static entry => entry.StructureDefinition.Definition.DefinitionId)
+                .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal));
         Assert.All(
-            nt51917.Entries,
-            entry => Assert.Same(
-                nt51927.Entries.Single(candidate =>
+            nt51917.Entries
+                .Select(static entry => entry.StructureDefinition.Definition)
+                .Distinct(),
+            definition => Assert.Same(
+                nt51927.Entries
+                    .Select(static entry => entry.StructureDefinition.Definition)
+                    .Distinct()
+                    .Single(candidate =>
                     StringComparer.Ordinal.Equals(
-                        candidate.StructureDefinition.Definition.DefinitionId,
-                        entry.StructureDefinition.Definition.DefinitionId))
-                    .StructureDefinition.Definition,
-                entry.StructureDefinition.Definition));
+                        candidate.DefinitionId,
+                        definition.DefinitionId)),
+                definition));
     }
 
     /// <summary>NT51950/51 declare TP sharing without importing DP/topology/AB facts.</summary>

@@ -1,6 +1,5 @@
 {
   "schemaVersion": "2.13",
-  "compilationContext": { "kind": "resolved-map" },
   "profileId": "nt51917-standard-merge-gen-flash-alias",
   "profileVersion": "0.6.0",
   "promotion": {
@@ -8,6 +7,9 @@
     "blockers": []
   },
   "compositionKind": "merge",
+  "compilationContext": {
+    "kind": "resolved-map"
+  },
   "experience": {
     "experienceId": "standard-merge",
     "audience": "system",
@@ -18,8 +20,8 @@
   },
   "mapBinding": {
     "familyId": "nt51917-nt51927-nt51928-canonical-container",
-    "familyVersion": "1.3.0",
-    "familyContentHash": "cba6c93b4b23c10fc1e2372b227c994a857b498d6e3d58ee65d540994da64f8f",
+    "familyVersion": "1.4.0",
+    "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
     "mapIds": [
       "nt51927-standard-merge-256k"
     ],
@@ -29,7 +31,8 @@
     ],
     "requiredMetadataStructureIds": [
       "firmware-config-general-parameters",
-      "dpcmi"
+      "dpcmi",
+      "nt51927-927-tp-flash-header"
     ],
     "requiredCapabilityIds": []
   },
@@ -176,6 +179,50 @@
         "output-naming",
         "display",
         "version"
+      ]
+    },
+    {
+      "bindingId": "nt51927-927-tp-flash-header-read-model",
+      "spaceId": "tp-input",
+      "structureId": "nt51927-927-tp-flash-header",
+      "targetReferences": [
+        { "targetKind": "span", "targetId": "global-header" },
+        { "targetKind": "span", "targetId": "modeled-instance-headers" },
+        { "targetKind": "series", "targetId": "ilm-crc-series" },
+        { "targetKind": "series", "targetId": "dlm-crc-series" },
+        { "targetKind": "series", "targetId": "header-crc-series" },
+        { "targetKind": "group", "targetId": "header-integrity-values" },
+        { "targetKind": "group", "targetId": "tp-bin-start-addresses" }
+      ],
+      "purposes": [
+        "inspection",
+        "formatting",
+        "memory-projection",
+        "report-classification"
+      ],
+      "evidenceRefs": [
+        "adr-0013-tp-binary-model-owner-gate",
+        "gen-flash-bin-v2-51927-golden",
+        "standard-merge-alias-51917-to-51927",
+        "tddi-flash-header-workbook-927"
+      ]
+    },
+    {
+      "bindingId": "nt51927-927-tp-flash-header-copy-reference",
+      "spaceId": "tp-input",
+      "structureId": "nt51927-927-tp-flash-header",
+      "targetReferences": [
+        { "targetKind": "span", "targetId": "header-refresh-source" },
+        { "targetKind": "span", "targetId": "final-header-backup-source" }
+      ],
+      "purposes": [
+        "copy"
+      ],
+      "evidenceRefs": [
+        "adr-0013-tp-binary-model-owner-gate",
+        "gen-flash-bin-v2-51927-golden",
+        "standard-merge-alias-51917-to-51927",
+        "tddi-flash-header-workbook-927"
       ]
     }
   ],

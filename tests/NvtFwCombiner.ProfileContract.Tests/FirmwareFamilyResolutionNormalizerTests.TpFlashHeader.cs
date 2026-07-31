@@ -156,6 +156,26 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         TpFlashHeaderFieldSubject.Dlm,
         TpFlashHeaderFieldRole.Size)]
     [InlineData(
+        "data",
+        "size",
+        TpFlashHeaderFieldSubject.Data,
+        TpFlashHeaderFieldRole.Size)]
+    [InlineData(
+        "firmware-config",
+        "size",
+        TpFlashHeaderFieldSubject.FirmwareConfig,
+        TpFlashHeaderFieldRole.Size)]
+    [InlineData(
+        "ctrlram",
+        "size",
+        TpFlashHeaderFieldSubject.CtrlRam,
+        TpFlashHeaderFieldRole.Size)]
+    [InlineData(
+        "mp-ctrlram",
+        "size",
+        TpFlashHeaderFieldSubject.MpCtrlRam,
+        TpFlashHeaderFieldRole.Size)]
+    [InlineData(
         "dlm-difference",
         "tp-bin-start-address",
         TpFlashHeaderFieldSubject.DlmDifference,

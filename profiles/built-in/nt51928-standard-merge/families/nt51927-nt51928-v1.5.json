@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51917-nt51927-nt51928-canonical-container",
-  "familyVersion": "1.4.0",
+  "familyVersion": "1.5.0",
   "members": [
     {
       "memberId": "NT51917",
@@ -244,6 +244,34 @@
         "gen-flash-bin-v2-51927-golden",
         "gen-flash-bin-v2-51928-golden"
       ]
+    },
+    {
+      "metadataSetId": "nt51927-927-tp-flash-header-metadata",
+      "structures": [
+        {
+          "structureId": "nt51927-927-tp-flash-header",
+          "artifactBindingId": "tp-input",
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "tp-code",
+            "offset": 0,
+            "allowedResultRegionId": "tp-code"
+          },
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+            "structureId": "nt51927-927-tp-flash-header"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "adr-0013-tp-binary-model-owner-gate",
+        "adr-0041-owner-accepted-2026-07-27",
+        "gen-flash-bin-v2-51927-golden",
+        "gen-flash-bin-v2-51928-golden",
+        "tddi-flash-header-workbook-927"
+      ]
     }
   ],
   "imageMaps": [
@@ -270,7 +298,8 @@
       ],
       "metadataSetIds": [
         "firmware-config-general-parameters",
-        "nt51927-nt51928-initial-code-metadata"
+        "nt51927-nt51928-initial-code-metadata",
+        "nt51927-927-tp-flash-header-metadata"
       ],
       "evidenceRefs": [
         "common-fw-ap-fwconfig-general-parameters",
@@ -301,7 +330,8 @@
       ],
       "metadataSetIds": [
         "firmware-config-general-parameters",
-        "nt51927-nt51928-initial-code-metadata"
+        "nt51927-nt51928-initial-code-metadata",
+        "nt51927-927-tp-flash-header-metadata"
       ],
       "evidenceRefs": [
         "common-fw-ap-fwconfig-general-parameters",
@@ -332,7 +362,8 @@
       ],
       "metadataSetIds": [
         "firmware-config-general-parameters",
-        "nt51927-nt51928-initial-code-metadata"
+        "nt51927-nt51928-initial-code-metadata",
+        "nt51927-927-tp-flash-header-metadata"
       ],
       "evidenceRefs": [
         "common-fw-ap-fwconfig-general-parameters",
@@ -413,6 +444,38 @@
         "gen-flash-bin-v2-51927-golden",
         "gen-flash-bin-v2-51928-golden"
       ]
+    },
+    {
+      "relationshipId": "nt51917-nt51927-nt51928-tp-flash-header-shared-family",
+      "relationshipKind": "shared-fact-relationship",
+      "memberIds": [
+        "NT51917",
+        "NT51927",
+        "NT51928"
+      ],
+      "role": "tp-flash-header-shared",
+      "applicability": {
+        "mapIds": [
+          "nt51927-standard-merge-256k",
+          "nt51928-standard-merge-256k",
+          "nt51928-standard-merge-512k"
+        ]
+      },
+      "sharedFactReferences": [
+        {
+          "factKind": "metadata-definition",
+          "factId": "nt51927-927-tp-flash-header"
+        }
+      ],
+      "reason": "NT51917 inherits NT51927 complete Header facts through their perfect-like relationship, and both NT51928 capacity maps reference only the owner-approved non-NB 927 TP Flash Header definition while retaining distinct LDC, DP, and container facts.",
+      "evidenceRefs": [
+        "adr-0013-tp-binary-model-owner-gate",
+        "adr-0041-owner-accepted-2026-07-27",
+        "adr-0043-owner-accepted-2026-07-28",
+        "gen-flash-bin-v2-51927-golden",
+        "gen-flash-bin-v2-51928-golden",
+        "tddi-flash-header-workbook-927"
+      ]
     }
   ],
   "evidenceRefs": [
@@ -420,6 +483,9 @@
     "common-fw-ap-fwconfig-general-parameters",
     "gen-flash-bin-v2-51927-golden",
     "gen-flash-bin-v2-51928-golden",
-    "standard-merge-alias-51917-to-51927"
+    "standard-merge-alias-51917-to-51927",
+    "adr-0013-tp-binary-model-owner-gate",
+    "adr-0041-owner-accepted-2026-07-27",
+    "tddi-flash-header-workbook-927"
   ]
 }

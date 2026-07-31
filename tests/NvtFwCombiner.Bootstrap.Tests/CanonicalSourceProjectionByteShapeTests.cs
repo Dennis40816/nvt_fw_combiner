@@ -15,7 +15,7 @@ public sealed class CanonicalSourceProjectionByteShapeTests
     private const string Nt51929BundleDirectory = "nt51929-standard-merge";
     private const string Nt51929BundleHash = "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380";
     private const string Nt51928StandardBundleDirectory = "nt51928-standard-merge";
-    private const string Nt51928StandardBundleHash = "ebd187cf19770529649ce5dbbb21d3799ea667dccfa5322b3ef83a8e912272d5";
+    private const string Nt51928StandardBundleHash = "895ccc579907874af31e5a9f132e0ffb4c10e150f1ca8aad23a0f4f8bac317ca";
 
     /// <summary>
     /// Owner-approved NT51929 bytes prove both DP and TP slots produce the same full image

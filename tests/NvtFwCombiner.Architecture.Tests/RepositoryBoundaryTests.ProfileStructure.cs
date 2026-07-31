@@ -165,16 +165,21 @@ public sealed partial class RepositoryBoundaryTests
         ];
         string[] relationshipSchemaBundleIds =
         [
-            "nt51917-nt51927-general-merge-logical-candidate",
-            "nt51928-general-merge-logical-candidate",
             "nt51950-nt51951-general-merge-logical-candidate",
             "nt51923-dp-replace",
             "nt51927-dp-replace",
+            "nt51929-dp-replace",
+            "nt51950-nt51951-standard-merge",
+        ];
+        string[] tpHeaderSubjectSchemaBundleIds =
+        [
+            "nt51917-nt51927-general-merge-logical-candidate",
+            "nt51923-nt51926-general-merge-logical-candidate",
+            "nt51928-general-merge-logical-candidate",
+            "nt51923-standard-merge",
             "nt51927-standard-merge",
             "nt51928-dp-replace",
             "nt51928-standard-merge",
-            "nt51929-dp-replace",
-            "nt51950-nt51951-standard-merge",
         ];
         string[] sourceProjectionSchemaBundleIds =
         [
@@ -246,6 +251,12 @@ public sealed partial class RepositoryBoundaryTests
                     "firmware-family-v1.2-bank-instances.schema.json",
                     Assert.Single(bundle.Elements("FirmwareFamilySchemaFile")).Value);
             }
+            else if (tpHeaderSubjectSchemaBundleIds.Contains(include.Value, StringComparer.Ordinal))
+            {
+                Assert.Equal(
+                    "firmware-family-v1.2-tp-header-subjects.schema.json",
+                    Assert.Single(bundle.Elements("FirmwareFamilySchemaFile")).Value);
+            }
             else if (include.Value is
                     "nt51919-nt51929-nt51932-general-merge-logical-candidate" or
                     "nt51929-standard-merge")
@@ -271,9 +282,12 @@ public sealed partial class RepositoryBoundaryTests
                 "nt51928-general-merge-logical-candidate" => (
                     "nt51927-standard-merge\\families\\nt51927-nt51928.json",
                     "families\\nt51927-nt51928.json"),
+                "nt51923-nt51926-general-merge-logical-candidate" => (
+                    "nt51923-standard-merge\\families\\nt51923-nt51926.json",
+                    "families\\nt51923-nt51926.json"),
                 "nt51928-dp-replace" => (
-                    "nt51928-standard-merge\\families\\nt51927-nt51928-v1.4.json",
-                    "families\\nt51927-nt51928-v1.4.json"),
+                    "nt51928-standard-merge\\families\\nt51927-nt51928-v1.5.json",
+                    "families\\nt51927-nt51928-v1.5.json"),
                 "nt51950-nt51951-general-merge-logical-candidate" => (
                     "nt51950-nt51951-standard-merge\\families\\nt51950-nt51951-dp-perspective.json",
                     "families\\nt51950-nt51951-dp-perspective.json"),
@@ -388,9 +402,9 @@ public sealed partial class RepositoryBoundaryTests
     {
         string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
         var document = XDocument.Parse(project);
-        Assert.Equal(5, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
+        Assert.Equal(6, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
             !string.IsNullOrWhiteSpace(element.Value)));
-        Assert.Equal(5, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
+        Assert.Equal(6, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
             !string.IsNullOrWhiteSpace(element.Value)));
 
         foreach (string bundleId in new[]
@@ -419,16 +433,35 @@ public sealed partial class RepositoryBoundaryTests
                 "nt51927-nt51928.json")));
         }
 
+        XElement normalHeaderConsumer = Assert.Single(
+            document.Descendants("BuiltInProfileBundle"),
+            static bundle => StringComparer.Ordinal.Equals(
+                bundle.Attribute("Include")?.Value,
+                "nt51923-nt51926-general-merge-logical-candidate"));
+        Assert.Equal(
+            "nt51923-standard-merge\\families\\nt51923-nt51926.json",
+            normalHeaderConsumer.Element("CanonicalFirmwareFamilySource")?.Value);
+        Assert.Equal(
+            "families\\nt51923-nt51926.json",
+            normalHeaderConsumer.Element("CanonicalFirmwareFamilyDestination")?.Value);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "nt51923-nt51926-general-merge-logical-candidate",
+            "families",
+            "nt51923-nt51926.json")));
+
         XElement nt51928DpReplace = Assert.Single(
             document.Descendants("BuiltInProfileBundle"),
             static bundle => StringComparer.Ordinal.Equals(
                 bundle.Attribute("Include")?.Value,
                 "nt51928-dp-replace"));
         Assert.Equal(
-            "nt51928-standard-merge\\families\\nt51927-nt51928-v1.4.json",
+            "nt51928-standard-merge\\families\\nt51927-nt51928-v1.5.json",
             nt51928DpReplace.Element("CanonicalFirmwareFamilySource")?.Value);
         Assert.Equal(
-            "families\\nt51927-nt51928-v1.4.json",
+            "families\\nt51927-nt51928-v1.5.json",
             nt51928DpReplace.Element("CanonicalFirmwareFamilyDestination")?.Value);
         Assert.True(File.Exists(Path.Combine(
             Root.FullName,
@@ -436,14 +469,14 @@ public sealed partial class RepositoryBoundaryTests
             "built-in",
             "nt51928-standard-merge",
             "families",
-            "nt51927-nt51928-v1.4.json")));
+            "nt51927-nt51928-v1.5.json")));
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "profiles",
             "built-in",
             "nt51928-dp-replace",
             "families",
-            "nt51927-nt51928-v1.4.json")));
+            "nt51927-nt51928-v1.5.json")));
 
         XElement dpPerspectiveConsumer = Assert.Single(
             document.Descendants("BuiltInProfileBundle"),

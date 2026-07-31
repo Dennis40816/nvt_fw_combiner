@@ -119,6 +119,18 @@ public enum TpFlashHeaderFieldSubject
 
     /// <summary>Difference DLM payload.</summary>
     DlmDifference,
+
+    /// <summary>Generic DATA payload declared by normal TP headers.</summary>
+    Data,
+
+    /// <summary>Firmware configuration payload.</summary>
+    FirmwareConfig,
+
+    /// <summary>Normal CtrlRAM payload.</summary>
+    CtrlRam,
+
+    /// <summary>Manufacturing-process CtrlRAM payload.</summary>
+    MpCtrlRam,
 }
 
 /// <summary>Closed value role carried by one TP Flash Header field.</summary>

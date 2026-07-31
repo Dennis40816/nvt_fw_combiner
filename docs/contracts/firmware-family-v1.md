@@ -15,13 +15,19 @@ build-selected strict successor
 It retains schema version `1.1`, the common firmware-family schema id, every
 relations-schema constraint, and is selected by its exact trusted content
 hash.
+Bundles that need the admitted `data`, `firmware-config`, `ctrlram`, and
+`mp-ctrlram` TP Header subjects select the closed-vocabulary successor
+[`firmware-family-v1.2-tp-header-subjects.schema.json`](firmware-family-v1.2-tp-header-subjects.schema.json).
+It retains schema version `1.1`, the same schema id and every 1.1 invariant;
+the new file extends only the typed Header subject vocabulary and is pinned by
+its own trusted content hash.
 Bundles that additionally require repeated instance-relative bank geometry use
 the build-selected strict successor
 [`firmware-family-v1.2-bank-instances.schema.json`](firmware-family-v1.2-bank-instances.schema.json).
 It retains the common firmware-family schema id and TP Header constraints,
 uses schema version `1.2`, and is selected by its exact trusted content hash.
 
-Migration status: the strict relations schema and TP Header successor implement
+Migration status: the strict relations schema and TP Header successors implement
 ADR 0041 with exactly two serialized relationship forms:
 `perfect-like-family` and `shared-fact-relationship`. The former dedicated
 `initial-code-shared-family` and `tp-shared-family` discriminators are no longer
