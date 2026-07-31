@@ -26,6 +26,33 @@
         "owner-confirmed NT51919/NT51929/NT51932 DiffDLM full-stride contract 2026-07-27",
         "nt51932-diffdlm-nf-mask-cascade4-20260727"
       ]
+    },
+    {
+      "policyId": "nt51950-nt51951-preserve-active-diffnf",
+      "sourceFileName": "DiffDLM.bin",
+      "stagedArtifactId": "postbuild-diffdlm",
+      "sourceRecordStride": 5120,
+      "targetBase": 209408,
+      "targetRecordStride": 5120,
+      "writableRange": { "start": 0, "length": 2320 },
+      "preservationMasks": [
+        {
+          "kind": "keep-reference",
+          "range": { "start": 2320, "length": 2800 }
+        }
+      ],
+      "minimumIcCount": 2,
+      "maximumIcCount": 2,
+      "activeRecordCountOffset": -1,
+      "independentNfSourceFileName": "NF_Ctrlram.bin",
+      "firmwareConfigBackupAlignment": 4096,
+      "firmwareConfigBackupLength": 1920,
+      "firmwareConfigBackupAuthority": { "start": 221184, "length": 1920 },
+      "fixedFirmwareConfigBackupStart": 221184,
+      "evidenceRefs": [
+        "owner-confirmed NT51950/NT51951 exact-2-IC PreserveActiveDiffNf geometry 2026-07-31",
+        "nt51951-fw200-cascade2-auto-prj-599-20260731"
+      ]
     }
   ],
   "profiles": [
@@ -4768,7 +4795,8 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
-      "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat"
+      "diffDlmPolicyId": "nt51950-nt51951-preserve-active-diffnf",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat; 51950_2.0.0_mmap.h; owner-supplied AUTO_PRJ-599 NT51951 exact-2-IC expected output; owner-confirmed NT51950 fact-scoped geometry applicability"
     },
     {
       "processorId": "nfc.nt51951.ctrlram-postbuild-v1",
@@ -4919,7 +4947,8 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
-      "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat; owner confirmation: NT51951 follows NT51950"
+      "diffDlmPolicyId": "nt51950-nt51951-preserve-active-diffnf",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat; 51950_2.0.0_mmap.h; owner-supplied AUTO_PRJ-599 NT51951 exact-2-IC expected output"
     }
   ]
 }

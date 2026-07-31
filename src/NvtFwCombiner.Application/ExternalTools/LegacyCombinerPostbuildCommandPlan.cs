@@ -49,7 +49,7 @@ public sealed class LegacyCombinerPostbuildCommandPlan
     public int TopologyCount { get; }
 
     /// <summary>
-    /// Resolved dependency on canonical FWConfig <c>Chip_Num</c>. A Dynamic DiffDLM
+    /// Resolved dependency on canonical FWConfig <c>Chip_Num</c>. A masked DiffDLM
     /// policy consumes the value; count-invariant plans only surface zero as a warning.
     /// </summary>
     public FirmwareConfigChipCountRequirement ChipCountRequirement =>

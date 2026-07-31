@@ -3,7 +3,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests.ExternalTools;
 
-/// <summary>Tests the canonical full-record invariants of Dynamic DiffDLM policy.</summary>
+/// <summary>Tests the canonical full-record invariants of masked DiffDLM policy.</summary>
 public sealed class LegacyCombinerDiffDlmPolicyTests
 {
     /// <summary>Every count resolves one complete source prefix and one aligned Backup envelope.</summary>
@@ -44,9 +44,37 @@ public sealed class LegacyCombinerDiffDlmPolicyTests
                 firmwareConfigBackupAuthority: new ByteRange(0x30000, 0x7000)));
     }
 
+    /// <summary>A fixed owner placement is count-independent and resolves to its exact copy envelope.</summary>
+    [Fact]
+    public void FixedBackupStartOverridesDynamicPlacementAndNarrowsAuthority()
+    {
+        LegacyCombinerDiffDlmPolicy policy = CreatePolicy(
+            firmwareConfigBackupAuthority: new ByteRange(0x35000, 0x3000),
+            fixedFirmwareConfigBackupStart: 0x36000);
+
+        for (int icCount = 2; icCount <= 8; icCount++)
+        {
+            Assert.Equal(0x36000, policy.GetExpectedFirmwareConfigBackupStart(icCount));
+            Assert.Equal(
+                new ByteRange(0x36000, 0x1000),
+                policy.GetResolvedFirmwareConfigBackupAuthority(icCount));
+        }
+    }
+
+    /// <summary>A fixed placement outside declared processor authority fails at profile construction.</summary>
+    [Fact]
+    public void RejectsFixedBackupOutsideAuthority()
+    {
+        _ = Assert.Throws<ArgumentException>(() =>
+            CreatePolicy(
+                firmwareConfigBackupAuthority: new ByteRange(0x35000, 0x1000),
+                fixedFirmwareConfigBackupStart: 0x36000));
+    }
+
     private static LegacyCombinerDiffDlmPolicy CreatePolicy(
         long sourceRecordStride = 0x1400,
-        ByteRange? firmwareConfigBackupAuthority = null)
+        ByteRange? firmwareConfigBackupAuthority = null,
+        long? fixedFirmwareConfigBackupStart = null)
     {
         return new LegacyCombinerDiffDlmPolicy(
             "nt51929-family-dynamic-diffdlm",
@@ -68,7 +96,8 @@ public sealed class LegacyCombinerDiffDlmPolicyTests
             firmwareConfigBackupAlignment: 0x1000,
             firmwareConfigBackupLength: 0x1000,
             firmwareConfigBackupAuthority ?? new ByteRange(0x2F000, 0x8000),
-            ["owner-contract"]);
+            ["owner-contract"],
+            fixedFirmwareConfigBackupStart);
     }
 
     private static long AlignUp(long value, int alignment)

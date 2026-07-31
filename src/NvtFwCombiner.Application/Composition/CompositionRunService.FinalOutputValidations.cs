@@ -133,7 +133,7 @@ public sealed partial class CompositionRunService
         {
             return new CompositionIssue(
                 requirement.IssueCode,
-                "Dynamic DiffDLM preservation audit cannot read the complete immutable Reference authority.",
+                "Masked DiffDLM preservation audit cannot read the complete immutable Reference authority.",
                 requirement.RuleId,
                 CompositionIssueSeverity.Error);
         }
@@ -172,7 +172,7 @@ public sealed partial class CompositionRunService
             {
                 return new CompositionIssue(
                     requirement.InactiveMutationIssueCode,
-                    $"Postbuild changed inactive Dynamic DiffDLM byte 0x{offset:X} outside the original and actual FWConfig Backup envelopes.",
+                    $"Postbuild changed inactive masked DiffDLM byte 0x{offset:X} outside the permitted FWConfig Backup envelopes.",
                     requirement.RuleId,
                     CompositionIssueSeverity.Error);
             }

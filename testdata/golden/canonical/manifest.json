@@ -113,6 +113,19 @@
         "approval": "Repository owner supplied the NT51932 4-IC DiffDLM archive and directed it be added as a golden on 2026-07-27.",
         "evidenceScope": "Direct NT51932 cascade-4 regression for full-stride DiffDLM masking: three DLM records are writable, interleaved NF tails are reference-preserved, and postbuild CRC/header bytes are verified from the complete expected output. No support promotion or NT51950/NT51951 physical-layout inference is authorized."
       }
+    },
+    {
+      "legacyRoot": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731",
+      "source": {
+        "fileName": "20260731_togo.7z",
+        "archiveSha256": "7583282fb8d66b186cbac4c916ecad5bfa49f593eaa64ef2eff33951889c90fe",
+        "archiveMember": "51950_Cascade_AUTO_PRJ-599",
+        "transfer": "HackMD CJK14 numbered-note transfer",
+        "recoveredAtTaipei": "2026-07-31",
+        "sourceClassification": "private-owner-approved-golden",
+        "approval": "Repository owner supplied the folder as the 950 Cascade expected case, directed supplied reference data to be committed under repository evidence policy, and limited inactive-record fill validation to golden fixtures on 2026-07-31.",
+        "evidenceScope": "Direct NT51951 exact-2-IC preservation golden plus fact-scoped NT51950 geometry/postbuild alias for issue #188. Executable, DLL, and PDB payloads are not registered or tracked; their exact inventory hashes remain in the case provenance. No support promotion or release redistribution."
+      }
     }
   ],
   "cases": [
@@ -219,6 +232,14 @@
     {
       "caseId": "nt51932-diffdlm-nf-mask-cascade4-20260727",
       "manifestPath": "NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/provenance/case.json"
+    },
+    {
+      "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+      "manifestPath": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/case.json"
+    },
+    {
+      "caseId": "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias",
+      "manifestPath": "NT51950/ctrlram-replace/fw2.0.0/cascade-2/nt51950-cascade2-geometry-nt51951-auto-prj-599-alias/provenance/case.json"
     },
     {
       "caseId": "nt51951-fw200-single-auto-prj-695-20260718",

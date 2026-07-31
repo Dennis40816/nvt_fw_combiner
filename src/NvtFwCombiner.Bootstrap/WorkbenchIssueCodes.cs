@@ -97,7 +97,7 @@ public static class WorkbenchIssueCodes
     public const string ReplaceCtrlRamFirmwareConfigBackupPlacementInvalid =
         "replace.ctrlram.fwconfig-backup-placement-invalid";
 
-    /// <summary>Postbuild changed inactive Dynamic DiffDLM bytes outside the original/actual FWConfig Backup envelopes.</summary>
+    /// <summary>Postbuild changed inactive masked DiffDLM bytes outside permitted FWConfig Backup envelopes.</summary>
     public const string ReplaceCtrlRamDynamicDiffDlmInactiveMutation =
         "replace.ctrlram.dynamic-diffdlm-inactive-mutation";
 

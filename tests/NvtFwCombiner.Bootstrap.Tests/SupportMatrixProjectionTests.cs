@@ -230,6 +230,37 @@ public sealed class SupportMatrixProjectionTests
             $"Actual integrity route: {row.Route.Identity.IntegrityRouteId}");
     }
 
+    /// <summary>950-family masked DiffDLM policy narrows the shared cascade command to exactly two ICs.</summary>
+    [Theory]
+    [InlineData("NT51950", "nt51950-ctrlram-fw1x-cascade-full-flash", "nt51950-ctrlram-fw1x-cascade-tp-work")]
+    [InlineData("NT51951", "nt51951-ctrlram-fw1x-cascade-full-flash", "nt51951-ctrlram-fw1x-cascade-tp-work")]
+    public void Nt51950FamilyCascadeRowsUseExactTwoIcTopology(
+        string icId,
+        string expectedFullFlashMap,
+        string expectedTpWorkMap)
+    {
+        SupportMatrix matrix = WorkbenchCompositionService.GetSupportMatrix();
+
+        Assert.Equal(
+            [expectedFullFlashMap, expectedTpWorkMap],
+            [
+                .. matrix.Rows
+                    .Where(row =>
+                        row.Route.Identity.IcId == icId &&
+                        row.Route.Identity.WorkflowId == IcWorkflowIds.CtrlRamReplace &&
+                        row.Route.Identity.IcCountVariant == "2-ic")
+                    .Select(static row => row.Route.Identity.MapVariant)
+                    .Order(StringComparer.Ordinal),
+            ]);
+        Assert.DoesNotContain(
+            matrix.Diagnostics,
+            diagnostic =>
+                diagnostic.Code == SupportMatrixMaterializer.SourceScopeUnresolved &&
+                diagnostic.Subject.StartsWith(
+                    $"support-source:{icId}:ctrlram-replace:",
+                    StringComparison.Ordinal));
+    }
+
     /// <summary>The snapshot is immutable-by-copy, exact, and rebuilt without static UI state.</summary>
     [Fact]
     public void ProjectionHasUniqueStableRoutesAndFreshSnapshots()

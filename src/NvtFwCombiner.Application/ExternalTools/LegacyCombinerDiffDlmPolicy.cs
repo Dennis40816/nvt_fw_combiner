@@ -59,7 +59,8 @@ public sealed class LegacyCombinerDiffDlmPolicy
         int firmwareConfigBackupAlignment,
         long firmwareConfigBackupLength,
         ByteRange firmwareConfigBackupAuthority,
-        IEnumerable<string> evidenceRefs)
+        IEnumerable<string> evidenceRefs,
+        long? fixedFirmwareConfigBackupStart = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(policyId);
         ValidatePlainFileName(sourceFileName, nameof(sourceFileName));
@@ -94,6 +95,13 @@ public sealed class LegacyCombinerDiffDlmPolicy
         }
 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(firmwareConfigBackupLength);
+        if (fixedFirmwareConfigBackupStart is < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(fixedFirmwareConfigBackupStart),
+                "Fixed FWConfig Backup start must not be negative.");
+        }
+
         if (!new ByteRange(0, sourceRecordStride).Contains(writableRange) ||
             !new ByteRange(0, targetRecordStride).Contains(writableRange))
         {
@@ -131,12 +139,13 @@ public sealed class LegacyCombinerDiffDlmPolicy
             long activeEnd = checked(
                 targetBase +
                 ((icCount + activeRecordCountOffset) * targetRecordStride));
-            long expectedBackupStart = AlignUp(activeEnd, firmwareConfigBackupAlignment);
+            long expectedBackupStart = fixedFirmwareConfigBackupStart ??
+                AlignUp(activeEnd, firmwareConfigBackupAlignment);
             if (!firmwareConfigBackupAuthority.Contains(
                     new ByteRange(expectedBackupStart, firmwareConfigBackupLength)))
             {
                 throw new ArgumentException(
-                    "FWConfig Backup authority must contain every supported count-derived Backup envelope.",
+                    "FWConfig Backup authority must contain every supported Backup envelope.",
                     nameof(firmwareConfigBackupAuthority));
             }
         }
@@ -156,6 +165,7 @@ public sealed class LegacyCombinerDiffDlmPolicy
         FirmwareConfigBackupAlignment = firmwareConfigBackupAlignment;
         FirmwareConfigBackupLength = firmwareConfigBackupLength;
         FirmwareConfigBackupAuthority = firmwareConfigBackupAuthority;
+        FixedFirmwareConfigBackupStart = fixedFirmwareConfigBackupStart;
         EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
     }
 
@@ -195,13 +205,16 @@ public sealed class LegacyCombinerDiffDlmPolicy
     /// <summary>Postbuild-owned NF source that must not be exposed as an independent selector.</summary>
     public string IndependentNfSourceFileName { get; }
 
-    /// <summary>Required alignment for the expected dynamic FWConfig Backup start.</summary>
+    /// <summary>Required alignment when the expected FWConfig Backup start is active-record-derived.</summary>
     public int FirmwareConfigBackupAlignment { get; }
+
+    /// <summary>Owner-declared fixed Backup start, or null when placement is active-record-derived.</summary>
+    public long? FixedFirmwareConfigBackupStart { get; }
 
     /// <summary>Complete FWConfig Backup envelope length.</summary>
     public long FirmwareConfigBackupLength { get; }
 
-    /// <summary>Static bounded postbuild authority covering every supported dynamic Backup position.</summary>
+    /// <summary>Static bounded postbuild authority covering every supported Backup position.</summary>
     public ByteRange FirmwareConfigBackupAuthority { get; }
 
     /// <summary>Owner-approved evidence references.</summary>
@@ -239,10 +252,12 @@ public sealed class LegacyCombinerDiffDlmPolicy
         return checked(TargetBase + (GetActiveRecordCount(icCount) * TargetRecordStride));
     }
 
-    /// <summary>Returns the count-derived expected FWConfig Backup start.</summary>
+    /// <summary>Returns the owner-declared fixed or active-record-derived expected FWConfig Backup start.</summary>
     public long GetExpectedFirmwareConfigBackupStart(int icCount)
     {
-        return AlignUp(GetActiveTargetEndExclusive(icCount), FirmwareConfigBackupAlignment);
+        _ = GetActiveRecordCount(icCount);
+        return FixedFirmwareConfigBackupStart ??
+            AlignUp(GetActiveTargetEndExclusive(icCount), FirmwareConfigBackupAlignment);
     }
 
     /// <summary>
@@ -250,6 +265,12 @@ public sealed class LegacyCombinerDiffDlmPolicy
     /// </summary>
     public ByteRange GetResolvedFirmwareConfigBackupAuthority(int icCount)
     {
+        if (FixedFirmwareConfigBackupStart is { } fixedStart)
+        {
+            _ = GetActiveRecordCount(icCount);
+            return new ByteRange(fixedStart, FirmwareConfigBackupLength);
+        }
+
         long start = Math.Max(
             GetActiveTargetEndExclusive(icCount),
             FirmwareConfigBackupAuthority.Start);
